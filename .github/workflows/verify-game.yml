@@ -1,0 +1,53 @@
+name: Verify Survivor arcade
+
+on:
+  push:
+    branches:
+      - migration/production-20261103
+    paths:
+      - .github/workflows/verify-game.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-arcade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Test arcade mechanics and UI logic
+        run: node --test arcade/tests/*.test.mjs
+
+      - name: Verify all published asset bytes
+        run: |
+          python3 - <<'PY'
+          import json, hashlib
+          from pathlib import Path
+          m=json.loads(Path("migration/binary-manifest.json").read_text())
+          errors=[]
+          for entry in m["files"]:
+              path=Path(entry["path"])
+              if not path.is_file():
+                  errors.append(f"missing: {path}")
+                  continue
+              data=path.read_bytes()
+              h=hashlib.sha1(b"blob "+str(len(data)).encode()+b"\0"+data).hexdigest()
+              if len(data)!=entry["size"] or h!=entry["sha"]:
+                  errors.append(f"changed: {path}")
+          print(f"Verified {len(m['files'])-len(errors)} of {len(m['files'])} binary files")
+          if errors:
+              raise SystemExit("\n".join(errors[:50]))
+          PY
+
+      - name: Ensure restricted studio recordings are excluded
+        run: |
+          if find audio-lab/assets/sfx/studio -type f -name '*.ogg' 2>/dev/null | grep -q .; then
+            echo "Restricted studio OGG files must not be tracked in the public repository"
+            exit 1
+          fi
