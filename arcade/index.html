@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#071426">
+<title>Выживший · Бесконечная аркада — прототип</title>
+<link rel="stylesheet" href="./style.css?v=arcade-station-followup-65">
+<link rel="stylesheet" href="./hud.css?v=arcade-extraction-risk-34">
+</head>
+<body>
+<div class="space-sky" id="sky0" aria-hidden="true"></div>
+<div class="space-sky" id="sky1" aria-hidden="true"></div>
+<canvas id="game" aria-label="Игровое поле"></canvas>
+<div id="hud" class="cockpit-hud" aria-label="Голографическая панель корабля">
+ <div class="cockpit-frame" id="cockpitFrame">
+  <div class="cockpit-arch arch-left" aria-hidden="true"></div>
+  <div class="cockpit-arch arch-right" aria-hidden="true"></div>
+  <div class="cockpit-grid">
+   <section class="cockpit-vitals cockpit-wing wing-left" aria-label="Состояние корабля">
+    <div class="wing-topline"><span class="wing-sigil">◇</span><strong>ВЫЖИВШИЙ</strong><span class="ship-level">LVL <b id="level">1</b></span></div>
+    <div class="sector-label" id="sector">Аметистовая туманность</div>
+    <div class="instrument-label"><span>ЦЕЛОСТНОСТЬ КОРПУСА</span><b id="hp">110 / 110</b></div>
+    <div id="hpmeter" class="ship-meter hull-meter" role="progressbar" aria-label="Прочность корабля" aria-valuemin="0" aria-valuemax="110" aria-valuenow="110"><span id="hpbar"></span></div>
+    <div class="vitals-secondary"><span>ЩИТ <b id="shield">—</b></span><span>ОПЫТ <b id="points">до ур. 2</b></span></div>
+    <div id="xpmeter" class="ship-meter experience-meter" role="progressbar" aria-label="Опыт до следующего уровня" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="xpbar"></span></div>
+    <div class="wing-footer"><span>HULL // 01</span><span class="system-dots" aria-hidden="true">◆ ◆ ◆ ◆</span></div>
+   </section>
+   <section class="cockpit-flight" aria-label="Навигация, радар и двигатель">
+    <div id="flightStatus" class="flight-status"><span class="live-indicator" aria-hidden="true"></span><b id="stateText">СИСТЕМЫ В НОРМЕ</b></div>
+    <div id="criticalAlert" class="critical-alert" role="status" aria-live="polite" aria-atomic="true"><span class="alert-glyph" aria-hidden="true">!</span><span id="criticalText">ТРЕВОГА · КРИТИЧЕСКИЙ КОРПУС</span></div>
+    <div class="radar-unit">
+     <div class="radar-aura" aria-hidden="true"></div>
+     <div class="radar-arc radar-arc-left" aria-hidden="true"></div>
+     <div class="radar-arc radar-arc-right" aria-hidden="true"></div>
+     <div class="radar-header"><span>NAV</span><b>01</b><span>· СКАНЕР ·</span></div>
+     <canvas id="radar" width="144" height="144" role="img" aria-label="Ближний радар: союзники, противники, станции и орбитальные удары"></canvas>
+     <div class="radar-readout" id="radarDistance">БЛИЖНИЙ СЕКТОР</div>
+    </div>
+    <div id="burst" class="burst-meter ready" aria-label="Короткий рывок">
+     <div class="instrument-label"><span><kbd>SHIFT</kbd> · УСКОРЕНИЕ</span><b id="bursttext">ГОТОВ</b></div>
+     <div class="boost-rail"><span id="burstbar" style="width:100%"></span></div>
+    </div>
+    <div id="miningStatus" class="mining-status" aria-live="off" hidden><span id="miningLabel">⚡ ЭКСТРАКТОР</span><b id="miningPercent">0%</b></div>
+    <div class="flight-foot"><span id="flightMode">АВТООГОНЬ · АКТИВЕН</span><span id="wingStatus">ВЕДОМЫЕ: 0</span></div>
+   </section>
+   <section class="cockpit-telemetry cockpit-wing wing-right" aria-label="Ресурсы и флот">
+    <div class="wing-topline"><span class="wing-sigil">◈</span><strong>ЗАПАСЫ И ФЛОТ</strong><span class="wing-code">SYS // 03</span></div>
+    <div class="resource-stats">
+     <span class="resource"><small>ДАННЫЕ</small><b id="data">0</b></span>
+     <span class="resource ore-resource" id="oreResource"><small>СПЛАВ</small><b id="ore">0</b><em id="oreGain" aria-hidden="true"></em></span>
+     <span class="resource"><small>БАЗЫ</small><b id="bases">0</b></span>
+     <span class="resource"><small>ВЕДОМЫЕ</small><b id="wing">0</b></span>
+     <span class="resource"><small>КОДЫ</small><b id="hack">0</b></span>
+    </div>
+    <div class="telemetry-foot"><span class="resource-legend"><i></i> БОЕВАЯ ТЕЛЕМЕТРИЯ</span><span class="perf"><b id="fps">60</b> FPS · <b id="enemies">0</b> ЦЕЛЕЙ</span></div>
+    <div class="wing-footer"><span>INV // 02</span><span class="system-dots" aria-hidden="true">◆ ◆ ◆ ◆</span></div>
+   </section>
+  </div>
+  <div class="cockpit-keel" aria-hidden="true"><span></span><i></i><span></span></div>
+ </div>
+ <div id="contractObjective" class="contract-objective" aria-live="off" hidden></div>
+ <div id="message" role="status" aria-live="polite"></div>
+</div>
+<div id="audioControls">
+ <button id="audioBtn" type="button" aria-pressed="false"
+  title="Включить музыку и звуковые эффекты">🔇 Звук выключен</button>
+ <details id="audioMixer">
+  <summary>Настроить громкость</summary>
+  <div class="audio-mixer-body">
+   <label>Общая <output data-audio-value="masterVolume">50%</output>
+    <input type="range" min="5" max="100" value="50" step="5" data-audio-channel="masterVolume" aria-label="Общая громкость">
+   </label>
+   <label>Эффекты <output data-audio-value="sfxVolume">70%</output>
+    <input type="range" min="5" max="100" value="70" step="5" data-audio-channel="sfxVolume" aria-label="Громкость звуковых эффектов">
+   </label>
+   <label>Музыка <output data-audio-value="musicVolume">27%</output>
+    <input type="range" min="5" max="100" value="27" step="1" data-audio-channel="musicVolume" aria-label="Громкость музыки">
+   </label>
+   <small>Звук включается только кнопкой выше</small>
+  </div>
+ </details>
+ <a id="audioCredits" href="../assets/audio/music/CREDITS.md" target="_blank"
+  rel="noopener">Музыка: Scott Buckley · CC BY 4.0</a>
+</div>
+<div id="tips">WASD / стрелки — полёт · E — действие · C — автоогонь · Shift — рывок · Q — код · B — авиаудар · Tab — карта · U — развитие</div>
+<div class="mobile">
+ <div id="stick" aria-label="Сенсорный джойстик"><div id="knob"></div></div>
+ <div class="mobile-menu" role="group" aria-label="Карта и развитие">
+  <button id="mapBtn" type="button">Карта</button>
+  <button id="skillBtn" type="button">Развитие</button>
+ </div>
+ <div class="mobile-buttons" role="group" aria-label="Управление кораблём">
+  <div class="mobile-abilities">
+   <button id="hackBtn" type="button" hidden>Код</button>
+   <button id="strikeBtn" type="button" hidden>Авиаудар</button>
+  </div>
+  <button id="actionBtn" type="button" disabled aria-label="Нет объектов для взаимодействия">Действие</button>
+  <div class="mobile-main">
+   <button id="burstBtn" type="button">Рывок</button>
+   <button id="quietBtn" type="button" aria-pressed="false">Огонь вкл.</button>
+  </div>
+ </div>
+</div>
+<div id="overlay" hidden></div>
+<a id="back" href="https://vesninmed.ru/lab/" title="Вернуться в Лабораторию абсурда">← Лаборатория</a>
+<script type="module" src="./game.js?v=arcade-station-followup-65"></script>
+</body>
+</html>

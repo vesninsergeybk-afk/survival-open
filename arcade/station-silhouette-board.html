@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>«Выживший» — сравнение силуэтов четырёх станций</title>
+<style>
+:root{font-family:system-ui,sans-serif;background:#0a1421;color:#e6f4ff}
+body{max-width:1190px;padding:20px;margin:auto}
+h1{font-size:22px}p{color:#b4c9d7;line-height:1.5;max-width:84ch}
+#stage{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.card{border:1px solid #38556c;background:#152638;border-radius:11px;padding:11px;min-width:0}
+.card h2{font-size:15px;margin:4px 0}.card p{font-size:12px;min-height:56px}
+.canvas-wrap{background:radial-gradient(ellipse at 50% 40%,#29415a,#081321 90%);
+ display:grid;place-items:center;border-radius:8px;overflow:hidden}
+canvas{max-width:100%}
+button{border:1px solid #67849b;background:#23465e;color:white;border-radius:8px;padding:9px 12px}
+@media(max-width:950px){#stage{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){#stage{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<h1>Четыре силуэта · проектная проверка</h1>
+<p>Силуэты показаны в одинаковом масштабе, без цветовых различий и дополнительных эффектов. <strong>Только ремонтный док уже реализован в рабочей ветке.</strong> Остальные три изображения — предварительные геометрические эскизы для будущих этапов, а не готовые игровые станции.</p>
+<button id="names">Скрыть названия</button>
+<div id="stage"></div>
+<p>Размер корабля игрока для сравнения — около 39 игровых единиц; небольшой контур в правом нижнем углу каждой ячейки имеет эту высоту. При оценке сначала узнавайте силуэт, затем включайте названия.</p>
+<script type="module">
+import {drawRepairDock} from './repair-dock-art.js?v=dock-identity-1';
+const forms=[
+ {type:'dock',name:'Ремонтный док',desc:'U-образная ниша и шарнирные захваты'},
+ {type:'arsenal',name:'Военный арсенал',desc:'Бронированный угловатый склад'},
+ {type:'carrier',name:'Авианосец',desc:'Две длинные лётные палубы'},
+ {type:'lab',name:'Лаборатория',desc:'Разомкнутое кольцо с исследовательским ядром'}
+];
+const root=document.getElementById('stage'),items=[],N=220;
+const P=(ctx,pts)=>{ctx.beginPath();ctx.moveTo(...pts[0]);
+ for(let i=1;i<pts.length;i++)ctx.lineTo(...pts[i]);ctx.closePath();ctx.fill();ctx.stroke();};
+for(const f of forms){
+ const card=document.createElement('section');card.className='card';
+ const h=document.createElement('h2');h.textContent=f.name;
+ const frame=document.createElement('div');frame.className='canvas-wrap';
+ const canvas=document.createElement('canvas');canvas.width=N;canvas.height=N;
+ frame.append(canvas);const p=document.createElement('p');p.textContent=f.desc;
+ card.append(h,frame,p);root.append(card);items.push({f,h,p,canvas});
+}
+document.getElementById('names').onclick=()=>{
+ const hidden=!items[0].h.hidden;
+ for(const x of items){x.h.hidden=hidden;x.p.hidden=hidden;}
+ document.getElementById('names').textContent=hidden?'Показать названия':'Скрыть названия';
+};
+function render(){
+ for(const {f,canvas} of items){
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,N,N);ctx.save();ctx.translate(110,107);
+  ctx.fillStyle='#597185';ctx.strokeStyle='#b5c4c9';ctx.lineWidth=2;
+  if(f.type==='dock'){
+   ctx.save();ctx.filter='grayscale(1)';
+   drawRepairDock(ctx,{id:'0:0',type:'dock',active:false,hp:760,maxHp:760},0,{connected:false,reducedMotion:true});
+   ctx.restore();
+  }else if(f.type==='arsenal'){
+   P(ctx,[[-52,-73],[0,-91],[52,-73],[79,-40],[72,-8],[89,28],
+    [62,73],[25,86],[-25,86],[-62,73],[-89,28],[-72,-8],[-79,-40]]);
+   ctx.fillStyle='#152536';
+   ctx.fillRect(-34,-50,68,100);
+   ctx.strokeRect(-34,-50,68,100);
+   ctx.fillStyle='#8aa0ac';for(const x of [-63,63])
+    for(const y of [-31,7,45])ctx.fillRect(x-7,y,14,15);
+  }else if(f.type==='carrier'){
+   P(ctx,[[-74,-89],[-20,-89],[-11,-54],[11,-54],[20,-89],[74,-89],
+    [84,80],[55,91],[-55,91],[-84,80]]);
+   ctx.fillStyle='#152536';
+   for(const x of [-42,42])ctx.fillRect(x-22,-69,44,145);
+   ctx.strokeStyle='#abbfc7';ctx.lineWidth=1.7;
+   for(const x of [-42,42]){
+    ctx.strokeRect(x-22,-69,44,145);ctx.beginPath();
+    ctx.moveTo(x,-52);ctx.lineTo(x,63);ctx.stroke();
+   }
+  }else{
+   ctx.beginPath();ctx.arc(0,0,78,-Math.PI*.68,Math.PI*.72);
+   ctx.arc(0,0,51,Math.PI*.72,-Math.PI*.68,true);
+   ctx.closePath();ctx.fill();ctx.stroke();
+   for(const a of [-2.35,-.85,.7,2.1]){
+    const x=Math.cos(a)*72,y=Math.sin(a)*72;
+    ctx.save();ctx.translate(x,y);ctx.rotate(a);
+    ctx.fillRect(-9,-18,32,36);ctx.strokeRect(-9,-18,32,36);ctx.restore();
+   }
+   ctx.fillStyle='#1d3145';ctx.strokeStyle='#b1bec7';
+   ctx.beginPath();ctx.arc(0,0,24,0,Math.PI*2);ctx.fill();ctx.stroke();
+  }
+  ctx.restore();
+  // The calibration reference belongs to the review board, not the game.
+  ctx.save();ctx.translate(178,166);ctx.strokeStyle='#f0f5f6';ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.moveTo(0,-19);ctx.lineTo(-13,19);
+  ctx.lineTo(0,11);ctx.lineTo(13,19);ctx.closePath();ctx.stroke();ctx.restore();
+ }
+}
+render();
+setTimeout(render,250);setTimeout(render,1200);
+</script>
+</body>
+</html>

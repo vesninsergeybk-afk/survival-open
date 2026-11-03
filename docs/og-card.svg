@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+<title>Выживший: Космический рубеж</title><defs>
+<linearGradient id="bg" x2="1" y2="1"><stop stop-color="#24104f"/><stop offset=".5" stop-color="#0d2951"/><stop offset="1" stop-color="#030914"/></linearGradient>
+<radialGradient id="glow"><stop stop-color="#985bdb" stop-opacity=".7"/><stop offset="1" stop-color="#582fa3" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1200" height="630" fill="url(#bg)"/>
+<circle cx="935" cy="160" r="315" fill="url(#glow)"/>
+<g fill="#c9e9ff"><circle cx="120" cy="94" r="4"/><circle cx="805" cy="86" r="3"/><circle cx="1101" cy="449" r="4"/><circle cx="692" cy="560" r="2"/><circle cx="294" cy="525" r="3"/></g>
+<g transform="translate(165,290) scale(2.7)"><path d="M0 -58 L21 -12 L53 10 L43 28 L20 21 L0 42 L-20 21 L-43 28 L-53 10 L-21 -12Z" fill="#7fc8ef" stroke="#d8f7ff" stroke-width="4"/><path d="M0 -41 L11 -4 L0 14 L-11 -4Z" fill="#124277"/><path d="M-31 26 L-17 21 L-22 68Z M17 21 L31 26 L22 68Z" fill="#57efff"/></g>
+<text x="375" y="278" font-size="77" fill="#f2fbff" font-family="sans-serif" font-weight="800">ВЫЖИВШИЙ</text>
+<text x="384" y="344" font-size="40" fill="#84e9ff" font-family="sans-serif" letter-spacing="4">КОСМИЧЕСКИЙ РУБЕЖ</text>
+<text x="380" y="422" font-size="27" fill="#b5cfee" font-family="sans-serif">Три корабля · Три сектора · Боссы · Улучшения</text>
+<text x="384" y="530" font-size="24" fill="#a0b2df" font-family="sans-serif">VESNINMED · ЛАБОРАТОРИЯ АБСУРДА</text>
+</svg>

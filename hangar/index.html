@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080f1c">
+<title>Ангар главного корабля — Выживший</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font:14px/1.4 system-ui,sans-serif;color:#dff3ff;background:#07111d}
+a{color:#81e5df}.app{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,350px);height:100dvh}
+.stage{position:relative;min-height:280px;overflow:hidden;background:radial-gradient(ellipse at center,#1b3346 0,#081523 60%,#050c15 100%)}
+.stage:after{pointer-events:none;content:"";position:absolute;inset:0;background:linear-gradient(0deg,#07111da5,transparent 30%)}
+#view{width:100%;height:100%;display:block;touch-action:none;outline:none}
+.info{position:absolute;z-index:2;top:18px;left:20px;right:20px;pointer-events:none}
+.info a{pointer-events:auto}.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#7de5cf}
+h1{font-size:clamp(25px,3vw,42px);margin:5px 0 0;line-height:1.1;letter-spacing:-.025em}
+#status{color:#a9ced8;font-size:12px;min-height:24px;margin-top:11px}
+.hint{position:absolute;z-index:2;bottom:18px;left:20px;font-size:12px;color:#8ab8c4;pointer-events:none}
+.controls{display:flex;flex-direction:column;min-height:0;border-left:1px solid #335368;background:#0d1d2ce8}
+.header{padding:15px;border-bottom:1px solid #335368}
+.header strong{font-size:16px}.header small{display:block;color:#a4b9c6;line-height:1.4;margin-top:4px}
+button,input,a{touch-action:manipulation}button{color:#def7ef;background:#183145;border:1px solid #3b6973;border-radius:7px;padding:9px 10px;font-weight:650;cursor:pointer;min-height:39px}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid #a1ffe1;outline-offset:2px}
+button:hover{background:#24485b}button[aria-pressed=true]{background:#216b67;border-color:#9bfbe6}
+.mode{display:flex;gap:8px;margin-top:12px}.mode button{flex:1;font-size:12px}
+.tier{padding:12px 15px;background:#0b2430;border-bottom:1px solid #335368}
+.tier label{display:flex;justify-content:space-between;gap:8px;font-weight:650}
+.tier input{width:100%;accent-color:#62e5c7;margin:9px 0}
+.filters{display:flex;gap:7px;flex-wrap:wrap;padding:11px 13px 5px}
+.filters button{font-size:11px;min-height:31px;padding:5px 7px}
+#search{width:calc(100% - 26px);margin:7px 13px 10px;padding:11px;border:1px solid #376074;border-radius:7px;background:#0a1725;color:#eafff7;outline-offset:2px}
+#models{flex:1;min-height:100px;overflow-y:auto;overscroll-behavior:contain;padding:4px 12px 12px;display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:7px}
+#models button{font-weight:500;text-align:left;font-size:11px;line-height:1.25;min-height:58px}
+#models button small{display:block;color:#92b3be;font-size:10px;margin-top:3px}
+.footer{padding:12px 14px;border-top:1px solid #365367;color:#a2bbc7;font-size:11px}
+.footer a{display:inline-block;margin-right:9px}
+@media(max-width:750px){.app{grid-template-columns:1fr;height:auto;min-height:100dvh}.stage{height:57dvh}.controls{height:43dvh}.info{top:10px;left:12px}.hint{bottom:12px;left:12px;font-size:10px}.header{padding:8px 10px}.header small{display:none}.mode{margin-top:6px}.mode button{min-height:32px}.tier{padding:7px 10px}.tier input{margin:4px 0}.filters{padding:6px 9px 2px}.filters button{min-height:28px}.footer{display:none}#search{margin:5px 9px;width:calc(100% - 18px);padding:7px}#models{grid-template-columns:repeat(3,minmax(0,1fr));padding:4px 9px;gap:5px}#models button{min-height:45px;font-size:10px;padding:5px}.stage h1{font-size:21px}}
+@media(max-height:520px) and (orientation:landscape){.app{grid-template-columns:minmax(0,1fr) minmax(280px,40vw);height:100dvh;min-height:0}.stage{height:100%}.controls{height:100%;border-left:1px solid #335368}}
+</style>
+</head>
+<body>
+<div class="app">
+<section class="stage" aria-label="Вращаемая трёхмерная модель">
+<canvas id="view" aria-label="3D-просмотр корабля — перетаскивайте для вращения"></canvas>
+<div class="info">
+<a href="../">← Вернуться в «Выжившего»</a>
+<div class="eyebrow" style="margin-top:16px">Эволюция героя и 3D-каталог</div>
+<h1 id="title">Модульный корабль</h1>
+<div id="status" role="status">Загружаем трёхмерную модель…</div>
+</div>
+<div class="hint" id="hint">Выберите ступень развития корабля</div>
+</section>
+<aside class="controls">
+<div class="header"><strong>Ангар «Выжившего»</strong><small>10 оригинальных спрайтов главного корабля. Отдельно доступен каталог из 80 CC0-моделей для Blender.</small>
+<div class="mode"><button id="ship" aria-pressed="true">Мой корабль</button><button id="single" aria-pressed="false">Каталог моделей</button></div></div>
+<div class="tier"><label for="tier">Модернизация корабля <span id="tierValue">1/10</span></label><input id="tier" type="range" min="0" max="9" step="1" value="0"></div>
+<div class="filters" id="filters"></div>
+<input id="search" type="search" placeholder="Найти модель…" aria-label="Найти модель">
+<div id="models" aria-label="Список 3D-моделей"></div>
+<div class="footer">
+<a id="download" href="#" download>Скачать текущий файл</a>
+<a href="https://3dassets.dev/packs/interstellar-fleet-modular-starships" target="_blank" rel="noopener">Первоисточник</a>
+<a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener">CC0</a>
+<br>Работает в браузере; модели можно открывать в Blender.
+</div>
+</aside>
+</div>
+<script type="module" src="./hangar.js?v=hero-100"></script>
+</body>
+</html>

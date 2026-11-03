@@ -1,0 +1,182 @@
+import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=arcade-probe-59';
+import {baseNames} from './balance.js?v=arcade-base-ops-38';
+// Tactical navigation: exact locations belong only to revealed contacts.
+// A radio signal is deliberately offset from its true location.
+const enc=value=>String(value).replace(/[&<>"']/g,char=>
+ ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const distance=(a,b)=>Math.round(Math.hypot(a.x-b.x,a.y-b.y));
+const point=(x,y,p,scale)=>({x:340+(x-p.x)*scale,y:240+(y-p.y)*scale});
+const dot=(x,y,color,r=6,shape='circle')=>shape==='square'?
+ '<rect x="'+(x-r).toFixed(1)+'" y="'+(y-r).toFixed(1)+'" width="'+(r*2)+
+ '" height="'+(r*2)+'" rx="2" fill="'+color+'"/>':
+ '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r+'" fill="'+color+'"/>';
+
+// A miniature of known sector geometry; unknown stations remain hidden.
+export function renderStationRoutePreview(base,state={}){
+ const world=state.world;
+ const stations=world?[...world.stations.values()].filter(s=>s.discovered&&!s.enemy):[];
+ const active=state.operation?.baseId===base.id?state.operation:null;
+ const resolvedCorridor=isCorridorDock(base)&&!!base.corridorSecured;
+ const corridor=isCorridorDock(base)&&!base.corridorSecured;
+ const probe=isProbeLab(base)&&!base.probeRecovered;
+ const target=active||(corridor||resolvedCorridor?corridorPosition(base):probe?probePosition(base,world):null);
+ const uncertain=probe&&!active,w=440,h=206;
+ const cx=target?(base.x+target.x)/2:base.x,cy=target?(base.y+target.y)/2:base.y;
+ const dx=target?Math.abs(target.x-base.x):1600,dy=target?Math.abs(target.y-base.y):800;
+ const scale=Math.min(.24,310/Math.max(900,dx),130/Math.max(650,dy));
+ const q=p=>({x:w/2+(p.x-cx)*scale,y:h/2+(p.y-cy)*scale});
+ const b=q(base),t=target?q(target):null;
+ const known=stations.filter(st=>st.id!==base.id).map(st=>{
+  const p=q(st);
+  if(p.x<12||p.x>w-12||p.y<14||p.y>h-14)return '';
+  return '<g><circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+
+   '" r="5" fill="'+(st.active?'#8bedd1':'#ffca8b')+'"/>'+
+   '<title>'+enc(baseNames[st.type]||'Станция')+'</title></g>';
+ }).join('');
+ const visibleIds=new Set(stations.map(st=>st.id));
+ const links=world?world.networkTopology().links.filter(([a,c])=>visibleIds.has(a.id)&&visibleIds.has(c.id)).map(([a,c])=>{
+  const x=q(a),y=q(c);
+  return '<path d="M '+x.x.toFixed(1)+' '+x.y.toFixed(1)+' L '+y.x.toFixed(1)+' '+
+   y.y.toFixed(1)+'" stroke="#61c9bb" opacity=".4" stroke-width="2"/>';
+ }).join(''):'';
+ const end=t?'<path d="M '+b.x.toFixed(1)+' '+b.y.toFixed(1)+' L '+t.x.toFixed(1)+
+  ' '+t.y.toFixed(1)+'" fill="none" stroke="'+(resolvedCorridor?'#8ae4bf':'#e3bded')+'" stroke-width="2" stroke-dasharray="6 6"/>'+
+  '<circle cx="'+t.x.toFixed(1)+'" cy="'+t.y.toFixed(1)+'" r="'+(uncertain?15:9)+
+  '" fill="#bb70d923" stroke="'+(resolvedCorridor?'#9bf4c8':'#ebbcff')+'" stroke-width="2"'+(uncertain?' stroke-dasharray="3 4"':'')+'/>'+
+  '<text x="'+t.x.toFixed(1)+'" y="'+(t.y-18).toFixed(1)+
+  '" text-anchor="middle" fill="#f1d5fa" font-size="12">'+
+  (uncertain?'ПОИСК ЗОНДА':resolvedCorridor?'КОРИДОР ОТКРЫТ':corridor?'ИСТОЧНИК ПОМЕХ':'ЦЕЛЬ')+'</text>':'';
+ return '<div class="base-route-graphic"><svg viewBox="0 0 440 206" role="img" aria-label="Расположение станции, известных узлов и цели">'+
+  '<rect width="440" height="206" rx="12" fill="#071c2b"/>'+
+  '<path d="M 0 51 H 440 M 0 103 H 440 M 0 155 H 440 M 110 0 V 206 M 220 0 V 206 M 330 0 V 206" stroke="#6195b01c"/>'+
+  links+known+end+
+  '<circle cx="'+b.x.toFixed(1)+'" cy="'+b.y.toFixed(1)+'" r="11" fill="#3e9e8d35" stroke="#9bfae6"/>'+
+  '<circle cx="'+b.x.toFixed(1)+'" cy="'+b.y.toFixed(1)+'" r="4" fill="#c5fff1"/>'+
+  '<text x="'+(b.x+13).toFixed(1)+'" y="'+(b.y+22).toFixed(1)+'" fill="#a4e4d8" font-size="12">СТАНЦИЯ</text></svg>'+
+  '<div class="base-route-actions"><small>'+(target?
+   (uncertain?'Предполагаемая область · ':resolvedCorridor?'Открытый маршрут · ':'Расстояние · ')+distance(base,target)+' м':
+   'Известные узлы сети')+'</small>'+
+   '<button type="button" data-act="baseMap">Изучить карту</button></div></div>';
+}
+
+export function renderWorldMap(game){
+ const p=game.player,world=game.world,enemyVisible=game.enemyBasesUnlocked();
+ const topology=world.networkTopology();
+ const control=enemyVisible?world.sectorControl(p.x,p.y):{kind:'neutral',base:null};
+ const territory=control.kind==='hostile'?'Вражеский сектор: патрули прибывают примерно на 18% чаще. Захватите базу, чтобы снизить угрозу.':
+  control.kind==='secured'?'Безопасный сектор: захваченная база сокращает число патрулей и даёт передышку.':
+  'Нейтральный сектор: обычная активность патрулей.';
+ const known=[...world.stations.values()]
+  .filter(b=>b.discovered&&(enemyVisible||!b.enemy))
+  .sort((a,b)=>distance(a,p)-distance(b,p));
+ const survey=[...world.stations.values()].some(b=>
+  b.active&&b.type==='lab'&&b.module==='survey'&&distance(b,p)<1900);
+ const probeScan=[...world.stations.values()].some(b=>b.active&&b.type==='lab'&&
+  b.probeRecovered&&distance(b,p)<1900);
+ const home=world.home;
+ const homeCorridorSecure=!!home.corridorSecured&&distance(home,p)<1550;
+ const scanRadius=2200+(survey?650:0)+(homeCorridorSecure?350:0)+(probeScan?300:0);
+ const signals=world.signals(p.x,p.y,scanRadius,enemyVisible)
+  .filter(b=>!known.some(k=>k.id===b.id));
+ const size=3300,scale=208/size,visible=pos=>Math.abs(pos.x-340)<315&&Math.abs(pos.y-240)<215;
+ const grid=[];
+ for(let m=-3000;m<=3000;m+=1000){
+  grid.push('<path d="M '+(340+m*scale).toFixed(1)+' 16 v 448 M 20 '+(240+m*scale).toFixed(1)+
+   ' h 640" stroke="#4f89a53b" stroke-width="1"/>');
+ }
+ const activeLinks=topology.links.map(([a,b])=>{
+  const x=point(a.x,a.y,p,scale),y=point(b.x,b.y,p,scale);
+  return '<path d="M '+x.x.toFixed(1)+' '+x.y.toFixed(1)+' L '+y.x.toFixed(1)+' '+y.y.toFixed(1)+
+   '" stroke="#77e2d3" opacity=".52" stroke-width="2" stroke-dasharray="7 5"/>';
+ }).join('');
+ const marks=known.map(b=>{
+  const q=point(b.x,b.y,p,scale);if(!visible(q))return '';
+  const color=b.enemy?'#ff777d':b.active?'#84ead2':'#ffca84';
+  return '<g>'+(b.relayBoost?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="12" fill="none" stroke="#6fffee" stroke-width="1.5"/>':'')+dot(q.x,q.y,color,b.active?8:6,b.enemy?'square':'circle')+
+   '<text x="'+(q.x+11).toFixed(1)+'" y="'+(q.y-9).toFixed(1)+
+   '" fill="#e3f4f4" font-size="11">'+enc(baseNames[b.type]||'Станция')+'</text></g>';
+ }).join('');
+ const echoes=signals.map(s=>{
+  const q=point(s.x,s.y,p,scale);if(!visible(q))return '';
+  return '<g opacity=".82"><circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+   '" r="14" fill="none" stroke="#f8dc8a" stroke-dasharray="3 5"/>'+
+   '<text x="'+q.x.toFixed(1)+'" y="'+(q.y+4).toFixed(1)+
+   '" text-anchor="middle" fill="#f8dc8a" font-size="15">?</text></g>';
+ }).join('');
+ const operation=game.operation;
+ const previewBase=game.mapReturnToBase?game.docked:null;
+ const previewProbe=!operation&&previewBase&&isProbeLab(previewBase)&&!previewBase.probeRecovered;
+ const previewCorridor=!operation&&previewBase&&isCorridorDock(previewBase)&&!previewBase.corridorSecured;
+ const previewTarget=previewProbe?probePosition(previewBase,world):
+  previewCorridor?corridorPosition(previewBase):null;
+ const objectiveMarker=operation?{x:operation.x,y:operation.y}:previewTarget||
+  (home.corridorSecured?corridorPosition(home):null);
+ const marker=objectiveMarker?point(objectiveMarker.x,objectiveMarker.y,p,scale):null;
+ const operationMark=marker&&visible(marker)?
+  '<circle cx="'+marker.x.toFixed(1)+'" cy="'+marker.y.toFixed(1)+'" r="13" fill="none" stroke="'+
+  (operation||previewTarget?'#edacf9':'#7ce9bf')+'" stroke-width="2"/>'+
+  '<circle cx="'+marker.x.toFixed(1)+'" cy="'+marker.y.toFixed(1)+'" r="4" fill="'+
+  (operation||previewTarget?'#edacf9':'#7ce9bf')+'"/>'+
+  '<text x="'+(marker.x+16).toFixed(1)+'" y="'+(marker.y-12).toFixed(1)+
+  '" fill="#edd7fa" font-size="11">'+(operation?(operation.id===PROBE_OPERATION.id?'Аварийный зонд':'Глушитель'):previewProbe?'Область поиска зонда':previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
+ const goal=game.waypoint?point(game.waypoint.x,game.waypoint.y,p,scale):null;
+ const route=goal&&visible(goal)?
+  '<path d="M 340 240 L '+goal.x.toFixed(1)+' '+goal.y.toFixed(1)+
+   '" stroke="#f4e6a0" stroke-width="2.4" stroke-dasharray="8 6"/>'+dot(goal.x,goal.y,'#fff0b8',4):'';
+ const objective=game.contract;
+ const operationText=operation?(operation.id===PROBE_OPERATION.id?
+  'Особая операция «Последний сигнал»: удерживайте E в 150 м от зонда. Восстановлено '+Math.round(operation.repair)+'%. Во время ремонта автоогонь отключён.':
+  'Особая операция «Глухой коридор»: уничтожьте отмеченный передатчик. Осталось '+Math.ceil(operation.hp/operation.maxHp*100)+'% прочности.'):
+  previewTarget?(previewProbe?'Предварительная разведка: здесь ожидается аварийный зонд. Место пока известно приблизительно.':'Предварительная разведка: источник помех находится к востоку от дока. Операция ещё не принята.'):
+  home.corridorSecured?'Восточный коридор открыт. Разведка возле дока расширена на 350 м, патрулей стало меньше.':'';
+ const objectiveText=objective?
+  (objective.progress>=objective.goal?'Награда готова. Вернитесь на станцию.':
+   'Поручение: '+objective.name+' · '+objective.progress+'/'+objective.goal):
+  'Активных поручений нет. На включённых станциях доступны задания.';
+ const row=(b,isSignal)=>{
+  const label=isSignal?'Неопознанный сигнал':baseNames[b.type]||'Станция';
+  const d=distance(b,p),same=game.waypoint?.id===b.id;
+  const status=isSignal?'координаты приблизительные (погрешность до 170 м)':
+   b.enemy?'вражеская база':b.active?(topology.linked.has(b.id)?'узел сети'+(b.relayBoost?' · усиленная связь':''):'автономный узел'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
+  const value=isSignal?'Приблизиться и исследовать':'Построить маршрут';
+  return '<article class="map-contact'+(same?' selected':'')+'">'+
+   '<div><strong>'+enc(label)+'</strong><small>'+Math.round(d)+' м · '+status+'</small></div>'+
+   '<button type="button" data-act="waypoint" data-id="'+enc(b.id)+
+   '" data-x="'+Number(b.x).toFixed(2)+'" data-y="'+Number(b.y).toFixed(2)+
+   '" data-label="'+enc(label)+'"'+(isSignal?' data-signal="1"':'')+
+   '>'+ (same?'✓ Маршрут выбран':value)+'</button></article>';
+ };
+ const discovered=known.map(b=>row(b,false)).join('');
+ const unidentified=signals.map(b=>row(b,true)).join('');
+ const clear='<button type="button" data-act="waypoint" data-id="clear"'+
+  (!game.waypoint?' disabled':'')+'>Сбросить маршрут</button>';
+ return '<div class="dialog map-dialog"><header class="map-heading"><div>'+
+  '<span class="map-kicker">НАВИГАЦИОННЫЙ КОМПЛЕКС</span><h2>Карта сектора</h2>'+
+  '<p>Прокладывайте маршруты по разведанным станциям. Связь действует на 1450 м; каждая усиленная антенна добавляет 500 м. Неизвестные сигналы указаны приблизительно.</p>'+
+  '</div><div class="map-heading-actions"><span>В сети <b>'+topology.count+'</b> · Открыто <b>'+known.length+
+  '</b></span>'+(game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':'')+
+  '<button data-act="close">В полёт · Esc</button></div></header>'+
+  '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
+  '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
+  '<circle cx="340" cy="240" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
+  grid.join('')+activeLinks+route+echoes+marks+operationMark+
+  '<g><circle cx="340" cy="240" r="13" fill="none" stroke="#8affff"/>'+
+  dot(340,240,'#9bf9ff',5)+'</g>'+
+  '<text x="351" y="266" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
+  '<div class="map-legend"><span>● вы</span><span>● активна</span><span>● выключена</span>'+
+  '<span>◈ противник</span><span>? сигнал</span><span>◎ операция</span></div>'+
+  '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
+    ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
+  '<aside class="map-side"><div class="map-objective"><span>ОБСТАНОВКА В СЕКТОРЕ</span><p>'+enc(territory)+'</p></div>'+
+  (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+
+   (operation?'<button type="button" data-act="abandonOperation">Отложить операцию</button>':'')+'</div>':'')+
+  '<div class="map-objective"><span>ПОЛЕВОЙ ЗАКАЗ</span><p>'+enc(objectiveText)+'</p>'+
+  (objective&&objective.progress<objective.goal?'<button type="button" data-act="abandonContract">Отказаться · потерять прогресс</button>':'')+'</div>'+
+  '<h3>Обнаруженные станции</h3><div class="map-contact-list">'+(discovered||
+    '<p class="map-empty">Станций ещё нет. Продвигайтесь по сигналам радара.</p>')+'</div>'+
+  '<h3>Сигналы сканера <small>до '+scanRadius+' м</small></h3>'+
+  '<div class="map-contact-list">'+(unidentified||
+   '<p class="map-empty">Новых сигналов поблизости нет. Исследуйте следующий сектор.</p>')+
+  '</div></aside></section><footer class="map-foot">Tab или M — открыть карту · Esc — закрыть · U — развитие · E — станция. '+
+  'Дистанции до сигналов приблизительные; они уточняются по мере приближения.</footer></div>';
+}

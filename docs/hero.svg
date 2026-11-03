@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 240">
+<title>Выживший: Космический рубеж</title>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#11154c"/><stop offset="1" stop-color="#04091c"/></linearGradient>
+<linearGradient id="ship" x2="0" y2="1"><stop stop-color="#d6faff"/><stop offset="1" stop-color="#4b92d8"/></linearGradient></defs>
+<rect width="800" height="240" rx="25" fill="url(#bg)"/>
+<g fill="#cce7ff" opacity=".7"><circle cx="46" cy="31" r="2"/><circle cx="380" cy="39" r="3"/><circle cx="672" cy="56" r="2"/><circle cx="748" cy="183" r="1.5"/><circle cx="311" cy="199" r="2"/></g>
+<circle cx="680" cy="108" r="84" fill="#713da0" opacity=".24"/>
+<path d="M138 18 L177 104 L226 135 L207 166 L157 151 L138 183 L119 151 L69 166 L50 135 L99 104Z" fill="url(#ship)" stroke="#a6ecff" stroke-width="6"/>
+<path d="M138 56 L153 119 L138 138 L123 119Z" fill="#173765"/>
+<path d="M104 158 L118 159 L112 197 L94 220Z M158 159 L172 158 L184 220 L164 197Z" fill="#2dd5ff" opacity=".8"/>
+<text x="272" y="113" fill="#effaff" font-size="59" font-weight="800" font-family="sans-serif" letter-spacing="5">ВЫЖИВШИЙ</text>
+<text x="278" y="164" fill="#70dfff" font-size="28" font-family="sans-serif" letter-spacing="5">КОСМИЧЕСКИЙ РУБЕЖ</text>
+</svg>

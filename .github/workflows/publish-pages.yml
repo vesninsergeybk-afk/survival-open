@@ -1,0 +1,51 @@
+name: Publish Survivor arcade
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: survivor-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate arcade before publication
+        run: node --test arcade/tests/*.test.mjs
+
+      - name: Prepare standalone static game
+        run: |
+          mkdir -p _site/arcade
+          cp index.html .nojekyll _site/
+          cp -R arcade/. _site/arcade/
+          cp -R assets _site/assets
+          test -f _site/arcade/index.html
+          test -f _site/assets/space/hero-evolution/ship_10_damaged.png || test -f _site/assets/space/hero-evolution/ship_10_damaged.webp
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload standalone game
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v4

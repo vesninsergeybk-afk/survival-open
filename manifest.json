@@ -1,0 +1,17 @@
+{
+  "name": "Выживший: Космический рубеж",
+  "short_name": "Выживший",
+  "description": "Космическая аркада: три корабля, туманности, флотилии дронов, улучшения и боссы.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "theme_color": "#07112b",
+  "background_color": "#030711",
+  "categories": ["games", "entertainment"],
+  "lang": "ru",
+  "icons": [
+    {"src":"./docs/hero.svg","sizes":"any","type":"image/svg+xml","purpose":"any"},
+    {"src":"./docs/og-card.svg","sizes":"1200x630","type":"image/svg+xml","purpose":"any"}
+  ]
+}

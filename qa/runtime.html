@@ -1,0 +1,46 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><title>Survivor runtime QA</title>
+<style>body{margin:0;background:#071322;color:white;font:14px system-ui}nav{min-height:46px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:0 12px}button{padding:8px}iframe{width:100%;height:calc(100vh - 46px);border:0}output{white-space:pre}</style>
+<nav><button data-scene="mobile">Телефон / ПК</button><button data-scene="dock">Док</button><button data-scene="security">Пробуждение и бой</button><button data-scene="turret">Турели</button><button data-scene="solar">Солнце</button><button data-scene="workshop">Оружие</button><button data-scene="skills">Улучшение</button><button data-scene="foundry">Литейная</button><button data-scene="core">Оборона</button><button data-scene="journal">Журнал</button><output id="status"></output></nav>
+<iframe title="Проверочная игра" src="../?mission=0&profile=1"></iframe>
+<script>
+const frame=document.querySelector('iframe');
+document.querySelector('nav').onclick=e=>{
+ if(!e.target.dataset.scene)return;
+ if(e.target.dataset.scene==='mobile'){frame.style.width=frame.style.width?'':'390px';frame.style.height=frame.style.width?'780px':'';return;}
+ const g=frame.contentWindow.__vsGame;if(!g)return;
+ if(g.state!=='playing')g.startMission(0);g.diagnostics.enabled=true;
+ const w=g.missionWorld;if(!w)return;
+ const scene=e.target.dataset.scene;
+ g.player.hp=g.player.maxHp;g.player.invincible=true;g.player.invincibleTimer=999;
+ if(scene==='dock'){g.player.x=w.cx;g.player.y=w.cy+95;}
+ if(scene==='security'||scene==='turret'){
+  g.player.x=w.cx+1160;g.player.y=w.cy+160;w.enterPhase(g,1);
+  if(scene==='turret')for(const id of ['sentry-a','sentry-b']){
+   const b=w.base(id,g);b.activated=true;b.visualActivatedAt=g.gameTime;
+   w.device(id).done=true;for(const t of b.turrets){t.disabled=true;t.visualLockUntil=g.gameTime+.48;}
+  }
+ }
+ if(scene==='solar'){g.player.x=w.cx+1550;g.player.y=w.cy-1090;}
+ if(['workshop','skills','foundry','core'].includes(scene)){
+  if(!w.done('weapon')){
+   w.enterPhase(g,2);const d=w.device('weapon');g.player.x=d.x;g.player.y=d.y;w.interact(g);
+  }
+  if(scene==='skills'){
+   g.enemies.length=0;w.spawnWarnings.length=0;
+   const lesson=['workshop','forge','command'].find(id=>!w.lessonAwards.has(id));
+   if(lesson)w.awardLesson(g,lesson);g._maybeTriggerLevelUp();
+  }
+  if(scene==='workshop'){g.player.x=w.cx+2810;g.player.y=w.cy+140;}
+  if(scene==='foundry'){w.enterPhase(g,3);g.player.x=w.cx+3630;g.player.y=w.cy+140;}
+  if(scene==='core'){
+   g.enemies.length=0;w.spawnWarnings.length=0;w.enterPhase(g,5);
+   for(const id of ['heavy-a','heavy-b']){w.device(id).done=true;const b=w.base(id,g);b.activated=true;for(const t of b.turrets){t.disabled=false;t.visualLockUntil=0;}}
+   const d=w.device('core-start');g.player.x=d.x;g.player.y=d.y;w.interact(g);
+  }
+ }
+ if(scene==='journal')g.missionLog?.open();
+ document.querySelector('#status').textContent=scene;
+};
+setInterval(()=>{const g=frame.contentWindow.__vsGame;if(!g?.player)return;document.querySelector('#status').textContent=
+ 'состояние: '+g.state+'; выборов: '+(g.player.trainingSpent||0)+'/'+(g.player.trainingEarned||0)+'; живых: '+g.enemies.length+'; '+g.enemies.map(e=>Math.round(e.hp)+'HP '+Math.round(e.x-g.missionWorld.cx)+','+Math.round(e.y-g.missionWorld.cy)).join(' | ');},1000);
+</script>
