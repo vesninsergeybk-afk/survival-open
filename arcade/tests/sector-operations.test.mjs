@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {CORRIDOR_OPERATION,corridorPosition,createCorridorOperation,
  corridorOffer,corridorPatrolModifier,chooseOperationLead} from '../operations.js';
 import {baseOffer,renderBasePanel,eligibleContractProgress} from '../base-panel.js';
+import {CARRIER_INTERCEPTION} from '../carrier-interception.js';
 import {World} from '../world.js';
 import {baseNames} from '../balance.js';
 import {renderWorldMap} from '../map-panel.js';
@@ -132,9 +133,9 @@ test('delivery at the issuing dock pays once, clears the marker and secures the 
  const dockStart=src.indexOf('  dock(selected=null){');
  const dockEnd=src.indexOf('\n baseAction(act,role){',dockStart);
  assert.ok(dockStart>0&&dockEnd>dockStart);
- const Dock=new Function('dist','RULES','CORRIDOR_OPERATION',
+ const Dock=new Function('dist','RULES','CORRIDOR_OPERATION','CARRIER_INTERCEPTION',
   'return class DockHarness {'+src.slice(dockStart,dockEnd)+'}')(
-  (a,b)=>Math.hypot(a.x-b.x,a.y-b.y),{baseInteract:180},CORRIDOR_OPERATION);
+  (a,b)=>Math.hypot(a.x-b.x,a.y-b.y),{baseInteract:180},CORRIDOR_OPERATION,CARRIER_INTERCEPTION);
  game.player.x=b.x;game.player.y=b.y;
  game.overlay={hidden:true,dataset:{}};game.endInteraction=()=>{};
  game.heritage.pause=()=>{};game.heritage.ui=()=>{};game.renderDock=()=>{};
