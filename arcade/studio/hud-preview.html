@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070d16">
+<title>Выживший · HUD Art Direction — испытательный стенд</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#060d15;color:#e8f9ff;font-family:system-ui,-apple-system,sans-serif}
+button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #9efaff;outline-offset:3px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px clamp(12px,3vw,32px);background:#0c1b28;border-bottom:1px solid #2f6274}
+header strong{letter-spacing:.08em;font-size:15px}header small{display:block;color:#a3c3ce;font-size:11px;margin-top:3px}
+header a{color:#9ce8f0;font-size:12px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px clamp(12px,3vw,32px)}
+.button-group{display:flex;gap:5px;flex-wrap:wrap}
+.toolbar button{background:#0e2d3b;color:#cae8ec;border:1px solid #4c7d89;border-radius:5px;padding:7px 10px;font-size:12px}
+.toolbar button[aria-pressed=true]{background:#175568;border-color:#8cecf0;color:#fff}
+.toolbar .hint{font-size:11px;color:#b3ccd7}
+.workbench{display:grid;place-items:center;padding:0 12px 14px;overflow:auto}
+.stage{container-type:inline-size;position:relative;isolation:isolate;overflow:hidden;aspect-ratio:16/9;
+ width:min(100%,calc((100dvh - 165px)*16/9),1536px);min-width:300px;
+ background:
+ radial-gradient(circle at 16% 27%,#95e3ff30 0 1px,transparent 2px),
+ radial-gradient(circle at 74% 63%,#b7ffff38 0 1px,transparent 2px),
+ radial-gradient(circle at 35% 82%,#f3d49d49 0 1px,transparent 2px),
+ radial-gradient(ellipse at 72% 19%,#24405665,transparent 35%),
+ radial-gradient(ellipse at 15% 76%,#23324865,transparent 45%),#07131d;
+ border:1px solid #3e6875;box-shadow:0 18px 50px #0008;
+}
+.stage::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.17;
+ background-image:radial-gradient(#b4e7f9 1px,transparent 1.5px);background-size:31px 43px;transform:rotate(-8deg) scale(1.25)}
+.stage::after{content:"ЭСКИЗ · ДАННЫЕ УСЛОВНЫЕ";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+ font-size:clamp(10px,1.3cqw,20px);letter-spacing:.34em;color:#c4e9ef26;pointer-events:none;white-space:nowrap}
+.stage img{display:block;user-select:none;-webkit-user-drag:none}
+.top-node{position:absolute;left:2.15%;top:2.4%;font-size:clamp(12px,1.32cqw,21px);
+ font-weight:700;letter-spacing:.05em;text-shadow:0 1px 5px #000}
+.top-node span{display:block;padding-left:18px;border-left:2px solid #e9ba64}
+.top-node small{display:block;padding:4px 0 0 19px;font-size:.72em;color:#eef9ff}
+.top-node em{font-style:normal;color:#ffc66d;margin-left:6px}
+.mission{position:absolute;top:2.3%;left:50%;transform:translateX(-50%);width:33%;aspect-ratio:506/52}
+.mission>img,.panel>.skin,.ability>.skin{position:absolute;inset:0;width:100%;height:100%}
+.mission .textline{position:absolute;inset:0 5% 0 16%;display:flex;align-items:center;justify-content:space-between;
+ gap:3%;font-size:clamp(11px,1.18cqw,18px);color:#f1f8fc;white-space:nowrap}
+.mission .textline strong{font-weight:540;overflow:hidden;text-overflow:ellipsis}
+.mission .distance{margin-right:2%;min-width:14%;text-align:right;color:#e1f0f4}
+.radar{position:absolute;right:1.35%;top:2%;width:12%;aspect-ratio:1}
+.radar canvas,.radar .bezel{position:absolute;inset:0;width:100%;height:100%;border:0}
+.radar .bezel{pointer-events:none}
+.world-contact{position:absolute;left:25%;top:34%;font-size:clamp(11px,1.07cqw,17px);
+ padding:6px 12px;border:1px solid #9ccbd5af;background:#071a25bf;color:#eafcff;
+ clip-path:polygon(0 0,95% 0,100% 50%,95% 100%,0 100%)}
+.world-contact::before{content:"";position:absolute;left:12%;bottom:-33px;height:33px;width:1px;background:#8df6ff}
+.ship-marker{position:absolute;left:48%;top:46%;width:5.5%;aspect-ratio:1;transform:translate(-50%,-50%);
+ border:1px dashed #7ee4ed67;border-radius:50%;display:grid;place-items:center}
+.ship-marker span{width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:24px solid #a6faff;transform:rotate(90deg);filter:drop-shadow(0 0 5px #3fe5fa)}
+.threat-arc{position:absolute;left:50%;top:41%;width:5%;aspect-ratio:1;border-radius:50%;
+ border-top:5px solid #ff4d59;border-left:5px solid transparent;border-right:5px solid transparent;transform:rotate(20deg);opacity:.85}
+.panel{position:absolute;aspect-ratio:460/145;min-width:0}
+.panel-left{left:1.5%;bottom:3.8%;width:30%}
+.panel-right{right:1.5%;bottom:3.8%;width:28.6%;aspect-ratio:440/139}
+.panel .skin{object-fit:fill}
+.ship-glyph{position:absolute;left:4.5%;top:16%;height:71%;width:17.5%;object-fit:contain;filter:drop-shadow(0 0 4px #67dce887)}
+.panel-left .gauges{position:absolute;left:24%;right:4.2%;top:12%;bottom:12%;display:grid;grid-template-rows:repeat(3,minmax(0,1fr));gap:1%}
+.gauge{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:5%;grid-template-rows:48% 42%}
+.gauge .name{font-size:clamp(10px,.94cqw,15px);font-weight:620;color:#e8f9fb;white-space:nowrap}
+.gauge .glyph{display:inline-grid;place-items:center;margin-right:5px;color:#82f0ef;font-weight:900}
+.gauge .value{font-size:clamp(11px,1.25cqw,19px);color:#f7fcff;white-space:nowrap}
+.gauge .bar{grid-column:1/-1;position:relative;height:63%;min-height:5px}
+.bar img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+.bar .fill{clip-path:inset(0 var(--cut,0%) 0 0)}
+.panel-right .weapon-icon{position:absolute;top:18%;left:7%;width:16%;height:23%;object-fit:contain}
+.panel-right .weapon-line{position:absolute;left:24%;top:11%;right:20%;display:flex;justify-content:space-between;align-items:center;
+ font-size:clamp(10px,1.05cqw,16px)}
+.weapon-line b{font-weight:620}
+.panel-right .weapon-bar{position:absolute;left:24%;top:37%;width:51%;height:12%}
+.panel-right .weapon-bar img{height:100%;width:100%}
+.panel-right .support-drones{position:absolute;left:7%;right:4%;bottom:10%;height:22%;display:flex;align-items:center;gap:3%;
+ font-size:clamp(10px,1.03cqw,16px);white-space:nowrap}
+.support-drones .divider{height:70%;border-left:1px solid #6bbdcc7d;margin:0 2%}
+.support-drones img{height:88%;width:13%;object-fit:contain;filter:drop-shadow(0 0 3px #6be3e066)}
+.support-drones img.off{opacity:.25;filter:none}
+.support-drones strong{font-weight:630}
+.panel-right .readiness{position:absolute;right:4.5%;top:9%;width:18%;aspect-ratio:1;border-radius:50%;
+ border:4px solid #f7b854;box-shadow:inset 0 0 0 3px #07131eb8,0 0 9px #ffb4434a;
+ display:grid;place-items:center;text-align:center;font-size:clamp(8px,.65cqw,10px);line-height:1.1;color:#ffdda1}
+.panel-right .readiness b{display:block;font-size:1.5em;color:#fff}
+.abilities{position:absolute;left:50%;bottom:3.6%;transform:translateX(-50%);display:flex;gap:2.2cqw;width:17.5%;justify-content:center}
+.ability{width:31%;aspect-ratio:84/98;position:relative;flex:none}
+.ability .icon-art{position:absolute;left:19%;top:17%;width:62%;height:56%;object-fit:contain;filter:drop-shadow(0 0 3px currentColor)}
+.ability .key{position:absolute;bottom:-5%;left:50%;transform:translate(-50%,100%);border:1px solid #b8cad4;
+ min-width:16px;height:17px;border-radius:3px;text-align:center;font-size:10px;color:#fff;background:#0c1722ba}
+.ability.disabled{opacity:.5}
+.touch{display:none;position:absolute;inset:0;pointer-events:none}
+.touch .stick{position:absolute;left:2%;bottom:3%;width:14%;aspect-ratio:1;border:2px solid #93f6ff95;border-radius:50%;background:#0619275c}
+.touch .stick::after{content:"";position:absolute;left:29%;top:29%;width:42%;height:42%;border:1px solid #a5f1f8a6;border-radius:50%;background:#64cade45}
+.touch .actions{position:absolute;right:2%;bottom:3%;display:grid;grid-template-columns:1fr 1fr;gap:4px;width:19%;font-size:clamp(10px,1cqw,13px)}
+.touch .actions span{padding:7px 4px;text-align:center;border:1px solid #6ce3eb8f;background:#123647d8;border-radius:7px}
+.status{display:none;position:absolute;left:50%;top:15%;transform:translateX(-50%);background:#451322d9;
+ padding:6px 11px;border:1px solid #ff8d96;color:#ffe3e1;white-space:nowrap;font-size:clamp(11px,1cqw,16px)}
+.stage.critical .status{display:block}
+.stage.critical .threat-arc{opacity:1;filter:drop-shadow(0 0 6px #ff5d68)}
+.stage.combat .threat-arc{opacity:1}
+.stage.cruise .threat-arc{opacity:0}
+.stage.phone-landscape{width:min(100%,calc((100dvh - 165px)*844/390),844px);aspect-ratio:844/390}
+.stage.phone-portrait{width:min(100%,calc((100dvh - 165px)*390/844),390px);aspect-ratio:390/844}
+.stage.phone-landscape .touch,.stage.phone-portrait .touch{display:block}
+.stage.phone-landscape .top-node{top:2%;left:2%;font-size:12px}
+.stage.phone-landscape .mission{top:3%;width:39%}
+.stage.phone-landscape .mission .textline{font-size:11px}
+.stage.phone-landscape .radar{width:14%;right:1%;top:3%}
+.stage.phone-landscape .panel-left{left:1.5%;bottom:auto;top:25%;width:33%}
+.stage.phone-landscape .panel-right{right:1.5%;bottom:auto;top:36%;width:33%}
+.stage.phone-landscape .gauge .name,.stage.phone-landscape .support-drones{font-size:10px}
+.stage.phone-landscape .gauge .value{font-size:11px}
+.stage.phone-landscape .weapon-line{font-size:10px}
+.stage.phone-landscape .readiness{border-width:3px;font-size:7px}
+.stage.phone-landscape .abilities{bottom:4%;width:19%;gap:1cqw}
+.stage.phone-landscape .ability .key{display:none}
+.stage.phone-landscape .world-contact{left:39%;top:34%;font-size:10px}
+.stage.phone-landscape .ship-marker{top:45%;left:50%}
+.stage.phone-landscape .touch .stick{width:14%}
+.stage.phone-landscape .touch .actions{width:19%}
+.stage.phone-portrait .top-node{top:1.5%;left:3%;font-size:12px}
+.stage.phone-portrait .mission{top:14%;width:95%}
+.stage.phone-portrait .mission .textline{font-size:11px}
+.stage.phone-portrait .radar{top:1.5%;right:3%;width:25%}
+.stage.phone-portrait .panel-left{top:22%;bottom:auto;left:3%;width:94%}
+.stage.phone-portrait .panel-right{top:37%;bottom:auto;left:3%;right:auto;width:94%}
+.stage.phone-portrait .panel .gauge .name{font-size:10px}
+.stage.phone-portrait .panel .gauge .value{font-size:11px}
+.stage.phone-portrait .weapon-line,.stage.phone-portrait .support-drones{font-size:10px}
+.stage.phone-portrait .readiness{border-width:3px;font-size:8px}
+.stage.phone-portrait .abilities{top:53%;bottom:auto;width:48%;gap:2cqw}
+.stage.phone-portrait .ability .key{display:none}
+.stage.phone-portrait .world-contact{left:13%;top:70%;font-size:11px}
+.stage.phone-portrait .ship-marker{left:50%;top:67%;width:12%}
+.stage.phone-portrait .touch .stick{width:27%;bottom:2%;left:3%}
+.stage.phone-portrait .touch .actions{width:41%;bottom:2%;right:3%}
+.stage.phone-portrait .status{top:50%;font-size:10px}
+.note{max-width:1060px;margin:0 auto;padding:11px 18px 24px;color:#b8cbd4;font-size:12px;line-height:1.5}
+.note b{color:#e5faff}
+@media(max-width:760px){header{align-items:flex-start}header strong{font-size:12px}.toolbar{padding-top:8px}}
+@media(prefers-reduced-motion:reduce){.stage,.stage *{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+ <div><strong>ВЫЖИВШИЙ · МАСТЕРСКАЯ HUD / ART PASS 01</strong><small>Графические элементы SVG · отдельно от игрового кода</small></div>
+ <a href="../">← Мастерская концепций</a>
+</header>
+<div class="toolbar">
+ <div class="button-group" role="group" aria-label="Формат экрана">
+  <button type="button" data-screen="desktop" aria-pressed="true">Десктоп · 16:9</button>
+  <button type="button" data-screen="phone-landscape" aria-pressed="false">Телефон · горизонтально</button>
+  <button type="button" data-screen="phone-portrait" aria-pressed="false">Телефон · вертикально</button>
+ </div>
+ <div class="button-group" role="group" aria-label="Игровое состояние">
+  <button type="button" data-state="cruise" aria-pressed="true">Полёт</button>
+  <button type="button" data-state="combat" aria-pressed="false">Бой</button>
+  <button type="button" data-state="critical" aria-pressed="false">Повреждение</button>
+ </div>
+ <span class="hint">Все показания — демонстрационные</span>
+</div>
+<div class="workbench">
+ <div id="stage" class="stage desktop cruise" aria-label="Испытательный стенд нового HUD">
+  <div class="top-node"><span>УЗЕЛ 03</span><small>РЕАКТОР <em>2/3</em></small></div>
+  <div class="mission"><img src="./hud-kit/mission-ribbon.svg" alt=""><div class="textline"><strong>Добраться до реактора</strong><span class="distance">420 м</span></div></div>
+  <div class="radar"><canvas id="contactRadar" width="184" height="184" aria-label="Демонстрационный радар"></canvas><img class="bezel" src="./hud-kit/radar-bezel.svg" alt=""></div>
+  <div class="world-contact">[E] Восстановить</div>
+  <div class="ship-marker"><span></span></div><div class="threat-arc"></div>
+  <div class="status">! КОРПУС КРИТИЧЕСКИ ПОВРЕЖДЁН</div>
+  <section class="panel panel-left" aria-label="Состояние корабля">
+   <img class="skin" src="./hud-kit/panel-left.svg" alt="">
+   <img class="ship-glyph" src="./hud-kit/ship-outline.svg" alt="">
+   <div class="gauges">
+    <div class="gauge"><span class="name"><span class="glyph">✚</span> КОРПУС</span><span class="value" id="hullText">72%</span>
+     <div class="bar"><img src="./hud-kit/segments-muted.svg" alt=""><img id="hullBar" class="fill" src="./hud-kit/segments-cyan.svg" alt=""></div></div>
+    <div class="gauge"><span class="name"><span class="glyph">◇</span> ЩИТ</span><span class="value" id="shieldText">41%</span>
+     <div class="bar"><img src="./hud-kit/segments-muted.svg" alt=""><img id="shieldBar" class="fill" src="./hud-kit/segments-cyan.svg" alt=""></div></div>
+    <div class="gauge"><span class="name"><span class="glyph">ϟ</span> РЫВОК</span><span class="value" id="boostText">86%</span>
+     <div class="bar"><img src="./hud-kit/segments-muted.svg" alt=""><img id="boostBar" class="fill" src="./hud-kit/segments-amber.svg" alt=""></div></div>
+   </div>
+  </section>
+  <div class="abilities">
+   <div class="ability"><img class="skin" src="./hud-kit/ability-frame.svg" alt=""><img class="icon-art" src="./hud-kit/repair.svg" alt=""><span class="key">E</span></div>
+   <div class="ability"><img class="skin" src="./hud-kit/ability-frame.svg" alt=""><img class="icon-art" src="./hud-kit/strike.svg" alt=""><span class="key">B</span></div>
+   <div class="ability"><img class="skin" src="./hud-kit/ability-frame.svg" alt=""><img class="icon-art" src="./hud-kit/burst.svg" alt=""><span class="key">⇧</span></div>
+  </div>
+  <section class="panel panel-right" aria-label="Оружие и ведомые">
+   <img class="skin" src="./hud-kit/panel-right.svg" alt="">
+   <img class="weapon-icon" src="./hud-kit/weapon.svg" alt="">
+   <div class="weapon-line"><span>АВТООГОНЬ</span><b id="weaponText">ВКЛ.</b></div>
+   <div class="weapon-bar"><img src="./hud-kit/segments-cyan.svg" alt=""></div>
+   <div class="readiness"><span>УДАР<b id="strikeText">×2</b></span></div>
+   <div class="support-drones"><strong>ДРОНЫ</strong><span id="droneText">2/3</span><span class="divider"></span>
+    <img src="./hud-kit/drone.svg" alt=""><img src="./hud-kit/drone.svg" alt=""><img class="off" src="./hud-kit/drone.svg" alt="">
+   </div>
+  </section>
+  <div class="touch" aria-hidden="true"><div class="stick"></div><div class="actions"><span>Рывок</span><span>Огонь</span><span>Действие</span><span>Карта</span></div></div>
+ </div>
+</div>
+<p class="note"><b>Для проверки дизайна:</b> переключайте размеры и игровые состояния. Это отдельный графический стенд: здесь нет боевой симуляции, реальных ресурсов или сохранений. В настоящую игру можно переносить только согласованные элементы и подключать их к действующим показателям. Фон намеренно нейтральный — оцениваем форму приборов, расположение и читаемость.</p>
+<script>
+const stage=document.getElementById('stage');
+function setPressed(group,key,value){
+ document.querySelectorAll('[data-'+group+']').forEach(button=>{
+  const active=button.dataset[group]===value;
+  button.setAttribute('aria-pressed',String(active));
+ });
+}
+document.querySelectorAll('[data-screen]').forEach(button=>button.addEventListener('click',()=>{
+ stage.classList.remove('desktop','phone-landscape','phone-portrait');
+ stage.classList.add(button.dataset.screen);
+ setPressed('screen',null,button.dataset.screen);
+}));
+const states={
+ cruise:{hull:72,shield:41,boost:86,weapon:'ВКЛ.',strike:'×2',drones:'2/3'},
+ combat:{hull:54,shield:18,boost:38,weapon:'ВКЛ.',strike:'×1',drones:'2/3'},
+ critical:{hull:16,shield:0,boost:0,weapon:'ВЫКЛ.',strike:'×0',drones:'1/3'}
+};
+function gauge(id,value){
+ document.getElementById(id+'Text').textContent=value+'%';
+ document.getElementById(id+'Bar').style.clipPath='inset(0 '+(100-value)+'% 0 0)';
+}
+function setState(state){
+ stage.classList.remove('cruise','combat','critical');
+ stage.classList.add(state);setPressed('state',null,state);
+ const s=states[state];gauge('hull',s.hull);gauge('shield',s.shield);gauge('boost',s.boost);
+ document.getElementById('weaponText').textContent=s.weapon;
+ document.getElementById('strikeText').textContent=s.strike;
+ document.getElementById('droneText').textContent=s.drones;
+ const drones=document.querySelectorAll('.support-drones img');
+ drones.forEach((d,i)=>d.classList.toggle('off',i>=Number(s.drones.split('/')[0])));
+}
+document.querySelectorAll('[data-state]').forEach(button=>button.addEventListener('click',()=>setState(button.dataset.state)));
+function radarContacts(){
+ const ctx=document.getElementById('contactRadar').getContext('2d');
+ const s=stage.classList.contains('critical')?'critical':stage.classList.contains('combat')?'combat':'cruise';
+ ctx.clearRect(0,0,184,184);
+ const contacts=s==='cruise'?[[140,66,'#ffcb69'],[107,115,'#ff7175']]:
+  s==='combat'?[[140,66,'#ffcb69'],[107,115,'#ff7175'],[126,91,'#ff7175'],[75,53,'#ff7175']]:
+  [[107,115,'#ff7175'],[126,91,'#ff7175'],[75,53,'#ff7175']];
+ for(const [x,y,c] of contacts){
+  ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle=c;ctx.shadowColor=c;ctx.shadowBlur=5;ctx.fill();
+ }
+ ctx.shadowBlur=0;ctx.fillStyle='#dcffff';ctx.beginPath();ctx.moveTo(92,83);ctx.lineTo(99,97);ctx.lineTo(92,94);ctx.closePath();ctx.fill();
+ ctx.save();ctx.translate(154,45);ctx.rotate(Math.PI/4);ctx.strokeStyle='#ffc753';ctx.lineWidth=2;ctx.strokeRect(-6,-6,12,12);ctx.restore();
+}
+document.querySelectorAll('[data-state]').forEach(button=>button.addEventListener('click',radarContacts));
+setState('cruise');radarContacts();
+</script>
+</body>
+</html>
