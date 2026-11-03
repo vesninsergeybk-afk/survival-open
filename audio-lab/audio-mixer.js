@@ -1,4 +1,4 @@
-import { SOUND_CATALOG, BUS_PRESET } from './sound-map.js?v=audio-91';
+import { SOUND_CATALOG, BUS_PRESET } from './sound-map.js?v=starter-soft-66';
 
 /**
  * Isolated sound-lab engine. Shared by the audio laboratory and the live production game. Native Web Audio; no dependencies and no network calls
@@ -150,6 +150,23 @@ export class AudioLabEngine {
       case 'pulse':
         o('triangle', 760, 285, 0.105, 0.80); o('sine', 195, 108, 0.14, 0.32);
         n('bandpass', 1250, 0.045, 0.17); return 0.18;
+      case 'softpulse': {
+        // The basic gun fires throughout most of a run. Keep the audible
+        // presence in the low/mid band without a whip crack or bright chirp.
+        const variants = [
+          { pitch: 146, body: 720 },
+          { pitch: 155, body: 810 },
+          { pitch: 140, body: 650 }
+        ];
+        const shape = variants[Math.floor(this.random() * variants.length)];
+        const detune = 0.97 + this.random() * 0.06;
+        n('lowpass', shape.body, 0.13, 0.19, 0.007);
+        o('sine', shape.pitch * detune, shape.pitch * 0.79 * detune,
+          0.16, 0.33, 0, 850);
+        o('triangle', shape.pitch * 1.45 * detune,
+          shape.pitch * 0.98 * detune, 0.105, 0.12, 0.015, 950);
+        return 0.19;
+      }
       case 'arc':
         n('bandpass', 1500, 0.23, 0.72, 0, 0.95);
         o('sawtooth', 500, 110, 0.20, 0.34); return 0.3;
