@@ -173,3 +173,67 @@ test('existing missions and the source entrypoint remain independently wired',()
  const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(index,/game\.js\?v=carrier-intercept-1/);
 });
+
+
+test('docking at the issuing carrier actually delivers telemetry once',()=>{
+ const {game,base,op}=scenario();
+ game.updateCarrierInterception(.02);
+ game.damageEnemy(op,900,'beam');
+ assert.equal(op.phase,'return');
+ const dockStart=gameSource.indexOf('  dock(selected=null){');
+ const dockEnd=gameSource.indexOf('\n baseAction(act,role){',dockStart);
+ assert.ok(dockStart>0&&dockEnd>dockStart);
+ const Dock=new Function('dist','RULES','CORRIDOR_OPERATION','CARRIER_INTERCEPTION',
+  'return class CarrierDockHarness {'+gameSource.slice(dockStart,dockEnd)+'}')(
+   distance,{baseInteract:180},{id:'silent-corridor'},CARRIER_INTERCEPTION);
+ Object.assign(game,{overlay:{hidden:true,dataset:{}},endInteraction(){},renderDock(){}});
+ game.heritage.pause=()=>{};game.heritage.ui=()=>{};
+ game.player.x=base.x;game.player.y=base.y;
+ Dock.prototype.dock.call(game,base);
+ assert.equal(base.supplyIntercepted,true);
+ assert.equal(game.operation,null);
+ assert.equal(game.player.ore,CARRIER_INTERCEPTION.rewardOre);
+ assert.equal(game.data,CARRIER_INTERCEPTION.rewardData);
+ game.overlay.hidden=true;
+ Dock.prototype.dock.call(game,base);
+ assert.equal(game.player.ore,CARRIER_INTERCEPTION.rewardOre,'a second dock cannot duplicate alloy');
+ assert.equal(game.data,CARRIER_INTERCEPTION.rewardData,'a second dock cannot duplicate data');
+});
+
+test('postponed telemetry stays at the carrier and can be claimed on return',()=>{
+ const {game,base,op}=scenario();
+ game.updateCarrierInterception(.02);
+ game.damageEnemy(op,900,'beam');
+ assert.equal(op.phase,'return');
+ const abandonStart=gameSource.indexOf(' abandonOperation(){');
+ const abandonEnd=gameSource.indexOf('\n  abandonContract(){',abandonStart);
+ assert.ok(abandonStart>0&&abandonEnd>abandonStart);
+ const Abandon=new Function('CARRIER_INTERCEPTION','RELAY_DEFENSE','PROBE_OPERATION',
+  'CORRIDOR_OPERATION','renderWorldMap',
+  'return class CarrierAbandonHarness {'+gameSource.slice(abandonStart,abandonEnd)+'}')(
+   CARRIER_INTERCEPTION,{id:'relay-defense'},{id:'last-signal'},
+   {id:'silent-corridor'},()=>'<div></div>');
+ Object.assign(game,{overlay:{hidden:false,dataset:{mode:'base'}},renderDock(){}});
+ game.heritage.ui=()=>{};
+ Abandon.prototype.abandonOperation.call(game);
+ assert.equal(game.operation,null);
+ assert.equal(game.waypoint,null);
+ assert.equal(base.carrierMission,op,'captured evidence must survive postponement');
+ const offer=carrierOffer(base,null,game.time);
+ assert.equal(offer.status,'available');
+ assert.equal(offer.phase,'return');
+ assert.equal(offer.resumable,true);
+ const actionStart=gameSource.indexOf(' baseAction(act,role){');
+ const actionEnd=gameSource.indexOf('\n callStrike(){',actionStart);
+ assert.ok(actionStart>0&&actionEnd>actionStart);
+ const Accept=new Function('baseOffer','isCorridorDock','isProbeLab','isRelayArsenal',
+  'isCarrierBase','createCarrierInterception','CARRIER_INTERCEPTION',
+  'return class CarrierAcceptHarness {'+gameSource.slice(actionStart,actionEnd)+'}')(
+   ()=>({}),()=>false,()=>false,()=>false,isCarrierBase,createCarrierInterception,CARRIER_INTERCEPTION);
+ game.docked=base;game.baseState=()=>({});
+ Accept.prototype.baseAction.call(game,'acceptOperation','');
+ assert.equal(base.supplyIntercepted,true);
+ assert.equal(game.operation,null);
+ assert.equal(game.player.ore,CARRIER_INTERCEPTION.rewardOre);
+ assert.equal(game.data,CARRIER_INTERCEPTION.rewardData);
+});
