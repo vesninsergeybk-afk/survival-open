@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>I.R.I.S. — проверочный стенд анимации</title>
+<style>
+:root {color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#080d18;color:#dceaff}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 60% 0%,#18253c,#080d18 70%)}
+header{padding:18px 22px 6px;max-width:1320px;margin:auto}
+h1{font-size:clamp(20px,3vw,30px);letter-spacing:.08em;margin:0}
+p{color:#97aec9;margin:8px 0 14px;line-height:1.4}
+main{max-width:1320px;margin:auto;padding:0 16px 24px}
+.panel{background:#111b2c;border:1px solid #35506a;border-radius:12px;padding:14px;margin-bottom:12px}
+.controls{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center}
+label{font-size:13px;color:#d4e3f7;display:flex;flex-direction:column;gap:5px;min-width:112px}
+label.check{flex-direction:row;align-items:center;min-width:auto}
+input[type=range]{width:150px;accent-color:#59d9ff}
+button{background:#233a59;color:#ebf6ff;border:1px solid #5a88b5;border-radius:7px;padding:8px 12px;cursor:pointer}
+button:hover{background:#345477}
+button:focus-visible,input:focus-visible{outline:2px solid #63dfff;outline-offset:2px}
+output{font-variant-numeric:tabular-nums;color:#78dfff}
+.viewport{position:relative;border:1px solid #365573;border-radius:12px;overflow:hidden;background:#060b16}
+canvas{width:100%;height:auto;aspect-ratio:16/9;display:block}
+.stats{position:absolute;top:12px;left:14px;background:#071321c9;border:1px solid #416482;border-radius:7px;padding:8px 12px;color:#baddf3;font:12px ui-monospace,monospace;pointer-events:none}
+.status{font-size:13px;color:#9cbad6;margin:8px 3px}
+.note{font-size:13px}
+.bad{color:#ff9b94}
+@media(max-width:620px){.controls{gap:12px}.panel{padding:10px}input[type=range]{width:122px}}
+</style>
+</head>
+<body>
+<header>
+<h1>I.R.I.S. <span style="color:#77d6ff">/</span> «Зрачок»</h1>
+<p>Изолированный стенд: девять положений бронепластин, шесть уровней ионной тяги. Для оценки кадров, наложения и нагрузки при 100–200 дронах. Основная игра не затронута.</p>
+</header>
+<main>
+<section class="panel controls" aria-label="Управление">
+<label>Количество: <output id="countValue">100</output><input id="count" type="range" min="1" max="200" step="1" value="100"></label>
+<label>Размер корпуса: <output id="sizeValue">34</output> px<input id="size" type="range" min="20" max="110" step="2" value="34"></label>
+<label>Положение корпуса: <output id="frameValue">0</output> / 8<input id="frame" type="range" min="0" max="8" step="1" value="0"></label>
+<label>Уровень тяги: <output id="thrustValue">3</output> / 5<input id="thrust" type="range" min="0" max="5" step="1" value="3"></label>
+<label class="check"><input id="animate" type="checkbox" checked> Раскрытие / закрытие</label>
+<label class="check"><input id="engines" type="checkbox" checked> Двигатели</label>
+<button id="openAll" type="button">Раскрыть</button>
+<button id="closeAll" type="button">Закрыть</button>
+<button id="reset" type="button">Новые позиции</button>
+</section>
+<div class="viewport">
+<canvas id="stage" width="960" height="540" role="img" aria-label="Анимированные дроны в космосе"></canvas>
+<div class="stats" id="stats">Загрузка атласов...</div>
+</div>
+<div class="status" id="status" role="status">Загрузка атласов...</div>
+<section class="panel note">
+<b>Как проверять:</b> отключите автоматическую анимацию и переберите кадры 0–8. Сравните центр корпуса и контур; затем включите тягу и проверьте, выходит ли она из трёх нижних сопел. Установите 100 и 200 дронов, сравните FPS на вашем устройстве. FPS зависит от устройства и размера окна; этот стенд ещё не отражает стоимость всей игры.
+</section>
+</main>
+<script>
+'use strict';
+(function () {
+  const $ = id => document.getElementById(id);
+  const canvas = $('stage');
+  const ctx = canvas.getContext('2d', {alpha:false});
+  if (!ctx) { $('status').textContent='Canvas 2D недоступен'; return; }
+  const body = new Image();
+  const ion = new Image();
+  let loaded = 0, failed = false;
+  for (const im of [body, ion]) {
+    im.onload = () => {
+      loaded++;
+      if (loaded === 2 && !failed) $('status').textContent = 'Атласы загружены. Корпус: 9 кадров; тяга: 6 уровней.';
+    };
+    im.onerror = () => { failed = true; $('status').classList.add('bad'); $('status').textContent = 'Не удалось загрузить атлас: проверьте относительные пути к WebP.'; };
+  }
+  body.src = 'assets/iris-drone/iris-body.webp';
+  ion.src = 'assets/iris-drone/iris-ion.webp';
+  const state = {count:100,size:34,frame:0,thrust:3,animate:true,engines:true};
+  const drones = [];
+  const stars = [];
+  for (let i=0; i<125; i++) stars.push({x:Math.random(),y:Math.random(),r:.5+Math.random()*.8,a:.12+Math.random()*.5});
+  function newDrone() {
+    return {x:.02+Math.random()*.96,y:.05+Math.random()*.87,phase:Math.random()*4.2,
+      speed:.006+Math.random()*.018,scale:.8+Math.random()*.4,signal:Math.random()*6.28};
+  }
+  function ensureCount(n) {
+    while (drones.length < n) drones.push(newDrone());
+    if (drones.length > n) drones.length = n;
+  }
+  function bindRange(id,key) {
+    $(id).addEventListener('input',() => {state[key] = Number($(id).value); $(id+'Value').textContent = String(state[key]);});
+  }
+  bindRange('count','count'); bindRange('size','size'); bindRange('frame','frame'); bindRange('thrust','thrust');
+  $('frame').addEventListener('input', () => { state.animate=false; $('animate').checked=false; });
+  for (const id of ['animate','engines']) $(id).addEventListener('change',() => state[id] = $(id).checked);
+  function manualFrame(v) {
+    state.animate=false;
+    $('animate').checked=false;
+    state.frame=v;
+    $('frame').value=String(v);
+    $('frameValue').textContent=String(v);
+  }
+  $('openAll').addEventListener('click',()=>manualFrame(8));
+  $('closeAll').addEventListener('click',()=>manualFrame(0));
+  $('reset').addEventListener('click',()=>{drones.length=0;ensureCount(state.count);});
+  let viewW=960, viewH=540, pixelRatio=1;
+  function resize(){
+    const cssW=Math.max(320,Math.round(canvas.getBoundingClientRect().width));
+    pixelRatio=Math.min(window.devicePixelRatio||1,2);
+    viewW=cssW;viewH=Math.round(cssW*9/16);
+    canvas.width=Math.round(viewW*pixelRatio);
+    canvas.height=Math.round(viewH*pixelRatio);
+    ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);
+    ctx.imageSmoothingEnabled=true;
+    ctx.imageSmoothingQuality='high';
+  }
+  window.addEventListener('resize',resize,{passive:true}); resize();
+  let last=performance.now(), elapsed=0, frames=0, fps=0, fpsTime=last;
+  function shellFrame(seconds, phase) {
+    const p=(seconds+phase)%4.2;
+    if (p<1.35) return Math.min(8,Math.floor(p/1.35*9));
+    if (p<1.95) return 8;
+    if (p<3.3) return Math.max(0,8-Math.floor((p-1.95)/1.35*9));
+    return 0;
+  }
+  function draw(now) {
+    const dt=Math.min(.05,(now-last)/1000); last=now;
+    if (document.hidden) {requestAnimationFrame(draw); return;}
+    elapsed+=dt;
+    ensureCount(state.count);
+    ctx.fillStyle='#07101e';ctx.fillRect(0,0,viewW,viewH);
+    for (const star of stars){
+      ctx.globalAlpha=star.a;ctx.fillStyle='#9bcdea';
+      ctx.fillRect(Math.round(star.x*viewW),Math.round(star.y*viewH),star.r,star.r);
+    }
+    ctx.globalAlpha=1;
+    const ready=loaded===2&&!failed;
+    if (ready) {
+      for (const d of drones) {
+        d.x += d.speed*dt;
+        if (d.x>1.03) d.x=-.03;
+        const f=state.animate?shellFrame(elapsed,d.phase):state.frame;
+        const s=state.size*d.scale;
+        const x=Math.round(d.x*viewW-s/2);
+        const y=Math.round(d.y*viewH-s/2+Math.sin(elapsed*.6+d.signal)*2);
+        if (state.engines) {
+          const thrustFrame=state.thrust;
+          // Cell width matches the shell; plume starts at 0.85 shell-height, beneath three nozzles.
+          ctx.drawImage(ion,thrustFrame*160,0,160,320,x,y+s*.30,s,2*s);
+        }
+        ctx.drawImage(body,(f%3)*160,Math.floor(f/3)*160,160,160,x,y,s,s);
+      }
+    }
+    frames++;
+    if (now-fpsTime>=600) {fps=frames*1000/(now-fpsTime);fpsTime=now;frames=0;}
+    $('stats').textContent=ready ?
+      ('Дронов: '+drones.length+' / FPS: '+fps.toFixed(1)+' / Объектов за кадр: '+(drones.length*(state.engines?2:1))) :
+      (failed?'Ошибка загрузки':'Загрузка WebP...');
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
