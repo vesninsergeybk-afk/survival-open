@@ -27,4 +27,15 @@ test('live art HUD retains data IDs and maps to separate SVG graphic assets',()=
  assert.doesNotMatch(css,/animation:\s*infinite/);
  assert.match(css,/mobile-frame\.svg/,'touch controls share graphical chrome with cockpit');
  assert.match(js,/routeDistance/,'top ribbon must display a real route distance');
+ const game=read('game.js');
+ assert.match(game,/this\.cockpit\.impact\(damage\/Math\.max\(1,p\.maxHp\),absorbed>0&&remaining===0\)/,
+  'real damage should carry its shield-only outcome to the HUD');
+ assert.match(js,/is-hit-heavy/,'strong-hit state must be explicit');
+ assert.match(css,/hud-signal-impact-heavy/,'heavy impacts should get a larger instrument jolt');
+ assert.match(css,/prefers-reduced-motion:reduce/,'respect reduced-motion preference');
+ assert.match(css,/impact-interference\.svg/,'electronic noise should be an authored graphic asset');
+ assert.match(read('studio/hud-preview.html'),/data-impact="heavy"/,'workbench should preview the impact state');
+ assert.ok(existsSync(new URL('studio/hud-kit/impact-interference.svg',base)),
+  'electronic interference asset missing');
+
 });
