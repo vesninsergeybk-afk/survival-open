@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex, nofollow">
+<script>
+(function(){
+ const embedded=new URLSearchParams(location.search).get('embed')==='1';
+ if(embedded)document.documentElement.classList.add('embedded');
+ else location.replace('../arcade/studio/#effects');
+})();
+</script>
 <title>Выживший — лаборатория визуальных концепций</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#07101b;color:#eaf2ff}
@@ -50,6 +58,12 @@ footer{font-size:.82rem;color:#8ea7ba}
 @media(max-width:1100px){.lab{grid-template-columns:1fr}.side{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.side h2{grid-column:1/-1}.setting{margin:0}}
 @media(max-width:720px){.preview-grid,.bottom,.side{grid-template-columns:1fr}.preview p{min-height:0}header,main,footer{padding-left:14px;padding-right:14px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+.embedded body{min-height:0;background:#07101b}
+.embedded header,.embedded footer,.embedded main>.pill,.embedded main>h1,.embedded main>.lead,.embedded main>.notice,.embedded main>.bottom{display:none!important}
+.embedded main{max-width:none;padding:0}
+.embedded .lab{gap:14px}
+.embedded .panel{padding:14px}
+@media(max-width:720px){.embedded main{padding:0}.embedded .panel{padding:12px}}
 </style>
 </head>
 <body>
