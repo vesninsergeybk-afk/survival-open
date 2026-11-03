@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Реактор · сравнение глубины и камеры</title>
+<style>
+:root{color-scheme:dark;font:15px/1.45 system-ui,sans-serif;background:#07101f;color:#e0edfa}
+*{box-sizing:border-box}body{margin:0}main{max-width:1260px;margin:0 auto;padding:20px}
+a{color:#91d8fa}h1{font-size:clamp(1.4rem,4vw,2rem);margin:6px 0}
+p{max-width:1000px;color:#adc5d9}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:15px}
+.panel{border:1px solid #28465e;border-radius:14px;background:#0e2032;padding:14px}
+canvas{display:block;width:100%;height:auto;aspect-ratio:1100/650;border-radius:9px;background:#07101d}
+.controls{display:grid;gap:12px}
+label{display:grid;gap:6px;color:#cfe5f2;font-size:.92rem}
+input[type=range]{width:100%}select,button{font:inherit;background:#18374d;color:#ecf6ff;border:1px solid #45728a;border-radius:8px;padding:8px}
+button{cursor:pointer}button:focus-visible{outline:2px solid #c2f2ff}
+small{color:#a5bbcd}strong{color:#dcfaff}
+.status{color:#95ebd0;font-size:.9rem}.legend{margin:10px 0 0;color:#b8cddd;font-size:.9rem}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.controls{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:470px){main{padding:10px}.controls{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<a href="./#reactor">← Мастерская</a>
+<h1>Реактор: геометрия и масштаб на настоящей камере</h1>
+<p>Это испытание непосредственно использует <code>ReactorLandmark</code> из аркады. Корабль и док обозначены условно, но их координаты и размер заданы в игровых единицах. Переключайте старый и новый способы подготовки корпуса, двигайте камеру и проверяйте, остаются ли проёмы, корабль и центральное ядро различимыми. Глушилки и стадии запуска здесь — только проверка графики, не реализованная миссия.</p>
+<div class="layout">
+<section class="panel">
+<canvas id="stage" width="1100" height="650" role="img" aria-label="Сцена с корпусом реактора в игровом масштабе"></canvas>
+<div class="legend"><strong id="name">Новая обработка</strong> · <span id="status">Загрузка исходника…</span></div>
+<div class="legend">Игровой центр реактора: (80, −310). Док: (360, −85). Все металлические части следуют камере 1:1; только космос смещается медленнее.</div>
+</section>
+<aside class="panel controls">
+<label>Версия изображения
+<select id="mode"><option value="new">Новая: глубина и затемнение</option><option value="old">Прежняя: сжатая проекция</option></select>
+</label>
+<label>Состояние ядра
+<select id="stage-state"><option value="0">0 · Подавлено</option><option value="1">1 · Одна глушилка</option><option value="2">2 · Две глушилки</option><option value="3">3 · Ожидает E</option><option value="4">4 · Реактор работает</option></select>
+</label>
+<button id="ignition">Показать вспышку запуска</button>
+<label>Горизонтальный сдвиг камеры: <output id="cam-x-value">0</output>
+<input id="cam-x" type="range" min="-700" max="700" step="20" value="0">
+</label>
+<label>Вертикальный сдвиг камеры: <output id="cam-y-value">0</output>
+<input id="cam-y" type="range" min="-450" max="450" step="20" value="0">
+</label>
+<label>Условная производительность
+<select id="fps"><option value="60">60 FPS</option><option value="25">25 FPS</option></select>
+</label>
+<label><span><input id="reduce" type="checkbox"> Уменьшить движение</span></label>
+<button id="reset">Вернуться к старту</button>
+<small>Зелёный ромб — корабль (около 39 игровых единиц). Голубая рамка — док. Ни тот ни другой не должны исчезать за фоном. Реальные текстуры корабля и дока проверяются уже в самой игре.</small>
+</aside>
+</div>
+</main>
+<script type="module">
+import {ReactorLandmark,REACTOR_LANDMARK_ANCHOR} from '../reactor-landmark.js';
+const $=id=>document.getElementById(id);
+const canvas=$('stage'),g=canvas.getContext('2d',{alpha:false});
+const vw=1100,vh=650,ship={x:360,y:-25},dock={x:360,y:-85};
+const reactor=new ReactorLandmark({loadEnergyAtlas:true});
+const source=new Image();source.decoding='async';source.src='./assets/reactor-ring-03.png';
+let oldHull=null,last=0,launchAt=-100,mode='new';
+source.onload=()=>{
+ oldHull=document.createElement('canvas');oldHull.width=1500;oldHull.height=940;
+ const c=oldHull.getContext('2d');
+ const paint=(d,under)=>{
+  c.save();c.translate(750,470+d);c.transform(1,-.085,.14,.565,0,0);
+  if(under){c.globalAlpha=.67;c.filter='brightness(.26) saturate(.65)'}
+  else c.globalAlpha=.92;
+  c.drawImage(source,-625,-625,1250,1250);c.restore();
+ };
+ paint(25,true);paint(0,false);
+};
+source.onerror=()=>{$('status').textContent='Нет исходного PNG'};
+const stars=Array.from({length:95},(_,i)=>({x:(i*269.73+31)%1100,y:(i*159.43+103)%650,r:i%13===0?1.4:.65}));
+const camera=()=>({x:ship.x+Number($('cam-x').value)-vw/2,y:ship.y+Number($('cam-y').value)-vh/2,w:vw,h:vh});
+const labels=['Подавлено','Отключена 1','Отключены 2','Готово к запуску','Запущено'];
+function sky(cam){
+ g.fillStyle='#060e1c';g.fillRect(0,0,vw,vh);
+ const grad=g.createRadialGradient(750-cam.x*.015,160-cam.y*.015,20,750,160,600);
+ grad.addColorStop(0,'rgba(40,68,99,.33)');grad.addColorStop(1,'rgba(4,10,22,0)');
+ g.fillStyle=grad;g.fillRect(0,0,vw,vh);
+ for(const s of stars){
+  const x=((s.x-cam.x*.1)%vw+vw)%vw, y=((s.y-cam.y*.09)%vh+vh)%vh;
+  g.fillStyle='rgba(154,189,217,.52)';g.fillRect(x,y,s.r,s.r);
+ }
+}
+function oldDraw(cam){
+ if(!oldHull)return;
+ const p=REACTOR_LANDMARK_ANCHOR;
+ g.save();g.translate(p.x,p.y);
+ g.globalAlpha=.82;g.drawImage(oldHull,-950,-595,1900,1190);
+ const grad=g.createRadialGradient(0,0,1,0,0,150);
+ grad.addColorStop(0,'rgba(105,208,249,.52)');grad.addColorStop(1,'rgba(18,66,122,0)');
+ g.fillStyle=grad;g.globalAlpha=.75;g.fillRect(-155,-155,310,310);
+ g.restore();
+}
+function drawMarker(cam){
+ g.save();g.translate(-cam.x,-cam.y);
+ g.strokeStyle='#78c6db';g.lineWidth=2;
+ g.strokeRect(dock.x-40,dock.y-28,80,56);
+ g.fillStyle='#b9e8f6';g.font='14px system-ui';g.textAlign='center';
+ g.fillText('ДОК',dock.x,dock.y-38);
+ g.translate(ship.x,ship.y);g.rotate(0);
+ g.fillStyle='#79f1d5';g.beginPath();g.moveTo(0,-22);g.lineTo(13,15);
+ g.lineTo(0,7);g.lineTo(-13,15);g.closePath();g.fill();
+ g.restore();
+}
+function frame(ts){
+ const fps=Number($('fps').value),interval=1000/Math.min(30,fps);
+ requestAnimationFrame(frame);
+ if(ts-last<interval)return;last=ts;
+ const cam=camera(),stage=Number($('stage-state').value);
+ sky(cam);
+ g.save();g.translate(-cam.x,-cam.y);
+ const age=Math.max(0,(ts-launchAt)/1000);
+ if(mode==='old')oldDraw(cam);
+ else reactor.draw(g,cam,ts/1000,fps,$('reduce').checked,stage,age);
+ g.restore();
+ drawMarker(cam);
+ $('name').textContent=mode==='old'?'Прежняя проекция':'Новая обработка';
+ $('status').textContent=(mode==='old'?!!oldHull:!!reactor.hull)?
+  (labels[stage]+' · исходник загружен'):
+  (reactor.failed?'Не удалось загрузить корпус':'Загрузка корпуса…');
+}
+$('mode').addEventListener('change',e=>{mode=e.target.value});
+for(const name of ['cam-x','cam-y']){
+ $(name).addEventListener('input',e=>{$(name+'-value').textContent=e.target.value});
+}
+$('ignition').addEventListener('click',()=>{
+ $('stage-state').value='4';launchAt=performance.now();
+});
+$('reset').addEventListener('click',()=>{
+ $('cam-x').value='0';$('cam-y').value='0';
+ $('cam-x-value').textContent='0';$('cam-y-value').textContent='0';
+ $('stage-state').value='0';mode='new';$('mode').value='new';launchAt=-100;
+});
+requestAnimationFrame(frame);
+</script>
+</body></html>
