@@ -1,8 +1,8 @@
 // A distant, world-anchored reactor monument. This is scenery, not cover or an interactable target.
 // The background sky has parallax; hull and core must share one world position.
-const ANCHOR = Object.freeze({x: 80, y: -195});
-const WORLD_WIDTH = 2140;
-const WORLD_HEIGHT = 1341;
+const ANCHOR = Object.freeze({x: 80, y: -310});
+const WORLD_WIDTH = 1900;
+const WORLD_HEIGHT = 1190;
 const TEXTURE_WIDTH = 1500;
 const TEXTURE_HEIGHT = 940;
 const TAU = Math.PI * 2;
@@ -84,7 +84,7 @@ export class ReactorLandmark {
    ctx.globalAlpha = .27 + pulse;
    ctx.drawImage(this.glow, -315, -315, 630, 630);
   }
-  ctx.globalAlpha = .9;
+  ctx.globalAlpha = .82;
   ctx.drawImage(this.hull, -WORLD_WIDTH / 2, -WORLD_HEIGHT / 2,
    WORLD_WIDTH, WORLD_HEIGHT);
   // The energy is in the central opening, at exactly the hull's world anchor.
