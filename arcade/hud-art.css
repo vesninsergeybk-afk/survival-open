@@ -1,4 +1,4 @@
-/* SURVIVOR HUD — Art Pass 04. Graphic silhouettes, engraving and icons are SVG.
+/* SURVIVOR HUD — Art Pass 05. Graphic silhouettes, engraving and icons are SVG.
    CSS places real telemetry and responsive touch-safe instruments. */
 #hud.cockpit-hud{
  --hud-ice:#ecfaff;--hud-muted:#b7d9e3;--hud-line:#7edfec;
@@ -401,4 +401,52 @@
  .mobile-abilities button:active,#quietBtn.is-quiet:active{
   background-image:url('./studio/hud-kit/mobile-frame-amber.svg');
  }
+}
+
+
+/* Art Pass 05. Heat stays invisible until a real game.weaponThermal
+   supplies enabled/current/limit/cooling/locked. The rail is never fake. */
+.cockpit-hud .hud-thermal{
+ position:absolute;left:26%;right:25%;top:46.5%;height:16%;
+ color:#FFCE88;text-shadow:0 1px 3px #000e;
+}
+.cockpit-hud .hud-thermal-head{
+ display:flex;align-items:center;justify-content:space-between;
+ min-width:0;gap:6px;font:700 8px/1 "Segoe UI",system-ui,sans-serif;
+ letter-spacing:.045em;white-space:nowrap;
+}
+.cockpit-hud .hud-thermal-head b{font-size:9px;color:#FFE6B5;font-variant-numeric:tabular-nums}
+.cockpit-hud .hud-thermal-meter{
+ box-sizing:border-box;position:relative;overflow:hidden;
+ margin:3px 0 0;padding:0;width:100%;height:6px;
+ background:#092531 url('./studio/hud-kit/segments-muted.svg') center/100% 100% no-repeat;
+ border:0;border-radius:0;
+}
+.cockpit-hud .hud-thermal-meter::after{
+ content:"";position:absolute;inset:0;
+ background:url('./studio/hud-kit/segments-amber.svg') center/100% 100% no-repeat;
+ clip-path:inset(0 calc(100% - var(--meter-fill,0%)) 0 0);
+ transition:clip-path .16s ease;
+}
+.cockpit-hud .hud-thermal.warning .hud-thermal-head b{color:#FFB3A0}
+.cockpit-hud .hud-thermal.warning .hud-thermal-meter::after,
+.cockpit-hud .hud-thermal.locked .hud-thermal-meter::after{
+ background-image:url('./studio/hud-kit/segments-red.svg')
+}
+.cockpit-hud .hud-thermal.locked .hud-thermal-head{color:#FF8696}
+.cockpit-hud .hud-thermal.locked .hud-thermal-head b{color:#FFE1E5}
+.cockpit-hud .hud-thermal.cooling .hud-thermal-head{color:#A7EFE7}
+#hud.cockpit-hud.thermal-enabled .hud-weapon-readout{padding-bottom:2px}
+@media(pointer:coarse) and (orientation:landscape){
+ .cockpit-hud .hud-thermal{top:50%;height:7%;left:26%;right:25%}
+ .cockpit-hud .hud-thermal-head{display:none}
+ .cockpit-hud .hud-thermal-meter{margin:0;height:4px}
+}
+@media(pointer:coarse) and (orientation:portrait){
+ .cockpit-hud .hud-thermal-head{font-size:7px}
+ .cockpit-hud .hud-thermal-head b{font-size:8px}
+ .cockpit-hud .hud-thermal-meter{height:5px;margin-top:2px}
+}
+@media(prefers-reduced-motion:reduce){
+ .cockpit-hud .hud-thermal-meter::after{transition:none}
 }
