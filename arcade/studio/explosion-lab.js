@@ -1,4 +1,4 @@
-import {EXPLOSION_ASSETS,EXPLOSION_TYPES,EXPLOSION_BUDGET} from './explosion-design.js?v=explosions-1';
+import {EXPLOSION_ASSETS,EXPLOSION_TYPES,EXPLOSION_BUDGET} from './explosion-design.js?v=explosions-2';
 
 // Read-only interactive rendering. This module is never imported by the game.
 const W=960,H=450,TAU=Math.PI*2;
@@ -20,7 +20,7 @@ function image(url,onReady){
  img.src=url;
 }
 function makeTint(img,color){
- const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+ const canvas=document.createElement('canvas');canvas.width=img.naturalWidth||img.width;canvas.height=img.naturalHeight||img.height;
  const c=canvas.getContext('2d');c.drawImage(img,0,0);
  c.globalCompositeOperation='source-in';c.fillStyle=color;c.fillRect(0,0,canvas.width,canvas.height);
  return canvas;
