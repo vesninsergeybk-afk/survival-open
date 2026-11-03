@@ -46,7 +46,8 @@ test('HUD reads game state and changes contextual prompts without changing simul
    elements.set(id,{
     textContent:'',style:{width:'',setProperty(){}},hidden:false,disabled:false,
     classList:{
-     add(name){classes.add(name)},remove(name){classes.delete(name)},
+     add(...names){for(const name of names)classes.add(name)},
+     remove(...names){for(const name of names)classes.delete(name)},
      toggle(name,force){if(force===undefined)force=!classes.has(name);
       if(force)classes.add(name);else classes.delete(name);return force},
      contains(name){return classes.has(name)}
