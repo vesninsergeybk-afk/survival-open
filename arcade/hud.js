@@ -25,12 +25,14 @@ export class CockpitDisplay {
    shield:el('shield'),shieldmeter:el('shieldmeter'),shieldbar:el('shieldbar'),
    leftBurstMeter:el('leftBurstMeter'),leftBurstText:el('leftBurstText'),
    hudSupportRing:el('hudSupportRing'),hudStrikeCount:el('hudStrikeCount'),
+   hudThermal:el('hudThermal'),hudThermalLabel:el('hudThermalLabel'),
+   hudThermalText:el('hudThermalText'),hudThermalMeter:el('hudThermalMeter'),
    droneIcons:[el('hudDrone0'),el('hudDrone1')],
    ore:el('ore'),data:el('data'),bases:el('bases'),
    wing:el('wing'),hack:el('hack'),fps:el('fps'),enemies:el('enemies'),
    points:el('points'),burst:el('burst'),burstbar:el('burstbar'),
    bursttext:el('bursttext'),hudHackSlot:el('hudHackSlot'),hudStrikeSlot:el('hudStrikeSlot'),flightMode:el('flightMode'),
-   wingStatus:el('wingStatus'),stateText:el('stateText'),
+   wingStatus:el('wingStatus'),stateText:el('stateText'),flightStatus:el('flightStatus'),flightDistance:el('flightDistance'),
    radarDistance:el('radarDistance'),burstBtn:el('burstBtn'),message:el('message'),
    oreResource:el('oreResource'),oreGain:el('oreGain'),
    miningStatus:el('miningStatus'),miningPercent:el('miningPercent'),
@@ -144,13 +146,26 @@ export class CockpitDisplay {
    !enemyBase.turrets.some(t=>t.hp>0)&&Math.hypot(enemyBase.x-p.x,enemyBase.y-p.y)<=245);
   const overcharge=Math.max(0,Math.ceil((game.overchargeUntil||0)-game.time));
   const scan=Math.max(0,Math.ceil((game.geoScanUntil||0)-game.time));
-  display(n.stateText,condition==='critical'?'АВАРИЙНЫЙ РЕЖИМ':
+  const systemStatus=condition==='critical'?'АВАРИЙНЫЙ РЕЖИМ':
    repairing?'ВОССТАНОВЛЕНИЕ ЗОНДА':extracting?'ДОБЫЧА ПОРОДЫ':boosting?'УСКОРЕНИЕ АКТИВНО':
    baseFocus?'ПРИОРИТЕТНАЯ ЦЕЛЬ':overcharge?'УСИЛЕНИЕ ЛУЧА · '+overcharge+' С':
    scan?'ГЕОРАЗВЕДКА · '+scan+' С':p.shield>0?'ЩИТ АКТИВЕН':
    condition==='wounded'?'КОРПУС ПОВРЕЖДЁН':
     game.doctrine?('ДОКТРИНА · '+({assault:'ШТУРМ',command:'КОМАНДИР',prospect:'СТАРАТЕЛЬ'}[game.doctrine]||'')):
-    'СИСТЕМЫ В НОРМЕ');
+    'СИСТЕМЫ В НОРМЕ';
+  // The mission ribbon's right bay is reserved for real route distance.
+  const goal=game.waypoint;
+  const routeDistance=goal&&Number.isFinite(goal.x)&&Number.isFinite(goal.y)?
+   Math.hypot(goal.x-p.x,goal.y-p.y):NaN;
+  const hasRoute=Number.isFinite(routeDistance)&&!(op||c);
+  n.flightDistance.hidden=!hasRoute;
+  n.flightStatus.classList.toggle('has-route',hasRoute);
+  if(hasRoute)display(n.flightDistance,routeDistance>=1000?
+   (routeDistance/1000).toFixed(1)+' КМ':Math.round(routeDistance)+' М');
+  const priorityStatus=condition==='critical'||repairing||extracting||boosting||
+   baseFocus||overcharge>0||scan>0;
+  display(n.stateText,hasRoute&&!priorityStatus?
+   String(goal.label||'МАРШРУТ').toUpperCase():systemStatus);
   display(n.flightMode,game.holdFire?'АВТООГОНЬ · ВЫКЛЮЧЕН':
    repairing?'ОРУЖИЕ ОТКЛ. · РЕМОНТ':
    extracting?(game.nearQuietLab?'ДОБЫЧА · ШУМ −32%':'ОРУЖИЕ ОТКЛ. · ДОБЫЧА'):
@@ -160,6 +175,25 @@ export class CockpitDisplay {
    game.nearDockField||game.nearArsenalDefense?'ПОЛЕ СТАНЦИИ · УРОН −18%':
    game.nearDock?.module==='workshop'?'ДОК · РЕМОНТ +60%':
    game.nearQuietLab?'ЛАБОРАТОРИЯ · ШУМ −32%':'АВТООГОНЬ · АКТИВЕН');
+  // Future thermal mechanics opt in explicitly. Without a real model, no
+  // misleading empty heat gauge is rendered in the live cockpit.
+  const thermal=game.weaponThermal;
+  const thermalEnabled=!!thermal?.enabled&&Number.isFinite(thermal.current)&&
+   Number.isFinite(thermal.limit)&&thermal.limit>0;
+  n.hudThermal.hidden=!thermalEnabled;
+  this.root.classList.toggle('thermal-enabled',thermalEnabled);
+  if(thermalEnabled){
+   const fill=100*clamp01(thermal.current/thermal.limit);
+   const cooling=thermal.cooling===true,locked=thermal.locked===true;
+   n.hudThermal.classList.toggle('warning',fill>=75&&!locked);
+   n.hudThermal.classList.toggle('locked',locked);
+   n.hudThermal.classList.toggle('cooling',cooling&&!locked);
+   n.hudThermalMeter.style.setProperty('--meter-fill',fill+'%');
+   n.hudThermalMeter.setAttribute('aria-valuenow',String(Math.round(fill)));
+   display(n.hudThermalText,Math.round(fill)+'%');
+   display(n.hudThermalLabel,locked?'ПЕРЕГРЕВ':cooling?'ОСТЫВАНИЕ':'НАГРЕВ');
+   if(locked)display(n.flightMode,'ОГОНЬ ЗАБЛОКИРОВАН · ПЕРЕГРЕВ');
+  }
   n.message.style.opacity=game.messageUntil>game.time?'1':'0';
   // HUD remains stationary: no cockpit sway when the player steers.
   const interval=game.fps<35?.34:.2;
@@ -222,6 +256,18 @@ export class CockpitDisplay {
    ctx.fillStyle=base.enemy&&!base.captured?'#ff797a':base.active?'#6cffd6':'#ffd797';
    ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=4;
    ctx.fillRect(-3.7,-3.7,7.4,7.4);ctx.restore();
+  }
+  // Selected route stays visible on the outer ring when beyond 1.1 km.
+  const waypoint=game.waypoint;
+  if(waypoint&&Number.isFinite(waypoint.x)&&Number.isFinite(waypoint.y)){
+   const dx=waypoint.x-p.x,dy=waypoint.y-p.y,d=Math.hypot(dx,dy);
+   if(Number.isFinite(d)){
+    const r=Math.min(57,d/range*57),a=d>0?dx/d:0,b=d>0?dy/d:-1;
+    ctx.save();ctx.translate(72+a*r,72+b*r);
+    ctx.rotate(Math.PI/4);ctx.strokeStyle='#FFD178';ctx.lineWidth=1.7;
+    ctx.shadowColor='#F5A849';ctx.shadowBlur=4;
+    ctx.strokeRect(-4.5,-4.5,9,9);ctx.restore();
+   }
   }
   const drawContacts=(ships,color,limit,radius)=>{
    let count=0;ctx.fillStyle=color;

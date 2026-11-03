@@ -7,7 +7,7 @@
 <title>Выживший · Бесконечная аркада — прототип</title>
 <link rel="stylesheet" href="./style.css?v=ion-first-play-1">
 <link rel="stylesheet" href="./hud.css?v=hud-responsive-v16">
-<link rel="stylesheet" href="./hud-art.css?v=hud-art-system-v3">
+<link rel="stylesheet" href="./hud-art.css?v=hud-art-system-v5">
 </head>
 <body>
 <div class="space-sky" id="sky0" aria-hidden="true"></div>
@@ -40,7 +40,7 @@
     </div>
    </section>
    <section class="cockpit-flight" aria-label="Навигация, радар и способности">
-    <div id="flightStatus" class="flight-status"><span class="live-indicator" aria-hidden="true"></span><b id="stateText">СИСТЕМЫ В НОРМЕ</b></div>
+    <div id="flightStatus" class="flight-status"><span class="live-indicator" aria-hidden="true"></span><b id="stateText">СИСТЕМЫ В НОРМЕ</b><span id="flightDistance" class="flight-distance" hidden></span></div>
     <div id="criticalAlert" class="critical-alert" role="status" aria-live="polite" aria-atomic="true"><span class="alert-glyph" aria-hidden="true">!</span><span id="criticalText">ТРЕВОГА · КРИТИЧЕСКИЙ КОРПУС</span></div>
     <div class="radar-unit">
      <canvas id="radar" width="144" height="144" role="img" aria-label="Ближний радар: союзники, противники, станции и орбитальные удары"></canvas>
@@ -66,6 +66,11 @@
     <img class="hud-weapon-mark" src="./studio/hud-kit/weapon.svg" alt="" aria-hidden="true">
     <div class="hud-combat-heading"><strong>БОЕВОЙ КОНТУР</strong></div>
     <div class="hud-weapon-readout"><span id="flightMode">АВТООГОНЬ · АКТИВЕН</span></div>
+    <div id="hudThermal" class="hud-thermal" hidden aria-label="Тепловое состояние основного оружия">
+     <div class="hud-thermal-head"><span id="hudThermalLabel">НАГРЕВ</span><b id="hudThermalText">0%</b></div>
+     <div id="hudThermalMeter" class="hud-thermal-meter" role="progressbar"
+      aria-label="Нагрев основного оружия" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+    </div>
     <div id="hudSupportRing" class="hud-support-ring" aria-label="Заряды авиаудара">
      <b id="hudStrikeCount">×0</b><span>УДАР</span>
     </div>
@@ -168,6 +173,6 @@
  </section>
  <p class="credits-legal">Упоминание авторов не означает, что они одобряют игру или участвуют в её разработке.</p>
 </dialog>
-<script type="module" src="./game.js?v=hud-v3-foley-autofire-03-ion-first-play-1"></script>
+<script type="module" src="./game.js?v=hud-v5-foley-autofire-03-ion-first-play-1-reactor-depth-v2"></script>
 </body>
 </html>
