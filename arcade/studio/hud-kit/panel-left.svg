@@ -1,14 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 145" width="460" height="145" fill="none"><defs>
-<linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8f7ff" stop-opacity=".88"/><stop offset=".45" stop-color="#64cde1" stop-opacity=".66"/><stop offset="1" stop-color="#8ceff3" stop-opacity=".8"/></linearGradient>
-<linearGradient id="glass" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#051c28" stop-opacity=".72"/><stop offset=".5" stop-color="#091c25" stop-opacity=".45"/><stop offset="1" stop-color="#061825" stop-opacity=".74"/></linearGradient>
-<linearGradient id="line" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#c8f6ff" stop-opacity=".8"/><stop offset=".6" stop-color="#77ddea" stop-opacity=".25"/><stop offset="1" stop-color="#77ddea" stop-opacity="0"/></linearGradient>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#163340" stop-opacity=".84"/><stop offset=".4" stop-color="#071927" stop-opacity=".78"/><stop offset="1" stop-color="#0C2834" stop-opacity=".88"/></linearGradient>
+<linearGradient id="edge" x1="0" y1="0" x2="1" y2=".6"><stop stop-color="#C7F8FF" stop-opacity=".88"/><stop offset=".25" stop-color="#65BCCF" stop-opacity=".52"/><stop offset=".65" stop-color="#4F7E8E" stop-opacity=".55"/><stop offset="1" stop-color="#B9F0F7" stop-opacity=".85"/></linearGradient>
+<linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#D5EEF3" stop-opacity=".18"/><stop offset=".4" stop-color="#829EA7" stop-opacity=".05"/><stop offset=".8" stop-color="#132C36" stop-opacity=".13"/><stop offset="1" stop-color="#B4F2F5" stop-opacity=".18"/></linearGradient>
+<linearGradient id="signal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#7AF0F0" stop-opacity=".72"/><stop offset=".65" stop-color="#63CDD7" stop-opacity=".26"/><stop offset="1" stop-color="#63CDD7" stop-opacity="0"/></linearGradient>
 </defs>
-<path d="M20 2H213L227 11H437L458 34V122L438 143H21L2 126V23Z" fill="url(#glass)" stroke="url(#edge)" stroke-width="1.35"/>
-<path d="M20 2H88M213 2L227 11H437M2 23V126L21 143H71" stroke="#c0f7ff" stroke-opacity=".78" stroke-width="1.6"/>
-<path d="M21 10H112M12 28V91M449 43V105M435 136H384" stroke="#8deaf3" stroke-opacity=".35"/>
-<path d="M24 13H202" stroke="url(#line)" stroke-width="1"/>
-<path d="M25 128H424" stroke="#67dbed" stroke-opacity=".18"/>
-<path d="M21 123V129L27 135H40" stroke="#93e7f1" stroke-opacity=".38"/>
-<path d="M435 23H443L450 31" stroke="#ecffff" stroke-opacity=".6"/>
-<path d="M28 19H111" stroke="#9ee9f1" stroke-opacity=".14" stroke-width="4"/>
+<!-- Recessed steel frame; fixed dimension prevents beveled edges from stretching -->
+<path d="M20 2H213L227 10H437L458 32V122L438 143H22L2 125V24Z" fill="url(#glass)" stroke="url(#edge)" stroke-width="1.45"/>
+<path d="M20 2H213L227 10H437L458 32V122L438 143H22L2 125V24Z" fill="url(#steel)" opacity=".66"/>
+<path d="M20 5H209L224 14H433L453 34V120L436 138H24L7 123V25Z" stroke="#5FAEBA" stroke-opacity=".24"/>
+<path d="M20 2H105M214 2L227 10H435M2 24V125L22 143H87" stroke="#D8FBFF" stroke-opacity=".74" stroke-width="1.7"/>
+<path d="M438 143H367M458 35V78" stroke="#BDF7FD" stroke-opacity=".55" stroke-width="1.55"/>
+<!-- Instrument mount -->
+<path d="M18 20H108L116 29V121L105 130H18L10 119V29Z" fill="#04131D" fill-opacity=".31" stroke="#5F9CAC" stroke-opacity=".27"/>
+<path d="M18 20H108M18 130H105" stroke="#8DE4EF" stroke-opacity=".29"/>
+<path d="M17 28H25M17 119H25M108 29H114M108 120H114" stroke="#BDF5FC" stroke-opacity=".43"/>
+<path d="M22 37V111M104 37V111" stroke="#78D3E1" stroke-opacity=".12"/>
+<!-- Calibrated rows and etched separator lines -->
+<path d="M126 48H435M126 80H435M126 111H435" stroke="#D9F7F7" stroke-opacity=".17" stroke-width=".7"/>
+<path d="M126 49H222M126 81H201M126 112H242" stroke="url(#signal)" stroke-opacity=".3"/>
+<path d="M117 18V121" stroke="#6BC6D4" stroke-opacity=".25"/>
+<path d="M125 15H232" stroke="#82DBE7" stroke-opacity=".28"/>
+<path d="M130 136H430" stroke="#52C0D0" stroke-opacity=".26"/>
+<!-- Industrial cutouts, screws, isolated signal lights -->
+<circle cx="14" cy="22" r="1.45" fill="#BCF9FC" opacity=".72"/><circle cx="446" cy="129" r="1.45" fill="#BCF9FC" opacity=".72"/>
+<path d="M25 12H82M25 15H57M351 20H428" stroke="#D0F5F7" stroke-opacity=".12"/>
+<path d="M28 135H39M43 135H54M59 135H70" stroke="#65D8E3" stroke-opacity=".62" stroke-width="1.6"/>
+<path d="M11 51V64" stroke="#F3BB57" stroke-opacity=".84" stroke-width="1.6"/>
+<path d="M441 41H449M441 45H449" stroke="#D9FCFF" stroke-opacity=".27"/>
+<path d="M8 122L23 137H66M452 119L437 135H393" stroke="#87DDE7" stroke-opacity=".28"/>
 </svg>
