@@ -1,12 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 506 52" width="506" height="52" fill="none"><defs>
-<linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8f7ff" stop-opacity=".88"/><stop offset=".45" stop-color="#64cde1" stop-opacity=".66"/><stop offset="1" stop-color="#8ceff3" stop-opacity=".8"/></linearGradient>
-<linearGradient id="glass" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#051c28" stop-opacity=".72"/><stop offset=".5" stop-color="#091c25" stop-opacity=".45"/><stop offset="1" stop-color="#061825" stop-opacity=".74"/></linearGradient>
-<linearGradient id="line" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#c8f6ff" stop-opacity=".8"/><stop offset=".6" stop-color="#77ddea" stop-opacity=".25"/><stop offset="1" stop-color="#77ddea" stop-opacity="0"/></linearGradient>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#163340" stop-opacity=".84"/><stop offset=".4" stop-color="#071927" stop-opacity=".78"/><stop offset="1" stop-color="#0C2834" stop-opacity=".88"/></linearGradient>
+<linearGradient id="edge" x1="0" y1="0" x2="1" y2=".6"><stop stop-color="#C7F8FF" stop-opacity=".88"/><stop offset=".25" stop-color="#65BCCF" stop-opacity=".52"/><stop offset=".65" stop-color="#4F7E8E" stop-opacity=".55"/><stop offset="1" stop-color="#B9F0F7" stop-opacity=".85"/></linearGradient>
+<linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#D5EEF3" stop-opacity=".18"/><stop offset=".4" stop-color="#829EA7" stop-opacity=".05"/><stop offset=".8" stop-color="#132C36" stop-opacity=".13"/><stop offset="1" stop-color="#B4F2F5" stop-opacity=".18"/></linearGradient>
+<linearGradient id="signal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#7AF0F0" stop-opacity=".72"/><stop offset=".65" stop-color="#63CDD7" stop-opacity=".26"/><stop offset="1" stop-color="#63CDD7" stop-opacity="0"/></linearGradient>
 </defs>
-<path d="M22 3H481L505 25L485 49H21L1 28Z" fill="url(#glass)" stroke="url(#edge)" stroke-width="1.25"/>
-<path d="M21 3H84M435 3H481L505 25" stroke="#cffaff" stroke-opacity=".7"/>
-<path d="M385 11V41" stroke="#a8d5df" stroke-opacity=".7"/>
-<path d="M29 24L42 11L55 24L42 37Z" stroke="#ffc34e" stroke-width="2.7"/>
-<path d="M42 18L48 24L42 30L36 24Z" fill="#f6b84d" fill-opacity=".85"/>
-<path d="M18 42H130" stroke="#72ddec" stroke-opacity=".21"/>
+<path d="M23 3H479L505 26L483 49H20L1 27Z" fill="url(#glass)" stroke="url(#edge)" stroke-width="1.4"/>
+<path d="M24 7H474L499 26L480 44H23L8 26Z" stroke="#76BDCC" stroke-opacity=".25"/>
+<path d="M21 3H105M419 3H479L505 26" stroke="#DEFCFF" stroke-opacity=".7" stroke-width="1.5"/>
+<path d="M26 47H136M425 47H483" stroke="#71DEE7" stroke-opacity=".38"/>
+<path d="M386 12V40M390 16V37" stroke="#C3E5EC" stroke-opacity=".45"/>
+<path d="M30 26L43 13L56 26L43 39Z" fill="#54371D" fill-opacity=".63" stroke="#F7C15C" stroke-width="2.6"/>
+<path d="M43 19L50 26L43 33L36 26Z" fill="#FFD37A" fill-opacity=".86"/>
+<path d="M77 43H194M441 8H474" stroke="#93E5EE" stroke-opacity=".19"/>
+<path d="M67 11H123" stroke="url(#signal)" stroke-opacity=".4"/>
 </svg>
