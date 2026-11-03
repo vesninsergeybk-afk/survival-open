@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - migration/production-20261103
-    paths:
-      - .github/workflows/verify-game.yml
   workflow_dispatch:
 
 permissions:
