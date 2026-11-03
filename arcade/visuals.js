@@ -1,3 +1,4 @@
+import {drawInstalledModules} from './ship-weapons.js?v=hangar-1';
 /**
  * Arcade presentation uses the artwork and animation systems already approved
  * for Survivor. Visual variants never consume gameplay randomness.
@@ -355,6 +356,7 @@ export class ArcadeVisuals {
   const stage=Math.min(9,Math.max(0,Math.floor((level-1)/3)));
   const ratio=p.hp/Math.max(1,p.maxHp);
   const ok=drawEvolvedHero(ctx,19.5,stage,ratio,thrust);
+  if(ok)drawInstalledModules(ctx,p);
   ctx.restore();
   return ok;
  }
