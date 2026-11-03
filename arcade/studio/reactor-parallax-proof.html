@@ -26,16 +26,16 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 <main>
 <a href="./#reactor">← Мастерская</a>
 <h1>Реактор: геометрия и масштаб на настоящей камере</h1>
-<p>Это испытание непосредственно использует <code>ReactorLandmark</code> из аркады. Корабль и док обозначены условно, но их координаты и размер заданы в игровых единицах. Переключайте старый и новый способы подготовки корпуса, двигайте камеру и проверяйте, остаются ли проёмы, корабль и центральное ядро различимыми. Глушилки и стадии запуска здесь — только проверка графики, не реализованная миссия.</p>
+<p>Это испытание непосредственно использует <code>ReactorLandmark</code> из аркады. Корабль и док обозначены условно, но их координаты и размер заданы в игровых единицах. Сравните прежний единый рисунок с новой сценой: далёкие отдельные фермы, неподвижный основной корпус, дымка между планами и ближний металл. Двигайте камеру и выключайте планы по одному; проёмы, корабль и ядро должны оставаться различимыми. Глушилки и стадии запуска здесь — только проверка графики, не реализованная миссия.</p>
 <div class="layout">
 <section class="panel">
 <canvas id="stage" width="1100" height="650" role="img" aria-label="Сцена с корпусом реактора в игровом масштабе"></canvas>
-<div class="legend"><strong id="name">Новая обработка</strong> · <span id="status">Загрузка исходника…</span></div>
-<div class="legend">Игровой центр реактора: (80, −310). Док: (360, −85). Все металлические части следуют камере 1:1; только космос смещается медленнее.</div>
+<div class="legend"><strong id="name">Многослойная сцена</strong> · <span id="status">Загрузка исходника…</span></div>
+<div class="legend">Игровой центр реактора: (80, −310). Док: (360, −85). Все металлические части следуют камере 1:1; дальние самостоятельные фермы и дымка смещаются медленнее; связанные металлические элементы и ядро остаются неподвижны относительно друг друга.</div>
 </section>
 <aside class="panel controls">
 <label>Версия изображения
-<select id="mode"><option value="new">Новая: глубина и затемнение</option><option value="old">Прежняя: сжатая проекция</option></select>
+<select id="mode"><option value="new">Новая: планы, параллакс и дымка</option><option value="old">Прежняя: сжатая проекция</option></select>
 </label>
 <label>Состояние ядра
 <select id="stage-state"><option value="0">0 · Подавлено</option><option value="1">1 · Одна глушилка</option><option value="2">2 · Две глушилки</option><option value="3">3 · Ожидает E</option><option value="4">4 · Реактор работает</option></select>
@@ -47,6 +47,9 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 <label>Вертикальный сдвиг камеры: <output id="cam-y-value">0</output>
 <input id="cam-y" type="range" min="-450" max="450" step="20" value="0">
 </label>
+<label><span><input id="layer-distant" type="checkbox" checked> Дальние фермы · параллакс 0,66</span></label>
+<label><span><input id="layer-mist" type="checkbox" checked> Дымка · параллакс 0,84</span></label>
+<label><span><input id="layer-near" type="checkbox" checked> Ближний металлический план · 1:1</span></label>
 <label>Условная производительность
 <select id="fps"><option value="60">60 FPS</option><option value="25">25 FPS</option></select>
 </label>
@@ -62,6 +65,9 @@ const $=id=>document.getElementById(id);
 const canvas=$('stage'),g=canvas.getContext('2d',{alpha:false});
 const vw=1100,vh=650,ship={x:360,y:-25},dock={x:360,y:-85};
 const reactor=new ReactorLandmark({loadEnergyAtlas:true});
+for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near']]){
+ $(id).addEventListener('change',event=>{reactor.layers[key]=event.target.checked;});
+}
 const source=new Image();source.decoding='async';source.src='./assets/reactor-ring-03.png';
 let oldHull=null,last=0,launchAt=-100,mode='new';
 source.onload=()=>{
@@ -122,7 +128,7 @@ function frame(ts){
  else reactor.draw(g,cam,ts/1000,fps,$('reduce').checked,stage,age);
  g.restore();
  drawMarker(cam);
- $('name').textContent=mode==='old'?'Прежняя проекция':'Новая обработка';
+ $('name').textContent=mode==='old'?'Прежняя проекция':'Многослойная сцена';
  $('status').textContent=(mode==='old'?!!oldHull:!!reactor.hull)?
   (labels[stage]+' · исходник загружен'):
   (reactor.failed?'Не удалось загрузить корпус':'Загрузка корпуса…');
@@ -138,6 +144,9 @@ $('reset').addEventListener('click',()=>{
  $('cam-x').value='0';$('cam-y').value='0';
  $('cam-x-value').textContent='0';$('cam-y-value').textContent='0';
  $('stage-state').value='0';mode='new';$('mode').value='new';launchAt=-100;
+ for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near']]){
+  $(id).checked=true;reactor.layers[key]=true;
+ }
 });
 requestAnimationFrame(frame);
 </script>
