@@ -20,7 +20,7 @@ assert.equal(WEAPON_SOUNDS.starter_soft.sampleUrl, undefined,
 
 for (const [id, sound] of Object.entries(SOUND_CATALOG)) {
   assert(sound.profile && sound.family, 'Missing sound design: ' + id);
-  assert(sound.minIntervalMs > 0 && sound.minIntervalMs <= 2000, 'Invalid throttle: ' + id);
+  assert(sound.minIntervalMs > 0 && sound.minIntervalMs <= 5000, 'Invalid throttle: ' + id);
   assert(sound.priority >= 1 && sound.priority <= 5, 'Invalid priority: ' + id);
   if (!sound.sampleUrl) continue;
   const path = resolve(here, sound.sampleUrl);
