@@ -4,6 +4,7 @@ import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40'
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=operation-leads-1';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-1';
+import {ION_CONDUCTOR,ionLoanOffer} from './ion-conductor.js?v=ion-first-play-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -503,6 +504,9 @@ export function renderBasePanel(base,state){
   '<strong>'+brief[1]+'</strong><p>'+brief[2]+'</p>'+
   (specialOffer(base,state)?specialPanel(base,state,true):
     '<div class="base-shortcuts"><span>Местные услуги доступны в ангаре.</span></div>')+
+  (base.id==='0:0'&&base.type==='dock'&&!state.ionTrialTaken&&!state.ionLoan?
+   '<div class="base-shortcuts"><span>Бесплатная проба: в ангаре доступен «Ионный проводник» — ручной разряд по меткам автоогня.</span>'+
+    action('baseTab','Испытать оружие','','hangar')+'</div>':'')+
   '</div><aside class="base-dashboard-aside"><span class="base-kicker">'+'КАРТА РАЙОНА'+'</span>'+
   basePreview(base,state)+
   '<div class="base-dashboard-links">'+
@@ -535,8 +539,24 @@ export function renderBasePanel(base,state){
     'не хватает '+(o.hireCost-o.ore)+' сплава.'))+
   ' Следующая станция и постоянные улучшения тоже потребуют ресурсов.</small>'+
   '<div>'+action('baseTab','Вернуться к операциям','','operations')+'</div></section>';
+ const ionOffer=ionLoanOffer(base,state);
+ const ionPanel=ionOffer?card('base-service base-local',
+  'ИСПЫТАТЕЛЬНОЕ ОРУЖИЕ',ionOffer.mode==='return'?
+   'Ионный проводник · '+ionOffer.charges+'/'+ION_CONDUCTOR.charges+' заряда':
+   ionOffer.mode==='trial'?'Ионный проводник · бесплатная проба':'Ионный проводник · повторный прокат',
+  ionOffer.mode==='return'?
+   'Обычный автоогонь ставит ионные метки на ближайших врагов. Space (или кнопка «Ион») запускает разряд по отмеченной группе. После операции модуль вернётся при стыковке; можно вернуть досрочно.':
+   'Пробный боевой модуль с '+ION_CONDUCTOR.charges+' зарядами. Автоогонь помечает врагов, Space даёт ручной цепной разряд. Обычный луч сохраняется. За один раз можно взять только один модуль.',
+  ionOffer.mode==='return'?action('returnIon','Вернуть модуль'):
+   action('loanIon',ionOffer.mode==='trial'?'Взять бесплатно':
+    'Взять · '+ionOffer.cost+' сплава',ionOffer.reason),ionOffer.reason):
+  base.type==='dock'&&state.ionTrialTaken?card('base-service',
+   'ИСПЫТАТЕЛЬНОЕ ОРУЖИЕ','Пробный образец уже выдавался',
+   (state.ionReturnNotice?'Модуль вернулся после задания. ':'')+
+    'Повторный прокат доступен в арсенале; обычное оружие продолжает работать.',
+   '<span class="base-ready">ПЕРВАЯ ПРОБА ЗАВЕРШЕНА</span>'):'';
  const hangar='<div class="base-operations">'+readiness+
-  '<div class="base-grid">'+repair+hire+'</div>'+local+supply+'</div>';
+  '<div class="base-grid">'+repair+hire+'</div>'+local+ionPanel+supply+'</div>';
  const network='<div class="base-operations"><p class="base-section-note">Усиление антенны расширяет связь. Специализация влияет на работу станции и ближайший сектор.</p>'+
   '<div class="base-grid">'+upgrade+antenna+'</div>'+networkPreview(base,state)+modules+transit+'</div>';
  const opening=active?
