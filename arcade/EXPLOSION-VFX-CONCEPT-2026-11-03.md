@@ -76,7 +76,7 @@
 
 **Уже в репозитории:** `assets/fx/flare_01.png` (короткий свет), `flame_04.png` (пламя), `smoke_05.png` (дым), `spark_04.png` (искры), `star_07.png` (ядро), `scorch_01.png` (остаток). Другие уже включённые Kenney-файлы: `circle_05.png`, `magic_03.png`, `muzzle_02.png`, `slash_02.png`. Лицензия на комплект явно записана в `assets/fx/LICENSE-KENNEY.txt` (CC0 1.0; авторство не требуется). Оригинал набора: https://kenney.nl/assets/particle-pack ; подтверждение CC0: https://kenney.nl/support .
 
-**Из изображений игры:** `assets/space/enemy_fighter.png`, `assets/space/boss-capital-cruiser.png`, `assets/space/asteroid-realistic.png`, `assets/space/nebula_amber_v1.png`. Это не чужие декоративные заглушки; стенд использует реальные исходники. Для последующего включения в игру всё равно нужно проверить, где берутся фактические размеры и ориентация объектов.
+**Из изображений игры:** `assets/space/enemy_fighter.png`, `assets/space/boss-capital-cruiser.png`, `assets/space/asteroid-ore.png`, `assets/space/nebula_amber_v1.png`. Это не чужие декоративные заглушки; стенд использует реальные исходники. Для последующего включения в игру всё равно нужно проверить, где берутся фактические размеры и ориентация объектов.
 
 **Внешние варианты, пока НЕ добавленные:**
 
