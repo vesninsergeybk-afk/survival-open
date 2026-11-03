@@ -1,10 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 184 184" width="184" height="184" fill="none"><defs><radialGradient id="r" cx=".5" cy=".5" r=".5"><stop stop-color="#051b24" stop-opacity=".25"/><stop offset=".8" stop-color="#041923" stop-opacity=".48"/><stop offset="1" stop-color="#02131b" stop-opacity=".69"/></radialGradient></defs>
-<circle cx="92" cy="92" r="84.5" fill="url(#r)" stroke="#c1f8ff" stroke-opacity=".87" stroke-width="1.25"/>
-<circle cx="92" cy="92" r="81" stroke="#5ce3ef" stroke-opacity=".37"/>
-<circle cx="92" cy="92" r="51" stroke="#8dcbd9" stroke-opacity=".22"/>
-<circle cx="92" cy="92" r="29" stroke="#8dcbd9" stroke-opacity=".22"/>
-<path d="M92 9V175M9 92H175" stroke="#8fd3dc" stroke-opacity=".21"/>
-<path d="M92 4V18M92 166V180M4 92H18M166 92H180" stroke="#8ffaff" stroke-width="1.5"/>
-<path d="M35 35L44 44M140 140L149 149M149 35L140 44M44 140L35 149" stroke="#9ed6e0" stroke-opacity=".14"/>
-<circle cx="92" cy="92" r="87" stroke="#9de8f1" stroke-opacity=".19" stroke-dasharray="2 24"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 184 184" width="184" height="184" fill="none"><defs>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#163340" stop-opacity=".84"/><stop offset=".4" stop-color="#071927" stop-opacity=".78"/><stop offset="1" stop-color="#0C2834" stop-opacity=".88"/></linearGradient>
+<linearGradient id="edge" x1="0" y1="0" x2="1" y2=".6"><stop stop-color="#C7F8FF" stop-opacity=".88"/><stop offset=".25" stop-color="#65BCCF" stop-opacity=".52"/><stop offset=".65" stop-color="#4F7E8E" stop-opacity=".55"/><stop offset="1" stop-color="#B9F0F7" stop-opacity=".85"/></linearGradient>
+<linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#D5EEF3" stop-opacity=".18"/><stop offset=".4" stop-color="#829EA7" stop-opacity=".05"/><stop offset=".8" stop-color="#132C36" stop-opacity=".13"/><stop offset="1" stop-color="#B4F2F5" stop-opacity=".18"/></linearGradient>
+<linearGradient id="signal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#7AF0F0" stop-opacity=".72"/><stop offset=".65" stop-color="#63CDD7" stop-opacity=".26"/><stop offset="1" stop-color="#63CDD7" stop-opacity="0"/></linearGradient>
+</defs>
+<circle cx="92" cy="92" r="85.5" fill="#051923" fill-opacity=".17" stroke="#B9F6FF" stroke-opacity=".82" stroke-width="1.4"/>
+<circle cx="92" cy="92" r="82.2" stroke="#74D9E6" stroke-opacity=".31"/>
+<circle cx="92" cy="92" r="76.4" stroke="#92DAE4" stroke-opacity=".22"/>
+<circle cx="92" cy="92" r="51.2" stroke="#8DC8D3" stroke-opacity=".18"/>
+<circle cx="92" cy="92" r="29" stroke="#82C9D8" stroke-opacity=".13"/>
+<circle cx="92" cy="92" r="86.7" stroke="#7DD7E5" stroke-opacity=".18" stroke-dasharray="3 11"/>
+<path d="M92 6V178M6 92H178" stroke="#89D7DF" stroke-opacity=".19" stroke-width=".8"/>
+<path d="M92 2V18M92 166V182M2 92H18M166 92H182" stroke="#9AF9FA" stroke-width="1.65"/>
+<path d="M35 35L43 43M149 35L141 43M35 149L43 141M149 149L141 141" stroke="#91DCE3" stroke-opacity=".25"/>
+<path d="M115 11L118 22M69 11L66 22M115 173L118 162M69 173L66 162M11 69L22 66M173 69L162 66M11 115L22 118M173 115L162 118" stroke="#9CDCE5" stroke-opacity=".40"/>
+<path d="M73 6H111M73 178H111" stroke="#CBFAFD" stroke-opacity=".32"/>
+<path d="M14 89H22M162 89H170" stroke="#F3C16C" stroke-opacity=".54" stroke-width="1.15"/>
+<circle cx="92" cy="92" r="2" fill="#B3FBFD" opacity=".65"/>
 </svg>

@@ -22,7 +22,11 @@ export class CockpitDisplay {
   this.lastRadar=-Infinity;this.lastCondition='';this.oreGained=0;this.oreGainTime=-Infinity;
   this.n={hp:el('hp'),hpbar:el('hpbar'),hpmeter:el('hpmeter'),
    xpbar:el('xpbar'),xpmeter:el('xpmeter'),level:el('level'),
-   shield:el('shield'),ore:el('ore'),data:el('data'),bases:el('bases'),
+   shield:el('shield'),shieldmeter:el('shieldmeter'),shieldbar:el('shieldbar'),
+   leftBurstMeter:el('leftBurstMeter'),leftBurstText:el('leftBurstText'),
+   hudSupportRing:el('hudSupportRing'),hudStrikeCount:el('hudStrikeCount'),
+   droneIcons:[el('hudDrone0'),el('hudDrone1'),el('hudDrone2')],
+   ore:el('ore'),data:el('data'),bases:el('bases'),
    wing:el('wing'),hack:el('hack'),fps:el('fps'),enemies:el('enemies'),
    points:el('points'),burst:el('burst'),burstbar:el('burstbar'),
    bursttext:el('bursttext'),hudHackSlot:el('hudHackSlot'),hudStrikeSlot:el('hudStrikeSlot'),flightMode:el('flightMode'),
@@ -50,12 +54,21 @@ export class CockpitDisplay {
   display(n.level,p.level);
   display(n.points,p.points>0?'Очков: '+p.points:'до ур. '+(p.level+1));
   display(n.shield,p.shield>0?Math.ceil(p.shield):'—');
+  const shieldCap=Math.max(30,16+(game.skillRanks?.shield||0)*24,p.shield);
+  const shieldFill=clamp01(p.shield/shieldCap);
+  n.shieldmeter.style.setProperty('--meter-fill',(shieldFill*100)+'%');
+  n.shieldmeter.setAttribute('aria-valuenow',String(Math.ceil(p.shield)));
+  n.shieldmeter.setAttribute('aria-valuemax',String(Math.ceil(shieldCap)));
   display(n.ore,p.ore);display(n.data,p.data);display(n.bases,game.activeBases);
   display(n.wing,game.allies.length);display(n.hack,game.hacks.length);
   display(n.fps,Math.round(game.fps));display(n.enemies,game.enemies.length);
   const strikes=game.support?.charges||0;
   const bombers=game.support?.missions?.length||0;
   const cover=game.allies.filter(a=>a.state==='cover'||a.state==='guard').length;
+  display(n.hudStrikeCount,'×'+strikes);
+  n.hudSupportRing.classList.toggle('available',strikes>0);
+  const liveAllies=game.allies.filter(a=>a.hp>0).length;
+  for(let i=0;i<n.droneIcons.length;i++)n.droneIcons[i].classList.toggle('active',i<liveAllies);
   display(n.wingStatus,bombers?'АВИАГРУППА В БОЮ':
    strikes?'ДРОНЫ '+game.allies.length+' · УДАР B: '+strikes:
    !game.allies.length?'ДРОНЫ: 0/2':cover?'ПРИКРЫТИЕ · '+cover:
@@ -70,6 +83,7 @@ export class CockpitDisplay {
   const op=game.operation,c=game.contract,tracker=n.contractObjective;
   if(tracker){
    tracker.hidden=!(op||c);
+   this.root.classList.toggle('has-objective',!!(op||c));
    tracker.classList.toggle('ready',!op&&!!c&&c.progress>=c.goal);
    display(tracker,missionHudText(game));
   }
@@ -105,7 +119,11 @@ export class CockpitDisplay {
   const cd=Math.max(0,p.burstCooldown),maxCd=Math.max(.01,boostCooldown);
   n.burstbar.style.width=(100*(1-clamp01(cd/maxCd)))+'%';
   const boosting=p.burstRemaining>0;
-  display(n.bursttext,boosting?'ФОРСАЖ':cd>0?cd.toFixed(1)+' с':'ГОТОВ');
+  const burstLabel=boosting?'ФОРСАЖ':cd>0?cd.toFixed(1)+' с':'ГОТОВ';
+  display(n.bursttext,burstLabel);display(n.leftBurstText,burstLabel);
+  const burstFill=100*(1-clamp01(cd/maxCd));
+  n.leftBurstMeter.style.setProperty('--meter-fill',burstFill+'%');
+  n.leftBurstMeter.setAttribute('aria-valuenow',String(Math.round(burstFill)));
   n.burst.classList.toggle('ready',cd<=0);
   // Art-only ability frames mirror actual available charges; never unlock controls.
   const hasCode=game.hacks.length>0,hasStrike=strikes>0;
