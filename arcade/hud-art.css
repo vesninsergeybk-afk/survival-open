@@ -15,10 +15,10 @@
  box-shadow:none;filter:drop-shadow(0 3px 10px #0007);
 }
 .cockpit-hud .wing-left{left:max(16px,env(safe-area-inset-left));
- background-image:url('./studio/hud-kit/panel-left.svg')}
+ background-image:url('./studio/hud-kit/panel-left.svg?art=06')}
 .cockpit-hud .wing-right{right:max(16px,env(safe-area-inset-right));
  width:clamp(325px,30vw,440px);aspect-ratio:440/139;
- background-image:url('./studio/hud-kit/panel-right.svg')}
+ background-image:url('./studio/hud-kit/panel-right.svg?art=06')}
 .cockpit-hud .cockpit-wing::before{display:none}
 .cockpit-hud .hud-ship-mark{
  position:absolute;left:6%;top:20%;width:17%;height:68%;object-fit:contain;
@@ -449,4 +449,93 @@
 }
 @media(prefers-reduced-motion:reduce){
  .cockpit-hud .hud-thermal-meter::after{transition:none}
+}
+
+/* HUD Art Pass 06 — electronic damage response.
+   The static artwork lives in a transparent SVG. Motion is short and
+   restricted to cockpit instrumentation; gameplay canvas never shifts. */
+#hud.cockpit-hud .cockpit-wing::after{
+ content:"";position:absolute;inset:2px;z-index:5;pointer-events:none;
+ background:url('./studio/hud-kit/impact-interference.svg') center/100% 100% no-repeat;
+ opacity:0;mix-blend-mode:screen;
+}
+#hud.cockpit-hud.is-hit .cockpit-frame{
+ animation:hud-signal-impact .25s linear both;
+}
+#hud.cockpit-hud.is-hit-heavy .cockpit-frame{
+ animation-name:hud-signal-impact-heavy;animation-duration:.34s;
+}
+#hud.cockpit-hud.is-hit .cockpit-wing{
+ animation:hud-signal-shear .25s steps(1,end) both;
+}
+#hud.cockpit-hud.is-hit-heavy .cockpit-wing{
+ animation-name:hud-signal-shear-heavy;animation-duration:.34s
+}
+#hud.cockpit-hud.is-hit .cockpit-wing::after{
+ animation:hud-signal-noise .25s steps(1,end) both;
+}
+#hud.cockpit-hud.is-hit-heavy .cockpit-wing::after{animation-duration:.34s}
+#hud.cockpit-hud.is-hit-shield .cockpit-wing::after{filter:hue-rotate(140deg) saturate(.8)}
+#hud.cockpit-hud.is-hit-static .cockpit-wing::after{
+ animation:hud-signal-static-flash .27s ease-out both;
+}
+@keyframes hud-signal-impact{
+ 0%,100%{transform:translate3d(0,0,0)}
+ 12%{transform:translate3d(-2px,1px,0)}
+ 25%{transform:translate3d(2.7px,-1px,0)}
+ 39%{transform:translate3d(-1.6px,0,0)}
+ 56%{transform:translate3d(.8px,.6px,0)}
+ 73%{transform:translate3d(-.5px,-.4px,0)}
+}
+@keyframes hud-signal-impact-heavy{
+ 0%,100%{transform:translate3d(0,0,0)}
+ 9%{transform:translate3d(-4px,1px,0)}
+ 20%{transform:translate3d(3.7px,-2px,0)}
+ 33%{transform:translate3d(-2.8px,1px,0)}
+ 48%{transform:translate3d(2px,0,0)}
+ 68%{transform:translate3d(-1px,.4px,0)}
+ 82%{transform:translate3d(.4px,0,0)}
+}
+@keyframes hud-signal-shear-heavy{
+ 0%,100%{filter:drop-shadow(0 3px 10px #0007)}
+ 10%,23%{filter:drop-shadow(2.5px 0 #FF7C947A) drop-shadow(-2.8px 0 #68EAF67B) blur(.85px) brightness(1.58)}
+ 37%{filter:drop-shadow(-1.5px 0 #E98C9A59) drop-shadow(2px 0 #86F3F75B) brightness(1.26)}
+ 53%{filter:drop-shadow(0 3px 10px #0007) brightness(1.08)}
+}
+@keyframes hud-signal-shear{
+ 0%,100%{filter:drop-shadow(0 3px 10px #0007)}
+ 12%,26%{filter:drop-shadow(1.8px 0 #FF7C944A) drop-shadow(-1.8px 0 #68EAF65B) blur(.55px) brightness(1.38)}
+ 39%{filter:drop-shadow(-1px 0 #E98C9A49) drop-shadow(1.2px 0 #86F3F75B) brightness(1.15)}
+ 57%{filter:drop-shadow(0 3px 10px #0007) brightness(1.07)}
+}
+@keyframes hud-signal-noise{
+ 0%,100%{opacity:0;transform:translateX(0)}
+ 11%{opacity:.38;transform:translateX(-2px)}
+ 18%{opacity:.67;transform:translateX(3px)}
+ 28%{opacity:.30;transform:translateX(-1px)}
+ 42%{opacity:.15;transform:translateX(0)}
+ 57%{opacity:0}
+}
+@keyframes hud-signal-static-flash{
+ 0%,100%{opacity:0}
+ 22%{opacity:.43}
+ 58%{opacity:.08}
+}
+/* The damage signal is a one-shot flash, never a permanent warning or loop. */
+@media(pointer:fine) and (min-width:1081px){
+ #hud.cockpit-hud .hud-stat-hull .hud-stat-head b{
+  text-shadow:0 0 9px #A5EAF541,0 1px 3px #000
+ }
+ #hud.cockpit-hud .hud-stat-boost .hud-stat-head b{
+  text-shadow:0 0 8px #F5B85E58,0 1px 3px #000
+ }
+ #hud.cockpit-hud .hud-weapon-mark{
+  filter:drop-shadow(0 0 3px #82F9FF9C) drop-shadow(0 0 10px #52D0EB36)
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #hud.cockpit-hud.is-hit .cockpit-frame,
+ #hud.cockpit-hud.is-hit .cockpit-wing{animation:none!important}
+ #hud.cockpit-hud.is-hit .cockpit-wing::after{animation:none!important}
+ #hud.cockpit-hud.is-hit-static .cockpit-wing::after{animation:hud-signal-static-flash .27s ease-out both}
 }
