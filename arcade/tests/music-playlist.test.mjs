@@ -5,6 +5,7 @@ import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {MUSIC_TRACKS, MUSIC_POOLS, MusicRotation} from '../music-playlist.js';
 import {MUSIC_SCENES} from '../audio-director.js';
+import {AudioEngine} from '../../src/audio.js';
 
 const arcade = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const root = resolve(arcade, '..');
@@ -72,4 +73,46 @@ test('game credits visibly attribute every track and licensed ship graphics', ()
   const audio=readFileSync(resolve(root,'src/audio.js'),'utf8');
   assert.ok(audio.includes("element.loop = false"),'Playlist cannot advance when track loops forever');
   assert.ok(audio.includes("element.addEventListener('timeupdate'"),'No end-of-track crossfade');
+});
+
+test('the real music engine crossfades, rotates and resumes without restarting', () => {
+  const originalAudio=globalThis.Audio,originalWindow=globalThis.window;
+  class FakeMedia {
+    constructor(url){this.src=url;this.duration=200;this.currentTime=0;this.paused=true;this.handlers={};}
+    addEventListener(name,handler){this.handlers[name]=handler;}
+    play(){this.paused=false;return Promise.resolve();}
+    pause(){this.paused=true;}
+    emit(name){this.handlers[name]?.();}
+  }
+  const fakeParam=()=>({value:0,cancelScheduledValues(){},setValueAtTime(v){this.value=v;},
+    linearRampToValueAtTime(v){this.value=v;},setTargetAtTime(v){this.value=v;}});
+  const fakeGain=()=>({gain:fakeParam(),connect(){return this;}});
+  const ctx={currentTime:30,state:'running',createGain:fakeGain,
+    createMediaElementSource(){return {connect(target){return target;}}}};
+  try {
+    globalThis.Audio=FakeMedia;
+    globalThis.window={setTimeout(fn){fn();return 0;}};
+    const music=new AudioEngine({musicEnabled:true,musicVolume:.4});
+    music.ctx=ctx;music.musicGain=fakeGain();
+    music.startMusic();
+    const first=music._activeMusic;
+    assert.ok(MUSIC_POOLS.opening.includes(first.id));
+    assert.equal(first.element.paused,false);
+    first.element.currentTime=196;
+    first.element.emit('timeupdate');
+    const second=music._activeMusic;
+    assert.ok(second && second.id!==first.id,'End-of-track must move to another composition');
+    assert.ok(MUSIC_POOLS.exploration.includes(second.id));
+    music.setMusicState('tension');
+    const alert=music._activeMusic;
+    assert.ok(MUSIC_POOLS.tension.includes(alert.id));
+    alert.element.currentTime=45;
+    music.stopMusic();
+    music.startMusic();
+    assert.equal(music._activeMusic.id,alert.id,'Resume should not shuffle again');
+    assert.equal(music._activeMusic.element.currentTime,45,'Resume should keep playback position');
+  } finally {
+    if(originalAudio===undefined)delete globalThis.Audio;else globalThis.Audio=originalAudio;
+    if(originalWindow===undefined)delete globalThis.window;else globalThis.window=originalWindow;
+  }
 });

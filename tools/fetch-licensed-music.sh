@@ -7,11 +7,6 @@ command -v curl >/dev/null
 command -v ffmpeg >/dev/null
 command -v ffprobe >/dev/null
 mkdir -p assets/audio/music
-# Remove only the four malformed filenames from the interrupted first import.
-for invalid in dows-and-dust fall ile ulacra; do
-  file="assets/audio/music/${invalid}.ogg"
-  if [[ -f "$file" ]]; then echo "Removing incomplete import name: $file"; rm -- "$file"; fi
-done
 music_tmp="$(mktemp -d)"
 trap 'test ! -d "$music_tmp" || rm -r -- "$music_tmp"' EXIT
 while IFS='|' read -r name source; do

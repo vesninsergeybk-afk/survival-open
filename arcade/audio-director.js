@@ -29,12 +29,17 @@ export function assessMusicThreat({nearby=0,heavy=false,siege=false,
 export class AdaptiveMusicDirector {
  constructor(){
   this.scene='drift';this.pending='';this.pendingTime=0;
-  this.recoveryTime=0;this.pulseClock=0;
+  this.recoveryTime=0;this.pulseClock=0;this.openingElapsed=0;
  }
- reset(){this.scene='drift';this.pending='';this.pendingTime=0;this.recoveryTime=0;this.pulseClock=0;}
+ reset(){this.scene='drift';this.pending='';this.pendingTime=0;this.recoveryTime=0;this.pulseClock=0;this.openingElapsed=0;}
  update(dt,signals={}){
   const step=clamp(Number(dt)||0,0,4);
-  const wanted=assessMusicThreat(signals);
+  this.openingElapsed+=step;
+  let wanted=assessMusicThreat(signals);
+  // Give the opening a chance to establish the world. Actual damage,
+  // critical hull and danger warnings still interrupt immediately.
+  if(this.openingElapsed<24&&wanted==='alert'&&!signals.recentDamage&&
+     !signals.critical&&!signals.warning)wanted='drift';
   const prior=this.scene;
   const currentLevel=MUSIC_SCENES[prior].level;
   const wantedLevel=MUSIC_SCENES[wanted].level;
