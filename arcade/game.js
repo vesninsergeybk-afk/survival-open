@@ -21,6 +21,7 @@ import {renderWorldMap} from './map-panel.js?v=carrier-intercept-1';
 import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=carrier-intercept-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute} from './carrier-interception.js?v=carrier-intercept-1';
+import {ION_CONDUCTOR,createIonLoan,ionLoanOffer,markIonCluster,planIonDischarge} from './ion-conductor.js?v=ion-first-play-1';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -122,6 +123,7 @@ export class ArcadeGame {
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';this.mapReturnToBase=false;
    this.geoScanUntil=0;this.overchargeUntil=0;
+   this.ionLoan=null;this.ionTrialTaken=false;this.ionReturnAt=-Infinity;
   this.mining={active:false,target:null,fxClock:0};
   this.actionHeld=null;this.interactionFocus=null;this.holdFire=false;this.localStations=[];
   this.beamClock=.25;this.rocketClock=4;this.zoneClock=80;
@@ -185,6 +187,7 @@ export class ArcadeGame {
     if(e.code==='KeyE')this.beginInteraction('keyboard');
     if(e.code==='KeyC')this.toggleHoldFire();
     if(e.code==='KeyQ')this.hack();
+     if(e.code==='Space')this.callIonDischarge();
      if(e.code==='KeyB')this.callStrike();
     if(e.code==='Tab'||e.code==='KeyM')this.openMap();
      if(e.code==='KeyU')this.skills();
@@ -221,6 +224,7 @@ export class ArcadeGame {
    if(act==='doctrine')this.buyDoctrine(b.dataset.id);
     if(act==='waypoint')this.selectWaypoint(b.dataset);
     if(act==='abandonContract')this.abandonContract();
+    if(act==='loanIon'||act==='returnIon')this.baseAction(act,'');
    if(act==='acceptOperation'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimContract'||act==='installModule'||act==='antenna')
     this.baseAction(act,b.dataset.role||'');
    if(act==='restart')location.reload();
@@ -275,6 +279,7 @@ export class ArcadeGame {
    const mapButton=$('mapBtn');if(mapButton)mapButton.onclick=()=>this.openMap();
   $('quietBtn').onclick=()=>this.toggleHoldFire();
   $('hackBtn').onclick=()=>this.hack();
+   const ionButton=$('ionBtn');if(ionButton)ionButton.onclick=()=>this.callIonDischarge();
    const strikeButton=$('strikeBtn');if(strikeButton)strikeButton.onclick=()=>this.callStrike();
   $('burstBtn').onclick=()=>this.startBurst();
   const actionButton=$('actionBtn');
@@ -864,6 +869,8 @@ export class ArcadeGame {
    allies:this.allies.length,droneRoles:this.allies.map(a=>a.role),network:this.network,doctrine:this.doctrine,
    droneDamage:this.allies.reduce((sum,a)=>sum+Math.max(0,a.maxHp-a.hp),0),
    charges:this.support.charges,contract:this.contract,operation:this.operation,baseTab:this.baseTab,
+    ionLoan:this.ionLoan,ionTrialTaken:this.ionTrialTaken,
+    ionReturnNotice:this.time-this.ionReturnAt<6,
     position:{x:this.player.x,y:this.player.y},shield:this.player.shield,
    scanRemaining:Math.max(0,this.geoScanUntil-this.time),
    overchargeRemaining:Math.max(0,this.overchargeUntil-this.time),
@@ -936,6 +943,15 @@ export class ArcadeGame {
   }
   const hack=$('hackBtn');if(hack)hack.hidden=!this.hacks.length;
   const strike=$('strikeBtn');if(strike)strike.hidden=!(this.support?.charges>0);
+   const ion=$('ionBtn');
+   if(ion){ion.hidden=!this.ionLoan;ion.disabled=!!this.ionLoan&&
+     (this.ionLoan.charges<=0||this.ionLoan.cooldownUntil>this.time);
+    ion.textContent=this.ionLoan?'Ион · '+this.ionLoan.charges+'/'+ION_CONDUCTOR.charges:'Ион';}
+   const tip=$('tips');if(tip){
+    const base='WASD / стрелки — полёт · E — действие · C — автоогонь · Shift — рывок · Q — код · B — авиаудар · Tab — карта · U — развитие';
+    const hint=this.ionLoan?' · SPACE — ИОН '+this.ionLoan.charges+'/'+ION_CONDUCTOR.charges:'';
+    if(tip.textContent!==base+hint)tip.textContent=base+hint;
+   }
   const skills=$('skillBtn');
   if(skills)skills.classList.toggle('has-points',this.player.points>0);
  }
@@ -966,6 +982,9 @@ export class ArcadeGame {
   if(!b){this.heritage.ui('deny');this.notice('Подлетите ближе к станции (E)',2);return;}
   if(this.operation?.id===CORRIDOR_OPERATION.id&&this.operation.phase==='return'&&this.operation.baseId===b.id)this.deliverCorridor();
    if(this.operation?.id===CARRIER_INTERCEPTION.id&&this.operation.phase==='return'&&this.operation.baseId===b.id)this.deliverCarrierInterception();
+   if(this.ionLoan?.missionStarted&&!this.operation&&!this.contract){
+    this.ionLoan=null;this.ionReturnAt=this.time;
+   }
   this.endInteraction();
   this.docked=b;this.baseTab='summary';this.paused=true;this.pausedRenderPending=true;
   this.heritage.pause('base');
@@ -976,7 +995,24 @@ export class ArcadeGame {
  baseAction(act,role){
   const b=this.docked,p=this.player;if(!b||this.dead)return;
   const o=baseOffer(b,this.baseState());
-  if(act==='acceptOperation'){
+  if(act==='loanIon'){
+    const offer=ionLoanOffer(b,this.baseState());
+    if(!offer||offer.mode==='return'||offer.reason){this.heritage.ui('deny');return;}
+    p.ore-=offer.cost;
+    this.ionLoan=createIonLoan(b.id,this.time);
+    this.ionLoan.missionStarted=!!(this.operation||this.contract);
+    if(offer.mode==='trial')this.ionTrialTaken=true;
+    this.notice('Ионный проводник: '+ION_CONDUCTOR.charges+
+     ' заряда · автоогонь ставит метки · Space — ручной разряд',5);
+    this.heritage.ui('upgrade');this.renderDock();return;
+   }
+   if(act==='returnIon'){
+    if(!this.ionLoan)return;
+    this.ionLoan=null;this.ionReturnAt=this.time;
+    this.notice('Ионный проводник возвращён в ангар',3.2);
+    this.heritage.ui('dock');this.renderDock();return;
+   }
+   if(act==='acceptOperation'){
    const corridor=isCorridorDock(b),probe=isProbeLab(b),relay=isRelayArsenal(b),carrier=isCarrierBase(b);
    if(!b.active||this.operation||(!corridor&&!probe&&!relay&&!carrier)||
     (corridor&&b.corridorSecured)||(probe&&b.probeRecovered)||
@@ -989,6 +1025,7 @@ export class ArcadeGame {
     relay?(b.relayMission||createRelayDefense(b,this.world)):
      (b.carrierMission||createCarrierInterception(b));
    if(!this.operation)return;
+    if(this.ionLoan)this.ionLoan.missionStarted=true;
    if(corridor)b.corridorMission=this.operation;
    else if(probe)b.probeMission=this.operation;
    else if(relay)b.relayMission=this.operation;
@@ -1032,6 +1069,7 @@ export class ArcadeGame {
    if(!c)return;
    this.contract={baseId:b.id,kind:c.kind,goal:c.goal,progress:0,choiceId:c.id,
     name:c.name,ore:c.ore,data:c.data};
+    if(this.ionLoan)this.ionLoan.missionStarted=true;
    this.notice('Задание принято: '+c.name+' · '+c.goal+' целей',3.2);
    this.heritage.station(act,b.type);
    this.pausedRenderPending=true;this.renderDock();return;
@@ -1137,6 +1175,30 @@ export class ArcadeGame {
   markDockEvent(b,act,this.time);
   this.heritage.station(act,b.type,{tech:act==='upgrade'?o.tech.key:null});
   this.pausedRenderPending=true;this.renderDock();
+ }
+ callIonDischarge(){
+  if(this.dead||this.paused||!this.overlay.hidden)return false;
+  if(this.mining.active||this.probeRepairing){
+   this.notice('Во время добычи и ремонта ионный разряд недоступен',2.5);return false;
+  }
+  const plan=planIonDischarge(this.enemies,this.player,this.time,this.ionLoan);
+  if(!plan.ok){this.notice(plan.reason,2.5);return false;}
+  let from=this.player;
+  for(let i=0;i<plan.targets.length;i++){
+   const target=plan.targets[i];
+   this.flash(from.x,from.y,target.x,target.y,'#84eaff');
+   target.ionMarkUntil=0;
+   this.damageEnemy(target,plan.damage[i],'ion');
+   from=target;
+  }
+  this.ionLoan.charges=plan.chargesAfter;
+  this.ionLoan.cooldownUntil=plan.cooldownUntil;
+  this.ionLoan.used++;
+  this.heritage.vfx.nova(plan.targets[0].x,plan.targets[0].y,43,'cyan');
+  this.heritage.play('laser',.26,{x:plan.targets[0].x,y:plan.targets[0].y});
+  this.notice('Ионный разряд: '+plan.targets.length+' '+
+   (plan.targets.length===1?'цель':'цели')+' · осталось '+this.ionLoan.charges,2.3);
+  this.hud();return true;
  }
  callStrike(){
   if(this.dead||this.paused)return false;
@@ -1307,6 +1369,7 @@ export class ArcadeGame {
    return;
   }
   if(source==='beam'&&this.overchargeUntil>this.time)damage*=1.2;
+   if(source==='beam'&&this.ionLoan)markIonCluster(this.enemies,e,this.time,this.ionLoan);
   // A shot reveals its real origin, even when the first hit destroys the ship.
   // Drone fire must not tell the patrol the player's hidden position.
   const aggressor=(source==='beam'||source==='rocket')?this.player:
@@ -2327,6 +2390,12 @@ export class ArcadeGame {
     c.fillStyle=e.converted?'#6fe7ba':'#f07887';c.beginPath();c.arc(e.x,e.y,e.r,0,TAU);c.fill();
    }
    this.heritage.vfx.renderSurfaceLight(c,e.x,e.y,e.r);
+   if(this.ionLoan&&e.ionMarkUntil>this.time&&!e.converted){
+    c.save();c.strokeStyle='#77eaff';c.lineWidth=1.8;
+    c.setLineDash([4,3]);c.beginPath();c.arc(e.x,e.y,e.r+12,0,TAU);c.stroke();
+    c.setLineDash([]);c.fillStyle='#c8ffff';c.font='bold 10px system-ui';
+    c.textAlign='center';c.fillText('⚡',e.x,e.y-e.r-16);c.restore();
+   }
    // The painted rupture supersedes the old circular damage decal.
    if(!e.capitalWearPainted)
     drawHullDamage(c,e,this.time,this.fps,this.visuals.reducedMotion);
