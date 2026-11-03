@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#071326">
+<title>Реакторный узел 03 · Мастерская «Выжившего»</title>
+<style>
+:root{color-scheme:dark;--bg:#071526;--panel:#102338;--line:#31516b;--muted:#9dbbd0;--ink:#eef7fd;--cyan:#7fd9ed;--amber:#f5ca80}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);background:radial-gradient(ellipse at 50% 0%,#14334e,transparent 65%),var(--bg);font:15px/1.52 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{width:min(100%,1250px);margin:0 auto;padding:16px 18px 30px}
+header{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-bottom:16px}
+h1{font-size:clamp(25px,3vw,34px);letter-spacing:-.03em;margin:4px 0}
+h2{font-size:19px;margin:0 0 8px}h3{font-size:15px;margin:0 0 6px}
+p{margin:5px 0 12px}
+a{color:var(--cyan);text-underline-offset:3px}
+.eyebrow{font-size:10px;font-weight:850;letter-spacing:.15em;color:var(--cyan)}
+.muted,small{color:var(--muted)}
+.stamp{display:inline-flex;padding:5px 9px;border:1px solid #bd9545;border-radius:99px;background:#3c321d;color:#ffe4ab;font-size:11px;font-weight:800}
+.intro{max-width:940px;color:#bed2e0}
+.layout{display:grid;grid-template-columns:minmax(0,1.95fr) minmax(270px,.92fr);gap:15px;align-items:start}
+.scene{border:1px solid var(--line);border-radius:16px;background:#061120;overflow:hidden;box-shadow:0 13px 36px #0005}
+.scene-head{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#10263a}
+.scene-head b{font-size:13px}.scene-head span{font-size:11px;color:#a4cbdd}
+canvas{display:block;max-width:100%;height:auto}
+#reactor-canvas{width:100%;aspect-ratio:1100/650;background:#060e20;touch-action:manipulation;cursor:crosshair}
+.scene-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;color:#afc9d9;font-size:12px;border-top:1px solid #274157}
+.scene-foot strong{color:#d8ebf5}
+.sidebar{display:grid;gap:12px}
+.panel{border:1px solid var(--line);background:linear-gradient(140deg,#122a40,#0d2033);border-radius:14px;padding:15px}
+.panel p{font-size:13px;color:#c4d8e5}
+.status{color:#ffe2a3;font-weight:750;font-size:13px}
+.progress{display:flex;align-items:center;gap:6px;margin:11px 0}
+.progress i{display:block;height:7px;flex:1;background:#294258;border-radius:9px}
+.progress i.done{background:#78dfed;box-shadow:0 0 13px #61d8f455}
+.jammer{border:1px solid #34516a;border-radius:11px;padding:10px 11px;margin:9px 0;background:#102338}
+.jammer-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.jammer b{font-size:13px}.jammer p{margin:4px 0 7px;font-size:12px}
+.jammer button{width:100%;text-align:left}
+button{cursor:pointer;border:1px solid #52758c;color:#e8f8ff;border-radius:10px;background:#1a3b55;padding:9px 12px;font:700 12px/1.4 inherit;min-height:40px}
+button:hover:not(:disabled){border-color:#90eaf5;background:#255374}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+button:disabled{opacity:.55;cursor:not-allowed}
+button.primary{border-color:#61d8e4;background:#216777}
+button.ghost{background:#172b40}
+button[aria-pressed=true]{background:#214b55;border-color:#70d6e4}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+#start-core{width:100%;margin:4px 0 8px}
+.danger{color:#f4c69f!important}
+.checks{display:flex;gap:12px;flex-wrap:wrap;font-size:12px}
+.checks label{display:flex;align-items:center;gap:5px;cursor:pointer}
+input[type=range]{width:100%;accent-color:#78e0ea}
+.smallcheck{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.smallcheck canvas{width:180px;border:1px solid #31516b;border-radius:8px}
+.smallcheck p{flex:1;min-width:180px}
+.legend{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:13px}
+.legend article{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0d2235}
+.legend strong{font-size:12px;color:#e7f0fa}.legend p{font-size:12px;color:#b3cad9}
+footer{margin-top:12px;border-top:1px solid #2a465d;padding-top:12px;color:var(--muted);font-size:12px}
+body.embedded main{padding-top:3px}
+body.embedded header .back{display:none}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.sidebar{grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar .jammer-panel{grid-column:1/-1}.legend{grid-template-columns:1fr}}
+@media(max-width:510px){main{padding:9px 10px 22px}.sidebar{grid-template-columns:1fr}.sidebar .jammer-panel{grid-column:auto}.legend{grid-template-columns:1fr}.scene-head{padding:9px 10px}.scene-head b{font-size:11px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <div><div class="eyebrow">МАСТЕРСКАЯ КОНЦЕПЦИЙ · СЦЕНА 03</div><h1>Реакторный узел</h1><div class="muted">Монументальный корпус · три глушилки · пробуждающееся ядро</div></div>
+ <div><span class="stamp">ТОЛЬКО ПРОЕКТ · НЕ В ИГРЕ</span> <a class="back" href="./#reactor">В мастерскую</a></div>
+</header>
+<p class="intro">Это испытание многослойного 2D-оформления, вдохновлённое присланным изображением. Корпус подготовлен отдельным спрайтом; ядро, волны энергии и глушилки рисуются независимо. Отключайте узлы в произвольном порядке и наблюдайте, как меняется центр станции. Сцена <strong>не моделирует</strong> настоящие коллизии, урон, полёт и награды.</p>
+<div class="layout">
+ <div>
+  <section class="scene" aria-label="Интерактивная раскадровка реактора">
+   <div class="scene-head"><b>Сборка слоёв · вид сверху</b><span id="scene-label">Подавление реактора</span></div>
+   <canvas id="reactor-canvas" width="1100" height="650" role="img" aria-label="Огромная трёхкольцевая станция. В центре отдельно нарисовано ядро. Вокруг три переключаемые глушилки."></canvas>
+   <div class="scene-foot"><span>Нажмите на маркер I, II или III прямо на схеме либо на кнопку справа</span><strong id="art-status">Загрузка корпуса…</strong></div>
+  </section>
+  <div class="panel" style="margin-top:12px">
+   <h2>Проверка составной графики</h2>
+   <div class="checks">
+    <label><input type="checkbox" id="layer-nebula" checked> Дальний космос</label>
+    <label><input type="checkbox" id="layer-hull" checked> Корпус станции</label>
+    <label><input type="checkbox" id="layer-energy" checked> Ядро и энергия</label>
+   </div>
+   <p style="margin-top:10px">Сдвиг камеры: <strong id="camera-value">0</strong>. Космос смещается медленнее, а корпус, ядро и маркеры — одновременно. Это принципиально для будущего взаимодействия.</p>
+   <input type="range" min="-100" max="100" value="0" step="5" id="camera-shift" aria-label="Смещение камеры">
+   <div class="smallcheck">
+    <canvas id="small-canvas" width="350" height="207" role="img" aria-label="Та же сцена, уменьшенная до размера проверки читаемости"></canvas>
+    <p><strong>Проверка на малом размере.</strong> Мелкие детали корпуса здесь закономерно теряются. В бою должны оставаться отчётливыми корабль, угрозы и маркер взаимодействия, а не каждая панель обшивки.</p>
+   </div>
+  </div>
+ </div>
+ <aside class="sidebar">
+  <section class="panel jammer-panel">
+   <div class="eyebrow">СВОБОДНЫЙ ПОРЯДОК</div>
+   <h2>Три разных глушилки</h2>
+   <div class="progress" aria-label="Прогресс отключения трёх узлов" id="progress"><i></i><i></i><i></i></div>
+   <div id="jammer-list">
+    <div class="jammer"><div class="jammer-top"><b>I · ЭМ-передатчик</b><span id="tag-em" class="status">Активен</span></div><p>Кольцевые катушки: предупреждение, импульс, окно перегрева. Ближе всего к нынешнему «Глухому коридору».</p><button data-jammer="em">Отключить ЭМ-передатчик</button></div>
+    <div class="jammer"><div class="jammer-top"><b>II · Щитовой узел</b><span id="tag-shield" class="status">Активен</span></div><p>Бронепластины раскрывают сектор для атаки. Важен выбор позиции и момент выстрела.</p><button data-jammer="shield">Отключить щитовой узел</button></div>
+    <div class="jammer"><div class="jammer-top"><b>III · Ретранслятор-приманка</b><span id="tag-decoy" class="status">Активен</span></div><p>Ложные маяки и ограниченный вызов охраны. Истинный источник должен быть различим.</p><button data-jammer="decoy">Отключить ретранслятор</button></div>
+   </div>
+  </section>
+  <section class="panel" aria-live="polite">
+   <div class="eyebrow">РЕАКЦИЯ МИРА</div>
+   <h2 id="core-phase">Ядро подавлено</h2>
+   <p id="core-description">Все три глушилки питают линии подавления. Внутренний обод почти тёмен.</p>
+   <p id="core-hint" class="status">Отключено: 0 из 3</p>
+   <button id="start-core" class="primary" disabled>E · Запустить ядро</button>
+   <div class="btn-row"><button id="reset" class="ghost">Вернуть исходное состояние</button></div>
+   <p class="muted">В будущей игре E будет обычным действием рядом с ядром. На стенде кнопка проверяет последовательность состояний, а не дистанцию.</p>
+  </section>
+ </aside>
+</div>
+<div class="legend">
+ <article><strong>Что действительно нарисовано</strong><p>Прозрачный корпус PNG, отдельная анимация ядра, линии подавления, звёзды и три схематичных разных узла.</p></article>
+ <article><strong>Чего пока нет</strong><p>Настоящего облёта станции, окклюзии балками, размеров мира, коллизий, боевого ИИ и постоянного прогресса миссии.</p></article>
+ <article><strong>Граница внедрения</strong><p>Домашний док сохраняет услуги. Сейчас в опубликованной игре один ЭМ-передатчик и возврат с телеметрией; три узла — проект переработки.</p></article>
+</div>
+<footer>Полное решение и критерии переноса: <a href="./REACTOR-NODE-03-2026-11-03.md">проектный документ</a>. Арт станции не меняет игровой движок. Художественные детали и размеры будут проверяться отдельно в настоящем вылете.</footer>
+</main>
+<script>
+'use strict';
+if(new URLSearchParams(location.search).get('embed')==='1')document.body.classList.add('embedded');
+const canvas=document.getElementById('reactor-canvas'),ctx=canvas.getContext('2d',{alpha:false});
+const small=document.getElementById('small-canvas'),sctx=small.getContext('2d');
+const $=id=>document.getElementById(id);
+const ids=['em','shield','decoy'];
+const nodes={
+ em:{x:875,y:305,color:'#cb93ed',label:'I',name:'ЭМ-передатчик'},
+ shield:{x:480,y:88,color:'#ffd68a',label:'II',name:'Щитовой узел'},
+ decoy:{x:310,y:350,color:'#88eddd',label:'III',name:'Ретранслятор'}
+};
+const disabled=new Set();
+let started=false,shift=0,nebulaVisible=true,hullVisible=true,energyVisible=true;
+const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const hull=new Image(),nebula=new Image();
+let hullReady=false,nebulaReady=false;
+hull.decoding='async';hull.src='./assets/reactor-ring-03.png';
+hull.onload=()=>{hullReady=true;$('art-status').textContent='Корпус PNG загружен · 3 кольца';paint(0);};
+hull.onerror=()=>{$('art-status').textContent='PNG недоступен · условная геометрия';paint(0);};
+nebula.decoding='async';nebula.src='../../assets/space/nebula_azure_v1.png';
+nebula.onload=()=>{nebulaReady=true;paint(0)};
+const stars=Array.from({length:155},(_,i)=>({x:(i*149.3+51)%1100,y:(i*109.7+73)%650,r:i%14===0?1.8:.65+(i%3)*.18}));
+const stageText=[
+ ['Ядро подавлено','Все три глушилки удерживают реактор. Холодный центр слабо пульсирует.'],
+ ['Контур пробуждается','Одна линия подавления исчезла. Во внутреннем ободе появились первые световые секции.'],
+ ['Запуск подготовлен','Два контура свободны. Внутри ядра возникают краткие разряды, но последняя глушилка всё ещё мешает запуску.'],
+ ['Ядро свободно','Подавление снято. Теперь можно подлететь к ядру и подтвердить запуск обычным действием E.']
+];
+function refresh(){
+ const count=disabled.size,info=started?['Реактор запущен','Энергия прошла по кольцам. Дальнейшие изменения мира и награду предстоит определить при разработке миссии.']:stageText[count];
+ $('core-phase').textContent=info[0];$('core-description').textContent=info[1];
+ $('scene-label').textContent=info[0];
+ $('core-hint').textContent=started?'Пуск подтверждён':'Отключено: '+count+' из 3';
+ $('start-core').disabled=count!==3||started;
+ $('start-core').textContent=started?'Ядро запущено':'E · Запустить ядро';
+ for(const id of ids){
+  const off=disabled.has(id),b=document.querySelector('[data-jammer="'+id+'"]');
+  b.textContent=off?'Восстановить узел (для сравнения)':'Отключить '+nodes[id].name.toLowerCase();
+  b.setAttribute('aria-pressed',String(off));
+  $('tag-'+id).textContent=off?'Отключён':'Активен';
+  $('tag-'+id).style.color=off?'#91eac4':'#ffe2a3';
+ }
+ [...$('progress').children].forEach((el,i)=>el.classList.toggle('done',i<count));
+ paint(reduced?0:performance.now()/1000);
+}
+function toggle(id){if(!ids.includes(id))return;if(disabled.has(id))disabled.delete(id);else disabled.add(id);started=false;refresh()}
+document.querySelectorAll('[data-jammer]').forEach(b=>b.addEventListener('click',()=>toggle(b.dataset.jammer)));
+function ignite(){if(disabled.size!==3||started)return;started=true;refresh()}
+$('start-core').addEventListener('click',ignite);
+$('reset').addEventListener('click',()=>{disabled.clear();started=false;shift=0;$('camera-shift').value='0';$('camera-value').textContent='0';refresh()});
+document.addEventListener('keydown',e=>{if(e.code==='KeyE'&&!e.repeat&&document.activeElement?.tagName!=='INPUT'){ignite()}});
+canvas.addEventListener('pointerdown',e=>{
+ const rect=canvas.getBoundingClientRect(),x=(e.clientX-rect.left)*canvas.width/rect.width,y=(e.clientY-rect.top)*canvas.height/rect.height;
+ for(const id of ids){const p=nodes[id];if(Math.hypot(x-p.x+shift,y-p.y)<43){toggle(id);break}}
+});
+$('camera-shift').addEventListener('input',e=>{shift=Number(e.target.value);$('camera-value').textContent=String(shift);paint(reduced?0:performance.now()/1000)});
+for(const pair of [['layer-nebula','nebulaVisible'],['layer-hull','hullVisible'],['layer-energy','energyVisible']]){
+ $(pair[0]).addEventListener('change',e=>{if(pair[1]==='nebulaVisible')nebulaVisible=e.target.checked;if(pair[1]==='hullVisible')hullVisible=e.target.checked;if(pair[1]==='energyVisible')energyVisible=e.target.checked;paint(reduced?0:performance.now()/1000)});
+}
+function circle(x,y,r,stroke,width=2){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.lineWidth=width;ctx.strokeStyle=stroke;ctx.stroke()}
+function line(x1,y1,x2,y2,color,width=1){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.lineWidth=width;ctx.strokeStyle=color;ctx.stroke()}
+function text(value,x,y,color='#e4f4ff',font='700 14px system-ui',align='center'){ctx.font=font;ctx.textAlign=align;ctx.fillStyle=color;ctx.fillText(value,x,y)}
+function drawBase(t){
+ ctx.fillStyle='#050d1b';ctx.fillRect(0,0,1100,650);
+ if(nebulaVisible&&nebulaReady){
+  const ratio=Math.max(1100/nebula.width,650/nebula.height),w=nebula.width*ratio*1.1,h=nebula.height*ratio*1.1;
+  ctx.globalAlpha=.38;ctx.drawImage(nebula,550-w/2-shift*.1,325-h/2,w,h);ctx.globalAlpha=1;
+ }
+ const haze=ctx.createRadialGradient(560,260,24,560,260,580);
+ haze.addColorStop(0,'#1c2e63a8');haze.addColorStop(.6,'#0a1642a4');haze.addColorStop(1,'#02071400');
+ ctx.fillStyle=haze;ctx.fillRect(0,0,1100,650);
+ if(nebulaVisible)for(const s of stars){
+  const x=(s.x-shift*.17+1100)%1100;
+  ctx.fillStyle=s.r>1.6?'#a4d5f4bb':'#9cadcf99';ctx.fillRect(x,s.y,s.r,s.r);
+ }
+}
+function drawCore(x,y,t,n){
+ if(!energyVisible)return;
+ const power=started?1.0:n===3?.79:.09+n*.18;
+ const pulse=reduced?0:Math.sin(t*2)*.08;
+ const glow=ctx.createRadialGradient(x,y,7,x,y,125);
+ glow.addColorStop(0,started?'#d9ffff':n===0?'#1f6ba0':'#7acbf3');
+ glow.addColorStop(.25,started?'#83f5fb':n===0?'#16416b':'#2daed7');
+ glow.addColorStop(.65,started?'#23a3ddaa':'#226fa4aa');glow.addColorStop(1,'#092a6800');
+ ctx.globalAlpha=.38+power*.52;ctx.fillStyle=glow;ctx.beginPath();ctx.arc(x,y,125,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+ for(let i=0;i<3;i++)circle(x,y,33+i*19+2*pulse,'rgba(88,215,255,'+(.15+power*.5)+')',1.5+i*.5);
+ circle(x,y,10+power*17+pulse*8,started?'#ecffff':'#72b9f5',3);
+ if(n>=2&&!reduced)for(let i=0;i<Math.min(n+1,4);i++){
+  const a=t*(.15+i*.06)+i*2.1;
+  line(x+Math.cos(a)*34,y+Math.sin(a)*34,x+Math.cos(a+.4)*74,y+Math.sin(a+.4)*74,'#b3eafab0',1.8);
+ }
+}
+function drawHull(cx,cy,t){
+ if(!hullVisible)return;
+ if(hullReady){ctx.save();ctx.globalAlpha=.9;ctx.drawImage(hull,cx-336,cy-336,672,672);ctx.restore();}
+ else{
+  for(const [r,width] of [[289,51],[206,39],[137,31]]){
+   circle(cx,cy,r,'#536b86',width);circle(cx,cy,r+19,'#89a9c2',2);circle(cx,cy,r-20,'#273d59',3);
+  }
+  for(let i=0;i<12;i++){const a=i*Math.PI/6;line(cx+Math.cos(a)*140,cy+Math.sin(a)*140,cx+Math.cos(a)*300,cy+Math.sin(a)*300,'#577793',14)}
+ }
+ if(!energyVisible)return;
+ const n=disabled.size;
+ if(n||started){
+  for(let i=0;i<12;i++){
+   const a=i*Math.PI/6+(reduced?0:t*.055),radius=started?289:139+(n-1)*73;
+   ctx.save();ctx.translate(cx,cy);ctx.rotate(a);ctx.strokeStyle=started?'#8ee9f5c0':'#5cb5dc99';ctx.lineWidth=4;
+   ctx.beginPath();ctx.arc(0,0,radius,-.07,.07);ctx.stroke();ctx.restore();
+  }
+ }
+ if(started){circle(cx,cy,284,'#d6ffff66',2);}
+}
+function drawNode(id,t){
+ const p=nodes[id],x=p.x-shift,y=p.y,off=disabled.has(id);
+ ctx.save();ctx.globalAlpha=off?.45:1;
+ ctx.fillStyle='#0a2235';ctx.beginPath();ctx.arc(x,y,31,0,Math.PI*2);ctx.fill();
+ circle(x,y,29,off?'#738b91':p.color,3);
+ if(id==='em'){
+  for(let i=0;i<3;i++)circle(x,y,14+i*5,off?'#617784':p.color,1.8);
+  if(!off)circle(x,y,36+(reduced?0:Math.sin(t*4)*3),p.color+'77',1.5);
+ }else if(id==='shield'){
+  ctx.strokeStyle=off?'#718895':p.color;ctx.lineWidth=5;
+  for(let i=0;i<3;i++){const a=i*Math.PI*2/3+(reduced?0:t*.12);ctx.beginPath();ctx.arc(x,y,21,a,a+.75);ctx.stroke()}
+ }else{
+  line(x-14,y+11,x,y-17,off?'#718895':p.color,3);line(x+14,y+11,x,y-17,off?'#718895':p.color,3);
+  circle(x,y-14,5,off?'#718895':p.color,2);
+  if(!off){circle(x,y-14,18,p.color+'99',1);circle(x,y-14,27,p.color+'55',1)}
+ }
+ if(off){line(x-12,y-12,x+12,y+12,'#81ebc0',3);line(x+12,y-12,x-12,y+12,'#81ebc0',3);}
+ ctx.restore();
+ ctx.fillStyle=off?'#1c403e':'#1c2d42';ctx.fillRect(x-24,y+36,48,21);
+ text(p.label,x,y+51,off?'#a0f3c9':'#f2f8ff','800 12px system-ui');
+}
+function drawShipAndDock(){
+ const x=360-shift,y=540;
+ ctx.save();ctx.fillStyle='#1a3549';ctx.strokeStyle='#8caaba';ctx.lineWidth=3;
+ ctx.fillRect(x-55,y-19,110,38);ctx.strokeRect(x-55,y-19,110,38);
+ ctx.fillStyle='#4c728e';ctx.fillRect(x-24,y-26,48,52);
+ ctx.fillStyle='#9bd5d9';ctx.fillRect(x-48,y-4,14,8);ctx.fillRect(x+34,y-4,14,8);
+ text('ДОМАШНИЙ ДОК',x,y+40,'#c0d9e7','700 12px system-ui');
+ const sx=540-shift,sy=576;
+ ctx.fillStyle='#b3ecff';ctx.beginPath();ctx.moveTo(sx,sy-22);ctx.lineTo(sx+12,sy+16);ctx.lineTo(sx,sy+7);ctx.lineTo(sx-12,sy+16);ctx.closePath();ctx.fill();
+ ctx.fillStyle='#5be3f5';ctx.beginPath();ctx.ellipse(sx,sy+19,7,15,0,0,Math.PI*2);ctx.fill();
+ text('КОРАБЛЬ',sx,sy+47,'#b4edfa','700 11px system-ui');ctx.restore();
+}
+function paint(t){
+ if(!ctx)return;
+ drawBase(t);const cx=590-shift,cy=292,n=disabled.size;
+ drawCore(cx,cy,t,n);
+ drawHull(cx,cy,t);
+ if(energyVisible&&!started)for(const id of ids){
+  if(disabled.has(id))continue;const p=nodes[id],x=p.x-shift,y=p.y;
+  ctx.save();ctx.setLineDash([7,8]);line(x,y,cx,cy,p.color+'66',2);ctx.restore();
+ }
+ for(const id of ids)drawNode(id,t);
+ drawShipAndDock();
+ if(disabled.size===3&&!started){text('E · ЗАПУСТИТЬ ЯДРО',cx,cy-104,'#d4f8fe','800 16px system-ui');circle(cx,cy,108,'#8be8facc',2);}
+ text('ПРОЕКТ · ПОЛЁТ, УРОН И КОЛЛИЗИИ НЕ МОДЕЛИРУЮТСЯ',20,27,'#9dc4da','700 12px system-ui','left');
+ text('0'+disabled.size+' / 03',1020,27,'#e5f7ff','800 16px system-ui');
+ sctx.clearRect(0,0,small.width,small.height);sctx.drawImage(canvas,0,0,small.width,small.height);
+}
+let lastFrame=0;
+function animate(now){
+ if(!reduced&&now-lastFrame>49){lastFrame=now;if(document.visibilityState==='visible'&&canvas.getBoundingClientRect().width>0)paint(now/1000)}
+ if(!reduced)requestAnimationFrame(animate);
+}
+refresh();
+if(!reduced)requestAnimationFrame(animate);
+</script>
+</body>
+</html>
