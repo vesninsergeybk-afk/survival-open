@@ -31,7 +31,7 @@ export class CockpitDisplay {
    oreResource:el('oreResource'),oreGain:el('oreGain'),
    miningStatus:el('miningStatus'),miningPercent:el('miningPercent'),
    miningLabel:el('miningLabel'),
-   contractObjective:el('contractObjective')};
+   contractObjective:el('contractObjective'),interactionCue:el('interactionCue')};
   this.reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   this.drawRadarShell();
  }
@@ -58,6 +58,13 @@ export class CockpitDisplay {
    strikes?'ДРОНЫ '+game.allies.length+' · УДАР B: '+strikes:
    !game.allies.length?'ДРОНЫ: 0/2':cover?'ПРИКРЫТИЕ · '+cover:
     'ДРОНЫ В СТРОЮ · '+game.allies.length+'/2');
+  const focus=game.actionHeld||game.interactionFocus;
+  n.interactionCue.hidden=!focus||game.paused||game.dead||!game.overlay.hidden;
+  if(!n.interactionCue.hidden) {
+   const label=focus.kind==='station'?'Открыть станцию':
+    focus.kind==='repair'?'Ремонт зонда':'Добыча породы';
+   display(n.interactionCue,'E · '+label+(focus.kind==='station'?'':' · удерживать'));
+  }
   const op=game.operation,c=game.contract,tracker=n.contractObjective;
   if(tracker){
    tracker.hidden=!(op||c);
@@ -128,18 +135,7 @@ export class CockpitDisplay {
    game.nearDock?.module==='workshop'?'ДОК · РЕМОНТ +60%':
    game.nearQuietLab?'ЛАБОРАТОРИЯ · ШУМ −32%':'АВТООГОНЬ · АКТИВЕН');
   n.message.style.opacity=game.messageUntil>game.time?'1':'0';
-  // Perspective responds to dampened ship motion rather than to every canvas frame.
-  // No motion on reduced-motion devices, low frame rate or when game is paused.
-  if(!this.reducedMotion&&game.fps>=36&&!game.paused) {
-   const vx=Math.max(-1,Math.min(1,p.vx/400)),vy=Math.max(-1,Math.min(1,p.vy/400));
-   this.frame.style.setProperty('--hud-yaw',(-vx*.65).toFixed(2)+'deg');
-   this.frame.style.setProperty('--hud-dx',(vx*1.3).toFixed(1)+'px');
-   this.frame.style.setProperty('--hud-dy',(vy*.7).toFixed(1)+'px');
-  } else {
-   this.frame.style.setProperty('--hud-yaw','0deg');
-   this.frame.style.setProperty('--hud-dx','0px');
-   this.frame.style.setProperty('--hud-dy','0px');
-  }
+  // HUD remains stationary: no cockpit sway when the player steers.
   const interval=game.fps<35?.34:.2;
   if(game.time-this.lastRadar>=interval||game.time<this.lastRadar) {
    this.lastRadar=game.time;

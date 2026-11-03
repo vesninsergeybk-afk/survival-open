@@ -1,286 +1,286 @@
-/* SURVIVOR / cockpit HUD v15.
-   An open cockpit silhouette: detached angular consoles, holographic central radar.
-   No full-width CRM card, no blur over the game, no extra rendering loop. */
+/* SURVIVOR HUD v16 — responsive, task-first instruments.
+   All content uses live state from hud.js. No full-screen textures or extra RAF. */
 #hud.cockpit-hud{
- --neon:#43e5f5;--ice:#bbfaff;--mint:#88ffe1;--alert:#ff667c;--metal:#12334c;
- position:fixed;z-index:3;left:50%;right:auto;top:auto;
- bottom:max(0px,env(safe-area-inset-bottom));transform:translateX(-50%);
- width:min(calc(100vw - 14px),1360px);height:244px;pointer-events:none;
- font-variant-numeric:tabular-nums;text-shadow:0 1px 5px #010714fa;
+ --hud-ice:#e8fbff;--hud-muted:#b8d7e3;--hud-line:#57dbe9;
+ --hud-safe:#8affdb;--hud-warn:#ffd18b;--hud-danger:#ff738d;
+ position:fixed;inset:0;left:0;right:0;top:0;bottom:0;
+ width:100%;height:100%;transform:none;z-index:3;pointer-events:none;
+ font:500 12px/1.35 system-ui,sans-serif;font-variant-numeric:tabular-nums;
+ color:var(--hud-ice);text-shadow:0 1px 4px #000e;
 }
-#hud.cockpit-hud .cockpit-frame{
- position:absolute;inset:0;isolation:isolate;
- transform-origin:50% 100%;transform:perspective(1500px) rotateX(1.6deg) rotateY(var(--hud-yaw,0deg))
-  translate3d(var(--hud-dx,0px),var(--hud-dy,0px),0);
- transition:transform .18s ease-out;will-change:transform;
+.cockpit-hud [hidden]{display:none!important}
+.cockpit-hud .cockpit-frame{position:absolute;inset:0}
+.cockpit-hud .cockpit-grid,.cockpit-hud .cockpit-flight{display:contents}
+.cockpit-hud .cockpit-arch,.cockpit-hud .cockpit-keel,.cockpit-hud .wing-footer,
+.cockpit-hud .system-dots,.cockpit-hud .wing-code,.cockpit-hud .radar-arc,
+.cockpit-hud .radar-aura{display:none}
+/* Two compact detached consoles. The scene remains visible between them. */
+.cockpit-hud .cockpit-wing{
+ box-sizing:border-box;position:absolute;bottom:20px;width:286px;height:145px;
+ padding:14px 17px 12px;isolation:isolate;min-width:0;overflow:hidden;
+ background:linear-gradient(145deg,rgba(15,65,87,.94),rgba(4,21,38,.93) 58%,rgba(9,43,62,.89));
+ border:1px solid #6bdfe8aa;box-shadow:inset 0 1px 0 #b5ffff2d,0 5px 22px #0008;
+ clip-path:polygon(0 0,94% 0,100% 14%,100% 100%,6% 100%,0 86%);
 }
-.cockpit-hud .cockpit-grid{height:100%;display:grid;grid-template-columns:minmax(260px,1fr) 236px minmax(260px,1fr);
- align-items:end;gap:8px;padding:0 15px 7px}
-.cockpit-hud .cockpit-wing{position:relative;height:156px;min-width:0;margin-bottom:9px;
- isolation:isolate;padding:20px 31px 15px;overflow:hidden;
- background:linear-gradient(150deg,#15d8f9 0%,#1c80ac 6%,#072f4b 47%,#26d1f2 100%)}
-.cockpit-hud .cockpit-wing::before{content:"";position:absolute;z-index:0;inset:1.7px;
- clip-path:inherit;background:
- linear-gradient(180deg,#144364ed 0%,#04182ce9 39%,#041322e8 86%,#0d3553e8 100%),
- repeating-linear-gradient(104deg,transparent 0,transparent 19px,#67cced06 20px,#67cced06 21px)}
-.cockpit-hud .cockpit-wing::after{content:"";position:absolute;z-index:0;pointer-events:none;
- height:2px;left:7%;right:8%;top:14px;background:linear-gradient(90deg,#19dff700,#65eeffdb 26%,#7dfcff 75%,#12e2ee00);
- box-shadow:0 0 11px #52efff70;transform:skewY(-2deg)}
-.cockpit-hud .cockpit-wing>*{position:relative;z-index:1}
-.cockpit-hud .wing-left{clip-path:polygon(0 30%,7% 7%,85% 0,100% 29%,100% 94%,87% 100%,8% 96%,0 82%)}
-.cockpit-hud .wing-right{clip-path:polygon(0 29%,15% 0,93% 7%,100% 30%,100% 82%,92% 96%,13% 100%,0 94%)}
-.cockpit-hud .wing-right::after{transform:skewY(2deg)}
-.cockpit-hud .wing-topline{display:flex;align-items:center;gap:9px;color:#ebffff;
- font-size:12px;letter-spacing:.14em;min-width:0}
-.cockpit-hud .wing-topline strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cockpit-hud .wing-sigil{font-size:16px;color:#6ef8ff;text-shadow:0 0 9px #37dffe;line-height:13px}
-.cockpit-hud .ship-level,.cockpit-hud .wing-code{margin-left:auto;font-size:9px;color:#98cbde;white-space:nowrap}
-.cockpit-hud .ship-level b{color:#efffff;font-size:13px}
-.cockpit-hud .sector-label{display:block;margin:2px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
- color:#94c9dd;font-size:9px;letter-spacing:.05em}
+.cockpit-hud .wing-left{left:max(16px,env(safe-area-inset-left))}
+.cockpit-hud .wing-right{
+ right:max(16px,env(safe-area-inset-right));
+ clip-path:polygon(6% 0,100% 0,100% 86%,94% 100%,0 100%,0 14%);
+}
+.cockpit-hud .cockpit-wing::before{
+ content:"";position:absolute;top:0;left:0;right:0;height:3px;
+ background:linear-gradient(90deg,transparent,#58e1ef 24%,#a1fbf6 70%,transparent);
+ box-shadow:0 0 9px #66e5fc88;
+}
+.cockpit-hud .wing-topline{display:flex;align-items:center;gap:7px;min-width:0;
+ font-size:11px;letter-spacing:.09em;color:#e8faff}
+.cockpit-hud .wing-topline strong{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cockpit-hud .wing-sigil{font-size:15px;line-height:1;color:#6cf6ed}
+.cockpit-hud .ship-level{margin-left:auto;font-size:10px;color:#b8dae5;white-space:nowrap}
+.cockpit-hud .ship-level b{color:#fff;font-size:14px}
+.cockpit-hud .sector-label{margin:1px 0 8px;font-size:10px;color:#a5d0df;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cockpit-hud .instrument-label{display:flex;justify-content:space-between;align-items:center;gap:8px;
- margin:0 0 5px;color:#a7e0ec;font-size:9px;letter-spacing:.12em;white-space:nowrap}
-.cockpit-hud .instrument-label b{color:#edffff;letter-spacing:0;font-size:13px}
-.cockpit-hud .ship-meter{width:100%;position:relative;overflow:hidden;margin:0;height:10px;
- background:#020d1c;border:1px solid #64d5f16b;border-radius:2px;box-shadow:inset 0 2px 5px #0009}
-.cockpit-hud .ship-meter>span{display:block;height:100%;width:0;
- background:linear-gradient(90deg,#168ea7,#7affdd);box-shadow:0 0 9px #6cfff1a6,inset 0 1px #d8ffff6b;
- transition:width .12s ease-out}
+ color:#bcdfeb;font-size:11px;letter-spacing:.025em}
+.cockpit-hud .instrument-label b{color:#fff;font-size:16px;letter-spacing:0}
+.cockpit-hud .ship-meter{height:10px;position:relative;overflow:hidden;margin:5px 0 0;
+ border:1px solid #6fdbe985;border-radius:3px;background:#001321}
+.cockpit-hud .ship-meter>span{display:block;height:100%;background:linear-gradient(90deg,#258cb1,#83ffdb);
+ box-shadow:0 0 9px #51f2e477;transition:width .14s ease}
 .cockpit-hud .hull-meter::after{content:"";position:absolute;inset:0;pointer-events:none;
- background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 3px),#010f1fed calc(10% - 3px),#010f1fed 10%)}
-.cockpit-hud .vitals-secondary{display:flex;justify-content:space-between;gap:8px;margin:7px 0 5px;
- font-size:9px;color:#a2cfdf;letter-spacing:.06em;white-space:nowrap}
-.cockpit-hud .vitals-secondary b{color:#b6faff;letter-spacing:0}
-.cockpit-hud .experience-meter{height:4px;border-color:#5aa8c65a}
-.cockpit-hud .experience-meter>span{background:linear-gradient(90deg,#2a82ff,#8ceaff)}
-.cockpit-hud .wing-footer{display:flex;align-items:center;justify-content:space-between;
- color:#6e9eb5;font-size:8px;letter-spacing:.16em;margin-top:6px}
-.cockpit-hud .system-dots{font-size:7px;letter-spacing:.16em;color:#369ebe}
-.cockpit-hud .cockpit-flight{height:100%;position:relative;z-index:3;display:flex;align-items:center;
- flex-direction:column;justify-content:flex-end;min-width:0;padding:0 6px 8px}
-.cockpit-hud .flight-status{position:absolute;top:8px;left:50%;transform:translateX(-50%);
- display:flex;align-items:center;justify-content:center;gap:8px;
- width:235px;white-space:nowrap;color:#b8fdf6;font-size:10px;letter-spacing:.09em}
-.cockpit-hud .flight-status b{font-weight:720}
-.cockpit-hud .live-indicator{width:5px;height:5px;border-radius:50%;background:#84ffd2;box-shadow:0 0 10px #63ffe0}
-.cockpit-hud .critical-alert{display:none;position:absolute;z-index:4;top:23px;left:50%;transform:translateX(-50%);
- align-items:center;gap:5px;white-space:nowrap;color:#ffd8db;font-size:9px;font-weight:760;
- letter-spacing:.02em;text-shadow:0 0 8px #ff355e}
-.cockpit-hud .alert-glyph{width:16px;height:16px;display:grid;place-items:center;border-radius:3px;
- color:#26000a;background:#ff7383;font-size:12px;box-shadow:0 0 10px #ff42667a}
-.cockpit-hud .radar-unit{height:166px;width:221px;position:relative;flex:0 0 166px;margin:0 auto 7px}
-.cockpit-hud .radar-aura{position:absolute;inset:9px 8px 8px;
- border-radius:50%;background:radial-gradient(ellipse at 50% 64%,#4fe8ff35,#0070be20 45%,transparent 68%);
- box-shadow:0 0 23px #28e1ff11}
-.cockpit-hud .radar-unit #radar{position:absolute;top:14px;left:50%;width:145px;height:145px;
- transform:translateX(-50%) perspective(460px) rotateX(17deg);
- border:1px solid #56e9fbd1;border-radius:50%;
- background:radial-gradient(circle,#1c85a43e 0%,#052b45c9 49%,#02182bce 72%,#041220e8 100%);
- box-shadow:0 0 23px #47eaff66,inset 0 0 23px #1a9fd56e,0 3px 10px #000a}
-.cockpit-hud .radar-header{position:absolute;z-index:2;top:7px;left:50%;transform:translateX(-50%);
- color:#8af7ff;font-size:9px;letter-spacing:.15em;display:flex;align-items:center;gap:5px;white-space:nowrap}
-.cockpit-hud .radar-header b{color:#edffff;font-size:11px}
-.cockpit-hud .radar-readout{position:absolute;z-index:2;left:50%;bottom:0;transform:translateX(-50%);
- width:max-content;max-width:95%;white-space:nowrap;text-align:center;
- padding:2px 8px;font-size:9px;color:#b5f6ff;letter-spacing:.09em;background:#062438e8;
- border:1px solid #4cbed46c;border-radius:3px}
-.cockpit-hud .radar-arc{position:absolute;top:24px;width:61px;height:121px;pointer-events:none;opacity:.88;
- border:2px solid #43eff5;border-radius:50%;filter:drop-shadow(0 0 4px #28e7fa80)}
-.cockpit-hud .radar-arc-left{left:9px;border-right:0;border-top-color:transparent;border-bottom-color:transparent;
- transform:rotate(-10deg)}
-.cockpit-hud .radar-arc-right{right:9px;border-left:0;border-top-color:transparent;border-bottom-color:transparent;
- transform:rotate(10deg)}
-.cockpit-hud .burst-meter{width:190px;margin:0;flex:0 0 auto}
-.cockpit-hud .burst-meter .instrument-label{font-size:8px;margin-bottom:4px}
-.cockpit-hud kbd{font:700 9px Inter,system-ui,sans-serif;background:#1d587477;
- border:1px solid #75eeff77;border-radius:2px;color:#cdfaff;padding:1px 3px}
-.cockpit-hud .burst-meter.ready .instrument-label b{color:#90ffdd}
-.cockpit-hud .burst-meter:not(.ready) .instrument-label b{color:#ffd69e}
-.cockpit-hud .boost-rail{height:5px;overflow:hidden;background:#071624;clip-path:polygon(0 0,98% 0,100% 50%,98% 100%,0 100%)}
-.cockpit-hud .boost-rail>span{display:block;height:100%;background:linear-gradient(90deg,#2388cf,#6cfff1);
- box-shadow:0 0 9px #5afdff;transition:width .1s}
-.cockpit-hud .flight-foot{width:190px;margin-top:5px;display:flex;justify-content:space-between;gap:8px;
- white-space:nowrap;color:#83b9cb;font-size:7px;letter-spacing:.01em}
-.cockpit-hud .mining-status{position:absolute;z-index:5;top:27px;left:50%;transform:translateX(-50%);
- display:flex;align-items:center;gap:9px;white-space:nowrap;background:#071b2ce6;
- border:1px solid #73ffdfaa;border-radius:4px;padding:3px 9px;color:#a3ffe7;font-size:9px}
-.cockpit-hud .mining-status[hidden]{display:none!important}
-.cockpit-hud .mining-status b{font-size:11px}
-.cockpit-hud .mining-status.alert{border-color:#f4bd77;color:#ffe0ad}
-.cockpit-hud .mining-status.critical{border-color:#ff7c82;color:#ffd1cf;background:#381b30ee}
-.cockpit-hud .cockpit-telemetry .wing-topline{margin-bottom:15px}
-.cockpit-hud .resource-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:0}
-.cockpit-hud .resource{display:flex;position:relative;flex-direction:column;align-items:center;min-width:0;
- padding:7px 4px;border-right:1px solid #5ad6e82b;background:linear-gradient(180deg,#1f709323,#0000);
- border-top:1px solid #55b7dc28;gap:5px}
-.cockpit-hud .resource small{font-size:9px;color:#b4dcec;white-space:nowrap;letter-spacing:.035em}
-.cockpit-hud .resource b{font-size:19px;color:#d3faff;line-height:1;font-weight:740}
-.cockpit-hud .ore-resource b{color:#ffe4aa}
-.cockpit-hud .ore-resource.is-gaining{animation:resource-glow .65s ease-out both}
-.cockpit-hud #oreGain{position:absolute;top:-12px;right:0;font-style:normal;font-weight:850;color:#fff3b6;
- font-size:12px;opacity:0;text-shadow:0 0 10px #ffac51}
-.cockpit-hud .ore-resource.is-gaining #oreGain{animation:resource-number .8s ease-out both}
-.cockpit-hud .telemetry-foot{margin:9px 0 0;display:flex;align-items:center;justify-content:space-between;gap:9px;
- color:#8fc5d4;letter-spacing:.04em;font-size:9px;white-space:nowrap}
-.cockpit-hud .resource-legend{display:flex;align-items:center;gap:5px}
-.cockpit-hud .resource-legend i{width:5px;height:5px;border:1px solid #64edf0;background:#3bf6cf}
-.cockpit-hud .perf{font-size:9px;color:#83bdcb;letter-spacing:0}
-.cockpit-hud .cockpit-keel{position:absolute;bottom:0;left:35%;right:35%;height:8px;
- display:flex;align-items:end;gap:4px;opacity:.8}
-.cockpit-keel span{height:2px;flex:1;background:linear-gradient(90deg,transparent,#49dafa,#10345b)}
-.cockpit-keel span:last-child{transform:scaleX(-1)}
-.cockpit-keel i{width:28px;height:7px;background:linear-gradient(#6cecff99,#0a314b);
- clip-path:polygon(0 0,100% 0,70% 100%,30% 100%)}
-.cockpit-hud .cockpit-arch{position:absolute;bottom:146px;z-index:-1;height:65px;width:23%;opacity:.67;
- border-top:2px solid #36d4ef6c;filter:drop-shadow(0 0 7px #30cfea55)}
-.cockpit-hud .arch-left{left:2%;transform:skewX(-18deg);border-left:2px solid #36d4ef36;
- clip-path:polygon(0 22%,100% 0,100% 100%,0 100%)}
-.cockpit-hud .arch-right{right:2%;transform:skewX(18deg);border-right:2px solid #36d4ef36;
- clip-path:polygon(0 0,100% 22%,100% 100%,0 100%)}
-#hud.cockpit-hud #message{position:absolute;top:auto;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);
- width:max-content;max-width:min(80vw,560px);min-height:0;margin:0;
- background:linear-gradient(90deg,#062436e8,#0d4157e8,#062436e8);
- border:1px solid #5af4f585;border-radius:4px;padding:7px 14px;color:#d9ffff;
- font-size:11px;letter-spacing:.03em;line-height:1.4;box-shadow:0 0 20px #24d8f03a;
- text-align:center;pointer-events:none}
-#hud.cockpit-hud.is-wounded .hull-meter>span{background:linear-gradient(90deg,#aa6f25,#ffcb72)}
-#hud.cockpit-hud.is-critical .hull-meter>span{background:linear-gradient(90deg,#af2c49,#ff697a)}
-#hud.cockpit-hud.is-critical .wing-left{background:linear-gradient(150deg,#ff6d88,#c33163 8%,#1d3143 55%,#ff5c72)}
-#hud.cockpit-hud.is-critical .flight-status{color:#ffb2bd}
-#hud.cockpit-hud.is-critical .critical-alert{display:flex;animation:critical-pulse 2s ease-in-out infinite}
-#hud.cockpit-hud.is-hit .cockpit-frame{animation:cockpit-jolt .29s ease-out}
-@keyframes cockpit-jolt{
- 0%,100%{transform:perspective(1500px) rotateX(1.6deg) rotateY(var(--hud-yaw,0deg)) translate3d(var(--hud-dx,0px),var(--hud-dy,0px),0)}
- 20%{transform:perspective(1500px) rotateX(2.6deg) rotateY(-.7deg) translate3d(-3px,2px,0)}
- 55%{transform:perspective(1500px) rotateX(.8deg) rotateY(.6deg) translate3d(3px,-2px,0)}
- 80%{transform:perspective(1500px) rotateX(2deg) translate3d(-1px,1px,0)}
+ background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 2px),#051528  calc(10% - 2px),#051528 10%)}
+.cockpit-hud .vitals-secondary{display:flex;justify-content:space-between;gap:8px;margin:7px 0 4px;
+ font-size:11px;color:#b7d9e4;white-space:nowrap}
+.cockpit-hud .vitals-secondary b{color:#e8ffff}
+.cockpit-hud .experience-meter{height:5px;margin:0;border-color:#619cbb78}
+.cockpit-hud .experience-meter>span{background:linear-gradient(90deg,#3689da,#a3e8ff)}
+.cockpit-hud .cockpit-telemetry .wing-topline{margin-bottom:9px}
+.cockpit-hud .resource-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.cockpit-hud .resource{grid-column:span 2;min-width:0;position:relative;
+ display:flex;justify-content:space-between;align-items:center;gap:4px;padding:5px 6px;
+ border:1px solid #4cbed333;background:#14415854}
+.cockpit-hud .resource.priority{grid-column:span 3;padding:7px 8px;background:#10506e6b;border-color:#6bdfea66}
+.cockpit-hud .resource small{font-size:10px;color:#c2dfea;white-space:nowrap}
+.cockpit-hud .resource b{font-size:13px;color:#e7fcff}
+.cockpit-hud .resource.priority b{font-size:20px}
+.cockpit-hud .ore-resource b{color:#ffe0a3}
+.cockpit-hud #oreGain{position:absolute;top:-16px;right:4px;color:#ffecb6;font-style:normal;
+ font-size:13px;font-weight:800;opacity:0;text-shadow:0 0 9px #ffb63d}
+.cockpit-hud .ore-resource.is-gaining{animation:hud-gain-glow .65s ease-out both}
+.cockpit-hud .ore-resource.is-gaining #oreGain{animation:hud-gain-number .8s ease-out both}
+.cockpit-hud .telemetry-foot{margin-top:5px;color:#94c4d5;display:flex;justify-content:flex-end;font-size:10px}
+.cockpit-hud .resource-legend{display:none}
+/* Lightweight local radar; no persistent sweep overlay over the world. */
+.cockpit-hud .radar-unit{
+ position:absolute;top:111px;right:max(18px,env(safe-area-inset-right));
+ width:166px;height:190px;box-sizing:border-box;padding:24px 12px 23px;
+ border:1px solid #56cde18c;clip-path:polygon(0 9%,10% 0,100% 0,100% 91%,90% 100%,0 100%);
+ background:linear-gradient(165deg,#0a344acb,#031523d9);box-shadow:0 5px 22px #0008;
 }
-@keyframes critical-pulse{0%,100%{opacity:1}50%{opacity:.7}}
-@keyframes resource-glow{0%{background:#fff2b9c7;box-shadow:0 0 24px #ffe379d9}100%{background:linear-gradient(180deg,#1f709323,#0000);box-shadow:none}}
-@keyframes resource-number{0%{opacity:1;transform:translateY(7px)}55%{opacity:1;transform:translateY(-6px)}100%{opacity:0;transform:translateY(-14px)}}
-#tips{top:10px;bottom:auto;max-width:min(750px,calc(100vw - 430px));font-size:11px;line-height:1.4;
- color:#c8ebf7;background:#051a2bad;border:1px solid #4ecce559}
-#back{top:9px;bottom:auto;left:13px;border-color:#4bc9eb8c}
-#audioControls{top:9px;right:13px}
-@media(max-width:1120px){
- .cockpit-hud .cockpit-grid{grid-template-columns:minmax(215px,1fr) 208px minmax(215px,1fr);padding:0 5px 7px;gap:2px}
- .cockpit-hud .cockpit-wing{padding-left:22px;padding-right:22px;height:148px}
+.cockpit-hud .radar-header{position:absolute;top:5px;left:11px;font-size:10px;
+ color:#b7e8ee;letter-spacing:.09em;display:flex;gap:4px}
+.cockpit-hud .radar-header b{display:none}
+.cockpit-hud .radar-unit #radar{display:block;width:140px;height:140px;border:1px solid #58cbd983;
+ border-radius:50%;background:radial-gradient(circle,#08344cba,#021321ea)}
+.cockpit-hud .radar-readout{position:absolute;bottom:5px;left:3px;right:3px;text-align:center;
+ color:#c4e9ee;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cockpit-hud .flight-status{
+ position:absolute;top:114px;left:50%;transform:translateX(-50%);
+ display:flex;align-items:center;justify-content:center;gap:8px;
+ width:max-content;max-width:calc(100vw - 410px);padding:6px 11px;
+ background:#062839cf;border:1px solid #67b7c26b;clip-path:polygon(0 0,98% 0,100% 50%,98% 100%,0 100%);
+ color:#c6f9eb;font-size:11px;font-weight:700;letter-spacing:.035em;text-align:center;
+}
+.cockpit-hud .live-indicator{width:7px;height:7px;border-radius:50%;background:#8affd9;flex:none;box-shadow:0 0 9px #73efd2}
+.cockpit-hud .critical-alert{display:none;position:absolute;top:155px;left:50%;transform:translateX(-50%);
+ align-items:center;gap:7px;background:#41182cde;border:1px solid #ff7f91aa;border-radius:3px;
+ color:#ffe7e8;padding:7px 11px;font-size:12px;font-weight:800;white-space:nowrap}
+.cockpit-hud .alert-glyph{display:grid;place-items:center;min-width:19px;height:19px;
+ background:#ff7b90;color:#220512;border-radius:3px;font-size:14px}
+.cockpit-hud .mining-status{display:flex;position:absolute;top:193px;left:50%;transform:translateX(-50%);
+ align-items:center;gap:8px;white-space:nowrap;padding:6px 10px;background:#103b42e8;
+ border:1px solid #89f7d4;color:#c3ffe7;border-radius:4px;font-size:11px;font-weight:700}
+.cockpit-hud .mining-status.alert{border-color:#ffd08b;color:#ffe8bc}
+.cockpit-hud .mining-status.critical{border-color:#ff7c8c;color:#ffe1e3;background:#492233ed}
+.cockpit-hud .burst-meter{
+ position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+ box-sizing:border-box;width:220px;padding:11px 13px;background:#092d42e6;
+ border:1px solid #6ad7e58a;clip-path:polygon(0 0,94% 0,100% 28%,100% 100%,6% 100%,0 72%);
+}
+.cockpit-hud .burst-meter .instrument-label{font-size:10px}
+.cockpit-hud .burst-meter .instrument-label b{font-size:12px}
+.cockpit-hud .burst-meter.ready .instrument-label b{color:#8bffdc}
+.cockpit-hud .burst-meter:not(.ready) .instrument-label b{color:#ffd392}
+.cockpit-hud .boost-rail{height:5px;overflow:hidden;margin-top:7px;background:#051522}
+.cockpit-hud .boost-rail>span{height:100%;display:block;background:linear-gradient(90deg,#387abb,#79ffde);
+ transition:width .15s ease}
+.cockpit-hud kbd{display:inline-block;border:1px solid #6dbed1a6;border-radius:2px;
+ padding:0 4px;font:700 10px system-ui,sans-serif;color:#ecfcff;background:#174b60}
+.cockpit-hud .flight-foot{
+ position:absolute;bottom:91px;left:50%;transform:translateX(-50%);
+ display:flex;flex-direction:column;align-items:center;gap:3px;
+ text-align:center;font-size:11px;color:#c4e7ea;white-space:nowrap;
+}
+.cockpit-hud .interaction-cue{position:absolute;bottom:151px;left:50%;transform:translateX(-50%);
+ padding:6px 12px;background:#0f3f45db;border:1px solid #8effd5a1;color:#e9fff7;
+ border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap}
+#hud.cockpit-hud .contract-objective{
+ display:block;position:absolute;top:64px;left:50%;transform:translateX(-50%);
+ width:max-content;max-width:min(490px,calc(100vw - 440px));padding:9px 15px;text-align:center;
+ background:#082d44e8;border:1px solid #7ee1e59e;border-radius:4px;
+ font-size:13px;line-height:1.4;font-weight:750;color:#efffff;
+}
+#hud.cockpit-hud .contract-objective.ready{border-color:#9fffd2;color:#cbffe8}
+#hud.cockpit-hud #message{
+ display:block;position:absolute;top:226px;bottom:auto;left:50%;transform:translateX(-50%);
+ width:max-content;max-width:min(540px,80vw);padding:7px 12px;margin:0;min-height:0;
+ background:#082d40e8;border:1px solid #6cd9d7bd;color:#ebffff;
+ border-radius:4px;font-size:12px;line-height:1.4;text-align:center;pointer-events:none;
+}
+#hud.cockpit-hud.is-wounded .hull-meter>span{background:linear-gradient(90deg,#99622c,#ffd18a)}
+#hud.cockpit-hud.is-critical .hull-meter>span{background:linear-gradient(90deg,#ad3a58,#ff7186)}
+#hud.cockpit-hud.is-critical .wing-left{border-color:#ff8a9c;background:linear-gradient(145deg,#53233aef,#1a1a31f2)}
+#hud.cockpit-hud.is-critical .critical-alert{display:flex}
+#hud.cockpit-hud.is-critical .flight-status{color:#ffd1d5;border-color:#ff81977d}
+#hud.cockpit-hud.is-hit .wing-left{animation:hud-hit .25s ease-out}
+@keyframes hud-hit{25%{filter:brightness(1.6)}100%{filter:brightness(1)}}
+@keyframes hud-gain-glow{0%{background:#bc9f4777}100%{background:#10506e6b}}
+@keyframes hud-gain-number{0%{opacity:1;transform:translateY(8px)}70%{opacity:1}100%{opacity:0;transform:translateY(-15px)}}
+#tips{top:9px;bottom:auto;left:50%;max-width:min(710px,calc(100vw - 440px));
+ padding:7px 10px;background:#061d31cb;border:1px solid #67c9d066;
+ border-radius:4px;font-size:10px;line-height:1.35;color:#c6e9ee}
+#back{top:8px;bottom:auto;left:12px}
+#audioControls{top:8px;right:12px}
+@media(max-width:1080px){
+ .cockpit-hud .cockpit-wing{width:250px}
+ .cockpit-hud .resource small{font-size:9px}
+ .cockpit-hud .resource.priority b{font-size:17px}
+ .cockpit-hud .flight-status{max-width:calc(100vw - 350px)}
+ #hud.cockpit-hud .contract-objective{max-width:calc(100vw - 360px)}
+ #tips{max-width:calc(100vw - 360px)}
+}
+@media(max-width:820px){
+ #tips{display:none}
+ .cockpit-hud .cockpit-wing{width:215px;height:137px;padding:12px 11px}
+ .cockpit-hud .sector-label{font-size:9px}
  .cockpit-hud .wing-topline{font-size:10px}
- .cockpit-hud .wing-code{display:none}
+ .cockpit-hud .resource{padding:4px 2px}
+ .cockpit-hud .resource small{font-size:9px}
+ .cockpit-hud .resource.priority{padding:6px 3px}
+ .cockpit-hud .radar-unit{width:133px;height:154px;top:113px;padding:21px 8px 18px}
+ .cockpit-hud .radar-unit #radar{width:115px;height:115px}
+ .cockpit-hud .radar-header,.cockpit-hud .radar-readout{font-size:8.5px}
+ .cockpit-hud .burst-meter{width:162px}
+ .cockpit-hud .burst-meter .instrument-label{font-size:9px}
+ .cockpit-hud .flight-foot{font-size:10px}
+ .cockpit-hud .flight-status{max-width:calc(100vw - 300px);font-size:10px}
+ #hud.cockpit-hud .contract-objective{max-width:calc(100vw - 290px);font-size:12px}
+}
+@media(max-width:620px) and (pointer:fine){
+ .cockpit-hud .cockpit-wing{width:37vw;min-width:0}
+ .cockpit-hud .burst-meter{width:22vw;padding:10px 7px}
+ .cockpit-hud .burst-meter .instrument-label{font-size:8px;gap:2px}
+ .cockpit-hud .burst-meter .instrument-label b{font-size:9px}
+ .cockpit-hud .flight-foot{bottom:87px;font-size:9px}
  .cockpit-hud .resource-stats{gap:2px}
  .cockpit-hud .resource small{font-size:8px}
- .cockpit-hud .resource b{font-size:16px}
- .cockpit-hud .radar-unit{transform:scale(.91)}
- .cockpit-hud .cockpit-flight{padding-bottom:8px}
+ .cockpit-hud .resource.priority b{font-size:14px}
 }
-@media(max-width:850px){
- #hud.cockpit-hud{height:201px;width:calc(100vw - 8px)}
- .cockpit-hud .cockpit-frame{transform:none}
- .cockpit-hud .cockpit-arch,.cockpit-hud .cockpit-keel{display:none}
- .cockpit-hud .cockpit-grid{position:relative;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:93px 100px;gap:4px;
-  padding:0 2px 4px}
- .cockpit-hud .cockpit-flight{grid-column:1/-1;grid-row:1;display:grid;grid-template-columns:102px minmax(0,1fr);
-  grid-template-rows:18px 33px 18px 14px;height:93px;width:100%;padding:3px 8px 0;align-items:center;justify-items:start}
- .cockpit-hud .radar-unit{grid-column:1;grid-row:1/5;transform:none;width:92px;height:92px;margin:0;align-self:start}
- .cockpit-hud .radar-unit #radar{width:78px;height:78px;top:8px}
- .cockpit-hud .radar-aura{inset:5px 2px}
- .cockpit-hud .radar-arc{display:none}
- .cockpit-hud .radar-header{font-size:6px;top:0}
- .cockpit-hud .radar-header b{font-size:8px}
- .cockpit-hud .radar-readout{font-size:6px;bottom:0;max-width:100%;padding:2px 3px}
- .cockpit-hud .flight-status{grid-column:2;grid-row:1;position:static;transform:none;justify-content:flex-start;width:auto;min-width:0;
-  font-size:9px}
- .cockpit-hud .critical-alert{grid-column:2;grid-row:2;position:static;transform:none;font-size:8px}
- .cockpit-hud .burst-meter{grid-column:2;grid-row:2;width:100%;max-width:240px;align-self:end;margin:0}
- .cockpit-hud.is-critical .burst-meter{grid-row:3}
- .cockpit-hud .burst-meter .instrument-label{font-size:8px;margin-bottom:3px}
- .cockpit-hud .burst-meter .instrument-label b{font-size:10px}
- .cockpit-hud .mining-status{grid-column:2;grid-row:3;position:static;transform:none;font-size:8px;padding:2px 4px}
- .cockpit-hud .flight-foot{grid-column:2;grid-row:4;width:100%;font-size:7px;margin:0}
- .cockpit-hud .cockpit-vitals{grid-column:1;grid-row:2}
- .cockpit-hud .cockpit-telemetry{grid-column:2;grid-row:2}
- .cockpit-hud .cockpit-wing{height:99px;margin:0;padding:14px 12px 6px}
- .cockpit-hud .wing-topline{font-size:9px;gap:4px;letter-spacing:.06em}
- .cockpit-hud .wing-sigil{font-size:12px}
- .cockpit-hud .ship-level b{font-size:11px}
- .cockpit-hud .sector-label{margin:0 0 4px;font-size:8px}
- .cockpit-hud .instrument-label{font-size:7px;margin:0 0 3px}
- .cockpit-hud .instrument-label b{font-size:9px}
- .cockpit-hud .ship-meter{height:8px}
- .cockpit-hud .vitals-secondary{font-size:7px;margin:4px 0 3px}
- .cockpit-hud .experience-meter{height:4px}
- .cockpit-hud .wing-footer{display:none}
- .cockpit-hud .cockpit-telemetry .wing-topline{margin-bottom:6px}
- .cockpit-hud .resource-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0}
- .cockpit-hud .resource{padding:3px 0;border:0;gap:2px}
- .cockpit-hud .resource small{font-size:6px;letter-spacing:0}
- .cockpit-hud .resource b{font-size:12px}
- .cockpit-hud .telemetry-foot{font-size:7px;margin-top:4px}
- .cockpit-hud .resource-legend{display:none}
- .cockpit-hud .perf{font-size:8px}
- .cockpit-hud #oreGain{font-size:10px;top:-9px}
- #hud.cockpit-hud #message{bottom:calc(100% + 6px);max-width:94vw;font-size:10px;padding:6px 10px}
- #tips{top:48px;max-width:95vw;font-size:10px}
- #back{top:5px;left:7px}
- #audioControls{top:5px;right:7px}
-}
-@media(max-width:450px){
- .cockpit-hud .cockpit-wing{padding-left:8px;padding-right:8px}
- .cockpit-hud .wing-topline strong{font-size:8px}
- .cockpit-hud .resource small{font-size:5.7px}
- .cockpit-hud .resource b{font-size:11px}
- .cockpit-hud .telemetry-foot{margin-top:2px}
- .cockpit-hud .ship-level{font-size:7px}
- .cockpit-hud .flight-status{font-size:8px}
-}
+/* Mobile: readable top-edge instruments and unblocked thumb zones. */
 @media(pointer:coarse){
  #tips{display:none}
- .mobile{bottom:calc(218px + env(safe-area-inset-bottom));left:10px;right:10px}
- #stick{width:108px;height:108px}
- #knob{width:54px;height:54px;margin:-27px 0 0 -27px}
- .mobile-buttons{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-width:180px}
- .mobile-buttons button{padding:7px 8px;font-size:11px}
- #back{display:block;top:5px;left:7px;font-size:10px;padding:6px 8px}
- #audioCredits{display:none}
+ #back{top:7px;left:8px;font-size:10px;padding:5px 7px}
+ .mobile{bottom:max(12px,env(safe-area-inset-bottom));left:max(10px,env(safe-area-inset-left));
+  right:max(10px,env(safe-area-inset-right))}
+ .cockpit-hud .interaction-cue{display:none}
+ .cockpit-hud .radar-unit #radar{width:88px;height:88px}
+ .cockpit-hud .radar-unit{width:110px;height:122px;padding:19px 9px 16px}
+ .cockpit-hud .radar-header,.cockpit-hud .radar-readout{font-size:9px}
+ .cockpit-hud .flight-foot{display:none}
+ .cockpit-hud .burst-meter{width:128px;padding:6px 9px;clip-path:none;border-radius:4px}
+ .cockpit-hud .burst-meter .instrument-label{font-size:9px}
+ .cockpit-hud .burst-meter .instrument-label b{font-size:10px}
+ .cockpit-hud .boost-rail{margin-top:4px}
+ .cockpit-hud .flight-status{display:none}
+ .cockpit-hud .mining-status{font-size:10px;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+ #hud.cockpit-hud #message{font-size:11px;max-width:calc(100vw - 20px)}
 }
-@media(pointer:coarse) and (orientation:landscape), (max-height:560px){
- #hud.cockpit-hud{height:122px}
- .cockpit-hud .cockpit-grid{display:grid;grid-template-columns:minmax(0,1fr) 118px minmax(0,1fr);grid-template-rows:1fr;padding:0 2px}
- .cockpit-hud .cockpit-vitals{grid-column:1;grid-row:1}
- .cockpit-hud .cockpit-telemetry{grid-column:3;grid-row:1}
- .cockpit-hud .cockpit-flight{grid-column:2;grid-row:1;display:flex;flex-direction:column;align-items:center;
-  justify-content:flex-end;height:120px;padding:0 2px}
- .cockpit-hud .cockpit-wing{height:102px;padding:12px 9px 4px}
- .cockpit-hud .radar-unit{width:94px;height:87px;flex:0 0 87px;margin:0}
- .cockpit-hud .radar-unit #radar{width:71px;height:71px;top:9px}
- .cockpit-hud .flight-status,.cockpit-hud .critical-alert,.cockpit-hud .flight-foot,
- .cockpit-hud .mining-status,.cockpit-hud .radar-readout{display:none!important}
- .cockpit-hud .burst-meter{width:110px;flex:0 0 22px;margin:0}
- .cockpit-hud .burst-meter .instrument-label{font-size:7px}
- .cockpit-hud .cockpit-telemetry .wing-topline{margin-bottom:6px}
- .cockpit-hud .resource-stats{grid-template-columns:repeat(5,minmax(0,1fr))}
- .cockpit-hud .resource small{font-size:7px}
- .cockpit-hud .resource b{font-size:12px}
- .cockpit-hud .telemetry-foot{display:none}
- .mobile{bottom:132px}
- #stick{width:86px;height:86px}
- .mobile-buttons button{padding:4px 6px;font-size:10px}
+@media(pointer:coarse) and (orientation:portrait){
+ #audioControls{top:64px;right:8px}
+ .cockpit-hud .cockpit-wing{bottom:auto;clip-path:none;border-radius:4px}
+ .cockpit-hud .wing-left{
+  top:max(58px,calc(env(safe-area-inset-top) + 52px));left:9px;
+  width:calc(100vw - 137px);height:85px;padding:8px 10px;
+ }
+ .cockpit-hud .wing-topline{font-size:10px;gap:4px}
+ .cockpit-hud .sector-label{display:none}
+ .cockpit-hud .instrument-label{margin-top:5px;font-size:10px}
+ .cockpit-hud .instrument-label b{font-size:13px}
+ .cockpit-hud .vitals-secondary{margin:5px 0 3px;font-size:10px}
+ .cockpit-hud .ship-meter{margin-top:3px;height:8px}
+ .cockpit-hud .experience-meter{height:4px;margin:0}
+ .cockpit-hud .wing-right{
+  top:max(155px,calc(env(safe-area-inset-top) + 149px));left:9px;right:auto;
+  width:calc(100vw - 137px);height:77px;padding:7px 9px;
+ }
+ .cockpit-hud .cockpit-telemetry .wing-topline{margin:0 0 4px}
+ .cockpit-hud .resource-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+ .cockpit-hud .resource.priority{grid-column:span 1;display:flex;flex-direction:column;
+  align-items:flex-start;padding:3px 5px;gap:0}
+ .cockpit-hud .resource.priority small{font-size:10px}
+ .cockpit-hud .resource.priority b{font-size:16px}
+ .cockpit-hud .resource:not(.priority),.cockpit-hud .telemetry-foot{display:none}
+ .cockpit-hud .radar-unit{top:max(130px,calc(env(safe-area-inset-top) + 124px));right:8px}
+ .cockpit-hud .burst-meter{top:max(260px,calc(env(safe-area-inset-top) + 254px));
+  right:8px;left:auto;bottom:auto;transform:none}
+ .cockpit-hud .critical-alert{top:max(269px,calc(env(safe-area-inset-top) + 263px));
+  left:9px;transform:none;font-size:11px;white-space:normal;max-width:calc(100vw - 154px)}
+ .cockpit-hud .mining-status{top:max(313px,calc(env(safe-area-inset-top) + 307px))}
+ #hud.cockpit-hud .contract-objective{
+  top:max(326px,calc(env(safe-area-inset-top) + 320px));
+  width:max-content;max-width:calc(100vw - 22px);font-size:12px;padding:6px 9px;
+ }
+ #hud.cockpit-hud #message{top:auto;bottom:calc(190px + env(safe-area-inset-bottom));
+  padding:5px 9px}
+}
+@media(pointer:coarse) and (orientation:landscape){
+ #audioControls{top:60px;right:7px}
+ .cockpit-hud .cockpit-wing{bottom:auto;height:83px;clip-path:none;border-radius:4px;padding:8px 10px}
+ .cockpit-hud .wing-left{top:57px;left:10px;width:190px}
+ .cockpit-hud .sector-label{display:none}
+ .cockpit-hud .instrument-label{margin-top:4px;font-size:10px}
+ .cockpit-hud .instrument-label b{font-size:13px}
+ .cockpit-hud .vitals-secondary{margin:4px 0 3px;font-size:10px}
+ .cockpit-hud .ship-meter{height:7px;margin-top:2px}
+ .cockpit-hud .experience-meter{height:3px;margin:0}
+ .cockpit-hud .wing-right{top:150px;left:10px;right:auto;width:190px;height:67px}
+ .cockpit-hud .cockpit-telemetry .wing-topline{margin-bottom:3px}
+ .cockpit-hud .resource-stats{grid-template-columns:1fr 1fr;gap:3px}
+ .cockpit-hud .resource.priority{grid-column:span 1;display:flex;flex-direction:column;padding:2px 5px;gap:0}
+ .cockpit-hud .resource.priority b{font-size:14px}
+ .cockpit-hud .resource:not(.priority),.cockpit-hud .telemetry-foot{display:none}
+ .cockpit-hud .radar-unit{top:137px;right:9px}
+ .cockpit-hud .burst-meter{top:98px;bottom:auto;left:50%;transform:translateX(-50%)}
+ .cockpit-hud .critical-alert{top:151px;max-width:300px;white-space:normal;text-align:center}
+ .cockpit-hud .mining-status{top:190px}
+ #hud.cockpit-hud .contract-objective{top:53px;max-width:calc(100vw - 460px);font-size:11px;padding:6px 9px}
+ #hud.cockpit-hud #message{top:auto;bottom:calc(115px + env(safe-area-inset-bottom));font-size:10px}
+}
+@media(pointer:coarse) and (max-width:370px) and (orientation:portrait){
+ .cockpit-hud .wing-left,.cockpit-hud .wing-right{width:calc(100vw - 128px)}
+ .cockpit-hud .radar-unit,.cockpit-hud .burst-meter{right:5px}
+ .cockpit-hud .wing-topline{font-size:9px}
+ .cockpit-hud .ship-level{font-size:9px}
+ .cockpit-hud .instrument-label{font-size:9px}
+ .cockpit-hud .vitals-secondary{font-size:9px}
+}
+@media(pointer:coarse) and (orientation:portrait) and (max-height:650px){
+ .cockpit-hud .wing-left{top:47px}.cockpit-hud .wing-right{top:139px}
+ .cockpit-hud .radar-unit{top:119px}.cockpit-hud .burst-meter{top:247px}
+ #hud.cockpit-hud .contract-objective{top:302px}
+ #hud.cockpit-hud #message{bottom:calc(174px + env(safe-area-inset-bottom))}
 }
 @media(prefers-reduced-motion:reduce){
- #hud.cockpit-hud .cockpit-frame{transition:none;transform:none}
- #hud.cockpit-hud.is-hit .cockpit-frame{animation:none}
- #hud.cockpit-hud.is-critical .critical-alert,.cockpit-hud .ore-resource.is-gaining,
- .cockpit-hud .ore-resource.is-gaining #oreGain{animation:none}
  .cockpit-hud .ship-meter>span,.cockpit-hud .boost-rail>span{transition:none}
-}
-
-/* Narrow portrait screens need actual readable labels: three then two counters,
-   rather than five illegible 5.7px captions. Landscape keeps the wide layout. */
-@media(max-width:520px) and (orientation:portrait){
- .cockpit-hud .resource-stats{display:flex;flex-wrap:wrap;justify-content:space-around;gap:0}
- .cockpit-hud .resource{flex:0 0 31%;min-width:0;padding:2px 0;gap:1px}
- .cockpit-hud .resource small{font-size:7.3px;letter-spacing:0}
- .cockpit-hud .resource b{font-size:12px}
- .cockpit-hud .cockpit-telemetry .wing-topline{margin-bottom:2px}
- .cockpit-hud .telemetry-foot{display:none}
+ #hud.cockpit-hud.is-hit .wing-left,.cockpit-hud .ore-resource.is-gaining,
+ .cockpit-hud .ore-resource.is-gaining #oreGain{animation:none}
 }
