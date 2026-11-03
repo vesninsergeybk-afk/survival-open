@@ -9,6 +9,10 @@ const make = (tag, klass, value) => {
 };
 const chapters = ['Все', ...new Set(SYSTEMS.map(item => item.chapter))];
 const status = ref => PARTIAL_REFS.includes(ref) ? 'Частично в коде' : 'Концепция';
+const episodeWord = count => {
+ const mod10 = count % 10, mod100 = count % 100;
+ return mod100 >= 11 && mod100 <= 14 ? 'эпизодов' : mod10 === 1 ? 'эпизод' : mod10 >= 2 && mod10 <= 4 ? 'эпизода' : 'эпизодов';
+};
 const represented = new Set(SYSTEMS.flatMap(item => item.refs));
 if (ISSUE_REFS.length !== 31 || ISSUE_REFS.some(ref => !represented.has(ref))) {
  console.error('В игровом реестре не охвачены все исходные пункты');
@@ -66,7 +70,7 @@ function renderCards() {
   button.setAttribute('aria-pressed', String(item.id === active));
   const row = make('span', 'sys-card-top');
   row.append(make('span', 'sys-id', item.id.toUpperCase() + ' · ' + item.chapter), make('span', 'sys-refs', item.refs.join(' ')));
-  button.append(row, make('strong', '', item.name), make('small', '', item.phase + ' · ' + item.beats.length + ' эпизода'));
+  button.append(row, make('strong', '', item.name), make('small', '', item.phase + ' · ' + item.beats.length + ' ' + episodeWord(item.beats.length)));
   button.addEventListener('click', () => choose(item.id));
   box.append(button);
  }
