@@ -21,7 +21,7 @@ import {renderWorldMap} from './map-panel.js?v=carrier-intercept-1';
 import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=carrier-intercept-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute} from './carrier-interception.js?v=carrier-intercept-1';
-import {ION_CONDUCTOR,createIonLoan,ionLoanOffer,markIonCluster,planIonDischarge} from './ion-conductor.js?v=ion-first-play-1';
+import {ION_CONDUCTOR,createIonLoan,ionLoanOffer,markIonCluster,planIonDischarge,ionMasteryAward} from './ion-conductor.js?v=ion-first-play-2';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -124,6 +124,7 @@ export class ArcadeGame {
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';this.mapReturnToBase=false;
    this.geoScanUntil=0;this.overchargeUntil=0;
    this.ionLoan=null;this.ionTrialTaken=false;this.ionReturnAt=-Infinity;
+   this.ionMasteryAwarded=false;
   this.mining={active:false,target:null,fxClock:0};
   this.actionHeld=null;this.interactionFocus=null;this.holdFire=false;this.localStations=[];
   this.beamClock=.25;this.rocketClock=4;this.zoneClock=80;
@@ -950,7 +951,8 @@ export class ArcadeGame {
      (this.ionLoan.cooldownUntil>this.time?' · '+Math.ceil(this.ionLoan.cooldownUntil-this.time)+'с':''):'Ион';}
    const tip=$('tips');if(tip){
     const base='WASD / стрелки — полёт · E — действие · C — автоогонь · Shift — рывок · Q — код · B — авиаудар · Tab — карта · U — развитие';
-    const hint=this.ionLoan?' · SPACE — ИОН '+this.ionLoan.charges+'/'+ION_CONDUCTOR.charges:'';
+    const hint=this.ionLoan?' · SPACE — ИОН '+this.ionLoan.charges+'/'+ION_CONDUCTOR.charges+
+     (this.ionLoan.cooldownUntil>this.time?' · зарядка '+Math.ceil(this.ionLoan.cooldownUntil-this.time)+' с':''):'';
     if(tip.textContent!==base+hint)tip.textContent=base+hint;
    }
   const skills=$('skillBtn');
@@ -1196,10 +1198,14 @@ export class ArcadeGame {
   this.ionLoan.charges=plan.chargesAfter;
   this.ionLoan.cooldownUntil=plan.cooldownUntil;
   this.ionLoan.used++;
+  const mastery=ionMasteryAward(plan.targets.length,this.ionMasteryAwarded);
+  if(mastery){this.ionMasteryAwarded=true;this.collect({type:'data',value:mastery});}
   this.heritage.vfx.nova(plan.targets[0].x,plan.targets[0].y,43,'cyan');
   this.heritage.play('laser',.26,{x:plan.targets[0].x,y:plan.targets[0].y});
-  this.notice('Ионный разряд: '+plan.targets.length+' '+
-   (plan.targets.length===1?'цель':'цели')+' · осталось '+this.ionLoan.charges,2.3);
+  this.notice(mastery?'Цепной разряд освоен: '+plan.targets.length+
+   ' цели · +'+mastery+' данных · ион '+this.ionLoan.charges+'/'+ION_CONDUCTOR.charges:
+   'Ионный разряд: '+plan.targets.length+' '+
+   (plan.targets.length===1?'цель':'цели')+' · осталось '+this.ionLoan.charges,mastery?4.2:2.3);
   this.hud();return true;
  }
  callStrike(){
