@@ -20,6 +20,7 @@ test('compact mobile HUD reserves the piloting view and both thumb zones',()=>{
  assert.match(touch,/#hud\.cockpit-hud #message\s*\{[\s\S]*?max-width:min\(420px,calc\(100vw - 348px\)\)/);
  assert.match(touch,/#audioControls\s*\{\s*top:max\(52px/,'audio stays below navigation');
  assert.match(touch,/#burstBtn,#quietBtn\s*\{\s*min-height:44px/,'touch targets remain usable');
+ assert.match(touch,/body:has\(#ionBtn:not\(\[hidden\]\)\):has\(#hackBtn:not\(\[hidden\]\)\):has\(#strikeBtn:not\(\[hidden\]\)\)/,'all three abilities have priority over the radar');
  assert.match(touch,/max-width:690px/,'narrow landscape prioritises the ship');
  assert.match(touch,/max-height:240px/,'short browser toolbars need a dedicated fallback');
 });
