@@ -5,6 +5,7 @@ import {renderStationRoutePreview,renderWorldMap} from '../map-panel.js';
 import {readFileSync} from 'node:fs';
 import {PROBE_OPERATION} from '../operations.js';
 import {RELAY_DEFENSE} from '../relay-defense.js';
+import {CARRIER_INTERCEPTION} from '../carrier-interception.js';
 
 const home=()=>({id:'0:0',type:'dock',x:0,y:0,active:true,discovered:true});
 const lab=()=>({id:'1:0',type:'lab',x:600,y:150,active:true,discovered:true});
@@ -136,8 +137,8 @@ test('postponing a probe retains the correct completion message',()=>{
  const start=source.indexOf(' abandonOperation(){');
  const end=source.indexOf('  abandonContract(){',start);
  assert.ok(start>0&&end>start,'abandon operation handler must exist');
- const Harness=new Function('PROBE_OPERATION','CORRIDOR_OPERATION','RELAY_DEFENSE',
-  'return class TestAbandon {'+source.slice(start,end)+'}')(PROBE_OPERATION,{id:'silent-corridor'},RELAY_DEFENSE);
+ const Harness=new Function('PROBE_OPERATION','CORRIDOR_OPERATION','RELAY_DEFENSE','CARRIER_INTERCEPTION',
+  'return class TestAbandon {'+source.slice(start,end)+'}')(PROBE_OPERATION,{id:'silent-corridor'},RELAY_DEFENSE,CARRIER_INTERCEPTION);
  const messages=[],game=new Harness();
  Object.assign(game,{dead:false,probeRepairing:true,
   operation:{id:PROBE_OPERATION.id,name:PROBE_OPERATION.name},

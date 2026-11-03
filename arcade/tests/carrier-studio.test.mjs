@@ -8,11 +8,13 @@ const carrier=SCENARIOS.carrier;
 const source=readFileSync(new URL('../studio/app.js',import.meta.url),'utf8');
 const html=readFileSync(new URL('../studio/index.html',import.meta.url),'utf8');
 
-test('carrier interception remains explicitly a proposal, not a claimed live operation',()=>{
- assert.match(carrier.state,/Концепц/);
- assert.equal(SCENARIO_BASELINES.carrier.phases.length,0);
- assert.match(SCENARIO_BASELINES.carrier.status,/пока нет/);
- assert.match(carrier.reward,/Проект баланса/);
+test('carrier studio distinguishes the live first iteration from the unmeasured proposal',()=>{
+ assert.match(carrier.state,/пробная версия/);
+ assert.equal(SCENARIO_BASELINES.carrier.phases.length,8);
+ assert.match(SCENARIO_BASELINES.carrier.status,/В игре/);
+ assert.match(SCENARIO_BASELINES.carrier.reward,/38 сплава/);
+ assert.match(carrier.reward,/В пробной сборке/);
+ assert.match(carrier.time,/измерения ещё не проводились/);
 });
 
 test('carrier storyboard makes the route, moving transport, failure and return leg observable',()=>{
@@ -49,8 +51,8 @@ test('workshop loads the refreshed route storyboard and offers a linked concept 
  assert.match(source,/function drawCarrierRoute\(/);
  assert.match(source,/activeScenario==='carrier'&&scenarioMode==='proposal'/);
  assert.match(source,/carrier-concept-link/);
- assert.match(source,/\.\/concepts\.js\?v=carrier-intercept-1/);
- assert.match(source,/\.\/design-brief\.js\?v=carrier-intercept-1/);
- assert.match(html,/app\.js\?v=studio-carrier-intercept-1/);
+ assert.match(source,/\.\/concepts\.js\?v=carrier-live-1/);
+ assert.match(source,/\.\/design-brief\.js\?v=carrier-live-1/);
+ assert.match(html,/app\.js\?v=studio-carrier-live-1/);
  assert.match(html,/CARRIER-INTERCEPTION-CONCEPT-2026-11-03\.md/);
 });

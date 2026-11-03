@@ -1,7 +1,8 @@
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=operation-leads-1';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
-import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=emp-cue-1';
+import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=carrier-intercept-1';
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
+import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining} from './carrier-interception.js?v=carrier-intercept-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -21,9 +22,10 @@ export function renderStationRoutePreview(base,state={}){
  const resolvedCorridor=isCorridorDock(base)&&!!base.corridorSecured;
  const corridor=isCorridorDock(base)&&!base.corridorSecured;
  const probe=isProbeLab(base)&&!base.probeRecovered;
+ const carrier=isCarrierBase(base)&&!base.supplyIntercepted;
  const target=active?.id==='silent-corridor'&&active.phase==='return'?base:
-  active||(corridor||resolvedCorridor?corridorPosition(base):probe?probePosition(base,world):null);
- const uncertain=probe&&!active,w=440,h=206;
+  active||(corridor||resolvedCorridor?corridorPosition(base):probe?probePosition(base,world):carrier?carrierRoute(base)[0]:null);
+ const uncertain=(probe||carrier)&&!active,w=440,h=206;
  const cx=target?(base.x+target.x)/2:base.x,cy=target?(base.y+target.y)/2:base.y;
  const dx=target?Math.abs(target.x-base.x):1600,dy=target?Math.abs(target.y-base.y):800;
  const scale=Math.min(.24,310/Math.max(900,dx),130/Math.max(650,dy));
@@ -48,7 +50,7 @@ export function renderStationRoutePreview(base,state={}){
   '" fill="#bb70d923" stroke="'+(resolvedCorridor?'#9bf4c8':'#ebbcff')+'" stroke-width="2"'+(uncertain?' stroke-dasharray="3 4"':'')+'/>'+
   '<text x="'+t.x.toFixed(1)+'" y="'+(t.y-18).toFixed(1)+
   '" text-anchor="middle" fill="#f1d5fa" font-size="12">'+
-  (uncertain?'ПОИСК ЗОНДА':resolvedCorridor?'КОРИДОР ОТКРЫТ':corridor?'ИСТОЧНИК ПОМЕХ':'ЦЕЛЬ')+'</text>':'';
+  (uncertain?(carrier?'РАЙОН ВСТРЕЧИ':'ПОИСК ЗОНДА'):resolvedCorridor?'КОРИДОР ОТКРЫТ':corridor?'ИСТОЧНИК ПОМЕХ':'ЦЕЛЬ')+'</text>':'';
  return '<div class="base-route-graphic"><svg viewBox="0 0 440 206" role="img" aria-label="Расположение станции, известных узлов и цели">'+
   '<rect width="440" height="206" rx="12" fill="#071c2b"/>'+
   '<path d="M 0 51 H 440 M 0 103 H 440 M 0 155 H 440 M 110 0 V 206 M 220 0 V 206 M 330 0 V 206" stroke="#6195b01c"/>'+
@@ -92,7 +94,7 @@ export function renderWorldMap(game){
   return '<path d="M '+x.x.toFixed(1)+' '+x.y.toFixed(1)+' L '+y.x.toFixed(1)+' '+y.y.toFixed(1)+
    '" stroke="#77e2d3" opacity=".52" stroke-width="2" stroke-dasharray="7 5"/>';
  }).join('');
- const readyStation=game.operation?.id==='silent-corridor'&&game.operation.phase==='return'?
+ const readyStation=(game.operation?.id==='silent-corridor'||game.operation?.id===CARRIER_INTERCEPTION.id)&&game.operation.phase==='return'?
    world.stations.get(game.operation.baseId):contractReturnStation(game.contract,world);
  const defenseZone=contractDefenseZone(game.contract,world);
  const defenseRing=defenseZone?(()=>{
@@ -126,10 +128,12 @@ export function renderWorldMap(game){
  const previewProbe=!operation&&previewBase&&isProbeLab(previewBase)&&!previewBase.probeRecovered;
  const previewCorridor=!operation&&previewBase&&isCorridorDock(previewBase)&&!previewBase.corridorSecured;
  const previewRelay=!operation&&previewBase&&isRelayArsenal(previewBase)&&!previewBase.relayDefenseDone;
+ const previewCarrier=!operation&&previewBase&&isCarrierBase(previewBase)&&!previewBase.supplyIntercepted;
  const previewTarget=previewProbe?probePosition(previewBase,world):
   previewCorridor?corridorPosition(previewBase):
-  previewRelay?relayPosition(previewBase,world):null;
- const objectiveMarker=operation?(operation.id==='silent-corridor'&&operation.phase==='return'?
+  previewRelay?relayPosition(previewBase,world):
+   previewCarrier?carrierRoute(previewBase)[0]:null;
+ const objectiveMarker=operation?((operation.id==='silent-corridor'||operation.id===CARRIER_INTERCEPTION.id)&&operation.phase==='return'?
    world.stations.get(operation.baseId):{x:operation.x,y:operation.y}):previewTarget||
   (home.corridorSecured?corridorPosition(home):null);
  const marker=objectiveMarker?point(objectiveMarker.x,objectiveMarker.y,p,scale):null;
@@ -141,9 +145,20 @@ export function renderWorldMap(game){
   '<text x="'+(marker.x+16).toFixed(1)+'" y="'+(marker.y-12).toFixed(1)+
   '" fill="#edd7fa" font-size="11">'+(operation?(operation.id===PROBE_OPERATION.id?'Аварийный зонд':
    operation.id===RELAY_DEFENSE.id?'Ретранслятор':
+    operation.id===CARRIER_INTERCEPTION.id?(operation.phase==='return'?'Авианосец · сдача сведений':
+     operation.phase==='approach'?'Район встречи':'Движущийся груз'):
     operation.phase==='return'?'Док · передать данные':'Глушитель'):
    previewProbe?'Область поиска зонда':previewRelay?'Ретранслятор':
-   previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
+   previewCarrier?'Район встречи':previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
+ const carrierPath=operation?.id===CARRIER_INTERCEPTION.id&&operation.route?
+  '<path d="M '+operation.route.map(r=>{
+   const q=point(r.x,r.y,p,scale);return q.x.toFixed(1)+' '+q.y.toFixed(1);
+  }).join(' L ')+'" fill="none" stroke="#e4ad65" opacity=".8" stroke-width="2.4" stroke-dasharray="8 7"/>'+
+  (()=>{const q=point(operation.route[2].x,operation.route[2].y,p,scale);
+   return visible(q)?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+    '" r="13" fill="none" stroke="#ffbd6c" stroke-width="2.6"/>'+
+    '<text x="'+(q.x+18).toFixed(1)+'" y="'+(q.y-12).toFixed(1)+
+    '" fill="#ffdbad" font-size="11">ВЫХОД КОНВОЯ</text>':'';})():'';
  const goal=game.waypoint?point(game.waypoint.x,game.waypoint.y,p,scale):null;
  const route=goal&&visible(goal)?
   '<path d="M 340 240 L '+goal.x.toFixed(1)+' '+goal.y.toFixed(1)+
@@ -154,11 +169,18 @@ export function renderWorldMap(game){
   operation.id===RELAY_DEFENSE.id?
   'Особая операция «Оборона ретранслятора»: '+relayDefenseCue(operation,game.time)+'. Передатчик: '+
    Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. У налётчиков есть прицельный залп: перехватывайте до его завершения.':
+  operation.id===CARRIER_INTERCEPTION.id?(operation.phase==='return'?
+   'Особая операция «Перехват снабжения»: груз остановлен. Вернитесь на авианосец и нажмите E для передачи сведений и получения награды.':
+   operation.phase==='approach'?'Особая операция «Перехват снабжения»: подлетите к району встречи. До обнаружения груза время не ограничено.':
+   'Особая операция «Перехват снабжения»: транспорт '+Math.ceil(operation.hp/operation.maxHp*100)+
+    '% прочности, до линии выхода '+Math.ceil(carrierDistanceRemaining(operation))+
+    ' м. Груз движется к выходу. Стреляйте по нему или сначала уничтожьте сопровождающих.'):
   operation.phase==='return'?'Особая операция «Глухой коридор»: глушитель отключён. Телеметрия сохранена. Вернитесь в домашний док и нажмите E для передачи данных и получения награды.':
    'Особая операция «Глухой коридор»: уничтожьте отмеченный передатчик. Осталось '+Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. Фаза: '+
   (corridorCue(operation,game.time,distance(operation,p))?.label||'неизвестна')+'. После отключения вернитесь в док за наградой.'):
   previewTarget?(previewProbe?'Предварительная разведка: здесь ожидается аварийный зонд. Место пока известно приблизительно.':
    previewRelay?'Предварительный маршрут: ретранслятор арсенала. Отразите три конечные волны.':
+   previewCarrier?'Предварительная разведка: район встречи конвоя. Груз появится после сближения; затем уйдёт к обозначенной границе.':
    'Предварительная разведка: источник помех находится к востоку от дока. Операция ещё не принята.'):
   home.corridorSecured?'Восточный коридор открыт. Разведка возле дока расширена на 350 м, патрулей стало меньше.':'';
  const objectiveText=objective?
@@ -195,7 +217,7 @@ export function renderWorldMap(game){
   '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
   '<circle cx="340" cy="240" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
-  grid.join('')+activeLinks+defenseRing+route+echoes+marks+operationMark+
+  grid.join('')+activeLinks+defenseRing+carrierPath+route+echoes+marks+operationMark+
   '<g><circle cx="340" cy="240" r="13" fill="none" stroke="#8affff"/>'+
   dot(340,240,'#9bf9ff',5)+'</g>'+
   '<text x="351" y="266" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
@@ -204,7 +226,8 @@ export function renderWorldMap(game){
   '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
     ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
   '<aside class="map-side"><div class="map-objective"><span>ОБСТАНОВКА В СЕКТОРЕ</span><p>'+enc(territory)+'</p></div>'+
-  (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+
+  (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
+     operation?.id===CARRIER_INTERCEPTION.id?'ПЕРЕХВАТ КОНВОЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+
    (operation?'<button type="button" data-act="abandonOperation">Отложить операцию</button>':'')+'</div>':'')+
   '<div class="map-objective"><span>ПОЛЕВОЙ ЗАКАЗ</span><p>'+enc(objectiveText)+'</p>'+readyRoute+
   (objective&&objective.progress<objective.goal?'<button type="button" data-act="abandonContract">Отказаться · потерять прогресс</button>':'')+'</div>'+

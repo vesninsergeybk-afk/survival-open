@@ -10,6 +10,7 @@ import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from
 import {SYSTEMS,WORKSTREAMS} from '../studio/systems-data.js';
 import {CORRIDOR_OPERATION,PROBE_OPERATION} from '../operations.js';
 import {RELAY_DEFENSE} from '../relay-defense.js';
+import {CARRIER_INTERCEPTION} from '../carrier-interception.js';
 
 const read=relative=>readFileSync(new URL(relative,import.meta.url),'utf8');
 const exists=relative=>existsSync(new URL(relative,import.meta.url));
@@ -110,7 +111,9 @@ test('current game snapshots are distinct from concepts and reflect verified ope
   assert.ok(baseline.phases.length>=4);
   assert.ok(baseline.phases.every(p=>p.action&&p.world&&p.choice));
  }
- assert.equal(SCENARIO_BASELINES.carrier.phases.length,0,'a planned chase cannot appear as a shipped operation');
+ assert.ok(SCENARIO_BASELINES.carrier.phases.length>=7,'the implemented carrier pursuit must have a current-state storyboard');
+ assert.match(SCENARIO_BASELINES.carrier.reward,new RegExp(String(CARRIER_INTERCEPTION.rewardOre)));
+ assert.match(SCENARIO_BASELINES.carrier.reward,new RegExp(String(CARRIER_INTERCEPTION.rewardData)));
  assert.match(SCENARIO_BASELINES.dock.reward,new RegExp(String(CORRIDOR_OPERATION.rewardOre)));
  assert.match(SCENARIO_BASELINES.dock.reward,new RegExp(String(CORRIDOR_OPERATION.rewardData)));
  assert.match(SCENARIO_BASELINES.lab.reward,new RegExp(String(PROBE_OPERATION.rewardOre)));
@@ -203,7 +206,7 @@ test('one existing workshop hosts playable explosion study without touching comb
   'explosion-scrub','explosion-timeline','explosion-parallel','explosion-quality','explosion-budget','explosion-assets'])
   assert.match(page,new RegExp('id="'+id+'"'),id);
  assert.match(app,/initExplosionLab\(\)/);
- assert.match(page,/studio-carrier-intercept-1/);
+ assert.match(page,/studio-carrier-live-1/);
  assert.match(app,/explosion-lab\.js\?v=explosions-2/);
  assert.match(read('../studio/explosion-lab.js'),/explosion-design\.js\?v=explosions-2/);
  assert.match(style,/\.explosion-timeline/);
@@ -266,7 +269,7 @@ test('workshop roadmap links to real system concepts and sets measurable accepta
  assert.match(css,/\.sys-milestone:focus-visible/);
  assert.match(html,/systems-app\.js\?v=emp-cue-1/);
  const app=read('../studio/app.js');
- assert.match(html,/app\.js\?v=studio-carrier-intercept-1/);
- assert.match(app,/concepts\.js\?v=carrier-intercept-1/);
- assert.match(app,/design-brief\.js\?v=carrier-intercept-1/);
+ assert.match(html,/app\.js\?v=studio-carrier-live-1/);
+ assert.match(app,/concepts\.js\?v=carrier-live-1/);
+ assert.match(app,/design-brief\.js\?v=carrier-live-1/);
 });
