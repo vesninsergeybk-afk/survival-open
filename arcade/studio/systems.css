@@ -95,3 +95,26 @@
 @media(max-width:900px){.sys-roadmap-list{grid-template-columns:repeat(2,minmax(0,1fr))}.sys-roadmap-head{display:block}.sys-roadmap-head p{max-width:none;margin-top:8px}.sys-workbench{grid-template-columns:1fr}.sys-cards{max-height:265px}.sys-sidebar{position:static}.sys-cover-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.sys-roadmap-list{grid-template-columns:1fr}.sys-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.sys-model{gap:5px;padding:9px}.sys-model span{font-size:.58rem}.sys-model b{font-size:.9rem}.sys-comparison,.sys-guardrails,.sys-stage-grid{grid-template-columns:1fr}.sys-box.sys-test{grid-column:span 1}.sys-cover-items{grid-template-columns:1fr}.sys-beats button{min-width:69px}.sys-phasehead{align-items:center}}
 @media(prefers-reduced-motion:reduce){.sys-card,.sys-milestone{transition:none}}
+
+/* Макет предупреждений ЭМ-глушителя: текст и фактическая фаза прежде декора. */
+.sys-emp-lab{margin:20px 0;padding:clamp(13px,2vw,20px);border:1px solid #456875;border-radius:16px;background:linear-gradient(145deg,#142d3d,#0d2133)}
+.sys-emp-heading .sys-emp-eyebrow{font-size:.66rem;letter-spacing:.11em;font-weight:800;color:#9ad9d5}
+.sys-emp-heading h4{margin:6px 0;color:#f3fafc;font-size:1.15rem}
+.sys-emp-heading p{margin:0 0 15px;color:#bad3dc;font-size:.8rem;line-height:1.5}
+.sys-emp-viewport{--emp-color:#9de7f5;position:relative;min-height:192px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:32px 10px 18px;border:1px solid #315268;border-radius:14px;background:radial-gradient(circle at 50% 62%,#263657 0%,#101a32 39%,#081426 78%);color:#d7edf6}
+.sys-emp-viewport:before{content:"";position:absolute;inset:15px 25%;border:1px dashed var(--emp-color);border-radius:50%;opacity:.32}
+.sys-emp-emblem{position:relative;z-index:1;display:grid;place-items:center;width:68px;height:68px;margin-top:49px;flex:none;transform:rotate(30deg);background:#2b1a3e;border:3px solid #ba79e6;box-shadow:0 0 24px #ad5fce43;clip-path:polygon(50% 0,95% 25%,95% 75%,50% 100%,5% 75%,5% 25%)}
+.sys-emp-emblem span{transform:rotate(-30deg);font-weight:900;color:#ebcbf9}
+.sys-emp-overlay{position:absolute;z-index:2;top:9px;left:50%;transform:translateX(-50%);width:min(96%,370px);text-align:center;display:flex;flex-direction:column;gap:2px;padding:9px 12px;border:1px solid var(--emp-color);border-radius:9px;background:#071b2deb;box-shadow:0 6px 18px #0007}
+.sys-emp-overline{color:#9cb5c5;font-size:.58rem;font-weight:800;letter-spacing:.1em}
+.sys-emp-label{color:var(--emp-color);font-size:clamp(.8rem,2.2vw,.95rem);letter-spacing:.02em}
+.sys-emp-hint{color:#e0edf3;font-size:.7rem;line-height:1.35}
+.sys-emp-picker{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.sys-emp-picker button{padding:7px 9px;font-size:.72rem;border:1px solid #486276;border-radius:8px;background:#162e42;color:#d7ebf4}
+.sys-emp-picker button[aria-pressed=true]{border-color:#88dcd7;color:#f5fdfa;background:#24505a}
+.sys-emp-picker button:focus-visible{outline:2px solid #a0e8ee;outline-offset:2px}
+.sys-emp-explanation{margin:0;font-size:.8rem;line-height:1.5;color:#d4e5eb}
+.sys-emp-viewport[data-cue="danger"]{background:radial-gradient(circle at 50% 62%,#53382d 0%,#23182f 47%,#081426 80%)}
+.sys-emp-viewport[data-cue="discharge"]{background:radial-gradient(circle at 50% 62%,#584439 0%,#261f30 47%,#081426 80%)}
+.sys-emp-viewport[data-cue="overheat"] .sys-emp-emblem{border-color:#79e2c3;box-shadow:0 0 22px #72e0af50}
+@media(max-width:640px){.sys-emp-viewport{min-height:208px}.sys-emp-overlay{top:8px}.sys-emp-emblem{margin-top:65px}.sys-emp-picker button{flex:1 1 42%}}

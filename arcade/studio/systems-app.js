@@ -1,4 +1,4 @@
-import {SYSTEMS, ISSUE_REFS, REF_TITLES, PARTIAL_REFS, WORKSTREAMS} from './systems-data.js?v=systems-3';
+import {SYSTEMS, ISSUE_REFS, REF_TITLES, PARTIAL_REFS, WORKSTREAMS, EMP_CUE_FRAMES} from './systems-data.js?v=emp-concept-1';
 
 const $ = id => document.getElementById(id);
 const make = (tag, klass, value) => {
@@ -131,6 +131,50 @@ function formatProposal(item) {
   'Зависимости: ' + item.deps, '', 'Источник: https://github.com/vesninsergeybk-afk/survival-open/issues/1');
  return lines.join('\n');
 }
+function renderEmpPrototype(root) {
+ const section = make('section','sys-emp-lab');
+ section.id='sys-emp-lab';
+ const intro = make('div','sys-emp-heading');
+ intro.append(make('span','sys-emp-eyebrow','ИНТЕРАКТИВНЫЙ МАКЕТ · ПЕРЕД ПРАВКОЙ ИГРЫ'),
+  make('h4','','Как бортовой ИИ объяснит импульс'),
+  make('p','','Переключайте семь проверочных ситуаций. Здесь показаны ожидаемые подписи; их совпадение с игровым кодом проверяется отдельно.'));
+ section.append(intro);
+ const viewport = make('div','sys-emp-viewport');
+ const emblem = make('div','sys-emp-emblem');
+ emblem.setAttribute('aria-hidden','true');
+ emblem.append(make('span','','ЭМ'));
+ const overlay = make('div','sys-emp-overlay');
+ const topline = make('span','sys-emp-overline','БОРТОВОЙ ИИ · ГЛУШИТЕЛЬ');
+ const cueLabel = make('strong','sys-emp-label');
+ const cueHint = make('span','sys-emp-hint');
+ overlay.append(topline,cueLabel,cueHint);
+ viewport.append(emblem,overlay);
+ const buttons=make('div','sys-emp-picker');
+ buttons.setAttribute('role','group');
+ buttons.setAttribute('aria-label','Состояния глушителя');
+ const info=make('p','sys-emp-explanation');
+ info.setAttribute('aria-live','polite');
+ const controls=[];
+ const show = index => {
+  const frame=EMP_CUE_FRAMES[index];
+  viewport.dataset.cue=frame.key;
+  viewport.style.setProperty('--emp-color',frame.color);
+  cueLabel.textContent=frame.label;
+  cueHint.textContent=frame.hint;
+  info.textContent=frame.explanation;
+  controls.forEach((button,i)=>button.setAttribute('aria-pressed',String(index===i)));
+ };
+ EMP_CUE_FRAMES.forEach((frame,i)=>{
+  const button=make('button','',frame.name);
+  button.type='button';
+  button.addEventListener('click',()=>show(i));
+  buttons.append(button);controls.push(button);
+ });
+ section.append(viewport,buttons,info);
+ root.append(section);
+ show(0);
+}
+
 function renderDetail() {
  const item = SYSTEMS.find(entry => entry.id === active);
  if (!item) return;
@@ -149,6 +193,7 @@ function renderDetail() {
  proposed.append(make('span', '', 'ГИПОТЕЗА · НУЖНО ПРОВЕРИТЬ'), make('p', '', item.hypothesis));
  comparison.append(real, proposed);
  root.append(comparison);
+ if (item.id === 'emp') renderEmpPrototype(root);
  renderBeat(item, root);
  const rails = make('div', 'sys-guardrails');
  rails.append(block('ОБЯЗАТЕЛЬНОЕ ПРАВИЛО', item.rule),

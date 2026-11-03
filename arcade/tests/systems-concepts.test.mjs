@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SYSTEMS, ISSUE_REFS, PARTIAL_REFS, REF_TITLES} from '../studio/systems-data.js';
+import {SYSTEMS, ISSUE_REFS, PARTIAL_REFS, REF_TITLES, EMP_CUE_FRAMES} from '../studio/systems-data.js';
 
 test('сохранены все 31 пункта исходного игрового реестра', () => {
  assert.equal(ISSUE_REFS.length, 31);
@@ -40,4 +40,23 @@ test('частичная реализация не получает ложный
  assert.ok(SYSTEMS.find(item => item.id === 'return').refs.includes('А4'));
  assert.ok(SYSTEMS.find(item => item.id === 'storm').refs.includes('Г2'));
  assert.ok(SYSTEMS.find(item => item.id === 'special').refs.includes('Б1'));
+});
+
+test('концепция ЭМ-глушителя описывает все фазы без ложной уязвимости', () => {
+ const emp=SYSTEMS.find(item=>item.id==='emp');
+ assert.ok(emp);
+ assert.equal(emp.beats.length,6);
+ assert.equal(EMP_CUE_FRAMES.length,7);
+ assert.deepEqual([...new Set(EMP_CUE_FRAMES.map(frame=>frame.key))],
+  ['approach','ready','charging','danger','discharge','overheat']);
+ for(const frame of EMP_CUE_FRAMES){
+  assert.ok(frame.label.length>=8);
+  assert.ok(frame.hint.length>=10);
+  assert.ok(frame.explanation.length>=35);
+  assert.ok(/^#[0-9a-f]{6}$/i.test(frame.color));
+  assert.ok(frame.now>=0 && frame.distance>=0);
+  if(frame.key==='ready')assert.doesNotMatch(frame.label,/УЯЗВИМ/);
+  if(frame.key==='discharge')assert.match(frame.label,/ПРОШЁЛ/);
+  if(frame.key==='overheat')assert.match(frame.label,/УЯЗВИМ/);
+ }
 });
