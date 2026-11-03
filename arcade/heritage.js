@@ -1,4 +1,4 @@
-import {WorldVFX} from '../src/world-vfx.js?v=arcade-impact-51';
+import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01';
 import {AudioEngine} from '../src/audio.js?v=audio-fidelity-01';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=audio-fidelity-01';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=audio-fidelity-01';
