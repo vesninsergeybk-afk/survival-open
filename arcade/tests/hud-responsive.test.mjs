@@ -81,6 +81,22 @@ test('HUD reads game state and changes contextual prompts without changing simul
   assert.equal(node('hpmeter')['aria-valuenow'],'28');
   assert.equal(node('hud').classList.contains('is-critical'),true);
   assert.equal(node('burstBtn').disabled,false);
+  // Damage feedback must only respond to real combat hits, with no effect on
+  // health, inventory or flight controls.
+  hud.reducedMotion=false;
+  hud.impact(.05);
+  assert.equal(node('hud').classList.contains('is-hit'),false,'minor hit stays calm');
+  hud.impact(.20);
+  assert.equal(node('hud').classList.contains('is-hit'),true);
+  assert.equal(node('hud').classList.contains('is-hit-heavy'),true);
+  hud.impact(.09,true);
+  assert.equal(node('hud').classList.contains('is-hit-heavy'),false);
+  assert.equal(node('hud').classList.contains('is-hit-shield'),true);
+  hud.reducedMotion=true;
+  hud.impact(.20);
+  assert.equal(node('hud').classList.contains('is-hit-static'),true);
+  assert.equal(node('hud').classList.contains('is-hit'),false);
+
   assert.equal(node('hudThermal').hidden,true,'no fake heat reading before mechanics exist');
   assert.equal(node('hud').classList.contains('thermal-enabled'),false);
   // Hypothetical future model: HUD must opt in and render real values accurately.
