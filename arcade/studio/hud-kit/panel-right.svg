@@ -20,4 +20,20 @@
 <path d="M27 10H78M355 18H415M14 49V82" stroke="#92CED9" stroke-opacity=".24"/>
 <path d="M14 42V49" stroke="#F3BD62" stroke-width="1.65" stroke-opacity=".84"/>
 <path d="M32 133H43M47 133H58M62 133H73" stroke="#6DDAE2" stroke-width="1.4" stroke-opacity=".53"/>
+<!-- Art Pass 06: diagnostic slot engravings and alert fiber. -->
+<g stroke="#9FE6EF" stroke-width=".7" stroke-opacity=".31">
+ <path d="M114 25H139M145 25H169M175 25H194M200 25H222"/>
+ <path d="M119 83V88M133 83V88M147 83V88M161 83V88M175 83V88M189 83V88M203 83V88"/>
+ <path d="M119 115V119M133 115V119M147 115V119M161 115V119M175 115V119M189 115V119"/>
+ <path d="M18 102H93M18 105H43M75 105H93"/>
+</g>
+<g fill="#9DF3FB">
+ <rect x="363" y="11" width="31" height="1.6" opacity=".4"/>
+ <rect x="397" y="11" width="8" height="1.6" opacity=".67"/>
+ <rect x="428" y="39" width="1.4" height="27" opacity=".24"/>
+</g>
+<g fill="#F3C475" opacity=".69">
+ <rect x="12" y="85" width="2.2" height="4"/>
+ <rect x="12" y="91" width="2.2" height="2"/>
+</g>
 </svg>
