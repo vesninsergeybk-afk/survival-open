@@ -104,4 +104,6 @@ test('desktop and touch input share one manual action; repair and mining remain 
  assert.match(html,/id="ionBtn"/);
  assert.match(panel,/action\('loanIon'/);
  assert.match(panel,/action\('returnIon'/);
+ assert.match(panel,/action\('baseTab','Испытать оружие'/);
+ assert.match(game,/Ангар: бесплатный «Ионный проводник»/);
 });
