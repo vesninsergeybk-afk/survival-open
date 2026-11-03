@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {AudioEngine} from '../../src/audio.js';
 import {ArcadeHeritage} from '../heritage.js';
+import {AudioLabEngine} from '../../audio-lab/audio-mixer.js';
+import {SOUND_CATALOG} from '../../audio-lab/sound-map.js';
 
 function fakeParam(value=0){
  return {value,setValueAtTime(v){this.value=v;},
@@ -70,7 +72,7 @@ test('legacy sound mapping separates energy shots, enemy fire and stone',()=>{
  h.play('enemyShot');
  h.play('stone',0,{x:0,y:0});
  h.play('rockBreak',0,{x:0,y:0});
- assert.deepEqual(shots,['whip']);
+ assert.deepEqual(shots,['starter_soft']);
  assert.deepEqual(events,['magic_wand']);
  assert.deepEqual(rocks.map(o=>o.heavy),[false,true]);
 });
@@ -78,4 +80,34 @@ test('game mining loop does not emit a gunshot on each resource tick',()=>{
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(game,/this\.heritage\.extraction\(this\.mining\.active\)/);
  assert.doesNotMatch(game,/kind\s*===\s*['"]extract['"]\s*\)\s*this\.heritage\.play\(['"]laser['"]/);
+});
+
+test('starter pulse has a soft procedural texture even without studio samples',()=>{
+ const cue=SOUND_CATALOG.starter_soft;
+ assert.equal(cue?.profile,'softpulse');
+ assert.equal(cue?.sampleUrl,undefined,'public starter must never fetch missing studio recordings');
+ const synth=new AudioLabEngine(),notes=[];
+ synth.random=()=>0.5;
+ synth.osc=(_,params)=>notes.push({source:'osc',...params});
+ synth.noise=(_,params)=>notes.push({source:'noise',...params});
+ assert.ok(synth.synthesize({},cue.profile,0)>0.1);
+ assert.equal(notes.length,3);
+ assert.ok(notes.filter(n=>n.source==='osc').every(n=>n.type!=='sawtooth'&&n.from<350));
+ assert.ok(notes.filter(n=>n.source==='noise').every(n=>n.filter==='lowpass'&&n.frequency<=1000));
+});
+test('starter auto-fire recedes during continuous volleys and resets after quiet',()=>{
+ const h=new ArcadeHeritage(),shots=[];
+ h.soundOn=true;
+ h.audio={shoot:(key,options)=>shots.push({key,intensity:options.intensity})};
+ for(let i=0;i<6;i++){
+  h.vfx.clock=i*0.36;
+  assert.equal(h.play('laser',0.32),true);
+ }
+ assert.ok(shots.every(s=>s.key==='starter_soft'));
+ assert.equal(shots[0].intensity,1);
+ assert.ok(shots[5].intensity<shots[0].intensity);
+ assert.ok(shots[5].intensity>=0.6,'sustained fire must remain audible');
+ h.vfx.clock=5;
+ h.play('laser',0.32);
+ assert.equal(shots.at(-1).intensity,1,'first shot after quiet has its full presence');
 });

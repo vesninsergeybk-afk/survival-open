@@ -47,10 +47,10 @@
 </head>
 <body>
 <main>
-  <div class="topline">Survivor: Space Frontier / Audio Lab / студийный звук и базы</div>
+  <div class="topline">Survivor: Space Frontier / Audio Lab / звуковые концепции и базы</div>
   <h1>Звук, который чувствуется</h1>
   <p class="lead">Прослушивание индивидуальных звуков вооружения, баз, сопряжения, построек и интерфейса. Управление громкостью групп, ограничение числа одновременных звуков и приглушение музыки при мощных ударах.</p>
-  <div class="notice"><strong>Новый студийный комплект уже в игре.</strong> Здесь можно прослушать 26 студийных боевых эффектов и 29 сигналов баз, сопряжения и развития, а также проверить игровую смесь. Записи отобраны из профессионального пакета <a href="https://gdc.sonniss.com/" target="_blank" rel="noopener noreferrer">Sonniss #GameAudioGDC 2026</a> и обработаны для игры; использование разрешено <a href="https://sonniss.com/gdc-bundle-license/" target="_blank" rel="noopener noreferrer">лицензией</a>. Студийные файлы нельзя распространять как самостоятельную звуковую библиотеку. Новые сигналы баз смонтированы из записей <a href="https://opengameart.org/" target="_blank" rel="noopener noreferrer">OpenGameArt</a> с лицензией CC0.</div>
+  <div class="notice"><strong>Открытая версия использует собственные звуки.</strong> 26 студийных записей Sonniss не распространяются вместе с исходным кодом из-за условий лицензии. Поэтому оружие и часть боевых событий пока звучат через процедурный синтез. Для баз доступны 29 записей CC0. Новый мягкий импульс начального оружия можно прослушать ниже; его звук намеренно рассчитан на частую стрельбу.</div>
 
   <section class="panel" aria-labelledby="mixhead">
     <h2 id="mixhead" style="margin-top:0">Микшер</h2>
@@ -68,7 +68,7 @@
     <p class="status" role="status" aria-live="polite" id="status">Ожидаю включения звука.</p>
   </section>
 
-  <h2>Вооружение <span class="pill">14 типов</span></h2>
+  <h2>Вооружение <span class="pill">15 звуковых вариантов</span></h2>
   <div class="grid" id="weapons"></div>
 
   <h2>Базы, сопряжение и развитие <span class="pill">29 эффектов CC0</span></h2>
@@ -82,11 +82,11 @@
     <p class="small">В самой игре уже используются кинематографические композиции Scott Buckley. В этой лаборатории можно отдельно проверять локальные варианты музыки и плавные переходы — загрузите файлы music_exploration.ogg, music_combat.ogg, music_boss.ogg и другие.</p>
     <div class="states" id="states"></div>
   </div>
-  <p class="small" style="margin-top:32px">Звуковое задание и лицензии: <a href="./README.md">README звуковой лаборатории</a>. Студийный комплект включён в опубликованную версию «Выжившего».</p>
+  <p class="small" style="margin-top:32px">Звуковое задание и лицензии: <a href="./README.md">README звуковой лаборатории</a>. В открытой версии студийные Sonniss-записи исключены; для них доступны синтезированные варианты.</p>
 </main>
 <script type="module">
-  import { WEAPON_SOUNDS, EVENT_SOUNDS, BASE_SOUNDS, BUS_PRESET, MUSIC_STATES } from './sound-map.js?v=audio-91';
-  import { AudioLabEngine } from './audio-mixer.js?v=audio-91';
+  import { WEAPON_SOUNDS, EVENT_SOUNDS, BASE_SOUNDS, BUS_PRESET, MUSIC_STATES } from './sound-map.js?v=starter-soft-66';
+  import { AudioLabEngine } from './audio-mixer.js?v=starter-soft-66';
 
   const engine = new AudioLabEngine();
   const status = document.getElementById('status');
@@ -95,7 +95,7 @@
     if (!samplePreload) {
       samplePreload = Promise.allSettled(
         Object.entries({ ...WEAPON_SOUNDS, ...EVENT_SOUNDS, ...BASE_SOUNDS })
-          .filter(([, sound]) => sound.sampleUrl)
+          .filter(([, sound]) => sound.sampleUrl && !sound.sampleUrl.includes('/sfx/studio/'))
           .map(async ([key, sound]) => {
             const badge = document.querySelector('[data-sample="' + key + '"]');
             try {
@@ -158,7 +158,7 @@
       const loaded = document.createElement('span');
       loaded.className = 'loaded';
       loaded.dataset.sample = key;
-      loaded.textContent = sound.sampleUrl ? 'Загрузка…' : 'Резервный синтез';
+      loaded.textContent = sound.sampleUrl?.includes('/sfx/studio/') ? 'Синтез (открытая версия)' : sound.sampleUrl ? 'Загрузка…' : 'Процедурный звук';
       const play = document.createElement('button');
       play.textContent = '▶ Слушать';
       play.setAttribute('aria-label', 'Прослушать: ' + sound.label);

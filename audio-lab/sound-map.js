@@ -4,11 +4,14 @@
  * Production audio routing shared with the public sound laboratory.
  * Keys match WEAPONS[*].id in ../src/data.js, production on 2026-10-28.
  *
- * The 26 studio cues below are edited from the licensed Sonniss GDC 2026 bundle.
- * See ./assets/sfx/studio/SOURCES.md for source names and usage conditions.
+ * In the public repository, 26 Sonniss studio sample files are intentionally
+ * absent due to redistribution restrictions. Their profiles use procedural
+ * fallback; the new starter_soft is designed expressly for that fallback.
+ * See ./assets/sfx/studio/SOURCES.md for original source references.
  */
 export const WEAPON_SOUNDS = {
   starter_pulse: { label: 'Учебный импульс', profile: 'pulse', family: 'energy', gain: 0.34, priority: 3, minIntervalMs: 95, sampleUrl: './assets/sfx/studio/starter_pulse.ogg', note: 'Короткий упругий щелчок и мягкий электрический хвост.' },
+  starter_soft: { label: 'Мягкий плазменный импульс', profile: 'softpulse', family: 'energy', gain: 0.36, priority: 2, minIntervalMs: 170, note: 'Тихий, округлый импульс для частой автоматической стрельбы; три близких варианта, без резкой атаки.' },
   whip: { label: 'Плазменная дуга', profile: 'arc', family: 'energy', gain: 0.46, priority: 3, minIntervalMs: 160, sampleUrl: './assets/sfx/studio/whip.ogg', note: 'Широкий дуговой хлест с сухим верхним щелчком.' },
   magic_wand: { label: 'Ионная пушка', profile: 'ion', family: 'energy', gain: 0.40, priority: 3, minIntervalMs: 100, sampleUrl: './assets/sfx/studio/magic_wand.ogg', note: 'Заряженный электрический сгусток, нисходящий тон.' },
   knife: { label: 'Ракетный залп', profile: 'rocket', family: 'ballistic', gain: 0.53, priority: 4, minIntervalMs: 150, sampleUrl: './assets/sfx/studio/knife.ogg', note: 'Пуск и короткий реактивный выхлоп; не дублировать звук на каждую ракету залпа.' },
