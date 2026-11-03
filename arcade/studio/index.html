@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a1524">
+<meta name="robots" content="noindex, nofollow">
+<title>Мастерская концепций · Выживший</title>
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./app.js"></script>
+</head>
+<body>
+<header class="topbar">
+ <div class="brand"><span class="brandmark" aria-hidden="true">◇</span><span>ВЫЖИВШИЙ <small>Мастерская концепций</small></span></div>
+ <nav class="toplinks" aria-label="Переходы">
+  <a href="../">Играть</a>
+  <a href="../../asset-gallery.html">Каталог графики</a>
+  <a href="../repair-dock-preview.html">Док</a>
+  <a href="../capital-preview.html">Корабли</a>
+ </nav>
+</header>
+<main>
+ <section class="intro">
+  <div class="eyebrow"><span class="led"></span> ПРОЕКТНАЯ СРЕДА · БЕЗ ВЛИЯНИЯ НА ИГРУ</div>
+  <h1>Сначала проверяем идею. <span>Потом переносим в игру.</span></h1>
+  <p>Единая мастерская для сценариев заданий, зрительной и звуковой обратной связи. Здесь видно, <strong>что делает игрок, как отвечает мир и по каким признакам мы оцениваем результат</strong>. Показанные сцены — эскизы, а не запись игрового процесса.</p>
+  <div class="facts"><span>4 сценария баз</span><span>5 сигналов и 6 сравнений A/B</span><span>4 направления разработки</span><span>Без изменения баланса</span></div>
+ </section>
+ <nav class="tabs" aria-label="Разделы мастерской">
+  <button type="button" data-tab="scenario" aria-pressed="true">Сценарии заданий</button>
+  <button type="button" data-tab="effects" aria-pressed="false">VFX · эффекты</button>
+  <button type="button" data-tab="concepts" aria-pressed="false">Концепты и критерии</button>
+  <button type="button" data-tab="tools" aria-pressed="false">Стенды ресурсов</button>
+ </nav>
+ <section id="panel-scenario" class="tab-panel" aria-labelledby="scenario-title">
+  <div class="section-head">
+   <div><span class="eyebrow">GAME DESIGN / МИССИИ</span><h2 id="scenario-title">Развитие игровых ситуаций</h2></div>
+   <p>Одна основная цель, несколько событий, решение игрока и видимый итог. Это интерактивная раскадровка, не игровая симуляция.</p>
+  </div>
+  <div class="scenario-picker" id="scenario-picker" aria-label="Выберите базу"></div>
+  <div class="layout">
+   <div class="viewer">
+    <div class="viewer-header"><span id="scenario-status">ЭСКИЗ</span><strong id="scenario-name">Загружаем сценарий…</strong><span id="scenario-time"></span></div>
+    <canvas id="scenario-canvas" width="800" height="358" role="img" aria-label="Условная карта миссии: станция, корабль, цели и противники"></canvas>
+    <div class="viewer-foot"><span id="scenario-step">Сцена 1 из 5</span><div class="step-controls"><button type="button" id="scenario-reset" class="secondary">С начала</button><button type="button" id="scenario-next" class="primary">Следующее событие <span aria-hidden="true">→</span></button></div></div>
+   </div>
+   <aside class="inspector">
+    <div class="mini-label">СЕЙЧАС В СЦЕНАРИИ</div>
+    <h3 id="phase-title"></h3>
+    <p id="phase-action"></p>
+    <div class="detail-block"><span>МИР ОТВЕЧАЕТ</span><p id="phase-world"></p></div>
+    <div class="detail-block decision"><span>РЕШЕНИЕ ИГРОКА</span><p id="phase-choice"></p></div>
+    <div class="detail-block reward"><span>РЕЗУЛЬТАТ ОПЕРАЦИИ</span><p id="scenario-reward"></p></div>
+   </aside>
+  </div>
+  <ol id="scenario-steps" class="steps" aria-label="Этапы операции"></ol>
+  <p class="disclaimer"><strong>Важно:</strong> расположение объектов, скорость и сложность схематичны. Проверять длительность, управление, награды и поведение врагов нужно в самой игре.</p>
+ </section>
+ <section id="panel-effects" class="tab-panel" hidden aria-labelledby="effects-title">
+  <div class="section-head">
+   <div><span class="eyebrow">VFX / SFX / FEEDBACK</span><h2 id="effects-title">От причины к понятному эффекту</h2></div>
+   <p>Сравниваем сигнал на крупном и игровом масштабе. Каждая вспышка должна соответствовать настоящему событию, а звук — распознаваемому действию.</p>
+  </div>
+  <div class="effect-picker" id="effect-picker" aria-label="Выбор эффекта"></div>
+  <div class="layout">
+   <div class="viewer">
+    <div class="viewer-header"><span>КОНЦЕПТ, НЕ ПРОДАКШН</span><strong id="effect-name">Удар по корпусу</strong><span>Canvas / 2D</span></div>
+    <canvas id="effect-canvas" width="800" height="358" role="img" aria-label="Динамический эскиз выбранного визуального эффекта"></canvas>
+    <div class="viewer-foot"><label class="range">Интенсивность <input id="effect-power" type="range" min="1" max="5" step="1" value="3"><output id="power-label">3 / 5</output></label><div class="step-controls"><button type="button" id="effect-pause" class="secondary">Пауза</button><button type="button" id="effect-replay" class="primary">Повторить</button></div></div>
+   </div>
+   <aside class="inspector">
+    <div class="mini-label">ПРОВЕРКА ПРИ ИГРОВОМ РАЗМЕРЕ</div>
+    <canvas id="effect-small" width="240" height="150" role="img" aria-label="Тот же эффект на маленьком размере"></canvas>
+    <h3 id="effect-intent"></h3>
+    <div class="detail-block"><span>КОГДА ВОЗНИКАЕТ</span><p id="effect-trigger"></p></div>
+    <div class="detail-block"><span>КАК ДОЛЖЕН ЗВУЧАТЬ</span><p id="effect-sound"></p></div>
+    <div class="detail-block"><span>ОГРАНИЧЕНИЕ</span><p id="effect-rules"></p></div>
+    <div class="detail-block decision"><span>ПРОВЕРКА</span><p id="effect-test"></p></div>
+   </aside>
+  </div>
+  <p class="disclaimer">Звуки здесь описаны словами, но не воспроизводятся: это отдельная задача звукового стенда. Эффекты показаны упрощённо и не подменяют реальные столкновения, урон, ИИ и анимации игры. При системном ограничении движения анимация сокращается.</p>
+  <section class="comparison-section" aria-labelledby="comparison-title">
+   <div class="section-head comparison-heading">
+    <div><span class="eyebrow">VFX / A–B / РЕАЛЬНЫЕ АССЕТЫ</span><h3 id="comparison-title">Сравнение двух визуальных решений</h3></div>
+    <p>Отдельные гипотезы для добычи, щита, корпуса, ракет, крупных кораблей и орбитальной атаки. Оба варианта экспериментальные; утверждённым считается только результат проверки в игре.</p>
+   </div>
+   <iframe id="vfx-compare-frame" title="Сравнение визуальных эффектов на изображениях игры" src="../../visual-lab/?embed=1" loading="lazy"></iframe>
+   <p class="disclaimer">Здесь показывается специализированный стенд внутри общей мастерской. Прежний адрес лаборатории теперь ведёт в этот раздел; отдельного второго каталога концепций больше нет.</p>
+  </section>
+ </section>
+ <section id="panel-concepts" class="tab-panel" hidden aria-labelledby="concepts-title">
+  <div class="section-head">
+   <div><span class="eyebrow">КОНТРАКТ КАЧЕСТВА</span><h2 id="concepts-title">Четыре согласованных направления</h2></div>
+   <p>Для каждого решения фиксируем цель, наблюдаемое поведение, критерий готовности и ближайшую проверку. Изменение визуала само по себе не считается улучшением геймплея.</p>
+  </div>
+  <div class="concept-grid" id="concept-grid"></div>
+  <div class="notes-panel">
+   <div><h3>Заметки к следующей итерации</h3><p>Можно дописать свои идеи. Они сохраняются только в этом браузере, не изменяют GitHub и не попадают в игру автоматически.</p></div>
+   <label for="concept-notes">Что нужно проверить или переработать</label>
+   <textarea id="concept-notes" rows="5" placeholder="Например: сигнал обнаружения должен быть заметен по поведению патруля даже без надписи…"></textarea>
+   <div class="step-controls"><button type="button" id="copy-notes" class="primary">Скопировать концепцию и заметки</button><button type="button" id="clear-notes" class="secondary">Очистить заметки</button><span id="notes-status" role="status" aria-live="polite"></span></div>
+  </div>
+ </section>
+ <section id="panel-tools" class="tab-panel" hidden aria-labelledby="tools-title">
+  <div class="section-head"><div><span class="eyebrow">ГОТОВЫЕ ИНСТРУМЕНТЫ</span><h2 id="tools-title">Стенды, которые уже есть</h2></div><p>Сохраняем прежние проверки и не переделываем их заново. Новая мастерская связывает результаты, а специальные стенды остаются самостоятельными.</p></div>
+  <div class="tools-grid">
+   <a class="tool-card" href="../../asset-gallery.html"><span>ГРАФИКА</span><strong>Каталог игровых изображений</strong><p>Выделение кадров атласа, проверка цельных объектов и исходного разрешения.</p><em>Открыть стенд →</em></a>
+   <a class="tool-card" href="../repair-dock-preview.html"><span>БАЗЫ</span><strong>Ремонтный док</strong><p>Силуэт, состояние станции, захваты, свет, анимация ремонта.</p><em>Открыть стенд →</em></a>
+   <a class="tool-card" href="../station-silhouette-board.html"><span>СИЛУЭТЫ</span><strong>Четыре типа баз</strong><p>Узнаваемость корпуса без цвета, надписей и специальных эффектов.</p><em>Открыть стенд →</em></a>
+   <a class="tool-card" href="../capital-preview.html"><span>ПОВРЕЖДЕНИЯ</span><strong>Крупные корабли</strong><p>Картинка, удаление фона и износ корпуса при игровом масштабе.</p><em>Открыть стенд →</em></a>
+   <a class="tool-card" href="https://github.com/vesninsergeybk-afk/survival-open/tree/main/audio-lab"><span>SFX · ИСХОДНИКИ</span><strong>Звуковая лаборатория</strong><p>Набор звуковых ресурсов и сценариев проверки. Не все файлы должны публиковаться отдельно из-за лицензий.</p><em>Просмотреть исходники →</em></a>
+   <a class="tool-card" href="https://github.com/vesninsergeybk-afk/survival-open/blob/main/arcade/VFX-ROADMAP-2026-11-03.md"><span>ДОКУМЕНТ</span><strong>План визуальных эффектов</strong><p>Приоритеты частиц, обратная связь, нагрузка, честная связь эффекта и урона.</p><em>Читать документ →</em></a>
+  </div>
+ </section>
+</main>
+<footer><span>«Выживший» · испытательная среда. Внешний вид и цифры в мастерской не задают реальные параметры игры.</span><a href="../">Вернуться в аркаду</a></footer>
+</body>
+</html>

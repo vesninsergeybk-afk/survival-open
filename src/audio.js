@@ -1,5 +1,5 @@
-import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=audio-91';
-import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=audio-91';
+import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=starter-soft-66';
+import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=starter-soft-66';
 import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
 
 /**
@@ -81,7 +81,7 @@ export class AudioEngine {
                 if (this._samplesPromise) return;
                 const root = new URL('../audio-lab/', import.meta.url);
                 this._samplesPromise = Promise.allSettled(Object.entries(SOUND_CATALOG)
-                    .filter(([, def]) => def.sampleUrl)
+                    .filter(([, def]) => def.sampleUrl && !def.sampleUrl.includes('/sfx/studio/'))
                     .map(([key, def]) => this.sfxLab.loadSampleFromUrl(key, new URL(def.sampleUrl, root).href)));
             }).catch(err => console.warn('[audio] sample bank unavailable', err));
         }
@@ -301,14 +301,17 @@ export class AudioEngine {
         this.tone({ noise: true, noiseBand: 690, dur: 0.065,
             volume: 0.085, attack: 0.005, release: 0.09 });
     }
-    shoot(weaponId = 'starter_pulse') {
+    shoot(weaponId = 'starter_pulse', options = {}) {
         if (this.sfxLab?.master) {
-            this.sfxLab.play(weaponId);
-            return;
+            return this.sfxLab.play(weaponId, options);
         }
-        this.tone({ noise: true, noiseBand: 1050, dur: 0.075,
-            volume: 0.085, attack: 0.005, release: 0.09 });
-        this.tone({ freq: 160, dur: 0.1, type: 'triangle', volume: 0.035, sweep: -38 });
+        // While the mixer unlocks, even the temporary cue stays unobtrusive.
+        const intensity = Math.max(0.2, Math.min(1, options.intensity ?? 1));
+        this.tone({ noise: true, noiseBand: 720, dur: 0.085,
+            volume: 0.034 * intensity, attack: 0.018, release: 0.10 });
+        this.tone({ freq: 150, dur: 0.13, type: 'sine',
+            volume: 0.028 * intensity, attack: 0.020, release: 0.09, sweep: -22 });
+        return true;
     }
     explosion(size = 'big') {
         if (this.sfxLab?.master) {

@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - migration/production-20261103
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:

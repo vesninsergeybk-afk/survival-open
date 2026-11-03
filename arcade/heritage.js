@@ -1,5 +1,5 @@
 import {WorldVFX} from '../src/world-vfx.js?v=arcade-impact-51';
-import {AudioEngine} from '../src/audio.js?v=arcade-sound-material-53';
+import {AudioEngine} from '../src/audio.js?v=starter-soft-66';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=arcade-audio-41';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=arcade-sound-material-53';
 
@@ -7,7 +7,7 @@ const STORAGE_KEY='survivor_arcade_audio_v2';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const LEVELS={dock:83,carrier:69,arsenal:96,lab:113,outpost:125};
 const SOUND_IDS=Object.freeze({
- laser:'whip',rocket:'knife',enemyShot:'magic_wand',
+ laser:'starter_soft',rocket:'knife',enemyShot:'magic_wand',
  hit:'hit',
  explosion:'explosion_small',largeExplosion:'explosion_big',
  pickup:'pickup',levelUp:'level_up',damage:'player_damage',
@@ -32,6 +32,7 @@ export class ArcadeHeritage {
   this.settings={...storedVolumes(),musicEnabled:false,muted:true};
   this.audio=new AudioEngine(this.settings);
   this.soundOn=false;this.lastSound=Object.create(null);
+  this.autoFireRun=0;this.lastAutoShotAt=-Infinity;
   this.musicCheck=0;this.musicElapsed=0;this.music=new AdaptiveMusicDirector();
   this.listener=null;this.viewWidth=960;this.sceneVolume=1;
   this.modal=null;this.hidden=false;this.dead=false;this.sequence=0;
@@ -55,6 +56,7 @@ export class ArcadeHeritage {
  toggleSound(){
   if(this.soundOn){
    this.audio.setExtractionActive?.(false);
+   this.autoFireRun=0;this.lastAutoShotAt=-Infinity;
    this.soundOn=false;this.sequence++;this.audio.stopMusic();
    this.settings.musicEnabled=false;this.audio.setMuted(true);return false;
   }
@@ -77,9 +79,17 @@ export class ArcadeHeritage {
    return !!this.audio.rockImpact?.({heavy:kind==='rockBreak',...options});
   }
   if(kind==='droneDestroyed')options.intensity=(options.intensity??1)*.67;
-  // Weapons use the same licensed, sample-backed bank as the sound laboratory.
+  if(kind==='laser'){
+   // The first shot after quiet is distinct. During sustained auto-fire,
+   // successive pulses become quieter without suppressing visual gunfire.
+   const gap=now-this.lastAutoShotAt;
+   this.autoFireRun=gap<1.1?Math.min(6,this.autoFireRun+1):0;
+   this.lastAutoShotAt=now;
+   options.intensity=(options.intensity??1)*(1-this.autoFireRun*.065);
+  }
+  // The mixer accepts either licensed samples or purpose-built soft synthesis.
   if((kind==='laser'||kind==='rocket')&&!position){
-   this.audio.shoot(key);
+   this.audio.shoot(key,options);
   }else this.audio.playEvent(key,options);
   return true;
  }
@@ -159,6 +169,7 @@ export class ArcadeHeritage {
  }
  pause(kind){
   this.audio.setExtractionActive?.(false);
+  this.autoFireRun=0;this.lastAutoShotAt=-Infinity;
   this.modal=kind;
   this.sceneVolume=kind==='base'?.45:.37;
   this.syncVolume();
