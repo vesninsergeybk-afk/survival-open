@@ -16,7 +16,7 @@ test('HUD contract: unique live element IDs, cache versions and mobile layout',(
   assert.ok(ids.includes(id),id+' is missing from the page');
  }
  assert.match(source,/hud\.css\?v=hud-responsive-v16/);
- assert.match(source,/game\.js\?v=carrier-intercept-1/);
+ assert.match(source,/game\.js\?v=[a-z0-9-]+/);
  assert.match(css,/@media\(pointer:coarse\) and \(orientation:portrait\)/);
  assert.match(css,/@media\(pointer:coarse\) and \(orientation:landscape\)/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);

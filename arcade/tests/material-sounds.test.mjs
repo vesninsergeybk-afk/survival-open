@@ -20,7 +20,7 @@ function fakeContext(){
  return {currentTime:2,sampleRate:100,starts,stops,nodes,
   createGain(){return make('gain',{gain:fakeParam()});},
   createBiquadFilter(){return make('filter',{frequency:fakeParam(),Q:fakeParam()});},
-  createBufferSource(){return make('bufferSource',{loop:false});},
+  createBufferSource(){return make('bufferSource',{loop:false,playbackRate:{value:1}});},
   createOscillator(){return make('oscillator',{frequency:fakeParam()});},
   createStereoPanner(){return make('panner',{pan:fakeParam()});},
   createBuffer(channels,length){return {getChannelData:()=>new Float32Array(length)};}
