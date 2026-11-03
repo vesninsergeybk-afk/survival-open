@@ -24,6 +24,11 @@ const names=new Set(source.files.map(entry=>{
  return entry.file;
 }));
 assert.equal(names.size,source.files.length,'Source files cannot be duplicated');
+const referenced=new Set(Object.values(SOUND_CATALOG).flatMap(def=>
+ (def.sampleUrls?.length?def.sampleUrls:def.sampleUrl?[def.sampleUrl]:[])
+ .filter(url=>url.includes('/kenney/')).map(url=>url.split('/').at(-1))));
+assert.deepEqual([...referenced].sort(),[...names].sort(),
+ 'Every downloaded CC0 recording should actually be used by an audible event');
 
 let local=0,remote=0;
 for(const [id,def] of Object.entries(SOUND_CATALOG)){
