@@ -4,6 +4,9 @@ import {readFileSync,existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {SCENARIOS,EFFECTS,CONCEPTS} from '../studio/concepts.js';
+import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from '../studio/design-brief.js';
+import {CORRIDOR_OPERATION,PROBE_OPERATION} from '../operations.js';
+import {RELAY_DEFENSE} from '../relay-defense.js';
 
 const read=relative=>readFileSync(new URL(relative,import.meta.url),'utf8');
 const exists=relative=>existsSync(new URL(relative,import.meta.url));
@@ -52,7 +55,7 @@ test('studio page includes its real controls and accessible panels',()=>{
   'effect-pause','effect-replay','concept-grid','concept-notes','copy-notes','notes-status']){
   assert.match(html,new RegExp('id="'+id+'"'),'missing '+id);
  }
- for(const name of ['scenario','effects','concepts','tools']){
+ for(const name of ['scenario','loop','effects','concepts','tools']){
   assert.match(html,new RegExp('id="panel-'+name+'"'));
   assert.match(html,new RegExp('data-tab="'+name+'"'));
  }
@@ -63,7 +66,7 @@ test('studio page includes its real controls and accessible panels',()=>{
 });
 
 test('studio scripts are valid JavaScript and old published preview assets remain intact',()=>{
- for(const file of ['../studio/app.js','../studio/concepts.js']){
+ for(const file of ['../studio/app.js','../studio/concepts.js','../studio/design-brief.js']){
   execFileSync(process.execPath,['--check',fileURLToPath(new URL(file,import.meta.url))],{stdio:'pipe'});
  }
  for(const file of ['../repair-dock-preview.html','../capital-preview.html','../station-silhouette-board.html','../../asset-gallery.html'])
@@ -94,4 +97,48 @@ test('one concept workshop embeds detailed VFX comparison while preserving old U
  assert.match(legacy,/Добыча руды лучом/);
  assert.match(legacy,/Гибель крупного корабля/);
  assert.ok(exists('../../visual-lab/README.md'));
+});
+
+test('current game snapshots are distinct from concepts and reflect verified operation rewards',()=>{
+ assert.deepEqual(Object.keys(SCENARIO_BASELINES).sort(),Object.keys(SCENARIOS).sort());
+ for(const id of ['dock','lab','arsenal']){
+  const baseline=SCENARIO_BASELINES[id];
+  assert.ok(baseline.source&&baseline.reward&&baseline.gap);
+  assert.ok(baseline.phases.length>=4);
+  assert.ok(baseline.phases.every(p=>p.action&&p.world&&p.choice));
+ }
+ assert.equal(SCENARIO_BASELINES.carrier.phases.length,0,'a planned chase cannot appear as a shipped operation');
+ assert.match(SCENARIO_BASELINES.dock.reward,new RegExp(String(CORRIDOR_OPERATION.rewardOre)));
+ assert.match(SCENARIO_BASELINES.dock.reward,new RegExp(String(CORRIDOR_OPERATION.rewardData)));
+ assert.match(SCENARIO_BASELINES.lab.reward,new RegExp(String(PROBE_OPERATION.rewardOre)));
+ assert.match(SCENARIO_BASELINES.lab.reward,new RegExp(String(PROBE_OPERATION.rewardData)));
+ assert.match(SCENARIO_BASELINES.arsenal.reward,new RegExp(String(RELAY_DEFENSE.rewardOre)));
+ assert.match(SCENARIO_BASELINES.arsenal.reward,new RegExp(String(RELAY_DEFENSE.rewardData)));
+ assert.equal(RELAY_DEFENSE.waves.length,3);
+ assert.equal(RELAY_DEFENSE.preparation,8);
+ assert.equal(RELAY_DEFENSE.intermission,6);
+ assert.match(SCENARIO_BASELINES.arsenal.gap,/чертежа оружия/);
+});
+
+test('one workshop has explicit proposal/baseline comparison, tactical experiments and local QA',()=>{
+ const html=read('../studio/index.html'),script=read('../studio/app.js');
+ for(const id of ['scenario-gap','scenario-source','scenario-experiment','experiment-picker',
+  'experiment-result','experiment-risk','panel-loop','base-roles','design-checks','checks-count','clear-checks'])
+  assert.match(html,new RegExp('id="'+id+'"'),'missing '+id);
+ assert.match(html,/data-scenario-mode="current"/);
+ assert.match(html,/data-scenario-mode="proposal"/);
+ assert.match(script,/function scenarioPhases\(/);
+ assert.match(script,/function initBrief\(/);
+ assert.match(script,/survivor-studio-playtest-v1/);
+ assert.equal(BASE_ROLES.length,4);
+ assert.equal(new Set(PLAYTEST_CHECKS.map(c=>c.id)).size,PLAYTEST_CHECKS.length);
+ assert.ok(PLAYTEST_CHECKS.length>=8);
+ for(const [id,phases] of Object.entries(TACTICAL_EXPERIMENTS)){
+  assert.ok(SCENARIOS[id],id);
+  for(const [phaseId,choices] of Object.entries(phases)){
+   assert.ok(SCENARIOS[id].phases.some(p=>p.id===phaseId),id+' / '+phaseId);
+   assert.equal(choices.length,2);
+   assert.ok(choices.every(c=>c.name&&c.result&&c.risk));
+  }
+ }
 });
