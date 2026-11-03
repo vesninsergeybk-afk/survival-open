@@ -4,6 +4,7 @@ import {readFileSync,existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {SCENARIOS,EFFECTS,CONCEPTS} from '../studio/concepts.js';
+import {VISUAL_AUDIT,VISUAL_STATUS} from '../studio/visual-audit.js';
 import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from '../studio/design-brief.js';
 import {CORRIDOR_OPERATION,PROBE_OPERATION} from '../operations.js';
 import {RELAY_DEFENSE} from '../relay-defense.js';
@@ -141,4 +142,36 @@ test('one workshop has explicit proposal/baseline comparison, tactical experimen
    assert.ok(choices.every(c=>c.name&&c.result&&c.risk));
   }
  }
+});
+
+test('visual revision reports implementation separately from artistic approval',()=>{
+ assert.ok(VISUAL_AUDIT.length>=12);
+ assert.equal(new Set(VISUAL_AUDIT.map(e=>e.id)).size,VISUAL_AUDIT.length);
+ assert.deepEqual(Object.keys(VISUAL_STATUS).sort(),['game','gap','partial','trial']);
+ for(const entry of VISUAL_AUDIT){
+  assert.ok(VISUAL_STATUS[entry.status],entry.id+': unknown state');
+  assert.ok(Number.isInteger(entry.priority)&&entry.priority>=0&&entry.priority<=2);
+  for(const field of ['title','fact','limit','next','criterion','source'])
+   assert.ok(entry[field]?.trim(),entry.id+': '+field);
+  assert.ok(exists('../../'+entry.source),entry.id+': source not found '+entry.source);
+ }
+ assert.equal(VISUAL_AUDIT.find(e=>e.id==='capital-wear').status,'trial');
+ assert.equal(VISUAL_AUDIT.find(e=>e.id==='scene-light').status,'gap');
+ const html=read('../studio/index.html'),js=read('../studio/app.js');
+ for(const id of ['audit-title','audit-summary','audit-filters','audit-list'])
+  assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(js,/initVisualAudit\(\)/);
+ assert.match(js,/visualAudit:VISUAL_AUDIT/);
+ execFileSync(process.execPath,['--check',fileURLToPath(new URL('../studio/visual-audit.js',import.meta.url))]);
+});
+
+test('the embedded A/B comparison uses working images and crops the asteroid atlas',()=>{
+ const html=read('../../visual-lab/index.html');
+ assert.match(html,/rock:'\.\.\/assets\/space\/asteroid-ore\.png'/);
+ assert.match(html,/capital:'\.\.\/assets\/space\/boss-capital-cruiser\.png'/);
+ assert.match(html,/function prepareRockTile\(/);
+ assert.match(html,/id="asset-status"/);
+ assert.doesNotMatch(html,/boss-capital-cruiser\.webp/);
+ for(const path of ['../../assets/space/asteroid-ore.png','../../assets/space/boss-capital-cruiser.png'])
+  assert.ok(exists(path),path+' missing');
 });

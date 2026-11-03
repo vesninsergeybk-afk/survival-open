@@ -42,7 +42,7 @@ button.active{font-weight:700}
 .preview .heading span{font-size:.72rem;color:#9bc6d5}
 canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#050f1b}
 .preview p{font-size:.82rem;line-height:1.45;color:#bbd1dd;margin:12px 13px 15px;min-height:40px}
-.fineprint{color:#96adc3;font-size:.79rem;line-height:1.55;margin:13px 0 0}
+.fineprint{color:#96adc3;font-size:.79rem;line-height:1.55;margin:13px 0 0}.asset-status:not(:empty){color:#f2d4a6}
 .setting{display:grid;gap:8px;margin:13px 0 20px;font-size:.88rem}
 .setting label{color:#c6d6e6}
 .setting input[type=range]{accent-color:#71e0de;width:100%}
@@ -104,6 +104,7 @@ footer{font-size:.82rem;color:#8ea7ba}
         </article>
       </div>
       <p class="fineprint">Сравнение синхронное. Корабли, астероид и туманность загружаются из ресурсов открытого репозитория. Мелкие искры, дуги и ударные волны здесь построены процедурно и ещё не являются готовыми игровыми ассетами.</p>
+      <p id="asset-status" class="fineprint asset-status" role="status"></p>
     </section>
     <aside class="panel side" aria-label="Настройка и критерии">
       <h2>Настройки опыта</h2>
@@ -133,18 +134,70 @@ const specs = {
  capital:{intro:'Большой корабль имеет массу: разрушается несколькими разнесёнными событиями.',a:'Весь корпус одновременно исчезает в центральной вспышке.',b:'Первый разрыв и два вторичных очага в разных секциях; крупные обломки остаются различимыми.',criteria:['Разрывы разнесены по месту и времени.','Уцелевший корпус читается до финала.','Следы похожи на разрывы, не на круглые пятна.']},
  orbital:{intro:'При орбитальном ударе предупреждение важнее зрелищности взрыва.',a:'Ранний слабый намёк и большая вспышка при ударе.',b:'Чёткая граница опасной области до удара, обратный отсчёт и короткая ударная волна.',criteria:['Границу опасности видно заранее.','Радиус предупреждения не меняется из-за детализации.','После удара сохраняется видимость следующей угрозы.']}
 };
-const imageMap={hero:'../assets/space/hero-evolution/ship_04.webp',enemy:'../assets/space/enemy_fighter.png',rock:'../assets/space/asteroid-realistic.webp',capital:'../assets/space/boss-capital-cruiser.webp',nebula:'../assets/space/nebula_azure_v1.png'};
-const images={};
-Object.entries(imageMap).forEach(([k,url])=>{const im=new Image();im.src=url;images[k]=im;});
+const imageMap={hero:'../assets/space/hero-evolution/ship_04.webp',enemy:'../assets/space/enemy_fighter.png',rock:'../assets/space/asteroid-ore.png',capital:'../assets/space/boss-capital-cruiser.png',nebula:'../assets/space/nebula_azure_v1.png'};
+const images={},missingAssets=new Set();
+let preparedRock=null,rockAttempted=false;
+function reportAssets(){
+ const state=$('asset-status');if(!state)return;
+ if(missingAssets.size)state.textContent='Не загрузились изображения: '+[...missingAssets].join(', ')+'. Для этих объектов показаны заглушки — сравнение нельзя считать проверенным.';
+ else state.textContent='';
+}
+Object.entries(imageMap).forEach(([k,url])=>{
+ const im=new Image();images[k]=im;
+ im.onload=reportAssets;
+ im.onerror=()=>{missingAssets.add(k);reportAssets();};
+ im.src=url;
+});
 let choice='mining', t=0, last=0, paused=false;
 const color={cyan:'#80e9ff',metal:'#ffb774',rock:'#c1b0a2',warning:'#ffd082'};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const smooth=(x)=>{x=clamp(x,0,1);return x*x*(3-2*x);};
 const count=()=>Math.max(1,Number($('density').value));
 const motion=()=>!$('reduce').checked;
+/** Crop one tile from the same 6×5 ore atlas used by the arcade. Its flat
+ * backing is removed from the frame edges, once, before the animation loop. */
+function prepareRockTile(image){
+ const width=Math.floor(image.naturalWidth/6),height=Math.floor(image.naturalHeight/5);
+ if(width<8||height<8)return null;
+ try{
+  const tile=document.createElement('canvas');tile.width=width;tile.height=height;
+  const tctx=tile.getContext('2d',{willReadFrequently:true});
+  tctx.drawImage(image,width,0,width,height,0,0,width,height);
+  const raw=tctx.getImageData(0,0,width,height),px=raw.data;
+  const bg=[px[0],px[1],px[2]],seen=new Uint8Array(width*height),queue=new Int32Array(width*height);
+  let head=0,tail=0;
+  const add=i=>{
+   if(i<0||i>=seen.length||seen[i])return;
+   const p=i*4;
+   if(px[p+3]<20||(Math.abs(px[p]-bg[0])<32&&Math.abs(px[p+1]-bg[1])<32&&Math.abs(px[p+2]-bg[2])<32)){
+    seen[i]=1;queue[tail++]=i;
+   }
+  };
+  for(let x=0;x<width;x++){add(x);add((height-1)*width+x);}
+  for(let y=1;y<height-1;y++){add(y*width);add(y*width+width-1);}
+  while(head<tail){
+   const i=queue[head++],x=i%width,y=(i/width)|0;
+   if(x>0)add(i-1);if(x<width-1)add(i+1);
+   if(y>0)add(i-width);if(y<height-1)add(i+width);
+  }
+  let solid=0;
+  for(let i=0;i<seen.length;i++){
+   if(seen[i])px[i*4+3]=0;
+   else if(px[i*4+3]>=96)solid++;
+  }
+  if(solid<width*height*.025)return null;
+  tctx.putImageData(raw,0,0);return tile;
+ }catch{return null;}
+}
 function sprite(ctx,key,x,y,w,h,angle=0){
  ctx.save();ctx.translate(x,y);ctx.rotate(angle);
- const im=images[key];if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,-w/2,-h/2,w,h);
+ const im=images[key];
+ if(key==='rock'&&im?.complete&&im.naturalWidth&&!rockAttempted){
+  rockAttempted=true;preparedRock=prepareRockTile(im);
+  if(!preparedRock){missingAssets.add('подготовка астероида');reportAssets();}
+ }
+ const art=key==='rock'?preparedRock:im;
+ if(art&&(art.naturalWidth||art.width))ctx.drawImage(art,-w/2,-h/2,w,h);
  else{ctx.fillStyle=key==='rock'?'#727779':key==='capital'?'#54677e':'#5b91ae';ctx.beginPath();ctx.ellipse(0,0,w*.4,h*.42,0,0,Math.PI*2);ctx.fill();}
  ctx.restore();
 }
@@ -175,7 +228,7 @@ function scenery(ctx,variant,kind){
  ctx.strokeStyle='rgba(132,185,215,.10)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,180);ctx.lineTo(640,180);ctx.moveTo(320,0);ctx.lineTo(320,360);ctx.stroke();
  const target=kind==='mining'?null:kind==='capital'?'capital':'hero';
  if(kind==='mining'){sprite(ctx,'hero',168,180,118,105,Math.PI/2);sprite(ctx,'rock',425,180,150,145);}
- else if(kind==='capital'){sprite(ctx,'capital',392,180,255,195);sprite(ctx,'hero',138,180,85,75,Math.PI/2);}
+ else if(kind==='capital'){sprite(ctx,'capital',392,180,132,198);sprite(ctx,'hero',138,180,85,75,Math.PI/2);}
  else if(kind==='orbital'){sprite(ctx,'hero',360,180,105,95);}
  else {sprite(ctx,'enemy',143,180,105,95,Math.PI/2);sprite(ctx,target,386,180,114,110);}
  ctx.fillStyle='rgba(196,219,235,.66)';ctx.font='12px system-ui';ctx.fillText(variant?'КОНЦЕПТ B':'КОНЦЕПТ A',15,26);
