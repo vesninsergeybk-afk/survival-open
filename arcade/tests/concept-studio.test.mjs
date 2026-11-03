@@ -7,6 +7,7 @@ import {SCENARIOS,EFFECTS,CONCEPTS} from '../studio/concepts.js';
 import {VISUAL_AUDIT,VISUAL_STATUS} from '../studio/visual-audit.js';
 import {EXPLOSION_TYPES,EXPLOSION_ASSETS,EXPLOSION_BUDGET} from '../studio/explosion-design.js';
 import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from '../studio/design-brief.js';
+import {SYSTEMS,WORKSTREAMS} from '../studio/systems-data.js';
 import {CORRIDOR_OPERATION,PROBE_OPERATION} from '../operations.js';
 import {RELAY_DEFENSE} from '../relay-defense.js';
 
@@ -216,4 +217,52 @@ test('one existing workshop hosts playable explosion study without touching comb
  assert.match(read('../studio/explosion-lab.js'),/prepareRockTile/);
  assert.match(read('../studio/explosion-lab.js'),/makeBlastStamp/);
  assert.match(read('../studio/explosion-lab.js'),/EXPLOSION_BUDGET\.prototypeFps/);
+});
+
+test('workshop does not pay the corridor before telemetry reaches the issuing dock',()=>{
+ const source=read('../game.js'),baseline=SCENARIO_BASELINES.dock,proposal=SCENARIOS.dock;
+ assert.deepEqual(baseline.phases.map(p=>p.id),
+  ['available','travel','pulse','disabled','return','result']);
+ assert.deepEqual(proposal.phases.map(p=>p.id),
+  ['brief','approach','jammer','response','disabled','return','result']);
+ assert.match(baseline.reward,/только после возвращения.+домашний док/i);
+ assert.match(proposal.reward,/только за сдачу телеметрии/i);
+ assert.match(baseline.phases.find(p=>p.id==='disabled').world,/НЕ начисляются/);
+ assert.match(baseline.phases.at(-1).action,/док/);
+ assert.match(proposal.phases.at(-1).action,/док/);
+ assert.match(source,/completeCorridor\(\)\s*\{[\s\S]*?op\.phase='return'/);
+ const done=source.slice(source.indexOf(' completeCorridor(){'),source.indexOf(' deliverCorridor(){'));
+ const payout=source.slice(source.indexOf(' deliverCorridor(){'),source.indexOf(' completeProbe(){'));
+ assert.doesNotMatch(done,/player\.ore\s*\+=|this\.collect\(\{type:'data'/);
+ assert.match(payout,/player\.ore\+=CORRIDOR_OPERATION\.rewardOre/);
+ assert.match(payout,/this\.collect\(\{type:'data',value:CORRIDOR_OPERATION\.rewardData\}\)/);
+ assert.match(source,/updateCorridorReturn\(op\)\s*\{[\s\S]*?pursuitStarted=true/);
+ assert.match(baseline.gap,/убивать их для выплаты не нужно/);
+});
+test('workshop distinguishes corridor hand-in from immediately rewarded probe and relay',()=>{
+ const dock=SCENARIO_BASELINES.dock,lab=SCENARIO_BASELINES.lab,arsenal=SCENARIO_BASELINES.arsenal;
+ assert.match(dock.reward,/только после возвращения/);
+ assert.match(lab.reward,/16 сплава.+32 данных/);
+ assert.match(arsenal.reward,/28 сплава.+24 данных/);
+ const entry=SYSTEMS.find(item=>item.id==='return');
+ assert.match(entry.reality,/«Глухого коридора»/);
+ assert.match(entry.reality,/автоматически после успеха/);
+ assert.ok(entry.beats.some(step=>step[0]==='Особая операция с возвратом'));
+ assert.ok(entry.beats.some(step=>step[0]==='Особые операции без возврата'));
+ assert.match(SYSTEMS.find(item=>item.id==='contracts').reality,/после доставки телеметрии/);
+});
+test('workshop roadmap links to real system concepts and sets measurable acceptance gates',()=>{
+ assert.equal(WORKSTREAMS.length,6);
+ assert.equal(new Set(WORKSTREAMS.map(stream=>stream.id)).size,WORKSTREAMS.length);
+ for(const stream of WORKSTREAMS){
+  assert.ok(SYSTEMS.some(item=>item.id===stream.id),stream.id+' has no linked concept');
+  for(const field of ['title','state','fact','next','gate'])
+   assert.ok(stream[field]?.trim(),stream.id+': '+field);
+ }
+ const html=read('../studio/index.html'),script=read('../studio/systems-app.js'),css=read('../studio/systems.css');
+ for(const id of ['sys-roadmap-title','sys-roadmap-list'])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(script,/renderWorkstreams\(\)/);
+ assert.match(script,/WORKSTREAMS/);
+ assert.match(css,/\.sys-milestone:focus-visible/);
+ assert.match(html,/systems-app\.js\?v=systems-3/);
 });
