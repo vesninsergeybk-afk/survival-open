@@ -39,11 +39,11 @@ test('corridor cues match distinct real mission phases',()=>{
  mission.pulseCharge=1.2;
  assert.equal(corridorCue(mission,12,240).key,'charging');
  mission.pulseLocked=true;
- assert.match(corridorCue(mission,12,240).hint,/РАЗРЯД НЕИЗБЕЖЕН/);
+ assert.match(corridorCue(mission,12,240).hint,/РАЗРЯД БУДЕТ/);
  mission.pulseCharge=3.8;
  const danger=corridorCue(mission,12,240);
  assert.equal(danger.key,'danger');
- assert.match(danger.hint,/ОТОЙДИТЕ/);
+ assert.match(danger.hint,/ВЫЙДИТЕ/);
  mission.pulseCharge=0;mission.pulseLocked=false;
  mission.pulseFlashUntil=12.5;
  mission.overheatedUntil=14;
