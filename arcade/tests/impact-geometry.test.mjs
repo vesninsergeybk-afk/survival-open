@@ -107,11 +107,12 @@ test('shield ring stays centered while damage contact faces the real source',()=
 test('homing missile retains the approach direction when arriving at target center',()=>{
  const C=method("updateMissiles(dt){","hitAlly(");
  const enemy={x:100,y:0,r:20,hp:80,converted:false};
- const impacts=[],blasts=[];
+ const impacts=[],blasts=[],sound=[];
  const game={
   missiles:[{x:0,y:0,tx:100,ty:0,target:enemy,damage:27,speed:200,life:2}],
   damageEnemy:(e,d,kind,contact)=>impacts.push({e,d,kind,contact}),
-  heritage:{vfx:{rocketImpact:(...args)=>blasts.push(args) }}
+  heritage:{vfx:{rocketImpact:(...args)=>blasts.push(args) },
+    play:(...args)=>sound.push(args)}
  };
  C.prototype.updateMissiles.call(game,.5);
  assert.equal(impacts.length,1);
@@ -121,5 +122,7 @@ test('homing missile retains the approach direction when arriving at target cent
  near(impacts[0].contact.y,0);
  assert.deepEqual(blasts[0].slice(0,2),[80,0],
   'rocket blast and hull damage share a surface point');
- assert.equal(game.missiles.length,0);
+ assert.deepEqual(sound,[['rocketImpact',.2,{x:80,y:0}]],
+   'detonation sound must share the hull contact point');
+  assert.equal(game.missiles.length,0);
 });
