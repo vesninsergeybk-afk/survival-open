@@ -1,6 +1,6 @@
 /**
  * Survivor audio contract check, no build or dependencies.
- * Run: node site/games/survivor/audio-lab/smoke-test.mjs
+ * Run: node audio-lab/smoke-test.mjs
  */
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -12,7 +12,11 @@ import { WEAPON_SOUNDS, EVENT_SOUNDS, SOUND_CATALOG } from './sound-map.js';
 const here = dirname(fileURLToPath(import.meta.url));
 const game = resolve(here, '..');
 const ids = Object.values(WEAPONS).map(item => item.id).sort();
-assert.deepEqual(Object.keys(WEAPON_SOUNDS).sort(), ids, 'Every game weapon needs a unique sound');
+assert.deepEqual(Object.keys(WEAPON_SOUNDS).filter(id => id !== 'starter_soft').sort(), ids,
+  'Every game weapon needs a unique sound');
+assert.equal(WEAPON_SOUNDS.starter_soft.profile, 'softpulse');
+assert.equal(WEAPON_SOUNDS.starter_soft.sampleUrl, undefined,
+  'Public starter must not depend on excluded studio recordings');
 
 for (const [id, sound] of Object.entries(SOUND_CATALOG)) {
   assert(sound.profile && sound.family, 'Missing sound design: ' + id);
@@ -20,14 +24,19 @@ for (const [id, sound] of Object.entries(SOUND_CATALOG)) {
   assert(sound.priority >= 1 && sound.priority <= 5, 'Invalid priority: ' + id);
   if (!sound.sampleUrl) continue;
   const path = resolve(here, sound.sampleUrl);
-  assert(existsSync(path), 'Missing licensed sample ' + id + ': ' + path);
+  // The public repo intentionally omits 26 Sonniss sources.
+  if (sound.sampleUrl.includes('/studio/')) {
+    assert(!existsSync(path), 'Studio recording should not ship in public repo: ' + id);
+    continue;
+  }
+  assert(existsSync(path), 'Missing CC0 sample ' + id + ': ' + path);
   const signature = readFileSync(path).subarray(0, 4).toString('ascii');
   assert.equal(signature, 'OggS', 'Expected Ogg/Opus or Vorbis: ' + id);
 }
 assert(Object.keys(EVENT_SOUNDS).includes('explosion_big'));
 const studioSamples = Object.values(SOUND_CATALOG).filter(sound => sound.sampleUrl?.includes('/studio/'));
 const stationSamples = Object.values(SOUND_CATALOG).filter(sound => sound.sampleUrl?.includes('/base/'));
-assert.equal(studioSamples.length, 26, 'Expected 26 licensed studio cues');
+assert.equal(studioSamples.length, 26, 'Expected 26 defined but excluded studio cues');
 assert.equal(stationSamples.length, 29, 'Expected 29 CC0 station and progression cues');
 assert(existsSync(resolve(here, 'assets/sfx/studio/SOURCES.md')),
   'Studio sound provenance document missing');
@@ -52,5 +61,5 @@ assert(sw.includes('cache.add(path)'), 'Boot shell is not precached');
 assert(!sw.includes("'./audio-lab/assets/sfx/studio/starter_pulse.ogg'"),
   'Audio assets must stay lazy-loaded instead of blocking first-room startup');
 console.log('Survivor audio: ' + ids.length + ' weapon profiles; ' +
-  Object.values(SOUND_CATALOG).filter(sound => sound.sampleUrl).length +
-  ' licensed OGG samples; audio routing/offline paths OK.');
+  stationSamples.length + ' CC0 recordings; 26 procedural studio fallbacks; ' +
+  'audio routing/offline paths OK.');
