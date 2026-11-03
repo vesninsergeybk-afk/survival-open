@@ -14,10 +14,10 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=cinematic-rotation-01';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=relay-def-1';
-import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation} from './operations.js?v=arcade-controls-63';
-import {renderWorldMap} from './map-panel.js?v=relay-def-1';
-import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=relay-def-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=corridor-return-1';
+import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation} from './operations.js?v=corridor-return-1';
+import {renderWorldMap} from './map-panel.js?v=corridor-return-1';
+import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=corridor-return-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 
 const $=id=>document.getElementById(id);
@@ -342,7 +342,9 @@ export class ArcadeGame {
    if(this.waypoint?.id===operationId)this.waypoint=null;
    this.heritage.ui('cancel');this.notice('Операция «'+name+'» отложена. '+
     (operationId===RELAY_DEFENSE.id?'Налёт отменён. При повторном запуске волны начнутся заново.':
-     operationId===PROBE_OPERATION.id?'Прогресс ремонта сохранён.':'Повреждения передатчика сохранены.'),4);
+     operationId===PROBE_OPERATION.id?'Прогресс ремонта сохранён.':
+     operationId===CORRIDOR_OPERATION.id&&this.world.stations.get(this.world.home.id)?.corridorMission?.phase==='return'?
+      'Телеметрия сохранена. Возобновите операцию в доке, чтобы сдать её.':'Повреждения передатчика сохранены.'),4);
    if(this.overlay.dataset.mode==='map')this.overlay.innerHTML=renderWorldMap(this);
    else if(this.overlay.dataset.mode==='base')this.renderDock();
   }
@@ -574,10 +576,37 @@ export class ArcadeGame {
    RELAY_DEFENSE.rewardData+' данных.'+(next?' На карте отмечен следующий узел.':''),5.5);
  }
 
- // A tangible, single-use operation: a jammer in space, escorts, and a secured route.
+ // After a successful intercept, the telemetry is valuable only when delivered.
+ // Pursuers can be fought or outrun; they are not mandatory kill targets.
+ updateCorridorReturn(op){
+  const base=this.world.stations.get(op.baseId);
+  if(!base||op.pursuitStarted||dist(this.player,base)>900)return;
+  op.pursuitStarted=true;
+  const angle=Math.atan2(this.player.y-base.y,this.player.x-base.x);
+  let spawned=0;
+  for(const spec of [{type:'scout',back:255,side:-85},{type:'fighter',back:325,side:100}]){
+   if(this.enemies.length>=RULES.maxEnemies)break;
+   const def=ENEMY_TYPES[spec.type];if(!def)continue;
+   const x=this.player.x+Math.cos(angle)*spec.back-Math.sin(angle)*spec.side;
+   const y=this.player.y+Math.sin(angle)*spec.back+Math.cos(angle)*spec.side;
+   if(this.world.nearbyRocks(x,y,70).some(rock=>rock.alive&&Math.hypot(x-rock.x,y-rock.y)<rock.r+35))continue;
+   const hp=def.hp*(1+Math.min(1,this.time/900));
+   this.enemies.push({serial:++this.enemySerial,group:++this.groupSerial,
+    type:spec.type,x,y,vx:0,vy:0,r:14,hp,maxHp:hp,
+    damage:def.dmg,think:.12,fire:1.2,state:'hunt',commitUntil:0,
+    target:this.player,angle:0,hit:0,expAwarded:false,
+    scenario:'corridor-pursuit',protect:null,operationGuard:true});
+   spawned++;
+  }
+  if(spawned)this.notice('Бортовой ИИ: преследователи на обратном маршруте. Сражайтесь или уходите к доку на форсаже!',5);
+ }
+
+ // A tangible, single-use operation: a jammer, an EMP duel, and a return leg.
  updateCorridor(dt=0){
   const op=this.operation;
-  if(!op||op.id!==CORRIDOR_OPERATION.id||this.dead||op.hp<=0)return;
+  if(!op||op.id!==CORRIDOR_OPERATION.id||this.dead)return;
+  if(op.phase==='return'){this.updateCorridorReturn(op);return;}
+  if(op.hp<=0)return;
   const d=dist(this.player,op);
   // The actual charge controls warnings; after discharge there is a tactical window.
   if(this.time<(op.overheatedUntil||0)){
@@ -641,8 +670,19 @@ export class ArcadeGame {
   return true;
  }
  completeCorridor(){
-  const op=this.operation;if(!op||op.id!==CORRIDOR_OPERATION.id)return;
+  const op=this.operation;
+  if(!op||op.id!==CORRIDOR_OPERATION.id||op.phase==='return')return;
   const base=this.world.stations.get(op.baseId);if(!base)return;
+  op.phase='return';op.hp=0;op.pulseCharge=0;op.pulseLocked=false;
+  this.waypoint={id:CORRIDOR_OPERATION.id,x:base.x,y:base.y,label:'Вернуться с телеметрией в док'};
+  this.heritage.vfx.shipExplosion(op.x,op.y,55,'#b876ff');
+  this.heritage.vfx.nova(op.x,op.y,160,'green');
+  this.notice('Глушитель отключён. Телеметрия сохранена! Вернитесь в домашний док (E) за наградой. Возможна погоня.',6);
+ }
+ deliverCorridor(){
+  const op=this.operation;
+  if(!op||op.id!==CORRIDOR_OPERATION.id||op.phase!=='return')return;
+  const base=this.world.stations.get(op.baseId);if(!base||base.corridorSecured)return;
   base.corridorSecured=true;base.corridorMission=null;this.operation=null;
   if(this.waypoint?.id===CORRIDOR_OPERATION.id)this.waypoint=null;
   // The reclaimed corridor yields a lead to the next station, not free resources.
@@ -658,8 +698,7 @@ export class ArcadeGame {
   this.player.ore+=CORRIDOR_OPERATION.rewardOre;
   this.cockpit.resourceGain(CORRIDOR_OPERATION.rewardOre,this.time);
   this.collect({type:'data',value:CORRIDOR_OPERATION.rewardData});
-  this.heritage.vfx.shipExplosion(op.x,op.y,55,'#b876ff');
-  this.heritage.vfx.nova(op.x,op.y,160,'green');
+  this.heritage.vfx.nova(base.x,base.y,130,'green');
   this.heritage.station('claimContract',base.type);
   this.notice('КОРИДОР ОТКРЫТ! +'+CORRIDOR_OPERATION.rewardOre+' сплава, +'+CORRIDOR_OPERATION.rewardData+
    ' данных. Патрулей у дока станет меньше.'+
@@ -819,6 +858,7 @@ export class ArcadeGame {
     .filter(s=>dist(s,this.player)<=RULES.baseInteract)
     .sort((a,c)=>dist(a,this.player)-dist(c,this.player))[0];
   if(!b){this.heritage.ui('deny');this.notice('Подлетите ближе к станции (E)',2);return;}
+  if(this.operation?.id===CORRIDOR_OPERATION.id&&this.operation.phase==='return'&&this.operation.baseId===b.id)this.deliverCorridor();
   this.endInteraction();
   this.docked=b;this.baseTab='summary';this.paused=true;this.pausedRenderPending=true;
   this.heritage.pause('base');
@@ -843,9 +883,12 @@ export class ArcadeGame {
    if(corridor)b.corridorMission=this.operation;
    else if(probe)b.probeMission=this.operation;
    else b.relayMission=this.operation;
-   this.waypoint={id:this.operation.id,x:this.operation.x,y:this.operation.y,
-    label:corridor?'Вражеский глушитель':probe?'Аварийный зонд':'Боевой ретранслятор'};
-   this.baseTab='operations';this.heritage.station('acceptContract',b.type);
+   const returning=corridor&&this.operation.phase==='return';
+   this.waypoint={id:this.operation.id,x:returning?b.x:this.operation.x,y:returning?b.y:this.operation.y,
+    label:returning?'Вернуться с телеметрией в док':corridor?'Вражеский глушитель':probe?'Аварийный зонд':'Боевой ретранслятор'};
+   this.baseTab='operations';
+   if(returning){this.deliverCorridor();this.pausedRenderPending=true;this.renderDock();return;}
+   this.heritage.station('acceptContract',b.type);
    this.notice(corridor?'«Глухой коридор»: цель отмечена на карте. Подготовьте корабль и вылетайте.':
     probe?'«Последний сигнал»: зонд отмечен. Подлетите и удерживайте E для ремонта; отпустите E, чтобы стрелять.':
     '«Оборона ретранслятора»: подлетите к отмеченному узлу. Налёт начнётся после сближения.',5);
@@ -1615,7 +1658,7 @@ export class ArcadeGame {
    this.beamClock=.63/(1+this.skillRanks.beam*.12);
    const range=RULES.beamRange+this.skillRanks.range*56;
    const hostile=this.nearbyEnemyBase(range+150);
-   const jammer=this.operation?.id===CORRIDOR_OPERATION.id&&dist(this.operation,p)<=Math.min(range,CORRIDOR_OPERATION.focusRange)?this.operation:null;
+   const jammer=this.operation?.id===CORRIDOR_OPERATION.id&&this.operation.hp>0&&this.operation.phase!=='return'&&dist(this.operation,p)<=Math.min(range,CORRIDOR_OPERATION.focusRange)?this.operation:null;
    const turret=hostile?.turrets?.filter(t=>t.hp>0&&dist(t,p)<=Math.min(range,235))
     .sort((a,b)=>dist(a,p)-dist(b,p))[0];
    // The player can deliberately focus a base by daring to enter its attack zone.
@@ -1837,8 +1880,9 @@ export class ArcadeGame {
  }
  drawCorridorBeacon(c,cam){
   const home=this.world.home,op=this.operation;
-  const active=op?.id===CORRIDOR_OPERATION.id,secured=!!home.corridorSecured;
-  if(!active&&!secured)return;
+  const returning=op?.id===CORRIDOR_OPERATION.id&&op.phase==='return';
+  const active=op?.id===CORRIDOR_OPERATION.id&&op.hp>0&&!returning,secured=!!home.corridorSecured;
+  if(!active&&!secured&&!returning)return;
   const site=active?op:corridorPosition(home);
   if(secured){
    // A quiet, persistent change in the environment after the mission.
@@ -1904,7 +1948,7 @@ export class ArcadeGame {
    c.fillText(Math.ceil(op.hp/op.maxHp*100)+'% · сблизьтесь для атаки',0,-54);
   }else{
    c.fillStyle='#9adac8';c.font='bold 10px system-ui';c.textAlign='center';
-   c.fillText('СИГНАЛ ВОССТАНОВЛЕН',0,-57);
+   c.fillText(returning?'ПЕРЕДАТЧИК ОТКЛЮЧЁН':'СИГНАЛ ВОССТАНОВЛЕН',0,-57);
   }
   c.restore();
  }
@@ -2027,7 +2071,8 @@ export class ArcadeGame {
    c.fillText('ЗОНА ЗАЩИТЫ · 650 М',base.x,base.y-r-13,190);
    c.restore();
   }
-  const returnBase=contractReturnStation(this.contract,this.world);
+  const returnBase=this.operation?.id===CORRIDOR_OPERATION.id&&this.operation.phase==='return'?
+   this.world.stations.get(this.operation.baseId):contractReturnStation(this.contract,this.world);
   for(const b of this.world.nearbyStations(p.x,p.y,Math.max(cam.w,cam.h)+350)){
    if(b.enemy&&!this.enemyBasesUnlocked())continue;
    if(!outsideCamera(b.x,b.y,cam,170))this.drawBase(b,returnBase?.id);
