@@ -1,5 +1,5 @@
-import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=recorded-sfx-02';
-import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=recorded-sfx-02';
+import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03';
+import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03';
 import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
 import { MUSIC_TRACKS, MUSIC_POOLS, MusicRotation } from '../arcade/music-playlist.js?v=cinematic-rotation-01';
 
@@ -101,14 +101,17 @@ export class AudioEngine {
                 const sounds = Object.entries(SOUND_CATALOG)
                     .sort(([a],[b]) => (priority.indexOf(a) < 0 ? 999 : priority.indexOf(a)) -
                         (priority.indexOf(b) < 0 ? 999 : priority.indexOf(b)));
-                const queue = sounds.flatMap(([key,def]) =>
-                    (def.sampleUrls?.length ? def.sampleUrls : def.sampleUrl ? [def.sampleUrl] : [])
-                        .map(url => [key,url]));
+                const queue = sounds.flatMap(([key,def]) => {
+                    const main = def.sampleUrls?.length ? def.sampleUrls : def.sampleUrl ? [def.sampleUrl] : [];
+                    const layers = def.sampleLayerUrls || [];
+                    return [...main.map((url,index) => [key,url,false,index]),
+                        ...layers.map((url,index) => [key,url,true,index])];
+                });
                 let cursor = 0;
                 const worker = async () => {
                     while (cursor < queue.length) {
-                        const [key, url] = queue[cursor++];
-                        try { await this.sfxLab.loadSampleFromUrl(key, new URL(url, root).href, {append:true}); }
+                        const [key, url, layer, index] = queue[cursor++];
+                        try { await this.sfxLab.loadSampleFromUrl(key, new URL(url, root).href, {append:true,layer,index}); }
                         catch (err) { console.warn('[audio] CC0 recording unavailable:', key, err); }
                     }
                 };

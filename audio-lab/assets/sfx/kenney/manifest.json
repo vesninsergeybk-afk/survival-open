@@ -9,30 +9,6 @@
   ],
   "files": [
     {
-      "file": "laserSmall_000.ogg",
-      "source": "assets/kenney/sci-fi-sounds/Audio/laserSmall_000.ogg",
-      "blobSha": "73ef94a9fdd4a0dc5e5fbc9b9786b349da581d68",
-      "size": 7286
-    },
-    {
-      "file": "laserSmall_002.ogg",
-      "source": "assets/kenney/sci-fi-sounds/Audio/laserSmall_002.ogg",
-      "blobSha": "2df384c4e28f0ff5515abc74c848c1613fbccb27",
-      "size": 8973
-    },
-    {
-      "file": "laserSmall_003.ogg",
-      "source": "assets/kenney/sci-fi-sounds/Audio/laserSmall_003.ogg",
-      "blobSha": "86eb4da626e13b581c9dfec981647519dde35d79",
-      "size": 8179
-    },
-    {
-      "file": "laserSmall_004.ogg",
-      "source": "assets/kenney/sci-fi-sounds/Audio/laserSmall_004.ogg",
-      "blobSha": "e491fb874f7d07654af845ab01c23b368c6e95d6",
-      "size": 8632
-    },
-    {
       "file": "laserLarge_000.ogg",
       "source": "assets/kenney/sci-fi-sounds/Audio/laserLarge_000.ogg",
       "blobSha": "1fe6edff924d9b87ad90a3a15c80de9bbd69da37",
@@ -241,6 +217,72 @@
       "source": "assets/kenney/impact-sounds/Audio/impactMining_003.ogg",
       "blobSha": "2fc4bb8c789bcefb1c915d52cca1be404c3f7f1f",
       "size": 12160
+    },
+    {
+      "file": "impactGeneric_light_000.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactGeneric_light_000.ogg",
+      "blobSha": "d0a32de2dfbe38e19e0297a047c7dfc77a7ab487",
+      "size": 5827
+    },
+    {
+      "file": "impactMetal_medium_000.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactMetal_medium_000.ogg",
+      "blobSha": "2b1bbe397a4159d1474a6438cb5b3e9ad0378f2b",
+      "size": 7117
+    },
+    {
+      "file": "impactMetal_medium_001.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactMetal_medium_001.ogg",
+      "blobSha": "01ac7e02d60c1733d6d3b0a70d9d4a38d471e613",
+      "size": 6151
+    },
+    {
+      "file": "impactMetal_medium_002.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactMetal_medium_002.ogg",
+      "blobSha": "579953c73652b48dd1c4910135bd741ec73e4d8c",
+      "size": 5857
+    },
+    {
+      "file": "impactMetal_medium_003.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactMetal_medium_003.ogg",
+      "blobSha": "4fa319d4d5e0b6efabdf51d027644466fb5f704c",
+      "size": 6964
+    },
+    {
+      "file": "impactMetal_medium_004.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactMetal_medium_004.ogg",
+      "blobSha": "97e4747b94b591b7ef37c13540f9583b4801acfb",
+      "size": 5744
+    },
+    {
+      "file": "impactSoft_medium_000.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactSoft_medium_000.ogg",
+      "blobSha": "bf1027b541bfe16cc80af24807ca9bce271c267a",
+      "size": 5351
+    },
+    {
+      "file": "impactSoft_medium_001.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactSoft_medium_001.ogg",
+      "blobSha": "a8c643460ae2d429f0a219d02a7cc186ba2b3652",
+      "size": 5506
+    },
+    {
+      "file": "impactSoft_medium_002.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactSoft_medium_002.ogg",
+      "blobSha": "5409c005dde29cf8de3873cab7f501a12dba9efb",
+      "size": 5358
+    },
+    {
+      "file": "impactSoft_medium_003.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactSoft_medium_003.ogg",
+      "blobSha": "13b52479eeb7d45646a50b4b5205a296c6324f7d",
+      "size": 5392
+    },
+    {
+      "file": "impactSoft_medium_004.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactSoft_medium_004.ogg",
+      "blobSha": "532f620433217aae093353d65aaa445df07fb834",
+      "size": 5438
     }
   ]
 }

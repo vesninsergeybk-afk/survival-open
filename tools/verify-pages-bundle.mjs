@@ -85,7 +85,8 @@ for (const entry of ['index.html', 'arcade/index.html', 'arcade/game.js']) scan(
 // runtime manifest and would otherwise escape the static module scanner.
 const {SOUND_CATALOG} = await import('../audio-lab/sound-map.js');
 for (const [key, sound] of Object.entries(SOUND_CATALOG)) {
-  const urls = sound.sampleUrls?.length ? sound.sampleUrls : sound.sampleUrl ? [sound.sampleUrl] : [];
+  const urls = [...(sound.sampleUrls?.length ? sound.sampleUrls : sound.sampleUrl ? [sound.sampleUrl] : []),
+    ...(sound.sampleLayerUrls || [])];
   if (!urls.length) problems.push('Missing recorded sample for ' + key);
   for (const url of urls) {
     if (!url.startsWith('./assets/sfx/') || url.includes('/studio/')) {

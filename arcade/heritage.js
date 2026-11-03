@@ -1,7 +1,7 @@
 import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01';
-import {AudioEngine} from '../src/audio.js?v=recorded-sfx-02';
-import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=recorded-sfx-02';
-import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=recorded-sfx-02';
+import {AudioEngine} from '../src/audio.js?v=foley-autofire-03';
+import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';
+import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=foley-autofire-03';
 
 const STORAGE_KEY='survivor_arcade_audio_v2';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
