@@ -32,3 +32,31 @@ test('without loaded images, the old scout renderer remains available',()=>{
   assert.equal(drawIrisDrone({}, {type:'scout',x:0,y:0,r:14},2),false);
   assert.equal(drawIrisDrone({}, {type:'fighter',x:0,y:0,r:14},2),false);
 });
+
+test('the optional art loads only when a scout requests it',()=>{
+ const originalImage=globalThis.Image;
+ let constructed=0;
+ globalThis.Image=class {
+  constructor(){constructed++;this.naturalWidth=0;this.naturalHeight=0;}
+  set src(url){
+   this.naturalWidth=url.includes('iris-body')?480:960;
+   this.naturalHeight=url.includes('iris-body')?480:320;
+   this.onload?.();
+  }
+ };
+ const draws=[],ctx={save(){},restore(){},translate(){},rotate(){},
+  drawImage(...args){draws.push(args);},set imageSmoothingEnabled(value){}};
+ try{
+  assert.equal(drawIrisDrone(ctx,{type:'fighter'},2),false);
+  assert.equal(constructed,0);
+  const e={type:'scout',serial:1,x:10,y:20,r:14,vx:110,vy:0,visualAngle:0};
+  assert.equal(drawIrisDrone(ctx,e,2),true);
+  assert.equal(constructed,2);
+  assert.equal(draws.length,1);
+  draws.length=0;
+  assert.equal(drawIrisDrone(ctx,e,3),true);
+  assert.equal(draws.length,2);
+  assert.deepEqual(draws[1].slice(1,5),[320,320,160,160]);
+  assert.equal(constructed,2);
+ }finally{globalThis.Image=originalImage;}
+});

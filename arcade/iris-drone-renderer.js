@@ -5,8 +5,10 @@
  */
 const CELL=160;
 const OPEN_SECONDS=.9;
-let body=null, ion=null;
-if(typeof Image!=='undefined'){
+let body=null, ion=null, loadingStarted=false;
+function loadIrisAssets(){
+  if(loadingStarted||typeof Image==='undefined')return;
+  loadingStarted=true;
   const shellImage=new Image();
   shellImage.decoding='async';
   shellImage.onload=()=>{
@@ -38,8 +40,10 @@ export const isIrisDroneReady=()=>body!==null;
 
 /** Returns false if the optional sprite cannot replace the existing scout. */
 export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
-  if(!body||!enemy||enemy.type!=='scout'||enemy.boss||
+  if(!enemy||enemy.type!=='scout'||enemy.boss||
       enemy.missionStructure||enemy.interceptCargo)return false;
+  if(!loadingStarted)loadIrisAssets();
+  if(!body)return false;
   if(!Number.isFinite(enemy._irisFirstPaintTime))enemy._irisFirstPaintTime=time;
   const frame=irisFrameAt(Math.max(0,time-enemy._irisFirstPaintTime),reducedMotion);
   const side=clamp((enemy.r||14)*3,32,46);
