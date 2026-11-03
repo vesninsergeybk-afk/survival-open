@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72" fill="none">
+<defs>
+ <linearGradient id="circuit" x1="12" y1="12" x2="59" y2="59" gradientUnits="userSpaceOnUse"><stop stop-color="#D7FFFF"/><stop offset=".52" stop-color="#5FEBEB"/><stop offset="1" stop-color="#3C9FCE"/></linearGradient>
+ <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2"/></filter>
+</defs>
+<g stroke="#5EE8E9" stroke-width="3" opacity=".28" filter="url(#soft)"><path d="M36 8V19M36 53V64M8 36H19M53 36H64M17 17L24 24M48 48L55 55"/></g>
+<g stroke="url(#circuit)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+<path d="M36 7V20M36 52V65M7 36H20M52 36H65M15 15L24 24M48 48L57 57M57 15L48 24M24 48L15 57"/>
+<path d="M27 21H45L51 27V45L45 51H27L21 45V27L27 21Z" fill="#123844" fill-opacity=".82"/>
+<path d="M30 31L25 36L30 41M42 31L47 36L42 41M39 29L33 43"/>
+<circle cx="36" cy="8" r="2" fill="#AAFCF2" stroke="none"/><circle cx="64" cy="36" r="2" fill="#AAFCF2" stroke="none"/>
+<circle cx="8" cy="36" r="2" fill="#AAFCF2" stroke="none"/><circle cx="36" cy="64" r="2" fill="#AAFCF2" stroke="none"/>
+</g>
+</svg>

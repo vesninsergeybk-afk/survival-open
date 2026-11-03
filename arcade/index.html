@@ -7,6 +7,7 @@
 <title>Выживший · Бесконечная аркада — прототип</title>
 <link rel="stylesheet" href="./style.css?v=cinematic-rotation-01">
 <link rel="stylesheet" href="./hud.css?v=hud-responsive-v16">
+<link rel="stylesheet" href="./hud-art.css?v=hud-svg-art-01">
 </head>
 <body>
 <div class="space-sky" id="sky0" aria-hidden="true"></div>
@@ -18,6 +19,7 @@
   <div class="cockpit-arch arch-right" aria-hidden="true"></div>
   <div class="cockpit-grid">
    <section class="cockpit-vitals cockpit-wing wing-left" aria-label="Состояние корабля">
+    <img class="hud-ship-mark" src="./studio/hud-kit/ship-outline.svg" aria-hidden="true" alt="">
     <div class="wing-topline"><span class="wing-sigil">◇</span><strong>ВЫЖИВШИЙ</strong><span class="ship-level">LVL <b id="level">1</b></span></div>
     <div class="sector-label" id="sector">Аметистовая туманность</div>
     <div class="instrument-label"><span>ЦЕЛОСТНОСТЬ КОРПУСА</span><b id="hp">110 / 110</b></div>
@@ -37,14 +39,24 @@
      <canvas id="radar" width="144" height="144" role="img" aria-label="Ближний радар: союзники, противники, станции и орбитальные удары"></canvas>
      <div class="radar-readout" id="radarDistance">БЛИЖНИЙ СЕКТОР</div>
     </div>
-    <div id="burst" class="burst-meter ready" aria-label="Короткий рывок">
+    <div class="hud-ability-row" role="group" aria-label="Доступные способности">
+     <div id="hudHackSlot" class="hud-ability-slot" aria-label="Код недоступен">
+      <img class="hud-ability-icon" src="./studio/hud-kit/code.svg" aria-hidden="true" alt=""><span class="hud-ability-key">Q</span>
+     </div>
+     <div id="burst" class="burst-meter ready" aria-label="Короткий рывок">
+      <img class="hud-ability-icon" src="./studio/hud-kit/burst.svg" aria-hidden="true" alt=""><span class="hud-ability-key">⇧</span>
      <div class="instrument-label"><span><kbd>SHIFT</kbd><span class="key-sep"> · </span>РЫВОК</span><b id="bursttext">ГОТОВ</b></div>
      <div class="boost-rail"><span id="burstbar" style="width:100%"></span></div>
+     </div>
+     <div id="hudStrikeSlot" class="hud-ability-slot" aria-label="Авиаудар недоступен">
+      <img class="hud-ability-icon" src="./studio/hud-kit/strike.svg" aria-hidden="true" alt=""><span class="hud-ability-key">B</span>
+     </div>
     </div>
     <div id="miningStatus" class="mining-status" aria-live="off" hidden><span id="miningLabel">⚡ ЭКСТРАКТОР</span><b id="miningPercent">0%</b></div>
     <div class="flight-foot"><span id="flightMode">АВТООГОНЬ · АКТИВЕН</span><span id="wingStatus">ВЕДОМЫЕ: 0</span></div>
    </section>
    <section class="cockpit-telemetry cockpit-wing wing-right" aria-label="Ресурсы и флот">
+    <img class="hud-weapon-mark" src="./studio/hud-kit/weapon.svg" aria-hidden="true" alt="">
     <div class="wing-topline"><span class="wing-sigil">◈</span><strong>ЗАПАСЫ И ФЛОТ</strong><span class="wing-code">SYS // 03</span></div>
     <div class="resource-stats">
      <span class="resource priority"><small>ДАННЫЕ</small><b id="data">0</b></span>
