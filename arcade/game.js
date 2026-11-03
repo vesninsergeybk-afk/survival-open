@@ -17,7 +17,7 @@ import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-fiel
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=carrier-intercept-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=operation-leads-1';
 import {renderWorldMap} from './map-panel.js?v=carrier-intercept-1';
-import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=emp-cue-1';
+import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=carrier-intercept-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute} from './carrier-interception.js?v=carrier-intercept-1';
 
