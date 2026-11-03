@@ -6,63 +6,10 @@
 import { getFXSprite, FX_COLORS, getFXLoadStatus } from './vfx-textures.js?v=arcade-vfx-mask-19';
 import { getCombatArtStatus } from './combat-art.js?v=art-888';
 import {drawStationPart,STATION_PARTS} from './station-art.js?v=base-86';
+import {getExplosionAtlas,explosionAtlasDiagnostics,BLAST_CELL,BLAST_FRAMES} from './explosion-art.js?v=explosion-grammar-01';
 
 const TAU = Math.PI * 2;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
-
-// A compact radial sprite atlas, prepared once. The old fire00..fire09 files
-// are narrow engine flames and cannot serve as explosion frames.
-const BLAST_CELL=128, BLAST_FRAMES=8;
-// Prepared only on demand; every material reuses the same shape and frame timing.
-// These four small, cached palettes cost no gradients or pixel filters at render time.
-const BLAST_PALETTES=Object.freeze({
-    orange:['255,244,192','255,177,60','245,74,21','106,19,28','255,255,244','255,232,139','255,126,45','255,62,31'],
-    red:['255,230,220','255,122,114','224,43,76','91,13,52','255,249,241','255,188,166','244,73,91','180,29,67'],
-    cyan:['226,255,255','101,226,255','45,123,230','23,45,118','250,255,255','154,247,255','63,174,244','34,74,192'],
-    violet:['248,231,255','191,121,255','124,67,228','44,28,114','255,249,255','220,174,255','165,95,244','96,45,187']
-});
-const blastAtlases=new Map();
-function getBlastAtlas(tint='orange'){
-    const kind=BLAST_PALETTES[tint]?tint:'orange';
-    if(blastAtlases.has(kind))return blastAtlases.get(kind);
-    if(typeof document==='undefined')return null;
-    const palette=BLAST_PALETTES[kind];
-    try{
-        const atlas=document.createElement('canvas');
-        atlas.width=BLAST_CELL*BLAST_FRAMES;atlas.height=BLAST_CELL;
-        const c=atlas.getContext('2d');
-        if(!c)return null;
-        for(let frame=0;frame<BLAST_FRAMES;frame++){
-            const t=frame/(BLAST_FRAMES-1), fade=Math.pow(1-t,.78);
-            const size=16+42*Math.sin(Math.PI*(.12+.7*t));
-            c.save();c.translate(frame*BLAST_CELL+64,64);
-            c.globalCompositeOperation='lighter';
-            // Fireball fragments stay radially consistent across all frames.
-            for(let i=0;i<13;i++){
-                const a=i*TAU/13+Math.sin(i*27.1)*.13;
-                const reach=(9+t*25)*(0.76+.24*Math.sin(i*9.3+1));
-                const px=Math.cos(a)*reach,py=Math.sin(a)*reach;
-                const rr=size*(.48+.12*Math.sin(i*7.3))*(.8+.2*t);
-                const g=c.createRadialGradient(px,py,1,px,py,rr);
-                g.addColorStop(0,'rgba('+palette[0]+','+(.69*fade)+')');
-                g.addColorStop(.24,'rgba('+palette[1]+','+(.66*fade)+')');
-                g.addColorStop(.65,'rgba('+palette[2]+','+(.46*fade)+')');
-                g.addColorStop(1,'rgba('+palette[3]+',0)');
-                c.fillStyle=g;c.fillRect(px-rr,py-rr,rr*2,rr*2);
-            }
-            const core=Math.max(4,(18+18*Math.sin(Math.PI*t))*(1-.7*t));
-            const g=c.createRadialGradient(0,0,0,0,0,core);
-            g.addColorStop(0,'rgba('+palette[4]+','+(.98*fade)+')');
-            g.addColorStop(.32,'rgba('+palette[5]+','+(.92*fade)+')');
-            g.addColorStop(.68,'rgba('+palette[6]+','+(.62*fade)+')');
-            g.addColorStop(1,'rgba('+palette[7]+',0)');
-            c.fillStyle=g;c.fillRect(-core,-core,core*2,core*2);
-            c.restore();
-        }
-        blastAtlases.set(kind,atlas);
-        return atlas;
-    }catch{return null;}
-}
 
 export class WorldVFX {
     constructor(settings={}) {
@@ -72,12 +19,14 @@ export class WorldVFX {
         this.explosions = [];
         this.bossWrecks = [];
         this.shipDebris = [];
+        this.lightBursts = [];
+        this.lightPainted = 0;
         this.clock = 0;
         this.seed = 0x1b69ef74;
         this.thrusterClock = 0;
         this.viewport = null;
         this.configure(settings);
-        if(this.maxExplosions)getBlastAtlas('orange');
+        if(this.maxExplosions)getExplosionAtlas('orange','ship');
     }
 
     configure(settings={}) {
@@ -90,6 +39,7 @@ export class WorldVFX {
         this.maxParticles = reduce ? 85 : (compact || weakMemory ? 260 : 520);
         this.maxRings = reduce ? 8 : 30;
         this.maxExplosions = reduce ? 0 : (compact || weakMemory ? 5 : 12);
+        this.maxLightBursts = reduce ? 0 : (compact || weakMemory ? 3 : 6);
         this.baseQuality=this.quality;this.baseMaxParticles=this.maxParticles;
         this.baseMaxExplosions=this.maxExplosions;this.budgetScale=1;
     }
@@ -130,6 +80,8 @@ export class WorldVFX {
         this.explosions.length = 0;
         this.bossWrecks.length = 0;
         this.shipDebris.length = 0;
+        this.lightBursts.length = 0;
+        this.lightPainted = 0;
         this.clock = 0;
         this.thrusterClock = 0;
         this.viewport = null;
@@ -228,19 +180,58 @@ export class WorldVFX {
         this.rings.push({x,y,radius,life,age:0,tint,layer});
     }
 
-    /** A soft local flash sits behind ships and terrain; no dynamic gradients. */
+    /** One short flash feeds both the existing backdrop sprite and hull reflection. */
     _flash(x,y,size,tint='orange',life=.22) {
-        if(this.quality<.35||this.particles.length>this.maxParticles*.9)return;
-        this._emit('glow',x,y,{size,life,tint,alpha:.58,
-            layer:'back',grow:1.1,additive:true});
+        if(this.quality<.35||!this._visible(x,y,this.viewport,size*.7))return;
+        this._emit('glow',x,y,{size,life,tint,alpha:.48,priority:1,
+            layer:'back',grow:.45,additive:true});
+        if(!this.maxLightBursts)return;
+        if(this.lightBursts.length>=this.maxLightBursts)this.lightBursts.shift();
+        this.lightBursts.push({x,y,radius:size*.53,tint,life:Math.min(.3,life),age:0});
     }
 
-    /** Timed atlas frames, bounded independently of particles and light. */
-    _explosion(x,y,radius,life=.48,layer='front',tint='orange',delay=0) {
+    /** Timed atlas frames: each material has its own coherent blast silhouette. */
+    _explosion(x,y,radius,life=.48,layer='front',tint='orange',delay=0,profile='ship',angle=0) {
         if(!this._visible(x,y,this.viewport,radius*1.3+170))return;
         if (!this.maxExplosions) return;
         if (this.explosions.length >= this.maxExplosions) this.explosions.shift();
-        this.explosions.push({x,y,radius,life,age:-Math.max(0,delay),layer,tint});
+        this.explosions.push({x,y,radius,life,age:-Math.max(0,delay),
+            layer,tint,profile,angle});
+    }
+
+    /** Called before drawing ships; never affects collisions or the main scene. */
+    beginSurfaceLights(){
+        this.lightPainted=0;
+    }
+
+    /** A capped, directional reflection on the side facing a recent explosion. */
+    renderSurfaceLight(ctx,x,y,radius){
+        if(!ctx||this.quality<.35||this.lightPainted>=4)return false;
+        let strongest=null,weight=0;
+        for(const flash of this.lightBursts){
+            const dx=flash.x-x,dy=flash.y-y,dist=Math.hypot(dx,dy);
+            if(dist>flash.radius+radius||dist<.01)continue;
+            const fade=Math.max(0,1-flash.age/flash.life);
+            const influence=fade*(1-dist/(flash.radius+radius));
+            if(influence>weight){weight=influence;strongest={dx,dy,tint:flash.tint};}
+        }
+        if(!strongest||weight<.08)return false;
+        const angle=Math.atan2(strongest.dy,strongest.dx);
+        const rgb=strongest.tint==='red'?'255,140,127':
+            strongest.tint==='cyan'?'120,226,255':
+            strongest.tint==='violet'?'203,142,255':'255,187,104';
+        ctx.save();
+        ctx.globalCompositeOperation='lighter';
+        ctx.lineCap='round';
+        ctx.strokeStyle='rgba('+rgb+','+(.49*weight).toFixed(3)+')';
+        ctx.lineWidth=Math.max(1.1,Math.min(3.4,radius*.12));
+        ctx.beginPath();ctx.arc(x,y,radius*.88,angle-.72,angle+.72);ctx.stroke();
+        ctx.strokeStyle='rgba(255,249,232,'+(.32*weight).toFixed(3)+')';
+        ctx.lineWidth=Math.max(.8,Math.min(1.9,radius*.055));
+        ctx.beginPath();ctx.arc(x,y,radius*.69,angle-.46,angle+.46);ctx.stroke();
+        ctx.restore();
+        this.lightPainted++;
+        return true;
     }
 
     /** Spacecraft destruction: expanding plasma, sparks, hull fragments, smoke. */
@@ -258,15 +249,17 @@ export class WorldVFX {
                 seed:this._rand()*TAU,spin:this.quality<.3?0:.13});
         }
         const plasma=tint==='red'?'red':tint==='violet'?'violet':'cyan';
-        this._explosion(x,y,size*(boss?8:5),boss?.68:.43,'front',plasma);
-        this._flash(x,y,size*(boss?14:8),plasma,boss?.39:.22);
+        this._explosion(x,y,Math.min(size*(boss?3.7:3.45),boss?365:125),
+            boss?.72:.43,'front',plasma,0,boss?'capital':'ship');
+        this._flash(x,y,Math.min(size*(boss?8:6),boss?850:270),
+            plasma,boss?.37:.24);
         this._emit('scorch',x,y,{size:size*5*scale,life:.36,tint:'orange',alpha:.78,priority:1});
         this._emit('flare',x,y,{size:size*6*scale,life:.20,tint:plasma,alpha:.95,priority:2});
         // Capital ships fail in separated sections, rather than one enlarged puff.
         if(boss&&this.quality>=.55)for(let i=0;i<2;i++){
             const a=this._rand()*TAU,offset=size*(.65+.4*this._rand());
             this._explosion(x+Math.cos(a)*offset,y+Math.sin(a)*offset,
-                size*2.3,.34,'front',plasma,.15+i*.13);
+                size*2.05,.34,'front',plasma,.15+i*.13,'capital');
         }
         this._scatter('flame',x,y,boss?16:7,{size:23*scale,life:.58,tint:'orange',minSpeed:20,maxSpeed:115*scale,grow:.15});
         this._scatter('smoke',x,y,boss?13:5,{size:38*scale,life:1.45,tint:'smoke',minSpeed:12,maxSpeed:70*scale,drag:1.8,grow:.4,layer:'back',additive:false,alpha:.55});
@@ -338,16 +331,26 @@ export class WorldVFX {
     }
 
     /** A compact missile detonation is visibly different from a laser hit. */
-    rocketImpact(x,y,radius=24) {
-        this._explosion(x,y,radius*2.1,.35,'front','orange');
-        this._flash(x,y,radius*4.5,'orange',.19);
-        this._ring(x,y,radius*1.2,'orange',.3);
-        this._scatter('star',x,y,radius>15?6:3,{
-            size:11,life:.32,tint:'orange',minSpeed:25,maxSpeed:120,priority:1
+    rocketImpact(x,y,radius=24,contact=null) {
+        const directed=contact?.directed?{nx:contact.nx,ny:contact.ny,
+            spread:Math.PI*.73}:{};
+        const angle=contact?.directed?Math.atan2(contact.ny,contact.nx):0;
+        this._explosion(x,y,radius*1.65,.32,'front','orange',0,'rocket',angle);
+        this._flash(x,y,radius*3.75,'orange',.16);
+        this._ring(x,y,radius*1.15,'orange',.26);
+        this._emit('flare',x,y,{size:radius*1.85,life:.13,
+            tint:'gold',priority:2});
+        this._scatter('star',x,y,radius>15?10:5,{
+            size:10,life:.3,tint:'orange',minSpeed:30,maxSpeed:142,
+            priority:1,...directed
+        });
+        this._scatter('shard',x,y,radius>15?5:2,{
+            size:6,life:.67,tint:'smoke',minSpeed:35,maxSpeed:115,
+            additive:false,priority:1,...directed
         });
         this._emit('smoke',x,y,{
-            size:radius*1.8,life:.48,tint:'smoke',alpha:.55,
-            layer:'back',additive:false,grow:.35
+            size:radius*1.55,life:.56,tint:'smoke',alpha:.45,
+            layer:'back',additive:false,grow:.3
         });
     }
 
@@ -387,7 +390,7 @@ export class WorldVFX {
     /** Heavy orbital and meteor strike: fireball, expanding shock and dusty tail. */
     meteorStrike(x,y,radius=70,locked=false) {
         const tint = locked ? 'red' : 'orange';
-        this._explosion(x,y,radius*2.1,.6,'front',locked?'red':'orange');
+        this._explosion(x,y,radius*1.8,.58,'front',locked?'red':'orange',0,'ion');
         this._flash(x,y,radius*4.2,tint,.31);
         this._emit('scorch',x,y,{size:radius*2.5,life:.56,tint,alpha:.95,priority:1});
         this._emit('flare',x,y,{size:radius*3.2,life:.21,tint:'gold',priority:2});
@@ -507,6 +510,10 @@ export class WorldVFX {
         for(let i=this.explosions.length-1;i>=0;i--) {
             this.explosions[i].age+=dt;
             if(this.explosions[i].age>=this.explosions[i].life) this.explosions.splice(i,1);
+        }
+        for(let i=this.lightBursts.length-1;i>=0;i--){
+            this.lightBursts[i].age+=dt;
+            if(this.lightBursts[i].age>=this.lightBursts[i].life)this.lightBursts.splice(i,1);
         }
         for(let i=this.bossWrecks.length-1;i>=0;i--){
             const w=this.bossWrecks[i];w.age+=dt;
@@ -630,14 +637,16 @@ export class WorldVFX {
             if(blast.layer!==layer||!this._visible(blast.x,blast.y,camera,blast.radius))continue;
             if(blast.age<0)continue;
             const progress=clamp(blast.age/blast.life,0,1);
-            const atlas=getBlastAtlas(blast.tint);
+            const atlas=getExplosionAtlas(blast.tint,blast.profile);
             if(!atlas)continue;
             const frame=Math.min(BLAST_FRAMES-1,Math.floor(progress*BLAST_FRAMES));
             const radius=blast.radius*(.65+.52*progress);
             ctx.save();
-            ctx.globalAlpha=.9;
+            ctx.globalAlpha=.88;
+            ctx.translate(blast.x,blast.y);
+            if(blast.angle)ctx.rotate(blast.angle);
             ctx.drawImage(atlas,frame*BLAST_CELL,0,BLAST_CELL,BLAST_CELL,
-                blast.x-radius,blast.y-radius,radius*2,radius*2);
+                -radius,-radius,radius*2,radius*2);
             ctx.restore();
         }
         ctx.restore();
@@ -646,6 +655,7 @@ export class WorldVFX {
     diagnostics() {
         return {particles:this.particles.length,max:this.maxParticles,
             rings:this.rings.length,explosions:this.explosions.length,
+            surfaceLights:this.lightBursts.length,blastAtlas:explosionAtlasDiagnostics(),
             debris:this.shipDebris.length,capitalWrecks:this.bossWrecks.length,
             critical:this.particles.filter(p=>p.priority===2).length,
             combat:this.particles.filter(p=>p.priority===1).length,

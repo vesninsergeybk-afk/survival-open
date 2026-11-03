@@ -168,3 +168,57 @@ test('directed hull and mineral impacts eject fragments outward',()=>{
  assert.ok(chips.every(p=>p.vx>0));
  assert.ok(!mineral.particles.some(p=>p.kind==='lightning'));
 });
+
+
+test('concept explosion profiles match their event materials and impact direction',()=>{
+  const vfx=new WorldVFX();
+  vfx.rocketImpact(30,40,22,{directed:true,nx:0,ny:1});
+  assert.equal(vfx.explosions[0]?.profile,'rocket');
+  assert.ok(Math.abs(vfx.explosions[0]?.angle-Math.PI/2)<1e-6);
+  assert.equal(vfx.explosions[0]?.tint,'orange');
+  const rocketRadius=vfx.explosions[0].radius;
+  vfx.shipExplosion(0,0,18,'#ff8594');
+  assert.equal(vfx.explosions.at(-1)?.profile,'ship');
+  assert.ok(vfx.explosions.at(-1)?.radius>rocketRadius);
+  vfx.shipExplosion(0,0,38,'#ff8594',true);
+  assert.ok(vfx.explosions.slice(-3).every(b=>b.profile==='capital'));
+  vfx.meteorStrike(0,0,70,true);
+  assert.equal(vfx.explosions.at(-1)?.profile,'ion');
+  assert.equal(vfx.explosions.at(-1)?.tint,'red');
+  const existing=vfx.explosions.length;
+  vfx.asteroidBreak(0,0,30);
+  assert.equal(vfx.explosions.length,existing,'stone break has no plasma atlas');
+});
+
+test('reflections are short, directional and capped per rendered scene',()=>{
+  const vfx=new WorldVFX();
+  vfx.rocketImpact(100,0,22);
+  assert.ok(vfx.lightBursts.length>0);
+  const calls={strokes:0,angles:[]};
+  const ctx={save(){},restore(){},beginPath(){},arc(_x,_y,_r,a){calls.angles.push(a);},
+    stroke(){calls.strokes++;},set globalCompositeOperation(v){this.op=v;},
+    set strokeStyle(v){this.color=v;},set lineWidth(v){this.width=v;},
+    set lineCap(v){this.cap=v;}};
+  vfx.beginSurfaceLights();
+  for(let i=0;i<12;i++)vfx.renderSurfaceLight(ctx,60+i,0,20);
+  assert.equal(vfx.lightPainted,4,'at most four illuminated hull silhouettes');
+  assert.equal(calls.strokes,8,'two light-catching edges per affected hull');
+  assert.ok(calls.angles.every(a=>a<.9&&a>-.9),'highlight faces flash source');
+  vfx.update(.4);
+  vfx.beginSurfaceLights();
+  assert.equal(vfx.lightBursts.length,0);
+  assert.equal(vfx.renderSurfaceLight(ctx,20,0,20),false);
+  const quiet=new WorldVFX({reducedMotion:true});
+  quiet.rocketImpact(100,0,22);
+  assert.equal(quiet.lightBursts.length,0);
+});
+
+test('saturated particle budgets cannot grow temporary illumination indefinitely',()=>{
+  const vfx=new WorldVFX();
+  for(let i=0;i<35;i++)vfx.rocketImpact(i*7,0,22);
+  assert.ok(vfx.lightBursts.length<=vfx.maxLightBursts);
+  assert.ok(vfx.explosions.length<=vfx.maxExplosions);
+  assert.ok(vfx.particles.length<=vfx.maxParticles);
+  vfx.reset();
+  assert.equal(vfx.lightBursts.length,0);
+});
