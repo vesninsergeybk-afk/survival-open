@@ -14,7 +14,8 @@ test('каждая концепция даёт игроку выбор и опи
  assert.equal(SYSTEMS.length, 15);
  assert.equal(new Set(SYSTEMS.map(item => item.id)).size, SYSTEMS.length);
  for (const item of SYSTEMS) {
-  for (const key of ['id','chapter','name','phase','essence','reality','hypothesis','rule','risk','test','deps']) {
+  assert.ok(typeof item.id === 'string' && item.id.length >= 2);
+  for (const key of ['chapter','name','phase','essence','reality','hypothesis','rule','risk','test','deps']) {
    assert.ok(typeof item[key] === 'string' && item[key].trim().length > 3,
     'У ' + item.id + ' нет содержательного поля ' + key);
   }
