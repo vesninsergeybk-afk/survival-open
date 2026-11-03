@@ -69,3 +69,20 @@ export function probeOffer(base,operation){
  return {status:base.active?'available':'locked',...PROBE_OPERATION,
   resumable:!!remembered,repair:remembered?.repair||0};
 }
+
+
+// After each distinct operation, suggest an accessible station with a different
+// task when it is reasonably close. Never reveal distant bases just to force a
+// linear campaign: the nearest useful node remains a valid fallback.
+export function chooseOperationLead(world,origin,baseId,preferredType,maxDistance){
+ const candidates=(world?.nearbyStations?.(origin.x,origin.y,maxDistance,false)||[])
+  .filter(b=>b.id!==baseId&&!b.enemy&&!b.active&&!b.discovered)
+  .sort((a,b)=>Math.hypot(a.x-origin.x,a.y-origin.y)-
+               Math.hypot(b.x-origin.x,b.y-origin.y));
+ const nearest=candidates[0];
+ if(!nearest)return null;
+ const preferred=candidates.find(b=>b.type===preferredType);
+ const nearestDistance=Math.hypot(nearest.x-origin.x,nearest.y-origin.y);
+ return preferred&&Math.hypot(preferred.x-origin.x,preferred.y-origin.y)<=
+  Math.max(1300,nearestDistance*1.4)?preferred:nearest;
+}

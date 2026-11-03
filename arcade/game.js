@@ -15,7 +15,7 @@ import {ArcadeHeritage} from './heritage.js?v=explosion-grammar-01';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=corridor-return-2';
-import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation} from './operations.js?v=corridor-return-1';
+import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=operation-leads-1';
 import {renderWorldMap} from './map-panel.js?v=corridor-return-3';
 import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=corridor-return-3';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
@@ -561,9 +561,7 @@ export class ArcadeGame {
   if(!base||base.relayDefenseDone)return;
   base.relayDefenseDone=true;base.relayMission=null;this.operation=null;
   if(this.waypoint?.id===RELAY_DEFENSE.id)this.waypoint=null;
-  const next=this.world.nearbyStations(op.x,op.y,2500,false)
-   .filter(b=>!b.enemy&&!b.active&&!b.discovered&&b.id!==base.id)
-   .sort((a,b)=>dist(a,op)-dist(b,op))[0]||null;
+  const next=chooseOperationLead(this.world,op,base.id,'lab',2500);
   if(next){next.discovered=true;this.world.discovered.add(next.id);
    if(!this.waypoint)this.waypoint={id:next.id,x:next.x,y:next.y,
     label:baseNames[next.type]||'Станция'};}
@@ -686,9 +684,7 @@ export class ArcadeGame {
   base.corridorSecured=true;base.corridorMission=null;this.operation=null;
   if(this.waypoint?.id===CORRIDOR_OPERATION.id)this.waypoint=null;
   // The reclaimed corridor yields a lead to the next station, not free resources.
-  const nextStation=this.world.nearbyStations(op.x,op.y,2400,false)
-   .filter(station=>!station.active&&!station.discovered)
-   .sort((a,b)=>dist(a,op)-dist(b,op))[0]||null;
+  const nextStation=chooseOperationLead(this.world,op,base.id,'lab',2400);
   if(nextStation){
    nextStation.discovered=true;
    this.world.discovered.add(nextStation.id);
@@ -729,9 +725,7 @@ export class ArcadeGame {
   base.probeRecovered=true;base.probeMission=null;
   this.operation=null;this.probeRepairing=false;
   if(this.waypoint?.id===PROBE_OPERATION.id)this.waypoint=null;
-  const next=this.world.nearbyStations(op.x,op.y,2300,false)
-   .filter(b=>!b.enemy&&!b.active&&!b.discovered&&b.id!==base.id)
-   .sort((a,b)=>dist(a,op)-dist(b,op))[0]||null;
+  const next=chooseOperationLead(this.world,op,base.id,'arsenal',2300);
   if(next){
    next.discovered=true;this.world.discovered.add(next.id);
    if(!this.waypoint)this.waypoint={id:next.id,x:next.x,y:next.y,

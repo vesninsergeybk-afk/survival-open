@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {CORRIDOR_OPERATION,corridorPosition,createCorridorOperation,
- corridorOffer,corridorPatrolModifier} from '../operations.js';
+ corridorOffer,corridorPatrolModifier,chooseOperationLead} from '../operations.js';
 import {baseOffer,renderBasePanel,eligibleContractProgress} from '../base-panel.js';
 import {World} from '../world.js';
 import {baseNames} from '../balance.js';
@@ -45,10 +45,10 @@ const src=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 const start=src.indexOf(' updateCorridorReturn(');
 const end=src.indexOf('\n baseState(){',start);
 assert.ok(start>0&&end>start,'operation lifecycle must be present in game');
-const Ops=new Function('RULES','ENEMY_TYPES','dist','CORRIDOR_OPERATION','TAU','baseNames',
+const Ops=new Function('RULES','ENEMY_TYPES','dist','CORRIDOR_OPERATION','TAU','baseNames','chooseOperationLead',
  'return class OperationHarness {'+src.slice(start,end)+'}')(
  {maxEnemies:180},{scout:{hp:45,dmg:7},fighter:{hp:70,dmg:11}},
- (a,b)=>Math.hypot(a.x-b.x,a.y-b.y),CORRIDOR_OPERATION,Math.PI*2,baseNames);
+ (a,b)=>Math.hypot(a.x-b.x,a.y-b.y),CORRIDOR_OPERATION,Math.PI*2,baseNames,chooseOperationLead);
 const fake=(nextStations=[])=>{
  const b={...home},op=createCorridorOperation(b);
  const value={ore:0,data:0},messages=[],game=new Ops();
@@ -201,4 +201,21 @@ test('the navigation map displays the actual target and the secured-route outcom
  const after=renderWorldMap(game);
  assert.match(after,/Разведка возле дока расширена/);
  assert.match(after,/Коридор открыт/);
+});
+
+test('the next lead favours a different station task without demanding a long detour',()=>{
+ const origin={x:0,y:0},nearest={id:'dock',type:'dock',x:900,y:0,discovered:false,active:false},
+  lab={id:'lab',type:'lab',x:1120,y:0,discovered:false,active:false},
+  distant={id:'lab-far',type:'lab',x:2300,y:0,discovered:false,active:false};
+ const world={nearbyStations:(x,y,r)=>[nearest,lab,distant].filter(b=>Math.hypot(x-b.x,y-b.y)<r)};
+ assert.equal(chooseOperationLead(world,origin,'home','lab',2400),lab,
+  'offer the next distinct special operation when its station is nearby');
+ lab.discovered=true;
+ assert.equal(chooseOperationLead(world,origin,'home','lab',2400),nearest,
+  'do not send the player on a huge detour to force a scripted order');
+ nearest.active=true;
+ assert.equal(chooseOperationLead(world,origin,'home','lab',2400),distant);
+ distant.enemy=true;
+ assert.equal(chooseOperationLead(world,origin,'home','lab',2400),null,
+  'never point a friendly story reward to an enemy installation');
 });
