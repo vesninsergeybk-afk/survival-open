@@ -1,11 +1,18 @@
-// A distant, world-anchored reactor monument. This is scenery, not cover or an interactable target.
-// The background sky has parallax; hull and core must share one world position.
+// The reactor is an enormous distant landmark, not a collision object.
+// All rigid metalwork and the core stay at one fixed world anchor.
+// Only the existing sky/independent dust may use camera parallax.
 const ANCHOR = Object.freeze({x: 80, y: -310});
 const WORLD_WIDTH = 1900;
 const WORLD_HEIGHT = 1190;
 const TEXTURE_WIDTH = 1500;
 const TEXTURE_HEIGHT = 940;
 const TAU = Math.PI * 2;
+
+// The square source already has front/back depth. Apply only a modest,
+// precomputed oblique projection; never stretch it anew each frame.
+const SOURCE_SIZE = 1200;
+const PROJECTION = Object.freeze({a: 1.02, b: -.04, c: .075, d: .73});
+const ENERGY_ASSET = './studio/assets/reactor-energy-milestones-v1.png';
 
 function texture(width, height) {
  const canvas = document.createElement('canvas');
@@ -15,19 +22,31 @@ function texture(width, height) {
 }
 
 export class ReactorLandmark {
- constructor() {
+ constructor(options = {}) {
   this.hull = null;
   this.glow = this.makeGlow();
   this.failed = false;
+  this.energyAtlas = null;
+  this.energyFailed = false;
   const image = new Image();
   image.decoding = 'async';
   image.onload = () => {
    if (image.naturalWidth) this.hull = this.makeHull(image);
+   this.source = null;
   };
   image.onerror = () => { this.failed = true; };
   image.src = new URL('./studio/assets/reactor-ring-03.png', import.meta.url).href;
-  // Retain the image only until it has been rasterized into one oblique layer.
   this.source = image;
+
+  // The larger energy atlas is opt-in for the visual workshop only.
+  // Current gameplay has no three-jammer reactor state to drive it.
+  if (options.loadEnergyAtlas) {
+   const energy = new Image();
+   energy.decoding = 'async';
+   energy.onload = () => { if (energy.naturalWidth) this.energyAtlas = energy; };
+   energy.onerror = () => { this.energyFailed = true; };
+   energy.src = new URL(ENERGY_ASSET, import.meta.url).href;
+  }
  }
  makeGlow() {
   const canvas = texture(320, 320);
@@ -51,60 +70,102 @@ export class ReactorLandmark {
   const paint = (drop, underside) => {
    c.save();
    c.translate(TEXTURE_WIDTH / 2, TEXTURE_HEIGHT / 2 + drop);
-   // A single perspective-like oblique projection, baked once on image load.
-   // Its shear makes the far rim recede to the left and the near rim advance.
-   c.transform(1, -.085, .14, .565, 0, 0);
+   c.transform(PROJECTION.a, PROJECTION.b, PROJECTION.c, PROJECTION.d, 0, 0);
    if (underside) {
-    c.globalAlpha = .67;
-    c.filter = 'brightness(0.26) saturate(0.65)';
+    c.globalAlpha = .42;
+    c.filter = 'brightness(0.22) saturate(0.60)';
    } else {
-    c.globalAlpha = .92;
+    c.globalAlpha = .96;
    }
-   c.drawImage(image, -625, -625, 1250, 1250);
+   c.drawImage(image, -SOURCE_SIZE / 2, -SOURCE_SIZE / 2, SOURCE_SIZE, SOURCE_SIZE);
    c.restore();
   };
-  // The darker, lowered copy suggests the immense depth of the metal rim.
-  paint(25, true);
+  // A single source for every section prevents mismatched trusses and seams.
+  paint(22, true);
   paint(0, false);
-  this.source = null;
+
+  // Atmospheric perspective belongs to distant metal, not to the voids
+  // between rings. Bake the tint into metal once using source-atop.
+  c.save();
+  c.globalCompositeOperation = 'source-atop';
+  const distance = c.createLinearGradient(0, 0, 0, TEXTURE_HEIGHT);
+  distance.addColorStop(0, 'rgba(8,24,47,.34)');
+  distance.addColorStop(.40, 'rgba(11,27,48,.18)');
+  distance.addColorStop(.77, 'rgba(8,18,34,.03)');
+  distance.addColorStop(1, 'rgba(8,18,34,0)');
+  c.fillStyle = distance;
+  c.fillRect(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+  c.restore();
   return canvas;
  }
- draw(ctx, cam, time = 0, fps = 60, reducedMotion = false) {
+ drawCore(ctx, time, fps, reducedMotion, stage, activationAge) {
+  const step = Math.max(0, Math.min(4, Math.trunc(Number(stage) || 0)));
+  const animate = !reducedMotion && fps >= 34;
+  const pulse = animate && step < 3 ? Math.sin(time * 1.3) * .045 : 0;
+  const power = [.24, .39, .54, .64, .76][step];
+
+  if (this.glow) {
+   ctx.globalAlpha = power * .85 + pulse;
+   ctx.drawImage(this.glow, -155, -155, 310, 310);
+  }
+
+  // Atlas quadrants are independent visual milestones on RGB/black.
+  // 'lighter' makes black neutral; using source-over would hide the hull.
+  if (this.energyAtlas) {
+   const tileW = Math.floor(this.energyAtlas.naturalWidth / 2);
+   const tileH = Math.floor(this.energyAtlas.naturalHeight / 2);
+   const firing = step === 4 && activationAge >= 0 && activationAge < 1;
+   const tile = firing ? 3 : Math.min(step, 2);
+   const size = firing ? 320 : [130, 185, 240, 260, 270][step];
+   ctx.save();
+   ctx.globalCompositeOperation = 'lighter';
+   ctx.globalAlpha = firing ? .78 * (1 - activationAge * .6) : [.35, .38, .45, .42, .48][step];
+   ctx.drawImage(
+    this.energyAtlas, (tile % 2) * tileW, Math.floor(tile / 2) * tileH,
+    tileW, tileH, -size / 2, -size / 2, size, size
+   );
+   ctx.restore();
+  }
+
+  // Retain stable, inexpensive stage indicators even with reduced motion.
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = 'rgba(104,207,247,' + (.23 + step * .09).toFixed(3) + ')';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 108, 61, -.04, 0, TAU);
+  ctx.stroke();
+  if (step >= 2) {
+   ctx.strokeStyle = 'rgba(130,222,255,' + (step === 4 ? .59 : .33).toFixed(3) + ')';
+   ctx.beginPath();
+   ctx.ellipse(0, 0, 139, 78, -.04, 0, TAU);
+   ctx.stroke();
+  }
+  if (animate && step >= 1 && step <= 2) {
+   ctx.strokeStyle = 'rgba(160,229,255,' + (.13 + pulse).toFixed(3) + ')';
+   ctx.beginPath();
+   ctx.ellipse(0, 0, 125, 70, -.04, time * .09, time * .09 + 1.3);
+   ctx.stroke();
+  }
+ }
+ draw(ctx, cam, time = 0, fps = 60, reducedMotion = false, stage = 0, activationAge = Infinity) {
   if (!this.hull) return;
   const x = ANCHOR.x, y = ANCHOR.y;
   if (x + WORLD_WIDTH / 2 < cam.x || x - WORLD_WIDTH / 2 > cam.x + cam.w ||
       y + WORLD_HEIGHT / 2 < cam.y || y - WORLD_HEIGHT / 2 > cam.y + cam.h) return;
 
-  // One image of the whole reactor per frame. No per-frame perspective filters.
   ctx.save();
   ctx.translate(x, y);
-  const animate = !reducedMotion && fps >= 34;
-  const pulse = animate ? Math.sin(time * 1.25) * .055 : 0;
+  // World-anchored halo is drawn behind the same metal sprite.
   if (this.glow) {
-   ctx.globalAlpha = .27 + pulse;
-   ctx.drawImage(this.glow, -315, -315, 630, 630);
+   ctx.globalAlpha = .15;
+   ctx.drawImage(this.glow, -330, -330, 660, 660);
   }
-  ctx.globalAlpha = .82;
-  ctx.drawImage(this.hull, -WORLD_WIDTH / 2, -WORLD_HEIGHT / 2,
-   WORLD_WIDTH, WORLD_HEIGHT);
-  // The energy is in the central opening, at exactly the hull's world anchor.
-  if (this.glow) {
-   ctx.globalAlpha = .73 + pulse;
-   ctx.drawImage(this.glow, -122, -122, 244, 244);
-  }
-  ctx.strokeStyle = 'rgba(104,207,247,.32)';
-  ctx.lineWidth = 2.2;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 108, 61, -.085, 0, TAU);
-  ctx.stroke();
-  if (animate) {
-   ctx.strokeStyle = 'rgba(160,229,255,' + (.17 + pulse).toFixed(3) + ')';
-   ctx.beginPath();
-   ctx.ellipse(0, 0, 139, 78, -.085, -.7, 1.35);
-   ctx.stroke();
-  }
+  ctx.globalAlpha = .88;
+  ctx.drawImage(this.hull, -WORLD_WIDTH / 2, -WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT);
+  this.drawCore(ctx, time, fps, reducedMotion, stage, activationAge);
   ctx.restore();
  }
 }
 
 export const REACTOR_LANDMARK_ANCHOR = ANCHOR;
+export const REACTOR_LANDMARK_SIZE = Object.freeze({width: WORLD_WIDTH, height: WORLD_HEIGHT});
