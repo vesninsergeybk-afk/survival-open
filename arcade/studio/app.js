@@ -1,7 +1,7 @@
-import {SCENARIOS,EFFECTS,CONCEPTS} from './concepts.js?v=carrier-intercept-1';
+import {SCENARIOS,EFFECTS,CONCEPTS} from './concepts.js?v=carrier-live-1';
 import {VISUAL_AUDIT,VISUAL_STATUS} from './visual-audit.js?v=visual-audit-1';
 import {initExplosionLab} from './explosion-lab.js?v=explosions-2';
-import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from './design-brief.js?v=carrier-intercept-1';
+import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from './design-brief.js?v=carrier-live-1';
 
 const $=id=>document.getElementById(id);
 const make=(tag,klass,text)=>{const el=document.createElement(tag);if(klass)el.className=klass;if(text!==undefined)el.textContent=text;return el;};
