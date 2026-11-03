@@ -194,10 +194,35 @@ $('copy-notes').addEventListener('click',async()=>{
  try{await navigator.clipboard.writeText(JSON.stringify(data,null,2));$('notes-status').textContent='Концепции и заметки скопированы';}
  catch{$('notes-status').textContent='Буфер недоступен: скопируйте заметки из поля вручную';}
 });
-document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{
- activeTab=btn.dataset.tab;
- document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b===btn)));
- for(const panel of ['scenario','effects','concepts','tools'])$('panel-'+panel).hidden=panel!==activeTab;
- if(activeTab==='effects')restartEffect();
-}));
-initScenario();initEffects();initConcepts();requestAnimationFrame(animate);
+const studioTabs=['scenario','effects','concepts','tools'];
+function sizeComparisonFrame(){
+ const frame=$('vfx-compare-frame');
+ if(!frame)return;
+ try{
+  const content=frame.contentDocument;
+  if(!content||!content.body)return;
+  const height=Math.max(520,Math.ceil(content.documentElement.scrollHeight)+8);
+  if(frame.style.height!==height+'px')frame.style.height=height+'px';
+ }catch{/* Standalone preview keeps its own scroll if embedding is blocked. */}
+}
+const comparisonFrame=$('vfx-compare-frame');
+comparisonFrame.addEventListener('load',()=>{
+ sizeComparisonFrame();
+ try{
+  if(window.ResizeObserver&&comparisonFrame.contentDocument?.body)
+   new ResizeObserver(sizeComparisonFrame).observe(comparisonFrame.contentDocument.body);
+ }catch{}
+});
+window.addEventListener('resize',sizeComparisonFrame);
+function selectStudioTab(name,updateUrl=false){
+ activeTab=studioTabs.includes(name)?name:'scenario';
+ document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tab===activeTab)));
+ for(const panel of studioTabs)$('panel-'+panel).hidden=panel!==activeTab;
+ if(updateUrl&&location.hash!=='#'+activeTab)history.replaceState(null,'','#'+activeTab);
+ if(activeTab==='effects'){restartEffect();requestAnimationFrame(sizeComparisonFrame);}
+}
+document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>selectStudioTab(btn.dataset.tab,true)));
+window.addEventListener('hashchange',()=>selectStudioTab(location.hash.slice(1)));
+initScenario();initEffects();initConcepts();
+selectStudioTab(location.hash.slice(1));
+requestAnimationFrame(animate);
