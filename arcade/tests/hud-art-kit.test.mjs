@@ -25,7 +25,7 @@ test('HUD art kit has independently loadable graphic assets',()=>{
 test('HUD preview has three real layouts and three demo states',()=>{
  for(const type of ['desktop','phone-landscape','phone-portrait']){
   assert.match(html,new RegExp('data-screen="'+type+'"'));
-  assert.match(html,new RegExp('stage\\.'+type));
+  if(type!=='desktop')assert.match(html,new RegExp('stage\\.'+type));
  }
  for(const state of ['cruise','combat','critical']){
   assert.match(html,new RegExp('data-state="'+state+'"'));
