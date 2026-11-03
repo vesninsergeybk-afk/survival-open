@@ -676,3 +676,12 @@ button{font:inherit;cursor:pointer}canvas#game{position:absolute;inset:0;z-index
  #creditsDialog .credits-track-list{grid-template-columns:1fr}
  #creditsDialog .credits-head{gap:10px}
 }
+
+/* Ion-conductor loan: a visible optional button only while equipped. */
+@media(pointer:coarse){
+ #ionBtn{border-color:#81ecf7;background:#174766ec;color:#e4ffff}
+ #ionBtn:disabled{opacity:.54}
+}
+@media(pointer:coarse) and (max-width:390px){
+ .mobile-abilities button{width:74px}
+}
