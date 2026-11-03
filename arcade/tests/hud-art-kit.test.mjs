@@ -9,7 +9,7 @@ const html=readFileSync(preview,'utf8');
 const names=readdirSync(kit);
 
 test('HUD art kit has independently loadable graphic assets',()=>{
- assert.equal(names.filter(n=>n.endsWith('.svg')).length,14);
+ assert.ok(names.filter(n=>n.endsWith('.svg')).length>=14,'The reusable art kit can expand without breaking the preview');
  for(const name of names){
   assert.match(name,/\.svg$/);
   const content=readFileSync(new URL(name,kit),'utf8');
