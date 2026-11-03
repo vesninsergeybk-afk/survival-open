@@ -504,6 +504,9 @@ export function renderBasePanel(base,state){
   '<strong>'+brief[1]+'</strong><p>'+brief[2]+'</p>'+
   (specialOffer(base,state)?specialPanel(base,state,true):
     '<div class="base-shortcuts"><span>Местные услуги доступны в ангаре.</span></div>')+
+  (base.id==='0:0'&&base.type==='dock'&&!state.ionTrialTaken&&!state.ionLoan?
+   '<div class="base-shortcuts"><span>Бесплатная проба: в ангаре доступен «Ионный проводник» — ручной разряд по меткам автоогня.</span>'+
+    action('baseTab','Испытать оружие','','hangar')+'</div>':'')+
   '</div><aside class="base-dashboard-aside"><span class="base-kicker">'+'КАРТА РАЙОНА'+'</span>'+
   basePreview(base,state)+
   '<div class="base-dashboard-links">'+
