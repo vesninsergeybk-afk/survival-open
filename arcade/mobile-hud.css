@@ -1,0 +1,152 @@
+/* Touch flight HUD — landscape composition. This sheet is intentionally loaded
+   after hud-art.css; desktop artwork and gameplay state are untouched.
+   Short landscape viewports have only one safe lower band: thumbs live there. */
+@media (pointer:coarse) and (orientation:landscape) {
+  /* The two illuminated instruments share the upper-left rail. Their lower
+     edges stay above the joystick even when the browser leaves ~240 CSS px. */
+  #hud.cockpit-hud .cockpit-wing {
+    top:max(61px,calc(env(safe-area-inset-top) + 57px));
+    bottom:auto;
+    width:clamp(188px,21vw,220px);
+    height:auto;
+    padding:0;
+  }
+  #hud.cockpit-hud .wing-left {
+    left:max(8px,env(safe-area-inset-left));
+  }
+  #hud.cockpit-hud .wing-right {
+    left:calc(max(8px,env(safe-area-inset-left)) + clamp(188px,21vw,220px) + 8px);
+    right:auto;
+  }
+  #hud.cockpit-hud .hud-vital-stack { top:9%;bottom:19% }
+  #hud.cockpit-hud .hud-stat-head { gap:3px;min-height:10px }
+  #hud.cockpit-hud .hud-stat-head img { width:9px;height:9px }
+  #hud.cockpit-hud .hud-stat-head span { font-size:9px }
+  #hud.cockpit-hud .hud-stat-head b { font-size:10px }
+  #hud.cockpit-hud .hud-level-strip { font-size:8px }
+  #hud.cockpit-hud .hud-combat-heading strong { font-size:10px }
+  #hud.cockpit-hud .hud-weapon-readout { font-size:9px }
+  #hud.cockpit-hud .hud-resource-strip .resource small { font-size:8px }
+  #hud.cockpit-hud .hud-resource-strip .resource b { font-size:10px }
+
+  /* The on-screen Code / Strike / Burst buttons already handle touch input.
+     Desktop keycap icons duplicated them and obscured the ship. */
+  #hud.cockpit-hud .hud-ability-row { display:none }
+
+  /* Compact live radar sits between the mission display and the right thumb
+     controls. Its canvas retains the full 144-pixel backing resolution. */
+  #hud.cockpit-hud .radar-unit {
+    top:max(67px,calc(env(safe-area-inset-top) + 62px));
+    right:calc(max(8px,env(safe-area-inset-right)) + 191px);
+    left:auto;
+    width:81px;
+    height:88px;
+    padding:8px 5px 9px;
+  }
+  #hud.cockpit-hud .radar-unit #radar {
+    display:block;
+    width:70px;
+    height:70px;
+    margin:0 auto;
+  }
+  #hud.cockpit-hud .radar-readout { display:none }
+  #hud.cockpit-hud .radar-unit::before { inset:0 }
+
+  /* A notice is a brief lower-edge caption, never a panel across the pilot.
+     Center it in the free corridor *between* joystick and right buttons. */
+  #hud.cockpit-hud #message {
+    top:auto;
+    bottom:max(8px,env(safe-area-inset-bottom));
+    left:calc(50% - 34px);
+    right:auto;
+    transform:translateX(-50%);
+    width:max-content;
+    max-width:min(420px,calc(100vw - 348px));
+    min-height:0;
+    max-height:min(5.2em,calc(100dvh - 160px));
+    overflow:hidden;
+    padding:5px 10px;
+    font-size:11px;
+    line-height:1.25;
+    font-weight:600;
+    text-align:center;
+    background:#051b29e8;
+    border-color:#6fd9e090;
+    box-shadow:0 2px 10px #020c13b8;
+  }
+
+  /* Navigation remains at the top. Audio no longer sits directly over
+     Map / Development; the mixer and credits remain accessible. */
+  .mobile-menu {
+    top:max(8px,env(safe-area-inset-top));
+    right:max(8px,env(safe-area-inset-right));
+    gap:5px;
+  }
+  .mobile-menu button {
+    min-height:42px;
+    padding:6px 9px 6px 25px;
+    font-size:10px;
+  }
+  #audioControls {
+    top:max(54px,calc(env(safe-area-inset-top) + 48px));
+    right:max(8px,env(safe-area-inset-right));
+    gap:2px;
+  }
+  #audioBtn { font-size:10px;padding:4px 9px;line-height:1.25 }
+  #audioMixer summary { padding:3px 8px;font-size:9px }
+  #audioCredits { font-size:9px;padding:1px 3px }
+
+  /* Keep at least 44px-high thumb targets, but reclaim vertical space. */
+  .mobile {
+    left:max(8px,env(safe-area-inset-left));
+    right:max(8px,env(safe-area-inset-right));
+    bottom:max(6px,env(safe-area-inset-bottom));
+  }
+  #stick { width:104px;height:104px }
+  #knob { width:49px;height:49px;margin:-24.5px 0 0 -24.5px }
+  .mobile-buttons { width:180px;gap:4px }
+  .mobile-main { gap:4px }
+  #actionBtn {
+    min-height:46px;
+    padding-left:34px;
+    font-size:12px;
+  }
+  #actionBtn::before { width:22px;height:22px;left:8px }
+  #burstBtn,#quietBtn { min-height:44px;font-size:10px;padding-left:25px }
+  #burstBtn::before,#quietBtn::before { left:5px;width:18px;height:18px }
+  .mobile-abilities { bottom:99px;gap:4px }
+  .mobile-abilities button { min-height:44px;width:75px;font-size:9px;padding-left:27px }
+}
+
+/* A narrow landscape viewport cannot fit an always-on radar alongside the
+   flight controls. Keep the map available; prioritise the playable centre. */
+@media (pointer:coarse) and (orientation:landscape) and (max-width:690px) {
+  #hud.cockpit-hud .cockpit-wing { width:clamp(155px,26vw,180px) }
+  #hud.cockpit-hud .wing-right {
+    left:calc(max(8px,env(safe-area-inset-left)) + clamp(155px,26vw,180px) + 6px);
+  }
+  #hud.cockpit-hud .hud-stat-head span { font-size:8px }
+  #hud.cockpit-hud .hud-stat-head b { font-size:9px }
+  #hud.cockpit-hud .hud-combat-heading strong { font-size:9px }
+  #hud.cockpit-hud .radar-unit { display:none }
+  .mobile-buttons { width:154px }
+  #hud.cockpit-hud #message {
+    left:calc(50% - 22px);
+    max-width:calc(100vw - 290px);
+    font-size:10px;
+  }
+}
+
+/* Very shallow browser windows have less room below the upper rail.
+   Keep the caption short and keep the thumb controls in view. */
+@media (pointer:coarse) and (orientation:landscape) and (max-height:240px) {
+  #hud.cockpit-hud .cockpit-wing { top:52px }
+  #hud.cockpit-hud .radar-unit { top:57px;width:70px;height:74px }
+  #hud.cockpit-hud .radar-unit #radar { width:60px;height:60px }
+  #hud.cockpit-hud #message {
+    max-height:3.8em;
+    font-size:10px;
+    padding:3px 7px;
+  }
+  #audioControls { top:47px }
+}
