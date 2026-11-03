@@ -1,4 +1,4 @@
-import {SYSTEMS, ISSUE_REFS, REF_TITLES, PARTIAL_REFS} from './systems-data.js?v=systems-1';
+import {SYSTEMS, ISSUE_REFS, REF_TITLES, PARTIAL_REFS, WORKSTREAMS} from './systems-data.js?v=systems-3';
 
 const $ = id => document.getElementById(id);
 const make = (tag, klass, value) => {
@@ -172,6 +172,26 @@ function renderDetail() {
  footer.append(copy);
  root.append(footer, status);
 }
+
+function renderWorkstreams() {
+ const root = $('sys-roadmap-list');
+ if (!root) return;
+ root.replaceChildren();
+ for (const stream of WORKSTREAMS) {
+  const button = make('button', 'sys-milestone');
+  button.type = 'button';
+  button.setAttribute('aria-label', stream.title + ': открыть подробную концепцию');
+  const head = make('span', 'sys-milestone-head');
+  head.append(make('strong', '', stream.title), make('em', '', stream.state));
+  const fact = make('p', '', stream.fact);
+  const next = make('p', '', stream.next);
+  const gate = make('small', '', 'УСЛОВИЕ ПРИЁМКИ · ' + stream.gate);
+  button.append(head, fact, next, gate);
+  button.addEventListener('click', () => choose(stream.id, true));
+  root.append(button);
+ }
+}
+
 function renderCoverage() {
  const box = $('sys-coverage-list');
  const sections = [
@@ -221,6 +241,7 @@ function init() {
  });
  renderFilters();
  renderCards();
+ renderWorkstreams();
  renderCoverage();
  renderDetail();
 }
