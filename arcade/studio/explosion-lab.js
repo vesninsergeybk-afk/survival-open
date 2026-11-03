@@ -1,4 +1,4 @@
-import {EXPLOSION_ASSETS,EXPLOSION_TYPES,EXPLOSION_BUDGET} from './explosion-design.js?v=explosions-1';
+import {EXPLOSION_ASSETS,EXPLOSION_TYPES,EXPLOSION_BUDGET} from './explosion-design.js?v=explosions-2';
 
 // Read-only interactive rendering. This module is never imported by the game.
 const W=960,H=450,TAU=Math.PI*2;
