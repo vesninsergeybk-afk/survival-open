@@ -1,6 +1,6 @@
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=corridor-return-1';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
-import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=corridor-return-1';
+import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=corridor-return-2';
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
@@ -156,7 +156,7 @@ export function renderWorldMap(game){
    Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. У налётчиков есть прицельный залп: перехватывайте до его завершения.':
   operation.phase==='return'?'Особая операция «Глухой коридор»: глушитель отключён. Телеметрия сохранена. Вернитесь в домашний док и нажмите E для передачи данных и получения награды.':
    'Особая операция «Глухой коридор»: уничтожьте отмеченный передатчик. Осталось '+Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. Фаза: '+
-  (corridorCue(operation,game.time,distance(operation,p))?.label||'неизвестна')+'.'):
+  (corridorCue(operation,game.time,distance(operation,p))?.label||'неизвестна')+'. После отключения вернитесь в док за наградой.'):
   previewTarget?(previewProbe?'Предварительная разведка: здесь ожидается аварийный зонд. Место пока известно приблизительно.':
    previewRelay?'Предварительный маршрут: ретранслятор арсенала. Отразите три конечные волны.':
    'Предварительная разведка: источник помех находится к востоку от дока. Операция ещё не принята.'):
