@@ -5,6 +5,7 @@
  */
 import {drawEvolvedHero, heroMotionPose} from '../src/hero-evolution.js';
 import {drawAnimatedEnemyShip} from '../src/disruptor-ship-sprites.js';
+import {drawIrisDrone} from './iris-drone-renderer.js';
 import {drawStationPart, STATION_PARTS} from '../src/station-art.js?v=base-86';
 import {drawTurretMount,drawTurretHead} from '../src/turret-visuals.js?v=turret-visuals-1';
 import {drawEnemyBolt} from '../src/combat-art.js?v=art-888';
@@ -150,6 +151,8 @@ function prepareCapitalSprite(image){
 export class ArcadeVisuals {
  constructor(){
   this.sector=-1;this.layer=0;
+  this.irisDroneQA=typeof location!=='undefined'&&
+   new URLSearchParams(location.search).get('iris')==='1';
   this.rockAtlases=Object.create(null);this.roughRocks=Object.create(null);
   this.legacyMeteors=[];this.capitalSprites=Object.create(null);
   this.derelictImage=null;
@@ -399,7 +402,8 @@ export class ArcadeVisuals {
   e.visualAngle=e.angle||0;
   e.size=e.type==='gunship'?23:e.type==='berserker'?18:15;
   const capital=e.type==='gunship'&&e.serial%2===0&&this.drawCapital(ctx,e,time);
-  const drawn=capital||drawAnimatedEnemyShip(ctx,e);
+  const drawn=capital||(this.irisDroneQA&&
+    drawIrisDrone(ctx,e,time,this.reducedMotion))||drawAnimatedEnemyShip(ctx,e);
   if(!drawn||e.converted)return drawn;
   // A minimal faction bracket and archetype signal: quick recognition in a
   // crowd without nameplates covering the battlefield.
