@@ -73,6 +73,9 @@ test('cockpit explains defense eligibility, the real EMP phase and probe repair'
  assert.match(missionHudText(ship),/ВЕРНИТЕСЬ НА БАЗУ/);
  ship.contract=null;ship.operation={...op(),x:0,y:0,pulseCharge:1.5,pulseLocked:true};
  assert.match(missionHudText(ship),/ЗАРЯДКА ЭМ-ИМПУЛЬСА/);
+ ship.operation={...op(),x:1100,y:80,baseId:'dock',phase:'return',hp:0};
+ assert.match(missionHudText(ship),/ВЕРНИТЕСЬ В ДОК/);
+ assert.match(missionHudText(ship),/1680 М/);
  ship.operation={id:'last-signal',x:0,y:0,repair:43};
  const probe=missionHudText(ship);
  assert.match(probe,/РЕМОНТ 43%/);
