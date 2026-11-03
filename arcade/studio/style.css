@@ -100,3 +100,30 @@ footer{border-top:1px solid #263b50;max-width:1260px;padding:22px clamp(15px,3.5
 @media(max-width:920px){.loop-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.brief-grid,.check-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.loop-steps{grid-template-columns:1fr}.scenario-mode button{flex:1}.scenario-mode .mode-source{width:100%;margin:0}.check-panel{padding:15px}}
+
+/* Датированный аудит: краткая сводка без дублирования лабораторий. */
+.audit-section{margin-top:32px;padding-top:25px;border-top:1px solid #35536a}
+.audit-section h3{font-size:clamp(21px,2.7vw,28px);line-height:1.2;margin:8px 0 0}
+.audit-summary{font-size:13px;color:#d3e5ef;background:#112c3b;border-left:3px solid #7bdacf;padding:11px 14px;border-radius:0 9px 9px 0;line-height:1.5}
+.audit-filters{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0}
+.audit-filter{font-size:12px;color:#b8d8e5;border:1px solid #345267;background:#10283c;border-radius:9px;padding:8px 11px;cursor:pointer}
+.audit-filter[aria-pressed="true"]{background:#17666c;color:#f1ffff;border-color:#76d9d5}
+.audit-filter:focus-visible{outline:2px solid #83e1d9;outline-offset:3px}
+.audit-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.audit-item{min-width:0;background:#102337;border:1px solid #2c4b63;border-radius:11px;align-self:start;overflow:hidden}
+.audit-item[open]{border-color:#6b9eac}
+.audit-item summary{display:flex;align-items:center;justify-content:space-between;gap:9px;min-height:61px;cursor:pointer;padding:11px 14px}
+.audit-item summary::marker{color:#85d7e2}
+.audit-item-title{display:grid;gap:4px}
+.audit-item-title strong{font-size:13px;color:#edf7ff;line-height:1.35}
+.audit-item-title small{font-size:11px;color:#adc9d8}
+.audit-state{flex-shrink:0;font-size:11px;border:1px solid #4b6675;border-radius:99px;padding:4px 7px;color:#a7e8e4}
+.audit-trial .audit-state{color:#f9d5a0;border-color:#8d7458}
+.audit-gap .audit-state{color:#ffb7ab;border-color:#91675d}
+.audit-partial .audit-state{color:#c1ccfa;border-color:#747b9f}
+.audit-item-body{border-top:1px solid #2c4b63;padding:11px 14px 15px}
+.audit-item-body p{font-size:12px;color:#bbcfde;line-height:1.55;margin:0 0 9px}
+.audit-item-body p b{color:#e9f7fc}
+.audit-source{font-size:12px;color:#8fe7e0}
+@media(max-width:860px){.audit-list{grid-template-columns:1fr}}
+@media(max-width:480px){.audit-section{margin-top:25px;padding-top:19px}.audit-filter{font-size:11px;padding:8px}.audit-item summary{align-items:flex-start}.audit-state{white-space:nowrap}}
