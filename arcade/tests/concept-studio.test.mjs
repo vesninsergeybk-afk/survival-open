@@ -203,7 +203,7 @@ test('one existing workshop hosts playable explosion study without touching comb
   'explosion-scrub','explosion-timeline','explosion-parallel','explosion-quality','explosion-budget','explosion-assets'])
   assert.match(page,new RegExp('id="'+id+'"'),id);
  assert.match(app,/initExplosionLab\(\)/);
- assert.match(page,/studio-explosions-2/);
+ assert.match(page,/studio-carrier-intercept-1/);
  assert.match(app,/explosion-lab\.js\?v=explosions-2/);
  assert.match(read('../studio/explosion-lab.js'),/explosion-design\.js\?v=explosions-2/);
  assert.match(style,/\.explosion-timeline/);
@@ -266,7 +266,7 @@ test('workshop roadmap links to real system concepts and sets measurable accepta
  assert.match(css,/\.sys-milestone:focus-visible/);
  assert.match(html,/systems-app\.js\?v=emp-cue-1/);
  const app=read('../studio/app.js');
- assert.match(html,/app\.js\?v=studio-explosions-2-gameplay-2/);
- assert.match(app,/concepts\.js\?v=studio-design-3/);
- assert.match(app,/design-brief\.js\?v=studio-design-3/);
+ assert.match(html,/app\.js\?v=studio-carrier-intercept-1/);
+ assert.match(app,/concepts\.js\?v=carrier-intercept-1/);
+ assert.match(app,/design-brief\.js\?v=carrier-intercept-1/);
 });
