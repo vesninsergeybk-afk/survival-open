@@ -12,28 +12,38 @@ export function corridorCue(operation, now, distance) {
   if (!operation || operation.id !== 'silent-corridor' || operation.hp <= 0) return null;
   const range = operation.pulseRange || 315;
   const period = operation.pulsePeriod || 4.2;
+  const inPulseZone = Number.isFinite(distance) && distance <= range;
+  // A pulse hits once at discharge, not throughout the post-pulse visual flash.
   if (now < (operation.pulseFlashUntil || 0)) {
-    return {key:'discharge', label:'ЭМ-РАЗРЯД', hint:'ОПАСНАЯ ЗОНА · '+range+' М', color:'#ff907e'};
+    return {key:'discharge', label:'ЭМ-РАЗРЯД ПРОШЁЛ',
+      hint:'ИМПУЛЬС СРАБОТАЛ · АТАКУЙТЕ', color:'#ffb69a'};
   }
+  // Only actual overheat applies the 35% damage bonus.
   if (now < (operation.overheatedUntil || 0)) {
-    return {key:'overheat', label:'ПЕРЕГРЕВ · УЯЗВИМ', hint:'ЗАЩИТА ОСЛАБЛЕНА · АТАКУЙТЕ', color:'#8bf3cf'};
+    return {key:'overheat', label:'ПЕРЕГРЕВ · УЯЗВИМ',
+      hint:'ЛУЧ +35% УРОНА · АТАКУЙТЕ', color:'#8bf3cf'};
   }
   const charge = Math.max(0,Math.min(period,operation.pulseCharge || 0));
   if (charge >= period * .78) {
-    return {key:'danger', label:'ОПАСНОСТЬ · ИМПУЛЬС',
-      hint:'РАЗРЯД ЧЕРЕЗ '+Math.max(.1,period-charge).toFixed(1)+' С · ОТОЙДИТЕ ЗА '+range+' М',
+    const remaining = Math.max(.1,period-charge).toFixed(1);
+    return {key:'danger', label:'СКОРО ЭМ-РАЗРЯД',
+      hint:inPulseZone?'ЧЕРЕЗ '+remaining+' С · ВЫЙДИТЕ ЗА '+range+' М':
+        'ВНЕ ЗОНЫ УДАРА · ДО РАЗРЯДА '+remaining+' С',
       color:'#ffd083'};
   }
   if (charge > .2) {
     return {key:'charging', label:'ЗАРЯДКА ЭМ-ИМПУЛЬСА',
-      hint:(operation.pulseLocked?'РАЗРЯД НЕИЗБЕЖЕН · ':'УСПЕЙТЕ ВЫЙТИ · ')+
-       'ОТОЙДИТЕ ЗА '+range+' М', color:'#e6a8ff'};
+      hint:inPulseZone?
+        (operation.pulseLocked?'РАЗРЯД БУДЕТ · ':'ЗАРЯДКА ИДЁТ · ')+'ВЫЙДИТЕ ЗА '+range+' М':
+        (operation.pulseLocked?'ВНЕ ЗОНЫ УДАРА · ЗАРЯДКА ИДЁТ':'ВНЕ ЗОНЫ УДАРА · ЗАРЯД СНИЖАЕТСЯ'),
+      color:'#e6a8ff'};
   }
-  const focusRange=operation.focusRange || 255;
-  if(distance>focusRange)return {key:'approach',label:'ЦЕЛЬ ВПЕРЕДИ',
-    hint:'ДО ЦЕЛИ '+Math.round(distance)+' М · ЛУЧ ДО '+focusRange+' М',color:'#9de7f5'};
-  return {key:'vulnerable', label:'УЯЗВИМ · МОЖНО АТАКОВАТЬ',
-    hint:'ЛУЧ НАВЕДЁН НА ГЛУШИТЕЛЬ', color:'#9de7f5'};
+  const focusRange = operation.focusRange || 255;
+  if (distance > focusRange) return {key:'approach', label:'ЦЕЛЬ ВНЕ ДАЛЬНОСТИ',
+    hint:'ДО ЦЕЛИ '+Math.round(distance)+' М · ЛУЧ ДО '+focusRange+' М', color:'#9de7f5'};
+  // Distance permits an attack; an asteroid may still obstruct the actual shot.
+  return {key:'ready', label:'АТАКА ДОСТУПНА',
+    hint:'ЛУЧ ДО '+focusRange+' М · ПРОВЕРЬТЕ ПРЕГРАДЫ', color:'#9de7f5'};
 }
 
 // Only the issuing friendly station defines an active defense contract perimeter.

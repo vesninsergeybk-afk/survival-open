@@ -33,7 +33,9 @@ test('corridor cues match distinct real mission phases',()=>{
  const mission=op();
  assert.equal(corridorCue(mission,12,1400).key,'approach');
  assert.match(corridorCue(mission,12,1400).hint,/ДО ЦЕЛИ 1400 М/);
- assert.equal(corridorCue(mission,12,240).key,'vulnerable');
+ assert.equal(corridorCue(mission,12,240).key,'ready');
+ assert.doesNotMatch(corridorCue(mission,12,240).label,/УЯЗВИМ/);
+ assert.doesNotMatch(corridorCue(mission,12,240).hint,/НАВЕДЁН/);
  mission.pulseCharge=1.2;
  assert.equal(corridorCue(mission,12,240).key,'charging');
  mission.pulseLocked=true;
@@ -42,11 +44,12 @@ test('corridor cues match distinct real mission phases',()=>{
  const danger=corridorCue(mission,12,240);
  assert.equal(danger.key,'danger');
  assert.match(danger.hint,/ОТОЙДИТЕ/);
+ mission.pulseCharge=0;mission.pulseLocked=false;
  mission.pulseFlashUntil=12.5;
  mission.overheatedUntil=14;
  assert.equal(corridorCue(mission,12.1,240).key,'discharge');
  assert.equal(corridorCue(mission,12.7,240).key,'overheat');
- assert.equal(corridorCue(mission,14.1,240).key,'danger');
+ assert.equal(corridorCue(mission,14.1,240).key,'ready');
  mission.hp=0;
  assert.equal(corridorCue(mission,14.1,240),null);
  assert.equal(corridorCue({id:'last-signal',hp:100},14.1,240),null);
@@ -96,4 +99,45 @@ test('cockpit, map and game import the same mission-feedback module revision',()
  };
  assert.equal(revision(game),revision(hud),'cockpit must receive the active mission phases');
  assert.equal(revision(game),revision(map),'tactical map must receive the same mission phases');
+});
+
+test('подсказки игры совпадают с утверждёнными сценариями мастерской', async () => {
+ const {EMP_CUE_FRAMES}=await import('../studio/systems-data.js');
+ for(const frame of EMP_CUE_FRAMES){
+  const sample={...op(),pulseCharge:frame.charge,pulseLocked:frame.locked,
+   pulseFlashUntil:frame.flashUntil,overheatedUntil:frame.overheatedUntil};
+  const actual=corridorCue(sample,frame.now,frame.distance);
+  assert.equal(actual?.key,frame.key,frame.name);
+  assert.equal(actual?.label,frame.label,frame.name);
+  assert.equal(actual?.hint,frame.hint,frame.name);
+  assert.equal(actual?.color,frame.color,frame.name);
+ }
+});
+
+test('вне радиуса ЭМ-импульс продолжает заряжаться, но ИИ не приказывает уходить',()=>{
+ const mission={...op(),pulseCharge:1.3,pulseLocked:true};
+ const charge=corridorCue(mission,12,370);
+ assert.equal(charge.key,'charging');
+ assert.match(charge.hint,/ВНЕ ЗОНЫ УДАРА/);
+ assert.doesNotMatch(charge.hint,/ВЫЙДИТЕ/);
+ mission.pulseCharge=3.8;
+ const danger=corridorCue(mission,12,370);
+ assert.equal(danger.key,'danger');
+ assert.match(danger.hint,/ВНЕ ЗОНЫ УДАРА/);
+ assert.doesNotMatch(danger.hint,/ВЫЙДИТЕ/);
+ mission.pulseCharge=1;mission.pulseLocked=false;
+ assert.match(corridorCue(mission,12,370).hint,/ЗАРЯД СНИЖАЕТСЯ/);
+});
+
+test('фаза после удара и окно +35% не дают ложных обещаний',()=>{
+ const mission={...op(),pulseFlashUntil:12.55,overheatedUntil:14.3};
+ const flashed=corridorCue(mission,12.1,240);
+ assert.equal(flashed.key,'discharge');
+ assert.match(flashed.label,/ПРОШЁЛ/);
+ assert.doesNotMatch(flashed.hint,/ОПАСНАЯ ЗОНА|ОТОЙДИТЕ/);
+ const boost=corridorCue(mission,12.8,240);
+ assert.equal(boost.key,'overheat');
+ assert.match(boost.hint,/ЛУЧ \+35%/);
+ assert.equal(corridorCue(mission,14.4,240).key,'ready');
+ assert.doesNotMatch(corridorCue(mission,14.4,240).label,/УЯЗВИМ/);
 });
