@@ -301,7 +301,7 @@ $('copy-notes').addEventListener('click',async()=>{
  try{await navigator.clipboard.writeText(JSON.stringify(data,null,2));$('notes-status').textContent='Концепции и заметки скопированы';}
  catch{$('notes-status').textContent='Буфер недоступен: скопируйте заметки из поля вручную';}
 });
-const studioTabs=['scenario','loop','effects','concepts','tools'];
+const studioTabs=['scenario','systems','loop','effects','concepts','tools'];
 function sizeComparisonFrame(){
  const frame=$('vfx-compare-frame');
  if(!frame)return;

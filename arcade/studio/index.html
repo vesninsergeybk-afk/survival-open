@@ -8,6 +8,8 @@
 <title>Мастерская концепций · Выживший</title>
 <link rel="stylesheet" href="./style.css?v=studio-explosions-1">
 <script type="module" src="./app.js?v=studio-explosions-1"></script>
+<link rel="stylesheet" href="./systems.css?v=systems-1">
+<script type="module" src="./systems-app.js?v=systems-1"></script>
 </head>
 <body>
 <header class="topbar">
@@ -28,11 +30,27 @@
  </section>
  <nav class="tabs" aria-label="Разделы мастерской">
   <button type="button" data-tab="scenario" aria-pressed="true">Сценарии заданий</button>
+  <button type="button" data-tab="systems" aria-pressed="false">Игровые системы · 31 идея</button>
   <button type="button" data-tab="loop" aria-pressed="false">Петля игры и баланс</button>
   <button type="button" data-tab="effects" aria-pressed="false">VFX · эффекты</button>
   <button type="button" data-tab="concepts" aria-pressed="false">Концепты и критерии</button>
   <button type="button" data-tab="tools" aria-pressed="false">Стенды ресурсов</button>
  </nav>
+ <section id="panel-systems" class="tab-panel" hidden aria-labelledby="systems-title">
+  <div class="section-head"><div><span class="eyebrow">ГЕЙМДИЗАЙН · ИЗ ПЕРВОГО СООБЩЕНИЯ</span><h2 id="systems-title">Игровые системы: от идеи до проверки</h2></div><p>Здесь собраны все 31 исходная задача: что делает игрок, как реагирует мир, какое решение возникает, что может сломать баланс и как проверить концепцию в настоящей игре.</p></div>
+  <div class="sys-notice"><strong>Это проектные схемы.</strong> Работающая часть механик отмечена отдельно. Последовательности, длительность и предполагаемые эффекты ещё не считаются игровыми параметрами.</div>
+  <div class="sys-metrics" id="sys-metrics" aria-live="polite"></div>
+  <div class="sys-model" role="img" aria-label="Сигнал, затем решение игрока, затем ответ мира, затем измеримый результат"><span>СИГНАЛ</span><b>→</b><span>РЕШЕНИЕ</span><b>→</b><span>ОТВЕТ МИРА</span><b>→</b><span>ПОСЛЕДСТВИЕ</span></div>
+  <div class="sys-workbench">
+   <aside class="sys-sidebar" aria-label="Каталог игровых систем">
+    <div class="sys-controls"><label for="sys-search">Найти идею или пункт</label><input id="sys-search" type="search" placeholder="Например, метеориты, Б2, связь…"><div class="sys-filters" id="sys-filters"></div></div>
+    <div class="sys-cards" id="sys-cards"></div>
+   </aside>
+   <article class="sys-detail" id="sys-detail" aria-live="polite"></article>
+  </div>
+  <section class="sys-coverage" aria-labelledby="sys-coverage-title"><div class="section-head"><div><span class="eyebrow">НИ ОДНА ИДЕЯ НЕ ТЕРЯЕТСЯ</span><h3 id="sys-coverage-title">Сверка всех 31 пунктов</h3></div><p>Номер ведёт к концепции. «Частично в коде» не означает «пройдено и готово».</p></div><div id="sys-coverage-list"></div></section>
+  <p class="disclaimer">Единый реестр исходных идей: <a href="https://github.com/vesninsergeybk-afk/survival-open/issues/1" target="_blank" rel="noopener noreferrer">GitHub issue #1</a>. Концепции не изменяют непосредственно игровую механику. Проверенные этапы перенесём в код отдельными небольшими изменениями.</p>
+ </section>
  <section id="panel-scenario" class="tab-panel" aria-labelledby="scenario-title">
   <div class="section-head">
    <div><span class="eyebrow">GAME DESIGN / МИССИИ</span><h2 id="scenario-title">Развитие игровых ситуаций</h2></div>
