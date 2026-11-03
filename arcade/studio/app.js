@@ -1,7 +1,7 @@
-import {SCENARIOS,EFFECTS,CONCEPTS} from './concepts.js?v=studio-design-3';
+import {SCENARIOS,EFFECTS,CONCEPTS} from './concepts.js?v=carrier-intercept-1';
 import {VISUAL_AUDIT,VISUAL_STATUS} from './visual-audit.js?v=visual-audit-1';
 import {initExplosionLab} from './explosion-lab.js?v=explosions-2';
-import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from './design-brief.js?v=studio-design-3';
+import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from './design-brief.js?v=carrier-intercept-1';
 
 const $=id=>document.getElementById(id);
 const make=(tag,klass,text)=>{const el=document.createElement(tag);if(klass)el.className=klass;if(text!==undefined)el.textContent=text;return el;};
@@ -25,6 +25,7 @@ function scenarioPhases(){
 }
 function initScenario(){
  const scenario=SCENARIOS[activeScenario],baseline=SCENARIO_BASELINES[activeScenario];
+ $('carrier-concept-link').hidden=activeScenario!=='carrier';
  if(scenarioMode==='current'&&!baseline.phases.length)scenarioMode='proposal';
  const phases=scenarioPhases();
  phaseIndex=Math.min(phaseIndex,phases.length-1);
@@ -103,10 +104,79 @@ function drawShip(ctx,x,y,size,angle=0,color='#9ceeff'){
  ctx.beginPath();ctx.moveTo(size,0);ctx.lineTo(-size*.75,-size*.7);ctx.lineTo(-size*.3,0);ctx.lineTo(-size*.75,size*.7);ctx.closePath();ctx.fillStyle='#183b53';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle=color;ctx.stroke();
  ctx.restore();
 }
+// Schematic carrier route: the position changes between storyboard beats.
+// The numbers are illustrations of the proposal, not a running game timer.
+function drawCarrierRoute(ctx,w,h,phase){
+ const point=(x,y)=>({x:x*w,y:y*h});
+ const base=point(.14,.52),meet=point(.29,.65),bend=point(.59,.45),exit=point(.89,.22);
+ const progress=Math.max(0,Math.min(1,phase.progress||0));
+ const lerp=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});
+ const cargo=progress<.54?lerp(meet,bend,progress/.54):lerp(bend,exit,(progress-.54)/.46);
+ const isReturn=phase.id==='return'||phase.id==='result';
+ const revealed=!['brief','approach'].includes(phase.id);
+ ctx.save();
+ ctx.setLineDash([8,9]);ctx.strokeStyle='#628e9e90';ctx.lineWidth=2;
+ ctx.beginPath();ctx.moveTo(base.x,base.y);ctx.lineTo(meet.x,meet.y);ctx.stroke();
+ ctx.strokeStyle='#f1cb80b3';ctx.setLineDash([12,8]);ctx.lineWidth=2.2;
+ ctx.beginPath();ctx.moveTo(meet.x,meet.y);ctx.lineTo(bend.x,bend.y);ctx.lineTo(exit.x,exit.y);ctx.stroke();
+ ctx.setLineDash([]);
+ // The exit is visible before the chase so failure never comes as a surprise.
+ ctx.strokeStyle='#f6a681';ctx.lineWidth=3;
+ ctx.beginPath();ctx.moveTo(exit.x-13,exit.y-46);ctx.lineTo(exit.x+13,exit.y+46);ctx.stroke();
+ label(ctx,'ВЫХОД КОНВОЯ',exit.x-88,exit.y-57,'#ffbea0',11);
+ circle(ctx,base.x,base.y,28,'#6bb8dd',2);
+ polygon(ctx,base.x,base.y,14,4,'#a4e5f2',Math.PI/4);
+ label(ctx,'АВИАНОСЕЦ',base.x-42,base.y+45,'#9de6ef',11);
+ circle(ctx,meet.x,meet.y,34,'#72b4df60',2);
+ label(ctx,revealed?'ТОЧКА КОНТАКТА':'РАЙОН ПОИСКА',meet.x-60,meet.y+53,'#a8cce5',10);
+ if(revealed){
+  const stopped=isReturn;
+  if(stopped){circle(ctx,cargo.x,cargo.y,38,'#78ddb0',3);}
+  ctx.save();
+  ctx.translate(cargo.x,cargo.y);
+  ctx.rotate(-.52);
+  ctx.fillStyle=stopped?'#183d40':'#3d4b5f';
+  ctx.strokeStyle=stopped?'#88dcb9':'#ffe1a0';
+  ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.moveTo(-39,-10);ctx.lineTo(-16,-17);ctx.lineTo(23,-15);
+  ctx.lineTo(41,0);ctx.lineTo(23,15);ctx.lineTo(-16,17);ctx.lineTo(-39,10);
+  ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle=stopped?'#72b59d':'#b0c0d1';
+  ctx.fillRect(-23,-9,14,18);ctx.fillRect(-5,-9,14,18);ctx.fillRect(13,-8,10,16);
+  ctx.restore();
+  label(ctx,stopped?'ГРУЗ ОСТАНОВЛЕН':'ТРАНСПОРТ',cargo.x-64,cargo.y-39,stopped?'#98edc8':'#ffe0a0',11);
+  if(!stopped){
+   ctx.fillStyle='#263e4f';ctx.fillRect(cargo.x-34,cargo.y+27,68,5);
+   ctx.fillStyle='#e9b86c';ctx.fillRect(cargo.x-34,cargo.y+27,68,5);
+   for(let i=0;i<Math.min(phase.enemy||0,2);i++){
+    polygon(ctx,cargo.x+(i?56:-44),cargo.y+(i?34:-29),11,3,'#f38e8c',Math.PI/2);
+   }
+  }
+ }else{
+  label(ctx,'МЕСТО ТРАНСПОРТА ЕЩЁ НЕИЗВЕСТНО',meet.x-60,meet.y-54,'#bad3e4',10);
+ }
+ const ship=point(phase.x,phase.y);
+ drawShip(ctx,ship.x,ship.y,19,revealed?Math.atan2(cargo.y-ship.y,cargo.x-ship.x):-.3);
+ circle(ctx,ship.x,ship.y,28,'#6fa6c383',1);
+ label(ctx,'ВЫ',ship.x-12,ship.y-35,'#9ceeff',12);
+ if(isReturn){
+  ctx.save();ctx.setLineDash([10,8]);ctx.strokeStyle='#ffd17d';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(ship.x,ship.y);ctx.lineTo(base.x,base.y);ctx.stroke();ctx.restore();
+  label(ctx,phase.id==='result'?'СВЕДЕНИЯ СДАНЫ':'НАГРАДА НА АВИАНОСЦЕ',w*.39,h*.17,'#9bf0c5',14);
+ }else if(revealed){
+  label(ctx,'МАРШРУТ КОНВОЯ · '+Math.round(progress*100)+'%',w*.39,h*.12,'#ffe1a2',13);
+ }
+ label(ctx,'КОНЦЕПТ · КООРДИНАТЫ И СКОРОСТЬ НЕ ИГРОВЫЕ',18,25,'#8aafc4',10);
+ ctx.restore();
+}
 function drawScenario(){
  const cv=$('scenario-canvas'),ctx=cv.getContext('2d'),w=cv.width,h=cv.height;
  const scenario=SCENARIOS[activeScenario],phase=scenarioPhases()[phaseIndex];
  space(ctx,w,h);
+ if(activeScenario==='carrier'&&scenarioMode==='proposal'){
+  drawCarrierRoute(ctx,w,h,phase);
+  return;
+ }
  const bx=w*.14,by=h*.52,tx=w*.78,ty=h*.43,sx=w*phase.x,sy=h*phase.y;
  // Actual screen topology is intentionally schematic.
  ctx.setLineDash([8,10]);ctx.strokeStyle='#538a9a';ctx.lineWidth=2;
