@@ -113,3 +113,14 @@ test('station UI, map and cockpit describe the actual relay-defense mission',()=
  assert.match(renderWorldMap(game),/Ретранслятор/);
  assert.match(missionHudText(game),/АТАКА ЧЕРЕЗ 10 С/);
 });
+
+test('relay success reveals the nearby laboratory before an unreleased carrier operation',()=>{
+ const {game,base,op}=scenario();
+ const carrier={id:'carrier',x:op.x+850,y:op.y,type:'carrier',active:false,discovered:false,enemy:false};
+ const lab={id:'lab',x:op.x+1070,y:op.y,type:'lab',active:false,discovered:false,enemy:false};
+ game.world.nearbyStations=()=>[carrier,lab];
+ game.completeRelayDefense(op);
+ assert.equal(game.waypoint?.id,lab.id);
+ assert.equal(lab.discovered,true);
+ assert.equal(carrier.discovered,false);
+});

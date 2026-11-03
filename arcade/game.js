@@ -561,7 +561,7 @@ export class ArcadeGame {
   if(!base||base.relayDefenseDone)return;
   base.relayDefenseDone=true;base.relayMission=null;this.operation=null;
   if(this.waypoint?.id===RELAY_DEFENSE.id)this.waypoint=null;
-  const next=chooseOperationLead(this.world,op,base.id,'carrier',2500);
+  const next=chooseOperationLead(this.world,op,base.id,'lab',2500);
   if(next){next.discovered=true;this.world.discovered.add(next.id);
    if(!this.waypoint)this.waypoint={id:next.id,x:next.x,y:next.y,
     label:baseNames[next.type]||'Станция'};}
