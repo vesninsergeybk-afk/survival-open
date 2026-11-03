@@ -84,13 +84,13 @@ const replacements = {
   lightning: [k('forceField_000')], mine: [k('doorClose_001')],
   garlic: [k('forceField_001')], frost_nova: [k('forceField_002')],
   soul_drain: [b('base_repair_pulse')], boomerang: [k('laserRetro_004')],
-  railgun: [k('laserLarge_004')], drone_swarm: [b('base_escort_launch')],
+  railgun: [k('laserLarge_004'),k('laserLarge_003')], drone_swarm: [b('base_escort_launch')],
   retro_blaster: [k('laserRetro_000'),k('laserRetro_001')],
   shield_hit: [k('forceField_003')],
   explosion_big: [k('explosionCrunch_003'),k('explosionCrunch_004')],
   boss_warning: [b('base_raid_warning')], level_up: [b('unlock_tech_tier')],
   player_damage: [k('impactMetal_002'),k('impactMetal_003')],
-  player_death: [k('explosionCrunch_004')], boss_spawn: [k('explosionCrunch_001')],
+  player_death: [k('explosionCrunch_004')], boss_spawn: [k('explosionCrunch_001'),k('lowFrequency_explosion_000')],
   achievement: [b('base_raid_success')], engine: [k('spaceEngineLow_000')]
 };
 const limits = {
@@ -137,6 +137,8 @@ export const AUX_SOUNDS = {
   rock_break: cue('Разлом астероида','impact',k('impactMining_003'),.29,2,155,.55),
   extractor_loop: cue('Работа экстрактора','ambient',k('engineCircular_000'),.12,1,500,.9)
 };
+
+AUX_SOUNDS.ui_slider.sampleUrls = [k('impactMetal_heavy_000'),k('impactMetal_heavy_001')];
 
 export const SOUND_CATALOG = { ...WEAPON_SOUNDS, ...EVENT_SOUNDS, ...BASE_SOUNDS, ...AUX_SOUNDS };
 
