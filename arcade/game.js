@@ -11,7 +11,7 @@ import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=corridor-return-3';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=arcade-progressive-noise-58';
-import {ArcadeHeritage} from './heritage.js?v=cinematic-rotation-01';
+import {ArcadeHeritage} from './heritage.js?v=audio-fidelity-01';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=corridor-return-2';
@@ -1163,6 +1163,8 @@ export class ArcadeGame {
     if(hit)this.damageEnemy(e,m.damage,'rocket',contact);
     if(hit)this.heritage.vfx.rocketImpact(contact?.x??m.x,contact?.y??m.y,26);
     else this.heritage.vfx.rocketImpact(m.x,m.y,12);
+    // The warhead has an audible detonation, not just a visual flash.
+    this.heritage.play('rocketImpact',.2,{x:contact?.x??m.x,y:contact?.y??m.y});
     m.life=-1;
    }
   }
@@ -1209,6 +1211,7 @@ export class ArcadeGame {
     damage>=40,contact);
    t.nextVfxHit=this.time+.15;
   }
+  this.heritage.play('armorHit',.35,{x:t.x,y:t.y});
   if(t.hp<=0){this.heritage.vfx.shipExplosion(t.x,t.y,21,'#ff6974');
    this.heritage.play('explosion',.25,{x:t.x,y:t.y});}
  }
@@ -1637,7 +1640,7 @@ export class ArcadeGame {
     this.heritage.vfx.shipExplosion(e.x,e.y,e.r*(heavy?1.65:1),
      e.converted?'#73ffda':'#ff8594',heavy);
     if(heavy)this.heritage.vfx.nova(e.x,e.y,110,'red');
-    this.heritage.play(heavy?'largeExplosion':'explosion',.18);
+    this.heritage.play(heavy?'largeExplosion':'explosion',.18,{x:e.x,y:e.y});
    }
    if(!e.expAwarded&&!e.converted){
     e.expAwarded=true;

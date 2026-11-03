@@ -111,3 +111,51 @@ test('starter auto-fire recedes during continuous volleys and resets after quiet
  h.play('laser',0.32);
  assert.equal(shots.at(-1).intensity,1,'first shot after quiet has its full presence');
 });
+
+test('the final mix has a limiter and music ducking never overwrites player volume',()=>{
+ const oldWindow=globalThis.window,ctx=fakeContext();
+ ctx.state='running';ctx.destination={};
+ ctx.createDynamicsCompressor=()=>({
+  threshold:fakeParam(),knee:fakeParam(),ratio:fakeParam(),
+  attack:fakeParam(),release:fakeParam(),connect(target){return target;}
+ });
+ globalThis.window={AudioContext:class {constructor(){return ctx;}}};
+ try {
+  const audio=new AudioEngine({muted:false,musicEnabled:true,masterVolume:.6,
+   sfxVolume:.8,musicVolume:.35});
+  audio.init();
+  assert.ok(audio.limiter,'the summed output must have a safety limiter');
+  assert.notEqual(audio.musicDuckGain,audio.musicGain);
+  audio.musicDuckGain.gain.value=.38;
+  audio.musicScale=.7;
+  audio.applyVolumes();
+  assert.equal(audio.musicDuckGain.gain.value,.38,
+   'scene volume polling must not reset explosion ducking');
+  assert.equal(audio.musicGain.gain.value,.35*.7);
+ } finally {
+  if(oldWindow===undefined)delete globalThis.window;
+  else globalThis.window=oldWindow;
+ }
+});
+
+test('direct procedural effects never exceed their separate voice budget',()=>{
+ const {audio,ctx}=activeEngine();
+ for(let i=0;i<30;i++)audio.tone({freq:120,dur:.1});
+ assert.equal(audio.directVoices.size,16);
+ assert.equal(ctx.starts.length,16);
+ const ended=[...audio.directVoices][0];
+ ended.onended();
+ assert.equal(audio.directVoices.size,15);
+ audio.tone({freq:130,dur:.12});
+ assert.equal(ctx.starts.length,17);
+});
+
+test('both rocket detonation and armored contacts are routed into sound catalog',()=>{
+ const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ const heritage=readFileSync(new URL('../heritage.js',import.meta.url),'utf8');
+ assert.match(game,/this\.heritage\.play\('rocketImpact'/);
+ assert.match(game,/this\.heritage\.play\('armorHit'/);
+ assert.match(game,/this\.heritage\.play\(heavy\?'largeExplosion':'explosion',\.18,\{x:e\.x,y:e\.y\}\)/);
+ assert.match(heritage,/rocketImpact:'explosion_small'/);
+ assert.match(heritage,/armorHit:'armor_hit'/);
+});

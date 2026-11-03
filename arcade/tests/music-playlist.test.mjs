@@ -116,3 +116,33 @@ test('the real music engine crossfades, rotates and resumes without restarting',
     if(originalWindow===undefined)delete globalThis.window;else globalThis.window=originalWindow;
   }
 });
+
+test('a third fast threat transition stops the stale first composition',()=>{
+ const oldAudio=globalThis.Audio,oldWindow=globalThis.window;
+ const media=[];
+ class StubMedia {
+  constructor(){this.paused=true;this.currentTime=0;this.handlers={};media.push(this);}
+  addEventListener(name,fn){this.handlers[name]=fn;}
+  play(){this.paused=false;return Promise.resolve();}
+  pause(){this.paused=true;}
+ }
+ const param=()=>({value:0,cancelScheduledValues(){},setValueAtTime(v){this.value=v;},
+  linearRampToValueAtTime(v){this.value=v;}});
+ const gain=()=>({gain:param(),connect(){return this;}});
+ try {
+  globalThis.Audio=StubMedia;globalThis.window={setTimeout(){}};
+  const audio=new AudioEngine({musicEnabled:true,musicVolume:.3});
+  audio.ctx={state:'running',currentTime:5,createGain:gain,
+   createMediaElementSource(){return {connect(dest){return dest;}}}};
+  audio.musicGain=gain();
+  audio.startMusic();
+  audio.setMusicState('combat');
+  audio.setMusicState('tension');
+  assert.equal(media.filter(slot=>!slot.paused).length,2,
+   'music transitions may overlap at most two tracks');
+  assert.equal(audio.musicOn,true);
+ } finally {
+  if(oldAudio===undefined)delete globalThis.Audio;else globalThis.Audio=oldAudio;
+  if(oldWindow===undefined)delete globalThis.window;else globalThis.window=oldWindow;
+ }
+});

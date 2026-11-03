@@ -24,7 +24,7 @@ for (const [id, sound] of Object.entries(SOUND_CATALOG)) {
   assert(sound.priority >= 1 && sound.priority <= 5, 'Invalid priority: ' + id);
   if (!sound.sampleUrl) continue;
   const path = resolve(here, sound.sampleUrl);
-  // The public repo intentionally omits 26 Sonniss sources.
+  // The public repo intentionally omits 21 Sonniss sources.
   if (sound.sampleUrl.includes('/studio/')) {
     assert(!existsSync(path), 'Studio recording should not ship in public repo: ' + id);
     continue;
@@ -36,7 +36,12 @@ for (const [id, sound] of Object.entries(SOUND_CATALOG)) {
 assert(Object.keys(EVENT_SOUNDS).includes('explosion_big'));
 const studioSamples = Object.values(SOUND_CATALOG).filter(sound => sound.sampleUrl?.includes('/studio/'));
 const stationSamples = Object.values(SOUND_CATALOG).filter(sound => sound.sampleUrl?.includes('/base/'));
-assert.equal(studioSamples.length, 26, 'Expected 26 defined but excluded studio cues');
+assert.equal(studioSamples.length, 21, 'Expected 21 excluded studio cues');
+const kenney = Object.entries(SOUND_CATALOG).filter(([,sound]) =>
+  sound.sampleUrl && !sound.sampleUrl.includes('/studio/') && !sound.sampleUrl.includes('/base/'));
+assert.deepEqual(kenney.map(([key])=>key).sort(),
+  ['armor_hit','explosion_small','hit','pickup','starter_pulse'],
+  'All five verified Kenney files must be wired to live events');
 assert.equal(stationSamples.length, 29, 'Expected 29 CC0 station and progression cues');
 assert(existsSync(resolve(here, 'assets/sfx/studio/SOURCES.md')),
   'Studio sound provenance document missing');
@@ -49,7 +54,9 @@ assert(entityCode.includes("game.audio?.shoot?.('orbit')"), 'Orbit contacts are 
 
 const audioCode = readFileSync(resolve(game, 'src/audio.js'), 'utf8');
 assert(audioCode.includes('new AudioLabEngine('), 'Sampler not connected');
-assert(audioCode.includes('musicDuckBus: this.musicGain'), 'Music ducking not connected to game');
+assert(audioCode.includes('musicDuckBus: this.musicDuckGain'), 'Isolated music ducking not connected');
+assert(audioCode.includes('this.musicGain.connect(this.musicDuckGain)'),
+  'Music route must pass through independent duck gain');
 for (const key of ['level_up', 'player_death', 'boss_spawn', 'achievement']) {
   assert(audioCode.includes("this.sfxLab.play('" + key + "')"),
     'Missing live event routing: ' + key);
@@ -61,5 +68,5 @@ assert(sw.includes('cache.add(path)'), 'Boot shell is not precached');
 assert(!sw.includes("'./audio-lab/assets/sfx/studio/starter_pulse.ogg'"),
   'Audio assets must stay lazy-loaded instead of blocking first-room startup');
 console.log('Survivor audio: ' + ids.length + ' weapon profiles; ' +
-  stationSamples.length + ' CC0 recordings; 26 procedural studio fallbacks; ' +
+  stationSamples.length + ' station CC0 + ' + kenney.length + ' Kenney CC0 recordings; 21 procedural studio fallbacks; ' +
   'audio routing/offline paths OK.');

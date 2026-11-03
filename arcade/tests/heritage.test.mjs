@@ -94,3 +94,30 @@ test('antenna and module construction use dedicated events',()=>{
  h.station('upgrade','dock',{tech:'module'});
  assert.deepEqual(events,['base_resonance_link','base_section_construct']);
 });
+
+test('zero volume persists and far effects never mask nearby impacts',()=>{
+ const original=globalThis.localStorage, values=new Map();
+ globalThis.localStorage={
+  getItem:key=>values.get(key)||null,
+  setItem:(key,value)=>values.set(key,value)
+ };
+ try {
+  const h=new ArcadeHeritage(),heard=[];
+  h.setVolume('musicVolume',0);
+  h.setVolume('sfxVolume',0);
+  assert.equal(new ArcadeHeritage().settings.musicVolume,0);
+  assert.equal(new ArcadeHeritage().settings.sfxVolume,0);
+  h.soundOn=true;h.listener={x:0,y:0};h.viewWidth=900;
+  h.audio={playEvent:(key,options)=>heard.push({key,...options}),applyVolumes(){}};
+  assert.equal(h.play('hit',.4,{x:1800,y:0}),false,'inaudible distant hits must not consume the cooldown');
+  assert.equal(h.play('hit',.4,{x:500,y:0}),true);
+  assert.equal(h.play('hit',.4,{x:60,y:0}),true,'nearby shot takes priority over a distant one');
+  assert.equal(heard.length,2);
+  assert.equal(heard[0].force,undefined);
+  assert.equal(heard[1].force,true);
+  assert.ok(heard[1].intensity>heard[0].intensity);
+ } finally {
+  if(original===undefined)delete globalThis.localStorage;
+  else globalThis.localStorage=original;
+ }
+});

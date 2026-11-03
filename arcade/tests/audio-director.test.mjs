@@ -51,3 +51,8 @@ test('the opening withstands light skirmishes but yields to real danger',()=>{
  const siege=new AdaptiveMusicDirector();
  assert.equal(siege.update(.65,{siege:true}).scene,'siege');
 });
+
+test('effects beyond the audible radius fade out entirely',()=>{
+ assert.equal(spatialCue({x:1800,y:0},{x:0,y:0}).intensity,0);
+ assert.ok(spatialCue({x:100,y:0},{x:0,y:0}).intensity>0.9);
+});
