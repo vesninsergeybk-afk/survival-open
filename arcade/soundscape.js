@@ -12,6 +12,7 @@ const motor=(freq,dur,volume,afterMs=0,bus='sfx',sweep=0)=>
 const UI=Object.freeze({
  open:[grit(1050,.046,.07),motor(170,.12,.038,48)],
  map:[grit(780,.075,.065),motor(125,.15,.05,70)],
+ tab:[grit(1020,.04,.052),motor(145,.082,.028,36)],
  dock:[grit(470,.11,.085),motor(112,.14,.065,55)],
  close:[grit(1350,.052,.063)],
  select:[grit(1450,.038,.058)],

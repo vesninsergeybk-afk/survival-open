@@ -38,6 +38,10 @@
     .sound .loaded { color:#9be7bd; font-size:.73rem; }
     .states { display:flex; gap:8px; flex-wrap:wrap; }
     .states button { font-size:.85rem; }
+    .score-group { margin:16px 0; }
+    .score-group h3 { color:#b6e5e8; font-size:.91rem; margin:0 0 8px; }
+    #scorePreview { display:block; width:100%; max-width:660px; margin:14px 0; }
+    .score-info { font-size:.82rem; color:#d7e5f7; min-height:1.4em; }
     .small { font-size:.82rem; color:#a2b3c4; line-height:1.65; }
     a { color:#9be9e3; }
     @media (prefers-reduced-motion:no-preference) {
@@ -50,7 +54,7 @@
   <div class="topline">Survivor: Space Frontier / Audio Lab / звуковые концепции и базы</div>
   <h1>Звук, который чувствуется</h1>
   <p class="lead">Прослушивание индивидуальных звуков вооружения, баз, сопряжения, построек и интерфейса. Управление громкостью групп, ограничение числа одновременных звуков и приглушение музыки при мощных ударах.</p>
-  <div class="notice"><strong>Открытая версия использует собственные звуки.</strong> 26 студийных записей Sonniss не распространяются вместе с исходным кодом из-за условий лицензии. Поэтому оружие и часть боевых событий пока звучат через процедурный синтез. Для баз доступны 29 записей CC0. Новый мягкий импульс начального оружия можно прослушать ниже; его звук намеренно рассчитан на частую стрельбу.</div>
+  <div class="notice"><strong>Звуки из реальной игры.</strong> Пять эффектов Kenney CC0 теперь воспроизводятся из настоящих OGG (импульс, попадание, броня, малый взрыв, подбор). Ещё 29 эффектов баз — CC0. Отсутствующие 21 студийная запись Sonniss заменяются процедурным звуком; публиковать их исходники в открытом репозитории нельзя без разрешения. Базовый автоогонь по-прежнему использует специально смягчённый синтез.</div>
 
   <section class="panel" aria-labelledby="mixhead">
     <h2 id="mixhead" style="margin-top:0">Микшер</h2>
@@ -77,16 +81,24 @@
   <h2>Попадания, взрывы, сигналы</h2>
   <div class="grid" id="events"></div>
 
-  <h2>Музыкальные состояния</h2>
+  <h2>Музыка в опубликованной игре <span class="pill">12 композиций</span></h2>
   <div class="panel">
-    <p class="small">В самой игре уже используются кинематографические композиции Scott Buckley. В этой лаборатории можно отдельно проверять локальные варианты музыки и плавные переходы — загрузите файлы music_exploration.ogg, music_combat.ogg, music_boss.ogg и другие.</p>
+    <p class="small">Послушайте именно те OGG, которые доступны игроку: вступление, исследование, приближение угрозы, бой и штурм. Нажмите композицию, чтобы её воспроизвести. В игре переключение выполняет адаптивный музыкальный режиссёр с плавными переходами.</p>
+    <p id="scoreInfo" class="score-info">Выберите композицию ниже.</p>
+    <audio id="scorePreview" controls preload="none" aria-label="Прослушивание композиции из игры"></audio>
+    <div id="scoreGroups"></div>
+  </div>
+  <h2>Собственные варианты музыки</h2>
+  <div class="panel">
+    <p class="small">Не влияет на опубликованную игру. Можно локально загрузить свой файл <code>music_exploration.ogg</code> или <code>music_combat.ogg</code> и проверить переходы в отдельном микшере.</p>
     <div class="states" id="states"></div>
   </div>
-  <p class="small" style="margin-top:32px">Звуковое задание и лицензии: <a href="./README.md">README звуковой лаборатории</a>. В открытой версии студийные Sonniss-записи исключены; для них доступны синтезированные варианты.</p>
+  <p class="small" style="margin-top:32px">Звуковое задание и лицензии: <a href="./README.md">README звуковой лаборатории</a>. Авторы музыкальных произведений указаны в <a href="../assets/audio/music/CREDITS.md">музыкальных титрах</a>; пять новых SFX имеют лицензию Kenney CC0.</p>
 </main>
 <script type="module">
-  import { WEAPON_SOUNDS, EVENT_SOUNDS, BASE_SOUNDS, BUS_PRESET, MUSIC_STATES } from './sound-map.js?v=starter-soft-66';
-  import { AudioLabEngine } from './audio-mixer.js?v=starter-soft-66';
+  import { WEAPON_SOUNDS, EVENT_SOUNDS, BASE_SOUNDS, BUS_PRESET, MUSIC_STATES } from './sound-map.js?v=audio-fidelity-01';
+  import { MUSIC_TRACKS, MUSIC_POOLS } from '../arcade/music-playlist.js?v=cinematic-rotation-01';
+  import { AudioLabEngine } from './audio-mixer.js?v=audio-fidelity-01';
 
   const engine = new AudioLabEngine();
   const status = document.getElementById('status');
@@ -100,7 +112,7 @@
             const badge = document.querySelector('[data-sample="' + key + '"]');
             try {
               await engine.loadSampleFromUrl(key, sound.sampleUrl);
-              if (badge) badge.textContent = key in BASE_SOUNDS ? 'CC0 ✓' : 'Sonniss 2026 ✓';
+              if (badge) badge.textContent = 'Kenney / CC0 ✓';
             } catch (err) {
               if (badge) badge.textContent = 'Резервный синтез';
               throw err;
@@ -178,6 +190,35 @@
   cards(EVENT_SOUNDS, 'events');
   cards(BASE_SOUNDS, 'bases');
 
+  const scorePreview = $('scorePreview');
+  const scoreGroups = $('scoreGroups');
+  const scoreGroupLabels = {
+    opening:'Первое впечатление', exploration:'Исследование',
+    tension:'Угроза', combat:'Динамичный бой', boss:'Штурм и кульминация'
+  };
+  for (const [group, ids] of Object.entries(MUSIC_POOLS)) {
+    const section = document.createElement('section');
+    section.className = 'score-group';
+    const title = document.createElement('h3');
+    title.textContent = scoreGroupLabels[group] || group;
+    const buttons = document.createElement('div');
+    buttons.className = 'states';
+    for (const id of ids) {
+      const track = MUSIC_TRACKS[id];
+      const button = document.createElement('button');
+      button.textContent = '▶ ' + track.title;
+      button.addEventListener('click', async () => {
+        const src = new URL('../assets/audio/music/' + track.file, import.meta.url).href;
+        if (scorePreview.src !== src) scorePreview.src = src;
+        $('scoreInfo').textContent = track.title + ' · Scott Buckley · CC BY 4.0';
+        try { await scorePreview.play(); }
+        catch (error) { say('Музыкальный файл не воспроизведён: ' + error.message); }
+      });
+      buttons.append(button);
+    }
+    section.append(title, buttons);
+    scoreGroups.append(section);
+  }
   for (const [key, state] of Object.entries(MUSIC_STATES)) {
     const button = document.createElement('button');
     button.textContent = state.label;
@@ -195,6 +236,7 @@
 
   $('stop').addEventListener('click', () => {
     engine.stopAll();
+    scorePreview.pause();
     say('Остановлено.');
   });
 

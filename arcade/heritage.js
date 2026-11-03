@@ -1,7 +1,7 @@
 import {WorldVFX} from '../src/world-vfx.js?v=arcade-impact-51';
-import {AudioEngine} from '../src/audio.js?v=cinematic-rotation-01';
-import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=cinematic-rotation-01';
-import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=arcade-sound-material-53';
+import {AudioEngine} from '../src/audio.js?v=audio-fidelity-01';
+import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=audio-fidelity-01';
+import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=audio-fidelity-01';
 
 const STORAGE_KEY='survivor_arcade_audio_v2';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -9,7 +9,8 @@ const LEVELS={dock:83,carrier:69,arsenal:96,lab:113,outpost:125};
 const SOUND_IDS=Object.freeze({
  laser:'starter_soft',rocket:'knife',enemyShot:'magic_wand',
  hit:'hit',
- explosion:'explosion_small',largeExplosion:'explosion_big',
+ explosion:'explosion_small',rocketImpact:'explosion_small',largeExplosion:'explosion_big',
+ armorHit:'armor_hit',
  pickup:'pickup',levelUp:'level_up',damage:'player_damage',
  death:'player_death',hack:'base_resonance_link',boss:'boss_spawn',
  boost:'engine',allyShot:'orbit',ramWarning:'boss_warning',
@@ -21,9 +22,12 @@ const SOUND_IDS=Object.freeze({
 function storedVolumes(){
  try{
   const values=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
-  return {masterVolume:clamp(Number(values.masterVolume)||.5,.05,1),
-   sfxVolume:clamp(Number(values.sfxVolume)||.7,.05,1),
-   musicVolume:clamp(Number(values.musicVolume)||.27,.05,1)};
+  const saved=(name,fallback)=>{
+   const n=Number(values[name]);
+   return values[name]==null||!Number.isFinite(n)?fallback:clamp(n,0,1);
+  };
+  return {masterVolume:saved('masterVolume',.5),
+   sfxVolume:saved('sfxVolume',.7),musicVolume:saved('musicVolume',.27)};
  }catch{return {masterVolume:.5,sfxVolume:.7,musicVolume:.27};}
 }
 export class ArcadeHeritage {
@@ -42,7 +46,7 @@ export class ArcadeHeritage {
  setBudget(fps){this.vfx.setBudget(fps<26?.27:fps<40?.45:fps<53?.7:1);}
  setVolume(channel,value){
   if(!['masterVolume','sfxVolume','musicVolume'].includes(channel))return;
-  this.settings[channel]=clamp(Number(value)||0,.05,1);
+  this.settings[channel]=clamp(Number(value)||0,0,1);
   try{localStorage.setItem(STORAGE_KEY,JSON.stringify({
    masterVolume:this.settings.masterVolume,
    sfxVolume:this.settings.sfxVolume,musicVolume:this.settings.musicVolume
@@ -69,12 +73,19 @@ export class ArcadeHeritage {
  }
  play(kind,minInterval=.16,position=null){
   if(!this.soundOn||this.hidden)return false;
-  const now=this.vfx.clock,last=this.lastSound[kind]??-Infinity;
-  if(now-last<minInterval)return false;
+  const now=this.vfx.clock;
   const key=SOUND_IDS[kind];
   if(!key&&kind!=='stone'&&kind!=='rockBreak')return false;
-  this.lastSound[kind]=now;
   const options=spatialCue(position,this.listener,this.viewWidth);
+  if(options.intensity!==undefined&&options.intensity<.09)return false;
+  const last=this.lastSound[kind];
+  const priority=options.intensity??1;
+  if(last&&now-last.at<minInterval){
+   // A near impact should not disappear because a faint distant one played first.
+   if(priority<last.intensity+.27)return false;
+   options.force=true;
+  }
+  this.lastSound[kind]={at:now,intensity:priority};
   if(kind==='stone'||kind==='rockBreak'){
    return !!this.audio.rockImpact?.({heavy:kind==='rockBreak',...options});
   }

@@ -16,7 +16,7 @@ export function spatialCue(point,listener,viewWidth=960){
   const distance=Math.hypot(dx,dy);
   return {
     pan:clamp(dx/Math.max(200,viewWidth*.52),-.85,.85),
-    intensity:clamp(1-distance/1150,.08,1)
+    intensity:clamp(1-distance/1250,0,1)
   };
 }
 export function assessMusicThreat({nearby=0,heavy=false,siege=false,

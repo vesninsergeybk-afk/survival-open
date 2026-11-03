@@ -4,13 +4,14 @@
  * Production audio routing shared with the public sound laboratory.
  * Keys match WEAPONS[*].id in ../src/data.js, production on 2026-10-28.
  *
- * In the public repository, 26 Sonniss studio sample files are intentionally
+ * In the public repository, 21 Sonniss studio sample files are intentionally
  * absent due to redistribution restrictions. Their profiles use procedural
- * fallback; the new starter_soft is designed expressly for that fallback.
+ * fallback. Five real Kenney CC0 samples are wired to matching production
+ * events; the frequent starter_soft stays deliberately synthesised.
  * See ./assets/sfx/studio/SOURCES.md for original source references.
  */
 export const WEAPON_SOUNDS = {
-  starter_pulse: { label: 'Учебный импульс', profile: 'pulse', family: 'energy', gain: 0.34, priority: 3, minIntervalMs: 95, sampleUrl: './assets/sfx/studio/starter_pulse.ogg', note: 'Короткий упругий щелчок и мягкий электрический хвост.' },
+  starter_pulse: { label: 'Учебный импульс', profile: 'pulse', family: 'energy', gain: 0.34, priority: 3, minIntervalMs: 95, sampleUrl: './assets/sfx/starter_pulse.ogg', note: 'Короткий упругий щелчок и мягкий электрический хвост.' },
   starter_soft: { label: 'Мягкий плазменный импульс', profile: 'softpulse', family: 'energy', gain: 0.36, priority: 2, minIntervalMs: 170, note: 'Тихий, округлый импульс для частой автоматической стрельбы; три близких варианта, без резкой атаки.' },
   whip: { label: 'Плазменная дуга', profile: 'arc', family: 'energy', gain: 0.46, priority: 3, minIntervalMs: 160, sampleUrl: './assets/sfx/studio/whip.ogg', note: 'Широкий дуговой хлест с сухим верхним щелчком.' },
   magic_wand: { label: 'Ионная пушка', profile: 'ion', family: 'energy', gain: 0.40, priority: 3, minIntervalMs: 100, sampleUrl: './assets/sfx/studio/magic_wand.ogg', note: 'Заряженный электрический сгусток, нисходящий тон.' },
@@ -28,13 +29,13 @@ export const WEAPON_SOUNDS = {
 };
 
 export const EVENT_SOUNDS = {
-  hit: { label: 'Попадание по противнику', profile: 'hit', family: 'impact', gain: 0.24, priority: 1, minIntervalMs: 95, sampleUrl: './assets/sfx/studio/hit.ogg' },
-  armor_hit: { label: 'Попадание по броне', profile: 'armor', family: 'impact', gain: 0.35, priority: 2, minIntervalMs: 115, sampleUrl: './assets/sfx/studio/armor_hit.ogg' },
+  hit: { label: 'Попадание по противнику', profile: 'hit', family: 'impact', gain: 0.24, priority: 1, minIntervalMs: 95, sampleUrl: './assets/sfx/hit.ogg' },
+  armor_hit: { label: 'Попадание по броне', profile: 'armor', family: 'impact', gain: 0.35, priority: 2, minIntervalMs: 115, sampleUrl: './assets/sfx/armor_hit.ogg' },
   shield_hit: { label: 'Попадание по щиту', profile: 'shield_hit', family: 'impact', gain: 0.27, priority: 2, minIntervalMs: 110, sampleUrl: './assets/sfx/studio/shield_hit.ogg' },
-  explosion_small: { label: 'Малый взрыв', profile: 'explosion_small', family: 'impact', gain: 0.52, priority: 4, minIntervalMs: 140, sampleUrl: './assets/sfx/studio/explosion_small.ogg' },
+  explosion_small: { label: 'Малый взрыв', profile: 'explosion_small', family: 'impact', gain: 0.52, priority: 4, minIntervalMs: 140, sampleUrl: './assets/sfx/explosion_small.ogg' },
   explosion_big: { label: 'Мощный взрыв', profile: 'explosion_big', family: 'impact', gain: 0.75, priority: 5, minIntervalMs: 420, sampleUrl: './assets/sfx/studio/explosion_big.ogg' },
   boss_warning: { label: 'Предупреждение о боссе', profile: 'warning', family: 'ui', gain: 0.42, priority: 5, minIntervalMs: 1300, sampleUrl: './assets/sfx/studio/boss_warning.ogg' },
-  pickup: { label: 'Подбор ресурса', profile: 'pickup', family: 'ui', gain: 0.22, priority: 1, minIntervalMs: 110, sampleUrl: './assets/sfx/studio/pickup.ogg' },
+  pickup: { label: 'Подбор ресурса', profile: 'pickup', family: 'ui', gain: 0.22, priority: 1, minIntervalMs: 110, sampleUrl: './assets/sfx/pickup.ogg' },
   level_up: { label: 'Улучшение', profile: 'levelup', family: 'ui', gain: 0.38, priority: 4, minIntervalMs: 400, sampleUrl: './assets/sfx/studio/level_up.ogg' },
   player_damage: { label: 'Урон игроку', profile: 'damage', family: 'impact', gain: 0.46, priority: 5, minIntervalMs: 210, sampleUrl: './assets/sfx/studio/player_damage.ogg' },
   player_death: { label: 'Гибель корабля', profile: 'damage', family: 'impact', gain: 0.68, priority: 5, minIntervalMs: 1200, sampleUrl: './assets/sfx/studio/player_death.ogg' },

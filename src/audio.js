@@ -1,5 +1,5 @@
-import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=starter-soft-66';
-import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=starter-soft-66';
+import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=audio-fidelity-01';
+import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=audio-fidelity-01';
 import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
 import { MUSIC_TRACKS, MUSIC_POOLS, MusicRotation } from '../arcade/music-playlist.js?v=cinematic-rotation-01';
 
@@ -23,6 +23,10 @@ export class AudioEngine {
         this.masterGain = null;
         this.sfxGain = null;
         this.musicGain = null;
+        this.musicDuckGain = null;
+        this.limiter = null;
+        this.directVoices = new Set();
+        this.activeRockImpacts = 0;
         this.musicSlots = new Map();
         this.musicRotation = new MusicRotation();
         this._firstMusic = true;
@@ -51,17 +55,26 @@ export class AudioEngine {
             this.masterGain = this.ctx.createGain();
             this.sfxGain = this.ctx.createGain();
             this.musicGain = this.ctx.createGain();
+            // Ducking is independent of saved volume and 650 ms scene-sync calls.
+            this.musicDuckGain = this.ctx.createGain();
+            this.musicDuckGain.gain.value = 1;
             this.sfxGain.connect(this.masterGain);
-            this.musicGain.connect(this.masterGain);
-            this.masterGain.connect(this.ctx.destination);
+            this.musicGain.connect(this.musicDuckGain).connect(this.masterGain);
+            // Safety ceiling for the final sum of streamed music, UI and effects.
+            this.limiter = this.ctx.createDynamicsCompressor();
+            this.limiter.threshold.value = -8;
+            this.limiter.knee.value = 2;
+            this.limiter.ratio.value = 12;
+            this.limiter.attack.value = 0.003;
+            this.limiter.release.value = 0.22;
+            this.masterGain.connect(this.limiter).connect(this.ctx.destination);
             this.applyVolumes();
             // Sample-ready effects share the existing AudioContext and SFX gain.
             this.sfxLab = new AudioLabEngine({
                 context: this.ctx,
                 destination: this.sfxGain,
-                musicDuckBus: this.musicGain,
-                musicLevelProvider: () => this.settings.musicEnabled === false ? 0 :
-                    (this.settings.musicVolume ?? 0.4) * this.musicScale
+                musicDuckBus: this.musicDuckGain,
+                musicLevelProvider: () => 1
             });
         } catch (err) {
             console.warn('[audio] disabled', err);
@@ -81,9 +94,18 @@ export class AudioEngine {
             this.sfxLab.unlock().then(() => {
                 if (this._samplesPromise) return;
                 const root = new URL('../audio-lab/', import.meta.url);
-                this._samplesPromise = Promise.allSettled(Object.entries(SOUND_CATALOG)
-                    .filter(([, def]) => def.sampleUrl && !def.sampleUrl.includes('/sfx/studio/'))
-                    .map(([key, def]) => this.sfxLab.loadSampleFromUrl(key, new URL(def.sampleUrl, root).href)));
+                // Decode a few CC0 effects at a time; mobile startup must stay playable.
+                const samples = Object.entries(SOUND_CATALOG)
+                    .filter(([, def]) => def.sampleUrl && !def.sampleUrl.includes('/sfx/studio/'));
+                let cursor = 0;
+                const worker = async () => {
+                    while (cursor < samples.length) {
+                        const [key, def] = samples[cursor++];
+                        try { await this.sfxLab.loadSampleFromUrl(key, new URL(def.sampleUrl, root).href); }
+                        catch (err) { console.warn('[audio] CC0 fallback:', key, err); }
+                    }
+                };
+                this._samplesPromise = Promise.all(Array.from({ length: Math.min(4, samples.length) }, worker));
             }).catch(err => console.warn('[audio] sample bank unavailable', err));
         }
     }
@@ -121,7 +143,9 @@ export class AudioEngine {
         noiseBand = 0,
         bus = 'sfx'
     }) {
-        if (!this.enabled || !this.ctx || !this.unlocked) return;
+        if (!this.enabled || !this.ctx || !this.unlocked || this.settings.muted) return;
+        // Procedural UI/atmosphere does not enter the sampled mixer's voice cap.
+        if (this.directVoices.size >= 16) return;
         const now = this.ctx.currentTime;
         const gain = this.ctx.createGain();
         gain.gain.setValueAtTime(0, now);
@@ -151,6 +175,8 @@ export class AudioEngine {
             source.connect(warmth);
             warmth.connect(gain);
         } else source.connect(gain);
+        this.directVoices.add(source);
+        source.onended = () => { this.directVoices.delete(source); try { gain.disconnect(); } catch {} };
         source.start(now);
         source.stop(now + dur + release + 0.01);
     }
@@ -218,7 +244,9 @@ export class AudioEngine {
      * Stereo position and attenuation are inherited from the game camera.
      */
     rockImpact({ heavy = false, intensity = 1, pan = 0 } = {}) {
-        if (!this.ctx || !this.enabled || !this.unlocked || this.settings.muted) return false;
+        if (!this.ctx || !this.enabled || !this.unlocked || this.settings.muted ||
+            this.activeRockImpacts >= 5) return false;
+        this.activeRockImpacts++;
         const ctx = this.ctx, now = ctx.currentTime;
         const life = heavy ? 0.31 : 0.095;
         const gain = ctx.createGain();
@@ -239,6 +267,10 @@ export class AudioEngine {
         gritBand.frequency.value = heavy ? 830 : 1300;
         gritBand.Q.value = 0.65;
         grit.connect(gritBand).connect(gain);
+        grit.onended = () => {
+            this.activeRockImpacts = Math.max(0, this.activeRockImpacts - 1);
+            try { gain.disconnect(); } catch {}
+        };
         grit.start(now);
         grit.stop(now + life + 0.015);
 
@@ -456,6 +488,13 @@ export class AudioEngine {
         const now = this.ctx.currentTime;
         if (!resumed) {
             try { next.element.currentTime = 0; } catch { /* Metadata still loading */ }
+        }
+        // A third fast threat transition must not leave three scores playing.
+        for (const stale of this.musicSlots.values()) {
+            if (stale === prev || stale === next || stale.element.paused) continue;
+            stale.element.pause();
+            stale.gain.gain.cancelScheduledValues(now);
+            stale.gain.gain.value = 0;
         }
         next.gain.gain.cancelScheduledValues(now);
         next.gain.gain.setValueAtTime(0, now);

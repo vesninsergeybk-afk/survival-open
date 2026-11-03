@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan,AmbientSoundClock} from '../soundscape.js';
 
 test('interface cues are short, distinct, and kept on the effects bus',()=>{
- const names=['open','map','dock','close','select','deny','cancel','slider','audioOn'];
+ const names=['open','map','tab','dock','close','select','deny','cancel','slider','audioOn'];
  for(const name of names){
   const plan=uiSoundPlan(name);
   assert.ok(plan.length>=1&&plan.length<=2,name);
@@ -15,7 +15,7 @@ test('interface cues are short, distinct, and kept on the effects bus',()=>{
  }
  assert.notDeepEqual(uiSoundPlan('dock'),uiSoundPlan('map'));
  // An intentionally mechanical interface avoids high-pitched 16-bit chirps.
- for(const name of ['open','map','dock','close','select','confirm','deny','cancel','slider','audioOn']){
+ for(const name of ['open','map','tab','dock','close','select','confirm','deny','cancel','slider','audioOn']){
   for(const note of uiSoundPlan(name)){
    assert.ok(note.noise || note.freq<=230, `${name} sounds too high and synthetic`);
    if(note.noise)assert.ok(note.noiseBand>0, `${name} unfiltered white noise`);
