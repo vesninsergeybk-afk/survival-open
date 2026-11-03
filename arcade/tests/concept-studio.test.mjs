@@ -202,6 +202,9 @@ test('one existing workshop hosts playable explosion study without touching comb
   'explosion-scrub','explosion-timeline','explosion-parallel','explosion-quality','explosion-budget','explosion-assets'])
   assert.match(page,new RegExp('id="'+id+'"'),id);
  assert.match(app,/initExplosionLab\(\)/);
+ assert.match(page,/studio-explosions-2/);
+ assert.match(app,/explosion-lab\.js\?v=explosions-2/);
+ assert.match(read('../studio/explosion-lab.js'),/explosion-design\.js\?v=explosions-2/);
  assert.match(style,/\.explosion-timeline/);
  assert.ok(exists('../studio/explosion-lab.js'));
  assert.ok(exists('../studio/explosion-design.js'));
