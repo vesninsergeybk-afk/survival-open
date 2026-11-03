@@ -1,4 +1,4 @@
-/* SURVIVOR HUD — Art Pass 02. Graphic silhouettes, engraving and icons are SVG.
+/* SURVIVOR HUD — Art Pass 03. Graphic silhouettes, engraving and icons are SVG.
    CSS places real telemetry and responsive touch-safe instruments. */
 #hud.cockpit-hud{
  --hud-ice:#ecfaff;--hud-muted:#b7d9e3;--hud-line:#7edfec;
@@ -77,7 +77,7 @@
 .cockpit-hud .hud-combat-heading{position:absolute;top:12%;left:26%;right:24%;
  display:flex;align-items:baseline;gap:7px;white-space:nowrap;overflow:hidden}
 .cockpit-hud .hud-combat-heading span{font-size:10px;color:#A6D4DC;letter-spacing:.11em}
-.cockpit-hud .hud-combat-heading strong{font-size:12px;color:#F2FEFF;letter-spacing:.06em}
+.cockpit-hud .hud-combat-heading strong{font-size:13px;color:#F2FEFF;letter-spacing:.09em}
 .cockpit-hud .hud-weapon-readout{position:absolute;top:32%;left:26%;right:23%;
  font-size:10px;letter-spacing:.045em;color:#83F0E1;white-space:nowrap;
  overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid #6DE2E066;padding-bottom:7px}
@@ -92,10 +92,10 @@
  display:flex;align-items:center;gap:6px;min-width:0;height:17%}
 .cockpit-hud .hud-drone-band>span{font-size:10px;font-weight:700;color:#E0F7FA;letter-spacing:.04em}
 .cockpit-hud .hud-drone-icons{display:flex;gap:4px;align-items:center;flex:none}
-.cockpit-hud .hud-drone-icons img{width:20px;height:20px;object-fit:contain;
+.cockpit-hud .hud-drone-icons img{width:22px;height:22px;object-fit:contain;
  opacity:.28;filter:grayscale(.8)}
 .cockpit-hud .hud-drone-icons img.active{opacity:1;filter:drop-shadow(0 0 4px #68EEEB9c)}
-.cockpit-hud .hud-drone-band b{margin-left:auto;font-size:9px;color:#ADD6E0;
+.cockpit-hud .hud-drone-band b{margin-left:auto;font-size:12px;color:#D4F9FC;
  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .cockpit-hud .hud-resource-strip{position:absolute;left:26%;right:6%;bottom:8%;
  display:flex;align-items:center;gap:13px;white-space:nowrap;min-width:0}
@@ -108,8 +108,8 @@
 .cockpit-hud .hud-resource-strip .resource.priority b{font-size:14px;color:#EDF9FD}
 .cockpit-hud .hud-resource-strip .ore-resource b{color:#FFD49A}
 .cockpit-hud .hud-auxiliary-resource{display:none}
-.cockpit-hud .telemetry-foot{position:absolute;bottom:2%;right:6%;margin:0;
- font-size:8px;color:#739DAB;opacity:.76}
+.cockpit-hud .telemetry-foot{position:absolute;bottom:-12px;right:6%;margin:0;
+ font-size:8px;color:#739DAB;opacity:.65}
 .cockpit-hud .hud-resource-strip #oreGain{top:-18px}
 .cockpit-hud .radar-unit{top:79px;right:max(16px,env(safe-area-inset-right));
  width:178px;height:188px;padding:17px 11px 20px;
