@@ -64,8 +64,9 @@ button{font:inherit;cursor:pointer}canvas#game{position:absolute;inset:0;z-index
  background:#071a30d9;padding:8px 12px;font-size:12px;
  box-shadow:0 3px 18px #03071155}
 #audioBtn[aria-pressed=true]{border-color:#9af5c8;background:#10392de6}
-#audioCredits{color:#97b7c6aa;text-decoration:none;font-size:10px;
- text-shadow:0 1px 4px #000}
+#audioCredits{color:#b9dfec;text-decoration:underline;text-underline-offset:3px;font-size:11px;
+ text-shadow:0 1px 4px #000;border:0;background:transparent;padding:4px 2px;
+ cursor:pointer}#audioCredits:hover,#audioCredits:focus-visible{color:#f2fff9}
 @media(max-width:800px){#audioControls{top:109px;right:8px}
  #audioBtn{font-size:11px;padding:6px 9px}#audioCredits{font-size:9px}}
 @media(pointer:coarse){#audioControls{top:104px}}

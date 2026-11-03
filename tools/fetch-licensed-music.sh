@@ -7,6 +7,11 @@ command -v curl >/dev/null
 command -v ffmpeg >/dev/null
 command -v ffprobe >/dev/null
 mkdir -p assets/audio/music
+# Remove only the four malformed filenames from the interrupted first import.
+for invalid in dows-and-dust fall ile ulacra; do
+  file="assets/audio/music/${invalid}.ogg"
+  if [[ -f "$file" ]]; then echo "Removing incomplete import name: $file"; rm -- "$file"; fi
+done
 music_tmp="$(mktemp -d)"
 trap 'test ! -d "$music_tmp" || rm -r -- "$music_tmp"' EXIT
 while IFS='|' read -r name source; do
@@ -19,7 +24,7 @@ while IFS='|' read -r name source; do
   echo "Downloading CC BY music: $name"
   curl --fail --location --silent --show-error --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 240 --proto '=https' --proto-redir '=https' "$source" -o "$music_tmp/$name.mp3"
   ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 "$music_tmp/$name.mp3" | grep -q 'duration='
-  ffmpeg -hide_banner -loglevel error -y -i "$music_tmp/$name.mp3" -vn -c:a libopus -b:a 96k -ar 48000 -ac 2 "$output"
+  ffmpeg -nostdin -hide_banner -loglevel error -y -i "$music_tmp/$name.mp3" -vn -c:a libopus -b:a 96k -ar 48000 -ac 2 "$output"
   test -s "$output"
   ffprobe -v error -show_entries stream=codec_name -of default=noprint_wrappers=1 "$output" | grep -q 'codec_name=opus'
   echo "Encoded $output: $(du -h "$output" | cut -f1)"
@@ -35,3 +40,8 @@ simulacra|https://www.scottbuckley.com.au/library/wp-content/uploads/2025/03/Sim
 red|https://www.scottbuckley.com.au/library/wp-content/uploads/2018/10/sb_red.mp3
 ambush|https://www.scottbuckley.com.au/wp-content/audio/sb_ambush.mp3
 TRACKS
+
+# An input line must never be consumed by the audio converter.
+for expected in aphelion decoherence shadows-and-dust meanwhile nightfall convergence simulacra red ambush; do
+  test -s "assets/audio/music/${expected}.ogg" || { echo "Missing imported music: $expected" >&2; exit 1; }
+done
