@@ -1,7 +1,7 @@
 /* Survivor cockpit HUD: presentation only. World state and combat stay in game.js.
    The local radar is deliberately bounded to 1.1km and redraws <=5 times/sec. */
 import {miningSignal} from './mining.js?v=arcade-extraction-risk-34';
-import {missionHudText} from './mission-feedback.js?v=opening-cues-2';
+import {missionHudText} from './mission-feedback.js?v=relay-def-1';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 export const hullCondition = (hp,maxHp) => {

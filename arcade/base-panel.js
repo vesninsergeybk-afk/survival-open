@@ -2,6 +2,7 @@ import {renderStationRoutePreview} from './map-panel.js?v=arcade-station-followu
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=arcade-controls-63';
+import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -253,9 +254,41 @@ const probePanel=(base,state,compact=false)=>{
   PROBE_OPERATION.rewardOre+' сплава · +'+PROBE_OPERATION.rewardData+
   ' данных (опыт)</span><div>'+actions+'</div></div></article>';
 };
-const specialOffer=(base,state)=>corridorOffer(base,state.operation)||probeOffer(base,state.operation);
+const relayPanel=(base,state,compact=false)=>{
+ const op=relayOffer(base,state.operation,state.time);
+ if(!op)return '';
+ const done=op.status==='complete',active=op.status==='active';
+ const body=done?'Ретранслятор защищён. Связь сохранена, разведчики получили новые координаты.':
+  active?'Налётчики атакуют передатчик, а не только корабль игрока. Сбивайте их до заряженного залпа. Всего три волны с передышками.':
+  'Недалеко от арсенала под угрозой ретранслятор. Подлетите к узлу — начнётся отсчёт до трёх конечных волн. При неудаче арсенал сохранится.';
+ const warning=op.status==='cooldown'?'Повторная попытка через '+op.remaining+' с.':
+  op.status==='locked'?'Сначала включите станцию.':
+  state.operation&&!active?'Завершите или отложите текущую особую операцию.':'';
+ const actions=done?'<span class="base-op-done">✓ РЕТРАНСЛЯТОР ЗАЩИЩЁН</span>':
+  active?action('baseMap','Показать цель')+
+   (compact?'':action('abandonOperation','Прервать · волны начнутся заново')):
+  action('baseMap','Посмотреть расположение')+
+   action('acceptOperation','Начать оборону',op.status==='available'&&!state.operation?'':'Сначала завершите текущую операцию или дождитесь доступа');
+ const facts='<div class="base-op-details">'+
+  '<div><span>ЗАДАЧА</span><b>Сохранить передатчик · 3 волны</b></div>'+
+  '<div><span>ОПАСНОСТЬ</span><b>Заряжающиеся залпы · тяжёлый перехватчик</b></div>'+
+  '<div><span>ПОСЛЕДСТВИЕ</span><b>Разведка следующего узла · одноразовая награда</b></div></div>';
+ return '<article class="base-featured-op '+(done?'resolved':active?'underway':'')+'">'+
+  '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · АРСЕНАЛ</span><span>'+
+  (done?'ОБОРОНА ЗАВЕРШЕНА':active?'РЕТРАНСЛЯТОР ПОД УГРОЗОЙ':'ОЖИДАЕТ ПОДМОГИ')+'</span></div>'+
+  '<strong>'+RELAY_DEFENSE.name+'</strong><p>'+body+'</p>'+
+  (compact?'':facts)+
+  (active?'<small>Передатчик: '+Math.ceil(op.hp/op.maxHp*100)+'% · '+relayDefenseCue(op,state.time)+'</small>':'')+
+  (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
+  '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
+  RELAY_DEFENSE.rewardOre+' сплава · +'+RELAY_DEFENSE.rewardData+
+  ' данных</span><div>'+actions+'</div></div></article>';
+};
+const specialOffer=(base,state)=>corridorOffer(base,state.operation)||
+ probeOffer(base,state.operation)||relayOffer(base,state.operation,state.time);
 const specialPanel=(base,state,compact=false)=>
- corridorOffer(base,state.operation)?corridorPanel(base,state,compact):probePanel(base,state,compact);
+ corridorOffer(base,state.operation)?corridorPanel(base,state,compact):
+ probeOffer(base,state.operation)?probePanel(base,state,compact):relayPanel(base,state,compact);
 const baseBrief=(base,state,o)=>{
  const op=corridorOffer(base,state.operation);
  if(op){
@@ -274,6 +307,15 @@ const baseBrief=(base,state,o)=>{
    'Удерживайте E возле зонда для ремонта. Отпускайте E, чтобы стрелять по врагам. Ремонт не обнуляется при отступлении.'];
   return ['СИГНАЛ БЕДСТВИЯ','Потерян разведывательный зонд',
    'В космосе поблизости остался повреждённый зонд. Его можно вернуть и получить данные для дальнейшего исследования.'];
+ }
+ const relay=relayOffer(base,state.operation,state.time);
+ if(relay){
+  if(relay.status==='complete')return ['ОБОРОНА УДАЛАСЬ','Ретранслятор сохранён',
+   'Станция отбила нападение, разведка получила координаты дополнительного узла.'];
+  if(relay.status==='active')return ['НАЛЁТ НА РЕТРАНСЛЯТОР','Удержите связь',
+   'Перехватывайте корабли, которые сближаются с передатчиком. После каждой волны можно сменить позицию.'];
+  return ['ТРЕВОГА НА АРСЕНАЛЕ','Нужна защита ретранслятора',
+   'Три короткие волны налётчиков стремятся уничтожить ближайший передатчик. Успейте перехватить их.'];
  }
  if(!o.connected)return ['УЗЕЛ АВТОНОМЕН','Связь отсутствует',
   'Местные услуги работают. Чтобы получить доступ к сети, соедините включённые станции.'];
@@ -421,6 +463,8 @@ export function renderBasePanel(base,state){
  const missionContext=missionForPreparation&&missionForPreparation.status!=='complete'?
   (missionForPreparation.id===PROBE_OPERATION.id?
    'Операция «Последний сигнал»: при ремонте зонда корабль не стреляет. Дрон может прикрыть его, но не гарантирует безопасность.':
+   missionForPreparation.id===RELAY_DEFENSE.id?
+   'Операция «Оборона ретранслятора»: противники стремятся к передатчику. Перехватывайте заряженные залпы; атака состоит из трёх конечных волн.':
    'Операция «Глухой коридор»: у глушителя есть охранение и ЭМ-импульсы. Можно сначала уничтожить охранение или прорваться к цели.') :
   'Выберите дальнейший маршрут и подготовьте корабль к ожидаемой угрозе.';
  const readiness='<section class="base-sortie-context"><div><span class="base-kicker">ГОТОВНОСТЬ К ВЫЛЕТУ</span>'+

@@ -30,6 +30,8 @@ const findHealer=(enemy,game)=>{
   return best;
 };
 const pickTarget=(e,game)=>{
+  if(e.relayAssault&&game.operation?.id==='relay-defense'&&
+     game.operation.baseId===e.relayAssault&&game.operation.hp>0)return game.operation;
   const focus=e.signalIntel?.combatFocus;
   if(e.signalIntel?.mode==='engaged'&&focus&&focus!==game.player&&focus.hp>0&&
      dist(e,focus)<470)return focus;
@@ -165,7 +167,7 @@ export function updateEnemy(e,game,dt){
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   steer(e,goalX,goalY,speed,dt,{x:avoid.x*speed*1.3,y:avoid.y*speed*1.3});
   e.healFlash=Math.max(0,(e.healFlash||0)-dt);
-  if(e.type==='gunship'&&e.fire<=0&&dist(e,p)<535){
+  if(e.type==='gunship'&&!e.relayAssault&&e.fire<=0&&dist(e,p)<535){
     e.fire=1.65;
     game.enemyShot(e.x,e.y,p.x,p.y,15);
   }

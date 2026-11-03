@@ -1,3 +1,4 @@
+import {RELAY_DEFENSE,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 // Pure state-derived cues shared by the world renderer and tactical map.
 // Rendering never advances mission progress or changes rewards.
 export function contractReturnStation(contract, world) {
@@ -53,6 +54,8 @@ export function missionHudText(game) {
   }
   if(op.id==='last-signal')
    return '◈ АВАРИЙНЫЙ ЗОНД · РЕМОНТ '+Math.round(op.repair||0)+'% · '+d+' М';
+  if(op.id===RELAY_DEFENSE.id)
+   return '◈ РЕТРАНСЛЯТОР · '+Math.ceil(op.hp/op.maxHp*100)+'% · '+relayDefenseCue(op,game.time);
   return '◈ ОПЕРАЦИЯ · '+d+' М';
  }
  const station=game.world?.stations?.get?.(c.baseId);

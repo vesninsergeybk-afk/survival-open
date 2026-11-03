@@ -1,6 +1,7 @@
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=arcade-probe-59';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
-import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=opening-cues-2';
+import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=relay-def-1';
+import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -122,8 +123,10 @@ export function renderWorldMap(game){
  const previewBase=game.mapReturnToBase?game.docked:null;
  const previewProbe=!operation&&previewBase&&isProbeLab(previewBase)&&!previewBase.probeRecovered;
  const previewCorridor=!operation&&previewBase&&isCorridorDock(previewBase)&&!previewBase.corridorSecured;
+ const previewRelay=!operation&&previewBase&&isRelayArsenal(previewBase)&&!previewBase.relayDefenseDone;
  const previewTarget=previewProbe?probePosition(previewBase,world):
-  previewCorridor?corridorPosition(previewBase):null;
+  previewCorridor?corridorPosition(previewBase):
+  previewRelay?relayPosition(previewBase,world):null;
  const objectiveMarker=operation?{x:operation.x,y:operation.y}:previewTarget||
   (home.corridorSecured?corridorPosition(home):null);
  const marker=objectiveMarker?point(objectiveMarker.x,objectiveMarker.y,p,scale):null;
@@ -133,7 +136,10 @@ export function renderWorldMap(game){
   '<circle cx="'+marker.x.toFixed(1)+'" cy="'+marker.y.toFixed(1)+'" r="4" fill="'+
   (operation||previewTarget?'#edacf9':'#7ce9bf')+'"/>'+
   '<text x="'+(marker.x+16).toFixed(1)+'" y="'+(marker.y-12).toFixed(1)+
-  '" fill="#edd7fa" font-size="11">'+(operation?(operation.id===PROBE_OPERATION.id?'Аварийный зонд':'Глушитель'):previewProbe?'Область поиска зонда':previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
+  '" fill="#edd7fa" font-size="11">'+(operation?(operation.id===PROBE_OPERATION.id?'Аварийный зонд':
+   operation.id===RELAY_DEFENSE.id?'Ретранслятор':'Глушитель'):
+   previewProbe?'Область поиска зонда':previewRelay?'Ретранслятор':
+   previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
  const goal=game.waypoint?point(game.waypoint.x,game.waypoint.y,p,scale):null;
  const route=goal&&visible(goal)?
   '<path d="M 340 240 L '+goal.x.toFixed(1)+' '+goal.y.toFixed(1)+
@@ -141,9 +147,14 @@ export function renderWorldMap(game){
  const objective=game.contract;
  const operationText=operation?(operation.id===PROBE_OPERATION.id?
   'Особая операция «Последний сигнал»: удерживайте E в 150 м от зонда. Восстановлено '+Math.round(operation.repair)+'%. Во время ремонта автоогонь отключён.':
+  operation.id===RELAY_DEFENSE.id?
+  'Особая операция «Оборона ретранслятора»: '+relayDefenseCue(operation,game.time)+'. Передатчик: '+
+   Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. У налётчиков есть прицельный залп: перехватывайте до его завершения.':
   'Особая операция «Глухой коридор»: уничтожьте отмеченный передатчик. Осталось '+Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. Фаза: '+
   (corridorCue(operation,game.time,distance(operation,p))?.label||'неизвестна')+'.'):
-  previewTarget?(previewProbe?'Предварительная разведка: здесь ожидается аварийный зонд. Место пока известно приблизительно.':'Предварительная разведка: источник помех находится к востоку от дока. Операция ещё не принята.'):
+  previewTarget?(previewProbe?'Предварительная разведка: здесь ожидается аварийный зонд. Место пока известно приблизительно.':
+   previewRelay?'Предварительный маршрут: ретранслятор арсенала. Отразите три конечные волны.':
+   'Предварительная разведка: источник помех находится к востоку от дока. Операция ещё не принята.'):
   home.corridorSecured?'Восточный коридор открыт. Разведка возле дока расширена на 350 м, патрулей стало меньше.':'';
  const objectiveText=objective?
   (objective.progress>=objective.goal?'Награда готова. Вернитесь на '+
