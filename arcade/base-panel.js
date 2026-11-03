@@ -1,8 +1,9 @@
-import {renderStationRoutePreview} from './map-panel.js?v=arcade-station-followup-65';
+import {renderStationRoutePreview} from './map-panel.js?v=carrier-intercept-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=operation-leads-1';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
+import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -286,11 +287,48 @@ const relayPanel=(base,state,compact=false)=>{
   RELAY_DEFENSE.rewardOre+' сплава · +'+RELAY_DEFENSE.rewardData+
   ' данных</span><div>'+actions+'</div></div></article>';
 };
+const carrierPanel=(base,state,compact=false)=>{
+ const op=carrierOffer(base,state.operation,state.time);
+ if(!op)return '';
+ const done=op.status==='complete',active=op.status==='active',returning=op.phase==='return';
+ const ongoing=active&&['contact','pursuit','turn','last'].includes(op.phase);
+ const body=done?'Перехваченные сведения доставлены. На маршруте снабжения меньше вражеских патрулей.':
+  returning?'Груз остановлен. Вернитесь на этот авианосец и нажмите E, чтобы сдать сведения и получить награду.':
+  ongoing?'Транспорт движется к отмеченной линии выхода. Можно атаковать груз под огнём охраны или сначала устранить сопровождающих. Положение корабля помогает выбирать цель автоматическим оружием.':
+  active?'Найдите отмеченный район. Транспорт начнёт движение только после сближения; до этого времени ограничение отсутствует.':
+  'Снабжение противника проходит поблизости. Выследите транспорт, остановите его до линии выхода и доставьте сведения на авианосец.';
+ const actions=done?'<span class="base-op-done">✓ ПАТРУЛИ ОСЛАБЛЕНЫ</span>':
+  active?action('baseMap',returning?'Маршрут к авианосцу':'Показать конвой')+
+   (compact?'':action('abandonOperation','Отложить · начать погоню заново')):
+  action('baseMap','Район встречи')+
+   action('acceptOperation',returning?'Сдать сохранённые сведения':'Принять перехват',
+    op.status==='available'&&!state.operation?'':'Завершите текущую операцию или дождитесь новой попытки');
+ const warning=op.status==='cooldown'?'Новый конвой через '+op.remaining+' с.':
+  op.status==='locked'?'Сначала включите авианосец.':
+  state.operation&&!active?'Сначала завершите или отложите текущую особую операцию.':'';
+ const facts='<div class="base-op-details">'+
+  '<div><span>ЗАДАЧА</span><b>Догнать груз до выхода · вернуться</b></div>'+
+  '<div><span>УГРОЗА</span><b>Два сопровождающих · возможен третий</b></div>'+
+  '<div><span>ПОСЛЕДСТВИЕ</span><b>Патрули реже вдоль маршрута</b></div></div>';
+ return '<article class="base-featured-op '+(done?'resolved':active?'underway':'')+'">'+
+  '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · АВИАНОСЕЦ</span><span>'+
+   (done?'МАРШРУТ ОСЛАБЛЕН':returning?'ВЕРНИТЕСЬ С ДАННЫМИ':ongoing?'ПОГОНЯ':'КОНВОЙ НА ПОДХОДЕ')+'</span></div>'+
+  '<strong>'+CARRIER_INTERCEPTION.name+'</strong><p>'+body+'</p>'+
+  (compact?'':facts)+
+  (ongoing?'<small>Транспорт: '+Math.ceil(op.hp/CARRIER_INTERCEPTION.maxHp*100)+
+   '% · до выхода '+Math.ceil(op.distanceRemaining)+' м.</small>':'')+
+  (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
+  '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
+   CARRIER_INTERCEPTION.rewardOre+' сплава · +'+CARRIER_INTERCEPTION.rewardData+
+   ' данных</span><div>'+actions+'</div></div></article>';
+};
 const specialOffer=(base,state)=>corridorOffer(base,state.operation)||
- probeOffer(base,state.operation)||relayOffer(base,state.operation,state.time);
+ probeOffer(base,state.operation)||relayOffer(base,state.operation,state.time)||
+ carrierOffer(base,state.operation,state.time);
 const specialPanel=(base,state,compact=false)=>
  corridorOffer(base,state.operation)?corridorPanel(base,state,compact):
- probeOffer(base,state.operation)?probePanel(base,state,compact):relayPanel(base,state,compact);
+ probeOffer(base,state.operation)?probePanel(base,state,compact):
+ relayOffer(base,state.operation,state.time)?relayPanel(base,state,compact):carrierPanel(base,state,compact);
 const baseBrief=(base,state,o)=>{
  const op=corridorOffer(base,state.operation);
  if(op){
@@ -320,6 +358,17 @@ const baseBrief=(base,state,o)=>{
    'Перехватывайте корабли, которые сближаются с передатчиком. После каждой волны можно сменить позицию.'];
   return ['ТРЕВОГА НА АРСЕНАЛЕ','Нужна защита ретранслятора',
    'Три короткие волны налётчиков стремятся уничтожить ближайший передатчик. Успейте перехватить их.'];
+ }
+ const carrier=carrierOffer(base,state.operation,state.time);
+ if(carrier){
+  if(carrier.status==='complete')return ['КОНВОЙ ПЕРЕХВАЧЕН','Снабжение нарушено',
+   'Сведения сданы. Вдоль перехваченного маршрута патрули противника появляются реже.'];
+  if(carrier.phase==='return')return ['ГРУЗ ОСТАНОВЛЕН','Доставьте сведения',
+   'Подлетите к авианосцу и нажмите E, чтобы сдать телеметрию. Охранение может продолжать погоню.'];
+  if(carrier.status==='active')return ['ПЕРЕХВАТ НАЧАТ','Остановите транспорт',
+   'Сначала найдите район встречи. После обнаружения груз начнёт двигаться к линии выхода; его можно атаковать вместе с охранением.'];
+  return ['РАЗВЕДКА СНАБЖЕНИЯ','Перехват конвоя',
+   'На маршруте обнаружен груз противника. После сближения с районом встречи начнётся погоня; награда — за доставленные сведения.'];
  }
  if(!o.connected)return ['УЗЕЛ АВТОНОМЕН','Связь отсутствует',
   'Местные услуги работают. Чтобы получить доступ к сети, соедините включённые станции.'];
@@ -469,6 +518,9 @@ export function renderBasePanel(base,state){
    'Операция «Последний сигнал»: при ремонте зонда корабль не стреляет. Дрон может прикрыть его, но не гарантирует безопасность.':
    missionForPreparation.id===RELAY_DEFENSE.id?
    'Операция «Оборона ретранслятора»: противники стремятся к передатчику. Перехватывайте заряженные залпы; атака состоит из трёх конечных волн.':
+   missionForPreparation.id===CARRIER_INTERCEPTION.id?
+   (missionForPreparation.phase==='return'?'Операция «Перехват снабжения»: вернитесь на авианосец с телеметрией.':
+    'Операция «Перехват снабжения»: транспорт движется после обнаружения; охранение можно обойти или уничтожить.'):
    missionForPreparation.phase==='return'?'Операция «Глухой коридор»: помехи сняты, но награда ждёт передачи телеметрии в домашнем доке.':
    'Операция «Глухой коридор»: у глушителя есть охранение и ЭМ-импульсы. После уничтожения вернитесь с телеметрией в док за наградой.') :
   'Выберите дальнейший маршрут и подготовьте корабль к ожидаемой угрозе.';
