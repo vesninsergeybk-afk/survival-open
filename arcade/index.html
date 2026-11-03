@@ -7,7 +7,7 @@
 <title>Выживший · Бесконечная аркада — прототип</title>
 <link rel="stylesheet" href="./style.css?v=cinematic-rotation-01">
 <link rel="stylesheet" href="./hud.css?v=hud-responsive-v16">
-<link rel="stylesheet" href="./hud-art.css?v=hud-art-system-v2">
+<link rel="stylesheet" href="./hud-art.css?v=hud-art-system-v3">
 </head>
 <body>
 <div class="space-sky" id="sky0" aria-hidden="true"></div>
@@ -64,18 +64,17 @@
    </section>
    <section class="cockpit-telemetry cockpit-wing wing-right" aria-label="Вооружение и ведомые">
     <img class="hud-weapon-mark" src="./studio/hud-kit/weapon.svg" alt="" aria-hidden="true">
-    <div class="hud-combat-heading"><span>ОРУЖИЕ</span><strong>БОЕВОЙ КОНТУР</strong></div>
+    <div class="hud-combat-heading"><strong>БОЕВОЙ КОНТУР</strong></div>
     <div class="hud-weapon-readout"><span id="flightMode">АВТООГОНЬ · АКТИВЕН</span></div>
     <div id="hudSupportRing" class="hud-support-ring" aria-label="Заряды авиаудара">
      <b id="hudStrikeCount">×0</b><span>УДАР</span>
     </div>
-    <div class="hud-drone-band"><span>ВЕДОМЫЕ</span>
+    <div class="hud-drone-band"><span>ДРОНЫ</span>
      <div class="hud-drone-icons" aria-hidden="true">
       <img id="hudDrone0" src="./studio/hud-kit/drone.svg" alt="">
       <img id="hudDrone1" src="./studio/hud-kit/drone.svg" alt="">
-      <img id="hudDrone2" src="./studio/hud-kit/drone.svg" alt="">
      </div>
-     <b id="wingStatus">ДРОНЫ: 0/2</b>
+     <b id="wingStatus">0/2</b>
     </div>
     <div class="hud-resource-strip">
      <span class="resource priority"><small>ДАННЫЕ</small><b id="data">0</b></span>
