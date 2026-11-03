@@ -76,3 +76,22 @@ test('Pages publication includes the original asset gallery without exposing aud
  assert.match(yaml,/cp asset-gallery\.html _site\//);
  assert.doesNotMatch(yaml,/cp -R audio-lab _site/);
 });
+
+test('one concept workshop embeds detailed VFX comparison while preserving old URL',()=>{
+ const studio=read('../studio/index.html');
+ const script=read('../studio/app.js');
+ const legacy=read('../../visual-lab/index.html');
+ const styling=read('../studio/style.css');
+ assert.match(studio,/id="vfx-compare-frame"/);
+ assert.match(studio,/src="\.\.\/\.\.\/visual-lab\/\?embed=1"/);
+ assert.match(script,/function selectStudioTab\(/);
+ assert.match(script,/location\.hash/);
+ assert.match(script,/function sizeComparisonFrame\(/);
+ assert.match(styling,/#vfx-compare-frame/);
+ assert.match(legacy,/location\.replace\('\.\.\/arcade\/studio\/#effects'\)/);
+ assert.match(legacy,/get\('embed'\)==='1'/);
+ assert.match(legacy,/\.embedded header/);
+ assert.match(legacy,/Добыча руды лучом/);
+ assert.match(legacy,/Гибель крупного корабля/);
+ assert.ok(exists('../../visual-lab/README.md'));
+});
