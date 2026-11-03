@@ -1,3 +1,4 @@
+import {renderShipHangar} from './hangar-panel.js?v=hangar-1';
 import {renderStationRoutePreview} from './map-panel.js?v=carrier-intercept-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
@@ -555,8 +556,8 @@ export function renderBasePanel(base,state){
    (state.ionReturnNotice?'Модуль вернулся после задания. ':'')+
     'Повторный прокат доступен в арсенале; обычное оружие продолжает работать.',
    '<span class="base-ready">ПЕРВАЯ ПРОБА ЗАВЕРШЕНА</span>'):'';
- const hangar='<div class="base-operations">'+readiness+
-  '<div class="base-grid">'+repair+hire+'</div>'+local+ionPanel+supply+'</div>';
+ const hangar=renderShipHangar({...state,baseActive:active})+'<details class="hg-services"><summary>Подготовка к вылету · ремонт · дроны · прокат оружия</summary><div class="base-operations">'+readiness+
+  '<div class="base-grid">'+repair+hire+'</div>'+local+ionPanel+supply+'</div></details>';
  const network='<div class="base-operations"><p class="base-section-note">Усиление антенны расширяет связь. Специализация влияет на работу станции и ближайший сектор.</p>'+
   '<div class="base-grid">'+upgrade+antenna+'</div>'+networkPreview(base,state)+modules+transit+'</div>';
  const opening=active?
@@ -572,7 +573,7 @@ export function renderBasePanel(base,state){
   '<span>Особые операции и полевые заказы</span>'+
   '<span>Дроны, ремонт и оснащение станции</span>'+
   '<span>Маршруты между подключёнными узлами</span></div></div>';
- return '<div class="dialog base-dialog"><header class="base-head"><div><h2>'+
+ return '<div class="dialog base-dialog" role="dialog" aria-modal="true" aria-label="Станция"><header class="base-head"><div><h2>'+
   (baseNames[base.type]||'Станция')+'</h2><p>Сплав <b>'+o.ore+'</b> · Данные <b>'+(state.data||0)+'</b> (опыт) · Корпус <b>'+Math.ceil(state.hp)+'/'+state.maxHp+'</b> · В сети '+
   state.connectedBases+' · Дроны '+state.allies+'/'+o.cap+(base.type==='carrier'?' · Вылеты '+state.charges:'')+'</p></div>'+
   '<span class="base-pill '+(o.connected?'online':'offline')+'">'+status+'</span></header>'+

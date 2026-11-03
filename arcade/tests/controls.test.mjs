@@ -61,7 +61,7 @@ test('keyboard, touch and autonomous units share the cease-fire contract',()=>{
  assert.match(html,/id="actionBtn"/);
  assert.match(html,/id="quietBtn"/);
  assert.doesNotMatch(html,/id="mineBtn"|id="dockBtn"/);
- assert.doesNotMatch(script,/KeyF|mineTouch/);
+ assert.doesNotMatch(script,/mineTouch/);
 });
 
 test('upgrades no longer interrupt every interval of flight',()=>{
