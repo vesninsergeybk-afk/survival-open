@@ -1,12 +1,12 @@
-import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=audio-fidelity-01';
-import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=audio-fidelity-01';
+import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=recorded-sfx-02';
+import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=recorded-sfx-02';
 import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
 import { MUSIC_TRACKS, MUSIC_POOLS, MusicRotation } from '../arcade/music-playlist.js?v=cinematic-rotation-01';
 
 /**
  * @module audio
  * @description Mixed licensed cinematic scores and game SFX.
- * Scores are streamed; weapon sounds are sample-backed or synthesised.
+ * Scores are streamed; all game effects are decoded CC0 audio recordings.
  *
  * Dependencies: browser Web Audio API. Degrades silently when unavailable.
  *
@@ -95,17 +95,24 @@ export class AudioEngine {
                 if (this._samplesPromise) return;
                 const root = new URL('../audio-lab/', import.meta.url);
                 // Decode a few CC0 effects at a time; mobile startup must stay playable.
-                const samples = Object.entries(SOUND_CATALOG)
-                    .filter(([, def]) => def.sampleUrl && !def.sampleUrl.includes('/sfx/studio/'));
+                const priority = ['starter_soft','magic_wand','knife','explosion_small',
+                    'explosion_big','hit','armor_hit','rock_chip','rock_break','pickup',
+                    'ui_tab','ui_open','player_damage','boss_warning','extractor_loop'];
+                const sounds = Object.entries(SOUND_CATALOG)
+                    .sort(([a],[b]) => (priority.indexOf(a) < 0 ? 999 : priority.indexOf(a)) -
+                        (priority.indexOf(b) < 0 ? 999 : priority.indexOf(b)));
+                const queue = sounds.flatMap(([key,def]) =>
+                    (def.sampleUrls?.length ? def.sampleUrls : def.sampleUrl ? [def.sampleUrl] : [])
+                        .map(url => [key,url]));
                 let cursor = 0;
                 const worker = async () => {
-                    while (cursor < samples.length) {
-                        const [key, def] = samples[cursor++];
-                        try { await this.sfxLab.loadSampleFromUrl(key, new URL(def.sampleUrl, root).href); }
-                        catch (err) { console.warn('[audio] CC0 fallback:', key, err); }
+                    while (cursor < queue.length) {
+                        const [key, url] = queue[cursor++];
+                        try { await this.sfxLab.loadSampleFromUrl(key, new URL(url, root).href, {append:true}); }
+                        catch (err) { console.warn('[audio] CC0 recording unavailable:', key, err); }
                     }
                 };
-                this._samplesPromise = Promise.all(Array.from({ length: Math.min(4, samples.length) }, worker));
+                this._samplesPromise = Promise.all(Array.from({ length: Math.min(4, queue.length) }, worker));
             }).catch(err => console.warn('[audio] sample bank unavailable', err));
         }
     }
@@ -130,62 +137,10 @@ export class AudioEngine {
         this.applyVolumes();
     }
 
-    // Generic tone helper --------------------------------------------------
-    tone({
-        freq = 440,
-        dur = 0.08,
-        type = 'sine',
-        volume = 0.2,
-        attack = 0.005,
-        release = 0.05,
-        sweep = 0,
-        noise = false,
-        noiseBand = 0,
-        bus = 'sfx'
-    }) {
-        if (!this.enabled || !this.ctx || !this.unlocked || this.settings.muted) return;
-        // Procedural UI/atmosphere does not enter the sampled mixer's voice cap.
-        if (this.directVoices.size >= 16) return;
-        const now = this.ctx.currentTime;
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(volume, now + attack);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur + release);
-        gain.connect(bus === 'music' ? this.musicGain : this.sfxGain);
+    // Kept as a no-op for older callers. Runtime generated tones are disabled.
+    tone() { return false; }
 
-        let source;
-        if (noise) {
-            source = this.ctx.createBufferSource();
-            source.buffer = this._noiseBuffer();
-            source.loop = true;
-        } else {
-            const osc = this.ctx.createOscillator();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, now);
-            if (sweep) {
-                osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq + sweep), now + dur);
-            }
-            source = osc;
-        }
-        if (noise && noiseBand && this.ctx.createBiquadFilter) {
-            const warmth = this.ctx.createBiquadFilter();
-            warmth.type = 'bandpass';
-            warmth.frequency.value = noiseBand;
-            warmth.Q.value = 0.62;
-            source.connect(warmth);
-            warmth.connect(gain);
-        } else source.connect(gain);
-        this.directVoices.add(source);
-        source.onended = () => { this.directVoices.delete(source); try { gain.disconnect(); } catch {} };
-        source.start(now);
-        source.stop(now + dur + release + 0.01);
-    }
-
-    /**
-     * Extractor contact: a sustained abrasive electric texture plus a low motor
-     * resonance. One shared voice is held while F is pressed, so damage ticks
-     * never trigger a fresh weapon shot or restart the audio.
-     */
+    /** Loop a decoded engine recording while the extraction tool is engaged. */
     setExtractionActive(active) {
         if (!active) {
             const voice = this.extractionVoice;
@@ -194,123 +149,36 @@ export class AudioEngine {
             const now = this.ctx.currentTime;
             voice.output.gain.cancelScheduledValues(now);
             voice.output.gain.setValueAtTime(Math.max(0.0001, voice.output.gain.value), now);
-            voice.output.gain.linearRampToValueAtTime(0.0001, now + 0.16);
-            for (const source of voice.sources) {
-                try { source.stop(now + 0.18); } catch { /* already stopped */ }
-            }
+            voice.output.gain.linearRampToValueAtTime(0.0001, now + 0.14);
+            try { voice.source.stop(now + 0.15); } catch {}
             return;
         }
-        if (this.extractionVoice || !this.enabled || !this.unlocked ||
-            !this.ctx || this.settings.muted) return;
+        if (this.extractionVoice || !this.ctx || !this.unlocked ||
+            this.settings.muted || !this.sfxLab?.master) return;
+        const samples = this.sfxLab.bufferByKey.get('extractor_loop');
+        const buffer = Array.isArray(samples) ? samples[0] : samples;
+        if (!buffer) return; // An audio file has not arrived yet; never synthesize a motor.
         const ctx = this.ctx, now = ctx.currentTime;
         const output = ctx.createGain();
         output.gain.setValueAtTime(0.0001, now);
-        output.gain.linearRampToValueAtTime(0.75, now + 0.12);
+        output.gain.linearRampToValueAtTime(0.16, now + 0.12);
         output.connect(this.sfxGain);
-
-        const staticSource = ctx.createBufferSource();
-        staticSource.buffer = this._noiseBuffer();
-        staticSource.loop = true;
-        const crackle = ctx.createBiquadFilter();
-        crackle.type = 'bandpass';
-        crackle.frequency.value = 1050;
-        crackle.Q.value = 0.52;
-        const staticLevel = ctx.createGain();
-        staticLevel.gain.value = 0.23;
-        staticSource.connect(crackle).connect(staticLevel).connect(output);
-
-        const motor = ctx.createOscillator();
-        motor.type = 'triangle';
-        motor.frequency.value = 89;
-        const motorLevel = ctx.createGain();
-        motorLevel.gain.value = 0.095;
-        motor.connect(motorLevel).connect(output);
-
-        const flutter = ctx.createOscillator();
-        flutter.type = 'sine';
-        flutter.frequency.value = 8.5;
-        const flutterDepth = ctx.createGain();
-        flutterDepth.gain.value = 0.07;
-        flutter.connect(flutterDepth).connect(staticLevel.gain);
-
-        staticSource.start(now);
-        motor.start(now);
-        flutter.start(now);
-        this.extractionVoice = { output, sources: [staticSource, motor, flutter] };
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        source.connect(output);
+        source.start(now);
+        this.extractionVoice = {output,source};
     }
 
-    /**
-     * Rock and scrap have a granular crunch, not the ship-explosion sample.
-     * Stereo position and attenuation are inherited from the game camera.
-     */
-    rockImpact({ heavy = false, intensity = 1, pan = 0 } = {}) {
-        if (!this.ctx || !this.enabled || !this.unlocked || this.settings.muted ||
-            this.activeRockImpacts >= 5) return false;
-        this.activeRockImpacts++;
-        const ctx = this.ctx, now = ctx.currentTime;
-        const life = heavy ? 0.31 : 0.095;
-        const gain = ctx.createGain();
-        const level = (heavy ? 0.17 : 0.075) * Math.max(0.08, Math.min(1, intensity));
-        gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.linearRampToValueAtTime(level, now + 0.007);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + life);
-        if (ctx.createStereoPanner) {
-            const stereo = ctx.createStereoPanner();
-            stereo.pan.value = Math.max(-0.85, Math.min(0.85, pan));
-            gain.connect(stereo).connect(this.sfxGain);
-        } else gain.connect(this.sfxGain);
-
-        const grit = ctx.createBufferSource();
-        grit.buffer = this._noiseBuffer();
-        const gritBand = ctx.createBiquadFilter();
-        gritBand.type = 'lowpass';
-        gritBand.frequency.value = heavy ? 830 : 1300;
-        gritBand.Q.value = 0.65;
-        grit.connect(gritBand).connect(gain);
-        grit.onended = () => {
-            this.activeRockImpacts = Math.max(0, this.activeRockImpacts - 1);
-            try { gain.disconnect(); } catch {}
-        };
-        grit.start(now);
-        grit.stop(now + life + 0.015);
-
-        if (heavy) {
-            const stone = ctx.createOscillator();
-            stone.type = 'triangle';
-            stone.frequency.setValueAtTime(132, now);
-            stone.frequency.exponentialRampToValueAtTime(70, now + life);
-            const body = ctx.createGain();
-            body.gain.value = 0.28;
-            stone.connect(body).connect(gain);
-            stone.start(now);
-            stone.stop(now + life + 0.015);
-        }
-        return true;
+    rockImpact({heavy=false,intensity=1,pan=0}={}) {
+        return this.playEvent(heavy ? 'rock_break' : 'rock_chip', {intensity,pan});
     }
 
-    _noiseBuffer() {
-        if (this._noise) return this._noise;
-        // A long, reusable noise bed avoids audible loops in the extractor.
-        const len = Math.round(this.ctx.sampleRate * 2.4);
-        const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
-        const data = buf.getChannelData(0);
-        for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-        this._noise = buf;
-        return buf;
-    }
-
-    /** Game event routed through the licensed/CC0 sample mixer. */
-    playEvent(key, options = {}) {
-        if (this.sfxLab?.master) return this.sfxLab.play(key, options);
-        // Sample bank still unlocking: use a restrained, unpitched cue.
-        // A universal 540 Hz beep made unrelated actions sound identical.
-        if (!this.ctx || !this.unlocked || this.settings.muted) return false;
-        const family = SOUND_CATALOG[key]?.family;
-        const low = family === 'impact' || family === 'structure';
-        this.tone({ noise: true, noiseBand: low ? 520 : 1150,
-            dur: low ? 0.12 : 0.055, volume: low ? 0.11 : 0.045,
-            attack: 0.007, release: 0.10 });
-        return false;
+    /** All effects route to decoded sound recordings; never fall back to beeps. */
+    playEvent(key, options={}) {
+        if (!this.enabled || this.settings.muted) return false;
+        return this.sfxLab?.master ? this.sfxLab.play(key, options) : false;
     }
 
     /**
@@ -325,98 +193,19 @@ export class AudioEngine {
         }
     }
 
-    // High-level SFX -------------------------------------------------------
-    hit(material = 'normal') {
-        if (this.sfxLab?.master) {
-            this.sfxLab.play(material === 'armor' ? 'armor_hit' : material === 'shield' ? 'shield_hit' : 'hit');
-            return;
-        }
-        this.tone({ noise: true, noiseBand: 690, dur: 0.065,
-            volume: 0.085, attack: 0.005, release: 0.09 });
+    // High-level effects ---------------------------------------------------
+    hit(material='normal') {
+        return this.playEvent(material==='armor'?'armor_hit':material==='shield'?'shield_hit':'hit');
     }
-    shoot(weaponId = 'starter_pulse', options = {}) {
-        if (this.sfxLab?.master) {
-            return this.sfxLab.play(weaponId, options);
-        }
-        // While the mixer unlocks, even the temporary cue stays unobtrusive.
-        const intensity = Math.max(0.2, Math.min(1, options.intensity ?? 1));
-        this.tone({ noise: true, noiseBand: 720, dur: 0.085,
-            volume: 0.034 * intensity, attack: 0.018, release: 0.10 });
-        this.tone({ freq: 150, dur: 0.13, type: 'sine',
-            volume: 0.028 * intensity, attack: 0.020, release: 0.09, sweep: -22 });
-        return true;
-    }
-    explosion(size = 'big') {
-        if (this.sfxLab?.master) {
-            this.sfxLab.play(size === 'small' ? 'explosion_small' : 'explosion_big');
-            return;
-        }
-        this.tone({ noise: true, noiseBand: 480, dur: 0.25, volume: 0.20, release: 0.17 });
-    }
-    pickup() {
-        if (this.sfxLab?.master) {
-            this.sfxLab.play('pickup');
-            return;
-        }
-        this.tone({ noise: true, noiseBand: 1300, dur: 0.045,
-            volume: 0.055, attack: 0.004, release: 0.07 });
-    }
-    levelUp() {
-        if (this.sfxLab?.master) {
-            this.sfxLab.play('level_up');
-            return;
-        }
-        this.tone({ noise: true, noiseBand: 740, dur: 0.14, volume: 0.15,
-            attack: 0.012, release: 0.18 });
-        this.tone({ freq: 190, dur: 0.30, type: 'triangle', volume: 0.08,
-            attack: 0.025, release: 0.23, sweep: 45 });
-    }
-    damage() {
-        if (this.sfxLab?.master) {
-            this.sfxLab.play('player_damage');
-            return;
-        }
-        this.tone({ freq: 180, dur: 0.18, type: 'sawtooth', volume: 0.18, sweep: -80 });
-    }
-    death() {
-        if (this.sfxLab?.master) {
-            this.sfxLab.play('player_death');
-            return;
-        }
-        this.tone({ freq: 220, dur: 0.4, type: 'sawtooth', volume: 0.25, sweep: -180 });
-        setTimeout(
-            () => this.tone({ freq: 110, dur: 0.6, type: 'sawtooth', volume: 0.2, sweep: -80 }),
-            200
-        );
-    }
-    bossSpawn() {
-        if (this.sfxLab?.master) {
-            this.sfxLab.play('boss_spawn');
-            return;
-        }
-        this.tone({ noise: true, dur: 0.4, volume: 0.3, release: 0.25 });
-        setTimeout(() => this.tone({ freq: 80, dur: 0.6, type: 'sawtooth', volume: 0.3 }), 100);
-    }
-    bossWarn() {
-        if (this.sfxLab?.master) {
-            this.sfxLab.play('boss_warning');
-            return;
-        }
-        this.tone({ noise: true, noiseBand: 370, dur: 0.28,
-            volume: 0.17, attack: 0.03, release: 0.3 });
-        this.tone({ freq: 100, dur: 0.45, type: 'triangle', volume: 0.09,
-            attack: 0.05, release: 0.3, sweep: -20 });
-    }
-    achievement() {
-        if (this.sfxLab?.master) {
-            this.sfxLab.play('achievement');
-            return;
-        }
-        this.tone({ noise: true, noiseBand: 860, dur: 0.17,
-            volume: 0.12, attack: 0.014, release: 0.16 });
-        this.tone({ freq: 230, dur: 0.24, type: 'sine', volume: 0.06,
-            attack: 0.025, release: 0.2, sweep: 42 });
-    }
+    shoot(weaponId='starter_pulse',options={}) { return this.playEvent(weaponId,options); }
+    explosion(size='big') { return this.playEvent(size==='small'?'explosion_small':'explosion_big'); }
+    pickup() { return this.playEvent('pickup'); }
+    levelUp() { return this.playEvent('level_up'); }
+    damage() { return this.playEvent('player_damage'); }
+    death() { return this.playEvent('player_death'); }
+    bossSpawn() { return this.playEvent('boss_spawn'); }
+    bossWarn() { return this.playEvent('boss_warning'); }
+    achievement() { return this.playEvent('achievement'); }
 
     // Stream one licensed cue at a time. Rotate tracks only on complete cues
     // or meaningful changes in threat, and crossfade before the cue ends.

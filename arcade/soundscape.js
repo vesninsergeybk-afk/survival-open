@@ -1,47 +1,27 @@
 /**
- * Quiet physical sound materials for the arcade. UI = tactile relay clicks,
- * world = filtered air and machinery, music = low atmospheric swells.
- * No pitched high-frequency chirps or repeated weapon-shot substitutes.
+ * Recorded sound cues for the arcade. Names match SOUND_CATALOG.
+ * All actual audio comes from verified OGG samples in the shared mixer.
+ * These scene cues are sparse; they do not compete with the licensed score.
  */
-const grit=(noiseBand,dur,volume,afterMs=0,bus='sfx',attack=.008,release=.12)=>
- Object.freeze({noise:true,noiseBand,dur,volume,afterMs,bus,attack,release});
-const motor=(freq,dur,volume,afterMs=0,bus='sfx',sweep=0)=>
- Object.freeze({freq,dur,volume,afterMs,bus,sweep,type:'triangle',
-  attack:.025,release:.15});
-
-const UI=Object.freeze({
- open:[grit(1050,.046,.07),motor(170,.12,.038,48)],
- map:[grit(780,.075,.065),motor(125,.15,.05,70)],
- tab:[grit(1020,.04,.052),motor(145,.082,.028,36)],
- dock:[grit(470,.11,.085),motor(112,.14,.065,55)],
- close:[grit(1350,.052,.063)],
- select:[grit(1450,.038,.058)],
- confirm:[grit(730,.075,.074),motor(180,.10,.04,65)],
- deny:[grit(420,.095,.08),motor(118,.15,.05,50)],
- cancel:[grit(660,.072,.055)],
- slider:[grit(1650,.025,.035)],
- audioOn:[grit(890,.072,.07),motor(190,.115,.05,65)]
+const plan = (key,intensity=1) => Object.freeze([{key,intensity}]);
+const UI = Object.freeze({
+ open:plan('ui_open'),map:plan('ui_map'),tab:plan('ui_tab'),
+ dock:plan('ui_dock'),close:plan('ui_close'),select:plan('ui_select'),
+ confirm:plan('ui_confirm'),deny:plan('ui_deny'),cancel:plan('ui_cancel'),
+ slider:plan('ui_slider'),audioOn:plan('ui_audio_on')
 });
-const WORLD=Object.freeze({
- discover:[grit(1120,.17,.075),motor(132,.28,.055,100)],
- amber:[grit(315,.33,.078),motor(76,.47,.06,130)],
- ion:[grit(1600,.28,.065),motor(102,.44,.05,180)],
- contract:[grit(690,.12,.075),motor(155,.2,.048,95)]
+const WORLD = Object.freeze({
+ discover:plan('world_discover'),amber:plan('world_amber'),
+ ion:plan('world_ion'),contract:plan('world_contract')
 });
-const SCENE=Object.freeze({
- drift:[],
- alert:[grit(315,.45,.075,0,'music',.12,.34),motor(91,.43,.055,240,'music')],
- battle:[grit(450,.31,.085,0,'music',.025,.31),motor(79,.58,.074,55,'music')],
- siege:[grit(215,.88,.11,0,'music',.18,.5),motor(62,1.1,.095,260,'music')],
- recovery:[grit(420,.53,.065,0,'music',.12,.38),motor(124,.36,.055,250,'music')]
+const SCENE = Object.freeze({
+ drift:[],alert:plan('scene_alert'),battle:plan('scene_battle'),
+ siege:plan('scene_siege'),recovery:plan('scene_recovery')
 });
-const AMBIENT=Object.freeze({
- void:[grit(190,2.3,.075,0,'music',.55,.62),motor(65,1.9,.038,500,'music')],
- station:[motor(109,1.75,.057,0,'music'),grit(460,.63,.045,650,'music',.2,.42)],
- extraction:[], // continuous extractor contact voice already occupies this space
- alert:[grit(285,1.3,.075,0,'music',.4,.55)],
- battle:[grit(480,.65,.073,0,'music',.17,.39)],
- siege:[grit(180,1.65,.085,0,'music',.32,.48)]
+const AMBIENT = Object.freeze({
+ void:plan('ambient_void'),station:plan('ambient_station'),
+ extraction:[],alert:plan('ambient_alert'),battle:plan('ambient_battle'),
+ siege:plan('ambient_siege')
 });
 export const uiSoundPlan=kind=>UI[kind]||[];
 export const worldSoundPlan=kind=>WORLD[kind]||[];

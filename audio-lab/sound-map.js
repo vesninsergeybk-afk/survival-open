@@ -4,11 +4,7 @@
  * Production audio routing shared with the public sound laboratory.
  * Keys match WEAPONS[*].id in ../src/data.js, production on 2026-10-28.
  *
- * In the public repository, 21 Sonniss studio sample files are intentionally
- * absent due to redistribution restrictions. Their profiles use procedural
- * fallback. Five real Kenney CC0 samples are wired to matching production
- * events; the frequent starter_soft stays deliberately synthesised.
- * See ./assets/sfx/studio/SOURCES.md for original source references.
+ * Studio sources are not redistributed. Gameplay uses bundled Kenney CC0 recordings\n * and existing CC0 station recordings; there is no procedural fallback.
  */
 export const WEAPON_SOUNDS = {
   starter_pulse: { label: 'Учебный импульс', profile: 'pulse', family: 'energy', gain: 0.34, priority: 3, minIntervalMs: 95, sampleUrl: './assets/sfx/starter_pulse.ogg', note: 'Короткий упругий щелчок и мягкий электрический хвост.' },
@@ -77,7 +73,72 @@ export const BASE_SOUNDS = {
   upgrade_defense: { label: "Оборонительная ветвь", profile: 'shield', family: 'ui', gain: 0.34, priority: 3, minIntervalMs: 280, sampleUrl: './assets/sfx/base/upgrade_defense.ogg' }
 };
 
-export const SOUND_CATALOG = { ...WEAPON_SOUNDS, ...EVENT_SOUNDS, ...BASE_SOUNDS };
+// Every public gameplay event uses decoded CC0 audio. Studio placeholders are
+// superseded by verified Kenney files or recordings already stored in base/.
+const k = file => './assets/sfx/kenney/' + file + '.ogg';
+const b = file => './assets/sfx/base/' + file + '.ogg';
+const replacements = {
+  starter_soft: [k('laserSmall_000'),k('laserSmall_002'),k('laserSmall_003'),k('laserSmall_004')],
+  whip: [k('laserRetro_003')], magic_wand: [k('laserLarge_000'),k('laserLarge_001')],
+  knife: [k('thrusterFire_000')], orbit: [k('spaceEngineSmall_000')],
+  lightning: [k('forceField_000')], mine: [k('doorClose_001')],
+  garlic: [k('forceField_001')], frost_nova: [k('forceField_002')],
+  soul_drain: [b('base_repair_pulse')], boomerang: [k('laserRetro_004')],
+  railgun: [k('laserLarge_004')], drone_swarm: [b('base_escort_launch')],
+  retro_blaster: [k('laserRetro_000'),k('laserRetro_001')],
+  shield_hit: [k('forceField_003')],
+  explosion_big: [k('explosionCrunch_003'),k('explosionCrunch_004')],
+  boss_warning: [b('base_raid_warning')], level_up: [b('unlock_tech_tier')],
+  player_damage: [k('impactMetal_002'),k('impactMetal_003')],
+  player_death: [k('explosionCrunch_004')], boss_spawn: [k('explosionCrunch_001')],
+  achievement: [b('base_raid_success')], engine: [k('spaceEngineLow_000')]
+};
+const limits = {
+  knife: .52, orbit: .35, garlic: .55, frost_nova: .65,
+  boomerang: .48, railgun: .62, lightning: .55, drone_swarm: .72,
+  engine: .55, explosion_big: 1.45, player_death: 1.8, boss_spawn: 1.4
+};
+for (const [key, paths] of Object.entries(replacements)) {
+  const def = WEAPON_SOUNDS[key] || EVENT_SOUNDS[key];
+  if (!def) throw new Error('Unknown recorded cue: ' + key);
+  def.sampleUrl = paths[0];
+  def.sampleUrls = paths;
+  if (limits[key]) def.maxDuration = limits[key];
+}
+
+const cue = (label,family,sampleUrl,gain,priority=1,minIntervalMs=150,maxDuration=.65) =>
+  ({label,profile:'recorded',family,sampleUrl,gain,priority,minIntervalMs,maxDuration});
+export const AUX_SOUNDS = {
+  ui_open: cue('Открыть панель','ui',k('doorOpen_000'),.12),
+  ui_map: cue('Карта','ui',k('doorOpen_001'),.10),
+  ui_tab: cue('Вкладка','ui',k('doorClose_000'),.055,1,90,.24),
+  ui_dock: cue('Стыковка','ui',k('doorOpen_002'),.12),
+  ui_close: cue('Закрыть панель','ui',k('doorClose_000'),.09),
+  ui_select: cue('Выбор','ui',k('laserSmall_002'),.07,1,85,.22),
+  ui_confirm: cue('Подтверждение','ui',b('upgrade_standard'),.14),
+  ui_deny: cue('Недоступное действие','ui',b('base_shield_break'),.11),
+  ui_cancel: cue('Отмена','ui',k('doorClose_001'),.08),
+  ui_slider: cue('Регулировка','ui',k('impactMetal_heavy_000'),.052,1,90,.16),
+  ui_audio_on: cue('Звук включён','ui',b('upgrade_standard'),.11),
+  world_discover: cue('Обнаружение','ui',b('base_raid_success'),.15,2,600),
+  world_amber: cue('Низкий уровень энергии','ui',b('base_raid_warning'),.15,3,1100),
+  world_ion: cue('Ионная аномалия','ambient',k('forceField_003'),.16,2,1100),
+  world_contract: cue('Контракт','ui',b('base_resonance_link'),.13,2,750),
+  scene_alert: cue('Нарастание угрозы','ui',b('base_raid_warning'),.13,3,2500,1.35),
+  scene_battle: cue('Начало боя','ui',b('base_shield_engage'),.14,3,2500,1.35),
+  scene_siege: cue('Штурм','ui',b('base_destroyed'),.20,4,2500,1.6),
+  scene_recovery: cue('Опасность миновала','ui',b('base_raid_success'),.11,3,2500,1.1),
+  ambient_void: cue('Фоновая электроника космоса','ambient',k('computerNoise_000'),.065,1,9500,4.4),
+  ambient_station: cue('Механизмы станции','ambient',k('spaceEngineLow_000'),.085,1,9500,4.5),
+  ambient_alert: cue('Отдалённая помеха','ambient',k('computerNoise_001'),.075,1,9500,3.3),
+  ambient_battle: cue('Дальний мотор','ambient',k('spaceEngineLow_001'),.065,1,9500,2.7),
+  ambient_siege: cue('Осадный фон','ambient',k('spaceEngineLarge_000'),.11,1,9500,4.2),
+  rock_chip: cue('Крошка руды','impact',k('impactMining_001'),.16,1,85,.2),
+  rock_break: cue('Разлом астероида','impact',k('impactMining_003'),.29,2,155,.55),
+  extractor_loop: cue('Работа экстрактора','ambient',k('engineCircular_000'),.12,1,500,.9)
+};
+
+export const SOUND_CATALOG = { ...WEAPON_SOUNDS, ...EVENT_SOUNDS, ...BASE_SOUNDS, ...AUX_SOUNDS };
 
 export const BUS_PRESET = Object.freeze({
   master: 0.74, weapons: 0.75, impacts: 0.78, ui: 0.68, structures: 0.66, ambience: 0.32, music: 0.40

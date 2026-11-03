@@ -33,35 +33,35 @@ function activeEngine(){
  audio.musicGain={gain:{value:1}};audio.enabled=true;audio.unlocked=true;
  return {audio,ctx};
 }
-test('mining extractor sustains exactly one layered voice and stops on release',()=>{
+test('extractor loops one recorded engine sample and stops when released',()=>{
  const {audio,ctx}=activeEngine();
+ const samples=new Map([['extractor_loop',{duration:2.8}]]);
+ audio.sfxLab={master:{},bufferByKey:samples,play:()=>true};
  audio.setExtractionActive(true);
  assert.ok(audio.extractionVoice);
- assert.equal(ctx.starts.length,3);
+ assert.equal(ctx.starts.length,1,'one recorded engine source, not three generators');
  audio.setExtractionActive(true);
- assert.equal(ctx.starts.length,3,'holding F must never restart the tool');
- audio.setExtractionActive(false);
- assert.equal(audio.extractionVoice,null);
- assert.equal(ctx.stops.length,3,'release must stop the entire sound layer');
- audio.setExtractionActive(false);
- assert.equal(ctx.stops.length,3,'no extra stop on following frame');
-});
-test('muting closes extraction sound without touching the mining state',()=>{
- const {audio,ctx}=activeEngine();
- audio.setExtractionActive(true);
- audio.setMuted(true);
- assert.equal(audio.extractionVoice,null);
- assert.equal(ctx.stops.length,3);
- audio.setExtractionActive(true);
- assert.equal(ctx.starts.length,3,'muted player must not hear extractor');
-});
-test('rocks sound granular, never like a spaceship explosion',()=>{
- const {audio,ctx}=activeEngine();
- assert.equal(audio.rockImpact({heavy:false,pan:.5,intensity:.8}),true);
  assert.equal(ctx.starts.length,1);
+ audio.setExtractionActive(false);
+ assert.equal(audio.extractionVoice,null);
+ assert.equal(ctx.stops.length,1);
+});
+test('muting stops the extractor and a missing recording never produces beeps',()=>{
+ const {audio,ctx}=activeEngine();
+ audio.sfxLab={master:{},bufferByKey:new Map(),play:()=>false};
+ audio.setExtractionActive(true);
+ assert.equal(ctx.starts.length,0);
+ assert.equal(audio.rockImpact({heavy:true}),false);
+ assert.equal(ctx.starts.length,0);
+ assert.equal(audio.tone({freq:440}),false);
+});
+test('rock impacts use separate sampled ore recordings',()=>{
+ const {audio}=activeEngine(),events=[];
+ audio.sfxLab={master:{},play:(key,opts)=>{events.push({key,...opts});return true;}};
+ assert.equal(audio.rockImpact({heavy:false,pan:.5,intensity:.8}),true);
  assert.equal(audio.rockImpact({heavy:true,pan:-.3}),true);
- assert.equal(ctx.starts.length,3,'break adds a low stone resonance');
- assert.ok(ctx.nodes.some(n=>n.kind==='filter'&&n.type==='lowpass'));
+ assert.deepEqual(events.map(e=>e.key),['rock_chip','rock_break']);
+ assert.deepEqual(events.map(e=>e.pan),[.5,-.3]);
 });
 test('legacy sound mapping separates energy shots, enemy fire and stone',()=>{
  const h=new ArcadeHeritage(),shots=[],rocks=[],events=[];
@@ -82,18 +82,13 @@ test('game mining loop does not emit a gunshot on each resource tick',()=>{
  assert.doesNotMatch(game,/kind\s*===\s*['"]extract['"]\s*\)\s*this\.heritage\.play\(['"]laser['"]/);
 });
 
-test('starter pulse has a soft procedural texture even without studio samples',()=>{
+test('starter auto-fire is made of four existing CC0 recording variants',()=>{
  const cue=SOUND_CATALOG.starter_soft;
  assert.equal(cue?.profile,'softpulse');
- assert.equal(cue?.sampleUrl,undefined,'public starter must never fetch missing studio recordings');
- const synth=new AudioLabEngine(),notes=[];
- synth.random=()=>0.5;
- synth.osc=(_,params)=>notes.push({source:'osc',...params});
- synth.noise=(_,params)=>notes.push({source:'noise',...params});
- assert.ok(synth.synthesize({},cue.profile,0)>0.1);
- assert.equal(notes.length,3);
- assert.ok(notes.filter(n=>n.source==='osc').every(n=>n.type!=='sawtooth'&&n.from<350));
- assert.ok(notes.filter(n=>n.source==='noise').every(n=>n.filter==='lowpass'&&n.frequency<=1000));
+ assert.equal(cue?.sampleUrls.length,4);
+ assert(cue.sampleUrls.every(path=>path.includes('/kenney/laserSmall_')));
+ const mixer=new AudioLabEngine();
+ assert.equal(mixer.bufferByKey.has('starter_soft'),false);
 });
 test('starter auto-fire recedes during continuous volleys and resets after quiet',()=>{
  const h=new ArcadeHeritage(),shots=[];
@@ -138,18 +133,15 @@ test('the final mix has a limiter and music ducking never overwrites player volu
  }
 });
 
-test('direct procedural effects never exceed their separate voice budget',()=>{
+test('no synthesised signal is generated when audio clips are unavailable',()=>{
  const {audio,ctx}=activeEngine();
- for(let i=0;i<30;i++)audio.tone({freq:120,dur:.1});
- assert.equal(audio.directVoices.size,16);
- assert.equal(ctx.starts.length,16);
- const ended=[...audio.directVoices][0];
- ended.onended();
- assert.equal(audio.directVoices.size,15);
- audio.tone({freq:130,dur:.12});
- assert.equal(ctx.starts.length,17);
+ assert.equal(audio.tone({freq:120}),false);
+ assert.equal(audio.shoot('starter_soft'),false);
+ assert.equal(audio.explosion('big'),false);
+ assert.equal(ctx.starts.length,0);
+ const mixer=new AudioLabEngine({context:{...ctx,state:'running'}});
+ assert.equal(mixer.play('starter_soft'),false);
 });
-
 test('both rocket detonation and armored contacts are routed into sound catalog',()=>{
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  const heritage=readFileSync(new URL('../heritage.js',import.meta.url),'utf8');
