@@ -11,7 +11,7 @@
 /* eslint-env serviceworker */
 /* global self, caches, fetch */
 
-const CACHE = 'vesnin-survivor-ru-spac1-walk-134';
+const CACHE = 'vesnin-survivor-ru-recorded-sfx-02';
 // Only cache a small boot shell eagerly. Every loaded module, animation
 // atlas and sound is stored by the fetch handler on first real use; the
 // former precache downloaded obsolete code and large images during the dock.

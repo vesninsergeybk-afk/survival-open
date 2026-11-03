@@ -12,6 +12,7 @@ on:
       - "arcade/**"
       - "src/**"
       - "audio-lab/**"
+      - "tools/prepare-cc0-sfx.mjs"
       - "assets/**"
       - "visual-lab/**"
       - "asset-gallery.html"
@@ -57,6 +58,9 @@ jobs:
           test -f _site/asset-gallery.html
           test -f _site/visual-lab/index.html
           test -f _site/assets/space/hero-evolution/ship_10_damaged.png || test -f _site/assets/space/hero-evolution/ship_10_damaged.webp
+
+      - name: Install pinned Kenney CC0 recordings into Pages bundle
+        run: node tools/prepare-cc0-sfx.mjs _site
 
       - name: Verify deployed module and resource dependencies
         run: node tools/verify-pages-bundle.mjs _site

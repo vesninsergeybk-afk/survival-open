@@ -1,7 +1,7 @@
 import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01';
-import {AudioEngine} from '../src/audio.js?v=audio-fidelity-01';
-import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=audio-fidelity-01';
-import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=audio-fidelity-01';
+import {AudioEngine} from '../src/audio.js?v=recorded-sfx-02';
+import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=recorded-sfx-02';
+import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=recorded-sfx-02';
 
 const STORAGE_KEY='survivor_arcade_audio_v2';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -98,7 +98,7 @@ export class ArcadeHeritage {
    this.lastAutoShotAt=now;
    options.intensity=(options.intensity??1)*(1-this.autoFireRun*.065);
   }
-  // The mixer accepts either licensed samples or purpose-built soft synthesis.
+  // The mixer plays only decoded and license-verified audio recordings.
   if((kind==='laser'||kind==='rocket')&&!position){
    this.audio.shoot(key,options);
   }else this.audio.playEvent(key,options);
@@ -107,9 +107,9 @@ export class ArcadeHeritage {
  emitNotes(plan){
   if(!this.soundOn||this.hidden||this.dead||!plan.length)return;
   const sequence=this.sequence;
-  for(const {afterMs,...tone} of plan){
-   if(afterMs)this.scheduled(()=>this.audio.tone(tone),afterMs,sequence);
-   else this.audio.tone(tone);
+  for(const {key,intensity=1,afterMs=0} of plan){
+   if(afterMs)this.scheduled(()=>this.audio.playEvent(key,{intensity}),afterMs,sequence);
+   else this.audio.playEvent(key,{intensity});
   }
  }
  ui(kind){
@@ -131,31 +131,9 @@ export class ArcadeHeritage {
   },delay);
  }
  startup(type){
-  // The station is activated in game.js immediately. Its audible machinery
-  // continues for roughly 3 seconds: ignition, rotating core, contact, lock.
+  // The recorded CC0 reactor cue already contains the complete ignition cycle.
   this.sequence++;
-  const id=this.sequence,low=LEVELS[type]||LEVELS.outpost;
   this.audio.baseAction({action:'activate',type});
-  this.audio.tone({freq:low,dur:2.38,type:'triangle',
-   volume:.085,attack:.28,release:.52,sweep:low*.8});
-  this.audio.tone({noise:true,noiseBand:490,dur:1.95,
-   volume:.07,attack:.32,release:.48});
-  this.scheduled(()=>{
-   this.audio.tone({noise:true,noiseBand:890,dur:.14,
-    volume:.088,attack:.008,release:.09});
-  },650,id);
-  this.scheduled(()=>{
-   this.audio.tone({noise:true,noiseBand:660,dur:.21,
-    volume:.11,attack:.012,release:.16});
-   this.audio.tone({freq:112,dur:.22,type:'triangle',
-    volume:.045,attack:.012,release:.2,sweep:-32});
-  },1560,id);
-  this.scheduled(()=>{
-   this.audio.tone({noise:true,noiseBand:510,dur:.31,
-    volume:.13,attack:.006,release:.22});
-   this.audio.tone({freq:95,dur:.32,type:'triangle',
-    volume:.07,attack:.012,release:.24,sweep:-18});
-  },2690,id);
  }
  station(action,type,details={}){
   if(!this.soundOn||this.hidden)return;
@@ -230,7 +208,6 @@ export class ArcadeHeritage {
   this.sceneVolume=this.modal?(this.modal==='base'?.45:.37):result.volume;
   this.syncVolume();
   if(result.pulse&&!this.modal)
-   this.audio.tone({noise:true,noiseBand:380,dur:.22,volume:.055,
-    attack:.08,release:.24,bus:'music'});
+   this.audio.playEvent('world_amber',{intensity:.47});
  }
 }

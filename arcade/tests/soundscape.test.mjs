@@ -1,50 +1,45 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan,AmbientSoundClock} from '../soundscape.js';
+import {SOUND_CATALOG} from '../../audio-lab/sound-map.js';
 
-test('interface cues are short, distinct, and kept on the effects bus',()=>{
- const names=['open','map','tab','dock','close','select','deny','cancel','slider','audioOn'];
+test('UI events use individual recordings and no synthesized notes',()=>{
+ const names=['open','map','tab','dock','close','select','confirm','deny','cancel','slider','audioOn'];
+ const keys=new Set();
  for(const name of names){
   const plan=uiSoundPlan(name);
-  assert.ok(plan.length>=1&&plan.length<=2,name);
-  for(const note of plan){
-   assert.equal(note.bus,'sfx',name);
-   assert.ok(note.dur<.2,name);
-   assert.ok(note.volume>0&&note.volume<=.1,name);
-  }
+  assert.equal(plan.length,1,name);
+  const {key,intensity}=plan[0];
+  assert(SOUND_CATALOG[key]?.sampleUrl,name);
+  assert.equal(SOUND_CATALOG[key]?.family,'ui');
+  assert(!('freq' in plan[0])&&!('noise' in plan[0]),name);
+  assert(intensity>0&&intensity<=1);
+  keys.add(key);
  }
- assert.notDeepEqual(uiSoundPlan('dock'),uiSoundPlan('map'));
- // An intentionally mechanical interface avoids high-pitched 16-bit chirps.
- for(const name of ['open','map','tab','dock','close','select','confirm','deny','cancel','slider','audioOn']){
-  for(const note of uiSoundPlan(name)){
-   assert.ok(note.noise || note.freq<=230, `${name} sounds too high and synthetic`);
-   if(note.noise)assert.ok(note.noiseBand>0, `${name} unfiltered white noise`);
-  }
- }
+ assert(keys.size>=10);
  assert.deepEqual(uiSoundPlan('unknown'),[]);
 });
-test('world cues are transient and adaptive layers obey music-volume bus',()=>{
+test('world, scenes and ambient layer recordings are part of one catalog',()=>{
  for(const kind of ['discover','amber','ion','contract']){
-  const plan=worldSoundPlan(kind);
-  assert.ok(plan.length>=1&&plan.length<=2,kind);
-  assert.ok(plan.every(n=>n.bus==='sfx'));
+  const [recorded]=worldSoundPlan(kind);
+  assert(SOUND_CATALOG[recorded.key]?.sampleUrl,kind);
  }
  for(const kind of ['void','station','extraction','alert','battle','siege']){
-  assert.ok(ambientSoundPlan(kind).every(n=>n.bus==='music'));
-  assert.ok(ambientSoundPlan(kind).length<=2);
+  for(const cue of ambientSoundPlan(kind))assert(SOUND_CATALOG[cue.key]?.sampleUrl);
  }
  for(const kind of ['alert','battle','siege','recovery']){
-  assert.ok(sceneSoundPlan(kind).every(n=>n.bus==='music'));
+  for(const cue of sceneSoundPlan(kind))assert(SOUND_CATALOG[cue.key]?.sampleUrl);
  }
  assert.deepEqual(sceneSoundPlan('drift'),[]);
- assert.deepEqual(ambientSoundPlan('extraction'),[], 'extractor owns its sustained acoustic layer');
+ assert.deepEqual(ambientSoundPlan('extraction'),[],
+   'extractor uses a continuous engine recording, not a short periodic cue');
 });
 test('environment events stay sparse, stop on pause and follow threat priority',()=>{
  const clock=new AmbientSoundClock();
  for(let i=0;i<3;i++)assert.equal(clock.tick(4,{nearStation:true}),null);
  assert.equal(clock.tick(1,{nearStation:true}),'station');
- assert.equal(clock.tick(100,{mining:true}),null); // capped time step
- assert.equal(clock.tick(9,{mining:true}),null); // capped time step
+ assert.equal(clock.tick(100,{mining:true}),null);
+ assert.equal(clock.tick(9,{mining:true}),null);
  assert.equal(clock.tick(4,{scene:'battle'}),null);
  assert.equal(clock.tick(4,{scene:'battle'}),'battle');
  const t=clock.elapsed;
