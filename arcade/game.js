@@ -946,7 +946,8 @@ export class ArcadeGame {
    const ion=$('ionBtn');
    if(ion){ion.hidden=!this.ionLoan;ion.disabled=!!this.ionLoan&&
      (this.ionLoan.charges<=0||this.ionLoan.cooldownUntil>this.time);
-    ion.textContent=this.ionLoan?'Ион · '+this.ionLoan.charges+'/'+ION_CONDUCTOR.charges:'Ион';}
+    ion.textContent=this.ionLoan?'Ион · '+this.ionLoan.charges+
+     (this.ionLoan.cooldownUntil>this.time?' · '+Math.ceil(this.ionLoan.cooldownUntil-this.time)+'с':''):'Ион';}
    const tip=$('tips');if(tip){
     const base='WASD / стрелки — полёт · E — действие · C — автоогонь · Shift — рывок · Q — код · B — авиаудар · Tab — карта · U — развитие';
     const hint=this.ionLoan?' · SPACE — ИОН '+this.ionLoan.charges+'/'+ION_CONDUCTOR.charges:'';
@@ -1079,6 +1080,7 @@ export class ArcadeGame {
    b.contractClaimed=true;b.completedContract=c.choiceId;
    b.contractRuns=(b.contractRuns||0)+1;b.contractCooldownUntil=this.time+150;
    this.contract=null;
+   if(this.ionLoan?.missionStarted){this.ionLoan=null;this.ionReturnAt=this.time;}
    p.ore+=c.ore;this.cockpit.resourceGain(c.ore,this.time);
    this.collect({type:'data',value:c.data});
    this.notice('Поручение выполнено: +'+c.ore+' сплава · +'+c.data+' данных',4);
@@ -1372,7 +1374,7 @@ export class ArcadeGame {
    if(source==='beam'&&this.ionLoan)markIonCluster(this.enemies,e,this.time,this.ionLoan);
   // A shot reveals its real origin, even when the first hit destroys the ship.
   // Drone fire must not tell the patrol the player's hidden position.
-  const aggressor=(source==='beam'||source==='rocket')?this.player:
+  const aggressor=(source==='beam'||source==='rocket'||source==='ion')?this.player:
     (source&&typeof source==='object'&&Number.isFinite(source.x)&&
      Number.isFinite(source.y)&&source.hp>0)?source:null;
   if(e.signalIntel&&aggressor)alertSignalIntel(e.signalIntel,aggressor,this.time);
@@ -2390,7 +2392,7 @@ export class ArcadeGame {
     c.fillStyle=e.converted?'#6fe7ba':'#f07887';c.beginPath();c.arc(e.x,e.y,e.r,0,TAU);c.fill();
    }
    this.heritage.vfx.renderSurfaceLight(c,e.x,e.y,e.r);
-   if(this.ionLoan&&e.ionMarkUntil>this.time&&!e.converted){
+   if(this.ionLoan?.charges>0&&e.ionMarkUntil>this.time&&!e.converted){
     c.save();c.strokeStyle='#77eaff';c.lineWidth=1.8;
     c.setLineDash([4,3]);c.beginPath();c.arc(e.x,e.y,e.r+12,0,TAU);c.stroke();
     c.setLineDash([]);c.fillStyle='#c8ffff';c.font='bold 10px system-ui';
