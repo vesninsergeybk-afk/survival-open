@@ -201,3 +201,29 @@
 @media(prefers-reduced-motion:reduce){
  .cockpit-hud .wing-left .ship-meter::after {transition:none}
 }
+
+/* Keep sound/credits affordances outside the radar silhouette. */
+@media(min-width:1101px) and (pointer:fine){
+ #audioControls{top:8px;right:194px}
+}
+@media(min-width:821px) and (max-width:1100px) and (pointer:fine){
+ #audioControls{top:8px;right:8px}
+ .cockpit-hud .radar-unit{top:141px}
+}
+@media(pointer:coarse) and (orientation:landscape){
+ #audioControls{top:7px;right:8px}
+ .cockpit-hud .radar-unit{top:119px}
+}
+@media(pointer:coarse) and (orientation:portrait){
+ #audioControls{top:7px;right:8px}
+ .cockpit-hud .radar-unit{top:115px;right:8px}
+ #hud.cockpit-hud .contract-objective{
+  left:9px;top:126px;transform:none;
+  width:calc(100vw - 142px);max-width:none;min-height:40px;
+  padding:9px 12px;font-size:9px;text-align:left;
+ }
+ .cockpit-hud .wing-left{top:244px}
+ .cockpit-hud .wing-right{top:358px}
+ .cockpit-hud .critical-alert{top:478px}
+ .cockpit-hud .mining-status{top:512px}
+}
