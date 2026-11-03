@@ -30,6 +30,8 @@ test('special operations do not become unclaimed ordinary contracts',()=>{
 
 test('corridor cues match distinct real mission phases',()=>{
  const mission=op();
+ assert.equal(corridorCue(mission,12,1400).key,'approach');
+ assert.match(corridorCue(mission,12,1400).hint,/ДО ЦЕЛИ 1400 М/);
  assert.equal(corridorCue(mission,12,240).key,'vulnerable');
  mission.pulseCharge=1.2;
  assert.equal(corridorCue(mission,12,240).key,'charging');

@@ -29,9 +29,11 @@ export function corridorCue(operation, now, distance) {
       hint:(operation.pulseLocked?'РАЗРЯД НЕИЗБЕЖЕН · ':'УСПЕЙТЕ ВЫЙТИ · ')+
        'ОТОЙДИТЕ ЗА '+range+' М', color:'#e6a8ff'};
   }
+  const focusRange=operation.focusRange || 255;
+  if(distance>focusRange)return {key:'approach',label:'ЦЕЛЬ ВПЕРЕДИ',
+    hint:'ДО ЦЕЛИ '+Math.round(distance)+' М · ЛУЧ ДО '+focusRange+' М',color:'#9de7f5'};
   return {key:'vulnerable', label:'УЯЗВИМ · МОЖНО АТАКОВАТЬ',
-    hint:distance <= (operation.focusRange || 255) ? 'ЛУЧ НАВЕДЁН НА ГЛУШИТЕЛЬ' :
-      'ПОДЛЕТИТЕ БЛИЖЕ ДЛЯ АТАКИ', color:'#9de7f5'};
+    hint:'ЛУЧ НАВЕДЁН НА ГЛУШИТЕЛЬ', color:'#9de7f5'};
 }
 
 // Only the issuing friendly station defines an active defense contract perimeter.
