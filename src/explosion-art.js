@@ -62,7 +62,7 @@ export function getExplosionAtlas(tint='orange',profile='ship') {
       const core=(22+9*Math.sin(Math.PI*t))*(1-.77*t)*style.core;
       ctx.save();
       ctx.translate(frame*BLAST_CELL+BLAST_CELL/2,BLAST_CELL/2);
-      if(type==='rocket')ctx.scale(1.15,.88);
+      ctx.scale(type==='rocket'?.78:.82,type==='rocket'?.69:.82);
       ctx.globalCompositeOperation='lighter';
       const outer=ctx.createRadialGradient(0,0,0,0,0,reach*1.1);
       outer.addColorStop(0,rgba(colors[1],.86*fade));
