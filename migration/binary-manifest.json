@@ -1,0 +1,1412 @@
+{
+  "source": "vesninsergeybk-afk/Timeweb",
+  "sourceRef": "production",
+  "sourceCommit": "539cd7f13f15519fbe1ff2b2589bf0a4fae306f1",
+  "sourcePath": "site/games/survivor",
+  "baseUrl": "https://vesninmed.ru/games/survivor/",
+  "licenseExclusions": [
+    "audio-lab/assets/sfx/studio/*.ogg"
+  ],
+  "files": [
+    {
+      "path": "assets/3d/19145.glb",
+      "sha": "d8f9ad0a605834d7b1a8cd70aea99e84cb0043f8",
+      "size": 344776
+    },
+    {
+      "path": "assets/3d/19146.glb",
+      "sha": "2b7b9e3c52c0b236cb233bdb72a649eb82eca719",
+      "size": 394956
+    },
+    {
+      "path": "assets/3d/19147.glb",
+      "sha": "3970869415ee1ce2afd7e70d20c31d282e9e2d66",
+      "size": 343016
+    },
+    {
+      "path": "assets/3d/19148.glb",
+      "sha": "a3d2c93210685274b7f75b41daf369ec4e0014f5",
+      "size": 343620
+    },
+    {
+      "path": "assets/3d/19149.glb",
+      "sha": "a024bb6b995ea740fafea8521ec27489119b0936",
+      "size": 389584
+    },
+    {
+      "path": "assets/3d/19150.glb",
+      "sha": "4dc768358c6184bbf30a14ca6e88b2aaeaa5ce28",
+      "size": 343528
+    },
+    {
+      "path": "assets/3d/19151.glb",
+      "sha": "4355553a9ab6e6c43ab5a778eb63edae8be3912e",
+      "size": 343040
+    },
+    {
+      "path": "assets/3d/19152.glb",
+      "sha": "03775db0a0ee050dffd3b55df30cf5489f77aa35",
+      "size": 373544
+    },
+    {
+      "path": "assets/3d/19153.glb",
+      "sha": "7937d67ce1cf1b07905b494395c42c1c24ba2837",
+      "size": 366388
+    },
+    {
+      "path": "assets/3d/19154.glb",
+      "sha": "812adf3d1b3322e93b948d4faeae41d6c1259d04",
+      "size": 356024
+    },
+    {
+      "path": "assets/3d/19155.glb",
+      "sha": "4116802a98af434f72deafed58d7cfb0587a0ffb",
+      "size": 68660
+    },
+    {
+      "path": "assets/3d/19156.glb",
+      "sha": "1c3b5e2ed01f2b70a7a2e07152eb8f1004402c7f",
+      "size": 68596
+    },
+    {
+      "path": "assets/3d/19157.glb",
+      "sha": "12edc3dda6592860d9c33621f9d9554c230f2611",
+      "size": 68572
+    },
+    {
+      "path": "assets/3d/19158.glb",
+      "sha": "7850f48b9807846a9560a24c076cd7eff3d90210",
+      "size": 155976
+    },
+    {
+      "path": "assets/3d/19159.glb",
+      "sha": "f15e6bdb5d58f0d3f5ae2001c83d6594648302a3",
+      "size": 49988
+    },
+    {
+      "path": "assets/3d/19160.glb",
+      "sha": "6a07343577519cc2349735a497fc397453f453d3",
+      "size": 62260
+    },
+    {
+      "path": "assets/3d/19161.glb",
+      "sha": "e0564109324e619d598ccec6db0bfa411071e20d",
+      "size": 74584
+    },
+    {
+      "path": "assets/3d/19162.glb",
+      "sha": "df8bd9944a3e8df45bb0a7aaeeb194459b7f7993",
+      "size": 50064
+    },
+    {
+      "path": "assets/3d/19163.glb",
+      "sha": "aeb28172739e326d18e051cb63c04ffa3b201bec",
+      "size": 82860
+    },
+    {
+      "path": "assets/3d/19164.glb",
+      "sha": "51443cc0f685cf7faa08532525b7bda69391ecdd",
+      "size": 56904
+    },
+    {
+      "path": "assets/3d/19165.glb",
+      "sha": "878fe769e54c9e9adc956b7cf5df3a40fb2e418d",
+      "size": 48816
+    },
+    {
+      "path": "assets/3d/19166.glb",
+      "sha": "22e4def650962acb92894b03bc156b35a5a48f3d",
+      "size": 55472
+    },
+    {
+      "path": "assets/3d/19167.glb",
+      "sha": "450d409b80b02227de8b5c486d5c87abcf7a6f41",
+      "size": 73024
+    },
+    {
+      "path": "assets/3d/19168.glb",
+      "sha": "93ea447a7dadf9d9b9079cc81ed3e8c96bd8d476",
+      "size": 56972
+    },
+    {
+      "path": "assets/3d/19169.glb",
+      "sha": "fea70a0b8add715acda86d9e04ba5f9b12473d06",
+      "size": 36836
+    },
+    {
+      "path": "assets/3d/19170.glb",
+      "sha": "699c6dc265d67a809f4795edebe96e590a3c5b37",
+      "size": 23676
+    },
+    {
+      "path": "assets/3d/19171.glb",
+      "sha": "673a83a845cd5bb8d96548b3c6ae92547e369874",
+      "size": 56880
+    },
+    {
+      "path": "assets/3d/19172.glb",
+      "sha": "f2cf37637d3f856062555bfe3142cb0f90ac0fad",
+      "size": 38644
+    },
+    {
+      "path": "assets/3d/19173.glb",
+      "sha": "5e0affdb53f700529c7df69b5a8545e82a644d6c",
+      "size": 93732
+    },
+    {
+      "path": "assets/3d/19174.glb",
+      "sha": "9ca6b7b64f75156cf565d58f682356b6f427504a",
+      "size": 48324
+    },
+    {
+      "path": "assets/3d/19175.glb",
+      "sha": "db0095e6aab15968b76441b23e89e2885db7c7ff",
+      "size": 69056
+    },
+    {
+      "path": "assets/3d/19176.glb",
+      "sha": "1f48f4178bd7af11847e0bd2e392770e2fe07aa3",
+      "size": 41916
+    },
+    {
+      "path": "assets/3d/19177.glb",
+      "sha": "e1b3c98010f2f9e953ff8c4134110d093ff19520",
+      "size": 82264
+    },
+    {
+      "path": "assets/3d/19178.glb",
+      "sha": "73b6a7f87a031e547dfc4b7e1d1069687f1b2562",
+      "size": 102148
+    },
+    {
+      "path": "assets/3d/19179.glb",
+      "sha": "a831895a71bac05babb5936e31f02cba950fd603",
+      "size": 58128
+    },
+    {
+      "path": "assets/3d/19180.glb",
+      "sha": "e6603555d6613a8df4ba4ca29ba80b496dc818f8",
+      "size": 38672
+    },
+    {
+      "path": "assets/3d/19181.glb",
+      "sha": "6cb73c84a68e62c5276f22314b8f14412a45dc4a",
+      "size": 129872
+    },
+    {
+      "path": "assets/3d/19182.glb",
+      "sha": "e8316aed6e71cde615223e5ff4512b8b8c191227",
+      "size": 55544
+    },
+    {
+      "path": "assets/3d/19183.glb",
+      "sha": "2aaf767dd7d869e7305ebe37e2b004c058431e35",
+      "size": 64304
+    },
+    {
+      "path": "assets/3d/19184.glb",
+      "sha": "2d98c772622efb9b4317dc2f4fd424df2a1268b8",
+      "size": 56864
+    },
+    {
+      "path": "assets/3d/19185.glb",
+      "sha": "c537627c8b39255e819f0b000b0113996ee5cde8",
+      "size": 56164
+    },
+    {
+      "path": "assets/3d/19186.glb",
+      "sha": "ae6a4bd4c9952be39b77f7c3d66e8824dd137391",
+      "size": 17136
+    },
+    {
+      "path": "assets/3d/19187.glb",
+      "sha": "12c0aaae33d67d21cb78a8bb4bc0d610acd0df2c",
+      "size": 9584
+    },
+    {
+      "path": "assets/3d/19188.glb",
+      "sha": "900b422aa63722e43e4965cecd184fa7da8e92c6",
+      "size": 87264
+    },
+    {
+      "path": "assets/3d/19189.glb",
+      "sha": "c21657b77e3783ec9f4f569cf4a04d1414293a84",
+      "size": 173476
+    },
+    {
+      "path": "assets/3d/19190.glb",
+      "sha": "2b0d03beef5197a91fcd759c6da6496e7d0899dc",
+      "size": 78884
+    },
+    {
+      "path": "assets/3d/19191.glb",
+      "sha": "cbb96616af7250247b8be9ee347cecc630a0273d",
+      "size": 145916
+    },
+    {
+      "path": "assets/3d/19192.glb",
+      "sha": "15533c1b0b29c62521b5f373ccf685912e9c4186",
+      "size": 67480
+    },
+    {
+      "path": "assets/3d/19193.glb",
+      "sha": "e74acf17ca7770b94fce9f1c1e6f50c99c96d556",
+      "size": 197532
+    },
+    {
+      "path": "assets/3d/19194.glb",
+      "sha": "4ea83d87a181c4b4bd7e867ddeb28edc4c4113a2",
+      "size": 196260
+    },
+    {
+      "path": "assets/3d/19195.glb",
+      "sha": "724a50a6b6f5f170290af615a30686e0774a064b",
+      "size": 185624
+    },
+    {
+      "path": "assets/3d/19196.glb",
+      "sha": "18d263b02c822fc007c0348ec1fe3fdfe66c3711",
+      "size": 182376
+    },
+    {
+      "path": "assets/3d/19197.glb",
+      "sha": "451c3dc10be6840f5a869bf0ff7c9e2d4ceec196",
+      "size": 177816
+    },
+    {
+      "path": "assets/3d/19198.glb",
+      "sha": "dc2b5580c6ad94f6f9211903c619c3beade45892",
+      "size": 55752
+    },
+    {
+      "path": "assets/3d/19199.glb",
+      "sha": "56774d16d6e9fae06729f80f5a005567bcc37905",
+      "size": 126220
+    },
+    {
+      "path": "assets/3d/19200.glb",
+      "sha": "d7f6e68edafee2bbb18132bc595d400458851764",
+      "size": 59344
+    },
+    {
+      "path": "assets/3d/19201.glb",
+      "sha": "b6e1a9c765a43d675710cc7bfe34ef5ecd89fa0c",
+      "size": 172488
+    },
+    {
+      "path": "assets/3d/19202.glb",
+      "sha": "77eede6de48d217e247f5b21210dceb7ef2b5b07",
+      "size": 104152
+    },
+    {
+      "path": "assets/3d/19203.glb",
+      "sha": "7c3626947cb3f1eebe74185e50654fa6df17f4f5",
+      "size": 32764
+    },
+    {
+      "path": "assets/3d/19204.glb",
+      "sha": "ae62f1b27ff0f349b486fdce0c2b9daef6566fcb",
+      "size": 197212
+    },
+    {
+      "path": "assets/3d/19205.glb",
+      "sha": "e4e67a42250844bf5bf01db721c962fe15ac504a",
+      "size": 55760
+    },
+    {
+      "path": "assets/3d/19206.glb",
+      "sha": "99b6c1dd07180eaa8fbec6127f78cd9fcf4dfb21",
+      "size": 49888
+    },
+    {
+      "path": "assets/3d/19207.glb",
+      "sha": "0f8b539ebc3c5502a5e4235e3a016b446b84caf0",
+      "size": 197212
+    },
+    {
+      "path": "assets/3d/19208.glb",
+      "sha": "2bf2ac5925daeb7a1e3d4a35462ce96f3396cc1c",
+      "size": 165108
+    },
+    {
+      "path": "assets/3d/19209.glb",
+      "sha": "226e82e368147885fb0a495cbd4387c8afe1374c",
+      "size": 174392
+    },
+    {
+      "path": "assets/3d/19210.glb",
+      "sha": "1c39f8b4b3e147d2a4197a1e102bdcd5aea8501e",
+      "size": 183136
+    },
+    {
+      "path": "assets/3d/19211.glb",
+      "sha": "aaecbd83b7d5aac90b84209ec264834cd478edb9",
+      "size": 170860
+    },
+    {
+      "path": "assets/3d/19212.glb",
+      "sha": "909393bd224017d204485e2af2b256e448f46ad1",
+      "size": 165204
+    },
+    {
+      "path": "assets/3d/19213.glb",
+      "sha": "81b87616380c6cc73103fec123ce4bc6c79b45b9",
+      "size": 22500
+    },
+    {
+      "path": "assets/3d/19214.glb",
+      "sha": "122b5d1545212a17dcdae559990136a87eb3bb05",
+      "size": 21764
+    },
+    {
+      "path": "assets/3d/19215.glb",
+      "sha": "0af4a27cec029a28bb23bb51ec872f479251b74c",
+      "size": 6440
+    },
+    {
+      "path": "assets/3d/19216.glb",
+      "sha": "8797ffe411abc954812ea0d7ac659f76d0cef477",
+      "size": 16288
+    },
+    {
+      "path": "assets/3d/19217.glb",
+      "sha": "3e7500ac1e751e9635df8a461b60709b8a40f574",
+      "size": 56912
+    },
+    {
+      "path": "assets/3d/19218.glb",
+      "sha": "e1c72f60f5e5a86213280c468f017896f36a3e73",
+      "size": 29816
+    },
+    {
+      "path": "assets/3d/19219.glb",
+      "sha": "6fc1b41e1dc6a1448ea29333ad56aedef6513999",
+      "size": 35604
+    },
+    {
+      "path": "assets/3d/19220.glb",
+      "sha": "4e9227db0a8d1585d67e9cd9e75de9601d14deba",
+      "size": 35604
+    },
+    {
+      "path": "assets/3d/19221.glb",
+      "sha": "7cd9ed68c614ba8b413ec52ea4fa1b7f8e164adb",
+      "size": 77592
+    },
+    {
+      "path": "assets/3d/19222.glb",
+      "sha": "d4f47d033f00cec28f500d599dbec97f8fb562c0",
+      "size": 309240
+    },
+    {
+      "path": "assets/3d/19223.glb",
+      "sha": "e534b67fcbfcc0fdd445e6d2cf988b9458208f99",
+      "size": 1260504
+    },
+    {
+      "path": "assets/3d/19224.glb",
+      "sha": "4e3a6dc790518b132f090a47d00866890600419d",
+      "size": 272260
+    },
+    {
+      "path": "assets/3d/robots/custodian.glb",
+      "sha": "8784b36b4a174bfc89a31150b39f1d4fd1853dfa",
+      "size": 401024
+    },
+    {
+      "path": "assets/3d/robots/overseer.glb",
+      "sha": "dadde030bcc85c37e9ad706e3638b621f6c532bd",
+      "size": 500952
+    },
+    {
+      "path": "assets/3d/robots/sentinel.glb",
+      "sha": "38e9e2b2230b2a644d6dee44b618806caf29c930",
+      "size": 711592
+    },
+    {
+      "path": "assets/audio/music/eyes-in-the-void.ogg",
+      "sha": "42f42726f9418d0b2213edaef20d4d4b0366552f",
+      "size": 2945576
+    },
+    {
+      "path": "assets/audio/music/pursuit.ogg",
+      "sha": "485afdcfa9c4d5bae9b510d097aabd79e6a3f400",
+      "size": 2022522
+    },
+    {
+      "path": "assets/audio/music/starfire.ogg",
+      "sha": "b6ebcee2567d6631ad67cabfdddce562f39465b5",
+      "size": 4065449
+    },
+    {
+      "path": "assets/disruptor-ships/atlas_20_ships_8_frames.png",
+      "sha": "391a2ed7e93af11aa28db3f282d2097f8aeabd34",
+      "size": 57787
+    },
+    {
+      "path": "assets/fx/circle_05.png",
+      "sha": "3c30a1179ff7934eb16ce041000b09963d8034d9",
+      "size": 59553
+    },
+    {
+      "path": "assets/fx/flame_04.png",
+      "sha": "d07221b59d7472e70c900b0e1b549b82879f8890",
+      "size": 67316
+    },
+    {
+      "path": "assets/fx/flare_01.png",
+      "sha": "bd25bd874e47467e95d6623aa0364be1c619617a",
+      "size": 39143
+    },
+    {
+      "path": "assets/fx/magic_03.png",
+      "sha": "47c4a22ff7b104ec9ab8926bd6e68d8709fe7b1a",
+      "size": 55275
+    },
+    {
+      "path": "assets/fx/muzzle_02.png",
+      "sha": "379ddf2aee5be4972c38a30e978e0828ef53fe0d",
+      "size": 53879
+    },
+    {
+      "path": "assets/fx/scorch_01.png",
+      "sha": "badfa98c1d1612d20b06c0adbf11a89441493302",
+      "size": 57261
+    },
+    {
+      "path": "assets/fx/slash_02.png",
+      "sha": "307bd547f39287c39fc8e8aca020134592330433",
+      "size": 35485
+    },
+    {
+      "path": "assets/fx/smoke_05.png",
+      "sha": "4a77199d4ddab9d6482d8285ed3cd962983d8ffa",
+      "size": 79571
+    },
+    {
+      "path": "assets/fx/spark_04.png",
+      "sha": "6eaf328696ec8640571a69318b6211223c14224e",
+      "size": 78726
+    },
+    {
+      "path": "assets/fx/star_07.png",
+      "sha": "d914a0c38e9482f76dc4aad81ff406c06987632e",
+      "size": 30831
+    },
+    {
+      "path": "assets/kenney/tiny-dungeon-tilemap.png",
+      "sha": "a893ccb09a0be133b3d4aedafcc660e912048b56",
+      "size": 5533
+    },
+    {
+      "path": "assets/kenney/tiny-farm-tilemap.png",
+      "sha": "70f3d4261d75d24e7a484a9fc25f9bdfd034ddf1",
+      "size": 6150
+    },
+    {
+      "path": "assets/kenney/tiny-town-tilemap.png",
+      "sha": "21b5a0f879a47c8e679b7a5e07c220f30b6f89ab",
+      "size": 5392
+    },
+    {
+      "path": "assets/ninja/crate.png",
+      "sha": "b7d80cfd85e88dedb35a527aa5627fe8d8ac6143",
+      "size": 228
+    },
+    {
+      "path": "assets/ninja/fog.png",
+      "sha": "93d330b494b6f1c7fd45c8ba2ab3ebeef61dea53",
+      "size": 1971
+    },
+    {
+      "path": "assets/ninja/grass.png",
+      "sha": "910a1dd61176e651003beab079435c81c7e5991f",
+      "size": 261
+    },
+    {
+      "path": "assets/ninja/ninja-blue.png",
+      "sha": "943b76421027181b24ff19d647fbb92c5f5f293b",
+      "size": 6139
+    },
+    {
+      "path": "assets/ninja/raylight.png",
+      "sha": "ada046c2a01837c97a2739fda259215532962d5f",
+      "size": 1032
+    },
+    {
+      "path": "assets/ninja/tileset-floor.png",
+      "sha": "abba7bfb065e989962dd1fc74cd1786c613881c9",
+      "size": 29615
+    },
+    {
+      "path": "assets/ninja/tileset-village.png",
+      "sha": "541b26a8567f4c130af1ee6e1b855b609dbd0e1f",
+      "size": 31779
+    },
+    {
+      "path": "assets/prologue/first-room-distributor.webp",
+      "sha": "837027d3a9f799dbaa72e1fcf1e84f5dd62a6f7f",
+      "size": 229036
+    },
+    {
+      "path": "assets/prologue/first-room-gate.webp",
+      "sha": "f73352761c0466f1d24e23bbfe7ed5166611ffc0",
+      "size": 273586
+    },
+    {
+      "path": "assets/prologue/first-room-materials.webp",
+      "sha": "08051cbe9dcc695bd9aa432e0b821ed2c8e7992b",
+      "size": 115484
+    },
+    {
+      "path": "assets/prologue/first-room-reactor.webp",
+      "sha": "8fa874c489595cc106211bc52da94ef46214704e",
+      "size": 290836
+    },
+    {
+      "path": "assets/prologue/kenney-robots-side.png",
+      "sha": "3af12342e15bbec64511f278ba719e2e5ef42989",
+      "size": 94311
+    },
+    {
+      "path": "assets/prologue/kenney-robots-top.png",
+      "sha": "725211d708be4db220445bad78e00677cf09e521",
+      "size": 16837
+    },
+    {
+      "path": "assets/prologue/spac1/attack-extra.png",
+      "sha": "b82f958acb6de38755d306646cef5e023a088809",
+      "size": 2172455
+    },
+    {
+      "path": "assets/prologue/spac1/attack-original.png",
+      "sha": "cf0d493f94eb1b3e7799b5aab9e583a713208e14",
+      "size": 2287760
+    },
+    {
+      "path": "assets/prologue/spac1/idle-extra.png",
+      "sha": "9aca6efc40be810a43f82394536a817e3ffc99aa",
+      "size": 2194727
+    },
+    {
+      "path": "assets/prologue/spac1/idle-original.png",
+      "sha": "8949b960aaaf2ca4b8831b5948555f028cc1cc44",
+      "size": 1720603
+    },
+    {
+      "path": "assets/prologue/spac1/runtime-v2/attack.webp",
+      "sha": "505938ea8bb63cfa76b3c265df1ee651ca76f6f1",
+      "size": 308480
+    },
+    {
+      "path": "assets/prologue/spac1/runtime-v2/idle.webp",
+      "sha": "4a8787b22ef15bfe4307598f1cca50ff76ea7a31",
+      "size": 223024
+    },
+    {
+      "path": "assets/prologue/spac1/runtime-v2/wake-back.webp",
+      "sha": "10f39ecc3be15aa1ae44177a49841551764a9b83",
+      "size": 114388
+    },
+    {
+      "path": "assets/prologue/spac1/runtime-v2/wake-front.webp",
+      "sha": "b6a7e6063b6d15790e001e7a46b235cc1779186b",
+      "size": 110784
+    },
+    {
+      "path": "assets/prologue/spac1/runtime-v2/wake-left.webp",
+      "sha": "83d88b91cd389b4db9c6c0a4dc6ef759150cfa16",
+      "size": 83702
+    },
+    {
+      "path": "assets/prologue/spac1/runtime-v2/wake-right.webp",
+      "sha": "bb28b3d799b9137a93537244d333fef280dbe507",
+      "size": 85732
+    },
+    {
+      "path": "assets/prologue/spac1/runtime-v2/walk.webp",
+      "sha": "3027a60f971364508bf45c365c535713a7018d93",
+      "size": 317084
+    },
+    {
+      "path": "assets/prologue/spac1/spac1_wake_back_a.webp",
+      "sha": "4f72313101815d39c00f8309934a3735081509af",
+      "size": 424052
+    },
+    {
+      "path": "assets/prologue/spac1/spac1_wake_back_b.webp",
+      "sha": "0e5b203b4c4c66cd0ce17c358d070d8c499920f4",
+      "size": 399846
+    },
+    {
+      "path": "assets/prologue/spac1/spac1_wake_front_a.webp",
+      "sha": "a627137318ac048ed57609371c43294e4c4b88ce",
+      "size": 375202
+    },
+    {
+      "path": "assets/prologue/spac1/spac1_wake_front_b.webp",
+      "sha": "c32db622312f975dc4c82811c98e9a83b2dd4cd8",
+      "size": 415518
+    },
+    {
+      "path": "assets/prologue/spac1/spac1_wake_left_a.webp",
+      "sha": "ffb63af7f45f3b4fd3db1f67f69fe35c8c105c53",
+      "size": 320826
+    },
+    {
+      "path": "assets/prologue/spac1/spac1_wake_left_b.webp",
+      "sha": "5ae763ebd444bd855b119981e81de5edd2a3cbcc",
+      "size": 339328
+    },
+    {
+      "path": "assets/prologue/spac1/spac1_wake_right_a.webp",
+      "sha": "c3ac9dcaec58c1195d4008f954787270fd4767cd",
+      "size": 321108
+    },
+    {
+      "path": "assets/prologue/spac1/spac1_wake_right_b.webp",
+      "sha": "dce0c86f73c4e1e42bf96fe3e408e2cdd2911496",
+      "size": 344798
+    },
+    {
+      "path": "assets/prologue/spac1/walk-extra.png",
+      "sha": "eab68f65781999ccd0171c9e0d20e7ce74def8d8",
+      "size": 2174722
+    },
+    {
+      "path": "assets/prologue/spac1/walk-original.png",
+      "sha": "53383570c1a0a4fc7d53437adc680db03aaef926",
+      "size": 2263506
+    },
+    {
+      "path": "assets/prologue/spac1/wreck-v1/death_down.webp",
+      "sha": "8203c68a6accdb6c12f35ad15edfcd640b04bad5",
+      "size": 139418
+    },
+    {
+      "path": "assets/prologue/spac1/wreck-v1/death_left.webp",
+      "sha": "6c5ad9207e535932f0a81488c07acc059f3f1bc0",
+      "size": 124854
+    },
+    {
+      "path": "assets/prologue/spac1/wreck-v1/death_right.webp",
+      "sha": "b5c029f5de143dabab035c18785fc812b3b97d88",
+      "size": 117156
+    },
+    {
+      "path": "assets/prologue/spac1/wreck-v1/death_up.webp",
+      "sha": "d0daabf66f43a8e421e65048774436a82d751f4c",
+      "size": 126516
+    },
+    {
+      "path": "assets/prologue/spac1/wreck-v1/wreck_guard.webp",
+      "sha": "af03495e58bc1adae69e6d64a90f262f0920edfc",
+      "size": 206980
+    },
+    {
+      "path": "assets/prologue/spac1/wreck-v1/wreck_guard_alt.webp",
+      "sha": "d8375c47740229566e21c3d3addfe58c4e687c45",
+      "size": 215440
+    },
+    {
+      "path": "assets/prologue/spac1/wreck-v1/wreck_industrial.webp",
+      "sha": "e3494ad5471a39baea0076e2062a55abd1ffd351",
+      "size": 180752
+    },
+    {
+      "path": "assets/prologue/spac1/wreck-v1/wreck_scrap.webp",
+      "sha": "8cca911a1b3a05c5f729493a52bd1ccc5ec4f822",
+      "size": 186944
+    },
+    {
+      "path": "assets/prologue/turret-deploy.webp",
+      "sha": "21a2ac58afc0316026b0795264747721cfe5d75b",
+      "size": 68356
+    },
+    {
+      "path": "assets/prologue/turret-yaw.webp",
+      "sha": "2b24b4b64b60b953fed5f361f157895c500a2013",
+      "size": 127690
+    },
+    {
+      "path": "assets/space/asteroid-ore.png",
+      "sha": "b12eb937d1b146ecca2385d3f3f9036e0b13d6d0",
+      "size": 409171
+    },
+    {
+      "path": "assets/space/asteroid-ore.webp",
+      "sha": "0103d413b91aa3e76668a4597aba400ba4a755b8",
+      "size": 69610
+    },
+    {
+      "path": "assets/space/asteroid-realistic.png",
+      "sha": "848418a29716eebcef61e334288e96f686963075",
+      "size": 348098
+    },
+    {
+      "path": "assets/space/asteroid-realistic.webp",
+      "sha": "fb4625d02c93a8e9e6b070736b764f870ceca951",
+      "size": 60990
+    },
+    {
+      "path": "assets/space/boss-capital-carrier.png",
+      "sha": "88cf4fe89f3330a8f7a0e93eff66df2c32164e28",
+      "size": 2891647
+    },
+    {
+      "path": "assets/space/boss-capital-carrier.webp",
+      "sha": "0caaedbbefa7184378933754fe7dcacd7bc548e0",
+      "size": 94688
+    },
+    {
+      "path": "assets/space/boss-capital-cruiser.png",
+      "sha": "df5e1c02057ec6a7c548a98f4d5a6b3c118e6ebb",
+      "size": 2132643
+    },
+    {
+      "path": "assets/space/boss-capital-cruiser.webp",
+      "sha": "cdca46d1644063cd318a6e7a6facab0cbf319251",
+      "size": 83474
+    },
+    {
+      "path": "assets/space/boss-capital-dreadnought.png",
+      "sha": "702455a17095a1ef15198465d1795642a1737c65",
+      "size": 2486416
+    },
+    {
+      "path": "assets/space/boss-capital-dreadnought.webp",
+      "sha": "918d0df1538fea995534d67d906b299db1ad5e6a",
+      "size": 88252
+    },
+    {
+      "path": "assets/space/boss_carrier.png",
+      "sha": "8213e978da96d20b3aa69f1c44f6d5beae501d9e",
+      "size": 3797
+    },
+    {
+      "path": "assets/space/boss_cruiser.png",
+      "sha": "3695e09e21c6f37cf43dc8dd745b6f8134dc83f4",
+      "size": 2710
+    },
+    {
+      "path": "assets/space/boss_dreadnought.png",
+      "sha": "796e81d71ceece18885aa0c024fcbe5517cf5885",
+      "size": 2852
+    },
+    {
+      "path": "assets/space/derelict-cruiser-v1.png",
+      "sha": "e677fec29a243210b61bc450c9bf2ba7c25f81b6",
+      "size": 2028584
+    },
+    {
+      "path": "assets/space/drone-blade-v1.png",
+      "sha": "e5b3ada7b46d47bcd133cc12c2ab87151243b84e",
+      "size": 936505
+    },
+    {
+      "path": "assets/space/drone-guardian-v1.png",
+      "sha": "ed19b99e486d806f4cee4197abe1a28e792357c6",
+      "size": 1175324
+    },
+    {
+      "path": "assets/space/enemy_bomber.png",
+      "sha": "645cdf3c82929087701f933252e30cd5de353ef3",
+      "size": 2733
+    },
+    {
+      "path": "assets/space/enemy_caster.png",
+      "sha": "9a63d03b09902c408c699e48f4c85b535b86eaa0",
+      "size": 3619
+    },
+    {
+      "path": "assets/space/enemy_drone.png",
+      "sha": "fb0c0a2cab4551c6968f8adaa53ae971fac21a00",
+      "size": 3096
+    },
+    {
+      "path": "assets/space/enemy_fighter.png",
+      "sha": "bf3bd0c9fa347fa5d0ac09b42d1496117b1960e8",
+      "size": 3059
+    },
+    {
+      "path": "assets/space/enemy_interceptor.png",
+      "sha": "bc8eacd99c28ee19ffb1a479d255fe4b62be7867",
+      "size": 3615
+    },
+    {
+      "path": "assets/space/enemy_shield.png",
+      "sha": "a575c9d49830c09011b3b045ff32a049914073ba",
+      "size": 2259
+    },
+    {
+      "path": "assets/space/enemy_swarm.png",
+      "sha": "064e29037a670ab5b1acf3db6c89b11b87a5c729",
+      "size": 3106
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_01.webp",
+      "sha": "4a83825c4e923f75231a8a545aa29492b2eee1db",
+      "size": 19372
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_01_damaged.png",
+      "sha": "e31c6f8b571cbaaa88490c501c83a5ef99280686",
+      "size": 687492
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_01_damaged.webp",
+      "sha": "18719b0b183dbf247f1300de64daecf775f980c1",
+      "size": 94204
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_02.webp",
+      "sha": "6a5a391f14f2143e132ea0aae426bf415be5fd0e",
+      "size": 20616
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_02_damaged.png",
+      "sha": "7c63f7aac528640fe6b8fe385180f3d6ba0e1a9a",
+      "size": 752979
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_02_damaged.webp",
+      "sha": "687b88bad45d0ef4c055f9fe8495963248b02529",
+      "size": 100522
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_03.webp",
+      "sha": "3a254e4244f242c46bfee6bf9047b890ae706faa",
+      "size": 23086
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_03_damaged.png",
+      "sha": "4cf58a5cfd95ab1c908a0916b88938b063d06d8e",
+      "size": 800313
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_03_damaged.webp",
+      "sha": "a676acff3b447eff882f6c748643cc04199de9fe",
+      "size": 111090
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_04.webp",
+      "sha": "b35d9a5b062b3d70bfbe1084ce5d51298ec01a21",
+      "size": 27684
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_04_damaged.png",
+      "sha": "70a0ff6ae26205625c27cd4483b9d5056d5e427d",
+      "size": 1017632
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_04_damaged.webp",
+      "sha": "2d6e83c06b3f475352a1481cfa24c81cd3f63345",
+      "size": 147930
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_05.webp",
+      "sha": "b2d1b9dc84f8a1206dea0e3eaee759e4b482b15d",
+      "size": 30458
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_05_damaged.png",
+      "sha": "151b923028498ba63bcd347e93b185cc43fcb33f",
+      "size": 1136959
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_05_damaged.webp",
+      "sha": "16b84accf60a00ffdd3a731be3e7b3f93f93607f",
+      "size": 166240
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_06.webp",
+      "sha": "2b3b9c65c073ed86f8582ebde79811fb2b7ee70f",
+      "size": 33438
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_06_damaged.png",
+      "sha": "7d93c7cba8c771d34f5d1c0c4722d4d4aeb4f41c",
+      "size": 1250089
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_06_damaged.webp",
+      "sha": "4da09076040f830b60d2d3289c9b412f1fc48f3b",
+      "size": 189016
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_07.webp",
+      "sha": "c917d45ac4a06fa59a4d8b2edf99d4a0c03ea5b4",
+      "size": 36998
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_07_damaged.png",
+      "sha": "18dc7973ba05688963b2c1ba1c49e2ff5eee93b1",
+      "size": 1318853
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_07_damaged.webp",
+      "sha": "0a78763eaec149b4aa17e1250d784896e5dae439",
+      "size": 178956
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_08.webp",
+      "sha": "d430a80b0345b777c3aef64ed33ea6c4b0174b4e",
+      "size": 36586
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_08_damaged.png",
+      "sha": "9fb3d460b50d6129d632a9d327de3a602ee36ad4",
+      "size": 1370550
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_08_damaged.webp",
+      "sha": "d49a6d71d2d8b4d968506bad8e12a1f880c78537",
+      "size": 183344
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_09.webp",
+      "sha": "45da7f269f80d7a74d23d880557ca914d72b44cb",
+      "size": 45360
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_09_damaged.png",
+      "sha": "afdae0d1774099b81a62f58405493604cf942e73",
+      "size": 1451714
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_09_damaged.webp",
+      "sha": "0d07ebe84bae627ec6dfc4046649ebd9d971bcaa",
+      "size": 195210
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_10.webp",
+      "sha": "4afe5f7a614992a6588df35bcc8d74492affe086",
+      "size": 56336
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_10_damaged.png",
+      "sha": "1d0e841a7f40b584fcdeb5c822516db9ee533fd1",
+      "size": 1967583
+    },
+    {
+      "path": "assets/space/hero-evolution/ship_10_damaged.webp",
+      "sha": "8ba47372df6e806b2e92d8b1798e375a3dc1a01e",
+      "size": 308132
+    },
+    {
+      "path": "assets/space/kenney-ship-atlas.webp",
+      "sha": "102efee3ac625f7a9068a4f06faae1e208222c74",
+      "size": 47550
+    },
+    {
+      "path": "assets/space/meteor_1.png",
+      "sha": "74371c312858f0a6f125815701f0a6d7fafce22b",
+      "size": 1786
+    },
+    {
+      "path": "assets/space/meteor_2.png",
+      "sha": "3fdcce3ec41bf4fd9937bf707aa62e6de18ead63",
+      "size": 1713
+    },
+    {
+      "path": "assets/space/meteor_3.png",
+      "sha": "6b7e708515c816a8faebbb73872d8a97960d98ef",
+      "size": 1967
+    },
+    {
+      "path": "assets/space/nebula_amber_v1.png",
+      "sha": "05f61777afd88d84eb658c5200884024a1db85cc",
+      "size": 1838192
+    },
+    {
+      "path": "assets/space/nebula_azure_v1.png",
+      "sha": "bf37c4f1a9756df3a278d62a4e7be11910625b8c",
+      "size": 1879518
+    },
+    {
+      "path": "assets/space/nebula_lilac_v1.png",
+      "sha": "0c391365b5a70bb5ed5fd0cfc610ed57dd594b29",
+      "size": 1760281
+    },
+    {
+      "path": "assets/space/nebula_main.jpg",
+      "sha": "fdfc5eaa8da46a94b4727e659964c4534d0e186c",
+      "size": 630312
+    },
+    {
+      "path": "assets/space/nebula_teal_v1.png",
+      "sha": "4560e564db79f3b904543e6e874fb7f0e88dae97",
+      "size": 1559241
+    },
+    {
+      "path": "assets/space/planet_ice_v1.png",
+      "sha": "796d1bed2e6144f5800ae1de0439176cb180cdb3",
+      "size": 2328475
+    },
+    {
+      "path": "assets/space/sdo-sun-304.webp",
+      "sha": "063c3c15413da68ad916a19234bce723b565766b",
+      "size": 21684
+    },
+    {
+      "path": "assets/space/ship_fighter.png",
+      "sha": "e277114fd864d5f283f2cb4adc0a0f0eaf4bde48",
+      "size": 3791
+    },
+    {
+      "path": "assets/space/ship_mage.png",
+      "sha": "b853be42a0968875a40fd85ad0952ef0d4628289",
+      "size": 2847
+    },
+    {
+      "path": "assets/space/ship_scout.png",
+      "sha": "3902283d455573b13c9574fe56dce700715b0183",
+      "size": 2578
+    },
+    {
+      "path": "assets/space/starfield.png",
+      "sha": "8b6752f7ebec1bc011c22118bfc73607c7d7fcc6",
+      "size": 454306
+    },
+    {
+      "path": "assets/space/station-atlas.webp",
+      "sha": "a4e058d85eb7237b99e7ab2c3ce57ba0a6133eac",
+      "size": 188904
+    },
+    {
+      "path": "assets/upgrade/asteroids/meteorBrown_big1.png",
+      "sha": "31e06a4895c2f2b958aa13b664b40a385b3507a4",
+      "size": 1804
+    },
+    {
+      "path": "assets/upgrade/asteroids/meteorBrown_big2.png",
+      "sha": "90413d72c6642d4a3615b46f9493ab1d8fe7aac9",
+      "size": 2323
+    },
+    {
+      "path": "assets/upgrade/asteroids/meteorBrown_big3.png",
+      "sha": "3fdcce3ec41bf4fd9937bf707aa62e6de18ead63",
+      "size": 1713
+    },
+    {
+      "path": "assets/upgrade/asteroids/meteorBrown_big4.png",
+      "sha": "e643572633e8a4fe8c7dd309ada259b6ccc85b7b",
+      "size": 1990
+    },
+    {
+      "path": "assets/upgrade/asteroids/meteorGrey_big1.png",
+      "sha": "74371c312858f0a6f125815701f0a6d7fafce22b",
+      "size": 1786
+    },
+    {
+      "path": "assets/upgrade/asteroids/meteorGrey_big2.png",
+      "sha": "bcc8dc75474a9d3d8a5fa4135f19ec1245083212",
+      "size": 2310
+    },
+    {
+      "path": "assets/upgrade/asteroids/meteorGrey_big3.png",
+      "sha": "0bb867420be538f657f0563d8156763c1ba15fe8",
+      "size": 1699
+    },
+    {
+      "path": "assets/upgrade/asteroids/meteorGrey_big4.png",
+      "sha": "6b7e708515c816a8faebbb73872d8a97960d98ef",
+      "size": 1967
+    },
+    {
+      "path": "assets/upgrade/explosions/fire00.png",
+      "sha": "4424075ff16473ac809cae80112d16b4a15dac3a",
+      "size": 345
+    },
+    {
+      "path": "assets/upgrade/explosions/fire01.png",
+      "sha": "4efed3d70db2ee095303bb0a884502dfc9264746",
+      "size": 593
+    },
+    {
+      "path": "assets/upgrade/explosions/fire02.png",
+      "sha": "f574dbe93bf5c4a55fc201eca66600ba226f3a96",
+      "size": 597
+    },
+    {
+      "path": "assets/upgrade/explosions/fire03.png",
+      "sha": "89a1fee69f7432bda7ae642a7c4fb47e7712078c",
+      "size": 582
+    },
+    {
+      "path": "assets/upgrade/explosions/fire04.png",
+      "sha": "8cf6645df96586209245b0cc9cda1248edbb311f",
+      "size": 677
+    },
+    {
+      "path": "assets/upgrade/explosions/fire05.png",
+      "sha": "4a317cf13c5ea5e0ee3a271dfef0f646d1735cd8",
+      "size": 784
+    },
+    {
+      "path": "assets/upgrade/explosions/fire06.png",
+      "sha": "c8ac3190f340368e5768147ad69f8104bc410b33",
+      "size": 629
+    },
+    {
+      "path": "assets/upgrade/explosions/fire07.png",
+      "sha": "243d5aaa4290ce0a8681a0f60ed4257a06df7021",
+      "size": 734
+    },
+    {
+      "path": "assets/upgrade/explosions/fire08.png",
+      "sha": "37ed06f94df53ae3d0f56859f043c36f07ac5f31",
+      "size": 378
+    },
+    {
+      "path": "assets/upgrade/explosions/fire09.png",
+      "sha": "4ab90ac81e46cfff4d363e6281994f34e84bb96f",
+      "size": 387
+    },
+    {
+      "path": "assets/upgrade/lasers/laserBlue01.png",
+      "sha": "b76aaf7a042d56165a0d3cbadd2ce85216838081",
+      "size": 744
+    },
+    {
+      "path": "assets/upgrade/lasers/laserBlue10.png",
+      "sha": "dd6b766a4491a4c0cba32010b08070d28dfb74fe",
+      "size": 771
+    },
+    {
+      "path": "assets/upgrade/lasers/laserBlue16.png",
+      "sha": "1def98fb610e89ec2912659d76ad35515732ea71",
+      "size": 802
+    },
+    {
+      "path": "assets/upgrade/lasers/laserGreen01.png",
+      "sha": "c9982b1ed2f1f1572b0eb4b5a023258ca830c8e0",
+      "size": 709
+    },
+    {
+      "path": "assets/upgrade/lasers/laserGreen10.png",
+      "sha": "9c7974c69a701b297300f28094a5b575b0a95d82",
+      "size": 813
+    },
+    {
+      "path": "assets/upgrade/lasers/laserRed01.png",
+      "sha": "5e467b65ba82babe205a227f0ba2ef5912d6839b",
+      "size": 735
+    },
+    {
+      "path": "assets/upgrade/lasers/laserRed10.png",
+      "sha": "0f85ba1b0ab89c5a24e44575e520520ddd46f2a0",
+      "size": 730
+    },
+    {
+      "path": "assets/upgrade/lasers/laserRed16.png",
+      "sha": "b12fcd5d404a1d7439c4e926d7eac404934db523",
+      "size": 803
+    },
+    {
+      "path": "assets/upgrade/shields/shield1.png",
+      "sha": "8d25f4bd2dae7a0b0fbbe33504fed60706d9b8c7",
+      "size": 1434
+    },
+    {
+      "path": "assets/upgrade/shields/shield2.png",
+      "sha": "485a3f707a0a06de58cf6a611019ef31c8af7d0f",
+      "size": 2257
+    },
+    {
+      "path": "assets/upgrade/shields/shield3.png",
+      "sha": "2925cd6a227331ec70008d8e3cf55374bd6e585a",
+      "size": 3623
+    },
+    {
+      "path": "assets/upgrade/ships/ufoBlue.png",
+      "sha": "6397792bfdaefb325a28bd5c9f237205566bc1f6",
+      "size": 3043
+    },
+    {
+      "path": "assets/upgrade/ships/ufoGreen.png",
+      "sha": "7d441b2c5ff5f42d6ea61ad9503fb3f237f925f4",
+      "size": 3049
+    },
+    {
+      "path": "assets/upgrade/ships/ufoRed.png",
+      "sha": "62dd549416fa06cc6732174e463457202999c894",
+      "size": 3050
+    },
+    {
+      "path": "audio-lab/assets/sfx/armor_hit.ogg",
+      "sha": "3346d1a9c624d31cdb6d4a67f2b0b405110880eb",
+      "size": 12035
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_arsenal_start.ogg",
+      "sha": "54b81e40f204dda3d9d0b42e2bcc8bd77e857b61",
+      "size": 43111
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_carrier_start.ogg",
+      "sha": "598a9c471bb35661e650984b8d5bc37eb6473202",
+      "size": 39346
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_destroyed.ogg",
+      "sha": "edb7beae461904694a9ff00e465d5e134e8a3a67",
+      "size": 26420
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_escort_launch.ogg",
+      "sha": "a837c28432bbac75d697f8055946865e61316fe7",
+      "size": 20508
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_hangar_expand.ogg",
+      "sha": "6e8ea66c3d35c2bc363d508bee34bb1dfa03ad28",
+      "size": 21448
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_laboratory_start.ogg",
+      "sha": "e697ef7d57b32c2e619fe5e5f7652b081a2bfd01",
+      "size": 41589
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_outpost_start.ogg",
+      "sha": "8060774c12f3081be438405db4af7ac301593036",
+      "size": 42097
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_raid_success.ogg",
+      "sha": "942941f57a5540a4f920e67d82ee46d81966180f",
+      "size": 24172
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_raid_warning.ogg",
+      "sha": "548a04d401fc388042c796c14610683f43089d12",
+      "size": 15494
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_repair_pulse.ogg",
+      "sha": "b91e1fa0307e6c37d4ddf1a782187f570079bc31",
+      "size": 13641
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_repair_start.ogg",
+      "sha": "388a1ec436ccdb364da69e176b046696be52f119",
+      "size": 39782
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_resonance_discount.ogg",
+      "sha": "93479cb4b32cdf92f6c8f62822a5a00ada88443c",
+      "size": 10882
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_resonance_link.ogg",
+      "sha": "4ccc724667244070be953aeb845ac5258dcb9d3e",
+      "size": 19896
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_section_construct.ogg",
+      "sha": "9e06233aca13a8e442effdca6c37efa93bd6192b",
+      "size": 19504
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_shield_break.ogg",
+      "sha": "1553688cb32f64bd5d181f613abb634e260c9709",
+      "size": 15216
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_shield_engage.ogg",
+      "sha": "570f2ca639344226adf0be660dc84323f4be65fb",
+      "size": 15643
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/base_turret_construct.ogg",
+      "sha": "43bb906ef735b47beb22504a700a906e35a39e60",
+      "size": 15013
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/unlock_branch_arsenal.ogg",
+      "sha": "19451d5c0c181ff1a0d2f21f281c0af1c00f47cb",
+      "size": 34174
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/unlock_branch_carrier.ogg",
+      "sha": "78244ad335d1062fa296ce003cdab5eefe943da6",
+      "size": 36948
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/unlock_branch_laboratory.ogg",
+      "sha": "3ede92abdb440d888440988145a68b67a5e5ec9c",
+      "size": 36514
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/unlock_branch_repair.ogg",
+      "sha": "ec921fa1e3e1666f6777f3e0e77ef9411274ffc1",
+      "size": 35222
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/unlock_tech_tier.ogg",
+      "sha": "6cc4fe88866f5bce599f0647cb7150ee956addd2",
+      "size": 44564
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/upgrade_armor.ogg",
+      "sha": "6192d812b96053a5072b371c33003e008105973c",
+      "size": 17342
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/upgrade_defense.ogg",
+      "sha": "65f64023485646774d7c2b708e22b37394a568fe",
+      "size": 16745
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/upgrade_drones.ogg",
+      "sha": "254ad165e657444b6e31b0a756c51adc5c1c5901",
+      "size": 23031
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/upgrade_logistics.ogg",
+      "sha": "2b52e2a0616da530dbb5d3102f455d79c8c2fcf1",
+      "size": 16926
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/upgrade_research.ogg",
+      "sha": "72602530dad87356983e494c8ad357a6b7c65a10",
+      "size": 17104
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/upgrade_standard.ogg",
+      "sha": "7add30e1e229ed52e0147b80c1d8d92ddaaad4ac",
+      "size": 18190
+    },
+    {
+      "path": "audio-lab/assets/sfx/base/upgrade_weapon.ogg",
+      "sha": "951c131b1f32e501db1837ab6204ca735d57a2e7",
+      "size": 23600
+    },
+    {
+      "path": "audio-lab/assets/sfx/explosion_small.ogg",
+      "sha": "019e53664abf859fc5529f95d0db23fa3ac1e42d",
+      "size": 28274
+    },
+    {
+      "path": "audio-lab/assets/sfx/hit.ogg",
+      "sha": "e1ab0b5a969be92022eded6b2d06437e71f0a082",
+      "size": 10921
+    },
+    {
+      "path": "audio-lab/assets/sfx/pickup.ogg",
+      "sha": "78f119c626bd8e9c18a19c0c9175d3e37d3a7a22",
+      "size": 8968
+    },
+    {
+      "path": "audio-lab/assets/sfx/starter_pulse.ogg",
+      "sha": "ffc89b9e7e2d816fd532e1a06f379a32ef1d4cef",
+      "size": 7448
+    },
+    {
+      "path": "prologue/assets/station-floor.webp",
+      "sha": "b5230ef79451d1d10e80998bf2b91dbc1a17de0d",
+      "size": 133702
+    }
+  ]
+}
