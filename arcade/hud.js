@@ -25,7 +25,7 @@ export class CockpitDisplay {
    shield:el('shield'),ore:el('ore'),data:el('data'),bases:el('bases'),
    wing:el('wing'),hack:el('hack'),fps:el('fps'),enemies:el('enemies'),
    points:el('points'),burst:el('burst'),burstbar:el('burstbar'),
-   bursttext:el('bursttext'),flightMode:el('flightMode'),
+   bursttext:el('bursttext'),hudHackSlot:el('hudHackSlot'),hudStrikeSlot:el('hudStrikeSlot'),flightMode:el('flightMode'),
    wingStatus:el('wingStatus'),stateText:el('stateText'),
    radarDistance:el('radarDistance'),burstBtn:el('burstBtn'),message:el('message'),
    oreResource:el('oreResource'),oreGain:el('oreGain'),
@@ -40,10 +40,12 @@ export class CockpitDisplay {
   const health=clamp01(p.hp/Math.max(1,p.maxHp));
   display(n.hp,Math.ceil(p.hp)+' / '+p.maxHp);
   n.hpbar.style.width=(health*100)+'%';
+  n.hpmeter.style.setProperty('--meter-fill',(health*100)+'%');
   n.hpmeter.setAttribute('aria-valuenow',String(Math.ceil(p.hp)));
   n.hpmeter.setAttribute('aria-valuemax',String(p.maxHp));
   const progress=clamp01(p.xp/Math.max(1,nextXp));
   n.xpbar.style.width=(100*progress)+'%';
+  n.xpmeter.style.setProperty('--meter-fill',(100*progress)+'%');
   n.xpmeter.setAttribute('aria-valuenow',String(Math.round(progress*100)));
   display(n.level,p.level);
   display(n.points,p.points>0?'Очков: '+p.points:'до ур. '+(p.level+1));
@@ -105,6 +107,12 @@ export class CockpitDisplay {
   const boosting=p.burstRemaining>0;
   display(n.bursttext,boosting?'ФОРСАЖ':cd>0?cd.toFixed(1)+' с':'ГОТОВ');
   n.burst.classList.toggle('ready',cd<=0);
+  // Art-only ability frames mirror actual available charges; never unlock controls.
+  const hasCode=game.hacks.length>0,hasStrike=strikes>0;
+  n.hudHackSlot.classList.toggle('available',hasCode);
+  n.hudStrikeSlot.classList.toggle('available',hasStrike);
+  n.hudHackSlot.setAttribute('aria-label',hasCode?'Коды доступны: '+game.hacks.length:'Кодов нет');
+  n.hudStrikeSlot.setAttribute('aria-label',hasStrike?'Авиаудар: '+strikes:'Авиаудар недоступен');
   n.burstBtn.disabled=cd>0;
   const condition=hullCondition(p.hp,p.maxHp);
   if(condition!==this.lastCondition) {
