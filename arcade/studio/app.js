@@ -1,5 +1,6 @@
 import {SCENARIOS,EFFECTS,CONCEPTS} from './concepts.js?v=studio-design-2';
 import {VISUAL_AUDIT,VISUAL_STATUS} from './visual-audit.js?v=visual-audit-1';
+import {initExplosionLab} from './explosion-lab.js?v=explosions-1';
 import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from './design-brief.js?v=studio-design-2';
 
 const $=id=>document.getElementById(id);
@@ -329,6 +330,6 @@ function selectStudioTab(name,updateUrl=false){
 }
 document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>selectStudioTab(btn.dataset.tab,true)));
 window.addEventListener('hashchange',()=>selectStudioTab(location.hash.slice(1)));
-initScenario();initEffects();initBrief();initConcepts();initVisualAudit();
+initScenario();initEffects();initBrief();initConcepts();initVisualAudit();initExplosionLab();
 selectStudioTab(location.hash.slice(1));
 requestAnimationFrame(animate);

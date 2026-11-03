@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {SCENARIOS,EFFECTS,CONCEPTS} from '../studio/concepts.js';
 import {VISUAL_AUDIT,VISUAL_STATUS} from '../studio/visual-audit.js';
+import {EXPLOSION_TYPES,EXPLOSION_ASSETS,EXPLOSION_BUDGET} from '../studio/explosion-design.js';
 import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from '../studio/design-brief.js';
 import {CORRIDOR_OPERATION,PROBE_OPERATION} from '../operations.js';
 import {RELAY_DEFENSE} from '../relay-defense.js';
@@ -174,4 +175,40 @@ test('the embedded A/B comparison uses working images and crops the asteroid atl
  assert.doesNotMatch(html,/boss-capital-cruiser\.webp/);
  for(const path of ['../../assets/space/asteroid-ore.png','../../assets/space/boss-capital-cruiser.png'])
   assert.ok(exists(path),path+' missing');
+});
+
+
+test('explosion concepts are five material-specific causal sequences with budgets',()=>{
+ assert.deepEqual(Object.keys(EXPLOSION_TYPES).sort(),['asteroid','capital','fighter','orbital','rocket']);
+ for(const [id,spec] of Object.entries(EXPLOSION_TYPES)){
+  assert.equal(spec.id,id);
+  for(const key of ['name','trigger','truth','material','warning','check'])assert.ok(spec[key]?.trim(),id+': '+key);
+  assert.ok(spec.duration>.4&&spec.duration<3,id+': proposed duration');
+  assert.equal(spec.stages.length,4);
+  assert.equal(spec.stages[0].at,0);
+  for(let i=1;i<4;i++)assert.ok(spec.stages[i].at>spec.stages[i-1].at,id+': timeline order');
+  for(const kind of ['sparks','smoke','shards'])assert.ok(spec.max[kind]>=0&&spec.max[kind]<45);
+  for(const pulse of spec.pulseTimes)assert.ok(pulse>=0&&pulse<1);
+ }
+ assert.ok(EXPLOSION_TYPES.capital.pulseTimes.length>=3,'capital needs separated ruptures');
+ assert.equal(EXPLOSION_TYPES.asteroid.palette,'dust');
+ assert.equal(EXPLOSION_TYPES.orbital.stages[1].at,.29,'warning comes before orbital strike');
+ assert.deepEqual(Object.keys(EXPLOSION_BUDGET.modes).sort(),['balanced','eco','rich']);
+ for(const [name,item] of Object.entries(EXPLOSION_ASSETS))assert.ok(exists('../../'+item.path.replace('../../','')),name+': missing asset');
+});
+test('one existing workshop hosts playable explosion study without touching combat',()=>{
+ const page=read('../studio/index.html'),app=read('../studio/app.js'),style=read('../studio/style.css');
+ for(const id of ['explosion-workbench','explosion-canvas','explosion-small','explosion-types','explosion-light',
+  'explosion-scrub','explosion-timeline','explosion-parallel','explosion-quality','explosion-budget','explosion-assets'])
+  assert.match(page,new RegExp('id="'+id+'"'),id);
+ assert.match(app,/initExplosionLab\(\)/);
+ assert.match(style,/\.explosion-timeline/);
+ assert.ok(exists('../studio/explosion-lab.js'));
+ assert.ok(exists('../studio/explosion-design.js'));
+ assert.ok(exists('../EXPLOSION-VFX-CONCEPT-2026-11-03.md'));
+ for(const file of ['../studio/explosion-lab.js','../studio/explosion-design.js'])
+  execFileSync(process.execPath,['--check',fileURLToPath(new URL(file,import.meta.url))],{stdio:'pipe'});
+ assert.match(read('../studio/explosion-lab.js'),/prefers-reduced-motion/);
+ assert.match(read('../studio/explosion-lab.js'),/asset\.path/);
+ assert.match(read('../studio/explosion-lab.js'),/EXPLOSION_BUDGET\.prototypeFps/);
 });
