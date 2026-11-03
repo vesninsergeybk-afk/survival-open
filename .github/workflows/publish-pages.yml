@@ -35,6 +35,7 @@ jobs:
         run: |
           mkdir -p _site/arcade
           cp index.html .nojekyll _site/
+          cp asset-gallery.html _site/
           cp -R arcade/. _site/arcade/
           cp -R assets _site/assets
           test -f _site/arcade/index.html
