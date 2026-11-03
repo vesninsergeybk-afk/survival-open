@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#0a1524">
 <meta name="robots" content="noindex, nofollow">
 <title>Мастерская концепций · Выживший</title>
-<link rel="stylesheet" href="./style.css?v=studio-design-2">
-<script type="module" src="./app.js?v=studio-design-2"></script>
+<link rel="stylesheet" href="./style.css?v=studio-explosions-1">
+<script type="module" src="./app.js?v=studio-explosions-1"></script>
 </head>
 <body>
 <header class="topbar">
@@ -24,7 +24,7 @@
   <div class="eyebrow"><span class="led"></span> ПРОЕКТНАЯ СРЕДА · БЕЗ ВЛИЯНИЯ НА ИГРУ</div>
   <h1>Сначала проверяем идею. <span>Потом переносим в игру.</span></h1>
   <p>Единая мастерская для сценариев заданий, зрительной и звуковой обратной связи. Здесь видно, <strong>что делает игрок, как отвечает мир и по каким признакам мы оцениваем результат</strong>. Показанные сцены — эскизы, а не запись игрового процесса.</p>
-  <div class="facts"><span>4 базы · 3 действующие операции</span><span>Сравнение «в игре / проект»</span><span>5 сигналов · 6 сравнений VFX A/B</span><span>Без изменения баланса</span></div>
+  <div class="facts"><span>4 базы · 3 действующие операции</span><span>Сравнение «в игре / проект»</span><span>5 сигналов · 6 сравнений VFX A/B · 5 сценариев взрывов</span><span>Без изменения баланса</span></div>
  </section>
  <nav class="tabs" aria-label="Разделы мастерской">
   <button type="button" data-tab="scenario" aria-pressed="true">Сценарии заданий</button>
@@ -121,6 +121,72 @@
    </aside>
   </div>
   <p class="disclaimer">Звуки здесь описаны словами, но не воспроизводятся: это отдельная задача звукового стенда. Эффекты показаны упрощённо и не подменяют реальные столкновения, урон, ИИ и анимации игры. При системном ограничении движения анимация сокращается.</p>
+   <section id="explosion-workbench" class="explosion-workbench" aria-labelledby="explosion-title">
+    <div class="section-head">
+     <div><span class="eyebrow">VFX · ПРОЕКТНАЯ СИСТЕМА / 03.11.2026</span><h3 id="explosion-title">Взрывы: один визуальный язык, пять причин</h3></div>
+     <p>Сначала определяем событие, материал, освещение и разлёт. Здесь можно проиграть и остановить одну и ту же сцену, меняя только художественные параметры. Игровой код не затронут.</p>
+    </div>
+    <div class="explosion-thesis">
+     <span><b>01</b> Причина и точка контакта</span><span><b>02</b> Пик энергии, отражённый свет</span><span><b>03</b> Обломки своего материала</span><span><b>04</b> Быстрое затухание</span>
+    </div>
+    <div class="explosion-types" id="explosion-types" role="group" aria-label="Виды взрывов"></div>
+    <div class="explosion-grid">
+     <div class="explosion-theater">
+      <div class="explosion-theater-head"><div><small>ЖИВАЯ СЦЕНА / 2D CANVAS</small><strong id="explosion-subtitle">Разрушение истребителя</strong></div><span class="explosion-live">КОНЦЕПТ</span></div>
+      <canvas id="explosion-canvas" width="960" height="450" role="img" aria-label="Интерактивная анимация выбранного взрыва с кораблями и освещением"></canvas>
+      <div class="explosion-controls">
+       <label>Детализация
+        <select id="explosion-quality">
+         <option value="eco">Экономная</option><option value="balanced" selected>Основная</option><option value="rich">Подробная</option>
+        </select>
+       </label>
+       <label>Одновременных событий
+        <select id="explosion-parallel"><option value="1">1</option><option value="3">3</option><option value="6">6 · нагрузка</option></select>
+       </label>
+       <label class="explosion-check"><input type="checkbox" id="explosion-light" checked> Отражённый свет</label>
+       <div class="explosion-actions"><button id="explosion-toggle" class="secondary" type="button">Пауза</button><button id="explosion-replay" class="primary" type="button">С начала</button></div>
+      </div>
+      <div class="explosion-scrubber"><label for="explosion-scrub">Рассмотреть кадр</label><input id="explosion-scrub" type="range" min="0" max="1000" step="1" value="0"><output id="explosion-time-label">0.00 с</output></div>
+      <div class="explosion-perf"><span id="explosion-counter" aria-live="off">Подготовка сцены…</span><span id="explosion-fps">FPS стенда ≠ FPS игры</span></div>
+     </div>
+     <aside class="explosion-observer">
+      <div class="mini-label">ПРОВЕРКА В ИГРОВОМ МАСШТАБЕ</div>
+      <canvas id="explosion-small" width="320" height="150" role="img" aria-label="Визуальный эффект при уменьшении сцены до игрового размера"></canvas>
+      <div class="detail-block"><span>КОГДА И ПОЧЕМУ</span><p id="explosion-trigger"></p></div>
+      <div class="detail-block"><span>ЧТО ПОНЯЛ ИГРОК</span><p id="explosion-truth"></p></div>
+      <div class="detail-block"><span>НЕ ДЕЛАТЬ</span><p id="explosion-warning"></p></div>
+      <div class="detail-block decision"><span>КАК ПРИНЯТЬ</span><p id="explosion-check"></p></div>
+     </aside>
+    </div>
+    <div class="explosion-section-label"><span>ПОКАДРОВАЯ ДРАМАТУРГИЯ</span><small>Нажмите на любой этап, чтобы остановить сцену в выбранный момент</small></div>
+    <div class="explosion-timeline" id="explosion-timeline" role="group" aria-label="Этапы развития взрыва"></div>
+    <div class="explosion-contract">
+     <article>
+      <h4>Свет, который связывает взрыв с миром</h4>
+      <p>Пока ядро яркое, на близкой обшивке появляется краткий тёплый или холодный отблеск. Он ослабевает с расстоянием и исчезает раньше дыма. Используем подготовленную маску самого корабля: свет не красит прямоугольную область вокруг спрайта.</p>
+      <p><strong>Проверьте:</strong> отключите «Отражённый свет» и повторите взрыв; сравните основной корабль и две соседние цели.</p>
+     </article>
+     <article>
+      <h4>Разная масса — разная анимация</h4>
+      <p>Камень выбрасывает крошку и пыль. Лёгкий корабль даёт несколько горячих фрагментов. Крейсер разрывается в нескольких удалённых друг от друга точках: его корпус остаётся узнаваемым во время вторичных вспышек.</p>
+      <p><strong>Незакрытая задача:</strong> реальные уникальные секции корпуса крейсера ещё надо подготовить по его конкретной геометрии.</p>
+     </article>
+     <article>
+      <h4>Количество частиц ограничено заранее</h4>
+      <div id="explosion-budget" class="explosion-budget"></div>
+      <p>Урезаем фоновые элементы раньше критических сигналов. Параметры «1 / 3 / 6 событий» здесь показывают плотность рисунка, но не заменяют профилирование в игре.</p>
+     </article>
+    </div>
+    <details class="explosion-resources">
+     <summary>Текстуры, кандидаты на новые ассеты и лицензии</summary>
+     <p>В этой сцене используются файлы, уже находящиеся в <code>assets/fx/</code> и <code>assets/space/</code>. Частицы Kenney распространяются по CC0; подтверждение — локальный <a href="../../assets/fx/LICENSE-KENNEY.txt" target="_blank" rel="noopener">файл лицензии</a> и <a href="https://kenney.nl/assets/particle-pack" target="_blank" rel="noopener">страница набора Kenney</a>.</p>
+     <ul id="explosion-assets" class="explosion-asset-list"></ul>
+     <p><strong>Кандидат, не включён в проект:</strong> <a href="https://opengameart.org/content/explosion-spritesheet-low-res" target="_blank" rel="noopener">Explosion Spritesheet Low Res / dirkwybe (CC0)</a>. Нужны просмотр кадров на настоящем размере, проверка стиля, числа файлов и размера скачивания. Лицензия CC0 сама по себе не гарантирует подходящий рисунок.</p>
+     <p><strong>Технический ориентир:</strong> <a href="https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas" target="_blank" rel="noopener">MDN · Optimizing Canvas</a>. Градиенты и световые маски подготавливаются один раз; эффект не должен заново строить десятки дорогих текстур в каждом кадре.</p>
+    </details>
+    <div class="explosion-next"><div><b>Следующий переход — после художественного утверждения.</b><p>Сверяем 100% скорость, просмотр в 320-пиксельном окне, последовательность трёх взрывов и режим снижения движения. Затем переносим правила по одному событию в <code>src/world-vfx.js</code> с измерением времени кадра и проверкой исходных ассетов.</p></div><a href="https://github.com/vesninsergeybk-afk/survival-open/blob/main/arcade/EXPLOSION-VFX-CONCEPT-2026-11-03.md" target="_blank" rel="noopener">Полная спецификация и критерии →</a></div>
+    <p class="disclaimer">Прямоугольные и полигональные осколки в этом опыте — временные формы. Длительности и количества частиц — проектные гипотезы, они не изменяют урон и не доказывают производительность в настоящем бою. Страница общедоступна по ссылке, но не индексируется; <code>noindex</code> не является защитой паролем.</p>
+   </section>
   <section class="audit-section" aria-labelledby="audit-title">
    <div class="section-head">
     <div><span class="eyebrow">РЕВИЗИЯ · 03.11.2026</span><h3 id="audit-title">Что уже есть, а что ещё предстоит сделать</h3></div>
