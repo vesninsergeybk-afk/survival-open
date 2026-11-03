@@ -1,6 +1,7 @@
 /* Survivor cockpit HUD: presentation only. World state and combat stay in game.js.
    The local radar is deliberately bounded to 1.1km and redraws <=5 times/sec. */
 import {miningSignal} from './mining.js?v=arcade-extraction-risk-34';
+import {missionHudText} from './mission-feedback.js?v=opening-cues-2';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 export const hullCondition = (hp,maxHp) => {
@@ -61,18 +62,7 @@ export class CockpitDisplay {
   if(tracker){
    tracker.hidden=!(op||c);
    tracker.classList.toggle('ready',!op&&!!c&&c.progress>=c.goal);
-   if(op){
-    const d=Math.round(Math.hypot(op.x-p.x,op.y-p.y));
-    const timer=d<=op.pulseRange?' · ⚡ '+
-     Math.ceil(Math.max(0,op.pulsePeriod-(op.pulseCharge||0)))+' с':'';
-    display(tracker,'◈ ГЛУШИТЕЛЬ · '+d+' м · '+Math.ceil(op.hp/op.maxHp*100)+'% прочности'+timer);
-   }else if(c){
-    const station=game.world.stations.get(c.baseId);
-    const distance=station?Math.round(Math.hypot(station.x-p.x,station.y-p.y)):0;
-    display(tracker,c.progress>=c.goal?
-     '✓ '+c.name+' · ВЕРНИТЕСЬ НА БАЗУ · '+distance+' м':
-     c.name+' · '+c.progress+'/'+c.goal+' · ПОЛЕВОЙ ЗАКАЗ');
-   }
+   display(tracker,missionHudText(game));
   }
   const extracting=!!game.mining?.active,repairing=!!game.probeRepairing;
   const noise=miningSignal(game.miningNoise||0);

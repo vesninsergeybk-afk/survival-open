@@ -8,7 +8,7 @@ import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
 import {ArcadeVisuals} from './visuals.js?v=arcade-capital-hit-63';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=arcade-controls-63';
+import {CockpitDisplay} from './hud.js?v=opening-cues-2';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=arcade-progressive-noise-58';
 import {ArcadeHeritage} from './heritage.js?v=arcade-sound-material-53';
@@ -16,7 +16,8 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=arcade-station-followup-65';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation} from './operations.js?v=arcade-controls-63';
-import {renderWorldMap} from './map-panel.js?v=arcade-station-followup-65';
+import {renderWorldMap} from './map-panel.js?v=opening-cues-2';
+import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=opening-cues-2';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -432,28 +433,39 @@ export class ArcadeGame {
   const station=c?this.world.stations.get(c.baseId):null;
   if(!eligibleContractProgress(c,kind,subject,station))return;
   c.progress++;
-  if(c.progress===c.goal)this.notice('Задание выполнено! Вернитесь на станцию за наградой.',4.5);
+  if(c.progress===c.goal)this.notice('Задание выполнено! '+
+    'Вернитесь на '+(station?baseNames[station.type]:'станцию')+' за наградой. Золотая отметка покажет её на карте.',4.5);
  }
  // A tangible, single-use operation: a jammer in space, escorts, and a secured route.
  updateCorridor(dt=0){
   const op=this.operation;
   if(!op||op.id!==CORRIDOR_OPERATION.id||this.dead||op.hp<=0)return;
   const d=dist(this.player,op);
-  // A readable risk window: stay close to focus the beam, or disengage to cool the transmitter.
-  if(d<=CORRIDOR_OPERATION.pulseRange){
+  // The actual charge controls warnings; after discharge there is a tactical window.
+  if(this.time<(op.overheatedUntil||0)){
+   op.pulseCharge=0;op.pulseLocked=false;
+  }else if(d<=CORRIDOR_OPERATION.pulseRange||op.pulseLocked){
    op.pulseCharge=Math.min(CORRIDOR_OPERATION.pulsePeriod,(op.pulseCharge||0)+Math.max(0,dt));
+   if(op.pulseCharge>=CORRIDOR_OPERATION.pulsePeriod*.28)op.pulseLocked=true;
    if(!op.pulseWarned&&op.pulseCharge>.25){
     op.pulseWarned=true;
-    this.notice('Глушитель заряжает ЭМ-импульс. Выйдите за 315 м, чтобы ослабить заряд.',3.5);
+    this.notice('Бортовой ИИ: глушитель заряжает ЭМ-импульс. Выйдите за 315 м.',3.5);
    }
    if(op.pulseCharge>=CORRIDOR_OPERATION.pulsePeriod){
     op.pulseCharge=0;
+    op.pulseLocked=false;op.pulseWarned=false;
+    op.pulseFlashUntil=this.time+.55;
+    op.overheatedUntil=this.time+2.3;
     this.heritage.vfx.nova(op.x,op.y,180,'cyan');
     this.heritage.play?.('damage',.27);
-    this.hurt(CORRIDOR_OPERATION.pulseDamage,{x:op.x,y:op.y});
-    this.notice('ЭМ-импульс глушителя! Отступите и смените курс.',2.7);
+    if(d<=CORRIDOR_OPERATION.pulseRange)
+     this.hurt(CORRIDOR_OPERATION.pulseDamage,{x:op.x,y:op.y});
+    this.notice('Бортовой ИИ: разряд! Глушитель перегревается — сейчас его защита слабее.',2.7);
    }
-  }else op.pulseCharge=Math.max(0,(op.pulseCharge||0)-Math.max(0,dt)*1.5);
+  }else{
+   op.pulseCharge=Math.max(0,(op.pulseCharge||0)-Math.max(0,dt)*1.5);
+   if(op.pulseCharge<=.01)op.pulseWarned=false;
+  }
   if(d>op.escortTrigger)return;
   if(!op.guardsSpawned){
    const first=this.spawnCorridorGuard('scout',0);
@@ -1461,7 +1473,8 @@ export class ArcadeGame {
    const baseCore=hostile&&!hostile.turrets.some(t=>t.hp>0)&&
     dist(hostile,p)<=Math.min(range,245)?hostile:null;
    if(jammer){
-    const d=dist(jammer,p),damage=beamDamage(21,d,110,range)*(this.nearArsenalBonus?1.18:1);
+    const d=dist(jammer,p),damage=beamDamage(21,d,110,range)*
+     (this.nearArsenalBonus?1.18:1)*(this.time<(jammer.overheatedUntil||0)?1.35:1);
     const cover=firstRockImpact(p.x,p.y,jammer.x,jammer.y,
      this.rockGrid.query((p.x+jammer.x)*.5,(p.y+jammer.y)*.5,d*.5+40),2,p);
     const point=cover?contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y):null;
@@ -1652,7 +1665,10 @@ export class ArcadeGame {
     c.setLineDash([]);c.lineWidth=1.6;c.strokeStyle='#d699cf70';
     c.beginPath();c.arc(0,0,CORRIDOR_OPERATION.pulseRange,0,TAU);c.stroke();
     const charge=(op.pulseCharge||0)/CORRIDOR_OPERATION.pulsePeriod;
-    if(charge>.01){
+    if(this.time<(op.overheatedUntil||0)){
+     c.strokeStyle='#81f0c0a8';c.lineWidth=3.5;
+     c.beginPath();c.arc(0,0,CORRIDOR_OPERATION.pulseRange,0,TAU);c.stroke();
+    }else if(charge>.01){
      c.strokeStyle=charge>.73?'#ffd499de':'#f1abffaf';c.lineWidth=4;
      c.beginPath();c.arc(0,0,CORRIDOR_OPERATION.pulseRange,-Math.PI/2,-Math.PI/2+TAU*charge);c.stroke();
     }
@@ -1685,6 +1701,13 @@ export class ArcadeGame {
    c.arc(0,0,29,-Math.PI/2,-Math.PI/2+TAU*op.hp/op.maxHp);c.stroke();
    c.font='bold 11px system-ui';c.textAlign='center';
    c.fillStyle='#f8d7ff';c.fillText('ГЛУШИТЕЛЬ',0,-68);
+   const cue=corridorCue(op,this.time,dist(this.player,op));
+   if(cue){
+    c.fillStyle=cue.color;c.font='bold 11px system-ui';
+    c.fillText('БОРТОВОЙ ИИ · '+cue.label,0,-104,300);
+    c.fillStyle='#d3e3ef';c.font='10px system-ui';
+    c.fillText(cue.hint,0,-88,305);
+   }
    c.fillStyle='#e3b9f4';c.font='10px system-ui';
    c.fillText(Math.ceil(op.hp/op.maxHp*100)+'% · сблизьтесь для атаки',0,-54);
   }else{
@@ -1721,8 +1744,24 @@ export class ArcadeGame {
    c.restore();
   }
  }
- drawBase(b){this.visuals.drawBase(this.ctx,b,this.time,this.player.x,this.player.y,
-  this.network,this.cachedNetworkLinked.has(b.id));}
+ drawBase(b,readyBaseId=null){
+  this.visuals.drawBase(this.ctx,b,this.time,this.player.x,this.player.y,
+   this.network,this.cachedNetworkLinked.has(b.id));
+  if(b.id!==readyBaseId)return;
+  // The return cue never affects station behavior or mission rewards.
+  const c=this.ctx,steady=this.visuals.reducedMotion;
+  const wave=steady?0:.5+.5*Math.sin(this.time*2.5);
+  c.save();c.translate(b.x,b.y);
+  c.lineWidth=2.5;c.strokeStyle='rgba(255,205,103,'+(.55+wave*.36).toFixed(3)+')';
+  c.beginPath();c.arc(0,0,122+wave*6,0,TAU);c.stroke();
+  c.lineWidth=1.4;c.strokeStyle='rgba(255,230,154,.52)';
+  c.beginPath();c.arc(0,0,136+wave*4,0,TAU);c.stroke();
+  c.fillStyle='#ffe09c';c.textAlign='center';c.font='bold 13px system-ui';
+  c.fillText('!',0,-145,30);
+  c.font='bold 10px system-ui';
+  c.fillText('НАГРАДА ГОТОВА',0,-161,160);
+  c.restore();
+ }
  render(){
   const c=this.ctx,p=this.player,cam=this.camera();
   c.setTransform(this.canvas.width/this.vw,0,0,this.canvas.height/this.vh,0,0);
@@ -1787,9 +1826,19 @@ export class ArcadeGame {
    }
    c.restore();
   }
+  const defenseZone=contractDefenseZone(this.contract,this.world);
+  if(defenseZone&&!outsideCamera(defenseZone.station.x,defenseZone.station.y,cam,defenseZone.radius+30)){
+   const base=defenseZone.station,r=defenseZone.radius;
+   c.save();c.lineWidth=2;c.setLineDash([14,12]);c.strokeStyle='#78e4d68c';
+   c.beginPath();c.arc(base.x,base.y,r,0,TAU);c.stroke();c.setLineDash([]);
+   c.fillStyle='#b8fff0';c.font='bold 12px system-ui';c.textAlign='center';
+   c.fillText('ЗОНА ЗАЩИТЫ · 650 М',base.x,base.y-r-13,190);
+   c.restore();
+  }
+  const returnBase=contractReturnStation(this.contract,this.world);
   for(const b of this.world.nearbyStations(p.x,p.y,Math.max(cam.w,cam.h)+350)){
    if(b.enemy&&!this.enemyBasesUnlocked())continue;
-   if(!outsideCamera(b.x,b.y,cam,160))this.drawBase(b);
+   if(!outsideCamera(b.x,b.y,cam,170))this.drawBase(b,returnBase?.id);
   }
   this.drawInteractionFocus(c,cam);
   for(const d of this.drops){

@@ -14,7 +14,7 @@ export function createCorridorOperation(base){
  if(!isCorridorDock(base))return null;
  const {x,y}=corridorPosition(base);
  return {...CORRIDOR_OPERATION,baseId:base.id,x,y,hp:CORRIDOR_OPERATION.maxHp,
-  guardsSpawned:false,reinforcementsAt:0,waves:0,pulseCharge:0,pulseWarned:false};
+  guardsSpawned:false,reinforcementsAt:0,waves:0,pulseCharge:0,pulseLocked:false,pulseWarned:false,pulseFlashUntil:0,overheatedUntil:0};
 }
 export function corridorOffer(base,operation){
  if(!isCorridorDock(base))return null;
