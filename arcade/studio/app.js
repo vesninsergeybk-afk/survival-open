@@ -1,8 +1,9 @@
 import {SCENARIOS,EFFECTS,CONCEPTS} from './concepts.js';
+import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from './design-brief.js';
 
 const $=id=>document.getElementById(id);
 const make=(tag,klass,text)=>{const el=document.createElement(tag);if(klass)el.className=klass;if(text!==undefined)el.textContent=text;return el;};
-let activeTab='scenario',activeScenario='dock',phaseIndex=0,activeEffect='hit',power=3,paused=false,animationStart=performance.now(),lastFrame=0;
+let activeTab='scenario',activeScenario='dock',scenarioMode='current',phaseIndex=0,selectedExperiment=0,activeEffect='hit',power=3,paused=false,animationStart=performance.now(),lastFrame=0;
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
 const stars=Array.from({length:60},(_,i)=>({x:((i*167+43)%797)/800,y:((i*109+61)%353)/358,r:i%7===0?1.4:.8}));
 
@@ -17,34 +18,71 @@ function addSelector(container,items,current,onSelect){
  }
 }
 
+function scenarioPhases(){
+ return scenarioMode==='current' ? SCENARIO_BASELINES[activeScenario].phases : SCENARIOS[activeScenario].phases;
+}
 function initScenario(){
- addSelector($('scenario-picker'),Object.values(SCENARIOS).map(s=>({key:s.id,label:s.base,description:s.title})),activeScenario,choice=>{activeScenario=choice;phaseIndex=0;initScenario();});
- const scenario=SCENARIOS[activeScenario],phase=scenario.phases[phaseIndex];
- $('scenario-status').textContent=scenario.state;
+ const scenario=SCENARIOS[activeScenario],baseline=SCENARIO_BASELINES[activeScenario];
+ if(scenarioMode==='current'&&!baseline.phases.length)scenarioMode='proposal';
+ const phases=scenarioPhases();
+ phaseIndex=Math.min(phaseIndex,phases.length-1);
+ const phase=phases[phaseIndex];
+ addSelector($('scenario-picker'),Object.values(SCENARIOS).map(s=>({key:s.id,label:s.base,description:s.title})),activeScenario,choice=>{
+  activeScenario=choice;phaseIndex=0;selectedExperiment=0;initScenario();
+ });
+ document.querySelectorAll('[data-scenario-mode]').forEach(btn=>{
+  const isCurrent=btn.dataset.scenarioMode==='current';
+  btn.disabled=isCurrent&&!baseline.phases.length;
+  btn.setAttribute('aria-pressed',String(btn.dataset.scenarioMode===scenarioMode));
+ });
+ $('scenario-status').textContent=scenarioMode==='current'?baseline.status:'КОНЦЕПТ · ПРЕДЛАГАЕМАЯ ВЕРСИЯ';
  $('scenario-name').textContent=scenario.title;
- $('scenario-time').textContent=scenario.time;
+ $('scenario-time').textContent=scenarioMode==='current'?baseline.time:scenario.time+' · гипотеза';
  $('phase-title').textContent=phase.title;
  $('phase-action').textContent=phase.action;
  $('phase-world').textContent=phase.world;
  $('phase-choice').textContent=phase.choice;
- $('scenario-reward').textContent=scenario.reward;
- $('scenario-step').textContent='Сцена '+(phaseIndex+1)+' из '+scenario.phases.length;
- $('scenario-next').disabled=phaseIndex===scenario.phases.length-1;
- $('scenario-next').textContent=phaseIndex===scenario.phases.length-1?'Все этапы просмотрены':'Следующее событие →';
+ $('scenario-reward').textContent=scenarioMode==='current'?baseline.reward:scenario.reward;
+ $('scenario-gap').textContent=baseline.gap;
+ $('scenario-source').textContent=scenarioMode==='current'?'Подтверждено кодом: '+baseline.source:'Предложение для испытания. Не включено автоматически в игру.';
+ $('scenario-step').textContent='Сцена '+(phaseIndex+1)+' из '+phases.length;
+ $('scenario-next').disabled=phaseIndex===phases.length-1;
+ $('scenario-next').textContent=phaseIndex===phases.length-1?'Все этапы просмотрены':'Следующее событие →';
  $('scenario-steps').replaceChildren();
- scenario.phases.forEach((p,index)=>{
+ phases.forEach((p,index)=>{
   const item=make('li',index===phaseIndex?'current':index<phaseIndex?'done':'');
   const button=make('button',null,p.title);
   button.type='button';button.style.cssText='background:none;border:0;text-align:left;width:100%;padding:0;font-size:inherit;font-weight:600;color:inherit';
   button.setAttribute('aria-current',index===phaseIndex?'step':'false');
-  button.prepend(make('b',null,'0'+(index+1)));
-  button.addEventListener('click',()=>{phaseIndex=index;initScenario();});
+  button.prepend(make('b',null,String(index+1).padStart(2,'0')));
+  button.addEventListener('click',()=>{phaseIndex=index;selectedExperiment=0;initScenario();});
   item.append(button);$('scenario-steps').append(item);
  });
+ const experiments=scenarioMode==='proposal'?TACTICAL_EXPERIMENTS[activeScenario]?.[phase.id]:null;
+ const experiment=$('scenario-experiment');
+ experiment.hidden=!experiments;
+ if(experiments){
+  const picker=$('experiment-picker');picker.replaceChildren();
+  experiments.forEach((option,index)=>{
+   const button=make('button',null,option.name);
+   button.type='button';button.setAttribute('aria-pressed',String(index===selectedExperiment));
+   button.addEventListener('click',()=>{selectedExperiment=index;initScenario();});
+   picker.append(button);
+  });
+  const choice=experiments[Math.min(selectedExperiment,experiments.length-1)];
+  $('experiment-result').textContent=choice.result;
+  $('experiment-risk').textContent=choice.risk;
+ }
  drawScenario();
 }
-$('scenario-next').addEventListener('click',()=>{if(phaseIndex<SCENARIOS[activeScenario].phases.length-1){phaseIndex++;initScenario();}});
-$('scenario-reset').addEventListener('click',()=>{phaseIndex=0;initScenario();});
+document.querySelectorAll('[data-scenario-mode]').forEach(btn=>btn.addEventListener('click',()=>{
+ if(btn.disabled)return;
+ scenarioMode=btn.dataset.scenarioMode;phaseIndex=0;selectedExperiment=0;initScenario();
+}));
+$('scenario-next').addEventListener('click',()=>{
+ if(phaseIndex<scenarioPhases().length-1){phaseIndex++;selectedExperiment=0;initScenario();}
+});
+$('scenario-reset').addEventListener('click',()=>{phaseIndex=0;selectedExperiment=0;initScenario();});
 
 function space(ctx,w,h){
  const g=ctx.createLinearGradient(0,0,w,h);g.addColorStop(0,'#081827');g.addColorStop(1,'#0d263d');
@@ -65,7 +103,7 @@ function drawShip(ctx,x,y,size,angle=0,color='#9ceeff'){
 }
 function drawScenario(){
  const cv=$('scenario-canvas'),ctx=cv.getContext('2d'),w=cv.width,h=cv.height;
- const scenario=SCENARIOS[activeScenario],phase=scenario.phases[phaseIndex];
+ const scenario=SCENARIOS[activeScenario],phase=scenarioPhases()[phaseIndex];
  space(ctx,w,h);
  const bx=w*.14,by=h*.52,tx=w*.78,ty=h*.43,sx=w*phase.x,sy=h*phase.y;
  // Actual screen topology is intentionally schematic.
@@ -175,6 +213,36 @@ function animate(now){
  requestAnimationFrame(animate);
 }
 
+function initBrief(){
+ const root=$('base-roles');root.replaceChildren();
+ for(const b of BASE_ROLES){
+  const card=make('article','concept');
+  card.append(make('span','tag',b.name),make('h3',null,b.role));
+  for(const [key,labelText] of [['active','Уже есть'],['potential','Предлагаем'],['return','Причина вернуться']]){
+   const p=make('p');p.append(make('b',null,labelText+': '),document.createTextNode(b[key]));card.append(p);
+  }
+  root.append(card);
+ }
+ const checks=$('design-checks'),checkKey='survivor-studio-playtest-v1';
+ let checked={};try{checked=JSON.parse(localStorage.getItem(checkKey)||'{}');}catch{}
+ function count(){const n=PLAYTEST_CHECKS.filter(c=>checked[c.id]).length;$('checks-count').textContent=n+' из '+PLAYTEST_CHECKS.length+' отмечено после проверки';}
+ for(const test of PLAYTEST_CHECKS){
+  const label=make('label','check-row'),input=document.createElement('input');
+  input.type='checkbox';input.checked=!!checked[test.id];input.setAttribute('aria-label',test.label);
+  const body=make('span'),name=make('strong',null,test.label),detail=make('small',null,test.detail);
+  body.append(name,detail);label.append(input,body);checks.append(label);
+  input.addEventListener('change',()=>{
+   checked[test.id]=input.checked;count();
+   try{localStorage.setItem(checkKey,JSON.stringify(checked));}catch{}
+  });
+ }
+ count();
+ $('clear-checks').addEventListener('click',()=>{
+  checked={};checks.querySelectorAll('input').forEach(input=>input.checked=false);count();
+  try{localStorage.removeItem(checkKey);}catch{}
+ });
+}
+
 function initConcepts(){
  const root=$('concept-grid');root.replaceChildren();
  for(const c of CONCEPTS){
@@ -190,11 +258,11 @@ try{$('concept-notes').value=localStorage.getItem(noteKey)||'';}catch{}
 $('concept-notes').addEventListener('input',e=>{try{localStorage.setItem(noteKey,e.target.value);}catch{}$('notes-status').textContent='Сохранено в этом браузере';});
 $('clear-notes').addEventListener('click',()=>{$('concept-notes').value='';try{localStorage.removeItem(noteKey);}catch{}$('notes-status').textContent='Заметки очищены';});
 $('copy-notes').addEventListener('click',async()=>{
- const data={title:'Мастерская концепций «Выжившего»',type:'design-prototype',scenarios:SCENARIOS,effects:EFFECTS,concepts:CONCEPTS,notes:$('concept-notes').value};
+ const data={title:'Мастерская концепций «Выжившего»',type:'design-prototype',scenarios:SCENARIOS,baselines:SCENARIO_BASELINES,experiments:TACTICAL_EXPERIMENTS,baseRoles:BASE_ROLES,playtest:PLAYTEST_CHECKS,effects:EFFECTS,concepts:CONCEPTS,notes:$('concept-notes').value};
  try{await navigator.clipboard.writeText(JSON.stringify(data,null,2));$('notes-status').textContent='Концепции и заметки скопированы';}
  catch{$('notes-status').textContent='Буфер недоступен: скопируйте заметки из поля вручную';}
 });
-const studioTabs=['scenario','effects','concepts','tools'];
+const studioTabs=['scenario','loop','effects','concepts','tools'];
 function sizeComparisonFrame(){
  const frame=$('vfx-compare-frame');
  if(!frame)return;
@@ -223,6 +291,6 @@ function selectStudioTab(name,updateUrl=false){
 }
 document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>selectStudioTab(btn.dataset.tab,true)));
 window.addEventListener('hashchange',()=>selectStudioTab(location.hash.slice(1)));
-initScenario();initEffects();initConcepts();
+initScenario();initEffects();initBrief();initConcepts();
 selectStudioTab(location.hash.slice(1));
 requestAnimationFrame(animate);
