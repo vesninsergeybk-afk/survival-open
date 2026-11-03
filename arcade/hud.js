@@ -210,12 +210,23 @@ export class CockpitDisplay {
   void this.n.oreResource.offsetWidth;
   this.n.oreResource.classList.add('is-gaining');
  }
- impact(relativeDamage) {
-  if(this.reducedMotion||relativeDamage<.075)return;
-  this.root.classList.remove('is-hit');
-  // A hit is rare and i-frames prevent successive reflows.
+ impact(relativeDamage,shieldOnly=false) {
+  // A genuine hit is emitted by game.hurt() after shields and armor have absorbed
+  // damage. A CSS-only effect never alters physics, input or HUD values.
+  if(!Number.isFinite(relativeDamage)||relativeDamage<.075)return;
+  const heavy=relativeDamage>=.17;
+  this.root.classList.remove('is-hit','is-hit-heavy','is-hit-shield','is-hit-static');
+  if(this.reducedMotion){
+   // Keep a brief non-moving diagnostic flash for accessibility.
+   void this.frame.offsetWidth;
+   this.root.classList.add('is-hit-static');
+   return;
+  }
+  // Invulnerability prevents combat hits from restarting the effect every frame.
   void this.frame.offsetWidth;
   this.root.classList.add('is-hit');
+  if(heavy)this.root.classList.add('is-hit-heavy');
+  if(shieldOnly)this.root.classList.add('is-hit-shield');
  }
  drawRadarShell() {
   const ctx=this.ctx;

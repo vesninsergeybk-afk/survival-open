@@ -9,7 +9,7 @@ import {ArcadeVisuals} from './visuals.js?v=arcade-capital-hit-63';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-oblique-01';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=hud-art-system-v5';
+import {CockpitDisplay} from './hud.js?v=hud-impact-art-pass-06';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=arcade-progressive-noise-58';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03';
@@ -1302,7 +1302,7 @@ export class ArcadeGame {
   const contact=source?contactOnCircle(p.x,p.y,p.r,source.x,source.y):null;
   this.heritage.vfx.arcadePlayerHurt(p.x,p.y,absorbed>0,remaining>0,contact);
   this.heritage.play('damage',.35);
-  this.cockpit.impact(damage/Math.max(1,p.maxHp));
+  this.cockpit.impact(damage/Math.max(1,p.maxHp),absorbed>0&&remaining===0);
   const boost=this.skillRanks.dodge;
   if(boost){
    const sx=source? p.x-source.x : p.vx,sy=source? p.y-source.y : p.vy;

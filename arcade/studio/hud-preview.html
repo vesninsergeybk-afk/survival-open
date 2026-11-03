@@ -235,11 +235,54 @@ header a{color:#9ce8f0;font-size:12px}
 .stage.phone-landscape .thermal-preview-title{font-size:5px}
 .stage.phone-portrait .thermal-preview-title{font-size:8px}
 @media(prefers-reduced-motion:reduce){.thermal-preview-track>span{transition:none}}
+
+/* Art Pass 06: shared impact artwork, brief panel displacement and optical signal loss. */
+.stage .panel::after{
+ content:"";position:absolute;inset:2px;z-index:6;pointer-events:none;
+ background:url('./hud-kit/impact-interference.svg') center/100% 100% no-repeat;
+ opacity:0;mix-blend-mode:screen;
+}
+.stage.impact-light .panel,
+.stage.impact-shield .panel{animation:stage-signal-shear .25s steps(1,end) both}
+.stage.impact-heavy .panel{animation:stage-signal-shear-heavy .34s steps(1,end) both}
+.stage.impact-light .panel::after,
+.stage.impact-shield .panel::after{animation:stage-signal-noise .25s steps(1,end) both}
+.stage.impact-heavy .panel::after{animation:stage-signal-noise .34s steps(1,end) both}
+.stage.impact-shield .panel::after{filter:hue-rotate(140deg) saturate(.8)}
+@keyframes stage-signal-shear{
+ 0%,100%{filter:drop-shadow(0 3px 10px #0007);transform:translate(0)}
+ 12%,26%{filter:drop-shadow(2px 0 #F978976A) drop-shadow(-2px 0 #64E9F67A) blur(.6px) brightness(1.35);transform:translate(-2px,1px)}
+ 39%{transform:translate(2px,-1px)}
+ 58%{transform:translate(-1px,0)}
+}
+@keyframes stage-signal-shear-heavy{
+ 0%,100%{filter:drop-shadow(0 3px 10px #0007);transform:translate(0)}
+ 10%,23%{filter:drop-shadow(2.5px 0 #FF7C947A) drop-shadow(-2.8px 0 #68EAF67B) blur(.85px) brightness(1.58);transform:translate(-4px,1px)}
+ 36%{transform:translate(3px,-2px)}
+ 51%{transform:translate(-2px,1px)}
+ 70%{transform:translate(1px,0)}
+}
+@keyframes stage-signal-noise{
+ 0%,100%{opacity:0;transform:translateX(0)}
+ 12%{opacity:.45;transform:translateX(-2px)}
+ 19%{opacity:.7;transform:translateX(3px)}
+ 30%{opacity:.24;transform:translateX(0)}
+ 57%{opacity:0}
+}
+@media(prefers-reduced-motion:reduce){
+ .stage.impact-light .panel,.stage.impact-heavy .panel,.stage.impact-shield .panel{
+  animation:none!important
+ }
+ .stage.impact-light .panel::after,.stage.impact-heavy .panel::after,.stage.impact-shield .panel::after{
+  animation:stage-signal-static .27s ease-out both
+ }
+}
+@keyframes stage-signal-static{0%,100%{opacity:0}23%{opacity:.45}60%{opacity:.06}}
 </style>
 </head>
 <body>
 <header>
- <div><strong>ВЫЖИВШИЙ · МАСТЕРСКАЯ HUD / ART PASS 05</strong><small>Навигация по маршруту · графические сенсорные органы управления</small></div>
+ <div><strong>ВЫЖИВШИЙ · МАСТЕРСКАЯ HUD / ART PASS 06</strong><small>Навигация, световые приборы и помехи электроники при попадании</small></div>
  <a href="./">← Мастерская концепций</a>
 </header>
 <div class="toolbar">
@@ -259,7 +302,12 @@ header a{color:#9ce8f0;font-size:12px}
   <button type="button" data-thermal="locked" aria-pressed="false">Перегрев</button>
   <button type="button" data-thermal="cooling" aria-pressed="false">Остывание</button>
  </div>
- <span class="hint">Показания условные · тепловая механика ещё не включена в игре</span>
+ <div class="button-group" role="group" aria-label="Демонстрация реакции на попадание">
+  <button type="button" data-impact="light">Удар</button>
+  <button type="button" data-impact="heavy">Сильный удар</button>
+  <button type="button" data-impact="shield">По щиту</button>
+ </div>
+ <span class="hint">Показания условные · перегрев ещё не включён · нажмите «Сильный удар» для эффекта</span>
 </div>
 <div class="workbench">
  <div id="stage" class="stage desktop cruise" aria-label="Испытательный стенд нового HUD">
@@ -270,7 +318,7 @@ header a{color:#9ce8f0;font-size:12px}
   <div class="ship-marker"><span></span></div><div class="threat-arc"></div>
   <div class="status">! КОРПУС КРИТИЧЕСКИ ПОВРЕЖДЁН</div>
   <section class="panel panel-left" aria-label="Состояние корабля">
-   <img class="skin" src="./hud-kit/panel-left.svg" alt="">
+   <img class="skin" src="./hud-kit/panel-left.svg?art=06" alt="">
    <img class="ship-glyph" src="./hud-kit/ship-outline.svg" alt="">
    <div class="gauges">
     <div class="gauge"><span class="name"><span class="glyph">✚</span> КОРПУС</span><span class="value" id="hullText">72%</span>
@@ -288,7 +336,7 @@ header a{color:#9ce8f0;font-size:12px}
    <div class="ability disabled"><img class="skin" src="./hud-kit/ability-frame.svg" alt=""><img class="icon-art" src="./hud-kit/strike.svg" alt=""><span class="key">B</span></div>
   </div>
   <section class="panel panel-right" aria-label="Вооружение и дроны">
-   <img class="skin" src="./hud-kit/panel-right.svg" alt="">
+   <img class="skin" src="./hud-kit/panel-right.svg?art=06" alt="">
    <img class="weapon-icon" src="./hud-kit/weapon.svg" alt="">
    <div class="weapon-line"><strong>БОЕВОЙ КОНТУР</strong></div>
    <div class="weapon-mode" id="weaponText">АВТООГОНЬ · АКТИВЕН</div>
@@ -309,6 +357,15 @@ header a{color:#9ce8f0;font-size:12px}
 <p class="note"><b>Для проверки дизайна:</b> переключайте размеры и игровые состояния. Это отдельный графический стенд: здесь нет боевой симуляции, реальных ресурсов или сохранений. Форма панелей, показания навигации, число дронов и сенсорные рамки соответствуют игровым решениям. В стенде цифры условные; в игре расстояние до точки маршрута вычисляется по координатам. Фон намеренно нейтральный — оцениваем форму приборов, расположение и читаемость.</p>
 <script>
 const stage=document.getElementById('stage');
+function previewImpact(mode){
+ stage.classList.remove('impact-light','impact-heavy','impact-shield');
+ // Replaying this in the studio never damages the simulated ship.
+ void stage.offsetWidth;
+ stage.classList.add('impact-'+mode);
+}
+document.querySelectorAll('[data-impact]').forEach(button=>button.addEventListener('click',()=>{
+ previewImpact(button.dataset.impact);
+}));
 let activeState='cruise';
 let thermalMode='none';
 const thermalModes={
