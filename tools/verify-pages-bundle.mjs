@@ -80,6 +80,22 @@ function scan(path, from = site) {
 for (const entry of mandatory) scan(resolve(site, entry));
 for (const entry of ['index.html', 'arcade/index.html', 'arcade/game.js']) scan(resolve(site, entry));
 
+
+// Verify non-imported sound URLs separately: these are constructed from the
+// runtime manifest and would otherwise escape the static module scanner.
+const {SOUND_CATALOG} = await import('../audio-lab/sound-map.js');
+for (const [key, sound] of Object.entries(SOUND_CATALOG)) {
+  const urls = sound.sampleUrls?.length ? sound.sampleUrls : sound.sampleUrl ? [sound.sampleUrl] : [];
+  if (!urls.length) problems.push('Missing recorded sample for ' + key);
+  for (const url of urls) {
+    if (!url.startsWith('./assets/sfx/') || url.includes('/studio/')) {
+      problems.push('Unapproved sound URL for ' + key + ': ' + url);
+      continue;
+    }
+    scan(resolve(site, 'audio-lab', url.slice(2)), resolve(site, 'audio-lab/sound-map.js'));
+  }
+}
+
 if (problems.length) {
   console.error('GitHub Pages dependency verification failed (' + problems.length + '):');
   for (const problem of problems) console.error(' - ' + problem);

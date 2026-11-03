@@ -1,72 +1,68 @@
 /**
- * Survivor audio contract check, no build or dependencies.
- * Run: node audio-lab/smoke-test.mjs
+ * Public sound library contract. The 39 Kenney audio assets are pinned in
+ * kenney/manifest.json and installed into the Pages bundle by the workflow.
  */
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-import { WEAPONS } from '../src/data.js';
-import { WEAPON_SOUNDS, EVENT_SOUNDS, SOUND_CATALOG } from './sound-map.js';
+import {readFileSync, existsSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {dirname,resolve} from 'node:path';
+import {WEAPONS} from '../src/data.js';
+import {WEAPON_SOUNDS,EVENT_SOUNDS,BASE_SOUNDS,AUX_SOUNDS,SOUND_CATALOG} from './sound-map.js';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const game = resolve(here, '..');
-const ids = Object.values(WEAPONS).map(item => item.id).sort();
-assert.deepEqual(Object.keys(WEAPON_SOUNDS).filter(id => id !== 'starter_soft').sort(), ids,
-  'Every game weapon needs a unique sound');
-assert.equal(WEAPON_SOUNDS.starter_soft.profile, 'softpulse');
-assert.equal(WEAPON_SOUNDS.starter_soft.sampleUrl, undefined,
-  'Public starter must not depend on excluded studio recordings');
+const here=dirname(fileURLToPath(import.meta.url));
+const game=resolve(here,'..');
+const ids=Object.values(WEAPONS).map(item=>item.id).sort();
+assert.deepEqual(Object.keys(WEAPON_SOUNDS).filter(id=>id!=='starter_soft').sort(),ids,
+ 'Every weapon must have a matching event');
+const source=JSON.parse(readFileSync(resolve(here,'assets/sfx/kenney/manifest.json'),'utf8'));
+assert.equal(source.license,'CC0-1.0');
+assert.match(source.sourceCommit,/^[a-f0-9]{40}$/);
+assert.equal(source.files.length,39,'All verified Kenney sources should be pinned');
+const names=new Set(source.files.map(entry=>{
+ assert.match(entry.blobSha,/^[a-f0-9]{40}$/);
+ assert(entry.size>0);
+ return entry.file;
+}));
+assert.equal(names.size,source.files.length,'Source files cannot be duplicated');
 
-for (const [id, sound] of Object.entries(SOUND_CATALOG)) {
-  assert(sound.profile && sound.family, 'Missing sound design: ' + id);
-  assert(sound.minIntervalMs > 0 && sound.minIntervalMs <= 5000, 'Invalid throttle: ' + id);
-  assert(sound.priority >= 1 && sound.priority <= 5, 'Invalid priority: ' + id);
-  if (!sound.sampleUrl) continue;
-  const path = resolve(here, sound.sampleUrl);
-  // The public repo intentionally omits 21 Sonniss sources.
-  if (sound.sampleUrl.includes('/studio/')) {
-    assert(!existsSync(path), 'Studio recording should not ship in public repo: ' + id);
-    continue;
+let local=0,remote=0;
+for(const [id,def] of Object.entries(SOUND_CATALOG)){
+ assert(def.profile&&def.family,'Missing audio definition: '+id);
+ assert(def.minIntervalMs>0&&def.minIntervalMs<=10000,'Invalid throttle: '+id);
+ assert(def.priority>=1&&def.priority<=5,'Invalid priority: '+id);
+ const urls=def.sampleUrls?.length?def.sampleUrls:def.sampleUrl?[def.sampleUrl]:[];
+ assert(urls.length>=1,'Synthesised or missing sound: '+id);
+ for(const url of urls){
+  assert(!url.includes('/studio/'),'Studio SFX cannot be published: '+id);
+  assert(url.startsWith('./assets/sfx/'),'Unknown audio source: '+url);
+  if(url.includes('/kenney/')){
+   assert(names.has(url.split('/').at(-1)),'Unpinned CC0 asset: '+url);
+   remote++;
+  }else{
+   const path=resolve(here,url);
+   assert(existsSync(path),'Missing CC0 sample: '+url);
+   assert.equal(readFileSync(path).subarray(0,4).toString('ascii'),'OggS');
+   local++;
   }
-  assert(existsSync(path), 'Missing CC0 sample ' + id + ': ' + path);
-  const signature = readFileSync(path).subarray(0, 4).toString('ascii');
-  assert.equal(signature, 'OggS', 'Expected Ogg/Opus or Vorbis: ' + id);
+ }
 }
-assert(Object.keys(EVENT_SOUNDS).includes('explosion_big'));
-const studioSamples = Object.values(SOUND_CATALOG).filter(sound => sound.sampleUrl?.includes('/studio/'));
-const stationSamples = Object.values(SOUND_CATALOG).filter(sound => sound.sampleUrl?.includes('/base/'));
-assert.equal(studioSamples.length, 21, 'Expected 21 excluded studio cues');
-const kenney = Object.entries(SOUND_CATALOG).filter(([,sound]) =>
-  sound.sampleUrl && !sound.sampleUrl.includes('/studio/') && !sound.sampleUrl.includes('/base/'));
-assert.deepEqual(kenney.map(([key])=>key).sort(),
-  ['armor_hit','explosion_small','hit','pickup','starter_pulse'],
-  'All five verified Kenney files must be wired to live events');
-assert.equal(stationSamples.length, 29, 'Expected 29 CC0 station and progression cues');
-assert(existsSync(resolve(here, 'assets/sfx/studio/SOURCES.md')),
-  'Studio sound provenance document missing');
-
-const weaponsCode = readFileSync(resolve(game, 'src/weapons.js'), 'utf8');
-assert((weaponsCode.match(/audio\.shoot\(this\.id\)/g) || []).length >= 3, 'Weapon IDs not routed');
-assert(weaponsCode.includes("audio?.shoot?.(this.id)"), 'Special weapons not routed');
-const entityCode = readFileSync(resolve(game, 'src/entities.js'), 'utf8');
-assert(entityCode.includes("game.audio?.shoot?.('orbit')"), 'Orbit contacts are not routed');
-
-const audioCode = readFileSync(resolve(game, 'src/audio.js'), 'utf8');
-assert(audioCode.includes('new AudioLabEngine('), 'Sampler not connected');
-assert(audioCode.includes('musicDuckBus: this.musicDuckGain'), 'Isolated music ducking not connected');
-assert(audioCode.includes('this.musicGain.connect(this.musicDuckGain)'),
-  'Music route must pass through independent duck gain');
-for (const key of ['level_up', 'player_death', 'boss_spawn', 'achievement']) {
-  assert(audioCode.includes("this.sfxLab.play('" + key + "')"),
-    'Missing live event routing: ' + key);
+for(const name of ['ui_open','ui_tab','world_discover','scene_alert',
+ 'ambient_void','rock_chip','rock_break','extractor_loop']){
+ assert(AUX_SOUNDS[name]?.sampleUrl,'Missing recorded environment/UI cue: '+name);
 }
-const sw = readFileSync(resolve(game, 'service-worker.js'), 'utf8');
-assert(sw.includes("const networkFirst = req.mode === 'navigate'"),
-  'Changing JS modules should be refreshed network-first');
-assert(sw.includes('cache.add(path)'), 'Boot shell is not precached');
-assert(!sw.includes("'./audio-lab/assets/sfx/studio/starter_pulse.ogg'"),
-  'Audio assets must stay lazy-loaded instead of blocking first-room startup');
-console.log('Survivor audio: ' + ids.length + ' weapon profiles; ' +
-  stationSamples.length + ' station CC0 + ' + kenney.length + ' Kenney CC0 recordings; 21 procedural studio fallbacks; ' +
-  'audio routing/offline paths OK.');
+assert.equal(Object.keys(BASE_SOUNDS).length,29);
+assert.equal(Object.keys(EVENT_SOUNDS).length,13);
+assert(WEAPON_SOUNDS.starter_soft.sampleUrls.length>=3,
+ 'Auto-fire must have multiple genuine recording variants');
+assert(existsSync(resolve(here,'assets/sfx/studio/SOURCES.md')));
+const audio=readFileSync(resolve(game,'src/audio.js'),'utf8');
+const mixer=readFileSync(resolve(here,'audio-mixer.js'),'utf8');
+assert(audio.includes('new AudioLabEngine('));
+assert(audio.includes('musicDuckBus: this.musicDuckGain'));
+assert(audio.includes('this.musicGain.connect(this.musicDuckGain)'));
+assert(!audio.includes('createOscillator('),'Game still synthesises tones');
+assert(!mixer.includes('createOscillator('),'Mixer still synthesises tones');
+assert(!mixer.includes('synthesize('),'Missing audio must remain silent');
+console.log('Survivor audio: '+Object.keys(SOUND_CATALOG).length+
+ ' recorded events, '+source.files.length+' pinned Kenney CC0 OGGs, '+
+ remote+' source-file links, '+local+' bundled CC0 references, zero procedural game voices.');

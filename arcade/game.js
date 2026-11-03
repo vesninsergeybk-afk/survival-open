@@ -6,6 +6,7 @@ import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=relay-def-1';
 import {createSignalIntel,alertSignalIntel,canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
 import {ArcadeVisuals} from './visuals.js?v=arcade-capital-hit-63';
+import {ReactorLandmark} from './reactor-landmark.js?v=reactor-oblique-01';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=hud-responsive-v16';
@@ -99,6 +100,7 @@ export class ArcadeGame {
   this.overlay=$('overlay');this.message=$('message');this.keys=new Set();
   this.touch={x:0,y:0};this.seed=20261102;
   this.world=new World(this.seed);this.visuals=new ArcadeVisuals();
+  this.reactor=new ReactorLandmark();
   // Capital hull impact painting is explicitly opt-in for visual QA.
   this.visuals.capitalDamageQA=typeof location!=='undefined'&&
    new URLSearchParams(location.search).get('capitalDamageQa')==='1';
@@ -2221,6 +2223,8 @@ export class ArcadeGame {
      c.fillStyle=i===0?'#9aafd0':'#526984';
      c.fillRect(x,y,i===0?2:1,i===0?2:1);
     }
+  // Reactor hull and core share a world anchor; nearby gameplay is drawn above them.
+  this.reactor.draw(c,cam,this.time,this.fps,this.visuals.reducedMotion);
   if(this.time-this.worldVisualLast>.35){
    this.worldVisualLast=this.time;
    const topology=this.world.networkTopology();

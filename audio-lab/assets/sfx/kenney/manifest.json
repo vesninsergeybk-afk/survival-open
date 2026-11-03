@@ -1,0 +1,246 @@
+{
+  "license": "CC0-1.0",
+  "author": "Kenney",
+  "sourceRepo": "GeorgeQLe/assets-sfx-combat",
+  "sourceCommit": "9662dc1bed3b06ae753045915f9accfac044c7ce",
+  "sourceLicenseUrls": [
+    "https://kenney.nl/assets/sci-fi-sounds",
+    "https://kenney.nl/assets/impact-sounds"
+  ],
+  "files": [
+    {
+      "file": "laserSmall_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserSmall_000.ogg",
+      "blobSha": "73ef94a9fdd4a0dc5e5fbc9b9786b349da581d68",
+      "size": 7286
+    },
+    {
+      "file": "laserSmall_002.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserSmall_002.ogg",
+      "blobSha": "2df384c4e28f0ff5515abc74c848c1613fbccb27",
+      "size": 8973
+    },
+    {
+      "file": "laserSmall_003.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserSmall_003.ogg",
+      "blobSha": "86eb4da626e13b581c9dfec981647519dde35d79",
+      "size": 8179
+    },
+    {
+      "file": "laserSmall_004.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserSmall_004.ogg",
+      "blobSha": "e491fb874f7d07654af845ab01c23b368c6e95d6",
+      "size": 8632
+    },
+    {
+      "file": "laserLarge_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserLarge_000.ogg",
+      "blobSha": "1fe6edff924d9b87ad90a3a15c80de9bbd69da37",
+      "size": 25566
+    },
+    {
+      "file": "laserLarge_001.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserLarge_001.ogg",
+      "blobSha": "5dfab449e241e67ab6774416bac8b90ea12e0c43",
+      "size": 26220
+    },
+    {
+      "file": "laserLarge_003.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserLarge_003.ogg",
+      "blobSha": "c10d27d8207ed6a711dc697fd17cc905391236a0",
+      "size": 26104
+    },
+    {
+      "file": "laserLarge_004.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserLarge_004.ogg",
+      "blobSha": "fcd9f5e9d3377d2d29aa3f2161ee033235d4efaf",
+      "size": 26283
+    },
+    {
+      "file": "laserRetro_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserRetro_000.ogg",
+      "blobSha": "c615422a33ea7d6206eee726f504a845aa47fa26",
+      "size": 12588
+    },
+    {
+      "file": "laserRetro_001.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserRetro_001.ogg",
+      "blobSha": "8eef44bbfd12ecd038e20d5dd003d1766b40ced0",
+      "size": 12732
+    },
+    {
+      "file": "laserRetro_003.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserRetro_003.ogg",
+      "blobSha": "979c986c78d747a91417ca21e8438f81095e35ec",
+      "size": 14271
+    },
+    {
+      "file": "laserRetro_004.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/laserRetro_004.ogg",
+      "blobSha": "a6fc31a071502f808b236b8f2fea148b6c420708",
+      "size": 12701
+    },
+    {
+      "file": "explosionCrunch_001.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/explosionCrunch_001.ogg",
+      "blobSha": "64a2fcc1795bedd44edec334e4c58318aa9b090e",
+      "size": 47916
+    },
+    {
+      "file": "explosionCrunch_003.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/explosionCrunch_003.ogg",
+      "blobSha": "b13529a0e62053ffbd53a50b4baa549ee730d47c",
+      "size": 54824
+    },
+    {
+      "file": "explosionCrunch_004.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/explosionCrunch_004.ogg",
+      "blobSha": "cdb1dc916bc683dcf49e04a49ff112d517db4646",
+      "size": 79250
+    },
+    {
+      "file": "forceField_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/forceField_000.ogg",
+      "blobSha": "6b5cd23d1e156719a5db45620d59a7e1924c06eb",
+      "size": 25672
+    },
+    {
+      "file": "forceField_001.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/forceField_001.ogg",
+      "blobSha": "010a0529056a581a175b634e3f7ede82db6f045e",
+      "size": 28947
+    },
+    {
+      "file": "forceField_002.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/forceField_002.ogg",
+      "blobSha": "86995e1a313f367e6ffc6a313fa823aa0cf2485b",
+      "size": 27647
+    },
+    {
+      "file": "forceField_003.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/forceField_003.ogg",
+      "blobSha": "15b5e978418d98132abf88392e5e9f0ca0580f2f",
+      "size": 23938
+    },
+    {
+      "file": "thrusterFire_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/thrusterFire_000.ogg",
+      "blobSha": "2f7a3fd6f2b68f6ce51c4ef5f2e7f5a81f606056",
+      "size": 201216
+    },
+    {
+      "file": "spaceEngineLow_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/spaceEngineLow_000.ogg",
+      "blobSha": "7171fd880a65753f42f4f7802297215dee335a71",
+      "size": 99760
+    },
+    {
+      "file": "spaceEngineLow_001.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/spaceEngineLow_001.ogg",
+      "blobSha": "3a8bc9b2fb67cb343e9f00861875238173da116d",
+      "size": 99120
+    },
+    {
+      "file": "spaceEngineSmall_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/spaceEngineSmall_000.ogg",
+      "blobSha": "2c98998e0f8b922ce9695496ab991832cd603330",
+      "size": 116880
+    },
+    {
+      "file": "computerNoise_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/computerNoise_000.ogg",
+      "blobSha": "2221e9e3d52716cdae70ba3c33f45d18beac35a0",
+      "size": 119024
+    },
+    {
+      "file": "computerNoise_001.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/computerNoise_001.ogg",
+      "blobSha": "ae1cde06754a34816f44a46487f36f0734f0ec45",
+      "size": 120178
+    },
+    {
+      "file": "doorOpen_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/doorOpen_000.ogg",
+      "blobSha": "7bf1f24fcc6302dfb3dabc3e8ce82cea238fc0dc",
+      "size": 19616
+    },
+    {
+      "file": "doorOpen_001.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/doorOpen_001.ogg",
+      "blobSha": "042a95c2d76e234a8bc10c1971ab5d44d835bedf",
+      "size": 21442
+    },
+    {
+      "file": "doorOpen_002.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/doorOpen_002.ogg",
+      "blobSha": "a5cfffd6b269aeb78664df4fcd87be7e12f173e7",
+      "size": 19864
+    },
+    {
+      "file": "doorClose_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/doorClose_000.ogg",
+      "blobSha": "7340960ca035e2d915b0ce9dfc479bfb680adc78",
+      "size": 20369
+    },
+    {
+      "file": "doorClose_001.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/doorClose_001.ogg",
+      "blobSha": "ac54ad85e850f94982bb7d72c199b7d20d247d55",
+      "size": 21561
+    },
+    {
+      "file": "impactMetal_002.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/impactMetal_002.ogg",
+      "blobSha": "80525301763f5c9372f50c5dc51f7ea59e448239",
+      "size": 12708
+    },
+    {
+      "file": "impactMetal_003.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/impactMetal_003.ogg",
+      "blobSha": "39e42aabd279d39a7be8292442625a599ba3a02e",
+      "size": 17303
+    },
+    {
+      "file": "lowFrequency_explosion_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/lowFrequency_explosion_000.ogg",
+      "blobSha": "510ac8421211682e4e3edb3df1769e8f71ee9b1d",
+      "size": 14317
+    },
+    {
+      "file": "engineCircular_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/engineCircular_000.ogg",
+      "blobSha": "c5e611b11f8971b04d41c0329b2717b7b4bad2c2",
+      "size": 177470
+    },
+    {
+      "file": "spaceEngineLarge_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/spaceEngineLarge_000.ogg",
+      "blobSha": "25863a808d95624ee3a74e2b4f99a98050807393",
+      "size": 189900
+    },
+    {
+      "file": "impactMetal_heavy_000.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactMetal_heavy_000.ogg",
+      "blobSha": "d4432f48b6ff5b4a501045ef0b8068963ef5530d",
+      "size": 6110
+    },
+    {
+      "file": "impactMetal_heavy_001.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactMetal_heavy_001.ogg",
+      "blobSha": "e510d3eb929c89f58946f9773ae9f0197cd1334f",
+      "size": 7279
+    },
+    {
+      "file": "impactMining_001.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactMining_001.ogg",
+      "blobSha": "b5475fad4aedab16084e08e11c6d5a6f6f336b78",
+      "size": 11481
+    },
+    {
+      "file": "impactMining_003.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactMining_003.ogg",
+      "blobSha": "2fc4bb8c789bcefb1c915d52cca1be404c3f7f1f",
+      "size": 12160
+    }
+  ]
+}
