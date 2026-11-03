@@ -24,10 +24,11 @@
   <div class="eyebrow"><span class="led"></span> ПРОЕКТНАЯ СРЕДА · БЕЗ ВЛИЯНИЯ НА ИГРУ</div>
   <h1>Сначала проверяем идею. <span>Потом переносим в игру.</span></h1>
   <p>Единая мастерская для сценариев заданий, зрительной и звуковой обратной связи. Здесь видно, <strong>что делает игрок, как отвечает мир и по каким признакам мы оцениваем результат</strong>. Показанные сцены — эскизы, а не запись игрового процесса.</p>
-  <div class="facts"><span>4 сценария баз</span><span>5 сигналов и 6 сравнений A/B</span><span>4 направления разработки</span><span>Без изменения баланса</span></div>
+  <div class="facts"><span>4 базы · 3 действующие операции</span><span>Сравнение «в игре / проект»</span><span>5 сигналов · 6 сравнений VFX A/B</span><span>Без изменения баланса</span></div>
  </section>
  <nav class="tabs" aria-label="Разделы мастерской">
   <button type="button" data-tab="scenario" aria-pressed="true">Сценарии заданий</button>
+  <button type="button" data-tab="loop" aria-pressed="false">Петля игры и баланс</button>
   <button type="button" data-tab="effects" aria-pressed="false">VFX · эффекты</button>
   <button type="button" data-tab="concepts" aria-pressed="false">Концепты и критерии</button>
   <button type="button" data-tab="tools" aria-pressed="false">Стенды ресурсов</button>
@@ -38,6 +39,11 @@
    <p>Одна основная цель, несколько событий, решение игрока и видимый итог. Это интерактивная раскадровка, не игровая симуляция.</p>
   </div>
   <div class="scenario-picker" id="scenario-picker" aria-label="Выберите базу"></div>
+  <div class="scenario-mode" role="group" aria-label="Сравнение версий сценария">
+   <button type="button" data-scenario-mode="current" aria-pressed="true">Как сейчас в игре</button>
+   <button type="button" data-scenario-mode="proposal" aria-pressed="false">Предлагаемая версия</button>
+   <span id="scenario-source" class="mode-source">Сопоставляем с действующим кодом</span>
+  </div>
   <div class="layout">
    <div class="viewer">
     <div class="viewer-header"><span id="scenario-status">ЭСКИЗ</span><strong id="scenario-name">Загружаем сценарий…</strong><span id="scenario-time"></span></div>
@@ -51,10 +57,46 @@
     <div class="detail-block"><span>МИР ОТВЕЧАЕТ</span><p id="phase-world"></p></div>
     <div class="detail-block decision"><span>РЕШЕНИЕ ИГРОКА</span><p id="phase-choice"></p></div>
     <div class="detail-block reward"><span>РЕЗУЛЬТАТ ОПЕРАЦИИ</span><p id="scenario-reward"></p></div>
+    <div id="scenario-experiment" class="experiment" hidden>
+     <span class="mini-label">ТАКТИЧЕСКАЯ РАЗВИЛКА · ГИПОТЕЗА</span>
+     <div id="experiment-picker" class="experiment-picker" role="group" aria-label="Сравнить два способа"></div>
+     <p id="experiment-result"></p>
+     <small id="experiment-risk"></small>
+    </div>
    </aside>
   </div>
   <ol id="scenario-steps" class="steps" aria-label="Этапы операции"></ol>
-  <p class="disclaimer"><strong>Важно:</strong> расположение объектов, скорость и сложность схематичны. Проверять длительность, управление, награды и поведение врагов нужно в самой игре.</p>
+  <p class="disclaimer"><strong>Что уже есть и чего не хватает:</strong> <span id="scenario-gap"></span></p>
+  <p class="disclaimer">Расположение объектов и врагов схематично. Режим «как сейчас в игре» описывает проверенный код, но не является записью прохождения; предложенные этапы и развилки пока не изменяют игру. Продолжительность требует игровых замеров.</p>
+ </section>
+ <section id="panel-loop" class="tab-panel" hidden aria-labelledby="loop-title">
+  <div class="section-head">
+   <div><span class="eyebrow">ГЕЙМДИЗАЙН · ЕДИНЫЕ ПРАВИЛА</span><h2 id="loop-title">Почему хочется лететь ещё раз</h2></div>
+   <p>Проверяем связность: база предлагает понятную цель, вылет даёт смену ситуаций, последствия возвращают смысл развитию. Это проектные правила, а не новая игровая механика.</p>
+  </div>
+  <ol class="loop-steps">
+   <li><strong>01 · Выбор</strong><p>На базе видно цель, известный риск и награду. Можно подготовиться или лететь без покупки.</p></li>
+   <li><strong>02 · Дорога</strong><p>Маршрут даёт исследование и встречу с миром. Перелёт не растягивается только ради длительности.</p></li>
+   <li><strong>03 · Изменение ситуации</strong><p>Одна ясная цель, затем новая угроза или возможность. Нужны осмысленные действия, а не обязательная цепочка кнопок.</p></li>
+   <li><strong>04 · Последствие</strong><p>Игрок видит награду, изменение сети или карту и понимает, ради чего вернуться или отправиться дальше.</p></li>
+  </ol>
+  <div class="section-head compact-head"><div><span class="eyebrow">РОЛИ СТАНЦИЙ</span><h3>Четыре причины исследовать сектор</h3></div>
+   <p>Тип базы должен ощущаться через задания, оснащение и последствия, а не только через название и цвет.</p></div>
+  <div id="base-roles" class="concept-grid"></div>
+  <div class="brief-grid">
+   <article class="brief-card"><h3>Обычные поручения</h3><p>Короткие, повторяемые задачи для сплава и данных. Они не обязаны иметь сюжетную развязку, но должны отличаться действием: добыча, оборона зоны, перехват.</p><p>В коде уже предусмотрено уменьшение награды при повторных выполнениях. Не подменять разнообразие увеличением числа врагов.</p></article>
+   <article class="brief-card"><h3>Особые операции</h3><p>Несколько событий, одна узнаваемая цель, причина изменить тактику, ограниченный риск и заметное последствие для мира.</p><p>Не вводить дополнительное оружие или ресурс без проверки стартовой экономики. Новые чертежи пока только возможная будущая награда.</p></article>
+   <article class="brief-card"><h3>Ритм и управление</h3><p>Один основной указатель, короткие предупреждения, тихая пауза после напряжения. Управление — привычные E и сенсорное действие; C выключает автоогонь.</p><p>Время каждого этапа — предмет испытания на настоящей скорости, а не цифра из сценарного документа.</p></article>
+   <article class="brief-card"><h3>Честная обратная связь</h3><p>Золотой сигнал станции — только готовая к сдаче награда. Жёлтый поиск патруля и красная атака — разные состояния. VFX/SFX подтверждают реальные события.</p><p>Сигналы не должны занимать обзор корабля или выдавать игроку неизвестные координаты.</p></article>
+   <article class="brief-card"><h3>Зрительный язык</h3><p>Один цвет — одно значение в конкретном состоянии: янтарный предупреждает об известной опасности, красный отмечает атаку, золотой — готовую к выдаче награду, холодный голубой сопровождает добычу и ремонт.</p><p>Это правила для проверки, а не утверждение, что все эффекты уже приведены к ним. Сначала видны корабль, цель и предупреждение; частицы и освещение не должны их закрывать.</p></article>
+   <article class="brief-card"><h3>Звуковая выразительность</h3><p>Различать по слуху материал и действие: минерал, металл, щит, добывающий луч, оружие, движение врага. У станции спокойные подтверждения, у настоящей опасности — короткие и отчётливые предупреждения.</p><p>Музыка оставляет место игровым сигналам; не добавлять громкий электронный отклик на каждую мелочь. Проверить на телефоне, в наушниках и при небольшой громкости.</p></article>
+  </div>
+  <section class="check-panel" aria-labelledby="check-title">
+   <div class="check-heading"><div><span class="eyebrow">РУЧНАЯ ПРИЁМКА</span><h3 id="check-title">Проверить на настоящем вылете</h3></div><span id="checks-count" role="status"></span></div>
+   <p>Отмечай пункты только после игры. Галочки хранятся в этом браузере и не означают, что GitHub или тесты подтвердили результат.</p>
+   <div id="design-checks" class="check-grid"></div>
+   <button type="button" id="clear-checks" class="secondary">Снять отметки</button>
+  </section>
  </section>
  <section id="panel-effects" class="tab-panel" hidden aria-labelledby="effects-title">
   <div class="section-head">
