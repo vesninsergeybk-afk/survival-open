@@ -31,6 +31,66 @@ function makeGlow(){
  g.addColorStop(0,'#ffffff');g.addColorStop(.16,'#fff8e4');g.addColorStop(.35,'#ffba5f88');g.addColorStop(.7,'#e46b2f14');g.addColorStop(1,'#00000000');
  ctx.fillStyle=g;ctx.fillRect(0,0,256,256);return cv;
 }
+
+/** One genuine ore tile, with only contiguous border-colored backing removed. */
+function prepareRockTile(image){
+ const width=Math.floor(image.naturalWidth/6),height=Math.floor(image.naturalHeight/5);
+ if(width<8||height<8)return null;
+ try{
+  const cv=document.createElement('canvas');cv.width=width;cv.height=height;
+  const ctx=cv.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(image,width,0,width,height,0,0,width,height);
+  const raw=ctx.getImageData(0,0,width,height),pix=raw.data,back=[pix[0],pix[1],pix[2]];
+  const visited=new Uint8Array(width*height),queue=new Int32Array(width*height);let head=0,tail=0;
+  function visit(i){
+   if(visited[i])return;
+   const p=i*4;
+   if(pix[p+3]<20||Math.abs(pix[p]-back[0])<32&&Math.abs(pix[p+1]-back[1])<32&&Math.abs(pix[p+2]-back[2])<32){
+    visited[i]=1;queue[tail++]=i;
+   }
+  }
+  for(let x=0;x<width;x++){visit(x);visit((height-1)*width+x);}
+  for(let y=1;y<height-1;y++){visit(y*width);visit(y*width+width-1);}
+  while(head<tail){
+   const i=queue[head++],x=i%width,y=(i/width)|0;
+   if(x>0)visit(i-1);if(x<width-1)visit(i+1);
+   if(y>0)visit(i-width);if(y<height-1)visit(i+width);
+  }
+  let solid=0;
+  for(let i=0;i<visited.length;i++){if(visited[i])pix[i*4+3]=0;else if(pix[i*4+3]>=96)solid++;}
+  if(solid<width*height*.025)return null;
+  ctx.putImageData(raw,0,0);return cv;
+ }catch{return null;}
+}
+/** Three baked, irregular energy fronts. Their gradients are built only once. */
+function makeBlastStamp(kind){
+ const cv=document.createElement('canvas');cv.width=384;cv.height=384;
+ const c=cv.getContext('2d'),r=randgen(11219+kind.length*947);
+ const colors=kind==='dust'?['#f7eee0','#d6d2c5','#9a9b90']:kind==='ion'?['#ffffff','#85eaff','#3576f2']:['#fff9ce','#ffbe65','#fa5529'];
+ c.save();c.translate(192,192);
+ c.beginPath();
+ for(let i=0;i<64;i++){
+  const a=i*TAU/64,radius=(i%5===0?155:112)*(0.65+r()*.52);
+  const x=Math.cos(a)*radius,y=Math.sin(a)*radius*.82;
+  if(i===0)c.moveTo(x,y);else c.lineTo(x,y);
+ }
+ c.closePath();c.clip();
+ const g=c.createRadialGradient(-12,-8,8,0,0,170);
+ g.addColorStop(0,colors[0]);g.addColorStop(.21,colors[1]);g.addColorStop(.53,colors[2]+'ed');g.addColorStop(1,colors[2]+'00');
+ c.fillStyle=g;c.fillRect(-192,-192,384,384);
+ c.restore();
+ // Energy jets break the perfect circle, with hot centres and cold ragged margins.
+ c.save();c.translate(192,192);c.globalCompositeOperation='screen';
+ for(let j=0;j<14;j++){
+  const a=r()*TAU,dist=36+r()*100,size=10+r()*28;
+  const x=Math.cos(a)*dist,y=Math.sin(a)*dist*.79;
+  const g=c.createRadialGradient(x,y,0,x,y,size);
+  g.addColorStop(0,colors[1]+'cb');g.addColorStop(.5,colors[2]+'7a');g.addColorStop(1,colors[2]+'00');
+  c.fillStyle=g;c.beginPath();c.arc(x,y,size,0,TAU);c.fill();
+ }
+ c.restore();return cv;
+}
+
 function sceneSeed(spec,index,mode){
  const r=randgen(3049+spec.id.length*2003+index*9169);
  const density=EXPLOSION_BUDGET.modes[mode].density;
@@ -53,16 +113,18 @@ export function initExplosionLab(){
  const by=id=>document.getElementById(id);
  const large=by('explosion-canvas'),small=by('explosion-small');
  const ctx=large.getContext('2d',{alpha:false}),mini=small.getContext('2d',{alpha:false});
- const sprites={},tints={},glow=makeGlow(),reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ const sprites={},tints={},glow=makeGlow(),blastStamps={hot:makeBlastStamp('hot'),dust:makeBlastStamp('dust'),ion:makeBlastStamp('ion')},reduced=matchMedia('(prefers-reduced-motion: reduce)');
  let selected='fighter',quality='balanced',parallel=1,lightOn=true,paused=false,elapsed=0,last=performance.now(),lastDraw=0,frames=0,averageFps=0,frameBucket=0,mediaDirty=true;
- let particles=[],snap={particles:0,lights:0},assetReady=0;
+ let particles=[],snap={particles:0,lights:0},assetReady=0,sceneBackdrop=null;
  const types=Object.values(EXPLOSION_TYPES);
  for(const [key,asset]of Object.entries(EXPLOSION_ASSETS)){
-  image(asset.path,img=>{sprites[key]=img;if(img&&['glow','fire','smoke','spark','star','scorch'].includes(key)){
+  image(asset.path,img=>{sprites[key]=key==='rock'&&img?prepareRockTile(img):img;
+   if(sprites[key]&&['glow','fire','smoke','spark','star','scorch'].includes(key)){
     tints[key]={};
     const colors={fire:['#ffba71','#817967','#80abff'],smoke:['#85929d'],star:['#ffffff']};
-    for(const color of colors[key]||[])tints[key][color]=makeTint(img,color);
+    for(const color of colors[key]||[])tints[key][color]=makeTint(sprites[key],color);
    }
+   if(key==='nebula')sceneBackdrop=null;
    assetReady++;mediaDirty=true;drawAll();
   });
  }
@@ -81,14 +143,17 @@ export function initExplosionLab(){
   c.restore();
  }
  function noiseBackground(c){
-  c.fillStyle='#040d19';c.fillRect(0,0,W,H);
-  if(sprites.nebula){c.save();c.globalAlpha=.22;c.drawImage(sprites.nebula,0,0,W,H);c.restore();}
-  c.fillStyle='#fff';
-  for(const star of stellar){c.globalAlpha=star.a;c.fillRect(star.x,star.y,star.r,star.r);}
-  c.globalAlpha=1;
-  // Subtle fixed parallax bands; these do not move with explosion time.
-  c.strokeStyle='#2e506129';c.lineWidth=1;
-  for(let y=75;y<H;y+=93){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();}
+  if(!sceneBackdrop){
+   const backing=document.createElement('canvas');backing.width=W;backing.height=H;
+   const p=backing.getContext('2d');p.fillStyle='#040d19';p.fillRect(0,0,W,H);
+   if(sprites.nebula){p.save();p.globalAlpha=.22;p.drawImage(sprites.nebula,0,0,W,H);p.restore();}
+   p.fillStyle='#fff';
+   for(const star of stellar){p.globalAlpha=star.a;p.fillRect(star.x,star.y,star.r,star.r);}
+   p.globalAlpha=1;p.strokeStyle='#2e506129';p.lineWidth=1;
+   for(let y=75;y<H;y+=93){p.beginPath();p.moveTo(0,y);p.lineTo(W,y);p.stroke();}
+   sceneBackdrop=backing;
+  }
+  c.drawImage(sceneBackdrop,0,0);
  }
  function objectDims(key){
   if(key==='capital')return [435,232];
@@ -184,7 +249,7 @@ export function initExplosionLab(){
    const k=age/p.life,dist=p.speed*age;
    const x=node.x+Math.cos(p.a)*dist,y=node.y+Math.sin(p.a)*dist-age*7;
    const size=(p.size+16+30*k)*spec.scale;
-   sprite(c,'smoke',x,y,size*1.15,size*.87,(1-smooth(k))*.28*(spec.palette==='dust'?1.1:1),'#85929d');
+   sprite(c,'smoke',x,y,size*1.15,size*.87,(1-smooth(k))*.44*(spec.palette==='dust'?1.16:1),'#85929d');
    snap.particles++;
   }
  }
@@ -206,7 +271,11 @@ export function initExplosionLab(){
    if(age<0||age>.42)continue;
    const q=age/.42,point=nodeAt(spec,o,i),impact=1-smooth(q);
    const radius=(spec.id==='capital'?205:spec.id==='orbital'?240:145)*spec.scale*(.35+.85*smooth(age/.18));
-   disk(c,point.x,point.y,radius,impact*(i===0?.46:.25),spec.palette==='ion');
+   disk(c,point.x,point.y,radius,impact*(i===0?.51:.31),spec.palette==='ion');
+   const burstSize=(spec.id==='capital'?150:spec.id==='orbital'?188:spec.id==='asteroid'?112:122)*spec.scale*(.52+.64*smooth(age/.16));
+   c.save();c.globalCompositeOperation='screen';c.globalAlpha=impact*(spec.id==='asteroid'?.49:.84);
+   c.drawImage(blastStamps[spec.palette],point.x-burstSize/2,point.y-burstSize/2,burstSize,burstSize);
+   c.restore();
    c.save();c.globalCompositeOperation='screen';
    sprite(c,'fire',point.x+Math.cos(.55+i*2.3)*radius*.1,point.y+Math.sin(.55+i*2.3)*radius*.1,
     radius*.56,radius*.36,impact*.52,spec.palette==='dust'?'#817967':spec.palette==='ion'?'#80abff':'#ffba71');
@@ -229,7 +298,7 @@ export function initExplosionLab(){
    const k=age/p.life;let angle=p.a;
    if(spec.id==='rocket')angle=-.18+(p.a%TAU-TAU/2)*.3;
    const dist=p.speed*age*spec.scale,px=node.x+Math.cos(angle)*dist,py=node.y+Math.sin(angle)*dist;
-   const size=(spec.id==='capital'?p.size*1.3:p.size)*(.9-.25*k);
+   const size=(spec.id==='capital'?p.size*2.1:p.size*1.2)*(.9-.25*k);
    c.save();c.translate(px,py);c.rotate(p.spin+p.turn*k);c.globalAlpha=clamp((1-k)*.82);
    c.fillStyle=spec.palette==='dust'?'#9a9f9a':'#8797a3';
    c.beginPath();c.moveTo(-size,-size*.25);c.lineTo(size*.48,-size*.56);

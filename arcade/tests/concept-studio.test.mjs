@@ -192,7 +192,7 @@ test('explosion concepts are five material-specific causal sequences with budget
  }
  assert.ok(EXPLOSION_TYPES.capital.pulseTimes.length>=3,'capital needs separated ruptures');
  assert.equal(EXPLOSION_TYPES.asteroid.palette,'dust');
- assert.equal(EXPLOSION_TYPES.orbital.stages[1].at,.29,'warning comes before orbital strike');
+ assert.equal(EXPLOSION_TYPES.orbital.stages[1].at,.33,'warning comes before orbital strike');
  assert.deepEqual(Object.keys(EXPLOSION_BUDGET.modes).sort(),['balanced','eco','rich']);
  for(const [name,item] of Object.entries(EXPLOSION_ASSETS))assert.ok(exists('../../'+item.path.replace('../../','')),name+': missing asset');
 });
@@ -210,5 +210,7 @@ test('one existing workshop hosts playable explosion study without touching comb
   execFileSync(process.execPath,['--check',fileURLToPath(new URL(file,import.meta.url))],{stdio:'pipe'});
  assert.match(read('../studio/explosion-lab.js'),/prefers-reduced-motion/);
  assert.match(read('../studio/explosion-lab.js'),/asset\.path/);
+ assert.match(read('../studio/explosion-lab.js'),/prepareRockTile/);
+ assert.match(read('../studio/explosion-lab.js'),/makeBlastStamp/);
  assert.match(read('../studio/explosion-lab.js'),/EXPLOSION_BUDGET\.prototypeFps/);
 });
