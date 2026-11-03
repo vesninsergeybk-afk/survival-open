@@ -33,10 +33,21 @@ test('music enters danger promptly but waits before calming down',()=>{
 });
 test('score never pulses its alert motif every frame',()=>{
  const score=new AdaptiveMusicDirector();
+ for(let i=0;i<6;i++)score.update(4,{nearby:1});
  assert.equal(score.update(.65,{nearby:1}).scene,'alert');
  let pulses=0;
  for(let i=0;i<40;i++){
   if(score.update(.65,{nearby:1}).pulse)pulses++;
  }
  assert.ok(pulses>=2&&pulses<=3);
+});
+
+test('the opening withstands light skirmishes but yields to real danger',()=>{
+ const score=new AdaptiveMusicDirector();
+ for(let i=0;i<5;i++)assert.equal(score.update(4,{nearby:1}).scene,'drift');
+ assert.equal(score.update(4,{nearby:1}).scene,'alert');
+ const danger=new AdaptiveMusicDirector();
+ assert.equal(danger.update(.65,{nearby:1,recentDamage:true}).scene,'battle');
+ const siege=new AdaptiveMusicDirector();
+ assert.equal(siege.update(.65,{siege:true}).scene,'siege');
 });

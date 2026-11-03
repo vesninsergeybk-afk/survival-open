@@ -1,10 +1,10 @@
 /**
- * Аркадный музыкальный режиссёр. Не загружает новые записи и не меняет
- * игровой баланс: управляет тремя лицензированными темами по событиям игры.
+ * Аркадный музыкальный режиссёр. Оценивает угрозу без вмешательства
+ * в боевой баланс; подбор конкретных композиций выполняет музыкальный плеер.
  */
 export const MUSIC_SCENES = Object.freeze({
   drift: {track:'exploration',level:0,volume:1,label:'Исследование'},
-  alert: {track:'exploration',level:1,volume:.83,label:'Нарастание угрозы'},
+  alert: {track:'tension',level:1,volume:.88,label:'Нарастание угрозы'},
   battle: {track:'combat',level:2,volume:1,label:'Схватка'},
   siege: {track:'boss',level:3,volume:.94,label:'Штурм базы'},
   recovery: {track:'exploration',level:0,volume:.79,label:'Передышка'}
@@ -29,12 +29,17 @@ export function assessMusicThreat({nearby=0,heavy=false,siege=false,
 export class AdaptiveMusicDirector {
  constructor(){
   this.scene='drift';this.pending='';this.pendingTime=0;
-  this.recoveryTime=0;this.pulseClock=0;
+  this.recoveryTime=0;this.pulseClock=0;this.openingElapsed=0;
  }
- reset(){this.scene='drift';this.pending='';this.pendingTime=0;this.recoveryTime=0;this.pulseClock=0;}
+ reset(){this.scene='drift';this.pending='';this.pendingTime=0;this.recoveryTime=0;this.pulseClock=0;this.openingElapsed=0;}
  update(dt,signals={}){
   const step=clamp(Number(dt)||0,0,4);
-  const wanted=assessMusicThreat(signals);
+  this.openingElapsed+=step;
+  let wanted=assessMusicThreat(signals);
+  // Give the opening a chance to establish the world. Actual damage,
+  // critical hull and danger warnings still interrupt immediately.
+  if(this.openingElapsed<24&&wanted==='alert'&&!signals.recentDamage&&
+     !signals.critical&&!signals.warning)wanted='drift';
   const prior=this.scene;
   const currentLevel=MUSIC_SCENES[prior].level;
   const wantedLevel=MUSIC_SCENES[wanted].level;
