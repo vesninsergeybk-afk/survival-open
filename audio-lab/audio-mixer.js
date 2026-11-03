@@ -122,7 +122,7 @@ export class AudioLabEngine {
     }
 
     const voice = { key, bus, priority: def.priority, fixedPitch: !!def.fixedPitch,
-      born: now, output, sources: [], disposed: false };
+      born: now, level, output, sources: [], disposed: false };
     this.active.add(voice);
 
     const duration = this.playBuffer(voice, buffer, now, def.maxDuration);
@@ -143,7 +143,7 @@ export class AudioLabEngine {
     const duration = Math.max(0.045, maxDuration ? Math.min(actual, maxDuration) : actual);
     if (maxDuration && actual > maxDuration && duration >= 0.07) {
       const fadeStart = Math.max(when + 0.02, when + duration - 0.045);
-      voice.output.gain.setValueAtTime(voice.output.gain.value || 0.0001, fadeStart);
+      voice.output.gain.setValueAtTime(voice.level, fadeStart);
       voice.output.gain.linearRampToValueAtTime(0.0001, when + duration);
     }
     source.connect(voice.output);
