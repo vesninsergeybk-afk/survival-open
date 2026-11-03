@@ -2,6 +2,7 @@
 // No permanent inventory or persistence: all loans belong to the current run.
 export const ION_CONDUCTOR = Object.freeze({
  charges:3,
+ masteryData:12,
  rentalCost:26,
  markDuration:5,
  markRadius:185,
@@ -80,4 +81,9 @@ export function planIonDischarge(enemies,player,now,loan){
  }
  return {ok:true,targets:chain,damage:chain.map((_,i)=>ION_CONDUCTOR.damage[i]),
   chargesAfter:loan.charges-1,cooldownUntil:now+ION_CONDUCTOR.cooldown};
+}
+
+// A one-time learning reward, not repeatable per rental or per discharge.
+export function ionMasteryAward(targetCount,alreadyAwarded){
+ return !alreadyAwarded&&targetCount>=2?ION_CONDUCTOR.masteryData:0;
 }
