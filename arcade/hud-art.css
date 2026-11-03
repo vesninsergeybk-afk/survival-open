@@ -392,3 +392,13 @@
 @media(prefers-reduced-motion:reduce){
  .mobile-buttons button:active,.mobile-menu button:active{filter:none}
 }
+
+@media(pointer:coarse){
+ .mobile-buttons button:active,.mobile-menu button:active{
+  background:transparent url('./studio/hud-kit/mobile-frame.svg') center/100% 100% no-repeat;
+  box-shadow:none;filter:brightness(1.26);
+ }
+ .mobile-abilities button:active,#quietBtn.is-quiet:active{
+  background-image:url('./studio/hud-kit/mobile-frame-amber.svg');
+ }
+}
