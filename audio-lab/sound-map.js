@@ -8,7 +8,7 @@
  */
 export const WEAPON_SOUNDS = {
   starter_pulse: { label: 'Учебный импульс', profile: 'pulse', family: 'energy', gain: 0.34, priority: 3, minIntervalMs: 95, sampleUrl: './assets/sfx/starter_pulse.ogg', note: 'Короткий упругий щелчок и мягкий электрический хвост.' },
-  starter_soft: { label: 'Мягкий плазменный импульс', profile: 'softpulse', family: 'energy', gain: 0.36, priority: 2, minIntervalMs: 170, note: 'Тихий, округлый импульс для частой автоматической стрельбы; три близких варианта, без резкой атаки.' },
+  starter_soft: { label: 'Плазменный автоогонь · акустические удары', profile: 'softpulse', family: 'energy', gain: 0.38, priority: 2, minIntervalMs: 170, note: 'Пять вариантов выстрела: два слоя записанных физических звуков — удар металла и глухой упругий толчок. Никаких электронных лазерных тонов.' },
   whip: { label: 'Плазменная дуга', profile: 'arc', family: 'energy', gain: 0.46, priority: 3, minIntervalMs: 160, sampleUrl: './assets/sfx/studio/whip.ogg', note: 'Широкий дуговой хлест с сухим верхним щелчком.' },
   magic_wand: { label: 'Ионная пушка', profile: 'ion', family: 'energy', gain: 0.40, priority: 3, minIntervalMs: 100, sampleUrl: './assets/sfx/studio/magic_wand.ogg', note: 'Заряженный электрический сгусток, нисходящий тон.' },
   knife: { label: 'Ракетный залп', profile: 'rocket', family: 'ballistic', gain: 0.53, priority: 4, minIntervalMs: 150, sampleUrl: './assets/sfx/studio/knife.ogg', note: 'Пуск и короткий реактивный выхлоп; не дублировать звук на каждую ракету залпа.' },
@@ -78,7 +78,7 @@ export const BASE_SOUNDS = {
 const k = file => './assets/sfx/kenney/' + file + '.ogg';
 const b = file => './assets/sfx/base/' + file + '.ogg';
 const replacements = {
-  starter_soft: [k('laserSmall_000'),k('laserSmall_002'),k('laserSmall_003'),k('laserSmall_004')],
+  starter_soft: [k('impactMetal_medium_000'),k('impactMetal_medium_001'),k('impactMetal_medium_002'),k('impactMetal_medium_003'),k('impactMetal_medium_004')],
   whip: [k('laserRetro_003')], magic_wand: [k('laserLarge_000'),k('laserLarge_001')],
   knife: [k('thrusterFire_000')], orbit: [k('spaceEngineSmall_000')],
   lightning: [k('forceField_000')], mine: [k('doorClose_001')],
@@ -94,7 +94,7 @@ const replacements = {
   achievement: [b('base_raid_success')], engine: [k('spaceEngineLow_000')]
 };
 const limits = {
-  knife: .52, orbit: .35, garlic: .55, frost_nova: .65,
+  starter_soft: .28, knife: .52, orbit: .35, garlic: .55, frost_nova: .65,
   boomerang: .48, railgun: .62, lightning: .55, drone_swarm: .72,
   engine: .55, explosion_big: 1.45, player_death: 1.8, boss_spawn: 1.4
 };
@@ -106,6 +106,13 @@ for (const [key, paths] of Object.entries(replacements)) {
   if (limits[key]) def.maxDuration = limits[key];
 }
 
+// Five matched pairs of real foley recordings; layer two stays quiet.
+WEAPON_SOUNDS.starter_soft.sampleLayerUrls = [
+  k('impactSoft_medium_000'),k('impactSoft_medium_001'),k('impactSoft_medium_002'),
+  k('impactSoft_medium_003'),k('impactSoft_medium_004')
+];
+WEAPON_SOUNDS.starter_soft.layerGain = .3;
+
 const cue = (label,family,sampleUrl,gain,priority=1,minIntervalMs=150,maxDuration=.65) =>
   ({label,profile:'recorded',family,sampleUrl,gain,priority,minIntervalMs,maxDuration});
 export const AUX_SOUNDS = {
@@ -114,7 +121,7 @@ export const AUX_SOUNDS = {
   ui_tab: cue('Вкладка','ui',k('doorClose_000'),.055,1,90,.24),
   ui_dock: cue('Стыковка','ui',k('doorOpen_002'),.12),
   ui_close: cue('Закрыть панель','ui',k('doorClose_000'),.09),
-  ui_select: cue('Выбор','ui',k('laserSmall_002'),.07,1,85,.22),
+  ui_select: cue('Выбор','ui',k('impactGeneric_light_000'),.07,1,85,.22),
   ui_confirm: cue('Подтверждение','ui',b('upgrade_standard'),.14),
   ui_deny: cue('Недоступное действие','ui',b('base_shield_break'),.11),
   ui_cancel: cue('Отмена','ui',k('doorClose_001'),.08),

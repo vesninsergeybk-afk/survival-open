@@ -1,4 +1,4 @@
-import { SOUND_CATALOG, BUS_PRESET } from './sound-map.js?v=recorded-sfx-02';
+import { SOUND_CATALOG, BUS_PRESET } from './sound-map.js?v=foley-autofire-03';
 
 /**
  * Isolated sound-lab engine. Shared by the audio laboratory and the live production game. Native Web Audio; no dependencies and no network calls
@@ -17,6 +17,7 @@ export class AudioLabEngine {
     this.buses = {};
     this.busesLevel = { ...BUS_PRESET };
     this.bufferByKey = new Map();
+    this.layerBuffersByKey = new Map();
     this.sampleFetches = new Map();
     this.active = new Set();
     this.lastPlayMs = new Map();
@@ -89,9 +90,14 @@ export class AudioLabEngine {
     if (!def) return false;
     // No sound is synthesized while samples load or if an asset fails.
     const available = this.bufferByKey.get(key);
-    if (!available || (Array.isArray(available) && !available.length)) return false;
-    const buffer = Array.isArray(available) ?
-      available[Math.floor(this.random() * available.length)] : available;
+    if (!available) return false;
+    // Parallel downloads can finish out of order. Keep source variant indices stable.
+    const sampleChoices = Array.isArray(available) ?
+      available.map((buffer, index) => ({buffer, index})).filter(item => !!item.buffer) :
+      [{buffer: available, index: 0}];
+    if (!sampleChoices.length) return false;
+    const chosen = sampleChoices[Math.floor(this.random() * sampleChoices.length)];
+    const variant = chosen.index, buffer = chosen.buffer;
     const now = this.ctx.currentTime;
     const ms = now * 1000;
     const last = this.lastPlayMs.get(key);
@@ -122,10 +128,21 @@ export class AudioLabEngine {
     }
 
     const voice = { key, bus, priority: def.priority, fixedPitch: !!def.fixedPitch,
-      born: now, level, output, sources: [], disposed: false };
+      born: now, level, output, sources: [], layerGains: [], disposed: false };
     this.active.add(voice);
 
-    const duration = this.playBuffer(voice, buffer, now, def.maxDuration);
+    const played = [this.playBuffer(voice, buffer, now, def.maxDuration)];
+    const layers = this.layerBuffersByKey.get(key);
+    if (layers?.[variant]) {
+      // Match each real impact with its own soft foley layer when both are ready.
+      played.push(this.playBuffer(voice, layers[variant], now, def.maxDuration, def.layerGain || .3));
+    }
+    const duration = Math.max(...played.map(item => item.duration));
+    if (played.some(item => item.trimmed) && duration >= 0.07) {
+      const fadeStart = Math.max(now + 0.02, now + duration - 0.045);
+      output.gain.setValueAtTime(level, fadeStart);
+      output.gain.linearRampToValueAtTime(0.0001, now + duration);
+    }
     if (bus === 'impacts' && def.priority >= 4) this.duckMusic(0.52, 0.38);
     if (key === 'boss_warning' || key === 'player_damage' || key === 'player_death') this.duckMusic(0.6, 0.55);
     if (key === 'base_resonance_link' || key === 'base_raid_warning' ||
@@ -134,23 +151,21 @@ export class AudioLabEngine {
     return true;
   }
 
-  playBuffer(voice, buffer, when, maxDuration = null) {
+  playBuffer(voice, buffer, when, maxDuration = null, layerGain = 1) {
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
     // Recorded variants first; small pitch differences prevent harsh repetition.
     source.playbackRate.value = voice.fixedPitch ? 1 : 0.97 + this.random() * 0.06;
     const actual = buffer.duration / source.playbackRate.value;
     const duration = Math.max(0.045, maxDuration ? Math.min(actual, maxDuration) : actual);
-    if (maxDuration && actual > maxDuration && duration >= 0.07) {
-      const fadeStart = Math.max(when + 0.02, when + duration - 0.045);
-      voice.output.gain.setValueAtTime(voice.level, fadeStart);
-      voice.output.gain.linearRampToValueAtTime(0.0001, when + duration);
-    }
-    source.connect(voice.output);
+    const layer = this.ctx.createGain();
+    layer.gain.value = layerGain;
+    source.connect(layer).connect(voice.output);
+    voice.layerGains.push(layer);
     if (maxDuration && actual > maxDuration) source.start(when, 0, duration * source.playbackRate.value);
     else source.start(when);
     voice.sources.push(source);
-    return duration;
+    return {duration, trimmed: !!maxDuration && actual > maxDuration};
   }
 
   duckMusic(seconds, factor) {
@@ -183,6 +198,7 @@ export class AudioLabEngine {
       try { source.stop(); } catch (_) { /* completed already */ }
       try { source.disconnect(); } catch (_) { /* completed already */ }
     }
+    for (const gain of voice.layerGains) gain.disconnect();
     voice.output.disconnect();
   }
 
@@ -194,7 +210,7 @@ export class AudioLabEngine {
     return { key, seconds: buffer.duration, channels: buffer.numberOfChannels };
   }
 
-  async loadSampleFromUrl(key, url, {append = false} = {}) {
+  async loadSampleFromUrl(key, url, {append = false, layer = false, index = null} = {}) {
     await this.unlock();
     if (!(key in SOUND_CATALOG)) throw new Error('Неизвестное звуковое событие: ' + key);
     if (!this.sampleFetches.has(url)) {
@@ -207,10 +223,14 @@ export class AudioLabEngine {
       pending.catch(() => { if (this.sampleFetches.get(url) === pending) this.sampleFetches.delete(url); });
     }
     const buffer = await this.sampleFetches.get(url);
+    const destination = layer ? this.layerBuffersByKey : this.bufferByKey;
     if (append) {
-      const previous = this.bufferByKey.get(key);
-      this.bufferByKey.set(key, previous ? [...(Array.isArray(previous) ? previous : [previous]), buffer] : [buffer]);
-    } else this.bufferByKey.set(key, buffer);
+      const previous = destination.get(key);
+      const variants = previous ? [...(Array.isArray(previous) ? previous : [previous])] : [];
+      if (Number.isInteger(index) && index >= 0) variants[index] = buffer;
+      else variants.push(buffer);
+      destination.set(key, variants);
+    } else destination.set(key, buffer);
     return { key, seconds: buffer.duration, channels: buffer.numberOfChannels };
   }
 

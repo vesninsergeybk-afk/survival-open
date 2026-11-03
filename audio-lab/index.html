@@ -98,9 +98,9 @@
   <p class="small" style="margin-top:32px">Звуковое задание и лицензии: <a href="./README.md">README звуковой лаборатории</a>. Авторы музыкальных произведений указаны в <a href="../assets/audio/music/CREDITS.md">музыкальных титрах</a>; CC0-записи Kenney документированы в <a href="./assets/sfx/kenney/SOURCES.md">перечне источников</a>.</p>
 </main>
 <script type="module">
-  import { WEAPON_SOUNDS, EVENT_SOUNDS, BASE_SOUNDS, AUX_SOUNDS, BUS_PRESET, MUSIC_STATES } from './sound-map.js?v=recorded-sfx-02';
+  import { WEAPON_SOUNDS, EVENT_SOUNDS, BASE_SOUNDS, AUX_SOUNDS, BUS_PRESET, MUSIC_STATES } from './sound-map.js?v=foley-autofire-03';
   import { MUSIC_TRACKS, MUSIC_POOLS } from '../arcade/music-playlist.js?v=cinematic-rotation-01';
-  import { AudioLabEngine } from './audio-mixer.js?v=recorded-sfx-02';
+  import { AudioLabEngine } from './audio-mixer.js?v=foley-autofire-03';
 
   const engine = new AudioLabEngine();
   const status = document.getElementById('status');
@@ -108,16 +108,18 @@
   const preloadSamples = () => {
     if (!samplePreload) {
       const cues = Object.entries({...WEAPON_SOUNDS,...EVENT_SOUNDS,...BASE_SOUNDS,...AUX_SOUNDS});
-      const jobs = cues.flatMap(([key,def]) =>
-        (def.sampleUrls?.length?def.sampleUrls:def.sampleUrl?[def.sampleUrl]:[])
-          .map(url=>({key,url})));
+      const jobs = cues.flatMap(([key,def]) => [
+        ...(def.sampleUrls?.length?def.sampleUrls:def.sampleUrl?[def.sampleUrl]:[])
+          .map((url,index)=>({key,url,layer:false,index})),
+        ...(def.sampleLayerUrls||[]).map((url,index)=>({key,url,layer:true,index}))
+      ]);
       let cursor = 0,failures = 0;
       samplePreload = Promise.all(Array.from({length:4},async()=>{
         while(cursor<jobs.length){
-          const {key,url}=jobs[cursor++];
+          const {key,url,layer,index}=jobs[cursor++];
           const badge=document.querySelector('[data-sample="'+key+'"]');
           try {
-            await engine.loadSampleFromUrl(key,url,{append:true});
+            await engine.loadSampleFromUrl(key,url,{append:true,layer,index});
             if(badge)badge.textContent='CC0 · запись ✓';
           } catch(err) {
             failures++;

@@ -20,7 +20,7 @@ function fakeContext(){
  return {currentTime:2,sampleRate:100,starts,stops,nodes,
   createGain(){return make('gain',{gain:fakeParam()});},
   createBiquadFilter(){return make('filter',{frequency:fakeParam(),Q:fakeParam()});},
-  createBufferSource(){return make('bufferSource',{loop:false});},
+  createBufferSource(){return make('bufferSource',{loop:false,playbackRate:{value:1}});},
   createOscillator(){return make('oscillator',{frequency:fakeParam()});},
   createStereoPanner(){return make('panner',{pan:fakeParam()});},
   createBuffer(channels,length){return {getChannelData:()=>new Float32Array(length)};}
@@ -82,13 +82,35 @@ test('game mining loop does not emit a gunshot on each resource tick',()=>{
  assert.doesNotMatch(game,/kind\s*===\s*['"]extract['"]\s*\)\s*this\.heritage\.play\(['"]laser['"]/);
 });
 
-test('starter auto-fire is made of four existing CC0 recording variants',()=>{
+test('starter auto-fire combines five pairs of physically recorded impacts',()=>{
  const cue=SOUND_CATALOG.starter_soft;
  assert.equal(cue?.profile,'softpulse');
- assert.equal(cue?.sampleUrls.length,4);
- assert(cue.sampleUrls.every(path=>path.includes('/kenney/laserSmall_')));
+ assert.equal(cue?.sampleUrls.length,5);
+ assert.equal(cue?.sampleLayerUrls.length,5);
+ assert(cue.sampleUrls.every(path=>path.includes('/kenney/impactMetal_medium_')));
+ assert(cue.sampleLayerUrls.every(path=>path.includes('/kenney/impactSoft_medium_')));
+ assert(!cue.sampleUrls.concat(cue.sampleLayerUrls).some(path=>path.includes('laser')));
+ assert.equal(cue.layerGain,.3);
  const mixer=new AudioLabEngine();
  assert.equal(mixer.bufferByKey.has('starter_soft'),false);
+ assert.equal(mixer.layerBuffersByKey.has('starter_soft'),false);
+});
+test('each auto-fire plays exactly two decoded recordings without oscillators',()=>{
+ const oldWindow=globalThis.window,ctx=fakeContext();
+ ctx.state='running';
+ globalThis.window={setTimeout:()=>0};
+ try {
+  const mixer=new AudioLabEngine({context:ctx});
+  mixer.master={};mixer.buses={weapons:{}};mixer.random=()=>0;
+  mixer.bufferByKey.set('starter_soft',[{duration:.18}]);
+  mixer.layerBuffersByKey.set('starter_soft',[{duration:.16}]);
+  assert.equal(mixer.play('starter_soft'),true);
+  assert.equal(ctx.starts.length,2,'metal attack plus soft body layer');
+  assert.equal(ctx.nodes.filter(n=>n.kind==='oscillator').length,0);
+ }finally{
+  if(oldWindow===undefined)delete globalThis.window;
+  else globalThis.window=oldWindow;
+ }
 });
 test('starter auto-fire recedes during continuous volleys and resets after quiet',()=>{
  const h=new ArcadeHeritage(),shots=[];
