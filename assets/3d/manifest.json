@@ -1,0 +1,729 @@
+{
+  "title": "Interstellar Fleet — Modular Starships",
+  "original": "https://3dassets.dev/packs/interstellar-fleet-modular-starships",
+  "license": "CC0 1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "count": 80,
+  "items": [
+    {
+      "id": "19151",
+      "name": "Corvette hull core",
+      "category": "Корпуса",
+      "triangles": 7104,
+      "bytes": 343040,
+      "source": "https://cdn.3dassets.dev/assets/19151/v1/model.glb",
+      "file": "19151.glb"
+    },
+    {
+      "id": "19148",
+      "name": "Frigate hull core",
+      "category": "Корпуса",
+      "triangles": 7116,
+      "bytes": 343620,
+      "source": "https://cdn.3dassets.dev/assets/19148/v1/model.glb",
+      "file": "19148.glb"
+    },
+    {
+      "id": "19150",
+      "name": "Destroyer hull core",
+      "category": "Корпуса",
+      "triangles": 7116,
+      "bytes": 343528,
+      "source": "https://cdn.3dassets.dev/assets/19150/v1/model.glb",
+      "file": "19150.glb"
+    },
+    {
+      "id": "19147",
+      "name": "Cruiser hull core",
+      "category": "Корпуса",
+      "triangles": 7104,
+      "bytes": 343016,
+      "source": "https://cdn.3dassets.dev/assets/19147/v1/model.glb",
+      "file": "19147.glb"
+    },
+    {
+      "id": "19145",
+      "name": "Battleship hull core",
+      "category": "Корпуса",
+      "triangles": 7140,
+      "bytes": 344776,
+      "source": "https://cdn.3dassets.dev/assets/19145/v1/model.glb",
+      "file": "19145.glb"
+    },
+    {
+      "id": "19149",
+      "name": "Carrier hull core",
+      "category": "Корпуса",
+      "triangles": 8604,
+      "bytes": 389584,
+      "source": "https://cdn.3dassets.dev/assets/19149/v1/model.glb",
+      "file": "19149.glb"
+    },
+    {
+      "id": "19146",
+      "name": "Mining barge hull core",
+      "category": "Корпуса",
+      "triangles": 8172,
+      "bytes": 394956,
+      "source": "https://cdn.3dassets.dev/assets/19146/v1/model.glb",
+      "file": "19146.glb"
+    },
+    {
+      "id": "19152",
+      "name": "Freighter hull core",
+      "category": "Корпуса",
+      "triangles": 7740,
+      "bytes": 373544,
+      "source": "https://cdn.3dassets.dev/assets/19152/v1/model.glb",
+      "file": "19152.glb"
+    },
+    {
+      "id": "19153",
+      "name": "Science vessel hull core",
+      "category": "Корпуса",
+      "triangles": 7576,
+      "bytes": 366388,
+      "source": "https://cdn.3dassets.dev/assets/19153/v1/model.glb",
+      "file": "19153.glb"
+    },
+    {
+      "id": "19154",
+      "name": "Colony ship hull core",
+      "category": "Корпуса",
+      "triangles": 7360,
+      "bytes": 356024,
+      "source": "https://cdn.3dassets.dev/assets/19154/v1/model.glb",
+      "file": "19154.glb"
+    },
+    {
+      "id": "19155",
+      "name": "Small engine",
+      "category": "Модули",
+      "triangles": 1348,
+      "bytes": 68660,
+      "source": "https://cdn.3dassets.dev/assets/19155/v1/model.glb",
+      "file": "19155.glb"
+    },
+    {
+      "id": "19156",
+      "name": "Medium engine",
+      "category": "Модули",
+      "triangles": 1348,
+      "bytes": 68596,
+      "source": "https://cdn.3dassets.dev/assets/19156/v1/model.glb",
+      "file": "19156.glb"
+    },
+    {
+      "id": "19157",
+      "name": "Large engine",
+      "category": "Модули",
+      "triangles": 1348,
+      "bytes": 68572,
+      "source": "https://cdn.3dassets.dev/assets/19157/v1/model.glb",
+      "file": "19157.glb"
+    },
+    {
+      "id": "19158",
+      "name": "Manoeuvring thruster block",
+      "category": "Модули",
+      "triangles": 3180,
+      "bytes": 155976,
+      "source": "https://cdn.3dassets.dev/assets/19158/v1/model.glb",
+      "file": "19158.glb"
+    },
+    {
+      "id": "19159",
+      "name": "Single turret",
+      "category": "Модули",
+      "triangles": 1032,
+      "bytes": 49988,
+      "source": "https://cdn.3dassets.dev/assets/19159/v1/model.glb",
+      "file": "19159.glb"
+    },
+    {
+      "id": "19160",
+      "name": "Twin turret",
+      "category": "Модули",
+      "triangles": 1288,
+      "bytes": 62260,
+      "source": "https://cdn.3dassets.dev/assets/19160/v1/model.glb",
+      "file": "19160.glb"
+    },
+    {
+      "id": "19162",
+      "name": "Spinal turret",
+      "category": "Модули",
+      "triangles": 1032,
+      "bytes": 50064,
+      "source": "https://cdn.3dassets.dev/assets/19162/v1/model.glb",
+      "file": "19162.glb"
+    },
+    {
+      "id": "19161",
+      "name": "Missile pod",
+      "category": "Модули",
+      "triangles": 1544,
+      "bytes": 74584,
+      "source": "https://cdn.3dassets.dev/assets/19161/v1/model.glb",
+      "file": "19161.glb"
+    },
+    {
+      "id": "19163",
+      "name": "Point defence dome",
+      "category": "Модули",
+      "triangles": 1660,
+      "bytes": 82860,
+      "source": "https://cdn.3dassets.dev/assets/19163/v1/model.glb",
+      "file": "19163.glb"
+    },
+    {
+      "id": "19164",
+      "name": "Shield emitter",
+      "category": "Модули",
+      "triangles": 1120,
+      "bytes": 56904,
+      "source": "https://cdn.3dassets.dev/assets/19164/v1/model.glb",
+      "file": "19164.glb"
+    },
+    {
+      "id": "19165",
+      "name": "Radar dish",
+      "category": "Модули",
+      "triangles": 952,
+      "bytes": 48816,
+      "source": "https://cdn.3dassets.dev/assets/19165/v1/model.glb",
+      "file": "19165.glb"
+    },
+    {
+      "id": "19167",
+      "name": "Sensor mast",
+      "category": "Модули",
+      "triangles": 1456,
+      "bytes": 73024,
+      "source": "https://cdn.3dassets.dev/assets/19167/v1/model.glb",
+      "file": "19167.glb"
+    },
+    {
+      "id": "19166",
+      "name": "Cargo pod",
+      "category": "Модули",
+      "triangles": 1296,
+      "bytes": 55472,
+      "source": "https://cdn.3dassets.dev/assets/19166/v1/model.glb",
+      "file": "19166.glb"
+    },
+    {
+      "id": "19168",
+      "name": "Fuel tank",
+      "category": "Модули",
+      "triangles": 1152,
+      "bytes": 56972,
+      "source": "https://cdn.3dassets.dev/assets/19168/v1/model.glb",
+      "file": "19168.glb"
+    },
+    {
+      "id": "19169",
+      "name": "Hangar bay",
+      "category": "Модули",
+      "triangles": 756,
+      "bytes": 36836,
+      "source": "https://cdn.3dassets.dev/assets/19169/v1/model.glb",
+      "file": "19169.glb"
+    },
+    {
+      "id": "19170",
+      "name": "Mining laser",
+      "category": "Модули",
+      "triangles": 492,
+      "bytes": 23676,
+      "source": "https://cdn.3dassets.dev/assets/19170/v1/model.glb",
+      "file": "19170.glb"
+    },
+    {
+      "id": "19171",
+      "name": "Tractor beam",
+      "category": "Модули",
+      "triangles": 1120,
+      "bytes": 56880,
+      "source": "https://cdn.3dassets.dev/assets/19171/v1/model.glb",
+      "file": "19171.glb"
+    },
+    {
+      "id": "19172",
+      "name": "Drone rack",
+      "category": "Модули",
+      "triangles": 972,
+      "bytes": 38644,
+      "source": "https://cdn.3dassets.dev/assets/19172/v1/model.glb",
+      "file": "19172.glb"
+    },
+    {
+      "id": "19173",
+      "name": "Armour plate",
+      "category": "Модули",
+      "triangles": 1888,
+      "bytes": 93732,
+      "source": "https://cdn.3dassets.dev/assets/19173/v1/model.glb",
+      "file": "19173.glb"
+    },
+    {
+      "id": "19177",
+      "name": "Habitat ring",
+      "category": "Модули",
+      "triangles": 1664,
+      "bytes": 82264,
+      "source": "https://cdn.3dassets.dev/assets/19177/v1/model.glb",
+      "file": "19177.glb"
+    },
+    {
+      "id": "19174",
+      "name": "Solar wing",
+      "category": "Модули",
+      "triangles": 972,
+      "bytes": 48324,
+      "source": "https://cdn.3dassets.dev/assets/19174/v1/model.glb",
+      "file": "19174.glb"
+    },
+    {
+      "id": "19175",
+      "name": "Radiator fin",
+      "category": "Модули",
+      "triangles": 1404,
+      "bytes": 69056,
+      "source": "https://cdn.3dassets.dev/assets/19175/v1/model.glb",
+      "file": "19175.glb"
+    },
+    {
+      "id": "19176",
+      "name": "Bridge tower",
+      "category": "Модули",
+      "triangles": 864,
+      "bytes": 41916,
+      "source": "https://cdn.3dassets.dev/assets/19176/v1/model.glb",
+      "file": "19176.glb"
+    },
+    {
+      "id": "19178",
+      "name": "Communications array",
+      "category": "Модули",
+      "triangles": 2076,
+      "bytes": 102148,
+      "source": "https://cdn.3dassets.dev/assets/19178/v1/model.glb",
+      "file": "19178.glb"
+    },
+    {
+      "id": "19179",
+      "name": "Docking collar",
+      "category": "Модули",
+      "triangles": 1176,
+      "bytes": 58128,
+      "source": "https://cdn.3dassets.dev/assets/19179/v1/model.glb",
+      "file": "19179.glb"
+    },
+    {
+      "id": "19180",
+      "name": "Escape pod row",
+      "category": "Модули",
+      "triangles": 972,
+      "bytes": 38672,
+      "source": "https://cdn.3dassets.dev/assets/19180/v1/model.glb",
+      "file": "19180.glb"
+    },
+    {
+      "id": "19181",
+      "name": "Jump drive spine",
+      "category": "Модули",
+      "triangles": 2668,
+      "bytes": 129872,
+      "source": "https://cdn.3dassets.dev/assets/19181/v1/model.glb",
+      "file": "19181.glb"
+    },
+    {
+      "id": "19182",
+      "name": "Science lab pod",
+      "category": "Модули",
+      "triangles": 1296,
+      "bytes": 55544,
+      "source": "https://cdn.3dassets.dev/assets/19182/v1/model.glb",
+      "file": "19182.glb"
+    },
+    {
+      "id": "19183",
+      "name": "Weapon spine",
+      "category": "Модули",
+      "triangles": 1288,
+      "bytes": 64304,
+      "source": "https://cdn.3dassets.dev/assets/19183/v1/model.glb",
+      "file": "19183.glb"
+    },
+    {
+      "id": "19184",
+      "name": "Cloak emitter",
+      "category": "Модули",
+      "triangles": 1120,
+      "bytes": 56864,
+      "source": "https://cdn.3dassets.dev/assets/19184/v1/model.glb",
+      "file": "19184.glb"
+    },
+    {
+      "id": "19185",
+      "name": "Decoy launcher",
+      "category": "Модули",
+      "triangles": 1132,
+      "bytes": 56164,
+      "source": "https://cdn.3dassets.dev/assets/19185/v1/model.glb",
+      "file": "19185.glb"
+    },
+    {
+      "id": "19186",
+      "name": "Salvage claw",
+      "category": "Модули",
+      "triangles": 320,
+      "bytes": 17136,
+      "source": "https://cdn.3dassets.dev/assets/19186/v1/model.glb",
+      "file": "19186.glb"
+    },
+    {
+      "id": "19187",
+      "name": "Bow ram",
+      "category": "Модули",
+      "triangles": 164,
+      "bytes": 9584,
+      "source": "https://cdn.3dassets.dev/assets/19187/v1/model.glb",
+      "file": "19187.glb"
+    },
+    {
+      "id": "19189",
+      "name": "Station core",
+      "category": "Станции",
+      "triangles": 3564,
+      "bytes": 173476,
+      "source": "https://cdn.3dassets.dev/assets/19189/v1/model.glb",
+      "file": "19189.glb"
+    },
+    {
+      "id": "19188",
+      "name": "Ring section",
+      "category": "Станции",
+      "triangles": 1780,
+      "bytes": 87264,
+      "source": "https://cdn.3dassets.dev/assets/19188/v1/model.glb",
+      "file": "19188.glb"
+    },
+    {
+      "id": "19190",
+      "name": "Docking arm",
+      "category": "Станции",
+      "triangles": 1608,
+      "bytes": 78884,
+      "source": "https://cdn.3dassets.dev/assets/19190/v1/model.glb",
+      "file": "19190.glb"
+    },
+    {
+      "id": "19191",
+      "name": "Dry dock cradle",
+      "category": "Станции",
+      "triangles": 2976,
+      "bytes": 145916,
+      "source": "https://cdn.3dassets.dev/assets/19191/v1/model.glb",
+      "file": "19191.glb"
+    },
+    {
+      "id": "19192",
+      "name": "Repair gantry",
+      "category": "Станции",
+      "triangles": 1356,
+      "bytes": 67480,
+      "source": "https://cdn.3dassets.dev/assets/19192/v1/model.glb",
+      "file": "19192.glb"
+    },
+    {
+      "id": "19193",
+      "name": "Fuel depot",
+      "category": "Станции",
+      "triangles": 4036,
+      "bytes": 197532,
+      "source": "https://cdn.3dassets.dev/assets/19193/v1/model.glb",
+      "file": "19193.glb"
+    },
+    {
+      "id": "19194",
+      "name": "Defence platform",
+      "category": "Станции",
+      "triangles": 4036,
+      "bytes": 196260,
+      "source": "https://cdn.3dassets.dev/assets/19194/v1/model.glb",
+      "file": "19194.glb"
+    },
+    {
+      "id": "19195",
+      "name": "Trade hub",
+      "category": "Станции",
+      "triangles": 3804,
+      "bytes": 185624,
+      "source": "https://cdn.3dassets.dev/assets/19195/v1/model.glb",
+      "file": "19195.glb"
+    },
+    {
+      "id": "19196",
+      "name": "Mining outpost",
+      "category": "Станции",
+      "triangles": 3720,
+      "bytes": 182376,
+      "source": "https://cdn.3dassets.dev/assets/19196/v1/model.glb",
+      "file": "19196.glb"
+    },
+    {
+      "id": "19197",
+      "name": "Jump gate",
+      "category": "Станции",
+      "triangles": 3640,
+      "bytes": 177816,
+      "source": "https://cdn.3dassets.dev/assets/19197/v1/model.glb",
+      "file": "19197.glb"
+    },
+    {
+      "id": "19198",
+      "name": "Relay beacon",
+      "category": "Станции",
+      "triangles": 1096,
+      "bytes": 55752,
+      "source": "https://cdn.3dassets.dev/assets/19198/v1/model.glb",
+      "file": "19198.glb"
+    },
+    {
+      "id": "19199",
+      "name": "Cargo container cluster",
+      "category": "Станции",
+      "triangles": 2592,
+      "bytes": 126220,
+      "source": "https://cdn.3dassets.dev/assets/19199/v1/model.glb",
+      "file": "19199.glb"
+    },
+    {
+      "id": "19200",
+      "name": "Shipyard frame",
+      "category": "Станции",
+      "triangles": 1200,
+      "bytes": 59344,
+      "source": "https://cdn.3dassets.dev/assets/19200/v1/model.glb",
+      "file": "19200.glb"
+    },
+    {
+      "id": "19201",
+      "name": "Habitat cylinder",
+      "category": "Станции",
+      "triangles": 3544,
+      "bytes": 172488,
+      "source": "https://cdn.3dassets.dev/assets/19201/v1/model.glb",
+      "file": "19201.glb"
+    },
+    {
+      "id": "19202",
+      "name": "Station solar array",
+      "category": "Станции",
+      "triangles": 2120,
+      "bytes": 104152,
+      "source": "https://cdn.3dassets.dev/assets/19202/v1/model.glb",
+      "file": "19202.glb"
+    },
+    {
+      "id": "19203",
+      "name": "Station spar",
+      "category": "Станции",
+      "triangles": 648,
+      "bytes": 32764,
+      "source": "https://cdn.3dassets.dev/assets/19203/v1/model.glb",
+      "file": "19203.glb"
+    },
+    {
+      "id": "19204",
+      "name": "Sensor outpost",
+      "category": "Станции",
+      "triangles": 4044,
+      "bytes": 197212,
+      "source": "https://cdn.3dassets.dev/assets/19204/v1/model.glb",
+      "file": "19204.glb"
+    },
+    {
+      "id": "19205",
+      "name": "Warp beacon",
+      "category": "Станции",
+      "triangles": 1096,
+      "bytes": 55760,
+      "source": "https://cdn.3dassets.dev/assets/19205/v1/model.glb",
+      "file": "19205.glb"
+    },
+    {
+      "id": "19206",
+      "name": "Asteroid base",
+      "category": "Станции",
+      "triangles": 1016,
+      "bytes": 49888,
+      "source": "https://cdn.3dassets.dev/assets/19206/v1/model.glb",
+      "file": "19206.glb"
+    },
+    {
+      "id": "19207",
+      "name": "Listening post",
+      "category": "Станции",
+      "triangles": 4044,
+      "bytes": 197212,
+      "source": "https://cdn.3dassets.dev/assets/19207/v1/model.glb",
+      "file": "19207.glb"
+    },
+    {
+      "id": "19208",
+      "name": "Shuttle",
+      "category": "Флот и окружение",
+      "triangles": 3400,
+      "bytes": 165108,
+      "source": "https://cdn.3dassets.dev/assets/19208/v1/model.glb",
+      "file": "19208.glb"
+    },
+    {
+      "id": "19209",
+      "name": "Orbital tug",
+      "category": "Флот и окружение",
+      "triangles": 3592,
+      "bytes": 174392,
+      "source": "https://cdn.3dassets.dev/assets/19209/v1/model.glb",
+      "file": "19209.glb"
+    },
+    {
+      "id": "19211",
+      "name": "Fighter",
+      "category": "Флот и окружение",
+      "triangles": 3464,
+      "bytes": 170860,
+      "source": "https://cdn.3dassets.dev/assets/19211/v1/model.glb",
+      "file": "19211.glb"
+    },
+    {
+      "id": "19210",
+      "name": "Bomber",
+      "category": "Флот и окружение",
+      "triangles": 3720,
+      "bytes": 183136,
+      "source": "https://cdn.3dassets.dev/assets/19210/v1/model.glb",
+      "file": "19210.glb"
+    },
+    {
+      "id": "19212",
+      "name": "Utility drone",
+      "category": "Флот и окружение",
+      "triangles": 3400,
+      "bytes": 165204,
+      "source": "https://cdn.3dassets.dev/assets/19212/v1/model.glb",
+      "file": "19212.glb"
+    },
+    {
+      "id": "19213",
+      "name": "Free cargo pod",
+      "category": "Флот и окружение",
+      "triangles": 432,
+      "bytes": 22500,
+      "source": "https://cdn.3dassets.dev/assets/19213/v1/model.glb",
+      "file": "19213.glb"
+    },
+    {
+      "id": "19214",
+      "name": "Wreck hull section",
+      "category": "Флот и окружение",
+      "triangles": 416,
+      "bytes": 21764,
+      "source": "https://cdn.3dassets.dev/assets/19214/v1/model.glb",
+      "file": "19214.glb"
+    },
+    {
+      "id": "19215",
+      "name": "Debris cluster",
+      "category": "Флот и окружение",
+      "triangles": 112,
+      "bytes": 6440,
+      "source": "https://cdn.3dassets.dev/assets/19215/v1/model.glb",
+      "file": "19215.glb"
+    },
+    {
+      "id": "19216",
+      "name": "Escape pod",
+      "category": "Флот и окружение",
+      "triangles": 344,
+      "bytes": 16288,
+      "source": "https://cdn.3dassets.dev/assets/19216/v1/model.glb",
+      "file": "19216.glb"
+    },
+    {
+      "id": "19217",
+      "name": "Space mine",
+      "category": "Флот и окружение",
+      "triangles": 1136,
+      "bytes": 56912,
+      "source": "https://cdn.3dassets.dev/assets/19217/v1/model.glb",
+      "file": "19217.glb"
+    },
+    {
+      "id": "19218",
+      "name": "Survey probe",
+      "category": "Флот и окружение",
+      "triangles": 556,
+      "bytes": 29816,
+      "source": "https://cdn.3dassets.dev/assets/19218/v1/model.glb",
+      "file": "19218.glb"
+    },
+    {
+      "id": "19219",
+      "name": "Asteroid chunk",
+      "category": "Флот и окружение",
+      "triangles": 720,
+      "bytes": 35604,
+      "source": "https://cdn.3dassets.dev/assets/19219/v1/model.glb",
+      "file": "19219.glb"
+    },
+    {
+      "id": "19220",
+      "name": "Ice chunk",
+      "category": "Флот и окружение",
+      "triangles": 720,
+      "bytes": 35604,
+      "source": "https://cdn.3dassets.dev/assets/19220/v1/model.glb",
+      "file": "19220.glb"
+    },
+    {
+      "id": "19221",
+      "name": "Derelict core",
+      "category": "Флот и окружение",
+      "triangles": 1548,
+      "bytes": 77592,
+      "source": "https://cdn.3dassets.dev/assets/19221/v1/model.glb",
+      "file": "19221.glb"
+    },
+    {
+      "id": "19222",
+      "name": "Cruiser dry dock",
+      "category": "Флот и окружение",
+      "triangles": 14964,
+      "bytes": 309240,
+      "source": "https://cdn.3dassets.dev/assets/19222/v1/model.glb",
+      "file": "19222.glb"
+    },
+    {
+      "id": "19223",
+      "name": "Fleet core lineup",
+      "category": "Флот и окружение",
+      "triangles": 75032,
+      "bytes": 1260504,
+      "source": "https://cdn.3dassets.dev/assets/19223/v1/model.glb",
+      "file": "19223.glb"
+    },
+    {
+      "id": "19224",
+      "name": "Orbital logistics",
+      "category": "Флот и окружение",
+      "triangles": 14484,
+      "bytes": 272260,
+      "source": "https://cdn.3dassets.dev/assets/19224/v1/model.glb",
+      "file": "19224.glb"
+    }
+  ]
+}

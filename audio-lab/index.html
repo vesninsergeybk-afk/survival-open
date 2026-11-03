@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Выживший — звуковая лаборатория</title>
+  <style>
+    :root { font-family: system-ui,-apple-system,"Segoe UI",sans-serif; color:#e9f0fa; background:#080d17; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:radial-gradient(circle at 12% -15%,#1d3455 0,transparent 40%),linear-gradient(165deg,#08121e,#080a13 60%); min-height:100vh; }
+    main { max-width:1240px; margin:0 auto; padding:38px clamp(18px,4vw,52px) 80px; }
+    .topline { color:#78d9f1; font-size:.75rem; font-weight:750; letter-spacing:.16em; text-transform:uppercase; }
+    h1 { font-size:clamp(2rem,4vw,3.2rem); line-height:1.07; margin:13px 0; letter-spacing:-.045em; }
+    h2 { font-size:1.35rem; margin:38px 0 16px; }
+    .lead { max-width:840px; color:#b1c2d6; line-height:1.7; }
+    .notice { padding:14px 17px; border:1px solid #496482; background:#102339; border-radius:13px; color:#cedff0; line-height:1.5; margin:22px 0; }
+    .notice strong { color:#a2f3df; }
+    .pill { display:inline-flex; padding:5px 9px; border:1px solid #43677f; border-radius:99px; font-size:.74rem; color:#a8dcef; }
+    .panel { border:1px solid #21364e; background:#0c1a2a; border-radius:18px; padding:20px; }
+    .controls { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px 25px; }
+    .control label { color:#c0cedc; display:flex; justify-content:space-between; font-size:.82rem; gap:6px; margin-bottom:10px; }
+    input[type=range] { accent-color:#6af0db; width:100%; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:20px; }
+    button,.filepick { cursor:pointer; border:1px solid #42607a; border-radius:11px; background:#152b42; color:#e9f3ff; font:inherit; padding:10px 14px; }
+    button:hover,.filepick:hover { background:#1e3e5b; border-color:#71b7c5; }
+    button:focus-visible,.filepick:focus-visible { outline:2px solid #6cf6dc; outline-offset:2px; }
+    button.primary { background:#1b5e62; border-color:#45a99c; color:#eefffb; font-weight:700; }
+    .filepick input { display:none; }
+    .status { margin:0; color:#8bdcc9; font-size:.85rem; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(235px,1fr)); gap:13px; }
+    .sound { display:flex; flex-direction:column; justify-content:space-between; gap:12px; background:linear-gradient(160deg,#14243a,#101b2b); border:1px solid #263d53; border-radius:15px; padding:17px; min-height:178px; }
+    .sound h3 { font-size:1.04rem; margin:11px 0 6px; }
+    .sound p { color:#94adbf; font-size:.79rem; line-height:1.45; margin:0; }
+    .sound .meta { font-size:.68rem; color:#73bfd2; letter-spacing:.065em; text-transform:uppercase; }
+    .sound footer { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .sound button { padding:8px 12px; flex:0 0 auto; }
+    .sound .loaded { color:#9be7bd; font-size:.73rem; }
+    .states { display:flex; gap:8px; flex-wrap:wrap; }
+    .states button { font-size:.85rem; }
+    .small { font-size:.82rem; color:#a2b3c4; line-height:1.65; }
+    a { color:#9be9e3; }
+    @media (prefers-reduced-motion:no-preference) {
+      .sound:has(button:active) { transform:translateY(1px); }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <div class="topline">Survivor: Space Frontier / Audio Lab / студийный звук и базы</div>
+  <h1>Звук, который чувствуется</h1>
+  <p class="lead">Прослушивание индивидуальных звуков вооружения, баз, сопряжения, построек и интерфейса. Управление громкостью групп, ограничение числа одновременных звуков и приглушение музыки при мощных ударах.</p>
+  <div class="notice"><strong>Новый студийный комплект уже в игре.</strong> Здесь можно прослушать 26 студийных боевых эффектов и 29 сигналов баз, сопряжения и развития, а также проверить игровую смесь. Записи отобраны из профессионального пакета <a href="https://gdc.sonniss.com/" target="_blank" rel="noopener noreferrer">Sonniss #GameAudioGDC 2026</a> и обработаны для игры; использование разрешено <a href="https://sonniss.com/gdc-bundle-license/" target="_blank" rel="noopener noreferrer">лицензией</a>. Студийные файлы нельзя распространять как самостоятельную звуковую библиотеку. Новые сигналы баз смонтированы из записей <a href="https://opengameart.org/" target="_blank" rel="noopener noreferrer">OpenGameArt</a> с лицензией CC0.</div>
+
+  <section class="panel" aria-labelledby="mixhead">
+    <h2 id="mixhead" style="margin-top:0">Микшер</h2>
+    <div class="controls" id="controls"></div>
+    <div class="toolbar">
+      <button class="primary" id="unlock">Включить звук</button>
+      <button id="combat">Проверить бой: 8 событий</button>
+      <button id="baseSequence">Проверить запуск и сопряжение</button>
+      <button id="stop">Остановить всё</button>
+      <label class="filepick">Импорт WAV / OGG / MP3
+        <input type="file" id="files" accept="audio/*,.ogg,.wav,.mp3" multiple>
+      </label>
+    </div>
+    <p class="small">Импортированные файлы остаются только в памяти вашего браузера. Назовите файл по идентификатору из карточки (например, <code>railgun.wav</code> или <code>explosion_big.ogg</code>), чтобы заменить соответствующий черновой звук. Для музыки: <code>music_exploration.ogg</code>, <code>music_combat.ogg</code> и т. д.</p>
+    <p class="status" role="status" aria-live="polite" id="status">Ожидаю включения звука.</p>
+  </section>
+
+  <h2>Вооружение <span class="pill">14 типов</span></h2>
+  <div class="grid" id="weapons"></div>
+
+  <h2>Базы, сопряжение и развитие <span class="pill">29 эффектов CC0</span></h2>
+  <div class="grid" id="bases"></div>
+
+  <h2>Попадания, взрывы, сигналы</h2>
+  <div class="grid" id="events"></div>
+
+  <h2>Музыкальные состояния</h2>
+  <div class="panel">
+    <p class="small">В самой игре уже используются кинематографические композиции Scott Buckley. В этой лаборатории можно отдельно проверять локальные варианты музыки и плавные переходы — загрузите файлы music_exploration.ogg, music_combat.ogg, music_boss.ogg и другие.</p>
+    <div class="states" id="states"></div>
+  </div>
+  <p class="small" style="margin-top:32px">Звуковое задание и лицензии: <a href="./README.md">README звуковой лаборатории</a>. Студийный комплект включён в опубликованную версию «Выжившего».</p>
+</main>
+<script type="module">
+  import { WEAPON_SOUNDS, EVENT_SOUNDS, BASE_SOUNDS, BUS_PRESET, MUSIC_STATES } from './sound-map.js?v=audio-91';
+  import { AudioLabEngine } from './audio-mixer.js?v=audio-91';
+
+  const engine = new AudioLabEngine();
+  const status = document.getElementById('status');
+  let samplePreload;
+  const preloadSamples = () => {
+    if (!samplePreload) {
+      samplePreload = Promise.allSettled(
+        Object.entries({ ...WEAPON_SOUNDS, ...EVENT_SOUNDS, ...BASE_SOUNDS })
+          .filter(([, sound]) => sound.sampleUrl)
+          .map(async ([key, sound]) => {
+            const badge = document.querySelector('[data-sample="' + key + '"]');
+            try {
+              await engine.loadSampleFromUrl(key, sound.sampleUrl);
+              if (badge) badge.textContent = key in BASE_SOUNDS ? 'CC0 ✓' : 'Sonniss 2026 ✓';
+            } catch (err) {
+              if (badge) badge.textContent = 'Резервный синтез';
+              throw err;
+            }
+          })
+      );
+    }
+    return samplePreload;
+  };
+  const ready = async () => {
+    await engine.unlock();
+    await preloadSamples();
+    document.getElementById('unlock').textContent = 'Звук включён ✓';
+  };
+  const say = message => { status.textContent = message; };
+  const $ = id => document.getElementById(id);
+
+  for (const [key, volume] of Object.entries(BUS_PRESET)) {
+    const labels = { master:'Общая', weapons:'Оружие', impacts:'Попадания', ui:'Интерфейс', structures:'Механизмы', ambience:'Окружение', music:'Музыка' };
+    const container = document.createElement('div');
+    container.className = 'control';
+    const label = document.createElement('label');
+    const value = document.createElement('span');
+    value.textContent = Math.round(volume * 100) + '%';
+    label.textContent = labels[key];
+    label.append(value);
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = 0;
+    slider.max = 100;
+    slider.value = Math.round(volume * 100);
+    slider.setAttribute('aria-label', labels[key]);
+    slider.addEventListener('input', () => {
+      value.textContent = slider.value + '%';
+      engine.setVolume(key, Number(slider.value) / 100);
+    });
+    container.append(label, slider);
+    $('controls').append(container);
+  }
+
+  const cards = (obj, target) => {
+    for (const [key, sound] of Object.entries(obj)) {
+      const card = document.createElement('article');
+      card.className = 'sound';
+      const head = document.createElement('div');
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = sound.family + ' · ' + key;
+      const title = document.createElement('h3');
+      title.textContent = sound.label;
+      const description = document.createElement('p');
+      description.textContent = sound.note || 'Отдельный игровой сигнал с настроенной громкостью и приоритетом.';
+      head.append(meta, title, description);
+      const footer = document.createElement('footer');
+      const loaded = document.createElement('span');
+      loaded.className = 'loaded';
+      loaded.dataset.sample = key;
+      loaded.textContent = sound.sampleUrl ? 'Загрузка…' : 'Резервный синтез';
+      const play = document.createElement('button');
+      play.textContent = '▶ Слушать';
+      play.setAttribute('aria-label', 'Прослушать: ' + sound.label);
+      play.addEventListener('click', async () => {
+        try {
+          await ready();
+          engine.play(key, { force: true });
+          say('Прослушивание: ' + sound.label);
+        } catch (error) { say('Ошибка звука: ' + error.message); }
+      });
+      footer.append(loaded, play);
+      card.append(head, footer);
+      $(target).append(card);
+    }
+  };
+  cards(WEAPON_SOUNDS, 'weapons');
+  cards(EVENT_SOUNDS, 'events');
+  cards(BASE_SOUNDS, 'bases');
+
+  for (const [key, state] of Object.entries(MUSIC_STATES)) {
+    const button = document.createElement('button');
+    button.textContent = state.label;
+    button.addEventListener('click', async () => {
+      await ready();
+      say(engine.setMusicState(key) ? 'Музыка: ' + state.label : 'Сначала загрузите файл music_' + key + '.ogg');
+    });
+    $('states').append(button);
+  }
+
+  $('unlock').addEventListener('click', async () => {
+    try { await ready(); say('Звуковая система готова.'); }
+    catch (error) { say('Невозможно включить звук: ' + error.message); }
+  });
+
+  $('stop').addEventListener('click', () => {
+    engine.stopAll();
+    say('Остановлено.');
+  });
+
+  $('combat').addEventListener('click', async () => {
+    try {
+      await ready();
+      const sequence = [
+        [0, 'starter_pulse'], [120, 'magic_wand'], [250, 'hit'],
+        [340, 'knife'], [520, 'explosion_small'], [610, 'railgun'],
+        [740, 'explosion_big'], [900, 'player_damage']
+      ];
+      sequence.forEach(([delay, key]) => window.setTimeout(() => engine.play(key, { force:true }), delay));
+      say('Проверка: смешиваем 8 событий. Слушайте различимость и удар, без перегрузки.');
+    } catch (error) { say('Ошибка: ' + error.message); }
+  });
+
+  $('baseSequence').addEventListener('click', async () => {
+    try {
+      await ready();
+      const sequence = [
+        [0, 'base_outpost_start'], [2900, 'base_resonance_link'],
+        [4400, 'base_turret_construct'], [5450, 'base_resonance_discount']
+      ];
+      sequence.forEach(([delay, key]) =>
+        window.setTimeout(() => engine.play(key, { force: true }), delay));
+      say('Слушаем: реактор аванпоста → сопряжение → монтаж турели → скидка.');
+    } catch (error) { say('Ошибка звука: ' + error.message); }
+  });
+
+  $('files').addEventListener('change', async event => {
+    const files = [...event.target.files];
+    if (!files.length) return;
+    let count = 0;
+    for (const file of files) {
+      const rawName = file.name.replace(/\.(ogg|mp3|wav|flac|m4a)$/i, '').toLowerCase();
+      const key = rawName.startsWith('music_') ? 'music:' + rawName.slice(6) : rawName;
+      if (!(key in WEAPON_SOUNDS) && !(key in EVENT_SOUNDS) && !(key in BASE_SOUNDS) && !key.startsWith('music:')) continue;
+      try {
+        const result = await engine.decodeFile(key, file);
+        count++;
+        const badge = document.querySelector('[data-sample="' + key + '"]');
+        if (badge) badge.textContent = 'WAV / OGG ✓';
+        say('Загружено: ' + file.name + ' (' + result.seconds.toFixed(2) + ' с)');
+      } catch (error) { say('Файл ' + file.name + ': ' + error.message); }
+    }
+    say('Импортировано ' + count + ' из ' + files.length + ' файлов. Прочие имена пропущены.');
+    event.target.value = '';
+  });
+</script>
+</body>
+</html>

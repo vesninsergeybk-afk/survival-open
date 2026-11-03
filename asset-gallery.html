@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101b22">
+<title>Проверочная галерея графики — Выживший</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0c1419;color:#e7f3ee}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% -10%,#244d41,#0c1419 56%)}
+header,main,footer{max-width:1100px;margin:auto;padding:22px clamp(14px,4vw,32px)}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+a{color:#9eeaca}header a{display:inline-block;text-decoration:none;border:1px solid #436458;border-radius:18px;padding:10px 14px}
+h1{font-size:clamp(26px,4vw,43px);margin:7px 0 12px}h2{font-size:21px;margin:0 0 12px}
+p{color:#b8cec4;line-height:1.6}small{color:#abc5b9}
+.badge{display:inline-flex;border-radius:18px;background:#22493b;color:#b8f4d7;padding:5px 10px;font-size:13px}
+.layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(270px,1fr);gap:18px}
+@media(max-width:760px){.layout{grid-template-columns:1fr}}
+.panel{border:1px solid #314840;border-radius:24px;background:#14242a;padding:20px;box-shadow:0 14px 40px #040b0d48}
+.tabs{display:flex;flex-wrap:wrap;gap:9px;margin:18px 0 22px}
+button{cursor:pointer;border:1px solid #416258;background:#20372f;color:#e3f6ec;padding:11px 15px;border-radius:14px;font-weight:600}
+button[aria-pressed=true]{background:#8ee5b6;color:#14231f;border-color:#8ee5b6}
+button:focus-visible,a:focus-visible,canvas:focus-visible{outline:3px solid #ffd379;outline-offset:3px}
+.sheet-outer{overflow:auto;border:1px solid #4c685f;border-radius:12px;padding:12px;background:repeating-conic-gradient(#283539 0% 25%,#324348 0% 50%) 50%/24px 24px}
+#sheet{width:100%;max-width:768px;image-rendering:pixelated;cursor:crosshair;display:block}
+#detail{width:180px;height:180px;image-rendering:pixelated;border:1px solid #557064;border-radius:12px;background:repeating-conic-gradient(#293d41 0% 25%,#435458 0% 50%) 50%/22px 22px}
+.inspect{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.inspect strong{display:block;margin-bottom:6px}
+.samples{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sample-card{background:#1b3135;border:1px solid #35504e;border-radius:16px;padding:12px;text-align:center}
+.sample-card canvas{width:100%;max-width:190px;image-rendering:pixelated;aspect-ratio:4/3}
+.status{font-size:14px;background:#294439;padding:12px;border-radius:13px;color:#d9fbe5}
+.status.error{background:#522b30;color:#ffcbcb}
+.note{font-size:13px;line-height:1.5}
+footer{font-size:13px;color:#a5bcb3}
+</style>
+</head>
+<body>
+<header><a href="./index.html?v=cc0-4">← Вернуться в «Выжившего»</a><a href="/lab/">Лаборатория абсурда</a></header>
+<main>
+<span class="badge">Проверочная мастерская · CC0</span>
+<h1>Каталог игровой графики</h1>
+<p>Здесь мы проверяем исходные изображения перед подключением к «Выжившему». Объекты собираются строго по сетке автора: одна ячейка — 16 × 16 пикселей, между ячейками — 1 пиксель. Соседние объекты не должны попадать в выбранный кадр.</p>
+<div class="tabs" role="group" aria-label="Выбор набора">
+<button type="button" data-pack="town" aria-pressed="true">Лес и поселение</button>
+<button type="button" data-pack="dungeon" aria-pressed="false">Склеп</button>
+<button type="button" data-pack="farm" aria-pressed="false">Растения и ферма</button>
+</div>
+<div class="layout">
+<section class="panel">
+<h2 id="pack-title">Лес и поселение</h2>
+<p id="pack-description">Цельные деревья, дорожки, здания и предметы. Выберите клетку атласа, чтобы проверить её отдельно.</p>
+<div class="sheet-outer"><canvas id="sheet" width="768" height="704" tabindex="0" aria-label="Таблица отдельных тайлов. Нажмите на нужную клетку"></canvas></div>
+<p class="note">Каждый квадрат отображается целиком. Тёмные участки между ними — прозрачный фон исходного файла, а не отсутствующие текстуры.</p>
+</section>
+<aside class="panel">
+<h2>Проверка выбранного кадра</h2>
+<div class="inspect"><canvas id="detail" width="180" height="180" aria-label="Увеличенный кадр"></canvas>
+<div><strong id="tile-label">Клетка 0, 0</strong><small id="tile-coords">16 × 16 пикселей</small></div></div>
+<p class="status" id="status" role="status">Загружаем исходный файл…</p>
+<h2 style="margin-top:30px">Собранные объекты</h2>
+<p class="note">Здесь показаны только цельные объекты из исходного набора. Для составных объектов берутся все нужные клетки; отдельные деревья сохраняют свой собственный кадр.</p>
+<div class="samples" id="samples"></div>
+<p class="note" id="source-credit"></p>
+</aside>
+</div>
+</main>
+<footer>Исходные наборы Kenney — CC0 1.0. Файлы хранятся на vesninmed.ru. Это каталог для проверки графики; он не меняет игровые правила и сохранённые рекорды.</footer>
+<script>
+'use strict';
+const PACKS={
+ town:{name:'Лес и поселение',file:'./assets/kenney/tiny-town-tilemap.png',link:'https://kenney.nl/assets/tiny-town',desc:'Готовые деревья, дорожки, строения и предметы. Из этого набора уже собраны цельные лесные деревья.',objects:[['Большое дерево',6,0,3,3],['Осеннее дерево',9,0,3,3],['Зелёная ель',4,0,1,2],['Осенняя ель',3,0,1,2]]},
+ dungeon:{name:'Склеп',file:'./assets/kenney/tiny-dungeon-tilemap.png',link:'https://kenney.nl/assets/tiny-dungeon',desc:'Стены, двери, подземные объекты и противники. Каждый тайл выбирается по его точному номеру.',objects:[['Каменный портал',9,5,3,3],['Надгробие',6,5,1,1],['Каменная стойка',5,5,1,1]]},
+ farm:{name:'Растения и ферма',file:'./assets/kenney/tiny-farm-tilemap.png',link:'https://kenney.nl/assets/tiny-farm',desc:'Готовые растения и деревья. Каждая ель или сухое дерево — отдельная целая клетка, соседние варианты не склеиваются.',objects:[['Хвойное дерево',3,0,1,1],['Сухое дерево',2,0,1,1],['Молодая ель',3,1,1,1],['Сухое деревце',2,1,1,1]]}
+};
+let active='town',image=null,col=0,row=0;
+const $=id=>document.getElementById(id);
+function cell(ctx,img,x,y,dx,dy,size){ctx.imageSmoothingEnabled=false;ctx.drawImage(img,x*17,y*17,16,16,dx,dy,size,size)}
+function tileValid(img,x,y){return Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&y>=0&&(x*17+16)<=img.naturalWidth&&(y*17+16)<=img.naturalHeight}
+function assembled(ctx,img,c,r,cols,rows,px,py,scale){for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){if(!tileValid(img,c+x,r+y))throw Error('Границы объекта выходят за атлас');cell(ctx,img,c+x,r+y,px+x*16*scale,py+y*16*scale,16*scale)}}
+function draw(){
+ if(!image)return;
+ const canvas=$('sheet'),ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+ for(let y=0;y<11;y++)for(let x=0;x<12;x++)cell(ctx,image,x,y,x*64,y*64,64);
+ ctx.strokeStyle='#f9da76';ctx.lineWidth=3;ctx.strokeRect(col*64+1.5,row*64+1.5,61,61);
+ const detail=$('detail').getContext('2d');detail.clearRect(0,0,180,180);cell(detail,image,col,row,10,10,160);
+ $('tile-label').textContent='Клетка '+col+', '+row;
+ $('tile-coords').textContent='Область исходного файла: '+(col*17)+', '+(row*17)+'; размер 16 × 16';
+ const area=$('samples');area.replaceChildren();
+ for(const [label,c,r,cols,rows] of PACKS[active].objects){
+  const card=document.createElement('div');card.className='sample-card';
+  const cv=document.createElement('canvas');cv.width=190;cv.height=142;cv.setAttribute('aria-label',label);
+  const ct=cv.getContext('2d');const scale=Math.min(2.6,124/Math.max(cols*16,rows*16));
+  assembled(ct,image,c,r,cols,rows,(190-cols*16*scale)/2,(142-rows*16*scale)/2,scale);
+  const cap=document.createElement('small');cap.textContent=label;card.append(cv,cap);area.append(card);
+ }
+ if(!PACKS[active].objects.length)area.textContent='Готовые детали набора показаны в таблице слева; составные объекты ещё проходят отбор.';
+}
+function setPack(id){
+ if(!PACKS[id])return;active=id;image=null;col=0;row=0;
+ for(const b of document.querySelectorAll('[data-pack]'))b.setAttribute('aria-pressed',String(b.dataset.pack===id));
+ const data=PACKS[id];$('pack-title').textContent=data.name;$('pack-description').textContent=data.desc;
+ $('source-credit').replaceChildren(document.createTextNode('Автор: Kenney · '));
+ const link=document.createElement('a');link.href=data.link;link.target='_blank';link.rel='noopener';link.textContent='Официальный CC0-набор';$('source-credit').append(link);
+ $('status').textContent='Проверяем файл…';$('status').classList.remove('error');$('samples').replaceChildren();
+ const next=new Image();next.decoding='async';
+ next.onload=()=>{
+  if(active!==id)return;
+  if(next.naturalWidth!==203||next.naturalHeight!==186){$('status').textContent='Ошибка: неожиданное разрешение атласа '+next.naturalWidth+' × '+next.naturalHeight;$('status').classList.add('error');return}
+  image=next;
+  try{draw();$('status').textContent='Проверено: 203 × 186 пикселей · 12 × 11 полных клеток · шаг 17 пикселей · все проверяемые фрагменты внутри файла.'}
+  catch(err){$('status').textContent='Ошибка проверки: '+err.message;$('status').classList.add('error')}
+ };
+ next.onerror=()=>{if(active===id){$('status').textContent='Исходный файл не загрузился';$('status').classList.add('error')}};
+ next.src=data.file;
+}
+$('sheet').addEventListener('click',e=>{
+ if(!image)return;const box=$('sheet').getBoundingClientRect();
+ col=Math.min(11,Math.max(0,Math.floor((e.clientX-box.left)*12/box.width)));
+ row=Math.min(10,Math.max(0,Math.floor((e.clientY-box.top)*11/box.height)));
+ draw();
+});
+$('sheet').addEventListener('keydown',e=>{if(!image)return;
+ if(e.key==='ArrowRight')col=Math.min(11,col+1);else if(e.key==='ArrowLeft')col=Math.max(0,col-1);
+ else if(e.key==='ArrowDown')row=Math.min(10,row+1);else if(e.key==='ArrowUp')row=Math.max(0,row-1);else return;
+ e.preventDefault();draw();
+});
+document.querySelectorAll('[data-pack]').forEach(b=>b.addEventListener('click',()=>setPack(b.dataset.pack)));
+setPack('town');
+</script>
+</body>
+</html>

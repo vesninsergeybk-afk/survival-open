@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPAC-1 — просмотр анимации · Выживший</title>
+<style>
+:root{font-family:system-ui,Arial,sans-serif;color:#dceaf7;background:#0a1322}
+*{box-sizing:border-box}body{margin:0;padding:22px;min-height:100vh}
+main{max-width:980px;margin:auto}h1{font-size:1.65rem;margin:.2rem 0}.intro{color:#9fb6ca;margin:.5rem 0 1rem}
+.panel{background:#142339;border:1px solid #2b455d;border-radius:16px;padding:18px}
+.controls{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;align-items:end}
+label{font-size:.85rem;color:#b4cbe0;display:flex;flex-direction:column;gap:5px}
+select,input,button{font:inherit;border-radius:9px;padding:9px;border:1px solid #45627d;background:#22384f;color:white}
+button{cursor:pointer}button:focus-visible,select:focus-visible{outline:2px solid #7feafa}
+canvas{width:100%;height:auto;background:radial-gradient(ellipse at center,#27364b 0%,#111d2d 68%,#0a1524 100%);border-radius:12px}
+small{color:#a8c2d7;display:block;margin-top:10px}.nav{color:#8cd7ff}
+</style>
+</head>
+<body><main>
+<a class="nav" href="./">← «Выживший»</a>
+<h1>SPAC-1 · проверка покадровой анимации</h1>
+<p class="intro">Новая ходьба: готовый атлас walk.webp (8 направлений по 8 фаз); 96 фаз пробуждения в четырёх направлениях и 176 кадров стойки, ходьбы и стрельбы в восьми направлениях. Здесь используются те же листы, что и в прологе. Одновременно отображается один кадр, без наложений и «призрачных» конечностей.</p>
+<section class="panel">
+<div class="controls">
+<label>Состояние<select id="state"><option value="wake">Пробуждение (24 кадра)</option><option value="idle">Спокойная стойка</option><option value="walk">Ходьба</option><option value="attack">Стрельба</option></select></label>
+<label>Направление<select id="direction"><option value="0">К игроку (S)</option><option value="1">Юго-запад (SW)</option><option value="2">Влево (W)</option><option value="3">Северо-запад (NW)</option><option value="4">От игрока (N)</option><option value="5">Северо-восток (NE)</option><option value="6">Вправо (E)</option><option value="7">Юго-восток (SE)</option></select></label>
+<label>Кадров в секунду<input id="fps" type="range" min="2" max="20" value="10"></label>
+<button id="pause">Пауза</button>
+<button id="restart">Сначала</button>
+</div>
+<canvas id="stage" width="760" height="420" aria-label="Анимация красного робота SPAC-1"></canvas>
+<small id="status">Загрузка изображений…</small>
+<p class="intro">Проверка ног (сборка walk-134): <a class="nav" href="./assets/prologue/spac1/walk-original.png">Исходный лист</a> · <a class="nav" href="./assets/prologue/spac1/runtime-v2/walk.webp">Готовый атлас</a>. Скорость 8–15 кадров/с, в том числе переход 7 → 0.</p>
+</section>
+</main>
+<script type="module">
+import {warmSpac1,warmSpac1Wake,drawSpac1PreviewFrame,
+  drawSpac1WakePreviewFrame,SPAC1_COUNTS,SPAC1_WAKE_FRAMES}
+  from './src/spac1-sprites.js?v=spac1-walk-134';
+const stage=document.querySelector('#stage'),ctx=stage.getContext('2d');
+const state=document.querySelector('#state'),direction=document.querySelector('#direction');
+const fps=document.querySelector('#fps'),status=document.querySelector('#status');
+let paused=false,start=performance.now(),freeze=0;
+document.querySelector('#pause').onclick=()=>{paused=!paused;if(!paused)start=performance.now()-freeze;document.querySelector('#pause').textContent=paused?'Продолжить':'Пауза';};
+const restart=()=>{start=performance.now();freeze=0;};
+document.querySelector('#restart').onclick=restart;
+state.onchange=()=>{fps.value=state.value==='idle'?4:state.value==='walk'?12:10;restart();};
+direction.onchange=restart;
+warmSpac1();
+warmSpac1Wake(true);
+function tick(now){
+  const duration=paused?freeze:now-start;if(!paused)freeze=duration;
+  ctx.clearRect(0,0,stage.width,stage.height);
+  const s=state.value,count=s==='wake'?SPAC1_WAKE_FRAMES:SPAC1_COUNTS[s],rate=Number(fps.value);
+  const phase=(duration/1000*rate)%(s==='wake'?count+rate:count);
+  const frame=Math.min(count-1,Math.floor(phase));
+  ctx.fillStyle='#304b61';ctx.beginPath();ctx.ellipse(380,318,100,26,0,0,Math.PI*2);ctx.fill();
+  const shown=s==='wake'
+    ?drawSpac1WakePreviewFrame(ctx,Number(direction.value),frame,380,285,245)
+    :drawSpac1PreviewFrame(ctx,s,Number(direction.value),phase,380,285,245);
+  ctx.fillStyle='#d9f4ff';ctx.font='16px system-ui';ctx.fillText(s+' · '+(frame+1)+'/'+count+' · '+rate+' к/с',20,28);
+  status.textContent=shown?'Готово. Переключайте направления и скорость, чтобы проверить переходы.':'Часть листов ещё загружается…';
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body></html>

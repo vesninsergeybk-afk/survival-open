@@ -1,0 +1,463 @@
+import {renderStationRoutePreview} from './map-panel.js?v=arcade-station-followup-65';
+import {RULES, baseNames} from './balance.js?v=arcade-network-20';
+import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
+import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=arcade-controls-63';
+
+// Only two distinct combat drones can accompany the player. Bomber wings are
+// consumable station support, never persistent escorts.
+const DRONES = Object.freeze({
+ dock:{role:'scout',name:'Дрон «Страж»',cost:20,desc:'Лёгкий защитник. Сбивает таранщиков, держится рядом при добыче.'},
+ lab:{role:'scout',name:'Дрон «Страж»',cost:20,desc:'Лёгкий защитник. Сбивает таранщиков, держится рядом при добыче.'},
+ arsenal:{role:'fighter',name:'Дрон «Клинок»',cost:54,desc:'Ударный перехватчик. Выбирает опасные корабли и ремонтников.'},
+ carrier:{role:'fighter',name:'Дрон «Клинок»',cost:54,desc:'Ударный перехватчик. Защищает от крупных противников.'}
+});
+const TECH = Object.freeze({
+ dock:{key:'armor',name:'Защитные системы',desc:'Дроны лучше выдерживают обстрел.'},
+ lab:{key:'engine',name:'Приводы дронов',desc:'Помощники быстрее возвращаются и прикрывают добычу.'},
+ arsenal:{key:'armament',name:'Вооружение дронов',desc:'Оба дрона сильнее бьют при перехвате.'},
+ carrier:{key:'strikePower',name:'Авиационная связь',desc:'Открывает ударные вылеты B. Каждый следующий уровень усиливает бомбардировку.'}
+});
+// One irreversible local specialization per station. It never creates extra
+// permanent followers or automatic player-owned turrets.
+export const STATION_MODULES=Object.freeze({
+ dock:[
+  {key:'workshop',name:'Ремонтные манипуляторы',cost:38,desc:'Вблизи дока корпус и ведомые восстанавливаются быстрее на 60%.'},
+  {key:'bulwark',name:'Защитное поле',cost:38,desc:'В радиусе 650 м от дока получаемый кораблём урон уменьшается на 18%.'}
+ ],
+ arsenal:[
+  {key:'amplifier',name:'Орудийный ретранслятор',cost:42,desc:'В радиусе 650 м плазменный луч корабля наносит на 18% больше урона.'},
+  {key:'jammer',name:'Станция помех',cost:42,desc:'В радиусе 650 м получаемый кораблём урон уменьшается на 18%.'}
+ ],
+ lab:[
+  {key:'survey',name:'Дальний спектрометр',cost:38,desc:'Открывает на карте приблизительные сигналы на 650 м дальше. Помогает выбирать маршрут.'},
+  {key:'quiet',name:'Экранирование добычи',cost:38,desc:'В пределах 900 м от лаборатории добыча создаёт на 32% меньше шума.'}
+ ],
+ carrier:[
+  {key:'guidance',name:'Точное наведение',cost:46,desc:'Бомбардировщики, вылетевшие с этой базы, наносят на 20% больше урона.'},
+  {key:'armor',name:'Защита авиагруппы',cost:46,desc:'Бомбардировщики, вылетевшие с этой базы, получают на 45% больше прочности.'}
+ ]
+});
+export const stationModule=(type,key)=>(STATION_MODULES[type]||[]).find(item=>item.key===key)||null;
+
+const shortfall=(price,ore)=>ore<price?'Не хватает '+(price-ore)+' ед. сплава':'';
+const LOCAL_SERVICES=Object.freeze({
+ dock:{key:'shield',name:'Аварийный конденсатор',cost:24,
+  desc:'Одноразовый запас щита до 30 ед. Доступен даже без изучения навыка «Энергощит».'},
+ lab:{key:'scan',name:'Спектральный поиск руды',cost:12,duration:90,
+  desc:'На 90 с выделяет богатые астероиды янтарным контуром. Помогает выбирать добычу под огнём.'},
+ arsenal:{key:'overcharge',name:'Боевой усилитель',cost:28,duration:55,
+  desc:'На 55 с усиливает плазменный луч против вражеских кораблей на 20%.'}
+});
+const CONTRACTS=Object.freeze({
+ dock:{kind:'kill',goal:4,ore:16,data:15,name:'Зачистка патрулей',
+  desc:'Уничтожьте 4 корабля противника и вернитесь за наградой.'},
+ lab:{kind:'rich',goal:2,ore:22,data:19,name:'Геологические образцы',
+  desc:'Найдите 2 богатых астероида с янтарной рудой и разберите их экстрактором, удерживая E.'},
+ arsenal:{kind:'defend',goal:5,ore:30,data:26,name:'Оборона периметра',
+  desc:'Уничтожьте 5 врагов в радиусе 650 м от арсенала. Защищайте подходы к станции.'},
+ carrier:{kind:'intercept',goal:5,ore:36,data:32,name:'Прикрытие авиагруппы',
+  desc:'Перехватите 5 боевых кораблей: истребителей, фланкеров, таранщиков или тяжёлых. Разведчики не учитываются.'}
+});
+export const contractFor=type=>CONTRACTS[type]||CONTRACTS.dock;
+// A station offers two tasks; only one is active at a time. Rewards renew after a cooldown.
+const ALT_CONTRACTS=Object.freeze({
+ dock:{kind:'rich',goal:1,ore:10,data:24,name:'Геологические сведения',desc:'Разберите один богатый астероид, удерживая E. Меньше сплава, зато больше данных.'},
+ lab:{kind:'kill',goal:4,ore:31,data:9,name:'Очистка маршрута',desc:'Уничтожьте 4 корабля противника. Больше сплава, но мало исследовательских данных.'},
+ arsenal:{kind:'intercept',goal:3,ore:18,data:35,name:'Охота на перехватчики',desc:'Уничтожьте 3 боевых корабля, кроме разведчиков. Меньше сплава, больше данных.'},
+ carrier:{kind:'defend',goal:5,ore:28,data:45,name:'Оборона авианосца',desc:'Уничтожьте 5 врагов в радиусе 650 м от авианосца. Меньше сплава, больше данных.'}
+});
+export const contractChoices=(type,runs=0)=>[
+ {id:'standard',tag:'Основное поручение',...contractFor(type)},
+ {id:'alternate',tag:'Альтернативное поручение',...(ALT_CONTRACTS[type]||ALT_CONTRACTS.dock)}
+].map(choice=>runs>0?{...choice,
+ ore:Math.max(8,Math.round(choice.ore*.65)),
+ data:Math.max(6,Math.round(choice.data*.65))}:choice);
+// A contract counts a real field event, not any action with the same name.
+export function eligibleContractProgress(contract,kind,subject=null,station=null){
+ if(!contract||contract.progress>=contract.goal)return false;
+ if(contract.kind==='kill')return kind==='kill';
+ if(contract.kind==='rich')return kind==='mine'&&subject?.rich===true;
+ if(contract.kind==='defend')return kind==='kill'&&!!subject&&!!station&&
+  Math.hypot(subject.x-station.x,subject.y-station.y)<=650;
+ if(contract.kind==='intercept')return kind==='kill'&&
+  ['fighter','flanker','berserker','gunship'].includes(subject?.type);
+ return false;
+}
+export const contractOffer=(base,state)=>{
+ const choices=contractChoices(base.type,base.contractRuns||0),current=state.contract;
+ const chosen=choices.find(c=>c.id===(current?.baseId===base.id?current.choiceId:base.completedContract))||choices[0];
+ if(current&&current.baseId!==base.id)return {...choices[0],status:'other',progress:0};
+ if(current)return {...chosen,status:current.progress>=current.goal?'ready':'active',
+  progress:Math.min(current.progress,current.goal)};
+ const remaining=Math.ceil((base.contractCooldownUntil||0)-(state.time||0));
+ if(remaining>0)return {...chosen,status:'cooldown',remaining,progress:0};
+ return {...choices[0],status:base.active?'available':'locked',progress:0};
+};
+export const strikeCost=level=>40+Math.max(0,level-1)*5;
+// Only the home dock starts for free. Remote relays consume material and are
+// worth powering because they unlock a reusable travel network.
+export const activationCost=activeBases=>activeBases<=0?0:Math.min(84,24+(activeBases-1)*10);
+export const transitCost=(origin,destination)=>
+ Math.max(20,12+Math.ceil(Math.hypot(origin.x-destination.x,origin.y-destination.y)/750)*8);
+export function baseOffer(base,state){
+ const ore=Math.max(0,state.ore|0),connected=!!state.connected;
+ const drone=DRONES[base.type]||DRONES.dock,tech=TECH[base.type]||TECH.dock;
+ const level=state.network[tech.key]|0;
+ const cap=Math.min(RULES.maxAllies,state.connectedBases>=2?2:1);
+ const upgradeCost=52+level*34;
+ const relayCost=activationCost(state.civilianBases??state.activeBases??0);
+ const antennaCost=34;
+ const transfers=(state.transfers||[]).filter(t=>t.id!==base.id)
+  .map(t=>({...t,cost:transitCost(base,t),distance:Math.round(Math.hypot(base.x-t.x,base.y-t.y))}))
+  .sort((a,b)=>a.distance-b.distance);
+ const missing=Math.max(0,state.maxHp-state.hp);
+ const repairCost=Math.max(9,Math.ceil(Math.min(missing,state.maxHp*.45)*.36));
+ const droneDamage=Math.max(0,state.droneDamage||0);
+ const droneRepairCost=droneDamage>0?Math.max(8,Math.ceil(droneDamage*.32)):0;
+ const chargeCost=strikeCost(state.network.strikePower||0),contract=contractOffer(base,state);
+ const contractOptions=contractChoices(base.type,base.contractRuns||0);
+ const localService=LOCAL_SERVICES[base.type]||null;
+ const moduleOptions=(STATION_MODULES[base.type]||[]).map(item=>({...item,
+  reason:!base.active?'Сначала включите станцию':base.module?'Специализация уже выбрана':shortfall(item.cost,ore)}));
+ const serviceActive=localService?.key==='shield'?(state.shield||0)>=15:
+  localService?.key==='scan'?(state.scanRemaining||0)>0:
+  localService?.key==='overcharge'?(state.overchargeRemaining||0)>0:false;
+ const serviceRemaining=localService?.key==='scan'?state.scanRemaining||0:
+  localService?.key==='overcharge'?state.overchargeRemaining||0:0;
+ const replacementIndex=state.allies>=cap?(state.droneRoles||[])
+  .findIndex(role=>role!==drone.role):-1;
+ const replacing=replacementIndex>=0;
+ const hireCost=replacing?Math.max(18,drone.cost-
+  (state.droneRoles[replacementIndex]==='fighter'?20:12)):drone.cost;
+ const reasons={
+  activate:base.active?'Уже включена':shortfall(relayCost,ore),
+  antenna:!base.active?'Сначала включите станцию':
+   base.relayBoost?'Антенна уже усилена':shortfall(antennaCost,ore),
+  hire:!base.active?'Сначала включите станцию':
+   state.allies>=cap&&!replacing?'Лимит '+cap+' · дрон этого типа уже в строю':
+   shortfall(hireCost,ore),
+  upgrade:!base.active?'Сначала включите станцию':
+   !connected?'Соедините станцию с домашним доком':
+   base.usedUpgrade?'Технология этой станции изучена':
+   level>=6?'Максимальный уровень':shortfall(upgradeCost,ore),
+  repair:!base.active?'Сначала включите станцию':
+   missing<=0?'Корпус цел':shortfall(repairCost,ore),
+  drones:!base.active?'Сначала включите станцию':
+   droneDamage<=0?'Дроны исправны':shortfall(droneRepairCost,ore),
+  supply:!base.active?'Сначала включите станцию':
+   !connected?'Нужна связь с сетью':
+   base.type!=='carrier'?'Снаряжение доступно на авианосце':
+   (state.network.strikePower||0)<1?'Сначала улучшите авиационную связь':
+   state.charges>=2?'Два вылета уже снаряжены':shortfall(chargeCost,ore),
+  service:!base.active?'Сначала включите станцию':
+   !localService?'Нет местной услуги':
+   serviceActive?(localService.key==='shield'?'Щит уже заряжен':
+    'Действует ещё '+Math.ceil(serviceRemaining)+' с'):
+   shortfall(localService.cost,ore)
+ };
+ return {ore,drone,tech,level,cap,connected,relayCost,antennaCost,transfers,upgradeCost,repairCost,droneRepairCost,chargeCost,hireCost,replacementIndex,replacing,contract,contractOptions,repeatReward:(base.contractRuns||0)>0,
+  localService,moduleOptions,rewardAlloy:state.activeBases===0?20:0,
+  rewardRepair:Math.round(state.maxHp*.1),reasons};
+}
+const card=(cls,kicker,title,description,control,reason='')=>
+ '<section class="base-card '+cls+'"><span class="base-kicker">'+kicker+'</span>'+
+ '<strong>'+title+'</strong><small>'+description+'</small>'+control+
+ (reason?'<span class="base-reason">'+reason+'</span>':'')+'</section>';
+const action=(name,label,reason='',role='')=>
+ '<button type="button" data-act="'+name+'"'+(role?' data-role="'+role+'"':'')+
+ (reason?' disabled':'')+'>'+label+'</button>';
+const contractPanel=o=>{
+ const c=o.contract;
+ if(c.status==='available')return '<section class="base-contract-board"><div class="base-contract-copy">'+
+  '<span class="base-kicker">ПОЛЕВЫЕ ЗАКАЗЫ</span><strong>Небольшие заказы</strong>'+
+  '<small>Можно взять один обычный заказ. Особая операция выполняется независимо от него.</small></div>'+
+  '<div class="base-contract-choices">'+o.contractOptions.map(choice=>
+   '<article class="base-contract-choice"><span>'+choice.tag+'</span><strong>'+choice.name+'</strong>'+
+   '<small>'+choice.desc+'</small><em>'+choice.ore+' сплава · '+choice.data+' данных</em>'+
+   action('acceptContract','Принять заказ','',choice.id)+'</article>').join('')+
+  '</div></section>';
+ const summary={
+  available:c.desc,active:c.desc,ready:'Задание выполнено. Заберите награду.',
+  cooldown:'Новые поручения через '+c.remaining+' с. Пока можно отправиться к другим станциям.',
+  other:'Сначала завершите поручение другой станции.'
+ };
+ const caption={
+  available:'Принять задание',active:'Выполняется · '+c.progress+'/'+c.goal,
+  ready:'Забрать награду',cooldown:'Ожидание · '+c.remaining+' с',other:'Другое задание активно'
+ };
+ return '<section class="base-contract '+c.status+'"><div class="base-contract-copy">'+
+  '<span class="base-kicker">ПОЛЕВОЙ ЗАКАЗ</span><strong>'+c.name+'</strong>'+
+  '<small>'+summary[c.status]+'</small><span class="base-contract-reward">Награда: '+
+  c.ore+' сплава · '+c.data+' данных'+(c.status==='active'?' · '+c.progress+'/'+c.goal:'')+'</span></div>'+
+  action(c.status==='ready'?'claimContract':'acceptContract',caption[c.status],
+   ['ready','available'].includes(c.status)?'':'Недоступно')+
+   (c.status==='active'?action('abandonContract','Отказаться · прогресс пропадёт'):'')+'</section>';
+};
+// Tactical station briefing. The mission is a world object, not a kill counter.
+const corridorPanel=(base,state,compact=false)=>{
+ const op=corridorOffer(base,state.operation);
+ if(!op)return '';
+ const done=op.status==='complete',active=op.status==='active';
+ const hp=active||op.resumable?Math.ceil(op.hp/CORRIDOR_OPERATION.maxHp*100):100;
+ const body=done?'Передатчик уничтожен. Коридор стал спокойнее, местная разведка работает дальше.':
+  active?'Цель отмечена. Луч поражает передатчик с расстояния до 255 м; в радиусе 315 м заряжается ЭМ-импульс. Можно сначала уничтожить охранение.':
+  'Глушитель обнаружен примерно в 1,3 км к востоку. Луч поражает его с дистанции до 255 м; в радиусе 315 м заряжается ЭМ-импульс. Можно устранить охранение или прорваться под огнём.';
+ const actions=done?'<span class="base-op-done">✓ Изменения действуют в секторе</span>':
+  active?action('baseMap','Показать маршрут')+(compact?'':action('abandonOperation','Отложить · сохранить повреждения')):
+  action('baseMap','Посмотреть маршрут')+
+   action('acceptOperation','Принять операцию',op.status==='available'&&!state.operation?'':'Сначала завершите другую операцию или включите станцию');
+ const warning=!done&&!active&&op.status!=='available'?'Сначала включите станцию.':
+  !done&&!active&&state.operation?'Сначала завершите или отложите текущую особую операцию.':'';
+ const facts='<div class="base-op-details">'+
+  '<div><span>ЗАДАЧА</span><b>Уничтожить передатчик</b></div>'+
+  '<div><span>ОПАСНОСТЬ</span><b>Охранение · ЭМ-импульс</b></div>'+
+  '<div><span>ИЗМЕНЕНИЕ МИРА</span><b>Разведка +350 м · патрули реже</b></div></div>';
+ return '<article class="base-featured-op '+(done?'resolved':active?'underway':'')+'">'+
+  '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ДОК</span><span>'+
+  (done?'КОРИДОР ОТКРЫТ':active?'ВЫЛЕТ НАЧАТ':'РАЗВЕДКА ПОД ПОМЕХАМИ')+'</span></div>'+
+  '<strong>'+CORRIDOR_OPERATION.name+'</strong><p>'+body+'</p>'+
+  (compact?'':facts)+
+  (active||op.resumable?'<small>Передатчик: '+hp+'% прочности. Повреждения сохраняются при отступлении.</small>':'')+
+  (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
+  '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
+  CORRIDOR_OPERATION.rewardOre+' сплава · +'+CORRIDOR_OPERATION.rewardData+
+  ' данных (опыт)</span><div>'+actions+'</div></div></article>';
+};
+const probePanel=(base,state,compact=false)=>{
+ const op=probeOffer(base,state.operation);
+ if(!op)return '';
+ const done=op.status==='complete',active=op.status==='active';
+ const pct=Math.round((op.repair||0)/PROBE_OPERATION.maxRepair*100);
+ const body=done?'Зонд снова передаёт телеметрию. Разведка лаборатории работает дальше.':
+  active?'Подлетите к зонду на 150 м и удерживайте E для ремонта. Пока идёт восстановление, корабль не стреляет. Отпустите E, чтобы отразить атаку.':
+  'Повреждённый зонд находится в соседнем районе. Ремонт может привлечь перехватчиков; уже выполненная работа сохранится.';
+ const actions=done?'<span class="base-op-done">✓ Разведка восстановлена</span>':
+  active?action('baseMap','Показать цель')+(compact?'':action('abandonOperation','Отложить · сохранить ремонт')):
+  action('baseMap','Посмотреть район поиска')+
+   action('acceptOperation','Принять операцию',op.status==='available'&&!state.operation?'':'Сначала завершите другую операцию или включите лабораторию');
+ const warning=!done&&!active&&op.status!=='available'?'Сначала включите лабораторию.':
+  !done&&!active&&state.operation?'Сначала завершите или отложите текущую особую операцию.':'';
+ const facts='<div class="base-op-details">'+
+  '<div><span>ЗАДАЧА</span><b>Восстановить зонд</b></div>'+
+  '<div><span>ОПАСНОСТЬ</span><b>Возможны перехватчики</b></div>'+
+  '<div><span>ИЗМЕНЕНИЕ МИРА</span><b>Разведка +300 м; возможен новый сигнал</b></div></div>';
+ return '<article class="base-featured-op '+(done?'resolved':active?'underway':'')+'">'+
+  '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ЛАБОРАТОРИЯ</span><span>'+
+  (done?'СИГНАЛ ВОССТАНОВЛЕН':active?'РЕМОНТ В ПОЛЁТЕ':'СИГНАЛ БЕДСТВИЯ')+'</span></div>'+
+  '<strong>'+PROBE_OPERATION.name+'</strong><p>'+body+'</p>'+
+  (compact?'':facts)+
+  (active||op.resumable?'<div class="base-op-progress"><span>Восстановлено: '+pct+'%</span>'+
+   '<progress value="'+pct+'" max="100" aria-label="Ход восстановления зонда"></progress></div>':'')+
+  (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
+  '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
+  PROBE_OPERATION.rewardOre+' сплава · +'+PROBE_OPERATION.rewardData+
+  ' данных (опыт)</span><div>'+actions+'</div></div></article>';
+};
+const specialOffer=(base,state)=>corridorOffer(base,state.operation)||probeOffer(base,state.operation);
+const specialPanel=(base,state,compact=false)=>
+ corridorOffer(base,state.operation)?corridorPanel(base,state,compact):probePanel(base,state,compact);
+const baseBrief=(base,state,o)=>{
+ const op=corridorOffer(base,state.operation);
+ if(op){
+  if(op.status==='complete')return ['ПОМЕХИ УСТРАНЕНЫ','Коридор открыт',
+   'Дальность местной разведки выросла, патрули возле дома стали реже. Станция больше не заглушена.'];
+  if(op.status==='active')return ['ОПЕРАЦИЯ ВЫПОЛНЯЕТСЯ','Найдите передатчик',
+   'Можно прорваться к глушителю или сначала уничтожить охранение. Передатчик заряжает ЭМ-импульс вблизи; затяжной бой привлечёт подкрепление.'];
+  return ['РАЗВЕДКА ПОД ПОМЕХАМИ','Глушитель на востоке',
+   'Сеть станций работает, но передатчик мешает местной разведке. Уничтожение сделает этот маршрут спокойнее.'];
+ }
+ const probe=probeOffer(base,state.operation);
+ if(probe){
+  if(probe.status==='complete')return ['ТЕЛЕМЕТРИЯ ПОЛУЧЕНА','Новый участок разведан',
+   'Зонд восстановлен, местная разведка расширена. Если поблизости найден ещё один узел, его отметка появилась на карте.'];
+  if(probe.status==='active')return ['ВОССТАНОВЛЕНИЕ ЗОНДА','Последний сигнал',
+   'Удерживайте E возле зонда для ремонта. Отпускайте E, чтобы стрелять по врагам. Ремонт не обнуляется при отступлении.'];
+  return ['СИГНАЛ БЕДСТВИЯ','Потерян разведывательный зонд',
+   'В космосе поблизости остался повреждённый зонд. Его можно вернуть и получить данные для дальнейшего исследования.'];
+ }
+ if(!o.connected)return ['УЗЕЛ АВТОНОМЕН','Связь отсутствует',
+  'Местные услуги работают. Чтобы получить доступ к сети, соедините включённые станции.'];
+ const brief={
+  arsenal:['ОБОРОННЫЙ УЗЕЛ','Подготовка к бою','Арсенал оснащает ударных дронов и позволяет укреплять оборону ближайшего сектора.'],
+  lab:['РАЗВЕДЫВАТЕЛЬНЫЙ УЗЕЛ','Исследование сектора','Лаборатория помогает обнаруживать богатую руду и дополнительные сигналы.'],
+  carrier:['УДАРНАЯ ПОДДЕРЖКА','Авиагруппа готовится','Здесь можно снарядить бомбардировщиков для штурма вражеских укреплений.'],
+  dock:['ДОМАШНИЙ ДОК','Убежище и ремонт','Рядом с доком корабль восстанавливается. Подготовьте дронов к следующему вылету.']
+ };
+ return brief[base.type]||brief.dock;
+};
+const basePreview=(base,state)=>renderStationRoutePreview(base,state);
+
+const stationNoun=n=>n%10===1&&n%100!==11?'узел':
+ n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'узла':'узлов';
+// Show what an antenna purchase would actually change, without revealing undiscovered stations.
+// An opposite node's antenna can add another 500 m to a radio link.
+const networkPreview=(base,state)=>{
+ const world=state.world;
+ if(!base.active||!world?.stations||typeof world.networkTopology!=='function')return '';
+ const now=world.networkTopology();
+ const after=base.relayBoost?now:world.networkTopology(base.id);
+ const currentRadius=RELAY_RANGE+(base.relayBoost?RELAY_EXTENSION:0);
+ const nextRadius=base.relayBoost?currentRadius:currentRadius+RELAY_EXTENSION;
+ const gain=Math.max(0,after.count-now.count);
+ const visible=[...world.stations.values()].filter(s=>
+  s.active&&s.discovered&&!s.enemy&&s.id!==base.id);
+ const newly=visible.filter(s=>!now.linked.has(s.id)&&after.linked.has(s.id));
+ const scale=.044,cx=220,cy=104;
+ const circle=(radius,stroke,dash='')=>'<circle cx="'+cx+'" cy="'+cy+'" r="'+
+  (radius*scale).toFixed(1)+'" fill="none" stroke="'+stroke+
+  '" stroke-width="2"'+(dash?' stroke-dasharray="'+dash+'"':'')+'/>';
+ const markers=visible.map(s=>{
+  const x=cx+(s.x-base.x)*scale,y=cy+(s.y-base.y)*scale;
+  if(x<15||x>425||y<14||y>196)return '';
+  const added=!now.linked.has(s.id)&&after.linked.has(s.id);
+  const color=added?'#b7f68c':now.linked.has(s.id)?'#82ecd8':'#ffc884';
+  return '<g><title>'+(baseNames[s.type]||'Станция')+' · '+
+   Math.round(Math.hypot(s.x-base.x,s.y-base.y))+' м'+
+   (added?' · подключится после усиления':'')+'</title>'+
+   '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(added?7:5)+
+   '" fill="'+color+'"'+(added?' stroke="#efffd2" stroke-width="1.5"':'')+'/></g>';
+ }).join('');
+ const result=base.relayBoost?'Антенна уже усилена. Учитывайте дальность соседних узлов.':
+  gain>0?'После усиления в сети будет '+after.count+' '+stationNoun(after.count)+
+   ' (сейчас '+now.count+').':
+   'Сейчас усиление не подключит новых станций. Оно пригодится для более дальних узлов.';
+ const names=newly.length?'<small>Подключатся: '+newly.slice(0,3).map(s=>
+  (baseNames[s.type]||'Станция')+' · '+Math.round(Math.hypot(s.x-base.x,s.y-base.y))+
+  ' м').join('; ')+(newly.length>3?' и другие':'')+'.</small>':'';
+ return '<section class="base-network-preview"><span class="base-kicker">СВЯЗЬ · ПРОГНОЗ</span>'+
+  '<strong>Радиус антенны: '+currentRadius+
+  (base.relayBoost?' м':' → '+nextRadius+' м')+'</strong>'+
+  '<p>'+result+'</p>'+names+
+  '<details><summary>Посмотреть действие антенны на карте</summary>'+
+  '<svg viewBox="0 0 440 210" role="img" aria-label="Текущий радиус связи, радиус после усиления и известные действующие станции">'+
+  '<rect width="440" height="210" rx="12" fill="#071c2b"/>'+
+  '<path d="M 0 104 H 440 M 220 0 V 210" stroke="#568fa132"/>'+
+  circle(currentRadius,'#68c8d5')+
+  (base.relayBoost?'':circle(nextRadius,'#e8c37e','6 5'))+markers+
+  '<circle cx="220" cy="104" r="8" fill="#a8fff0" stroke="#ffffff"/>'+
+  '<text x="231" y="122" fill="#dbfff5" font-size="12">ВАША СТАНЦИЯ</text>'+
+  '</svg><small>Бирюзовый узел — в сети, янтарный — автономен, зелёный — подключится. '+
+  'Показаны только известные включённые станции. Усиления на обоих концах радиоканала складываются.</small></details>'+
+  '<div class="base-network-preview-actions">'+
+  '<button type="button" data-act="baseMap">Открыть полную карту</button></div></section>';
+};
+const tabButton=(id,name,selected)=>'<button type="button" role="tab" id="base-tab-'+id+'" aria-controls="base-panel-'+id+'" tabindex="'+(id===selected?'0':'-1')+'" data-act="baseTab" data-role="'+id+
+ '" aria-selected="'+(id===selected)+'" class="'+(id===selected?'selected':'')+'">'+name+'</button>';
+const tabPanel=(id,selected,body)=>'<section class="base-tab-panel" id="base-panel-'+id+'" aria-labelledby="base-tab-'+id+'" role="tabpanel" data-tab="'+id+'"'+
+ (id===selected?'':' hidden')+'>'+body+'</section>';
+
+export function renderBasePanel(base,state){
+ const o=baseOffer(base,state),active=!!base.active;
+ const status=active?(o.connected?'СЕТЬ ПОДКЛЮЧЕНА':'АВТОНОМНЫЙ УЗЕЛ'):'СТАНЦИЯ ВЫКЛЮЧЕНА';
+ const activation=card('base-power'+(active?' connected':''),
+  '01 · УЗЕЛ СЕТИ',active?'Станция активна':'Включить станцию',
+  active?(o.connected?'Связь с домашним доком. Услуги сети доступны.':
+   'Работает локально. Активируйте промежуточные станции, чтобы соединить её с сетью.'):
+   (o.relayCost?'Запуск узла требует '+o.relayCost+' сплава. После включения появятся местные услуги и доступ к сети.':'Первый док: +20 сплава и небольшой ремонт. Другие базы дают доступ к услугам и технологиям.'),
+  active?'<span class="base-ready">✓ Питание включено</span>':
+   action('activate',o.relayCost?'Подключить · '+o.relayCost+' сплава':'Запустить бесплатно',o.reasons.activate));
+ const hire=card('base-service'+(!active?' inactive':''),
+  '02 · БОЕВОЙ ДРОН',o.drone.name+' · '+state.allies+'/'+o.cap,
+  o.drone.desc+' Дрон остаётся рядом.'+(o.replacing?' Заменяет дрона другого типа с частичным зачётом стоимости.':''),
+  action('hire',(o.replacing?'Заменить · ':'Нанять · ')+o.hireCost+' сплава',o.reasons.hire,o.drone.role),
+  o.reasons.hire);
+ const upgrade=card('base-service'+(!active?' inactive':''),
+  '03 · ТЕХНОЛОГИЯ СЕТИ',o.tech.name+' · '+o.level+' / 6',
+  o.tech.desc+' Один шаг на каждой станции этого типа.',
+  action('upgrade','Развить · '+o.upgradeCost+' сплава',o.reasons.upgrade),
+  o.reasons.upgrade);
+ const repair=card('base-service'+(!active?' inactive':''),
+  '04 · ТЕХОБСЛУЖИВАНИЕ','Ремонт корабля и дронов',
+  base.type==='dock'?'Вблизи дока корабль постепенно восстанавливается бесплатно.':
+   'Быстрый ремонт корпуса и восстановление повреждённых дронов.',
+  action('repair','Корпус · '+o.repairCost+' сплава',o.reasons.repair)+
+  action('repairDrones','Дроны · '+o.droneRepairCost+' сплава',o.reasons.drones),
+  o.reasons.repair&&o.reasons.drones?'':undefined);
+ const local=o.localService?card('base-service base-local',
+   '05 · МЕСТНАЯ УСЛУГА',o.localService.name,
+   o.localService.desc,
+   action('service','Применить · '+o.localService.cost+' сплава',o.reasons.service),
+   o.reasons.service):'';
+ const supply=base.type==='carrier'?
+  '<div class="base-support"><div><b>✧ УДАРНАЯ ЭСКАДРИЛЬЯ</b><small>Снарядите до двух вылетов. Нажмите B у вражеской базы: бомбардировщики появятся на время и уйдут. Перезарядка 35 с.</small></div>'+
+  action('supply','Снарядить · '+o.chargeCost+' сплава',o.reasons.supply)+
+  '<span>Зарядов: '+state.charges+' / 2</span></div>':'';
+ const transit=o.connected&&state.connectedBases>=2&&o.transfers.length?
+  '<section class="base-transit"><div class="base-transit-head"><b>06 · МАРШРУТЫ СЕТИ</b><small>Между включёнными станциями можно перелететь за сплав. Сопровождающие дроны следуют за вами.</small></div><div class="base-transit-routes">'+
+  o.transfers.map(t=>action('transfer',(baseNames[t.type]||'Станция')+' · '+t.distance+' м · '+t.cost+' сплава',shortfall(t.cost,o.ore),t.id)).join('')+
+  '</div></section>':'';
+ const modules=active?'<section class="base-modules"><div class="base-modules-heading"><span class="base-kicker">СПЕЦИАЛИЗАЦИЯ СТАНЦИИ</span><strong>'+
+  (base.module?'Модуль установлен':'Выберите одно оснащение')+'</strong><small>'+
+  (base.module?'Выбор сохраняется на этой станции до конца вылета.':'Один вариант на выбор. Он изменит работу станции и ближайшего сектора.')+
+  '</small></div><div class="base-module-options">'+o.moduleOptions.map(m=>
+  '<div class="base-module-option'+(base.module===m.key?' selected':'')+'"><strong>'+m.name+'</strong><small>'+m.desc+'</small>'+
+  (base.module===m.key?'<span class="base-module-installed">✓ УСТАНОВЛЕНО</span>':
+   action('installModule','Установить · '+m.cost+' сплава',m.reason,m.key))+'</div>').join('')+
+  '</div></section>':'';
+ const antenna=active?card('base-service base-antenna',
+  'СВЯЗЬ · РЕТРАНСЛЯТОР',base.relayBoost?'Антенна усилена':'Усилить антенну',
+  'Стандартная связь '+RELAY_RANGE+' м. Усиление добавляет '+RELAY_EXTENSION+' м к дальности узла. '+
+  ((state.relayGain||0)>0?'Сейчас подключит ещё '+state.relayGain+' узл(а).':
+   'Помогает соединить удалённые станции. На карте видно, какие узлы пока автономны.'),
+  base.relayBoost?'<span class="base-ready">✓ УСТАНОВЛЕНО</span>':
+   action('antenna','Усилить · '+o.antennaCost+' сплава',o.reasons.antenna),o.reasons.antenna):'';
+ const selected=['summary','operations','hangar','network'].includes(state.baseTab)?state.baseTab:'summary';
+ const brief=baseBrief(base,state,o);
+ const dashboard='<div class="base-dashboard">'+
+  '<div class="base-dashboard-main"><span class="base-kicker">'+brief[0]+'</span>'+
+  '<strong>'+brief[1]+'</strong><p>'+brief[2]+'</p>'+
+  (specialOffer(base,state)?specialPanel(base,state,true):
+    '<div class="base-shortcuts"><span>Местные услуги доступны в ангаре.</span></div>')+
+  '</div><aside class="base-dashboard-aside"><span class="base-kicker">'+'КАРТА РАЙОНА'+'</span>'+
+  basePreview(base,state)+
+  '<div class="base-dashboard-links">'+
+  action('baseTab','Операции','','operations')+
+  action('baseTab','Подготовить корабль','','hangar')+'</div></aside></div>';
+ const operations='<div class="base-operations">'+
+  (specialOffer(base,state)?specialPanel(base,state):'')+
+  '<h3 class="base-section-title">Полевые заказы</h3>'+contractPanel(o)+'</div>';
+ const localMission=specialOffer(base,state),hullPercent=Math.round(state.hp/state.maxHp*100);
+ const missionForPreparation=state.operation||localMission;
+ const missionContext=missionForPreparation&&missionForPreparation.status!=='complete'?
+  (missionForPreparation.id===PROBE_OPERATION.id?
+   'Операция «Последний сигнал»: при ремонте зонда корабль не стреляет. Дрон может прикрыть его, но не гарантирует безопасность.':
+   'Операция «Глухой коридор»: у глушителя есть охранение и ЭМ-импульсы. Можно сначала уничтожить охранение или прорваться к цели.') :
+  'Выберите дальнейший маршрут и подготовьте корабль к ожидаемой угрозе.';
+ const readiness='<section class="base-sortie-context"><div><span class="base-kicker">ГОТОВНОСТЬ К ВЫЛЕТУ</span>'+
+  '<strong>Корпус '+Math.ceil(state.hp)+' / '+state.maxHp+' · Дроны '+state.allies+'/'+o.cap+
+  ' · Щит '+Math.ceil(state.shield||0)+'</strong></div>'+
+  '<p>'+missionContext+(hullPercent<45?' Корпус сильно повреждён: перед опасным вылетом можно отремонтироваться.':'')+'</p>'+
+  '<small>Дрон: '+o.hireCost+' сплава · '+(o.ore>=o.hireCost?
+   'после покупки останется '+(o.ore-o.hireCost)+' сплава.':
+   'не хватает '+(o.hireCost-o.ore)+' сплава.')+
+  ' Следующая станция и постоянные улучшения тоже потребуют ресурсов.</small>'+
+  '<div>'+action('baseTab','Вернуться к операциям','','operations')+'</div></section>';
+ const hangar='<div class="base-operations">'+readiness+
+  '<div class="base-grid">'+repair+hire+'</div>'+local+supply+'</div>';
+ const network='<div class="base-operations"><p class="base-section-note">Усиление антенны расширяет связь. Специализация влияет на работу станции и ближайший сектор.</p>'+
+  '<div class="base-grid">'+upgrade+antenna+'</div>'+networkPreview(base,state)+modules+transit+'</div>';
+ const opening=active?
+  '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
+  tabButton('summary','Сводка',selected)+tabButton('operations','Операции',selected)+
+  tabButton('hangar','Ангар',selected)+tabButton('network','Сеть',selected)+'</nav>'+
+  tabPanel('summary',selected,dashboard)+
+  tabPanel('operations',selected,operations)+
+  tabPanel('hangar',selected,hangar)+
+  tabPanel('network',selected,network):
+  '<div class="base-intro">'+activation+
+  '<div class="base-intro-preview"><b>После подключения</b>'+
+  '<span>Особые операции и полевые заказы</span>'+
+  '<span>Дроны, ремонт и оснащение станции</span>'+
+  '<span>Маршруты между подключёнными узлами</span></div></div>';
+ return '<div class="dialog base-dialog"><header class="base-head"><div><h2>'+
+  (baseNames[base.type]||'Станция')+'</h2><p>Сплав <b>'+o.ore+'</b> · Данные <b>'+(state.data||0)+'</b> (опыт) · Корпус <b>'+Math.ceil(state.hp)+'/'+state.maxHp+'</b> · В сети '+
+  state.connectedBases+' · Дроны '+state.allies+'/'+o.cap+(base.type==='carrier'?' · Вылеты '+state.charges:'')+'</p></div>'+
+  '<span class="base-pill '+(o.connected?'online':'offline')+'">'+status+'</span></header>'+
+  (active&&!o.connected?'<p class="base-network-warning">Работает локально. Для сетевых услуг подключите промежуточные станции.</p>':'')+
+  opening+'<footer class="base-foot"><small>'+
+  (active?'Полевые заказы доступны повторно через 150 с после сдачи. Особая операция меняет обстановку в секторе.':
+  'Первая станция включается бесплатно; следующие требуют сплав.')+
+  '</small><div class="base-footer-actions">'+
+  (active&&state.doctrine?action('respec','Сменить доктрину · 12 сплава',state.ore<12?'Нужно 12 сплава':''):'')+
+  action('close','В полёт')+'</div></footer></div>';
+}

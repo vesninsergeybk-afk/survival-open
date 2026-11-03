@@ -1,0 +1,14 @@
+Kenney Particle Pack 1.1
+by Kenney Vleugels (Kenney.nl)
+Additional credit for filter templates: Indigo Ray, Craig Nisbet,
+Zoltan Erdokovy, Heliagon, ThreeDee, Killst4r and Tim2501.
+
+License: Creative Commons Zero, CC0 1.0 Universal
+https://creativecommons.org/publicdomain/zero/1.0/
+
+You may use these assets in personal and commercial projects.
+Credit (Kenney or www.kenney.nl) is appreciated but not required.
+
+Upstream mirror: https://github.com/Calinou/kenney-particle-pack
+Pinned upstream commit: ab7086639ee73be31abd87feb21bf1402d4e8144
+Original license: addons/kenney_particle_pack/LICENSE.txt

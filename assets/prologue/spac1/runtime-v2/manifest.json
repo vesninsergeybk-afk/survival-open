@@ -1,0 +1,51 @@
+{
+  "cell": 160,
+  "feet": 128,
+  "height": 81,
+  "sheets": {
+    "idle": {
+      "file": "idle.webp",
+      "cols": 6,
+      "rows": 8,
+      "bytes": 223024
+    },
+    "walk": {
+      "file": "walk.webp",
+      "cols": 8,
+      "rows": 8,
+      "bytes": 317084,
+      "revision": "walk-134",
+      "audit": "walk-audit.json"
+    },
+    "attack": {
+      "file": "attack.webp",
+      "cols": 8,
+      "rows": 8,
+      "bytes": 308480
+    },
+    "wakeFront": {
+      "file": "wake-front.webp",
+      "cols": 24,
+      "rows": 1,
+      "bytes": 110784
+    },
+    "wakeLeft": {
+      "file": "wake-left.webp",
+      "cols": 24,
+      "rows": 1,
+      "bytes": 83702
+    },
+    "wakeBack": {
+      "file": "wake-back.webp",
+      "cols": 24,
+      "rows": 1,
+      "bytes": 114388
+    },
+    "wakeRight": {
+      "file": "wake-right.webp",
+      "cols": 24,
+      "rows": 1,
+      "bytes": 85732
+    }
+  }
+}

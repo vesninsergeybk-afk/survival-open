@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <!-- Survivor release: design-127; continuous objective guidance -->
+        <meta charset="UTF-8" />
+        <meta name="survivor-release" content="hero-sharp-133" />
+        <script src="/games/_shared/release-fresh-v1.js?v=1"></script>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta name="color-scheme" content="dark" />
+        <meta name="theme-color" content="#07112b" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta
+            name="description"
+            content="«Выживший» — браузерный рогалик с автоматическими атаками, прокачкой, боссами и случайными забегами."
+        />
+        <title>Выживший: Космический рубеж | Vesninmed</title>
+
+        <!-- Canonical + favicon (SVG keeps the bundle dependency-free) -->
+        <link rel="canonical" href="https://vesninmed.ru/games/survivor/" />
+        <link rel="icon" type="image/svg+xml" href="./docs/hero.svg" />
+        <link rel="manifest" href="./manifest.json" />
+
+        <!-- Open Graph / social share -->
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Выживший: Космический рубеж" />
+        <meta
+            property="og:description"
+            content="Выживайте, собирайте улучшения, сражайтесь с боссами и открывайте достижения."
+        />
+        <meta property="og:image" content="./docs/og-card.svg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta
+            property="og:url"
+            content="https://vesninmed.ru/games/survivor/"
+        />
+
+        <!-- Twitter card -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Выживший: Космический рубеж" />
+        <meta
+            name="twitter:description"
+            content="Выживайте, собирайте улучшения, сражайтесь с боссами и открывайте достижения."
+        />
+        <meta name="twitter:image" content="./docs/og-card.svg" />
+
+        <link rel="stylesheet" href="./styles.css?v=hero-sharp-132" />
+        <link rel="stylesheet" href="./interface.css?v=perf-981" />
+        <link rel="stylesheet" href="./prologue-design.css?v=design-127" />
+
+    </head>
+    <body>
+        <div id="gameContainer" aria-label="Игра «Выживший»">
+            <canvas
+                id="gameCanvas"
+                width="1200"
+                height="800"
+                tabindex="0"
+                aria-label="Игровое поле"
+            ></canvas>
+
+            <a id="backToLab" class="back-to-lab" href="/lab/"
+               aria-label="Вернуться в Лабораторию абсурда">← Лаборатория абсурда</a>
+
+            <div id="ui" role="presentation">
+                <div id="topLeft" class="hud">
+                    <div><span data-i18n="level">LEVEL</span>: <span id="level">1</span></div>
+                    <div id="expLabel" class="bar-label" data-i18n="xp">XP</div>
+                    <div class="exp-bar">
+                        <div class="exp-fill" id="expBar" style="width: 0%"></div>
+                    </div>
+                    <div class="bar-label">
+                        <span data-i18n="time">TIME</span>: <span id="time">00:00</span>
+                    </div>
+                    <div id="stageHud" class="stage-hud"></div>
+                    <div id="waveLabel" class="hud-sub"></div>
+                    <div id="highScore" class="hud-sub"></div>
+                </div>
+
+                <div id="topRight" class="hud">
+                    <div><span data-i18n="kills">УБИЙСТВА</span>: <span id="kills">0</span></div>
+                    <div class="score-hud"><span data-i18n="score">ОЧКИ</span>: <span id="score">0</span></div>
+                    <div id="creditHud" class="credit-hud" style="display:none">⚙ КРЕДИТЫ: 0</div>
+                    <div class="hud-sub" id="graphicsRuntimeStatus" aria-label="Режим графики" aria-live="polite">Подготовка 3D…</div>
+                    <div id="fpsCounter" class="hud-sub" style="display: none">0 fps</div>
+                    <button id="btnMissionJournal" class="icon-btn" type="button" style="display:none" aria-label="Открыть журнал миссии (J)" title="Журнал заданий — J">📋</button>
+                    <button id="btnMap" class="icon-btn" aria-label="Открыть карту (Tab)" title="Карта — Tab">🗺️</button>
+                    <button id="btnFullscreen" class="icon-btn" type="button" aria-label="На весь экран" title="На весь экран">⛶</button>
+                    <button id="btnPause" class="icon-btn" aria-label="Пауза">⏸</button>
+                </div>
+
+                <div id="bottomLeft" class="hud">
+                    <div>
+                        <span data-i18n="hp">HP</span>: <span id="hp">100</span>/<span id="maxHp"
+                            >100</span
+                        >
+                    </div>
+                    <div class="hp-bar">
+                        <div class="hp-fill" id="hpBar" style="width: 100%"></div>
+                    </div>
+                    <div id="shieldHud" class="hud-sub" style="display:none;color:#8aefff" aria-live="off">
+                        🛡 ЩИТ: <span id="shieldValue">0</span>/<span id="shieldMax">0</span>
+                    </div>
+                    <div id="temporaryBoostHud" class="temporary-boosts" style="display:none" aria-label="Временные усиления и микромодули" aria-live="off"></div>
+                    <div class="chip-row" id="passiveIcons" role="list" aria-label="Пассивные улучшения"></div>
+                </div>
+
+                <div
+                    class="chip-row weapon-icons"
+                    id="weaponIcons"
+                    role="list"
+                    aria-label="Оружие"
+                ></div>
+
+                <div id="baseBearing" class="base-bearing" style="display:none" aria-live="off"></div>
+                <div id="raidBanner" class="raid-banner" style="display:none" aria-live="polite"></div>
+                <div id="bossBanner" class="boss-banner" aria-live="polite"></div>
+
+                <div
+                    id="achievementToasts"
+                    class="ach-toast-host"
+                    aria-live="polite"
+                    aria-atomic="false"
+                ></div>
+
+                <!--
+                    Visually-hidden live region. All gameplay events with
+                    meaningful accessibility signal (boss incoming, level-up,
+                    achievement unlock, boss defeated) are mirrored into this
+                    paragraph so screen readers announce them. See
+                    docs/ACCESSIBILITY.md for the full list.
+                -->
+                <p
+                    id="a11yLiveRegion"
+                    class="sr-only"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                ></p>
+            </div>
+
+            <!-- Virtual joystick (touch only) -->
+            <div id="joystickBase" class="joystick" aria-hidden="true">
+                <div id="joystickKnob" class="joystick-knob"></div>
+            </div>
+
+            <!-- iter-14: PWA install prompt. Shown once on first load on a browser
+                 that fires `beforeinstallprompt`; dismissed forever once the user
+                 acts on it. -->
+            <button id="dockAction" class="dock-action" style="display:none" type="button" aria-label="Открыть дружественную базу">⚙ БАЗА · E</button>
+            <div id="missionObjectiveHud" class="mission-objective-hud" role="status" aria-live="off" style="display:none"></div>
+            <button id="missionAction" class="mission-action" type="button" style="display:none" aria-label="Взаимодействовать с объектом миссии">✦ ВЗАИМОДЕЙСТВОВАТЬ · E</button>
+            <button id="missionRepairAbility" class="mission-ability mission-repair" type="button" style="display:none" aria-label="Ремонтный луч — восстановить турель или станцию">💚 РЕМОНТ · ПРОБЕЛ</button>
+            <button id="missionStasisAbility" class="mission-ability mission-stasis" type="button" style="display:none" aria-label="Стазис — защитить ближайшую станцию">🛡 СТАЗИС · Q</button>
+            <div
+                id="pwaInstallPrompt"
+                class="pwa-install-prompt"
+                role="dialog"
+                aria-live="polite"
+                style="display: none"
+            >
+                <span>Установить «Выжившего» для полноэкранной игры.</span>
+                <button id="pwaInstallBtn" class="btn primary">Установить</button>
+                <button id="pwaInstallDismiss" class="btn">Не сейчас</button>
+            </div>
+
+            <!-- Menus -->
+            <div
+                id="startScreen"
+                class="overlay"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="startTitle"
+            >
+                <div class="overlay-card survivor-main-menu command-menu">
+                    <header class="command-header">
+                        <div class="command-brand"><span class="brand-emblem" aria-hidden="true">✦</span><div><h1 id="startTitle">ВЫЖИВШИЙ</h1><p>КОСМИЧЕСКИЙ РУБЕЖ</p></div></div>
+                        <span class="command-status"><i aria-hidden="true"></i> Бортовой терминал</span>
+                    </header>
+                    <div class="command-body">
+                        <aside class="command-sidebar">
+                            <nav class="command-nav" role="tablist" aria-label="Разделы главного меню" aria-orientation="vertical">
+                                <button id="navCampaign" class="command-nav-item" type="button" role="tab" aria-selected="true" aria-controls="panelCampaign" data-menu-tab="campaign"><span aria-hidden="true">01</span> Кампания</button>
+                                <button id="navFlight" class="command-nav-item" type="button" role="tab" aria-selected="false" aria-controls="panelFlight" data-menu-tab="flight" tabindex="-1"><span aria-hidden="true">02</span> Вылеты</button>
+                                <button id="navDevelopment" class="command-nav-item" type="button" role="tab" aria-selected="false" aria-controls="panelDevelopment" data-menu-tab="development" tabindex="-1"><span aria-hidden="true">03</span> Развитие</button>
+                                <button id="navArchive" class="command-nav-item" type="button" role="tab" aria-selected="false" aria-controls="panelArchive" data-menu-tab="archive" tabindex="-1"><span aria-hidden="true">04</span> Архив и помощь</button>
+                            </nav>
+                            <div class="command-utilities">
+                                <button id="btnSettings" class="btn ghost" type="button">⚙ Настройки</button>
+                                <button id="btnMenuFullscreen" class="btn ghost" type="button">⛶ Полный экран</button>
+                                <button id="btnSound" class="btn ghost" type="button" aria-label="Управление звуком">🔇 Включить звук</button>
+                            </div>
+                            <div class="command-signature">VESNINMED <span>UI 9.8</span></div>
+                        </aside>
+                        <main class="command-content">
+                            <section id="panelCampaign" class="command-panel" role="tabpanel" aria-labelledby="navCampaign" data-menu-panel="campaign">
+                                <div class="panel-heading"><div><span class="menu-eyebrow">ВАША ЭКСПЕДИЦИЯ</span><h2>Кампания</h2></div><span id="menuCampaignCount" class="menu-pill">0 из 5 пройдено</span></div>
+                                <section class="campaign-hero" aria-labelledby="menuMissionTitle">
+                                    <div class="campaign-hero-copy"><span id="menuMissionLabel" class="menu-eyebrow">МИССИЯ 00 · СТАНЦИЯ</span><h3 id="menuMissionTitle">Последний сигнал</h3><p id="menuMissionDescription">Восстановите станцию и передайте спасённому конвою безопасный маршрут.</p><div id="menuMissionMeta" class="mission-meta">6–9 мин · начало истории</div><button id="btnContinueCampaign" class="btn primary command-primary" type="button">Начать историю <span aria-hidden="true">→</span></button></div>
+                                    <div class="campaign-art" aria-hidden="true"><div class="art-orbit"></div><div class="art-star"></div><div class="art-window"></div><span class="art-caption">HELIOS / СИГНАЛ ОБНАРУЖЕН</span></div>
+                                </section>
+                                <div class="campaign-route-heading"><h3>Маршрут экспедиции</h3><button id="btnCampaign" class="btn ghost" type="button">Все миссии →</button></div>
+                                <div id="menuCampaignRoute" class="command-route" role="group" aria-label="Выбрать миссию"></div>
+                                <p class="menu-save-note">Победы и чертежи сохраняются в этом браузере. Каждый вылет начинается заново.</p>
+                            </section>
+                            <section id="panelFlight" class="command-panel" role="tabpanel" aria-labelledby="navFlight" data-menu-panel="flight" hidden>
+                                <div class="panel-heading"><div><span class="menu-eyebrow">ВНЕ КАМПАНИИ</span><h2>Вылеты</h2></div></div>
+                                <p class="panel-intro">Выберите корабль и режим. Свободный полёт не открывает следующие миссии кампании.</p>
+                                <fieldset class="build-picker"><legend>Ваш корабль</legend><div class="build-choice-row">
+                                    <label class="build-choice"><input type="radio" name="survivorBuild" value="fighter" checked><span><img src="./assets/space/ship_fighter.png" alt=""><strong>Штурмовик</strong><small>110 здоровья</small></span></label>
+                                    <label class="build-choice"><input type="radio" name="survivorBuild" value="mage"><span><img src="./assets/space/ship_mage.png" alt=""><strong>Ионный зонд</strong><small>Радиус сбора +15%</small></span></label>
+                                    <label class="build-choice"><input type="radio" name="survivorBuild" value="scout"><span><img src="./assets/space/ship_scout.png" alt=""><strong>Перехватчик</strong><small>Скорость +6%</small></span></label>
+                                </div></fieldset>
+                                <div class="flight-launch"><button id="btnStage" class="btn ghost" type="button">Сектор: <span id="btnStageChip" class="stage-chip">Аметистовая туманность</span></button><button id="btnStart" class="btn primary command-primary" type="button">Свободный полёт →</button></div>
+                                <div class="command-mode-grid"><button id="btnDaily" class="command-tile" type="button"><span class="tile-number">24H</span><strong>Испытание дня</strong><small>Одинаковые условия для всех. Новый маршрут каждый день.</small></button><button id="btnSpeedrun" class="command-tile" type="button"><span class="tile-number">⏱</span><strong>На время</strong><small>Победите босса как можно быстрее. Отдельная таблица рекордов.</small></button></div>
+                                <p class="menu-save-note">В кампании используется выбранный здесь корпус. В испытаниях корабль и начальное оснащение заданы заранее.</p>
+                            </section>
+                            <section id="panelDevelopment" class="command-panel" role="tabpanel" aria-labelledby="navDevelopment" data-menu-panel="development" hidden>
+                                <div class="panel-heading"><div><span class="menu-eyebrow">ОСНАЩЕНИЕ КОРАБЛЯ</span><h2>Развитие</h2></div><span class="menu-pill">1 уровень → 1 выбор</span></div>
+                                <p class="panel-intro">Собирайте энергию, повышайте уровень и выбирайте улучшения. Нажмите на навык, прочитайте его условия, затем подтвердите выбор. Запускайте станции, чтобы повышать доступный ранг улучшений.</p>
+                                <div class="development-branches"><button class="command-tile" type="button" data-tree-branch="weapons"><span class="branch-mark">⌁</span><strong>Вооружение</strong><small>Новые орудия, мощность залпа и специализации.</small><span class="tile-link">Смотреть ветку →</span></button><button class="command-tile" type="button" data-tree-branch="ship"><span class="branch-mark">◇</span><strong>Корабль</strong><small>Прочность, скорость, броня и аварийный щит.</small><span class="tile-link">Смотреть ветку →</span></button><button class="command-tile" type="button" data-tree-branch="tech"><span class="branch-mark">⌘</span><strong>Технологии</strong><small>Сбор ресурсов, ремонт и автономные системы.</small><span class="tile-link">Смотреть ветку →</span></button></div>
+                                <div class="progression-notes"><p><strong>На один вылет</strong><br>Уровень, навыки и установленные модули. Следующий вылет начинаете с базовым оснащением.</p><p><strong>Между миссиями</strong><br>Победы открывают миссии, чертежи и допуски к специализациям. Они сохраняются после вылета.</p></div>
+                                <p id="menuTreeContext" class="menu-save-note">Дерево показывает начальные условия выбранной миссии.</p>
+                            </section>
+                            <section id="panelArchive" class="command-panel" role="tabpanel" aria-labelledby="navArchive" data-menu-panel="archive" hidden>
+                                <div class="panel-heading"><div><span class="menu-eyebrow">БОРТОВОЙ АРХИВ</span><h2>Архив и помощь</h2></div></div>
+                                <div class="command-archive-grid"><button id="btnLeaderboard" class="command-tile" type="button"><strong>Рекорды</strong><small>Результаты полётов и скоростных испытаний.</small></button><button id="btnAchievements" class="command-tile" type="button"><strong>Достижения</strong><small>Боевые и исследовательские вехи.</small></button><button id="btnViewStreak" class="command-tile" type="button"><strong>Календарь испытаний</strong><small>Пройденные дни и серия вылетов.</small></button><button id="btnReplay" class="command-tile" type="button"><strong>Повтор полёта</strong><small>Посмотреть запись последнего вылета.</small></button></div>
+                                <div class="command-help-actions"><button id="btnHowTo" class="btn ghost" type="button">Как играть</button><button id="btnTutorial" class="btn ghost" type="button">Тренировочный полёт</button><a id="btnPrologue" class="btn ghost" href="./?mission=0">Сюжетное обучение · миссия 00</a></div>
+                                <details id="mainMenuGuide" class="main-menu-details"><summary>Коротко об управлении</summary><div class="instructions"><p class="desktop-control-tip">WASD / стрелки — движение. Tab — карта. Esc / P — пауза. E — взаимодействие. M — звук.</p><p class="touch-control-tip">Джойстик слева — движение. Карта и пауза — кнопки сверху. Рядом с объектом появляется кнопка взаимодействия.</p><p>Оружие стреляет автоматически. Улучшения выбирайте после повышения уровня. Подключайте станции, чтобы повышать доступный ранг навыков.</p></div></details>
+                    <details id="mainMenuCredits" class="main-menu-details credits-details">
+                        <summary>Авторы, музыка и лицензии</summary>
+                    <p class="source-credit">Музыка: <a href="https://www.scottbuckley.com.au/" target="_blank" rel="noopener noreferrer">Scott Buckley</a> — «Starfire», «Pursuit», «Eyes in the Void». Используется по лицензии <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>; композиции адаптированы в формат Ogg/Opus.</p>
+                    <p class="source-credit">Звуковое оформление: <a href="https://gdc.sonniss.com/" target="_blank" rel="noopener noreferrer">Sonniss #GameAudioGDC 2026</a>, студийные эффекты, адаптированные для игры по <a href="https://sonniss.com/gdc-bundle-license/" target="_blank" rel="noopener noreferrer">лицензии</a>.</p>
+                    <p class="source-credit">Главный корабль: <a href="./hero-evolution.html">посмотреть все 10 этапов развития</a>. 3D-каталог: <a href="./hangar/">80 моделей и модулей</a> (CC0).</p>
+                    <p class="source-credit">Оригинальная игра — <a href="https://github.com/ricardo-foundry/canvas-vampire-survivors" target="_blank" rel="noopener noreferrer">Canvas Vampire Survivors</a>. Лицензия MIT. Русская адаптация — Vesninmed.</p>
+                    </details>
+
+                            </section>
+                        </main>
+                    </div>
+                </div>
+            </div>
+
+            <div id="achievementsScreen" class="overlay" style="display: none"></div>
+            <div id="leaderboardScreen" class="overlay" style="display: none"></div>
+            <div id="stagePickerScreen" class="overlay" style="display: none"></div>
+            <div id="campaignPickerScreen" class="overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="campaignTitle">
+                <div class="overlay-card campaign-panel">
+                    <div class="menu-kicker">ГАЛАКТИЧЕСКАЯ КАМПАНИЯ</div>
+                    <h2 id="campaignTitle">Маршрут кампании</h2>
+                        <a class="prologue-in-campaign" href="./?mission=0" aria-label="Пролог: Последний сигнал — начать сюжетное вступление">00 · ПОСЛЕДНИЙ СИГНАЛ — НАЧАТЬ ИСТОРИЮ →</a>
+                    <p>Миссии 00–04 доступны для прохождения по порядку. Победы открывают следующие операции и чертежи. Остальные миссии ещё создаются.</p>
+                    <div class="campaign-missions" role="list" aria-label="Список миссий"></div>
+                    <button id="campaignBack" class="btn ghost" type="button">← В главное меню</button>
+                </div>
+            </div>
+            <div id="missionLogOverlay" class="overlay mission-log-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="missionLogHeading">
+                <section class="overlay-card mission-log-card">
+                    <div class="menu-kicker">БОРТОВОЙ ЖУРНАЛ · ОПЕРАЦИЯ</div>
+                    <h2 id="missionLogHeading">Журнал операции</h2>
+                    <p id="missionLogIntroduction"></p>
+                    <ol id="missionLogEntries" class="mission-log-entries"></ol>
+                    <button id="missionLogOk" class="btn primary mission-log-ok" type="button">Понятно · Продолжить</button>
+                </section>
+            </div>
+            <div id="missionVictoryScreen" class="overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="victoryTitle">
+                <div class="overlay-card campaign-victory">
+                    <div class="menu-kicker">ГАЛАКТИЧЕСКИЙ АРХИВ · ОПЕРАЦИЯ ЗАВЕРШЕНА</div>
+                    <h2 class="victory-title" id="victoryTitle">Миссия выполнена</h2>
+                    <p class="victory-info"></p><p class="victory-reward"></p>
+                    <div class="btn-row"><button class="btn primary victory-next" type="button">Следующая миссия →</button>
+                    <button class="btn ghost victory-menu" type="button">В главное меню</button></div>
+                </div>
+            </div>
+            <div id="streakScreen" class="overlay" style="display: none"></div>
+            <div id="helpScreen" class="overlay" style="display: none"></div>
+            <div id="howToPlayScreen" class="overlay" style="display: none"></div>
+
+            <div
+                id="levelUpMenu"
+                class="overlay"
+                style="display: none"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="levelUpTitle"
+            >
+                <div class="overlay-card levelup">
+                    <h2 id="levelUpTitle" data-i18n="chooseUpgrade">Choose an upgrade</h2>
+                    <p id="levelUpTechNote" class="levelup-tech-note" role="status"></p>
+                    <div id="upgradeOptions" role="menu"></div>
+                </div>
+            </div>
+
+            <div
+                id="pauseMenu"
+                class="overlay"
+                style="display: none"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pauseTitle"
+            >
+                <div class="overlay-card">
+                    <h2 id="pauseTitle" data-i18n="paused">PAUSED</h2>
+                    <div class="btn-row vertical">
+                        <button id="btnResume" class="btn primary" data-i18n="resume">
+                            Resume
+                        </button>
+                        <button id="btnViewSkills" class="btn ghost" type="button" style="display:none">
+                            🧬 Дерево навыков
+                        </button>
+                        <button id="btnPauseSettings" class="btn ghost" type="button">⚙ Настройки</button>
+                        <button id="btnQuit" class="btn ghost" data-i18n="quit">
+                            Quit to Menu
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                id="gameOver"
+                class="overlay"
+                style="display: none"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="gameOverTitle"
+            >
+                <div class="overlay-card gameover">
+                    <h1 id="gameOverTitle" data-i18n="gameover">YOU DIED</h1>
+                    <div class="stats">
+                        <div>
+                            <span data-i18n="finalTime">Survived</span>:
+                            <span id="finalTime">00:00</span>
+                        </div>
+                        <div>
+                            <span data-i18n="finalKills">Kills</span>:
+                            <span id="finalKills">0</span>
+                        </div>
+                        <div>
+                            <span data-i18n="finalLevel">Уровень</span>:
+                            <span id="finalLevel">1</span>
+                        </div>
+                        <div class="score-final"><span data-i18n="score">Очки</span>: <strong id="finalScore">0</strong></div>
+                    </div>
+                    <p id="finalExpedition" class="expedition-summary" style="display:none"></p>
+                    <p id="finalRecordBadge" class="record-message" aria-live="polite"></p>
+                    <details class="hs-details">
+                        <summary data-i18n="highScores">High Scores</summary>
+                        <div id="highScoreList" class="hs-list"></div>
+                    </details>
+                    <p class="record-link"><a href="/lab/" aria-label="Посмотреть рекорды в личном деле">Мои рекорды в «Личном деле»</a></p>
+                    <div class="btn-row">
+                        <button id="btnRetry" class="btn primary" data-i18n="retry">Retry</button>
+                        <button id="btnMenu" class="btn ghost" data-i18n="mainMenu">
+                            Main Menu
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="baseDock" class="overlay" style="display:none" role="dialog" aria-modal="true" aria-label="Мастерская дружественной базы"></div>
+            <div id="galaxyMap" class="overlay galaxy-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="galaxyMapTitle">
+                <section class="overlay-card galaxy-map-card">
+                    <header class="galaxy-map-header">
+                        <div>
+                            <h2 id="galaxyMapTitle">🗺️ Навигационная карта</h2>
+                            <p>Открытые станции, положение корабля и обнаруженные крупные угрозы</p>
+                        </div>
+                        <div class="galaxy-map-controls">
+                        <button id="btnMapZoomIn" type="button" title="Приблизить">＋</button>
+                        <button id="btnMapZoomOut" type="button" title="Отдалить">−</button>
+                        <button id="btnMapCenter" type="button">⌖ Мой корабль</button>
+                        <button id="btnMapFull" type="button">⤢ Весь мир</button>
+                        <button id="btnMapRoute" type="button" disabled>🧭 Маршрут</button>
+                        <span class="galaxy-map-legend">◆ Вы · ● Базы · 📡 Сигналы · ▲ Опасности</span>
+                        </div>
+                        <button id="btnMapFullscreen" type="button" class="galaxy-map-fullscreen" aria-label="На весь экран" title="На весь экран">⛶</button>
+                        <button id="btnMapClose" type="button" class="galaxy-map-close" aria-label="Закрыть карту">✕ <span>Tab</span></button>
+                    </header>
+                    <div class="galaxy-map-body">
+                        <div class="galaxy-map-display">
+                            <canvas id="galaxyMapCanvas" width="960" height="600" aria-label="Карта игрового мира. Перетаскивайте для перемещения, нажимайте на базы для просмотра."></canvas>
+                            <p id="galaxyMapInfo" class="galaxy-map-info"></p>
+                        </div>
+                        <aside class="galaxy-map-aside" aria-label="Обнаруженные станции">
+                            <h3>Открытые базы</h3>
+                            <div id="galaxyBaseList" class="galaxy-map-base-list"></div>
+                        </aside>
+                    </div>
+                    <div id="galaxyMapStatus" class="galaxy-map-status"></div>
+                </section>
+            </div>
+            <div id="settingsMenu" class="overlay" style="display: none"></div>
+            <div id="fullscreenFeedback" class="fullscreen-feedback" role="status" aria-live="polite" hidden></div>
+            <div id="landscapeNotice" class="landscape-notice" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="landscapeHeading" tabindex="-1">
+                <div class="landscape-notice-card">
+                    <div class="landscape-phone-symbol" aria-hidden="true">▣</div>
+                    <h2 id="landscapeHeading">Поверните телефон горизонтально</h2>
+                    <p>«Выживший» рассчитан на горизонтальный экран. Если изображение не поворачивается, включите автоповорот в настройках телефона.</p>
+                    <button id="landscapeFullscreen" class="landscape-fullscreen" type="button">⛶ На весь экран</button>
+                    <p class="landscape-hint">Если вы повернули телефон во время боя, забег поставлен на паузу. После поворота нажмите «Продолжить».</p>
+                </div>
+            </div>
+        </div>
+
+        <script type="module">
+            import { boot } from './src/main.js?v=spac1-walk-134';
+            import { installInterface } from './src/menu-interface.js?v=design-127';
+            const game = boot();
+            installInterface(game);
+            const gameRoot = document.getElementById('gameContainer');
+            const fullscreenControls = ['btnFullscreen', 'btnMenuFullscreen',
+                'btnMapFullscreen', 'landscapeFullscreen']
+                .map(id => document.getElementById(id)).filter(Boolean);
+            const fullscreenSupported = Boolean(
+                (gameRoot?.requestFullscreen || gameRoot?.webkitRequestFullscreen) &&
+                (document.fullscreenEnabled !== false || document.webkitFullscreenEnabled === true)
+            );
+            const fullscreenActive = () =>
+                (document.fullscreenElement || document.webkitFullscreenElement) === gameRoot;
+            const fullscreenFeedback = document.getElementById('fullscreenFeedback');
+            let fullscreenFeedbackTimer;
+            const showFullscreenFeedback = (message) => {
+                if (!fullscreenFeedback) return;
+                clearTimeout(fullscreenFeedbackTimer);
+                fullscreenFeedback.textContent = message;
+                fullscreenFeedback.hidden = false;
+                fullscreenFeedbackTimer = setTimeout(() => { fullscreenFeedback.hidden = true; }, 5000);
+            };
+            const syncFullscreen = () => {
+                const active = fullscreenActive();
+                document.body.classList.toggle('survivor-fullscreen', active);
+                for (const button of fullscreenControls) {
+                    button.hidden = !fullscreenSupported;
+                    button.setAttribute('aria-pressed', String(active));
+                    const caption = active ? 'Выйти из полного экрана' : 'На весь экран';
+                    button.setAttribute('aria-label', caption);
+                    button.title = caption;
+                    if (button.id === 'btnFullscreen' || button.id === 'btnMapFullscreen')
+                        button.textContent = active ? '◱' : '⛶';
+                    else if (button.id === 'btnMenuFullscreen')
+                        button.textContent = active ? '◱ Обычный экран' : '⛶ Полный экран';
+                    else button.textContent = active ? '◱ Обычный экран' : '⛶ На весь экран';
+                }
+            };
+            const toggleFullscreen = async () => {
+                if (!fullscreenSupported) return;
+                try {
+                    if (fullscreenActive()) {
+                        if (document.exitFullscreen) await document.exitFullscreen();
+                        else await document.webkitExitFullscreen?.();
+                    } else {
+                        if (gameRoot.requestFullscreen) await gameRoot.requestFullscreen();
+                        else await gameRoot.webkitRequestFullscreen();
+                        // Orientation lock can fail even after successful fullscreen.
+                        // It must never undo fullscreen or stop the game.
+                        if (window.matchMedia?.('(any-pointer: coarse)').matches) {
+                            try { await window.screen?.orientation?.lock?.('landscape'); }
+                            catch (_) { /* manual rotation remains available */ }
+                        }
+                    }
+                } catch (_) {
+                    showFullscreenFeedback('Браузер запретил полноэкранный режим. Откройте игру в обычной вкладке или установите её на главный экран.');
+                }
+                syncFullscreen();
+            };
+            fullscreenControls.forEach(button =>
+                button.addEventListener('click', toggleFullscreen));
+            document.addEventListener('fullscreenchange', syncFullscreen);
+            document.addEventListener('webkitfullscreenchange', syncFullscreen);
+            syncFullscreen();
+            if (window.matchMedia?.('(any-pointer: coarse)').matches) {
+                for (const id of ['mainMenuGuide', 'mainMenuCredits']) {
+                    const details = document.getElementById(id);
+                    if (details) details.open = false;
+                }
+            }
+            const labLink = document.getElementById('backToLab');
+            labLink?.addEventListener('click', (event) => {
+                if (['playing', 'paused', 'levelup', 'map'].includes(game.state) && !game.replayActive) {
+                    if (!window.confirm('Забег ещё не завершён. Если выйти, очки этого забега не сохранятся. Вернуться в лабораторию?')) {
+                        event.preventDefault();
+                    }
+                }
+            });
+            const soundButton = document.getElementById('btnSound');
+            const syncSoundButton = () => {
+                if (!soundButton) return;
+                soundButton.textContent = game.save.settings.muted ? '🔇 Включить звук' : '🔊 Выключить звук';
+                soundButton.setAttribute('aria-pressed', String(!game.save.settings.muted));
+            };
+            soundButton?.addEventListener('click', () => { game.toggleMute(); syncSoundButton(); });
+            window.addEventListener('keydown', (event) => {
+                if (event.key.toLowerCase() === 'm') setTimeout(syncSoundButton, 0);
+            });
+            syncSoundButton();
+            // A new service-worker may take control after the first page
+            // response was served by an old cache. Refresh the menu once,
+            // but never silently interrupt an active run.
+            navigator.serviceWorker?.addEventListener('controllerchange', () => {
+                const refreshKey = 'vesnin-survivor-sw-reloaded-spac1-audit-131';
+                if (sessionStorage.getItem(refreshKey)) return;
+                const refresh = () => {
+                    sessionStorage.setItem(refreshKey, '1');
+                    location.reload();
+                };
+                if (game.state === 'menu' || game.state === 'gameover') {
+                    refresh();
+                    return;
+                }
+                if (document.getElementById('survivorUpdate')) return;
+                const notice = document.createElement('button');
+                notice.id = 'survivorUpdate';
+                notice.className = 'survivor-update-notice';
+                notice.textContent = 'Есть обновление — открыть после забега';
+                notice.title = 'Обновить страницу. Текущий забег закончится.';
+                notice.addEventListener('click', () => {
+                    if (window.confirm('Текущий забег закончится. Загрузить новую версию?')) refresh();
+                });
+                document.body.appendChild(notice);
+            });
+            // Pause button (UI click) mirrors Esc.
+            document
+                .getElementById('btnPause')
+                ?.addEventListener('click', () => game.togglePause());
+        </script>
+
+        <!-- Optional offline support. SW registration is a no-op on file:// -->
+        <script>
+            if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker
+                        .register('./service-worker.js', { updateViaCache: 'none' })
+                        .then((registration) => registration.update())
+                        .catch((err) => console.warn('[sw] registration failed', err));
+                });
+            }
+        </script>
+    </body>
+</html>
+
+

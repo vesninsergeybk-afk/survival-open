@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071421">
+<title>Десять ступеней развития и повреждений — Выживший</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#071421;color:#e7f6ff;font:16px/1.5 system-ui,sans-serif}main{max-width:1050px;margin:auto;padding:22px 16px 60px}a{color:#81e9ec}h1{line-height:1.15;font-size:clamp(26px,5vw,44px);margin:26px 0 12px}p{color:#aac8d7;max-width:730px}button{background:#185264;border:1px solid #5bd6ed;border-radius:10px;padding:11px 16px;color:white;cursor:pointer;font:inherit}button:hover,button:focus-visible{background:#237186}.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:24px}.gallery article{background:#102536;border:1px solid #2a5463;border-radius:14px;overflow:hidden}.art{height:290px;display:flex;justify-content:center;align-items:center;overflow:hidden;background-color:#122634;background-image:linear-gradient(45deg,#223b4b 25%,transparent 25%),linear-gradient(-45deg,#223b4b 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#223b4b 75%),linear-gradient(-45deg,transparent 75%,#223b4b 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}.art img{max-width:98%;max-height:96%;object-fit:contain;filter:drop-shadow(0 5px 9px #0007)}.art img.damaged{display:none}body.damage .art img.healthy{display:none}body.damage .art img.damaged{display:block}.bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 16px}.bottom a{font-size:13px}@media(max-width:600px){.gallery{gap:9px}.art{height:190px}.bottom{display:block;padding:9px}.bottom a{display:inline-block;font-size:12px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+
+.motion-preview{margin:22px 0 18px;background:#102536;border:1px solid #2a5463;border-radius:16px;padding:15px 18px;max-width:100%}.motion-preview h2{margin:0 0 7px;font-size:21px}.motion-preview .preview-controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin:13px 0}.motion-preview label{display:flex;align-items:center;gap:9px;font-size:14px;color:#bedae7}.motion-preview select,.motion-preview input{accent-color:#62dfea}.motion-preview select{background:#092434;color:#e7f6ff;border:1px solid #5db5c9;padding:7px;border-radius:7px}.motion-preview canvas{display:block;width:100%;max-width:660px;height:auto;aspect-ratio:5/3;background:radial-gradient(ellipse at 50% 65%,#214254 0%,#132b3d 50%,#081926 100%);border:1px solid #285164;border-radius:12px;margin:auto}.motion-preview p{margin:10px 0 0;font-size:13px}.motion-preview output{min-width:40px;display:inline-block;color:#e7f6ff;font-variant-numeric:tabular-nums}@media(max-width:600px){.motion-preview{padding:12px}.motion-preview .preview-controls{gap:9px}.motion-preview label{width:100%;justify-content:space-between}.motion-preview label input{flex:1}}
+</style>
+</head>
+<body><main>
+<a href="./">← Вернуться в «Выжившего»</a>
+<h1>Десять ступеней одного корабля</h1>
+<p>У каждой ступени есть целый и повреждённый корпус. В движении огонь постепенно разгорается; при остановке сопла гаснут, а сигнальные огни меняют режим. Переключатели позволяют сравнить состояния. Повреждённые изображения теперь сжаты в WebP.</p>
+<section class="motion-preview" aria-label="Проверка анимации корабля">
+<h2>Проверить движение вживую</h2>
+<div class="preview-controls">
+<label for="motionStage">Ступень развития <select id="motionStage"><option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option><option value="4">5</option><option value="5">6</option><option value="6">7</option><option value="7">8</option><option value="8">9</option><option value="9">10</option></select></label>
+<label for="motionThrust">Тяга <input id="motionThrust" type="range" min="0" max="100" value="0" step="1"><output id="motionValue">0 %</output></label>
+<button type="button" id="motionAuto" aria-pressed="true">Остановить автопоказ</button>
+</div>
+<canvas id="motionCanvas" width="600" height="360" role="img" aria-label="Анимированный корабль — вид сверху"></canvas>
+<p>Наблюдайте разгон, плавное затухание сопел, лёгкое парение и поворот. Кнопка повреждений ниже меняет состояние и здесь.</p>
+</section>
+<button type="button" id="toggleDamage" aria-pressed="false">Показать повреждённые корабли</button>
+<button type="button" id="toggleIdle" aria-pressed="false">Показать с выключенными двигателями</button>
+<div class="gallery"><article><div class="art"><img class="healthy" src="./assets/space/hero-evolution/ship_01.webp" alt="Целый корабль, этап 1"><img class="damaged" src="./assets/space/hero-evolution/ship_01_damaged.webp" alt="Повреждённый корабль, этап 1"></div><div class="bottom"><strong>Этап 1</strong><span><a href="./assets/space/hero-evolution/ship_01.webp" download>Целый</a> · <a href="./assets/space/hero-evolution/ship_01_damaged.webp" download>Повреждённый</a></span></div></article>
+<article><div class="art"><img class="healthy" src="./assets/space/hero-evolution/ship_02.webp" alt="Целый корабль, этап 2"><img class="damaged" src="./assets/space/hero-evolution/ship_02_damaged.webp" alt="Повреждённый корабль, этап 2"></div><div class="bottom"><strong>Этап 2</strong><span><a href="./assets/space/hero-evolution/ship_02.webp" download>Целый</a> · <a href="./assets/space/hero-evolution/ship_02_damaged.webp" download>Повреждённый</a></span></div></article>
+<article><div class="art"><img class="healthy" src="./assets/space/hero-evolution/ship_03.webp" alt="Целый корабль, этап 3" loading="lazy"><img class="damaged" src="./assets/space/hero-evolution/ship_03_damaged.webp" alt="Повреждённый корабль, этап 3" loading="lazy"></div><div class="bottom"><strong>Этап 3</strong><span><a href="./assets/space/hero-evolution/ship_03.webp" download>Целый</a> · <a href="./assets/space/hero-evolution/ship_03_damaged.webp" download>Повреждённый</a></span></div></article>
+<article><div class="art"><img class="healthy" src="./assets/space/hero-evolution/ship_04.webp" alt="Целый корабль, этап 4" loading="lazy"><img class="damaged" src="./assets/space/hero-evolution/ship_04_damaged.webp" alt="Повреждённый корабль, этап 4" loading="lazy"></div><div class="bottom"><strong>Этап 4</strong><span><a href="./assets/space/hero-evolution/ship_04.webp" download>Целый</a> · <a href="./assets/space/hero-evolution/ship_04_damaged.webp" download>Повреждённый</a></span></div></article>
+<article><div class="art"><img class="healthy" src="./assets/space/hero-evolution/ship_05.webp" alt="Целый корабль, этап 5" loading="lazy"><img class="damaged" src="./assets/space/hero-evolution/ship_05_damaged.webp" alt="Повреждённый корабль, этап 5" loading="lazy"></div><div class="bottom"><strong>Этап 5</strong><span><a href="./assets/space/hero-evolution/ship_05.webp" download>Целый</a> · <a href="./assets/space/hero-evolution/ship_05_damaged.webp" download>Повреждённый</a></span></div></article>
+<article><div class="art"><img class="healthy" src="./assets/space/hero-evolution/ship_06.webp" alt="Целый корабль, этап 6" loading="lazy"><img class="damaged" src="./assets/space/hero-evolution/ship_06_damaged.webp" alt="Повреждённый корабль, этап 6" loading="lazy"></div><div class="bottom"><strong>Этап 6</strong><span><a href="./assets/space/hero-evolution/ship_06.webp" download>Целый</a> · <a href="./assets/space/hero-evolution/ship_06_damaged.webp" download>Повреждённый</a></span></div></article>
+<article><div class="art"><img class="healthy" src="./assets/space/hero-evolution/ship_07.webp" alt="Целый корабль, этап 7" loading="lazy"><img class="damaged" src="./assets/space/hero-evolution/ship_07_damaged.webp" alt="Повреждённый корабль, этап 7" loading="lazy"></div><div class="bottom"><strong>Этап 7</strong><span><a href="./assets/space/hero-evolution/ship_07.webp" download>Целый</a> · <a href="./assets/space/hero-evolution/ship_07_damaged.webp" download>Повреждённый</a></span></div></article>
+<article><div class="art"><img class="healthy" src="./assets/space/hero-evolution/ship_08.webp" alt="Целый корабль, этап 8" loading="lazy"><img class="damaged" src="./assets/space/hero-evolution/ship_08_damaged.webp" alt="Повреждённый корабль, этап 8" loading="lazy"></div><div class="bottom"><strong>Этап 8</strong><span><a href="./assets/space/hero-evolution/ship_08.webp" download>Целый</a> · <a href="./assets/space/hero-evolution/ship_08_damaged.webp" download>Повреждённый</a></span></div></article>
+<article><div class="art"><img class="healthy" src="./assets/space/hero-evolution/ship_09.webp" alt="Целый корабль, этап 9" loading="lazy"><img class="damaged" src="./assets/space/hero-evolution/ship_09_damaged.webp" alt="Повреждённый корабль, этап 9" loading="lazy"></div><div class="bottom"><strong>Этап 9</strong><span><a href="./assets/space/hero-evolution/ship_09.webp" download>Целый</a> · <a href="./assets/space/hero-evolution/ship_09_damaged.webp" download>Повреждённый</a></span></div></article>
+<article><div class="art"><img class="healthy" src="./assets/space/hero-evolution/ship_10.webp" alt="Целый корабль, этап 10" loading="lazy"><img class="damaged" src="./assets/space/hero-evolution/ship_10_damaged.webp" alt="Повреждённый корабль, этап 10" loading="lazy"></div><div class="bottom"><strong>Этап 10</strong><span><a href="./assets/space/hero-evolution/ship_10.webp" download>Целый</a> · <a href="./assets/space/hero-evolution/ship_10_damaged.webp" download>Повреждённый</a></span></div></article></div>
+<script>
+const button=document.getElementById('toggleDamage');
+button.addEventListener('click',()=>{
+ const active=document.body.classList.toggle('damage');
+ button.setAttribute('aria-pressed',String(active));
+ button.textContent=active?'Показать целые корабли':'Показать повреждённые корабли';
+ document.dispatchEvent(new Event('ship-gallery-change'));
+});
+</script>
+<script type="module">
+import { getIdleHeroSprite, drawEvolvedHero, heroMotionPose } from './src/hero-evolution.js?v=motion-103';
+const buttonIdle = document.getElementById('toggleIdle');
+const entries = [...document.querySelectorAll('.gallery article')].flatMap((article, index) =>
+ [...article.querySelectorAll('img')].map(img => ({
+    img,index,damaged:img.classList.contains('damaged'),
+    original:img.getAttribute('src'),idleUrl:null
+ })));
+let idle = false;
+let timer = null;
+function updateIdle() {
+    let waiting = 0;
+    const damagedSelected = document.body.classList.contains('damage');
+    for (const entry of entries) {
+        if (!idle) { if (entry.img.getAttribute('src') !== entry.original) entry.img.src = entry.original; continue; }
+        // Prepare only the ten frames currently visible, not all twenty.
+        if (entry.damaged !== damagedSelected) continue;
+        if (entry.idleUrl) { entry.img.src = entry.idleUrl; continue; }
+        const canvas = getIdleHeroSprite(entry.index, entry.damaged);
+        if (!canvas) { waiting++; continue; }
+        entry.idleUrl = canvas.toDataURL('image/webp', .88);
+        entry.img.src = entry.idleUrl;
+    }
+    if (waiting && idle && !timer) {
+        timer = setTimeout(() => { timer = null; updateIdle(); }, 180);
+    }
+}
+document.addEventListener('ship-gallery-change', updateIdle);
+buttonIdle.addEventListener('click', () => {
+    idle = !idle;
+    buttonIdle.setAttribute('aria-pressed', String(idle));
+    buttonIdle.textContent = idle ? 'Показать работающие двигатели' :
+        'Показать с выключенными двигателями';
+    if (timer) { clearTimeout(timer); timer = null; }
+    updateIdle();
+});
+
+const previewCanvas = document.getElementById('motionCanvas');
+const preview = previewCanvas.getContext('2d', {alpha:true});
+const stageSelect = document.getElementById('motionStage');
+const thrustSlider = document.getElementById('motionThrust');
+const thrustOutput = document.getElementById('motionValue');
+const autoButton = document.getElementById('motionAuto');
+let autoCycle = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+let previewVisible = true, lastPreview = -1000;
+const setAutomatic = value => {
+    autoCycle = value;
+    autoButton.setAttribute('aria-pressed', String(value));
+    autoButton.textContent = value ? 'Остановить автопоказ' : 'Показать полный цикл';
+};
+setAutomatic(autoCycle);
+autoButton.addEventListener('click', () => setAutomatic(!autoCycle));
+thrustSlider.addEventListener('input', () => {
+    setAutomatic(false);
+    thrustOutput.value = thrustSlider.value + ' %';
+});
+if (typeof IntersectionObserver !== 'undefined') {
+    new IntersectionObserver(items => {
+        previewVisible = items.some(item => item.isIntersecting);
+    }, {rootMargin:'70px'}).observe(previewCanvas);
+}
+function ease(v) { return v * v * (3 - 2 * v); }
+function animatePreview(ms) {
+    requestAnimationFrame(animatePreview);
+    if (!preview || !previewVisible || document.hidden || ms - lastPreview < 32) return;
+    lastPreview = ms;
+    const t = ms * .001;
+    let power = Number(thrustSlider.value) / 100;
+    if (autoCycle) {
+        const period = t % 7.2;
+        power = period < 1.4 ? 0 : period < 2.5 ? ease((period - 1.4) / 1.1)
+            : period < 4.4 ? 1 : period < 5.7 ? 1 - ease((period - 4.4) / 1.3) : 0;
+        thrustSlider.value = String(Math.round(power * 100));
+        thrustOutput.value = Math.round(power * 100) + ' %';
+    }
+    const stage = Number(stageSelect.value);
+    const damage = document.body.classList.contains('damage');
+    preview.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    preview.save();
+    preview.fillStyle = 'rgba(0,10,22,.26)';
+    preview.beginPath();
+    preview.ellipse(300, 300, 143, 22, 0, 0, Math.PI * 2);
+    preview.fill();
+    const motion = heroMotionPose(90, power, t);
+    preview.translate(300 + motion.x, 177 + motion.y);
+    preview.rotate(motion.angle + Math.sin(t * 1.55) * .032 * power);
+    const painted = drawEvolvedHero(preview, 90, stage, damage ? .18 : 1, power);
+    preview.restore();
+    if (!painted) {
+        preview.fillStyle = '#b1d9e6';
+        preview.font = '18px system-ui';
+        preview.textAlign = 'center';
+        preview.fillText('Загружается изображение корабля…', 300, 184);
+    }
+}
+requestAnimationFrame(animatePreview);
+</script>
+</main></body></html>

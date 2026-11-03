@@ -1,0 +1,63 @@
+/**
+ * Tactical terrain for the first asteroid-belt trial.
+ * Pure geometry: deterministic generation, no rendering or combat RNG.
+ */
+export const AMBER_BELT=Object.freeze({
+ centerX:7200,centerY:1450,halfLength:1350,slope:.22,
+ corridor:175,outerBand:850
+});
+const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+const beltCoords=(x,y)=>{
+ const along=(x-AMBER_BELT.centerX)/AMBER_BELT.halfLength;
+ const cross=Math.abs(y-(AMBER_BELT.centerY+
+   (x-AMBER_BELT.centerX)*AMBER_BELT.slope));
+ return {along,cross};
+};
+/** Broad boundary used for local rock-cell generation and one-time guidance. */
+export function nearAmberBelt(x,y){
+ const {along,cross}=beltCoords(x,y);
+ return Math.abs(along)<1.05&&cross<AMBER_BELT.outerBand+110;
+}
+/** A visible, open flying corridor bisects the belt. */
+export function inAmberCorridor(x,y){
+ const {along,cross}=beltCoords(x,y);
+ return Math.abs(along)<1&&cross<AMBER_BELT.corridor;
+}
+/** Two tapered rock bands on opposite sides of the corridor. */
+export function amberBeltDensity(x,y){
+ const {along,cross}=beltCoords(x,y);
+ if(Math.abs(along)>=1||cross<=AMBER_BELT.corridor||cross>=AMBER_BELT.outerBand)return 0;
+ return clamp(Math.min(
+   (1-Math.abs(along))/.18,
+   (cross-AMBER_BELT.corridor)/140,
+   (AMBER_BELT.outerBand-cross)/170
+ ),0,1);
+}
+/**
+ * First contact along the actual projectile segment, including long frames.
+ * Only visibly large rocks stop hostile shots. Smaller mining fragments do not.
+ * A rock overlapping the player never grants invisible immunity.
+ */
+export function firstRockImpact(x0,y0,x1,y1,rocks,shotRadius=0,player=null){
+ const vx=x1-x0,vy=y1-y0,a=vx*vx+vy*vy;
+ let best=null,bestT=Infinity;
+ for(const rock of rocks){
+  if(!rock.alive||rock.r<34)continue;
+  if(player&&Math.hypot(player.x-rock.x,player.y-rock.y)<
+     rock.r+(player.r||0)+3)continue;
+  const r=rock.r+Math.min(4,Math.max(0,shotRadius)*.5);
+  const fx=x0-rock.x,fy=y0-rock.y;
+  // Cheap bounding check before the quadratic calculation.
+  if(rock.x<Math.min(x0,x1)-r||rock.x>Math.max(x0,x1)+r||
+     rock.y<Math.min(y0,y1)-r||rock.y>Math.max(y0,y1)+r)continue;
+  const c=fx*fx+fy*fy-r*r;
+  let t=Infinity;
+  if(c<=0)t=0;
+  else if(a>1e-9){
+   const b=2*(fx*vx+fy*vy),discriminant=b*b-4*a*c;
+   if(discriminant>=0)t=(-b-Math.sqrt(discriminant))/(2*a);
+  }
+  if(t>=0&&t<=1&&t<bestT){bestT=t;best={rock,x:x0+vx*t,y:y0+vy*t,t};}
+ }
+ return best;
+}

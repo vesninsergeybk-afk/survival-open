@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<!-- Legacy entrance now routes into shared campaign Mission 00. -->
+<script>if(location.pathname.includes('/prologue'))location.replace('../?mission=0');</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08131f">
+<title>Выживший — Последний сигнал | Игровой пролог</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--mint:#58f3c3;--amber:#f7bd78;--red:#ff8295}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#06101b;color:#e9f4ff;touch-action:pan-y}
+#world{display:block;width:100%;height:100%;background:#081522;touch-action:none}
+.hud{pointer-events:none;position:fixed;inset:0;z-index:2}
+.top{position:absolute;top:max(18px,env(safe-area-inset-top));left:22px;right:22px;display:flex;justify-content:space-between;gap:18px;align-items:start}
+.brand{display:flex;align-items:center;gap:11px;color:#ddf5ff;font-size:11px;font-weight:700;letter-spacing:.21em;text-transform:uppercase}
+.brand:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 24px var(--mint)}
+.chapter{font-weight:600;color:#87a4b9;margin-top:7px;font-size:11px;letter-spacing:.13em}
+.health{width:198px;border:1px solid #41617785;background:#081521c9;padding:10px 13px;border-radius:5px;box-shadow:0 8px 30px #0004}
+.hrow{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.1em;color:#9bb2c0;margin-bottom:8px}.hrow strong{font-size:12px;color:#eaf8ff}
+.hbar{height:5px;background:#253b45;border-radius:8px;overflow:hidden}.hbar span{display:block;height:100%;width:100%;background:linear-gradient(90deg,#51bcad,#b7ffe2);box-shadow:0 0 18px #65ffc6;transition:width .2s}
+.objective{position:absolute;top:91px;left:22px;max-width:min(390px,65vw);padding:15px 18px;background:linear-gradient(100deg,#102332ed,#091924d2);border-left:2px solid var(--mint);box-shadow:0 12px 36px #0007}
+.objective .eyebrow{display:block;color:var(--mint);font-size:10px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:7px}
+#objectiveText{display:block;line-height:1.35;font-size:14px;font-weight:650}#objectiveHint{display:block;font-size:11px;color:#94adbc;margin-top:7px;line-height:1.4}
+#status{position:absolute;right:22px;top:99px;font-size:11px;color:#9fb4c5;text-align:right;line-height:1.7;letter-spacing:.04em}
+#toast{position:absolute;left:50%;top:22%;transform:translate(-50%,-12px);opacity:0;transition:opacity .25s,transform .25s;text-align:center;min-width:220px;max-width:80vw;color:#eafcff;text-shadow:0 3px 24px #000;padding:12px 18px;font-size:15px;font-weight:550;background:#0b1c2ae5;border:1px solid #6eecda72}
+#toast.visible{opacity:1;transform:translate(-50%,0)}
+#prompt{position:absolute;left:50%;bottom:21%;transform:translateX(-50%);padding:9px 16px;border:1px solid #80e7d35c;background:#0b2637d6;border-radius:4px;color:#d1fff3;white-space:nowrap;font-size:12px;letter-spacing:.025em;opacity:0;transition:opacity .2s}
+#prompt.visible{opacity:1}
+.bottom{position:absolute;bottom:max(20px,env(safe-area-inset-bottom));left:24px;right:24px;display:flex;justify-content:space-between;align-items:end}
+.legend{font-size:11px;line-height:2;color:#8ba3b3;letter-spacing:.04em}
+.legend kbd{padding:3px 6px;margin-right:5px;border:1px solid #507284;background:#152b3c;color:#c9f7f1;border-radius:3px}
+#chapterMark{text-align:right;font-size:10px;color:#87a7b6;letter-spacing:.2em}
+#chapterMark strong{display:block;margin-top:6px;font-size:13px;letter-spacing:.06em;color:#c3e6e6}
+ .overlay{z-index:8;position:fixed;inset:0;display:flex;justify-content:center;align-items:center;overflow-y:auto;background:radial-gradient(circle at 53% 36%,#204050aa 0,#020910ec 70%);backdrop-filter:blur(8px);padding:20px}
+.panel{width:min(530px,100%);max-height:calc(100dvh - 28px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;padding:37px 38px 32px;border:1px solid #6fbba37c;background:linear-gradient(145deg,#122a3be8,#09131fea);box-shadow:0 30px 90px #000c, inset 0 0 80px #214a4a18;position:relative}
+.panel:before,.panel:after{content:"";position:absolute;background:var(--mint);width:22px;height:2px;top:-1px;left:-1px}.panel:after{top:auto;left:auto;bottom:-1px;right:-1px}
+.kicker{font-size:11px;color:var(--mint);letter-spacing:.27em;font-weight:700;text-transform:uppercase;margin:0 0 16px}
+.panel h1{font-size:clamp(29px,5vw,45px);letter-spacing:-.045em;line-height:1.05;margin:0 0 22px;font-weight:720;color:#f1fbff}
+.panel p{line-height:1.65;color:#c7d9e5;font-size:14px;margin:0 0 16px}
+.panel .warning{border-left:2px solid #f3b070;color:#a8bac7;padding-left:13px;margin:17px 0}
+.action{border:1px solid #88ffdb;background:linear-gradient(125deg,#0f9b80,#126d6d);color:#effff8;padding:15px 20px;font-size:12px;font-weight:750;letter-spacing:.16em;cursor:pointer;min-height:45px;text-transform:uppercase;box-shadow:0 0 23px #58f5ae22}
+.action:hover{filter:brightness(1.2)}.minor{color:#8da8b8;font-size:10px;margin-top:18px;letter-spacing:.06em}
+#mobileControls{position:fixed;z-index:5;left:0;right:0;bottom:env(safe-area-inset-bottom);pointer-events:none;display:none}
+#joystickPad{touch-action:none;position:absolute;bottom:22px;left:25px;width:140px;height:140px;border:1px solid #72c6c15e;border-radius:50%;background:#09223392;box-shadow:inset 0 0 38px #32bfa515;pointer-events:auto}
+#joystickPad:after{content:"";position:absolute;inset:30px;border:1px dashed #70c9c04d;border-radius:50%}
+#stick{position:absolute;left:44px;top:44px;width:52px;height:52px;background:radial-gradient(circle,#b0ffeb8c,#197f768c);border:2px solid #9af8d3;border-radius:50%;box-shadow:0 0 25px #24e6b24f;z-index:1}
+#beamBtn{touch-action:none;position:absolute;bottom:45px;right:24px;width:112px;height:112px;border-radius:50%;background:#0b4b44b8;box-shadow:0 0 40px #46c99e2c,inset 0 0 20px #2bd7a733;border:2px solid #92f8d8;color:#e7fff6;font-size:11px;font-weight:800;letter-spacing:.1em;pointer-events:auto;user-select:none}
+#beamBtn.active{background:#229e7b;border-color:#d2ffde;box-shadow:0 0 35px #6dfcbb8c}
+#interactBtn{position:absolute;bottom:162px;right:47px;min-width:66px;min-height:42px;border:1px solid #e3c792a0;background:#3c3523cc;color:#ffe7b5;pointer-events:auto;font-weight:700;letter-spacing:.08em}
+#restart{position:fixed;z-index:6;right:23px;bottom:24px;opacity:.45;cursor:pointer;border:0;color:#b8c9d4;background:none;font-size:11px;letter-spacing:.09em}
+#restart:hover{opacity:1}
+.return-menu{display:inline-block;color:#add5cb;text-decoration:none;font-size:11px;letter-spacing:.1em;margin:15px 0 0;border-bottom:1px solid #5c9c8b;padding-bottom:4px}.return-menu:hover{color:#e1fff2}
+@media (pointer:coarse),(max-width:740px){
+ #mobileControls{display:block}.legend{display:none}.top{top:max(12px,env(safe-area-inset-top));left:12px;right:12px}.health{width:130px;padding:8px}.brand{font-size:9px;letter-spacing:.14em}.chapter{font-size:9px}.objective{left:12px;top:68px;max-width:72vw;padding:10px 12px}.objective .eyebrow{font-size:8px}#objectiveText{font-size:12px}#objectiveHint{font-size:10px}#status{top:84px;right:12px;font-size:9px;max-width:25vw}.bottom{bottom:14px}#chapterMark{display:none}#prompt{bottom:185px;font-size:11px}.panel{padding:28px 24px}.panel p{font-size:13px}#restart{bottom:180px;right:26px}
+}
+@media (max-height:620px){#joystickPad{width:104px;height:104px;bottom:12px;left:15px}#joystickPad:after{inset:19px}#stick{width:40px;height:40px;top:32px;left:32px}#beamBtn{width:90px;height:90px;bottom:20px}#interactBtn{bottom:114px;right:37px}.objective{top:58px}}
+@media (prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+
+
+/* 2026-10-29 · Prologue mobile cockpit: short landscape screens and browser chrome. */
+.objective{appearance:none;color:inherit;font:inherit;text-align:left;cursor:default;border:0;border-left:2px solid var(--mint)}
+#fullscreenBtn{position:fixed;z-index:7;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:44px;height:44px;border:1px solid #70cdb9a8;border-radius:12px;background:#082536da;color:#d9fff4;font-size:23px;cursor:pointer;touch-action:manipulation}
+#fullscreenBtn[hidden]{display:none}
+@media (pointer:fine) and (min-width:741px){#fullscreenBtn{display:none}}
+#fullscreenBtn:focus-visible,.objective:focus-visible{outline:2px solid #d7ffe7;outline-offset:3px}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:620px){
+ .top{top:calc(8px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));right:calc(10px + env(safe-area-inset-right,0px));gap:10px}
+ .brand{font-size:9px;letter-spacing:.07em}
+ .chapter{font-size:8px;letter-spacing:.08em;margin-top:3px}
+ .health{width:128px;padding:6px 8px;border-radius:8px}
+ .hrow{font-size:9px;letter-spacing:.02em;margin-bottom:4px;gap:5px}
+ .hrow strong{font-size:12px;white-space:nowrap}
+ .objective{pointer-events:auto;top:calc(50px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));min-height:48px;max-width:min(330px,42vw);padding:7px 10px;border-radius:5px;background:#091d2bde;border-left:2px solid var(--mint)}
+ .objective .eyebrow{font-size:8px;letter-spacing:.12em;margin-bottom:4px}
+ .objective .eyebrow:after{content:" · нажмите для подсказки";color:#a6d6d3;letter-spacing:.01em;text-transform:none}
+ .objective.expanded .eyebrow:after{content:" · свернуть"}
+ #objectiveText{font-size:11px;line-height:1.25}
+ #objectiveHint{display:none;font-size:9px;line-height:1.3;margin-top:5px}
+ .objective.expanded #objectiveHint{display:block}
+ #status{top:calc(54px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));font-size:9px;line-height:1.35;max-width:22vw}
+ #joystickPad{width:96px;height:96px;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:calc(12px + env(safe-area-inset-left,0px))}
+ #joystickPad:after{inset:20px}
+ #stick{width:42px;height:42px;top:27px;left:27px}
+ #beamBtn{width:82px;height:82px;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:calc(12px + env(safe-area-inset-right,0px));font-size:10px;letter-spacing:.04em}
+ #interactBtn{bottom:calc(101px + env(safe-area-inset-bottom,0px));right:calc(21px + env(safe-area-inset-right,0px));min-width:64px;min-height:44px;border-radius:8px}
+ #restart{right:auto;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom,0px));font-size:10px;min-height:36px;white-space:nowrap}
+ #prompt{bottom:calc(112px + env(safe-area-inset-bottom,0px));max-width:50vw;white-space:normal;padding:6px 9px;font-size:10px;line-height:1.25}
+ #toast{top:25%;font-size:12px;max-width:56vw}
+ .overlay{padding:6px}
+ .panel{width:min(580px,94vw);max-height:calc(100dvh - 12px);padding:16px 20px 14px}
+ .panel .kicker{font-size:9px;margin-bottom:8px}
+ .panel h1{font-size:clamp(23px,3.5vw,30px);margin-bottom:10px}
+ .panel p{font-size:11px;line-height:1.4;margin-bottom:9px}
+ .panel .warning{margin:8px 0}
+ .panel .action{min-height:42px;padding:9px 14px}
+ .panel .minor{margin-top:7px}
+ .return-menu{margin-top:8px}
+}
+</style>
+</head>
+<body>
+<canvas id="world" role="img" aria-label="Игровое пространство разрушенной космической станции"></canvas>
+<div class="hud">
+ <div class="top"><div><div class="brand">Выживший / станция «Нуль»</div><div class="chapter">ПРОЛОГ 00 — ПОСЛЕДНИЙ СИГНАЛ</div></div><div class="health"><div class="hrow"><span>ПРОЧНОСТЬ КОРПУСА</span><strong id="hpValue">100%</strong></div><div class="hbar"><span id="hpFill"></span></div></div></div>
+ <button class="objective" id="objectiveCard" type="button" aria-expanded="false" aria-controls="objectiveHint"><span class="eyebrow">ТЕКУЩАЯ ЗАДАЧА</span><strong id="objectiveText">Запустить питание ремонтного дока</strong><span id="objectiveHint">Приблизьтесь к генератору и удерживайте инженерный луч.</span></button>
+ <div id="status"></div><div id="toast" role="status" aria-live="polite"></div><div id="prompt" aria-live="polite"></div>
+ <div class="bottom"><div class="legend"><kbd>WASD / ↑↓←→</kbd> полёт &nbsp; <kbd>Пробел</kbd> инженерный луч &nbsp; <kbd>E</kbd> взаимодействие<br>Избегайте обнаружения, пока турели не восстановят питание.</div><div id="chapterMark">СЕКТОР 07 · ДОКОВОЙ КОМПЛЕКС<strong id="zoneTitle">Ремонтный док</strong></div></div>
+</div>
+<div id="mobileControls"><div id="joystickPad"><div id="stick"></div></div><button id="interactBtn" type="button" aria-label="Взаимодействовать">E</button><button id="beamBtn" type="button" aria-label="Удерживать инженерный луч">ЛУЧ<br>ВОССТ.</button></div>
+<button id="restart" type="button">↻ ПЕРЕЗАПУСК</button>
+<button id="fullscreenBtn" type="button" aria-label="На весь экран" title="Скрыть панели браузера">⛶</button>
+<div class="overlay" id="intro"><div class="panel"><div class="kicker">Архив станции · Запись 00</div><h1>Последний<br>сигнал</h1><p>После поражения человечества автономные машины заняли орбитальные объекты. Вы приходите в сознание на мёртвой станции «Нуль». В ремонтном доке остался один корабль — почти без вооружения, но с рабочим инженерным излучателем.</p><p class="warning">Сначала восстановите питание. В охранном зале избегайте патруля: защитные турели ещё можно вернуть под контроль.</p><button id="startBtn" class="action" type="button">НАЧАТЬ ПОБЕГ</button><div><a class="return-menu" href="../">← В ГЛАВНОЕ МЕНЮ</a></div><div class="minor">Миссия 00 · начало кампании · управление с телефона и ПК</div></div></div>
+<div class="overlay" id="ending" style="display:none"><div class="panel"><div class="kicker" id="endingKicker">Пролог · миссия 00 завершена</div><h1 id="endingTitle">Последний сигнал передан</h1><p id="endingDescription">Вы восстановили питание, развернули турели, установили разрядник, остановили литейную, расшифровали протокол «Оплот», удержали энергетическое ядро и передали координаты выхода.</p><button id="againBtn" class="action" type="button">ПОВТОРИТЬ ПРОЛОГ</button><div><a class="return-menu" href="../">← ВЫБОР МИССИЙ И РЕЖИМОВ</a></div></div></div>
+<script>
+(() => {
+ const objective=document.getElementById('objectiveCard');
+ objective?.addEventListener('click', () => {
+  if (!window.matchMedia('(pointer:coarse)').matches) return;
+  const expanded=objective.classList.toggle('expanded');
+  objective.setAttribute('aria-expanded',String(expanded));
+ });
+ const full=document.getElementById('fullscreenBtn');
+ if (!document.documentElement.requestFullscreen) full.hidden=true;
+ full?.addEventListener('click', async () => {
+  try {
+   if (document.fullscreenElement) await document.exitFullscreen();
+   else {
+    await document.documentElement.requestFullscreen();
+    try { await screen.orientation?.lock?.('landscape'); } catch { /* optional */ }
+   }
+  } catch {
+   full.title='Браузер не разрешил полноэкранный режим';
+  }
+ });
+})();
+</script>
+<script src="./game.js?v=seven-room-prologue-3" defer></script>
+</body></html>

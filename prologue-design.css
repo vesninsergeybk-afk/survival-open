@@ -1,0 +1,43 @@
+/* Mission 00: four readable decisions and a quiet, non-blocking radio feed. */
+#levelUpMenu.prologue-skills-mode{position:fixed;inset:0;z-index:1000;width:100vw;height:100dvh;padding:16px;box-sizing:border-box;background:#030c16ed;overflow:auto;align-items:center;justify-content:center}
+#levelUpMenu.prologue-skills-mode .overlay-card.levelup{width:min(850px,100%);max-width:850px;max-height:100%;min-width:0;padding:24px;box-sizing:border-box;background:#0a1928;border:1px solid #6092a5;border-radius:15px;overflow:auto;text-align:left}
+.prologue-skills-mode #levelUpTitle{margin:0 0 8px;font:800 24px/1.2 system-ui;color:#e4faf5}
+.prologue-skills-mode #levelUpTechNote{margin:0 0 20px;color:#b6d0d8;line-height:1.45}
+.prologue-skills-mode #upgradeOptions{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;width:100%;margin:0}
+.prologue-upgrade-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prologue-upgrade-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:150px;padding:15px;border:1px solid #416b80;border-radius:11px;background:#102c3d;color:#e5f7fa;text-align:left;font:14px/1.4 system-ui;cursor:pointer;touch-action:manipulation}
+.prologue-upgrade-icon{font-size:25px;line-height:1}
+.prologue-upgrade-card strong{font-size:15px}
+.prologue-upgrade-card small{font-size:12px;color:#bad1d8}
+.prologue-upgrade-card[aria-pressed="true"]{border:2px solid #8cf2cc;padding:14px;background:#184847}
+.prologue-upgrade-card:focus-visible,.prologue-upgrade-detail button:focus-visible{outline:3px solid #ffe49f;outline-offset:3px}
+.prologue-upgrade-card.maxed,.prologue-upgrade-card.locked{background:#162633;color:#a9c0ca}
+.prologue-upgrade-detail{display:flex;flex-direction:column;padding:18px;border:1px solid #426272;border-radius:11px;background:#0d2231}
+.prologue-upgrade-detail h3{margin:0 0 13px;font:800 20px/1.3 system-ui;color:#dcf6ef}
+.prologue-upgrade-detail p{font:15px/1.6 system-ui;color:#c3d8df;margin:0 0 14px}
+.prologue-upgrade-detail .prologue-upgrade-stats{color:#98edce;font-size:13px}
+.prologue-upgrade-detail button{margin-top:auto;min-height:48px;padding:12px;border:1px solid #9cf4cc;border-radius:9px;background:#22634f;color:#f0fff6;font:800 14px/1.3 system-ui;cursor:pointer}
+.prologue-upgrade-detail button:disabled{opacity:.45;cursor:default}
+.prologue-transmission{position:absolute;z-index:6;left:20px;top:162px;width:min(350px,32%);box-sizing:border-box;padding:11px 14px;border-left:3px solid #86d7c3;border-radius:3px 10px 10px 3px;background:#071a29e8;color:#d1e8e9;font:13px/1.5 system-ui;pointer-events:none;text-shadow:0 1px #000}
+.prologue-transmission[hidden]{display:none}
+@media(max-width:720px){
+ #levelUpMenu.prologue-skills-mode{padding:8px;padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}
+ #levelUpMenu.prologue-skills-mode .overlay-card.levelup{padding:16px}
+ .prologue-skills-mode #levelUpTitle{font-size:20px}
+ .prologue-skills-mode #upgradeOptions{grid-template-columns:1fr;gap:12px}
+ .prologue-skills-mode #levelUpTechNote{margin-bottom:12px;font-size:12px}
+ .prologue-upgrade-card{min-height:110px;padding:12px;gap:5px}
+ .prologue-upgrade-card[aria-pressed="true"]{padding:11px}
+ .prologue-upgrade-icon{font-size:20px}
+ .prologue-upgrade-detail{padding:14px}
+ .prologue-upgrade-detail h3{font-size:17px;margin-bottom:8px}
+ .prologue-upgrade-detail p{font-size:13px;line-height:1.45;margin-bottom:10px}
+ .prologue-transmission{top:148px;left:12px;width:calc(100% - 24px);max-width:420px;padding:8px 11px;font-size:11px;line-height:1.4}
+}
+@media(max-height:550px) and (min-width:600px){
+ .prologue-skills-mode #upgradeOptions{grid-template-columns:1.1fr 1fr}
+ #levelUpMenu.prologue-skills-mode .overlay-card.levelup{padding:12px}
+ .prologue-upgrade-card{min-height:112px;padding:10px;gap:4px}
+ .prologue-upgrade-card[aria-pressed="true"]{padding:9px}
+ .prologue-transmission{top:115px;max-width:290px;width:31%;font-size:10px}
+}

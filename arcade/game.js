@@ -1,0 +1,1963 @@
+import {RULES, clamp, dist, length, hash, beamDamage, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30';
+import {World} from './world.js?v=arcade-base-network-40';
+import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
+import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=arcade-controls-63';
+import {createSignalIntel,alertSignalIntel,canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
+import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
+import {ArcadeVisuals} from './visuals.js?v=arcade-capital-hit-63';
+import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
+import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
+import {CockpitDisplay} from './hud.js?v=arcade-controls-63';
+import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
+import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=arcade-progressive-noise-58';
+import {ArcadeHeritage} from './heritage.js?v=arcade-sound-material-53';
+import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
+import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=arcade-station-followup-65';
+import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation} from './operations.js?v=arcade-controls-63';
+import {renderWorldMap} from './map-panel.js?v=arcade-station-followup-65';
+
+const $=id=>document.getElementById(id);
+const TAU=Math.PI*2;
+const SKILLS=[
+ {id:'beam',branch:'Оружие',title:'Плазменный луч',max:5,from:2,desc:'Повышает урон вблизи и слегка ускоряет огонь'},
+ {id:'double',branch:'Оружие',title:'Парный залп',max:2,from:4,requires:'beam',desc:'Стреляет по дополнительной цели'},
+ {id:'range',branch:'Оружие',title:'Фокусировка',max:3,from:3,desc:'Увеличивает рабочую дальность, не убирая спад силы'},
+ {id:'rocket',branch:'Оружие',title:'Авторакеты',max:3,from:5,desc:'Редкий сильный залп с полной дальнобойной силой'},
+ {id:'hull',branch:'Корабль',title:'Укрепление корпуса',max:5,from:2,desc:'+22 к прочности и частичный ремонт'},
+ {id:'engine',branch:'Корабль',title:'Импульсный форсаж',max:4,from:2,desc:'Ускоряет корабль и улучшает короткий рывок на Shift'},
+ {id:'shield',branch:'Корабль',title:'Энергощит',max:3,from:4,requires:'hull',desc:'Часть урона поглощает восстанавливаемый щит'},
+ {id:'dodge',branch:'Корабль',title:'Уклонение',max:3,from:3,desc:'Короткий ускоренный рывок после попадания'},
+ {id:'magnet',branch:'Добыча',title:'Магнитный захват',max:3,from:2,desc:'Притягивает сплав и данные с большей дистанции'},
+ {id:'mining',branch:'Добыча',title:'Геологическая подготовка',max:4,from:2,desc:'Усиливает экстрактор; первый ранг уменьшает шум добычи на 16%, каждый второй добавляет сплав'},
+ {id:'extractor',branch:'Добыча',title:'Дуговой экстрактор',max:3,from:3,requires:'mining',desc:'Экстрактор быстрее расщепляет астероиды и отделяет больше сплава'},
+ {id:'radar',branch:'Технологии',title:'Навигационный радар',max:2,from:3,desc:'Раньше отмечает нейтральные базы'},
+ {id:'tactics',branch:'Технологии',title:'Боевой протокол',max:3,from:5,desc:'Союзники быстрее выбирают опасные цели'}
+];
+
+const DOCTRINES=[
+ {id:'assault',title:'Штурмовик',desc:'Плазменный луч наносит на 22% больше урона в пределах 180 м. Подходите ближе к опасным целям.'},
+ {id:'command',title:'Командир',desc:'Ведомые рядом с вами наносят на 25% больше урона. Сильнее всего с развитой эскадрой.'},
+ {id:'prospect',title:'Старатель',desc:'Экстрактор на 15% мощнее и приносит ещё 1 сплав за астероид.'}
+];
+const fmt=n=>Number(n.toFixed(2)).toString().replace('.',',');
+const pointsWord=n=>n%100>=11&&n%100<=14?'очков':n%10===1?'очко':
+ n%10>=2&&n%10<=4?'очка':'очков';
+function nextSkillEffect(id,rank,levels={}){
+ const n=rank+1;
+ switch(id){
+  case 'beam':return 'Урон вблизи: '+fmt(14+rank*3.3)+' → '+fmt(14+n*3.3)+
+    ' · интервал '+fmt(.63/(1+rank*.12))+' → '+fmt(.63/(1+n*.12))+' с';
+  case 'double':return 'Целей за залп: '+(1+rank)+' → '+(1+n);
+  case 'range':return 'Дальность луча: '+(435+rank*56)+' → '+(435+n*56);
+  case 'rocket':return rank===0?'Откроет авторакеты: 67 урона каждые 2,73 с':
+    'Урон ракеты: '+(48+rank*19)+' → '+(48+n*19);
+  case 'hull':return 'Прочность корпуса: ещё +22 · сразу частичный ремонт';
+  case 'engine':return 'Скорость: '+(272+rank*35)+' → '+(272+n*35)+
+    ' · перезарядка рывка: '+fmt(burstStats(rank).cooldown)+' → '+fmt(burstStats(n).cooldown)+' с';
+  case 'shield':return rank===0?'Откроет щит: до 40 ед. · восстановление после 3 с без урона':
+    'Запас щита: '+(16+rank*24)+' → '+(16+n*24)+' · быстрее восстановление вне боя';
+  case 'dodge':return 'Аварийный отход: '+(rank*120)+' → '+(n*120)+
+    ' · неуязвимость после удара: '+fmt(.55+rank*.12)+' → '+fmt(.55+n*.12)+' с';
+  case 'magnet':return 'Притяжение трофеев: '+(105+rank*55)+' → '+(105+n*55);
+  case 'mining':return 'Мощность экстрактора: '+extractorStats(levels.extractor||0,rank).damagePerSecond+' → '+
+    extractorStats(levels.extractor||0,n).damagePerSecond+' урона/с'+
+    (n%2===0?' · +1 сплав за астероид':'')+
+    (n===1?' · шум добычи −16%':'');
+  case 'extractor':return 'Разряд: '+extractorStats(rank,levels.mining||0).damagePerSecond+
+    ' → '+extractorStats(n,levels.mining||0).damagePerSecond+' урона/с'+
+    (n===1||n===3?' · +1 сплав за астероид':'');
+  case 'radar':return 'Радиус обнаружения баз: '+(570+rank*190)+' → '+(570+n*190);
+  case 'tactics':return 'Решения ведомых: чаще на '+(Math.round(n*.2*100))+
+    '% относительно базового темпа';
+  default:return '';
+ }
+}
+const MODELS={
+ scout:'../assets/space/enemy_drone.png',
+ fighter:'../assets/space/enemy_fighter.png',
+ flanker:'../assets/space/enemy_interceptor.png',
+ healer:'../assets/space/enemy_shield.png',
+ berserker:'../assets/space/enemy_bomber.png',
+ gunship:'../assets/space/enemy_caster.png',
+ allyfighter:'../assets/space/ship_fighter.png',
+ allyscout:'../assets/space/ship_scout.png',
+ allybomber:'../assets/space/ship_mage.png',
+ rock:'../assets/space/asteroid-ore.webp',
+ rock2:'../assets/space/asteroid-realistic.webp'
+};
+const sprite=(url,table,key)=>{
+ const img=new Image();img.decoding='async';img.src=url;table[key]=img;return img;
+};
+export class ArcadeGame {
+ constructor(){
+  this.canvas=$('game');this.ctx=this.canvas.getContext('2d',{alpha:true});
+  this.overlay=$('overlay');this.message=$('message');this.keys=new Set();
+  this.touch={x:0,y:0};this.seed=20261102;
+  this.world=new World(this.seed);this.visuals=new ArcadeVisuals();
+  // Capital hull impact painting is explicitly opt-in for visual QA.
+  this.visuals.capitalDamageQA=typeof location!=='undefined'&&
+   new URLSearchParams(location.search).get('capitalDamageQa')==='1';
+  this.cockpit=new CockpitDisplay();
+  this.heritage=new ArcadeHeritage();this.grid=new SpatialGrid(110);
+  this.lastIonAudioCycle=-1;
+  this.shotGrid=new SpatialGrid(95);
+  this.rockGrid=new SpatialGrid(140);
+  this.player={x:0,y:0,vx:0,vy:0,r:19,hp:110,maxHp:110,shield:0,
+    xp:0,level:1,points:0,ore:0,data:0,invul:0,angle:0,
+     burstRemaining:0,burstCooldown:0,burstX:0,burstY:-1};
+  this.skillRanks=Object.fromEntries(SKILLS.map(s=>[s.id,0]));
+  this.doctrine=null;this.lastDamageAt=-Infinity;
+  this.network={armor:0,armament:0,engine:0,strikePower:0};
+  this.enemies=[];this.allies=[];this.drops=[];this.shots=[];this.missiles=[];this.flashes=[];
+   this.support={charges:0,cooldown:0,missions:[]};
+  this.zones=[];this.images={};this.time=0;this.spawnClock=9;this.miningNoise=0;
+  this.lastNoiseSource=null;this.noiseAlert=null;
+  this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
+  this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';this.mapReturnToBase=false;
+   this.geoScanUntil=0;this.overchargeUntil=0;
+  this.mining={active:false,target:null,fxClock:0};
+  this.actionHeld=null;this.interactionFocus=null;this.holdFire=false;this.localStations=[];
+  this.beamClock=.25;this.rocketClock=4;this.zoneClock=80;
+  this.stationary=0;this.lastX=0;this.lastY=0;this.hacks=[];this.activeBases=0;
+  this.enemySerial=0;this.allySerial=0;this.groupSerial=0;this.heavyPortalShown=false;
+  this.lastEncounter='';this.lastEncounterLabelAt=-30;this.paused=false;
+  this.pausedRenderPending=false;
+  this.dead=false;this.deathSceneEnd=0;this.deathVfxAt=0;this.fps=60;this.frameSamples=[];this.lastHud=0;
+  this.nearRocks=[];this.worldQueryClock=0;this.worldQueryX=0;this.worldQueryY=0;
+  this.amberBeltSeen=false;this.ionFieldSeen=false;
+   this.renderScale=1;this.qualityTimer=0;
+  this.messageUntil=0;this.vw=1200;this.vh=800;
+  this.worldVisualLast=-Infinity;this.cachedWorldLinks=[];
+  this.cachedNetworkLinked=new Set();this.cachedTarget=null;
+   this.waypoint={id:this.world.home.id,x:this.world.home.x,y:this.world.home.y,label:'Домашний док'};
+   this.nearArsenalBonus=false;this.nearArsenalDefense=false;this.nearDockField=false;this.nearQuietLab=false;
+  for(const [k,url] of Object.entries(MODELS))sprite(url,this.images,k);
+  // One ordinary heavy AI ship is exposed only for capital hull visual QA.
+  if(this.visuals.capitalDamageQA){
+   const kind=new URLSearchParams(location.search).get('capitalShip')||'cruiser';
+   const serial=({cruiser:6,carrier:4,dreadnought:2})[kind]||6;
+   const def=ENEMY_TYPES.gunship;
+   this.enemySerial=serial;
+   this.enemies.push({serial,group:++this.groupSerial,type:'gunship',
+    x:this.player.x+185,y:this.player.y-92,vx:0,vy:0,r:22,
+    hp:def.hp,maxHp:def.hp,damage:def.dmg,think:0,fire:1.1,
+    state:'hunt',commitUntil:0,target:this.player,angle:0,hit:0,
+    expAwarded:false,scenario:'capital-visual-qa',protect:null,
+    entryPortalPending:false});
+  }
+  this.bind();this.resize();this.world.discover(0,0);
+  this.notice(matchMedia('(pointer: coarse)').matches?
+   'Подлетите к объекту и используйте кнопку действия. Автоогонь можно отключить.':
+   'WASD — полёт · E — действие · C — автоогонь · Shift — рывок.',8);
+  this.last=performance.now();this.loop=this.loop.bind(this);
+  requestAnimationFrame(this.loop);
+ }
+ resize(){
+  const w=window.innerWidth,h=window.innerHeight;
+  const mobile=matchMedia('(pointer: coarse)').matches;
+  this.isTouchLayout=mobile;
+  this.vw=mobile&&w<h?620:1200;
+  this.vh=this.vw*h/Math.max(1,w);
+  const scale=Math.min(window.devicePixelRatio||1,1.45)*this.renderScale;
+  this.canvas.width=Math.max(1,Math.round(w*scale));
+  this.canvas.height=Math.max(1,Math.round(h*scale));
+  this.canvas.style.width=w+'px';this.canvas.style.height=h+'px';
+  this.ctx.setTransform(this.canvas.width/this.vw,0,0,this.canvas.height/this.vh,0,0);
+ }
+ camera(){return {x:this.player.x-this.vw/2,y:this.player.y-this.vh/2,w:this.vw,h:this.vh};}
+ bind(){
+  window.addEventListener('resize',()=>this.resize());
+  document.addEventListener('keydown',e=>{
+   // A menu owns Tab for focus navigation; during flight Tab opens the map.
+   if(e.code==='Tab'&&!this.overlay.hidden)return;
+   // Let focused mixer sliders and buttons handle their own keys.
+   if(e.ctrlKey||e.metaKey||e.altKey)return;
+   if(e.target?.closest?.('input,textarea,select,button,summary,a'))return;
+   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab','Space'].includes(e.code))e.preventDefault();
+   if(!e.repeat){
+    if(e.code==='KeyE')this.beginInteraction('keyboard');
+    if(e.code==='KeyC')this.toggleHoldFire();
+    if(e.code==='KeyQ')this.hack();
+     if(e.code==='KeyB')this.callStrike();
+    if(e.code==='Tab'||e.code==='KeyM')this.openMap();
+     if(e.code==='KeyU')this.skills();
+    if(e.code==='Escape')this.dismiss();
+    if(e.code==='KeyR'&&this.dead)location.reload();
+   }
+   this.keys.add(e.code);
+   if(!e.repeat&&(e.code==='ShiftLeft'||e.code==='ShiftRight'))this.startBurst();
+  });
+  document.addEventListener('keyup',e=>{
+   this.keys.delete(e.code);
+   if(e.code==='KeyE')this.endInteraction('keyboard');
+  });
+  window.addEventListener('blur',()=>{this.keys.clear();this.endInteraction();});
+  document.addEventListener('visibilitychange',()=>{
+   if(document.hidden){this.keys.clear();this.endInteraction();}
+   this.heritage.visibility(document.hidden);
+  });
+  this.overlay.addEventListener('click',e=>{
+   const b=e.target.closest('button[data-act]');if(!b)return;
+   const act=b.dataset.act;
+   if(act==='close')this.dismiss();
+    if(act==='baseTab'&&['summary','operations','hangar','network'].includes(b.dataset.role)){
+     this.baseTab=b.dataset.role;this.heritage.ui('tab');this.renderDock();
+     this.overlay.querySelector('.base-tabs [aria-selected="true"]')?.focus({preventScroll:true});}
+    if(act==='baseMap')this.openMap();
+    if(act==='baseBack'&&this.mapReturnToBase&&this.docked){
+     this.mapReturnToBase=false;this.overlay.dataset.mode='base';
+     this.heritage.pause('base');this.renderDock();
+     this.overlay.querySelector('.base-tabs [aria-selected="true"]')?.focus({preventScroll:true});
+    }
+    if(act==='abandonOperation')this.abandonOperation();
+   if(act==='skill')this.buySkill(b.dataset.id);
+   if(act==='doctrine')this.buyDoctrine(b.dataset.id);
+    if(act==='waypoint')this.selectWaypoint(b.dataset);
+    if(act==='abandonContract')this.abandonContract();
+   if(act==='acceptOperation'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimContract'||act==='installModule'||act==='antenna')
+    this.baseAction(act,b.dataset.role||'');
+   if(act==='restart')location.reload();
+  });
+  this.overlay.addEventListener('keydown',e=>{
+   const button=e.target.closest('.base-tabs button[role="tab"]');
+   if(!button||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+   const tabs=['summary','operations','hangar','network'];
+   const current=tabs.indexOf(button.dataset.role);
+   const next=e.key==='Home'?0:e.key==='End'?tabs.length-1:
+    (current+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+   e.preventDefault();this.baseTab=tabs[next];this.heritage.ui('tab');this.renderDock();
+   this.overlay.querySelector('.base-tabs [aria-selected="true"]')?.focus({preventScroll:true});
+  });
+  $('audioBtn').onclick=()=>this.toggleAudio();
+  for(const control of document.querySelectorAll('[data-audio-channel]')){
+   const channel=control.dataset.audioChannel;
+   control.value=String(Math.round(this.heritage.settings[channel]*100));
+   control.addEventListener('input',()=>{
+    this.heritage.setVolume(channel,Number(control.value)/100);
+    const output=document.querySelector('[data-audio-value="'+channel+'"]');
+    if(output)output.textContent=control.value+'%';
+   });
+   control.addEventListener('change',()=>this.heritage.ui('slider'));
+   const output=document.querySelector('[data-audio-value="'+channel+'"]');
+   if(output)output.textContent=control.value+'%';
+  }
+  $('skillBtn').onclick=()=>this.skills();
+   const mapButton=$('mapBtn');if(mapButton)mapButton.onclick=()=>this.openMap();
+  $('quietBtn').onclick=()=>this.toggleHoldFire();
+  $('hackBtn').onclick=()=>this.hack();
+   const strikeButton=$('strikeBtn');if(strikeButton)strikeButton.onclick=()=>this.callStrike();
+  $('burstBtn').onclick=()=>this.startBurst();
+  const actionButton=$('actionBtn');
+  if(actionButton){
+   actionButton.addEventListener('pointerdown',e=>{
+    if(actionButton.disabled)return;
+    actionButton.setPointerCapture(e.pointerId);
+    this.beginInteraction('touch');e.preventDefault();
+   });
+   const stopAction=()=>this.endInteraction('touch');
+   actionButton.addEventListener('pointerup',stopAction);
+   actionButton.addEventListener('pointercancel',stopAction);
+   actionButton.addEventListener('lostpointercapture',stopAction);
+  }
+  const pad=$('stick');let active=null;
+  const pointer=e=>{
+   const r=pad.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2);
+   const dy=e.clientY-(r.top+r.height/2);const m=Math.hypot(dx,dy);
+   const n=Math.max(1,m);const k=Math.min(1,m/(r.width*.34));
+   this.touch.x=dx/n*k;this.touch.y=dy/n*k;
+   $('knob').style.transform='translate('+this.touch.x*35+'px,'+this.touch.y*35+'px)';
+  };
+  pad.addEventListener('pointerdown',e=>{active=e.pointerId;pad.setPointerCapture(active);pointer(e);});
+  pad.addEventListener('pointermove',e=>{if(e.pointerId===active)pointer(e);});
+  const release=e=>{if(e.pointerId!==active)return;active=null;this.touch.x=0;this.touch.y=0;$('knob').style.transform='';};
+  pad.addEventListener('pointerup',release);pad.addEventListener('pointercancel',release);
+ }
+ notice(text,seconds=3){this.message.textContent=text;this.messageUntil=this.time+seconds;}
+ toggleAudio(){
+  const enabled=this.heritage.toggleSound();
+  $('audioBtn').textContent=enabled?'🔊 Звук включён':'🔇 Звук выключен';
+  $('audioBtn').setAttribute('aria-pressed',String(enabled));
+  if(enabled)this.heritage.ui('audioOn');
+  this.notice(enabled?'Звук и музыка включены':'Звук и музыка выключены',2.3);
+ }
+ startBurst(){
+   const p=this.player;
+   if(this.dead||this.paused||p.burstCooldown>0)return false;
+   let dx=Number(this.keys.has('KeyD')||this.keys.has('ArrowRight'))-
+     Number(this.keys.has('KeyA')||this.keys.has('ArrowLeft'))+this.touch.x;
+   let dy=Number(this.keys.has('KeyS')||this.keys.has('ArrowDown'))-
+     Number(this.keys.has('KeyW')||this.keys.has('ArrowUp'))+this.touch.y;
+   let m=length(dx,dy);
+   if(m<.1){dx=p.vx;dy=p.vy;m=length(dx,dy);}
+   if(m<.1){dx=Math.sin(p.angle);dy=-Math.cos(p.angle);m=1;}
+   p.burstX=dx/m;p.burstY=dy/m;
+   const stats=burstStats(this.skillRanks.engine);
+   p.burstRemaining=stats.duration;
+   p.burstCooldown=stats.cooldown;
+   this.heritage.vfx.engineTrail(p.x,p.y,p.angle,'fighter',true,.12);
+   this.heritage.play('boost',.6,{x:p.x,y:p.y});
+   return true;
+  }
+  dismiss(){
+   this.endInteraction();
+   if(!this.overlay.hidden)this.heritage.ui('close');
+   this.overlay.hidden=true;this.paused=false;this.mapReturnToBase=false;this.heritage.resume();
+  }
+  abandonOperation(){
+   if(!this.operation||this.dead)return;
+   const name=this.operation.name,operationId=this.operation.id;
+   this.operation=null;this.probeRepairing=false;
+   if(this.waypoint?.id===operationId)this.waypoint=null;
+   this.heritage.ui('cancel');this.notice('Операция «'+name+'» отложена. '+
+    (name===PROBE_OPERATION.name?'Прогресс ремонта сохранён.':'Повреждения передатчика сохранены.'),3.4);
+   if(this.overlay.dataset.mode==='map')this.overlay.innerHTML=renderWorldMap(this);
+   else if(this.overlay.dataset.mode==='base')this.renderDock();
+  }
+  abandonContract(){
+   if(!this.contract||this.dead||this.contract.progress>=this.contract.goal)return;
+   const name=this.contract.name;this.contract=null;
+   this.heritage.ui('cancel');
+   this.notice('Поручение «'+name+'» отменено. Прогресс потерян.',3.4);
+   if(this.overlay.dataset.mode==='map')this.overlay.innerHTML=renderWorldMap(this);
+   else if(this.overlay.dataset.mode==='base')this.renderDock();
+  }
+  openMap(){
+   if(this.dead)return;
+   this.endInteraction();
+   if(!this.overlay.hidden&&this.overlay.dataset.mode==='map'){this.dismiss();return;}
+   this.mapReturnToBase=!this.overlay.hidden&&this.overlay.dataset.mode==='base'&&!!this.docked;
+   this.paused=true;this.pausedRenderPending=true;this.heritage.pause('map');
+   this.overlay.dataset.mode='map';this.overlay.hidden=false;
+   this.overlay.innerHTML=renderWorldMap(this);
+   this.heritage.ui('map');
+  }
+  selectWaypoint(data){
+   if(this.overlay.dataset.mode!=='map')return;
+   if(data.id==='clear'){this.waypoint=null;this.dismiss();this.notice('Маршрут сброшен. Откройте карту, чтобы выбрать новую цель.',3);return;}
+   const x=Number(data.x),y=Number(data.y);
+   if(!Number.isFinite(x)||!Number.isFinite(y))return;
+   const base=this.world.stations.get(data.id);
+   if(!base||(!base.discovered&&!data.signal))return;
+   this.waypoint={id:data.id,x,y,label:data.label||'Сигнал станции'};
+   this.heritage.world('contract');
+   this.dismiss();this.notice('Маршрут: '+this.waypoint.label+' · '+Math.round(dist(this.player,this.waypoint))+' м',4);
+  }
+ skills(){
+  if(this.dead)return;
+  this.endInteraction();
+  if(!this.overlay.hidden&&this.overlay.dataset.mode==='skills'){this.dismiss();return;}
+  this.paused=true;this.pausedRenderPending=true;
+  this.heritage.pause('skills');
+  this.overlay.dataset.mode='skills';this.overlay.hidden=false;
+  this.heritage.ui('open');
+  this.renderSkills();
+ }
+ renderSkills(){
+  const previousScroll=this.overlay.querySelector('.skill-dialog')?.scrollTop||0;
+  const p=this.player;
+  let content='<header class="skill-head"><h2>Развитие корабля · '+p.points+' '+pointsWord(p.points)+
+   '</h2><p>Уровень '+p.level+' · опыт '+Math.floor(p.xp)+' / '+expForNext(p.level)+
+   '. Данные с врагов дают опыт и очки развития; сплав из метеоритов нужен для флота и баз.</p></header>'+
+   '<section class="doctrine-strip"><div class="doctrine-header"><strong>БОЕВАЯ ДОКТРИНА</strong><small>'+(
+    this.doctrine?'Выбрано направление. Сменить его можно на активной базе за 12 сплава.':
+    'Один мощный стиль на выбор с 4-го уровня · стоит 1 очко · смена на базе.'
+   )+'</small></div><div class="doctrine-grid">'+
+   DOCTRINES.map(d=>{
+    const chosen=this.doctrine===d.id;
+    const reason=chosen?'ВЫБРАНО':this.doctrine?'Выбрана другая доктрина':
+     p.level<4?'Нужен уровень 4':p.points<1?'Нужно 1 очко':'ИЗУЧИТЬ';
+    const enabled=!this.doctrine&&p.level>=4&&p.points>0;
+    return '<button class="doctrine-choice'+(chosen?' selected':enabled?' ready':'')+
+      '" data-act="doctrine" data-id="'+d.id+'"'+(enabled?'':' disabled')+
+      '><strong>'+d.title+'</strong><small>'+d.desc+'</small><em>'+reason+'</em></button>';
+   }).join('')+'</div></section><div class="skill-columns">';
+  const branches=[
+   ['Оружие','Ближний урон, дополнительные цели и ракеты'],
+   ['Корабль','Прочность, скорость и защита'],
+   ['Технологии','Поиск станций и тактика ведомых'],
+   ['Добыча','Раскалывание породы, электрический разряд и магнитный сбор']
+  ];
+  for(const [branch,subtitle] of branches){
+   content+='<section><h3>'+branch+'</h3><p class="branch-subtitle">'+subtitle+'</p>';
+   for(const skill of SKILLS.filter(s=>s.branch===branch)){
+    const rank=this.skillRanks[skill.id],mastered=rank>=skill.max;
+    const prereq=skill.requires?SKILLS.find(x=>x.id===skill.requires):null;
+    const reason=mastered?'Максимум':
+     p.level<skill.from?'Нужен уровень '+skill.from:
+     prereq&&!this.skillRanks[prereq.id]?'Сначала '+prereq.title:
+     p.points<=0?'Нужно очко развития':'Можно изучить';
+    const unlocked=!mastered&&p.level>=skill.from&&
+     (!prereq||this.skillRanks[prereq.id]>0);
+    const canBuy=unlocked&&p.points>0;
+    const cls=mastered?'mastered':canBuy?'ready':'locked';
+    content+='<button class="skill-node '+cls+'" data-act="skill" data-id="'+skill.id+'" '+
+      (!canBuy?'disabled':'')+'><span class="skill-node-head"><strong>'+skill.title+
+      '</strong><em>'+rank+' / '+skill.max+'</em></span><small>'+skill.desc+'</small>'+
+      '<small class="skill-effect">'+(mastered?'Изучено полностью':nextSkillEffect(skill.id,rank,this.skillRanks))+
+      '</small><span class="skill-state">'+(prereq?'↳ '+prereq.title+' · ':'')+reason+
+      '</span></button>';
+   }
+   content+='</section>';
+  }
+  content+='</div><button class="close" data-act="close">Продолжить полёт</button>';
+  this.overlay.innerHTML='<div class="dialog wide skill-dialog">'+
+   '<button class="skill-close-corner" data-act="close" aria-label="Закрыть дерево развития">×</button>'+
+   content+'</div>';
+  this.overlay.querySelector('.skill-dialog').scrollTop=previousScroll;
+ }
+ buyDoctrine(id){
+  if(this.dead||this.doctrine||this.player.level<4||this.player.points<1||
+    !DOCTRINES.some(d=>d.id===id))return;
+  this.player.points--;this.doctrine=id;
+  this.notice('Доктрина: '+DOCTRINES.find(d=>d.id===id).title,3);
+  this.heritage.play('doctrine');
+  this.renderSkills();
+ }
+ buySkill(id){
+  const skill=SKILLS.find(s=>s.id===id),p=this.player;
+  if(!skill||p.points<=0||p.level<skill.from||
+    (skill.requires&&!this.skillRanks[skill.requires])||this.skillRanks[id]>=skill.max)return;
+  this.skillRanks[id]++;p.points--;
+  if(id==='hull'){p.maxHp+=22;p.hp=Math.min(p.maxHp,p.hp+32);}
+  if(id==='shield')p.shield+=18;
+  this.heritage.play('upgrade',.14);
+  this.notice('Улучшение: '+skill.title,2.4);
+  this.renderSkills();
+ }
+
+ advanceContract(kind,subject=null){
+  const c=this.contract;
+  const station=c?this.world.stations.get(c.baseId):null;
+  if(!eligibleContractProgress(c,kind,subject,station))return;
+  c.progress++;
+  if(c.progress===c.goal)this.notice('Задание выполнено! Вернитесь на станцию за наградой.',4.5);
+ }
+ // A tangible, single-use operation: a jammer in space, escorts, and a secured route.
+ updateCorridor(dt=0){
+  const op=this.operation;
+  if(!op||op.id!==CORRIDOR_OPERATION.id||this.dead||op.hp<=0)return;
+  const d=dist(this.player,op);
+  // A readable risk window: stay close to focus the beam, or disengage to cool the transmitter.
+  if(d<=CORRIDOR_OPERATION.pulseRange){
+   op.pulseCharge=Math.min(CORRIDOR_OPERATION.pulsePeriod,(op.pulseCharge||0)+Math.max(0,dt));
+   if(!op.pulseWarned&&op.pulseCharge>.25){
+    op.pulseWarned=true;
+    this.notice('Глушитель заряжает ЭМ-импульс. Выйдите за 315 м, чтобы ослабить заряд.',3.5);
+   }
+   if(op.pulseCharge>=CORRIDOR_OPERATION.pulsePeriod){
+    op.pulseCharge=0;
+    this.heritage.vfx.nova(op.x,op.y,180,'cyan');
+    this.heritage.play?.('damage',.27);
+    this.hurt(CORRIDOR_OPERATION.pulseDamage,{x:op.x,y:op.y});
+    this.notice('ЭМ-импульс глушителя! Отступите и смените курс.',2.7);
+   }
+  }else op.pulseCharge=Math.max(0,(op.pulseCharge||0)-Math.max(0,dt)*1.5);
+  if(d>op.escortTrigger)return;
+  if(!op.guardsSpawned){
+   const first=this.spawnCorridorGuard('scout',0);
+   if(first)this.spawnCorridorGuard('fighter',1);
+   if(first){
+    op.guardsSpawned=true;op.reinforcementsAt=this.time+32;
+    this.notice('Передатчик передаёт сигнал тревоги. Уничтожьте его, чтобы остановить подкрепления.',3.8);
+   }
+  }else if(op.waves<1&&this.time>=op.reinforcementsAt){
+   if(this.spawnCorridorGuard('fighter',2)){
+    op.waves++;this.notice('Глушитель вызвал подкрепление!',2.8);
+   }
+  }
+ } spawnCorridorGuard(type,index){
+  if(this.enemies.length>=RULES.maxEnemies)return false;
+  const op=this.operation;if(!op)return false;
+  const def=ENEMY_TYPES[type];if(!def)return false;
+  const angle=[-1.15,1.12,2.55][index]??0,offset=125+index*34;
+  let x=op.x+Math.cos(angle)*offset,y=op.y+Math.sin(angle)*offset;
+  // Do not place an escort inside a procedurally generated asteroid.
+  for(let step=0;step<7;step++){
+   const a=angle+step*TAU/7;
+   const px=op.x+Math.cos(a)*offset,py=op.y+Math.sin(a)*offset;
+   if(!this.world.nearbyRocks(px,py,55).some(rock=>dist(rock,{x:px,y:py})<rock.r+24)){
+    x=px;y=py;break;
+   }
+  }
+  const hp=def.hp*(1+Math.min(1,this.time/900));
+  this.enemies.push({serial:++this.enemySerial,group:++this.groupSerial,type,
+   x,y,vx:0,vy:0,
+   r:14,hp,maxHp:hp,damage:def.dmg,think:.12+index*.09,fire:1.2,
+   state:'hunt',commitUntil:0,target:this.player,angle:0,hit:0,
+   expAwarded:false,scenario:'corridor-escort',protect:null,
+   operationGuard:true});
+  return true;
+ }
+ completeCorridor(){
+  const op=this.operation;if(!op||op.id!==CORRIDOR_OPERATION.id)return;
+  const base=this.world.stations.get(op.baseId);if(!base)return;
+  base.corridorSecured=true;base.corridorMission=null;this.operation=null;
+  if(this.waypoint?.id===CORRIDOR_OPERATION.id)this.waypoint=null;
+  // The reclaimed corridor yields a lead to the next station, not free resources.
+  const nextStation=this.world.nearbyStations(op.x,op.y,2400,false)
+   .filter(station=>!station.active&&!station.discovered)
+   .sort((a,b)=>dist(a,op)-dist(b,op))[0]||null;
+  if(nextStation){
+   nextStation.discovered=true;
+   this.world.discovered.add(nextStation.id);
+   if(!this.waypoint)this.waypoint={id:nextStation.id,x:nextStation.x,y:nextStation.y,
+    label:baseNames[nextStation.type]||'Станция'};
+  }
+  this.player.ore+=CORRIDOR_OPERATION.rewardOre;
+  this.cockpit.resourceGain(CORRIDOR_OPERATION.rewardOre,this.time);
+  this.collect({type:'data',value:CORRIDOR_OPERATION.rewardData});
+  this.heritage.vfx.shipExplosion(op.x,op.y,55,'#b876ff');
+  this.heritage.vfx.nova(op.x,op.y,160,'green');
+  this.heritage.station('claimContract',base.type);
+  this.notice('КОРИДОР ОТКРЫТ! +'+CORRIDOR_OPERATION.rewardOre+' сплава, +'+CORRIDOR_OPERATION.rewardData+
+   ' данных. Патрулей у дока станет меньше.'+
+   (nextStation?' На карте отмечена станция: '+(baseNames[nextStation.type]||'неизвестная')+'.':''),6);
+ }
+
+ // The player chooses between repairing under fire and releasing E to fight.
+ repairProbe(dt){
+  const op=this.operation;
+  if(!op||op.id!==PROBE_OPERATION.id||this.dead)return;
+  op.repair=Math.min(PROBE_OPERATION.maxRepair,op.repair+PROBE_OPERATION.repairPerSecond*dt);
+  if(!op.waves&&op.repair>=30){
+   op.waves=1;
+   this.spawnCorridorGuard('scout',0);
+   this.spawnCorridorGuard('scout',1);
+   this.notice('Зонд передал сигнал. Приближаются разведчики! Отпустите E, чтобы отбиться.',4);
+  }else if(op.waves===1&&op.repair>=70){
+   op.waves=2;
+   this.spawnCorridorGuard('fighter',2);
+   this.notice('Перехватчик вышел на сигнал зонда. Можно прервать ремонт и отступить.',4);
+  }
+  if(op.repair>=PROBE_OPERATION.maxRepair)this.completeProbe();
+ }
+ completeProbe(){
+  const op=this.operation;
+  if(!op||op.id!==PROBE_OPERATION.id)return;
+  const base=this.world.stations.get(op.baseId);if(!base)return;
+  base.probeRecovered=true;base.probeMission=null;
+  this.operation=null;this.probeRepairing=false;
+  if(this.waypoint?.id===PROBE_OPERATION.id)this.waypoint=null;
+  const next=this.world.nearbyStations(op.x,op.y,2300,false)
+   .filter(b=>!b.enemy&&!b.active&&!b.discovered&&b.id!==base.id)
+   .sort((a,b)=>dist(a,op)-dist(b,op))[0]||null;
+  if(next){
+   next.discovered=true;this.world.discovered.add(next.id);
+   if(!this.waypoint)this.waypoint={id:next.id,x:next.x,y:next.y,
+    label:baseNames[next.type]||'Станция'};
+  }
+  this.player.ore+=PROBE_OPERATION.rewardOre;
+  this.cockpit.resourceGain(PROBE_OPERATION.rewardOre,this.time);
+  this.collect({type:'data',value:PROBE_OPERATION.rewardData});
+  this.heritage.vfx.nova(op.x,op.y,105,'cyan');
+  this.heritage.station('claimContract',base.type);
+  this.notice('СИГНАЛ ВОССТАНОВЛЕН! +'+PROBE_OPERATION.rewardOre+' сплава, +'+
+   PROBE_OPERATION.rewardData+' данных. Местная разведка усилена.'+
+   (next?' Отмечен новый узел сети.':''),5.5);
+ }
+ baseState(){
+  const topology=this.world.networkTopology();
+  return {ore:this.player.ore,data:this.player.data,xp:this.player.xp,level:this.player.level,
+   nextXp:expForNext(this.player.level),world:this.world,hp:this.player.hp,maxHp:this.player.maxHp,time:this.time,
+   civilianBases:[...this.world.stations.values()].filter(b=>b.active&&!b.captured).length,
+   relayGain:this.docked&&!this.docked.relayBoost?
+    Math.max(0,this.world.networkTopology(this.docked.id).count-topology.count):0,
+   activeBases:this.activeBases,connectedBases:topology.count,
+   connected:!!this.docked?.active&&topology.linked.has(this.docked.id),
+   allies:this.allies.length,droneRoles:this.allies.map(a=>a.role),network:this.network,doctrine:this.doctrine,
+   droneDamage:this.allies.reduce((sum,a)=>sum+Math.max(0,a.maxHp-a.hp),0),
+   charges:this.support.charges,contract:this.contract,operation:this.operation,baseTab:this.baseTab,
+    position:{x:this.player.x,y:this.player.y},shield:this.player.shield,
+   scanRemaining:Math.max(0,this.geoScanUntil-this.time),
+   overchargeRemaining:Math.max(0,this.overchargeUntil-this.time),
+   transfers:this.docked&&this.docked.active&&topology.linked.has(this.docked.id)?
+    [...topology.linked].map(id=>this.world.stations.get(id))
+     .filter(b=>b&&b.id!==this.docked.id)
+     .map(b=>({id:b.id,x:b.x,y:b.y,type:b.type})):[]};
+ }
+ renderDock(){
+  if(!this.docked)return;
+  this.overlay.innerHTML=renderBasePanel(this.docked,this.baseState());
+  this.hud();
+ }
+ nearestInteractionStation(){
+  let nearest=null,closest=RULES.baseInteract;
+  for(const b of this.localStations){
+   if(b.enemy)continue;
+   const d=dist(b,this.player);
+   if(d<=closest){closest=d;nearest=b;}
+  }
+  return nearest;
+ }
+ currentInteraction(){
+  const probe=this.operation?.id===PROBE_OPERATION.id?this.operation:null;
+  const rock=this.mining.target;
+  const range=extractorStats(this.skillRanks.extractor||0,this.skillRanks.mining||0).range;
+  return chooseInteraction({player:this.player,probe,station:this.nearestInteractionStation(),
+   rock,probeRange:PROBE_OPERATION.repairRange,
+   stationRange:RULES.baseInteract,rockRange:range+(rock?.r||0)*.3});
+ }
+ beginInteraction(source){
+  if(this.dead||this.paused||!this.overlay.hidden||this.actionHeld)return false;
+  const action=this.currentInteraction();
+  if(!action)return false;
+  if(action.kind==='station'){this.dock(action.target);return true;}
+  this.actionHeld={kind:action.kind,source,target:action.target};
+  return true;
+ }
+ endInteraction(source=null){
+  if(!this.actionHeld)return;
+  if(source&&this.actionHeld.source!==source)return;
+  this.actionHeld=null;this.probeRepairing=false;this.mining.active=false;
+  this.heritage.extraction(false);
+ }
+ toggleHoldFire(){
+  if(this.dead||this.paused||!this.overlay.hidden)return;
+  this.holdFire=!this.holdFire;
+  this.heritage.ui('tab');
+  this.notice(this.holdFire?
+   'Автоогонь выключен: корабль и ведомые прекращают атаки. Добыча по-прежнему создаёт сигнал.':
+   'Автоогонь включён: корабль и ведомые вновь защищаются.',3.8);
+  this.hud();
+ }
+ syncControlUI(){
+  const button=$('actionBtn');
+  if(button){
+   const focus=this.actionHeld||this.interactionFocus;
+   const label=focus?.kind==='repair'?'Ремонт':focus?.kind==='mine'?'Добыча':
+    focus?.kind==='station'?'Станция':'Действие';
+   if(button.textContent!==label)button.textContent=label;
+   button.disabled=!focus;
+   button.setAttribute('aria-label',focus?(focus.kind==='station'?'Открыть станцию':
+    focus.kind==='repair'?'Удерживать для ремонта зонда':'Удерживать для добычи'):'Нет объектов для взаимодействия');
+  }
+  const quiet=$('quietBtn');
+  if(quiet){
+   quiet.setAttribute('aria-pressed',String(this.holdFire));
+   quiet.classList.toggle('is-quiet',this.holdFire);
+   quiet.textContent=this.holdFire?'Огонь выкл.':'Огонь вкл.';
+  }
+  const hack=$('hackBtn');if(hack)hack.hidden=!this.hacks.length;
+  const strike=$('strikeBtn');if(strike)strike.hidden=!(this.support?.charges>0);
+  const skills=$('skillBtn');
+  if(skills)skills.classList.toggle('has-points',this.player.points>0);
+ }
+ drawInteractionFocus(c,cam){
+  const held=this.actionHeld;
+  const focus=held?
+   (held.kind==='mine'&&this.mining.target?.alive?
+    {kind:'mine',target:this.mining.target,label:'Добыча'}:
+    held.kind==='repair'&&this.operation?.id===PROBE_OPERATION.id?
+     {kind:'repair',target:this.operation,label:'Ремонт'}:null):this.interactionFocus;
+  if(!focus?.target||outsideCamera(focus.target.x,focus.target.y,cam,85))return;
+  const t=focus.target,r=focus.kind==='mine'?t.r+12:focus.kind==='station'?61:38;
+  c.save();c.lineWidth=1.7;c.strokeStyle=focus.kind==='repair'?'#ffc678':
+   focus.kind==='station'?'#87f0cf':'#7de5f5';
+  c.setLineDash([7,6]);c.beginPath();c.arc(t.x,t.y,r,0,TAU);c.stroke();
+  c.setLineDash([]);c.fillStyle='#c9f6f6';c.font='bold 12px system-ui';
+  c.textAlign='center';c.fillText(focus.label+(this.isTouchLayout?'':' · E'),t.x,t.y-r-13);
+  c.restore();
+ }
+  dock(selected=null){
+  if(this.dead)return;
+  if(!this.overlay.hidden&&this.overlay.dataset.mode==='base'){this.dismiss();return;}
+  const b=selected?
+   (dist(selected,this.player)<=RULES.baseInteract?selected:null):
+   this.world.nearbyStations(this.player.x,this.player.y,210,false)
+    .filter(s=>dist(s,this.player)<=RULES.baseInteract)
+    .sort((a,c)=>dist(a,this.player)-dist(c,this.player))[0];
+  if(!b){this.heritage.ui('deny');this.notice('Подлетите ближе к станции (E)',2);return;}
+  this.endInteraction();
+  this.docked=b;this.baseTab='summary';this.paused=true;this.pausedRenderPending=true;
+  this.heritage.pause('base');
+  this.overlay.dataset.mode='base';this.overlay.hidden=false;
+  this.heritage.ui('dock');
+  this.renderDock();
+ }
+ baseAction(act,role){
+  const b=this.docked,p=this.player;if(!b||this.dead)return;
+  const o=baseOffer(b,this.baseState());
+  if(act==='acceptOperation'){
+   const corridor=isCorridorDock(b),probe=isProbeLab(b);
+   if(!b.active||this.operation||(!corridor&&!probe)||
+    (corridor&&b.corridorSecured)||(probe&&b.probeRecovered)){
+    this.heritage.ui('deny');this.notice('Особая операция сейчас недоступна',2.3);return;
+   }
+   this.operation=corridor?(b.corridorMission||createCorridorOperation(b)):
+    (b.probeMission||createProbeOperation(b,this.world));
+   if(!this.operation)return;
+   if(corridor)b.corridorMission=this.operation;else b.probeMission=this.operation;
+   this.waypoint={id:this.operation.id,x:this.operation.x,y:this.operation.y,
+    label:corridor?'Вражеский глушитель':'Аварийный зонд'};
+   this.baseTab='operations';this.heritage.station('acceptContract',b.type);
+   this.notice(corridor?'«Глухой коридор»: цель отмечена на карте. Подготовьте корабль и вылетайте.':
+    '«Последний сигнал»: зонд отмечен. Подлетите и удерживайте E для ремонта; отпустите E, чтобы стрелять.',5);
+   this.pausedRenderPending=true;this.renderDock();return;
+  }
+  if(act==='antenna'){
+   if(o.reasons.antenna){this.heritage.ui('deny');this.notice(o.reasons.antenna,2.6);return;}
+   p.ore-=o.antennaCost;b.relayBoost=true;
+   const topology=this.world.networkTopology();
+   this.cachedNetworkLinked=topology.linked;
+   this.notice('Антенна усилена · в сети '+topology.count+' станций',3.5);
+   this.heritage.vfx.nova(b.x,b.y,105,'cyan');
+   this.heritage.station('upgrade',b.type,{tech:'relay'});
+   this.pausedRenderPending=true;this.renderDock();return;
+  }
+  if(act==='installModule'){
+   const spec=stationModule(b.type,role);
+   if(!b.active||!spec||b.module||p.ore<spec.cost){this.heritage.ui('deny');this.notice('Модуль недоступен: проверьте сплав и оснащение станции',3);return;}
+   p.ore-=spec.cost;b.module=role;
+   this.notice('Оснащение станции: '+spec.name+' · −'+spec.cost+' сплава',3.2);
+   this.heritage.vfx.nova(b.x,b.y,96,'cyan');
+   this.heritage.station('upgrade',b.type,{tech:'module'});
+   this.pausedRenderPending=true;this.renderDock();return;
+  }
+  if(act==='acceptContract'){
+   if(!b.active||this.contract||(b.contractCooldownUntil||0)>this.time)return;
+   const c=o.contractOptions.find(item=>item.id===role)||(!role?o.contractOptions[0]:null);
+   if(!c)return;
+   this.contract={baseId:b.id,kind:c.kind,goal:c.goal,progress:0,choiceId:c.id,
+    name:c.name,ore:c.ore,data:c.data};
+   this.notice('Задание принято: '+c.name+' · '+c.goal+' целей',3.2);
+   this.heritage.station(act,b.type);
+   this.pausedRenderPending=true;this.renderDock();return;
+  }else if(act==='claimContract'){
+   const c=this.contract;
+   if(!b.active||!c||c.baseId!==b.id||c.progress<c.goal)return;
+   b.contractClaimed=true;b.completedContract=c.choiceId;
+   b.contractRuns=(b.contractRuns||0)+1;b.contractCooldownUntil=this.time+150;
+   this.contract=null;
+   p.ore+=c.ore;this.cockpit.resourceGain(c.ore,this.time);
+   this.collect({type:'data',value:c.data});
+   this.notice('Поручение выполнено: +'+c.ore+' сплава · +'+c.data+' данных',4);
+   this.heritage.station(act,b.type);
+   this.pausedRenderPending=true;this.renderDock();return;
+  }else if(act==='respec'){
+   if(!b.active||!this.doctrine||p.ore<12){this.notice('Нужны активная база и 12 сплава',2);return;}
+   p.ore-=12;this.doctrine=null;p.points++;
+   this.heritage.station('respec',b.type);
+   this.heritage.pause('skills');
+   this.overlay.dataset.mode='skills';this.renderSkills();return;
+  }
+  if(act==='activate'){
+   if(o.reasons.activate){this.notice(o.reasons.activate,2);return;}
+   p.ore-=o.relayCost;
+   b.active=true;b.discovered=true;this.activeBases++;b.activationIndex=this.activeBases;
+    if(this.waypoint?.id===b.id)this.waypoint=null;
+   b.activated=true;b.activationTime=this.time;
+   p.ore+=o.rewardAlloy;
+   p.hp=Math.min(p.maxHp,p.hp+o.rewardRepair);
+   const topology=this.world.networkTopology();
+   this.cachedNetworkLinked=topology.linked;
+   this.notice('Станция активна'+(topology.linked.has(b.id)?
+    ' · подключено узлов: '+topology.count:' · ищите ретранслятор')+
+    (o.rewardAlloy?' · +'+o.rewardAlloy+' сплава':'')+
+    (o.relayCost?' · −'+o.relayCost+' сплава':''),3.8);
+   this.heritage.vfx.nova(b.x,b.y,130,'cyan');
+  }else if(!b.active){this.notice('Сначала активируйте станцию',2);return;}
+  else if(act==='hire'){
+   if(o.reasons.hire||role!==o.drone.role){this.notice(o.reasons.hire||'Нет такого дрона',2);return;}
+   p.ore-=o.hireCost;
+   if(o.replacing)this.allies.splice(o.replacementIndex,1);
+   const maxHp=role==='fighter'?78:58;
+   this.allies.push({serial:++this.allySerial,role,x:b.x,y:b.y,vx:0,vy:0,
+    r:role==='fighter'?15:13,hp:maxHp,maxHp,fire:.3,think:0,
+    state:'follow',commitUntil:0,message:'Вылетаю с базы',
+    messageUntil:this.time+2.2,angle:0});
+   this.notice((o.replacing?'Дрон заменён: ':'Нанят ')+o.drone.name+' · '+this.allies.length+' / '+o.cap,2.6);
+   this.heritage.vfx.nova(b.x,b.y,58,'cyan');
+  }else if(act==='upgrade'){
+   if(o.reasons.upgrade){this.notice(o.reasons.upgrade,2);return;}
+   p.ore-=o.upgradeCost;this.network[o.tech.key]++;b.usedUpgrade=true;
+   this.notice('Технология: '+o.tech.name+' · уровень '+this.network[o.tech.key],3);
+   this.heritage.vfx.nova(b.x,b.y,90,'violet');
+  }else if(act==='repair'){
+   if(o.reasons.repair){this.notice(o.reasons.repair,2);return;}
+   p.ore-=o.repairCost;p.hp=Math.min(p.maxHp,p.hp+Math.round(p.maxHp*.45));
+   this.notice('Корпус восстановлен',2.4);
+   this.heritage.vfx.nova(p.x,p.y,70,'green');
+  }else if(act==='repairDrones'){
+   if(o.reasons.drones){this.notice(o.reasons.drones,2);return;}
+   p.ore-=o.droneRepairCost;
+   for(const a of this.allies)a.hp=a.maxHp;
+   this.notice('Дроны восстановлены',2.4);
+   this.heritage.vfx.nova(b.x,b.y,60,'green');
+  }else if(act==='service'){
+   if(!o.localService||o.reasons.service){
+    this.notice(o.reasons.service||'Услуга недоступна',2);return;
+   }
+   p.ore-=o.localService.cost;
+   if(b.type==='dock')p.shield=Math.max(30,p.shield);
+   else if(b.type==='lab')this.geoScanUntil=this.time+o.localService.duration;
+   else if(b.type==='arsenal')this.overchargeUntil=this.time+o.localService.duration;
+   this.notice(o.localService.name+' · −'+o.localService.cost+' сплава',3);
+   this.heritage.vfx.nova(b.x,b.y,78,'cyan');
+  }else if(act==='supply'){
+   if(o.reasons.supply){this.notice(o.reasons.supply,2);return;}
+   p.ore-=o.chargeCost;this.support.charges++;
+   this.notice('Вылетов: '+this.support.charges+' / 2 · B у вражеской базы',3.4);
+   this.heritage.vfx.nova(b.x,b.y,70,'cyan');
+  }else if(act==='transfer'){
+   const topology=this.world.networkTopology(),target=this.world.stations.get(role);
+   if(!b.active||!topology.linked.has(b.id)||topology.count<2||
+      !target?.active||target.enemy||target.id===b.id||!topology.linked.has(target.id)){
+    this.notice('Маршрут недоступен: соедините станции с сетью',2.5);return;
+   }
+   const price=transitCost(b,target);
+   if(p.ore<price){this.notice('Для перелёта нужно ещё '+(price-p.ore)+' сплава',2.5);return;}
+   p.ore-=price;
+   this.heritage.vfx.nova(b.x,b.y,110,'cyan');
+   p.x=target.x+75;p.y=target.y+30;p.vx=0;p.vy=0;p.burstRemaining=0;
+   for(let i=0;i<this.allies.length;i++){
+    const ally=this.allies[i];ally.x=p.x+(i?45:-45);ally.y=p.y+34;
+    ally.vx=0;ally.vy=0;ally.state='follow';ally.target=null;
+   }
+   this.mining.target=null;this.mining.active=false;
+   this.heritage.vfx.nova(p.x,p.y,100,'cyan');
+   this.docked=null;this.dismiss();
+   this.notice('Сетевой перелёт: '+(baseNames[target.type]||'станция')+' · −'+price+' сплава',3.2);
+   this.heritage.station('transfer',target.type);
+   return;
+  }else return;
+  // Do not replay the dock animation on rejected purchases.
+  markDockEvent(b,act,this.time);
+  this.heritage.station(act,b.type,{tech:act==='upgrade'?o.tech.key:null});
+  this.pausedRenderPending=true;this.renderDock();
+ }
+ callStrike(){
+  if(this.dead||this.paused)return false;
+  const sup=this.support;
+  if(!sup.charges){this.notice('Снарядите авиаудар на подключённом авианосце',3);return false;}
+  if(sup.cooldown>0){this.notice('Перезарядка связи: '+Math.ceil(sup.cooldown)+' с',2);return false;}
+  const enemy=this.nearbyEnemyBase(720);
+  if(!enemy){this.notice('Подлетите ближе к вражеской базе',3);return false;}
+  const topology=this.world.networkTopology();
+  const carriers=[...this.world.stations.values()].filter(b=>
+   b.active&&!b.enemy&&b.type==='carrier'&&topology.linked.has(b.id));
+  if(!carriers.length){this.notice('Нет связи с авианосцем',3);return false;}
+  carriers.sort((a,b)=>dist(a,enemy)-dist(b,enemy));
+  const carrier=carriers[0],dx=enemy.x-carrier.x,dy=enemy.y-carrier.y,n=Math.hypot(dx,dy)||1;
+  const ux=dx/n,uy=dy/n,approach=Math.max(this.vw,this.vh)*.8+240;
+  const bomberHp=carrier.module==='armor'?Math.round(68*1.45):68;
+   const craft=[-1,1].map((side,i)=>({
+   x:enemy.x-ux*approach-uy*side*46,
+   y:enemy.y-uy*approach+ux*side*46,
+   r:17,hp:bomberHp,maxHp:bomberHp,role:'bomber',angle:Math.atan2(uy,ux)+Math.PI/2,
+   lane:side,serial:i+1}));
+  sup.missions.push({base:enemy,carrier,craft,age:0,shotAt:2.3,volleys:0});
+  sup.charges--;sup.cooldown=35;
+  this.notice('Ударная группа на подходе! Прикрывайте заход.',4);
+  this.heritage.play('strikeCall',.5,{x:this.player.x,y:this.player.y});
+  this.heritage.vfx.nova(this.player.x,this.player.y,85,'cyan');
+  return true;
+ }
+ updateStrikes(dt){
+  const sup=this.support;sup.cooldown=Math.max(0,sup.cooldown-dt);
+  for(const mission of sup.missions){
+   mission.age+=dt;
+   const b=mission.base,c=mission.carrier;
+   const dx=b.x-c.x,dy=b.y-c.y,n=Math.hypot(dx,dy)||1;
+   const ux=dx/n,uy=dy/n,range=Math.max(this.vw,this.vh)*.8+240;
+   for(const craft of mission.craft){
+    craft.hit=Math.max(0,(craft.hit||0)-dt);
+    if(craft.hp<=0)continue;
+    const travel=mission.age<2.4?-range*(1-mission.age/2.4):
+     Math.min(range,(mission.age-2.4)*195);
+    const side=craft.lane*46;
+    craft.x=b.x+ux*travel-uy*side;
+    craft.y=b.y+uy*travel+ux*side;
+    craft.angle=Math.atan2(uy,ux)+Math.PI/2;
+    craft.vx=ux*(mission.age<2.4?range/2.4:195);
+    craft.vy=uy*(mission.age<2.4?range/2.4:195);
+   }
+   if(mission.age>=mission.shotAt&&mission.volleys<4){
+    mission.shotAt+=1.03;mission.volleys++;
+    const alive=mission.craft.filter(c=>c.hp>0);
+    if(!alive.length)continue;
+    const craft=alive[(mission.volleys-1)%alive.length];
+    const target=b.turrets?.find(t=>t.hp>0)||b;
+    if(target.hp<=0)continue;
+    const damage=(44+Math.min(6,this.network.strikePower)*10)*(c.module==='guidance'?1.2:1);
+    if(target===b)this.hitEnemyBase(b,damage,'bomber');
+    else this.hitTurret(target,damage);
+    this.heritage.vfx.meteorStrike(target.x,target.y,26,false);
+    this.flash(craft.x,craft.y,target.x,target.y,'#ffcf7b');
+    this.heritage.play('rocket',.32,{x:craft.x,y:craft.y});
+   }
+  }
+  sup.missions=sup.missions.filter(m=>m.age<7.5&&m.craft.some(c=>c.hp>0));
+ }
+
+ hack(){
+  if(this.dead)return;
+  if(!this.hacks.length){this.notice('Нужен код захваченной вражеской базы',2);return;}
+  const charge=this.hacks.shift(),cam=this.camera();
+  let count=0;
+  for(const e of this.enemies){
+   if(e.hp<=0||e.converted||e.type==='gunship')continue;
+   const eligible=charge==='screen'? !outsideCamera(e.x,e.y,cam,e.r):
+      dist(e,this.player)<260;
+   if(eligible&&count<24){
+    e.converted=true;e.convertedTime=19;e.state='converted';e.fire=.2;count++;
+    this.flashes.push({x:e.x,y:e.y,x2:e.x,y2:e.y,color:'#78ffd6',ttl:.5});
+   }
+  }
+  this.heritage.vfx.nova(this.player.x,this.player.y,260,'green');
+  this.heritage.play('hack');
+  this.notice('Перепрограммировано кораблей: '+count,3.5);
+ }
+ hurt(damage,source=null){
+  const p=this.player;if(p.invul>0)return;
+  if(this.nearDockField||this.nearArsenalDefense)damage*=.82;
+  const absorbed=Math.min(p.shield,damage);p.shield-=absorbed;
+  const remaining=Math.max(0,damage-absorbed);
+  const previousHp=p.hp;
+  p.hp-=remaining;p.invul=.55+this.skillRanks.dodge*.12;this.lastDamageAt=this.time;
+  if(previousHp/p.maxHp>.3&&p.hp/p.maxHp<=.3&&p.hp>0)
+   this.heritage.play('criticalHull',3);
+  const contact=source?contactOnCircle(p.x,p.y,p.r,source.x,source.y):null;
+  this.heritage.vfx.arcadePlayerHurt(p.x,p.y,absorbed>0,remaining>0,contact);
+  this.heritage.play('damage',.35);
+  this.cockpit.impact(damage/Math.max(1,p.maxHp));
+  const boost=this.skillRanks.dodge;
+  if(boost){
+   const sx=source? p.x-source.x : p.vx,sy=source? p.y-source.y : p.vy;
+   const m=length(sx,sy);
+   const dx=m>1?sx/m:Math.sin(p.angle),dy=m>1?sy/m:-Math.cos(p.angle);
+   p.vx+=dx*boost*120;p.vy+=dy*boost*120;
+   this.heritage.vfx.engineTrail(p.x,p.y,p.angle,'fighter',false,.13);
+  }
+  if(p.hp<=0){p.hp=0;this.die();}
+ }
+ die(){
+  if(this.dead)return;
+  this.heritage.vfx.shipExplosion(this.player.x,this.player.y,35,'#83e9ff',false);
+  this.heritage.vfx.nova(this.player.x,this.player.y,100,'cyan');
+  this.heritage.play('death',.1);
+  this.heritage.onDeath();
+  this.dead=true;this.paused=true;this.pausedRenderPending=true;
+  this.deathVfxAt=performance.now();this.deathSceneEnd=this.deathVfxAt+1100;
+  this.overlay.hidden=true;this.overlay.dataset.mode='death';
+  this.overlay.innerHTML='<div class="dialog"><h2>Корабль потерян</h2><p>Время полёта: '+
+    Math.floor(this.time/60)+' мин · уровень '+this.player.level+
+    ' · открыто станций '+this.activeBases+'</p><button data-act="restart">Новый вылет</button></div>';
+ }
+ updateMissiles(dt){
+  for(const m of this.missiles){
+   if(m.target?.hp>0&&!m.target.converted){m.tx=m.target.x;m.ty=m.target.y;}
+   m.prevX=m.x;m.prevY=m.y;
+   if(!m.trail)m.trail=[];
+   if(!m.trail.length||Math.hypot(m.x-m.trail[m.trail.length-1].x,m.y-m.trail[m.trail.length-1].y)>5){
+    m.trail.push({x:m.x,y:m.y});if(m.trail.length>9)m.trail.shift();
+   }
+   const dx=m.tx-m.x,dy=m.ty-m.y,d=Math.hypot(dx,dy);
+   const step=Math.min(d,m.speed*dt);
+   if(d>0){m.x+=dx/d*step;m.y+=dy/d*step;}
+   m.life-=dt;
+   const arrived=d<=m.speed*dt+8;
+   if(arrived||m.life<=0){
+    const e=m.target;
+    const hit=e?.hp>0&&!e.converted&&Math.hypot(m.x-e.x,m.y-e.y)<e.r+24;
+    const contact=hit?contactOnCircle(e.x,e.y,e.r,m.prevX,m.prevY):null;
+    if(hit)this.damageEnemy(e,m.damage,'rocket',contact);
+    if(hit)this.heritage.vfx.rocketImpact(contact?.x??m.x,contact?.y??m.y,26);
+    else this.heritage.vfx.rocketImpact(m.x,m.y,12);
+    m.life=-1;
+   }
+  }
+  this.missiles=this.missiles.filter(m=>m.life>0);
+ }
+ hitAlly(a,damage){
+  if(!a||a.hp<=0||damage<=0)return;
+  a.hp-=damage;a.hit=.18;
+  if(this.time>(a.nextVfxHit||0)){
+   this.heritage.vfx.hullImpact(a.x,a.y,false);
+   a.nextVfxHit=this.time+.24;
+  }
+ }
+ damageEnemy(e,damage,source='other',contact=null){
+  if(e.hp<=0)return;
+  if(source==='beam'&&this.overchargeUntil>this.time)damage*=1.2;
+  // A shot reveals its real origin, even when the first hit destroys the ship.
+  // Drone fire must not tell the patrol the player's hidden position.
+  const aggressor=(source==='beam'||source==='rocket')?this.player:
+    (source&&typeof source==='object'&&Number.isFinite(source.x)&&
+     Number.isFinite(source.y)&&source.hp>0)?source:null;
+  if(e.signalIntel&&aggressor)alertSignalIntel(e.signalIntel,aggressor,this.time);
+  e.hp-=damage;e.hit=.12;
+  if(this.visuals?.capitalDamageQA&&e.type==='gunship'&&e.serial%2===0)
+   recordCapitalHit(e,contact,this.time);
+  if(this.time>(e.nextVfxHit||0)){
+   this.heritage.vfx.hullImpact(
+    contact?.directed?contact.x:e.x,contact?.directed?contact.y:e.y,
+    damage>45,contact);
+   e.nextVfxHit=this.time+.13;
+  }
+  this.heritage.play('hit',.24,{x:e.x,y:e.y});
+ }
+ flash(x,y,x2,y2,color='#a7eeff'){
+  if(this.flashes.length>=90)this.flashes.shift();
+  this.flashes.push({x,y,x2,y2,color,ttl:.16});
+ }
+ hitTurret(t,damage,contact=null){
+  if(t.hp<=0)return;
+  t.hp-=damage;t.flash=.1;
+  if(this.time>(t.nextVfxHit||0)){
+   this.heritage.vfx.hullImpact(
+    contact?.directed?contact.x:t.x,contact?.directed?contact.y:t.y,
+    damage>=40,contact);
+   t.nextVfxHit=this.time+.15;
+  }
+  if(t.hp<=0){this.heritage.vfx.shipExplosion(t.x,t.y,21,'#ff6974');
+   this.heritage.play('explosion',.25,{x:t.x,y:t.y});}
+ }
+ hitEnemyBase(base,damage,source='player'){
+  // A captured base is friendly even though the repaired structure has positive HP.
+  if(base.hp<=0||base.captured||!base.enemy)return;
+  if(base.turrets.some(t=>t.hp>0))return;
+  if(this.time>(base.nextVfxHit||0)){
+   this.heritage.vfx.hullImpact(base.x,base.y,damage>=40);
+   base.nextVfxHit=this.time+.2;
+  }
+  if(source==='bomber'){
+   const reserve=base.maxHp*.2;
+   base.hp=Math.max(reserve,base.hp-damage);
+   if(base.hp<=reserve&&!base.coreExposed){
+    base.coreExposed=true;
+    this.notice('Ядро базы открыто! Подлетите и добейте его своим лучом.',4);
+    this.heritage.vfx.nova(base.x,base.y,120,'red');
+   }
+   return;
+  }
+  base.hp-=damage;
+  if(base.hp<=0){
+   base.hp=Math.max(1,Math.round(base.maxHp*.3));base.captured=true;base.enemy=false;base.active=true;
+   base.activated=true;base.activationTime=this.time;
+   this.activeBases++;base.activationIndex=this.activeBases;
+   this.hacks.push(base.rank>=3?'screen':'area');
+   if(this.hacks.length>3)this.hacks.shift();
+   this.heritage.vfx.nova(base.x,base.y,200,'green');
+   this.heritage.play('capturedBase',.2,{x:base.x,y:base.y});
+   this.notice('Вражеская база захвачена! Заряд кода: Q',6);
+  }
+ }
+ nearbyEnemyBase(radius=900){
+  if(!this.enemyBasesUnlocked())return null;
+  return this.world.nearbyStations(this.player.x,this.player.y,radius)
+   .filter(b=>b.enemy&&!b.captured).sort((a,b)=>dist(this.player,a)-dist(this.player,b))[0]||null;
+ }
+ enemyBasesUnlocked(){return this.player.level>=RULES.enemyBaseUnlockLevel&&
+  this.activeBases>=RULES.enemyBaseUnlockStations;}
+ assaulting(b){return dist(this.player,b)<430 && !b.captured;}
+ enemyShot(x,y,tx,ty,damage){
+  if(this.shots.length>=RULES.maxShots)return;
+  const d=length(tx-x,ty-y)||1,speed=230;
+  this.shots.push({x,y,vx:(tx-x)/d*speed,vy:(ty-y)/d*speed,
+   damage,r:6,life:3.3,alive:true});
+  this.heritage.play('enemyShot',.28,{x,y});
+ }
+ shotsNear(x,y,r){return this.shotGrid.query(x,y,r);}
+ avoidance(x,y,r){
+  let vx=0,vy=0;
+  for(const z of this.zones){
+   if(z.fuse<=0)continue;
+   const d=length(x-z.x,y-z.y),reach=z.r+r+65;
+   if(d<reach){
+    const k=(reach-d)/Math.max(1,d);
+    vx+=(x-z.x)*k;vy+=(y-z.y)*k;
+   }
+  }
+  const phase=ionPhase(this.time);
+  if(phase.state==='warning'||phase.state==='discharge'){
+   const d=length(x-ION_FIELD.x,y-ION_FIELD.y),reach=ION_FIELD.r+r+65;
+   if(d>1&&d<reach){
+    vx+=(x-ION_FIELD.x)/d*(reach-d);
+    vy+=(y-ION_FIELD.y)/d*(reach-d);
+   }
+  }
+  for(const rock of this.nearRocks||[]){
+   if(!rock.alive)continue;
+   const dx=x-rock.x,dy=y-rock.y;
+   if(Math.abs(dx)>100||Math.abs(dy)>100)continue;
+   const d=length(dx,dy),reach=rock.r+r+22;
+   if(d>1&&d<reach){vx+=dx/d*(reach-d);vy+=dy/d*(reach-d);}
+  }
+  const m=length(vx,vy);
+  return m>0?{x:clamp(vx/m*clamp(m/60,0,1),-1,1),y:clamp(vy/m*clamp(m/60,0,1),-1,1)}:{x:0,y:0};
+ }
+ enemyCanSee(enemy,target){
+  const d=dist(enemy,target);
+  if(d>290)return false;
+  const dx=target.x-enemy.x,dy=target.y-enemy.y;
+  const speed=length(enemy.vx,enemy.vy);
+  // A nearby contact is detected from any angle. At distance, a moving
+  // patrol must be facing roughly toward the contact.
+  if(d>88&&speed>24&&(enemy.vx*dx+enemy.vy*dy)/(speed*Math.max(1,d))<-.2)
+   return false;
+  const rocks=this.rockGrid.query((enemy.x+target.x)*.5,(enemy.y+target.y)*.5,d*.5+80);
+  return !firstRockImpact(enemy.x,enemy.y,target.x,target.y,rocks,0,target);
+ }
+ sectorDirector(director){
+  let adjusted=director;
+  if(this.enemyBasesUnlocked()&&director.types.length){
+   const control=this.world.sectorControl(this.player.x,this.player.y);
+   if(control.kind==='hostile')adjusted={...adjusted,
+    cap:Math.min(RULES.maxEnemies,adjusted.cap+3),interval:adjusted.interval*.82};
+   else if(control.kind==='secured')adjusted={...adjusted,
+    cap:Math.max(4,adjusted.cap-3),interval:adjusted.interval*1.2};
+  }
+  const home=this.world.home;
+  const modifier=home?.corridorSecured&&Math.hypot(this.player.x-home.x,this.player.y-home.y)<1250?1.17:1;
+  if(modifier>1&&adjusted.types.length)adjusted={...adjusted,
+   cap:Math.max(4,adjusted.cap-1),interval:adjusted.interval*modifier};
+  return adjusted;
+ }
+ spawnGroup(director=openingThreat(this.time,this.player.level),noiseSignal=null){
+  if(!director.types.length||this.enemies.length>=RULES.maxEnemies)return 0;
+  const cap=Math.min(RULES.maxEnemies,director.cap);
+  const available=cap-this.enemies.length;
+  if(available<=0)return 0;
+  const side=Math.floor(Math.random()*4),middle=.2+Math.random()*.6;
+  const plan=planEncounter(this.time,director,available,side,middle,
+    Math.random(),noiseSignal?'':this.lastEncounter);
+  if(!plan.members.length)return 0;
+  if(!noiseSignal)this.lastEncounter=plan.pattern;
+  const group=++this.groupSerial,cam=this.camera(),created=[];
+  const intel=noiseSignal?createSignalIntel(noiseSignal.x,noiseSignal.y,this.time):null;
+  for(let i=0;i<plan.members.length;i++){
+   const member=plan.members[i];
+   const xy=spawnOutside(cam,member.side,member.position,170+i*12);
+   const type=member.type,def=ENEMY_TYPES[type],serial=++this.enemySerial;
+   const hp=def.hp*(1+Math.min(2.5,this.time/550));
+   const enemy={serial,group,type,x:xy.x,y:xy.y,vx:0,vy:0,
+    r:type==='gunship'?22:14,hp,maxHp:hp,damage:def.dmg,
+    think:Math.random()*.32,fire:1+Math.random(),state:'hunt',
+    commitUntil:0,target:this.player,angle:0,hit:0,expAwarded:false,
+    scenario:plan.pattern,protect:null,
+    entryPortalPending:type==='gunship'&&!this.heavyPortalShown};
+   if(intel)Object.assign(enemy,{signalIntel:intel,signalLeader:i===0,
+     signalSlot:i,signalExitX:xy.x,signalExitY:xy.y});
+   if(!intel&&i===0&&plan.label&&this.time-this.lastEncounterLabelAt>=14){
+    enemy.encounterLabel=plan.label;this.lastEncounterLabelAt=this.time;
+   }
+   created.push(enemy);
+  }
+  // Direct references keep formations cheap: no squad-wide search each frame.
+  for(let i=0;i<created.length;i++){
+   const index=plan.members[i].protectIndex;
+   if(index>=0)created[i].protect=created[index];
+  }
+  this.enemies.push(...created);
+  return plan.pause;
+ }
+ damageRock(rock,damage,sourceX,sourceY,kind='auto',showImpact=true,contact=null){
+  if(!rock?.alive)return;
+  const destroyed=impactRock(rock,damage,sourceX,sourceY,kind);
+  // Emit noise as the ore fractures so the player can judge danger in time.
+  if(kind==='extract'&&damage>0){
+   const emitted=extractionNoiseDelta(rock,this.skillRanks.mining||0,this.nearQuietLab);
+   if(emitted>0){
+    this.miningNoise+=emitted;
+    this.lastNoiseSource={x:rock.x,y:rock.y};
+   }
+  }
+  if(showImpact){
+   const point=contact||contactOnCircle(rock.x,rock.y,rock.r,sourceX,sourceY);
+   this.heritage.vfx.asteroidImpact(
+    point?.directed?point.x:rock.x,point?.directed?point.y:rock.y,
+    rock.r,kind==='extract'&&!!rock.rich,point);
+   if(kind==='auto')this.heritage.play('stone',.27,{x:rock.x,y:rock.y});
+   // Electric extraction has one continuous tool sound, managed in heritage.
+  }
+  if(!destroyed)return;
+  if(kind==='extract'){
+   this.advanceContract('mine',rock);
+  }
+  this.heritage.vfx.asteroidBreak(rock.x,rock.y,rock.r);
+  this.heritage.play('rockBreak',.22,{x:rock.x,y:rock.y});
+  // Hostile fire consumes stone cover; only player actions can yield alloy.
+  if(kind==='cover')return;
+  const total=rockYield(rock,kind,{...this.skillRanks,doctrine:this.doctrine}),count=kind==='strike'?3:kind==='auto'?1:2;
+  for(let i=0;i<count;i++){
+   const value=Math.floor(total/count)+(i<total%count?1:0);
+   const a=i*Math.PI*2/count+rock.x*.13,scatter=22+rock.r*.25;
+   this.addDrop('ore',rock.x+Math.cos(a)*scatter,rock.y+Math.sin(a)*scatter,
+    value,{life:kind==='strike'?25:34,hot:kind==='strike',
+     vx:Math.cos(a)*(kind==='strike'?120:70),
+     vy:Math.sin(a)*(kind==='strike'?120:70)});
+  }
+ }
+ addDrop(type,x,y,value,options={}){
+  if(this.drops.length>=RULES.maxDrops){
+   // When the cap is reached, award pickups directly rather than lose progress.
+   this.collect({type,value});return;
+  }
+  this.drops.push({type,x,y,value,
+   vx:options.vx??(Math.random()-.5)*55,
+   vy:options.vy??(Math.random()-.5)*55,
+   hot:!!options.hot,life:options.life??34});
+ }
+ collect(item){
+  const p=this.player;
+  this.heritage.play('pickup',.21);
+  if(item.type==='ore'){p.ore+=item.value;this.cockpit.resourceGain(item.value,this.time);}
+  else{
+   p.data+=item.value;p.xp+=item.value;
+   while(p.xp>=expForNext(p.level)){
+    p.xp-=expForNext(p.level);p.level++;p.points++;
+    this.heritage.play('levelUp',.4);
+    if(p.level<=18 || p.level%3===0)this.notice('Повышение уровня! Откройте дерево развития.',3);
+   }
+  }
+ }
+ update(dt){
+  const p=this.player;this.time+=dt;this.visuals.updateSky(p.x,p.y);
+  this.heritage.tick(dt,this);
+  this.updateCorridor(dt);
+  let mx=(this.keys.has('KeyD')||this.keys.has('ArrowRight')?1:0)-
+    (this.keys.has('KeyA')||this.keys.has('ArrowLeft')?1:0)+this.touch.x;
+  let my=(this.keys.has('KeyS')||this.keys.has('ArrowDown')?1:0)-
+    (this.keys.has('KeyW')||this.keys.has('ArrowUp')?1:0)+this.touch.y;
+  const m=length(mx,my);if(m>1){mx/=m;my/=m;}
+  const speed=(272+this.skillRanks.engine*35)*(this.mining.active?.78:1);
+  const boosting=p.burstRemaining>0;
+  const targetX=boosting?p.burstX*speed*2.25:mx*speed;
+  const targetY=boosting?p.burstY*speed*2.25:my*speed;
+  const response=1-Math.exp(-(boosting?17:5.6)*dt);
+  p.vx+=(targetX-p.vx)*response;
+  p.vy+=(targetY-p.vy)*response;
+  p.burstRemaining=Math.max(0,p.burstRemaining-dt);
+  p.burstCooldown=Math.max(0,p.burstCooldown-dt);
+  p.x+=p.vx*dt;p.y+=p.vy*dt;
+  // Cull decorative effects at creation, not only when painting the frame.
+  this.heritage.vfx.setViewport(this.camera());
+  if(length(p.vx,p.vy)>9)p.angle=Math.atan2(p.vy,p.vx)+Math.PI/2;
+  if(Math.hypot(p.vx,p.vy)>150)
+   this.heritage.vfx.engineTrail(p.x,p.y,p.angle,'fighter',boosting,dt);
+  p.invul=Math.max(0,p.invul-dt);
+  if(this.skillRanks.shield && this.time-this.lastDamageAt>3 &&
+   p.shield<16+this.skillRanks.shield*24)
+   p.shield=Math.min(16+this.skillRanks.shield*24,
+    p.shield+dt*(1.8+this.skillRanks.shield*1.2));
+  if(length(p.x-this.lastX,p.y-this.lastY)>120){
+   this.lastX=p.x;this.lastY=p.y;this.stationary=0;
+  }else this.stationary+=dt;
+  if(this.time>55&&this.stationary>8){
+   this.stationary=0;this.zones.push({x:p.x+35,y:p.y-25,r:85,fuse:1.8,fuseStart:1.8,ttl:.3});
+   this.heritage.play('orbitalWarning',1.3,{x:p.x+35,y:p.y-25});
+   this.notice('Орбитальная наводка — уходите из круга!',2);
+  }
+  this.zoneClock-=dt;
+  if(this.zoneClock<=0){
+   this.zoneClock=Math.max(12,28-this.time/110);
+   const a=Math.random()*TAU;
+   const zone={x:p.x+Math.cos(a)*135,y:p.y+Math.sin(a)*110,
+     r:64,fuse:2.4,fuseStart:2.4,ttl:.3};
+   this.zones.push(zone);
+   this.heritage.play('orbitalWarning',1.3,zone);
+  }
+  // Rock positions and station discovery are spatially stable. Recheck only
+  // after travel or a short interval instead of traversing world cells each AI tick.
+  this.worldQueryClock-=dt;
+  if(this.worldQueryClock<=0||Math.hypot(p.x-this.worldQueryX,p.y-this.worldQueryY)>75){
+   this.nearRocks=this.world.nearbyRocks(p.x,p.y,Math.max(this.vw,this.vh)*.85+450);
+   for(const b of this.world.discover(p.x,p.y,570+this.skillRanks.radar*190)){
+    if(this.waypoint?.id===b.id)this.waypoint={id:b.id,x:b.x,y:b.y,label:baseNames[b.type]};
+    if(!b.enemy&&!b.active){
+    this.heritage.world('discover');
+    this.notice('Обнаружена станция: '+baseNames[b.type],3);
+   }
+   }
+   this.localStations=this.world.nearbyStations(p.x,p.y,1000,false);
+   const localStations=this.localStations.filter(b=>b.active);
+   this.nearDock=localStations.find(b=>b.type==='dock'&&dist(b,p)<185)||null;
+   this.nearArsenalBonus=localStations.some(b=>b.type==='arsenal'&&b.module==='amplifier'&&dist(b,p)<650);
+   this.nearArsenalDefense=localStations.some(b=>b.type==='arsenal'&&b.module==='jammer'&&dist(b,p)<650);
+   this.nearDockField=localStations.some(b=>b.type==='dock'&&b.module==='bulwark'&&dist(b,p)<650);
+   this.nearQuietLab=localStations.some(b=>b.type==='lab'&&b.module==='quiet'&&dist(b,p)<900);
+    this.worldQueryX=p.x;this.worldQueryY=p.y;this.worldQueryClock=.18;
+  }
+  this.rockGrid.clear();
+  for(const rock of this.nearRocks){
+   updateRockMotion(rock,dt);
+   if(rock.alive&&rock.r>=34)this.rockGrid.insert(rock);
+  }
+  if(!this.amberBeltSeen&&nearAmberBelt(p.x,p.y)){
+   this.amberBeltSeen=true;
+   this.heritage.world('amber');
+   this.notice('Янтарный пояс: крупные астероиды задерживают вражеские снаряды. Используйте их как укрытие!',5);
+  }
+  if(!this.ionFieldSeen&&ionApproach(p,ION_FIELD,650)){
+   this.ionFieldSeen=true;
+   this.heritage.world('ion');
+   this.notice('Лазурный разлом: голубое кольцо — область ионного разряда. Следите за отсчётом и обходите опасную зону.',6);
+  }
+  if(this.nearDock&&dist(this.nearDock,p)<165&&this.time-this.lastDamageAt>4){
+   const before=p.hp;
+   p.hp=Math.min(p.maxHp,p.hp+2.9*dt*(this.nearDock.module==='workshop'?1.6:1));
+   let serviced=p.hp>before;
+   for(const a of this.allies)if(dist(a,this.nearDock)<200){
+    const prior=a.hp;
+    a.hp=Math.min(a.maxHp,a.hp+3.4*dt*(this.nearDock.module==='workshop'?1.6:1));
+    serviced=serviced||a.hp>prior;
+   }
+   if(serviced&&this.time-(this.nearDock.lastRepairVisualAt??-Infinity)>2.1){
+    markDockEvent(this.nearDock,'repair',this.time);
+    this.nearDock.lastRepairVisualAt=this.time;
+   }
+  }
+  const miningStats=extractorStats(this.skillRanks.extractor||0,this.skillRanks.mining||0);
+  const candidate=miningTarget(this.nearRocks,p,this.mining.target,miningStats.range);
+  this.mining.target=candidate;
+  const probe=this.operation?.id===PROBE_OPERATION.id?this.operation:null;
+  const atProbe=!!probe&&dist(p,probe)<=PROBE_OPERATION.repairRange;
+  this.interactionFocus=this.currentInteraction();
+  // Action kind is locked when pressed. Neither docking nor repair may hijack mining.
+  this.probeRepairing=activeInteraction(this.actionHeld,'repair',atProbe);
+  this.mining.active=activeInteraction(this.actionHeld,'mine',candidate?.alive);
+  if(this.mining.active&&!this.miningIntroShown){
+   this.miningIntroShown=true;
+   this.notice('Удерживайте E для добычи. Техногенный сигнал привлекает патрули — выбирайте момент.',4.5);
+  }
+  this.heritage.extraction(this.mining.active);
+  if(this.mining.active){
+   const effect=this.mining.fxClock<=0;
+   this.damageRock(candidate,miningStats.damagePerSecond*(this.doctrine==='prospect'?1.15:1)*dt,
+    p.x,p.y,'extract',effect);
+   this.mining.fxClock=effect?.20:this.mining.fxClock-dt;
+  }else this.mining.fxClock=0;
+  if(this.probeRepairing)this.repairProbe(dt);
+  this.grid.clear();
+  for(const e of this.enemies)if(e.hp>0)this.grid.insert(e);
+  this.shotGrid.clear();
+  for(const s of this.shots)if(s.alive)this.shotGrid.insert(s);
+  this.miningNoise=Math.max(0,Math.min(110,this.miningNoise-dt*MINING_NOISE.decay));
+  if(this.miningNoise<MINING_NOISE.clear)this.miningNoiseWarned=false;
+  if(this.miningNoise>=MINING_NOISE.warn&&!this.miningNoiseWarned){
+   this.miningNoiseWarned=true;
+   this.notice('Сигнал добычи усиливается. Следующий патруль может засечь вас!',3.6);
+  }
+  if(this.miningNoise>=MINING_NOISE.patrol&&this.time>=MINING_NOISE.firstPatrolAt){
+   const alarm=this.sectorDirector(openingThreat(this.time,this.player.level));
+   if(this.enemies.length<alarm.cap){
+    const before=this.enemies.length;
+    const source=this.lastNoiseSource||{x:p.x,y:p.y};
+    const responders=alarm.types.filter(type=>
+      type==='scout'||type==='fighter'||type==='flanker');
+    const recovery=this.spawnGroup({...alarm,types:responders,
+      groupSize:Math.min(2,alarm.groupSize)},source);
+    if(this.enemies.length>before){
+     this.noiseAlert={x:source.x,y:source.y,startedAt:this.time,until:this.time+2.8};
+     // The patrol replaces the next scheduled group instead of surrounding
+     // the player with two unrelated arrivals in the same moment.
+     this.spawnClock=Math.max(this.spawnClock,4.5+recovery);
+     this.miningNoise=0;this.miningNoiseWarned=false;
+     this.notice('Экстрактор выдал позицию! Патруль идёт на сигнал.',4);
+    }
+   }
+  }
+  this.spawnClock-=dt;
+  if(this.spawnClock<=0){
+   const director=this.sectorDirector(openingThreat(this.time,this.player.level));
+   const recovery=this.spawnGroup(director);
+   // Give the player room to clear an overwhelming formation, without
+   // suppressing the large waves when a strong build is mowing them down.
+   const pressure=this.enemies.length/Math.max(1,director.cap);
+   this.spawnClock=director.interval+recovery+
+    Math.min(3.5,Math.max(0,pressure-.48)*8.5);
+  }
+  this.updateStrikes(dt);
+  for(const e of this.enemies){
+   updateEnemy(e,this,dt);
+   if(e.entryPortalPending){
+    if(this.heavyPortalShown)e.entryPortalPending=false;
+    else if(e.hp>0&&!outsideCamera(e.x,e.y,this.camera(),e.r+12)){
+     e.entryPortalPending=false;this.heavyPortalShown=true;
+     this.heritage.vfx.bossPortal(e.x,e.y,35);
+     this.heritage.play('boss',.1,{x:e.x,y:e.y});
+    }
+   }
+  }
+  for(const a of this.allies){
+   a.hit=Math.max(0,(a.hit||0)-dt);
+   updateAlly(a,this,dt);
+  }
+  this.updateMissiles(dt);
+  for(const s of this.shots){
+   const nextX=s.x+s.vx*dt,nextY=s.y+s.vy*dt;
+   const travel=Math.hypot(nextX-s.x,nextY-s.y);
+   const candidates=this.rockGrid.query((s.x+nextX)*.5,(s.y+nextY)*.5,65+travel*.5);
+   const cover=firstRockImpact(s.x,s.y,nextX,nextY,candidates,s.r,p);
+   s.x=cover?.x??nextX;s.y=cover?.y??nextY;s.life-=dt;
+   if(cover){
+    s.alive=false;
+    const rock=cover.rock;
+    // Stone stops this projectile, but repeated fire can destroy the shelter.
+    this.damageRock(rock,Math.min(12,Math.max(1,s.damage*.5)),s.x,s.y,'cover',false);
+    if(!this.coverWearWarned&&rock.alive&&rock.hp<=rock.maxHp*.52&&dist(rock,p)<310){
+     this.coverWearWarned=true;
+     this.notice('Укрытие осыпается под огнём. Пора менять позицию.',3.2);
+    }
+    if(this.time-(rock.lastCoverVfxAt??-Infinity)>.12){
+     rock.lastCoverVfxAt=this.time;
+     this.heritage.vfx.coverImpact(s.x,s.y,rock.r,
+      contactAtPoint(rock.x,rock.y,s.x,s.y));
+    }
+   }
+   if(s.life<=0)s.alive=false;
+   if(s.alive){
+    let wing=null;
+    for(const mission of this.support.missions){
+     wing=mission.craft.find(c=>c.hp>0&&dist(s,c)<s.r+c.r);
+     if(wing)break;
+    }
+    if(wing){s.alive=false;wing.hp-=s.damage;wing.hit=.18;
+     if(wing.hp<=0)this.heritage.vfx.shipExplosion(wing.x,wing.y,24,'#80d9ff');
+     else {
+      const point=contactOnCircle(wing.x,wing.y,wing.r,s.x,s.y);
+      this.heritage.vfx.hullImpact(point?.x??wing.x,point?.y??wing.y,false,point);
+     }}
+    else if(dist(s,p)<s.r+p.r){s.alive=false;this.hurt(s.damage,{x:s.x,y:s.y});}
+   }
+  }
+  this.shots=this.shots.filter(s=>s.alive);
+  for(const e of this.enemies){
+   e.hit=Math.max(0,(e.hit||0)-dt);
+   if(e.hp>0)continue;
+   if(!e.visualDeath){
+    e.visualDeath=true;
+    const heavy=e.type==='gunship';
+    this.heritage.vfx.shipExplosion(e.x,e.y,e.r*(heavy?1.65:1),
+     e.converted?'#73ffda':'#ff8594',heavy);
+    if(heavy)this.heritage.vfx.nova(e.x,e.y,110,'red');
+    this.heritage.play(heavy?'largeExplosion':'explosion',.18);
+   }
+   if(!e.expAwarded&&!e.converted){
+    e.expAwarded=true;
+    this.advanceContract('kill',e);
+    this.addDrop('data',e.x,e.y,ENEMY_TYPES[e.type].score);
+   }
+  }
+  this.enemies=this.enemies.filter(e=>e.hp>0&&dist(e,p)<Math.max(this.vw,this.vh)*1.65+500);
+  for(const a of this.allies){
+   for(const e of this.grid.query(a.x,a.y,a.r+35)){
+    if(e.hp<=0||e.converted||dist(a,e)>a.r+e.r)continue;
+    this.hitAlly(a,e.damage*dt*.8);
+   }
+  }
+  this.beamClock-=dt;
+  if(this.beamClock<=0&&automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing)){
+   this.beamClock=.63/(1+this.skillRanks.beam*.12);
+   const range=RULES.beamRange+this.skillRanks.range*56;
+   const hostile=this.nearbyEnemyBase(range+150);
+   const jammer=this.operation?.id===CORRIDOR_OPERATION.id&&dist(this.operation,p)<=Math.min(range,CORRIDOR_OPERATION.focusRange)?this.operation:null;
+   const turret=hostile?.turrets?.filter(t=>t.hp>0&&dist(t,p)<=Math.min(range,235))
+    .sort((a,b)=>dist(a,p)-dist(b,p))[0];
+   // The player can deliberately focus a base by daring to enter its attack zone.
+   // Endless enemies must not make turret capture impossible.
+   const baseCore=hostile&&!hostile.turrets.some(t=>t.hp>0)&&
+    dist(hostile,p)<=Math.min(range,245)?hostile:null;
+   if(jammer){
+    const d=dist(jammer,p),damage=beamDamage(21,d,110,range)*(this.nearArsenalBonus?1.18:1);
+    const cover=firstRockImpact(p.x,p.y,jammer.x,jammer.y,
+     this.rockGrid.query((p.x+jammer.x)*.5,(p.y+jammer.y)*.5,d*.5+40),2,p);
+    const point=cover?contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y):null;
+    if(cover)this.damageRock(cover.rock,damage*.85,p.x,p.y,'auto',true,point);
+    else jammer.hp=Math.max(0,jammer.hp-damage);
+    this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(jammer.y-p.y,jammer.x-p.x));
+    this.heritage.play('laser',.32);
+    this.flash(p.x,p.y,point?.x??jammer.x,point?.y??jammer.y,'#e3a0ff');
+    if(jammer.hp<=0)this.completeCorridor();
+    if(this.skillRanks.double){
+     const escorts=this.grid.query(p.x,p.y,range).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e))
+      .sort((a,b)=>dist(a,p)-dist(b,p)).slice(0,this.skillRanks.double);
+     for(const e of escorts){const d2=dist(e,p);
+      const point=contactOnCircle(e.x,e.y,e.r,p.x,p.y);
+      this.damageEnemy(e,beamDamage(14+this.skillRanks.beam*3.3,d2,
+       RULES.nearBeam,range,RULES.beamMinFactor)*.65,'beam',point);
+      this.flash(p.x,p.y,point?.x??e.x,point?.y??e.y,'#72effe');}
+    }
+   }else if(turret||baseCore){
+    const objective=turret||baseCore,d=dist(objective,p);
+    const closeBonus=this.doctrine==='assault'&&d<=180?1.22:1;
+    const damage=beamDamage(turret?23:21,d,110,range)*closeBonus*(this.nearArsenalBonus?1.18:1);
+    const point=turret?contactOnCircle(turret.x,turret.y,22,p.x,p.y):null;
+    if(turret)this.hitTurret(turret,damage,point);
+    else this.hitEnemyBase(baseCore,damage);
+    this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(objective.y-p.y,objective.x-p.x));
+    this.heritage.play('laser',.32);
+    this.flash(p.x,p.y,point?.x??objective.x,point?.y??objective.y,'#ffc18c');
+    // Paired shots still defend the ship while the primary beam focuses a turret.
+    if(this.skillRanks.double){
+     const escortTargets=this.grid.query(p.x,p.y,range).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e)&&
+       dist(e,p)<range).sort((a,b)=>dist(a,p)-dist(b,p))
+       .slice(0,Math.min(2,this.skillRanks.double));
+     for(const e of escortTargets){
+      const d2=dist(e,p);
+      const point=contactOnCircle(e.x,e.y,e.r,p.x,p.y);
+      this.damageEnemy(e,beamDamage(14+this.skillRanks.beam*3.3,d2,
+       RULES.nearBeam,range,RULES.beamMinFactor)*.65,'beam',point);
+      this.flash(p.x,p.y,point?.x??e.x,point?.y??e.y,'#72effe');
+     }
+    }
+   }else{
+    const targets=this.grid.query(p.x,p.y,range).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e))
+     .sort((a,b)=>dist(a,p)-dist(b,p));
+    const n=1+Math.min(2,this.skillRanks.double);
+    for(const e of targets.slice(0,n)){
+     const d=dist(e,p);if(d>range)continue;
+     const closeBonus=this.doctrine==='assault'&&d<=180?1.22:1;
+     const dmg=beamDamage(14+this.skillRanks.beam*3.3,d,
+      RULES.nearBeam,range,RULES.beamMinFactor)*closeBonus*(this.nearArsenalBonus?1.18:1);
+     // Asteroid on the firing line intercepts a combat beam.
+     const cover=firstRockImpact(p.x,p.y,e.x,e.y,
+      this.rockGrid.query((p.x+e.x)*.5,(p.y+e.y)*.5,d*.5+45),2,p);
+     const point=cover?contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y):
+      contactOnCircle(e.x,e.y,e.r,p.x,p.y);
+     if(cover)this.damageRock(cover.rock,dmg*.85,p.x,p.y,'auto',true,point);
+     else this.damageEnemy(e,dmg,'beam',point);
+     this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(e.y-p.y,e.x-p.x));
+     this.heritage.play('laser',.32);
+     this.flash(p.x,p.y,point?.x??e.x,point?.y??e.y,cover?'#f6ca87':'#72effe');
+    }
+    if(!targets.length&&hostile){
+     const tur=hostile.turrets.find(t=>t.hp>0&&dist(t,p)<range);
+     if(tur){
+      const point=contactOnCircle(tur.x,tur.y,22,p.x,p.y);
+      this.hitTurret(tur,beamDamage(23,dist(tur,p),110,range),point);
+      this.flash(p.x,p.y,point?.x??tur.x,point?.y??tur.y);
+     }
+     else if(dist(hostile,p)<range){this.hitEnemyBase(hostile,beamDamage(21,dist(hostile,p),110,range));
+      this.flash(p.x,p.y,hostile.x,hostile.y);}
+    }
+   }
+  }
+  this.rocketClock-=dt;
+  if(this.skillRanks.rocket&&this.rocketClock<=0&&
+   automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing)){
+   this.rocketClock=3.5/(1+this.skillRanks.rocket*.28);
+   const target=this.grid.query(p.x,p.y,720).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e))
+    .sort((a,b)=>dist(a,p)-dist(b,p))[0];
+   if(target){
+    if(this.missiles.length>=14)this.missiles.shift();
+    this.missiles.push({x:p.x,y:p.y,prevX:p.x,prevY:p.y,trail:[{x:p.x,y:p.y}],
+     target,tx:target.x,ty:target.y,damage:48+this.skillRanks.rocket*19,
+     speed:540,life:2.3});
+    this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(target.y-p.y,target.x-p.x),'railgun');
+    this.heritage.play('rocket',.5,{x:p.x,y:p.y});
+   }
+  }
+  const radar=400+this.skillRanks.radar*220;
+  for(const b of this.world.nearbyStations(p.x,p.y,Math.max(900,radar))){
+   if(!b.enemy||!this.enemyBasesUnlocked()||b.captured)continue;
+   if(dist(b,p)>850)continue;
+   for(const t of b.turrets){
+    if(t.hp<=0)continue;
+    t.shot-=dt;t.flash=Math.max(0,(t.flash||0)-dt);
+    if(t.shot<=0){
+     t.shot=2.2+Math.random()*.35;
+     const target=this.support.missions.flatMap(m=>m.craft)
+      .filter(a=>a.hp>0&&dist(a,t)<350)
+      .sort((a,c)=>dist(t,a)-dist(t,c))[0]||p;
+     if(dist(t,target)<530)this.enemyShot(t.x,t.y,target.x,target.y,16+b.rank*2);
+    }
+   }
+  }
+  for(const z of this.zones){
+   if(z.fuse>0){z.fuse-=dt;continue;}
+   z.ttl-=dt;
+   if(!z.done){
+    z.done=true;z.ttl=.62;
+    this.heritage.vfx.meteorStrike(z.x,z.y,z.r,z.r>80);
+    this.heritage.play('largeExplosion',.28,{x:z.x,y:z.y});
+    if(dist(z,p)<z.r+p.r)this.hurt(27,{x:z.x,y:z.y});
+    for(const e of this.grid.query(z.x,z.y,z.r+30))
+     if(e.hp>0&&dist(z,e)<z.r+e.r)this.damageEnemy(e,32);
+    for(const a of this.allies)if(a.hp>0&&dist(z,a)<z.r+a.r)this.hitAlly(a,31);
+    // The same orbital strike breaks mineral rocks: a risky free mining opportunity.
+    let cracked=0;
+    for(const rock of this.nearRocks){
+     if(!rock.alive||Math.hypot(rock.x-z.x,rock.y-z.y)>z.r+rock.r*.65)continue;
+     this.damageRock(rock,62,z.x,z.y,'strike',cracked<5);
+     if(++cracked>=16)break;
+    }
+   }
+  }
+  this.zones=this.zones.filter(z=>z.fuse>0||z.ttl>0).slice(-9);
+  // A pulse affects each ship at most once per cycle, even with substeps.
+  // The visible ring and these exact contact checks share ION_FIELD.r.
+  const ion=ionPhase(this.time);
+  if(ion.state==='warning'&&this.lastIonAudioCycle!==ion.cycle&&
+    Math.hypot(p.x-ION_FIELD.x,p.y-ION_FIELD.y)<ION_FIELD.r+180){
+   this.lastIonAudioCycle=ion.cycle;
+   this.heritage.play('ionWarning',3,ION_FIELD);
+  }
+  if(ion.state==='discharge'){
+   if(inIonField(p)&&p.lastIonCycle!==ion.cycle){
+    p.lastIonCycle=ion.cycle;this.hurt(16,ION_FIELD);
+   }
+   for(const e of this.enemies)if(e.hp>0&&inIonField(e)&&e.lastIonCycle!==ion.cycle){
+    e.lastIonCycle=ion.cycle;this.damageEnemy(e,20);
+   }
+   for(const a of this.allies)if(a.hp>0&&inIonField(a)&&a.lastIonCycle!==ion.cycle){
+    a.lastIonCycle=ion.cycle;this.hitAlly(a,16);
+   }
+  }
+  for(const a of this.allies)if(a.hp<=0&&!a.visualDeath){
+   a.visualDeath=true;
+   this.heritage.vfx.shipExplosion(a.x,a.y,a.r*1.2,'#8df5e2');
+   this.heritage.play('droneDestroyed',.22,{x:a.x,y:a.y});
+  }
+  this.allies=this.allies.filter(a=>a.hp>0);
+  for(const d of this.drops){
+   d.life-=dt;d.x+=d.vx*dt;d.y+=d.vy*dt;
+   d.vx*=Math.exp(-2*dt);d.vy*=Math.exp(-2*dt);
+   const dx=p.x-d.x,dy=p.y-d.y,m=length(dx,dy);
+   const pull=105+this.skillRanks.magnet*55;
+   if(m<pull){d.x+=dx*dt*4;d.y+=dy*dt*4;}
+   if(m<27){this.collect(d);d.life=-1;}
+  }
+  this.drops=this.drops.filter(d=>d.life>0);
+  for(const f of this.flashes)f.ttl-=dt;
+  this.flashes=this.flashes.filter(f=>f.ttl>0);
+ }
+ drawSprite(image,x,y,w,h,angle=0){
+  const c=this.ctx;
+  if(!image?.complete||!image.naturalWidth)return false;
+  c.save();c.translate(x,y);c.rotate(angle);
+  c.drawImage(image,-w/2,-h/2,w,h);c.restore();return true;
+ }
+ drawCorridorBeacon(c,cam){
+  const home=this.world.home,op=this.operation;
+  const active=op?.id===CORRIDOR_OPERATION.id,secured=!!home.corridorSecured;
+  if(!active&&!secured)return;
+  const site=active?op:corridorPosition(home);
+  if(secured){
+   // A quiet, persistent change in the environment after the mission.
+   c.save();c.lineWidth=2.5;c.strokeStyle='#66d6ae55';c.setLineDash([19,12]);
+   c.beginPath();c.moveTo(home.x,home.y);c.lineTo(site.x,site.y);c.stroke();
+   c.restore();
+  }
+  if(outsideCamera(site.x,site.y,cam,90))return;
+  const pulse=.5+.5*Math.sin(this.time*3.6);
+  c.save();c.translate(site.x,site.y);
+  if(active){
+   // The focusing perimeter is faint and only appears as the ship approaches.
+   if(dist(this.player,site)<510){
+    c.save();c.strokeStyle='#d6a0ff25';c.lineWidth=2;c.setLineDash([8,15]);
+    c.beginPath();c.arc(0,0,CORRIDOR_OPERATION.focusRange,0,TAU);c.stroke();
+    c.setLineDash([]);c.lineWidth=1.6;c.strokeStyle='#d699cf70';
+    c.beginPath();c.arc(0,0,CORRIDOR_OPERATION.pulseRange,0,TAU);c.stroke();
+    const charge=(op.pulseCharge||0)/CORRIDOR_OPERATION.pulsePeriod;
+    if(charge>.01){
+     c.strokeStyle=charge>.73?'#ffd499de':'#f1abffaf';c.lineWidth=4;
+     c.beginPath();c.arc(0,0,CORRIDOR_OPERATION.pulseRange,-Math.PI/2,-Math.PI/2+TAU*charge);c.stroke();
+    }
+    c.restore();
+   }
+   c.shadowColor='#b455e7';c.shadowBlur=this.fps<34?4:15;
+   c.fillStyle='#181b38';c.strokeStyle='#bc74ed';c.lineWidth=3;
+  }else{
+   c.fillStyle='#142530';c.strokeStyle='#4a897f';c.lineWidth=2;
+  }
+  c.beginPath();
+  for(let i=0;i<6;i++){const a=-Math.PI/2+i*TAU/6;
+   const x=Math.cos(a)*40,y=Math.sin(a)*40;
+   if(i===0)c.moveTo(x,y);else c.lineTo(x,y);
+  }
+  c.closePath();c.fill();c.stroke();c.shadowBlur=0;
+  c.save();c.rotate(active?this.time*.45:.18);
+  for(let i=0;i<3;i++){
+   const a=i*TAU/3;
+   c.save();c.rotate(a);c.fillStyle=active?'#472357':'#29434a';
+   c.fillRect(-8,-52,16,29);
+   c.strokeStyle=active?'#de82f6':'#668e84';c.lineWidth=2;
+   c.strokeRect(-8,-52,16,29);c.restore();
+  }
+  c.restore();
+  c.beginPath();c.arc(0,0,active?15+pulse*3:13,0,TAU);
+  c.fillStyle=active?'#d680ff':'#546c71';c.fill();
+  if(active){
+   c.strokeStyle='#f3c5ff';c.lineWidth=2;c.beginPath();
+   c.arc(0,0,29,-Math.PI/2,-Math.PI/2+TAU*op.hp/op.maxHp);c.stroke();
+   c.font='bold 11px system-ui';c.textAlign='center';
+   c.fillStyle='#f8d7ff';c.fillText('ГЛУШИТЕЛЬ',0,-68);
+   c.fillStyle='#e3b9f4';c.font='10px system-ui';
+   c.fillText(Math.ceil(op.hp/op.maxHp*100)+'% · сблизьтесь для атаки',0,-54);
+  }else{
+   c.fillStyle='#9adac8';c.font='bold 10px system-ui';c.textAlign='center';
+   c.fillText('СИГНАЛ ВОССТАНОВЛЕН',0,-57);
+  }
+  c.restore();
+ }
+
+ drawProbe(c,cam){
+  const op=this.operation;
+  if(op?.id!==PROBE_OPERATION.id||outsideCamera(op.x,op.y,cam,95))return;
+  const pulse=.5+.5*Math.sin(this.time*3.1);
+  c.save();c.translate(op.x,op.y);
+  c.lineWidth=2;c.strokeStyle='#73d6edbd';c.fillStyle='#102b3c';
+  c.shadowColor='#66c9ed';c.shadowBlur=this.fps<34?4:14;
+  c.beginPath();c.moveTo(-33,0);c.lineTo(-13,-20);c.lineTo(14,-20);
+  c.lineTo(33,0);c.lineTo(14,20);c.lineTo(-13,20);c.closePath();c.fill();c.stroke();
+  c.shadowBlur=0;
+  c.strokeStyle='#bbf4ff';c.lineWidth=3;
+  c.beginPath();c.arc(0,0,8+pulse*2,0,TAU);c.stroke();
+  c.fillStyle='#a5e7ed';c.fillRect(-41,-5,9,10);c.fillRect(32,-5,9,10);
+  c.lineWidth=4;c.strokeStyle='#67e7dc';
+  c.beginPath();c.arc(0,0,43,-Math.PI/2,-Math.PI/2+TAU*op.repair/100);c.stroke();
+  c.textAlign='center';c.font='bold 12px system-ui';c.fillStyle='#dbfbff';
+  c.fillText('АВАРИЙНЫЙ ЗОНД',0,-69);
+  c.font='11px system-ui';c.fillStyle='#9fe7e7';
+  c.fillText(Math.round(op.repair)+'% · '+(dist(this.player,op)>PROBE_OPERATION.repairRange?
+   'СБЛИЗЬТЕСЬ':'E / РЕМОНТ'),0,-52);
+  c.restore();
+  if(this.probeRepairing){
+   c.save();c.strokeStyle='#81f7e0a9';c.lineWidth=4;c.setLineDash([11,7]);
+   c.beginPath();c.moveTo(this.player.x,this.player.y);c.lineTo(op.x,op.y);c.stroke();
+   c.restore();
+  }
+ }
+ drawBase(b){this.visuals.drawBase(this.ctx,b,this.time,this.player.x,this.player.y,
+  this.network,this.cachedNetworkLinked.has(b.id));}
+ render(){
+  const c=this.ctx,p=this.player,cam=this.camera();
+  c.setTransform(this.canvas.width/this.vw,0,0,this.canvas.height/this.vh,0,0);
+  // Keep full-screen nebula in CSS compositor instead of resampling per Canvas frame.
+  c.clearRect(0,0,this.vw,this.vh);
+  this.visuals.drawAtmosphere(c,cam,this.time,this.fps);
+  // Deterministic fixed stars: no allocations or scrolling canvas buffers.
+  c.save();c.translate(-cam.x,-cam.y);
+  const grid=260;
+  for(let gy=Math.floor(cam.y/grid)-1;gy<=Math.ceil((cam.y+cam.h)/grid);gy++)
+   for(let gx=Math.floor(cam.x/grid)-1;gx<=Math.ceil((cam.x+cam.w)/grid);gx++)
+    for(let i=0;i<5;i++){
+     const x=(gx+hash(gx*9+i,gy,this.seed))*grid;
+     const y=(gy+hash(gx,gy*9+i,this.seed+7))*grid;
+     c.fillStyle=i===0?'#9aafd0':'#526984';
+     c.fillRect(x,y,i===0?2:1,i===0?2:1);
+    }
+  if(this.time-this.worldVisualLast>.35){
+   this.worldVisualLast=this.time;
+   const topology=this.world.networkTopology();
+   this.cachedNetworkLinked=topology.linked;
+   this.cachedWorldLinks=topology.links.filter(([a,b])=>
+    Math.min(dist(a,p),dist(b,p))<2600);
+   const mission=this.contract;
+   this.cachedTarget=this.waypoint||this.operation||(mission&&mission.progress>=mission.goal?
+    this.world.stations.get(mission.baseId):null);
+  }
+  for(const [a,b] of this.cachedWorldLinks){
+   c.lineWidth=2;c.strokeStyle='#59dbc180';c.setLineDash([14,8]);
+   c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();c.setLineDash([]);
+  }
+  this.heritage.vfx.render(c,'back',
+   {worldX:cam.x,worldY:cam.y,width:cam.w,height:cam.h});
+  this.visuals.drawDerelict(c,cam,this.time,this.fps);
+  if(!outsideCamera(ION_FIELD.x,ION_FIELD.y,cam,ION_FIELD.r+30))
+   drawIonField(c,ION_FIELD,ionPhase(this.time),this.time,this.fps,this.visuals.reducedMotion);
+  for(const rock of this.nearRocks||[]){
+   if(!rock.alive||outsideCamera(rock.x,rock.y,cam,rock.r+10))continue;
+   const ore=!!rock.rich;
+   if(!this.visuals.drawRock(c,rock,this.images[ore?'rock':'rock2'],ore)){
+    c.fillStyle='#8a7e72';c.beginPath();c.arc(rock.x,rock.y,rock.r,0,TAU);c.fill();
+   }
+   drawRockScars(c,rock);
+   if(rock.rich&&this.geoScanUntil>this.time){
+    // Static highlight to avoid flicker and costly animation.
+    c.save();c.lineWidth=2;c.strokeStyle='#ffc56e';
+    c.setLineDash([7,5]);c.beginPath();c.arc(rock.x,rock.y,rock.r+12,0,TAU);
+    c.stroke();c.restore();
+   }
+  }
+  if(this.mining.target?.alive && !outsideCamera(this.mining.target.x,this.mining.target.y,cam,50))
+   drawExtraction(c,p,this.mining.target,this.time,this.skillRanks.extractor||0,this.mining.active);
+  // A brief field pulse connects the intercepted emission with its source.
+  const intercept=this.noiseAlert;
+  if(intercept&&intercept.until>this.time&&!outsideCamera(intercept.x,intercept.y,cam,180)){
+   const age=this.time-intercept.startedAt,fade=Math.max(0,1-age/2.8);
+   c.save();c.lineWidth=1.8;c.setLineDash([7,8]);
+   for(let ring=0;ring<2;ring++){
+    const radius=26+Math.max(0,age-ring*.34)*85;
+    c.strokeStyle='rgba(255,198,111,'+(fade*(ring? .28:.58)).toFixed(3)+')';
+    c.beginPath();c.arc(intercept.x,intercept.y,radius,0,TAU);c.stroke();
+   }
+   c.restore();
+  }
+  for(const b of this.world.nearbyStations(p.x,p.y,Math.max(cam.w,cam.h)+350)){
+   if(b.enemy&&!this.enemyBasesUnlocked())continue;
+   if(!outsideCamera(b.x,b.y,cam,160))this.drawBase(b);
+  }
+  this.drawInteractionFocus(c,cam);
+  for(const d of this.drops){
+   if(outsideCamera(d.x,d.y,cam,20))continue;
+   if(d.hot){c.fillStyle='#ff96323d';c.beginPath();c.arc(d.x,d.y,12,0,TAU);c.fill();}
+   c.fillStyle=d.type==='ore'?(d.hot?'#ffd296':'#efbb70'):'#69e7ec';
+   c.beginPath();c.arc(d.x,d.y,d.type==='ore'?6:4,0,TAU);c.fill();
+  }
+  for(const z of this.zones){
+   if(z.fuse>0){
+    drawOrbitalWarning(c,z,this.time,this.visuals.reducedMotion);
+   }else if(z.done&&z.ttl>0){
+    if(!outsideCamera(z.x,z.y,cam,z.r*1.75))drawOrbitalAfterglow(c,z);
+   }
+  }
+  this.drawCorridorBeacon(c,cam);
+  this.drawProbe(c,cam);
+  const signaledGroups=new Set();
+  for(const e of this.enemies){
+   if(outsideCamera(e.x,e.y,cam,e.r+30))continue;
+   if(e.converted){
+    c.strokeStyle='#77ffcb';c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,e.r+8,0,TAU);c.stroke();
+   }else if(e.type==='healer'){
+    c.strokeStyle='#8be5a7';c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,e.r+7,0,TAU);c.stroke();
+   }else if(e.state==='charge'||e.state==='windup'){
+    const preparing=e.state==='windup';
+    c.strokeStyle=preparing?'#ffc070':'#ff7552';c.lineWidth=preparing?2.5:3;
+    c.beginPath();c.arc(e.x,e.y,e.r+(preparing?8+3*Math.sin(this.time*19):9),0,TAU);c.stroke();
+   }
+   const spriteKey=e.type;
+   if(!this.visuals.drawEnemy(c,e,this.time)&&
+      !this.drawSprite(this.images[spriteKey],e.x,e.y,e.r*3,e.r*3,e.angle)){
+    c.fillStyle=e.converted?'#6fe7ba':'#f07887';c.beginPath();c.arc(e.x,e.y,e.r,0,TAU);c.fill();
+   }
+   // The painted rupture supersedes the old circular damage decal.
+   if(!e.capitalWearPainted)
+    drawHullDamage(c,e,this.time,this.fps,this.visuals.reducedMotion);
+   const intel=e.signalIntel;
+   if(intel&&!e.converted&&!signaledGroups.has(intel)){
+    signaledGroups.add(intel);
+    const engaged=intel.mode==='engaged',leaving=intel.mode==='withdraw';
+    if((!leaving||this.time<intel.cueUntil)&&
+       (!engaged||this.time<intel.cueUntil)){
+     const tint=engaged?'#ff7474':leaving?'#8ed8ea':'#ffd08a';
+     const glyph=engaged?'!':leaving?'↗':'?';
+     c.save();c.translate(e.x,e.y-e.r-26);
+     c.fillStyle='rgba(7,15,30,.89)';c.strokeStyle=tint;c.lineWidth=1.6;
+     c.beginPath();c.arc(0,0,9.5,0,TAU);c.fill();c.stroke();
+     c.fillStyle=tint;c.textAlign='center';c.textBaseline='middle';
+     c.font='bold 13px system-ui';c.fillText(glyph,0,.5);c.restore();
+    }
+   }
+   if(e.encounterLabel&&!e.converted){
+    if(e.encounterLabelStart===undefined)e.encounterLabelStart=this.time;
+    if(this.time-e.encounterLabelStart<2.3){
+     c.save();c.textAlign='center';c.font='bold 11px system-ui';
+     c.shadowColor='#170d22';c.shadowBlur=5;c.fillStyle='#ffd4aa';
+     c.fillText(e.encounterLabel,e.x,e.y-e.r-28);c.restore();
+    }
+   }
+   if(e.hit>0){c.fillStyle='#fff9';c.beginPath();c.arc(e.x,e.y,e.r*.65,0,TAU);c.fill();}
+   if(e.hp<e.maxHp*.65&&!e.converted){
+    c.fillStyle='#542836';c.fillRect(e.x-15,e.y-e.r-14,30,3);
+    c.fillStyle='#e77e7e';c.fillRect(e.x-15,e.y-e.r-14,30*clamp(e.hp/e.maxHp,0,1),3);
+   }
+   if(e.healFlash>0){c.fillStyle='#b4ffbd';c.font='bold 12px system-ui';c.fillText('+',e.x+20,e.y-18);}
+  }
+  for(const a of this.allies){
+   if(outsideCamera(a.x,a.y,cam,50))continue;
+   const image=this.images[a.role==='fighter'?'allyfighter':'allyscout'];
+   this.visuals.drawAlly(c,a,this.time,image);
+   drawHullDamage(c,a,this.time,this.fps,this.visuals.reducedMotion);
+   if(a.messageUntil>this.time){
+    c.font='11px system-ui';c.textAlign='center';c.fillStyle='#9af8ff';
+    c.fillText(a.message,a.x,a.y-a.r-19);
+   }
+  }
+  for(const mission of this.support.missions){
+   for(const craft of mission.craft){
+    if(craft.hp<=0||outsideCamera(craft.x,craft.y,cam,45))continue;
+    this.visuals.drawAlly(c,craft,this.time,this.images.allybomber);
+    drawHullDamage(c,craft,this.time,this.fps,this.visuals.reducedMotion);
+    c.save();c.fillStyle='#ffe1a4';c.textAlign='center';c.font='bold 10px system-ui';
+    c.fillText('АВИАГРУППА',craft.x,craft.y-34);c.restore();
+   }
+  }
+  for(const m of this.missiles){
+   if(outsideCamera(m.x,m.y,cam,80))continue;
+   drawSeekingMissile(c,m,this.fps);
+  }
+  for(const s of this.shots){
+   if(outsideCamera(s.x,s.y,cam,15))continue;
+   if(this.fps>=28&&this.visuals.drawHostileShot(c,s))continue;
+   const d=Math.hypot(s.vx,s.vy)||1,ux=s.vx/d,uy=s.vy/d;
+   c.save();c.strokeStyle='#ff7186';c.lineWidth=4;c.lineCap='round';
+   c.beginPath();c.moveTo(s.x-ux*12,s.y-uy*12);
+   c.lineTo(s.x+ux*5,s.y+uy*5);c.stroke();c.restore();
+  }
+  if(!this.dead&&(p.invul<=0||Math.sin(this.time*35)>.1)){
+   if(!this.visuals.drawPlayer(c,p,p.level,this.time)){
+    c.fillStyle='#8cecff';c.beginPath();c.moveTo(p.x,p.y-25);c.lineTo(p.x-16,p.y+20);
+    c.lineTo(p.x+16,p.y+20);c.fill();
+   }
+  }
+  if(!this.dead&&p.shield>0){
+   c.strokeStyle='#73dffc77';c.lineWidth=3;c.beginPath();c.arc(p.x,p.y,37,0,TAU);c.stroke();
+  }
+  for(const f of this.flashes)drawEnergyFlash(c,f,this.fps);
+  this.heritage.vfx.render(c,'front',
+   {worldX:cam.x,worldY:cam.y,width:cam.w,height:cam.h});
+  c.restore();
+  // Directional station indicator is screen-fixed and never covers the ship.
+  const target=this.cachedTarget;
+  if(target){
+   const dx=target.x-p.x,dy=target.y-p.y,d=length(dx,dy);
+   if(d>140){
+    const a=Math.atan2(dy,dx),r=Math.min(this.vw,this.vh)*.36;
+    const x=this.vw/2+Math.cos(a)*r,y=this.vh/2+Math.sin(a)*r;
+    c.save();c.translate(x,y);c.rotate(a+Math.PI/2);
+    c.fillStyle='#71f4e0';c.beginPath();c.moveTo(0,-12);c.lineTo(-8,7);
+    c.lineTo(8,7);c.fill();c.restore();
+    c.font='12px system-ui';c.textAlign='center';c.fillStyle='#b4edec';
+    c.fillText(Math.round(d)+' м',x,y+25);
+   }
+  }
+ }
+ hud(){
+  this.cockpit.update(this,expForNext(this.player.level),burstStats(this.skillRanks.engine).cooldown);
+  this.syncControlUI();
+ }
+ loop(now){
+  const frameMs=clamp(now-this.last,0,220);this.last=now;
+  if(frameMs>0){this.frameSamples.push(frameMs);if(this.frameSamples.length>100)this.frameSamples.shift();
+   this.fps=this.fps*.92+(.08*1000/Math.max(1,frameMs));}
+  if(!this.paused&&!this.dead&&frameMs>0){
+   this.qualityTimer+=frameMs;
+   if(this.qualityTimer>5000){
+    if(this.fps<34&&this.renderScale>.72){this.renderScale=.72;this.resize();}
+    else if(this.fps>55&&this.renderScale<1){this.renderScale=1;this.resize();}
+    this.heritage.setBudget(this.fps);
+    this.qualityTimer=0;
+   }
+  }
+  if(!this.paused&&!this.dead&&frameMs>0){
+   // Never skip simulation solely because the rendering device is slow.
+   // Bound catch-up work and subdivide large steps to keep collisions stable.
+   const simMs=Math.min(frameMs,130);
+   const n=Math.min(4,Math.max(1,Math.ceil(simMs/35)));
+   const dt=simMs/1000/n;
+   for(let i=0;i<n&&!this.paused;i++)this.update(dt);
+  }
+  // A fatal explosion needs its own short presentation clock. Gameplay stays
+  // stopped; the damage, loot and enemy simulation never advance after death.
+  if(this.dead&&now<this.deathSceneEnd){
+   this.heritage.vfx.update(Math.min(.05,(now-this.deathVfxAt)/1000));
+   this.deathVfxAt=now;
+   this.render();this.pausedRenderPending=false;
+  }else{
+   if(this.dead&&this.overlay.hidden){
+    this.overlay.hidden=false;this.pausedRenderPending=true;
+   }
+   // Other paused dialogs need one static backdrop, not a permanent redraw.
+   if((!this.paused&&!this.dead)||this.pausedRenderPending){
+    this.render();this.pausedRenderPending=false;
+   }
+  }
+  if(!this.paused&&now-this.lastHud>180){this.lastHud=now;this.hud();}
+  requestAnimationFrame(this.loop);
+ }
+}
+new ArcadeGame();
