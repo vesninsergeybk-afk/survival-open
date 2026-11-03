@@ -1,7 +1,7 @@
 import {renderStationRoutePreview} from './map-panel.js?v=arcade-station-followup-65';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
-import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=corridor-return-1';
+import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=operation-leads-1';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
@@ -476,9 +476,11 @@ export function renderBasePanel(base,state){
   '<strong>Корпус '+Math.ceil(state.hp)+' / '+state.maxHp+' · Дроны '+state.allies+'/'+o.cap+
   ' · Щит '+Math.ceil(state.shield||0)+'</strong></div>'+
   '<p>'+missionContext+(hullPercent<45?' Корпус сильно повреждён: перед опасным вылетом можно отремонтироваться.':'')+'</p>'+
-  '<small>Дрон: '+o.hireCost+' сплава · '+(o.ore>=o.hireCost?
-   'после покупки останется '+(o.ore-o.hireCost)+' сплава.':
-   'не хватает '+(o.hireCost-o.ore)+' сплава.')+
+  '<small>'+((state.droneRoles||[]).includes(o.drone.role)?
+   o.drone.name+' уже в строю.':
+   'Дрон: '+o.hireCost+' сплава · '+(o.ore>=o.hireCost?
+    'после покупки останется '+(o.ore-o.hireCost)+' сплава.':
+    'не хватает '+(o.hireCost-o.ore)+' сплава.'))+
   ' Следующая станция и постоянные улучшения тоже потребуют ресурсов.</small>'+
   '<div>'+action('baseTab','Вернуться к операциям','','operations')+'</div></section>';
  const hangar='<div class="base-operations">'+readiness+

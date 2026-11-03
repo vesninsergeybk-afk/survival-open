@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {World} from '../world.js';
-import {PROBE_OPERATION,createProbeOperation,probeOffer,isProbeLab} from '../operations.js';
+import {PROBE_OPERATION,createProbeOperation,probeOffer,isProbeLab,chooseOperationLead} from '../operations.js';
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
 
@@ -29,10 +29,10 @@ const gameSource=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 const start=gameSource.indexOf(' repairProbe(dt){');
 const end=gameSource.indexOf('\n baseState(){',start);
 assert.ok(start>0&&end>start);
-const Ops=new Function('PROBE_OPERATION','baseNames','dist',
+const Ops=new Function('PROBE_OPERATION','baseNames','dist','chooseOperationLead',
  'return class ProbeHarness {'+gameSource.slice(start,end)+'}')(
   PROBE_OPERATION,{dock:'Док',lab:'Лаборатория',arsenal:'Арсенал',carrier:'Авианосец'},
-  (a,b)=>Math.hypot(a.x-b.x,a.y-b.y));
+  (a,b)=>Math.hypot(a.x-b.x,a.y-b.y),chooseOperationLead);
 const makeGame=()=>{
  const base={...lab},op=createProbeOperation(base,world);
  const game=new Ops(),waves=[],messages=[],drops=[];

@@ -5,6 +5,7 @@ import {World} from '../world.js';
 import {ENEMY_TYPES} from '../ai.js';
 import {baseNames} from '../balance.js';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayOffer,relayDefenseCue} from '../relay-defense.js';
+import {chooseOperationLead} from '../operations.js';
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
 import {missionHudText} from '../mission-feedback.js';
@@ -33,9 +34,9 @@ const gameSource=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 const start=gameSource.indexOf(' spawnRelayWave(op,index){');
 const end=gameSource.indexOf(' // A tangible, single-use operation',start);
 assert.ok(start>0&&end>start,'relay operation methods should remain a cohesive block');
-const Ops=new Function('RELAY_DEFENSE','ENEMY_TYPES','dist','baseNames',
+const Ops=new Function('RELAY_DEFENSE','ENEMY_TYPES','dist','baseNames','chooseOperationLead',
  'return class RelayHarness {'+gameSource.slice(start,end)+'}')(
-  RELAY_DEFENSE,ENEMY_TYPES,(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),baseNames);
+  RELAY_DEFENSE,ENEMY_TYPES,(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),baseNames,chooseOperationLead);
 const scenario=()=>{
  const base={...arsenal,relayDefenseDone:false,relayRetryAt:0};
  const scene={stations:new Map([[base.id,base]]),discovered:new Set(),
