@@ -195,11 +195,32 @@ header a{color:#9ce8f0;font-size:12px}
 .stage.phone-portrait .panel-right .resource-line{font-size:8px}
 .stage.phone-portrait .panel-right .weapon-mode{font-size:8px}
 .stage.phone-portrait .panel-right .readiness b{font-size:13px}
+
+/* Art Pass 04 touch layout previews the authored controls that the game uses. */
+.stage.phone-landscape .touch .stick,.stage.phone-portrait .touch .stick{
+ background:transparent url('./hud-kit/mobile-stick.svg') center/100% 100% no-repeat;border:0
+}
+.touch .stick::after{
+ border:1px solid #9FEDF0;background:radial-gradient(circle at 35% 32%,#78E3E9AA,#1B6C7BD0);
+ box-shadow:inset 0 1px 5px #B7FAFC55,0 0 8px #7DE6EC55
+}
+.stage .touch .actions{display:flex;flex-direction:column;gap:5px;width:23%}
+.stage .touch .actions .two{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.stage .touch .actions span{
+ min-height:43px;padding:10px 5px 10px 20px;border:0;border-radius:0;
+ display:grid;place-items:center;line-height:1.1;font-size:clamp(7px,.85cqw,12px);
+ font-weight:700;color:#E9F9FB;background:transparent url('./hud-kit/mobile-frame.svg') center/100% 100% no-repeat
+}
+.stage .touch .actions span.primary{min-height:50px}
+.stage.phone-portrait .touch .actions{width:42%;right:3%;bottom:2%}
+.stage.phone-landscape .touch .actions{width:23%;right:2%;bottom:2%}
+.stage.phone-landscape .touch .actions span{min-height:39px}
+.stage.phone-landscape .touch .actions span.primary{min-height:44px}
 </style>
 </head>
 <body>
 <header>
- <div><strong>ВЫЖИВШИЙ · МАСТЕРСКАЯ HUD / ART PASS 03</strong><small>Реальные контуры приборов · согласовано с игровым HUD</small></div>
+ <div><strong>ВЫЖИВШИЙ · МАСТЕРСКАЯ HUD / ART PASS 04</strong><small>Навигация по маршруту · графические сенсорные органы управления</small></div>
  <a href="./">← Мастерская концепций</a>
 </header>
 <div class="toolbar">
@@ -253,10 +274,10 @@ header a{color:#9ce8f0;font-size:12px}
    </div>
    <div class="resource-line"><span>ДАННЫЕ <b>120</b></span><span>СПЛАВ <b>43</b></span></div>
   </section>
-  <div class="touch" aria-hidden="true"><div class="stick"></div><div class="actions"><span>Рывок</span><span>Огонь</span><span>Действие</span><span>Карта</span></div></div>
+  <div class="touch" aria-hidden="true"><div class="stick"></div><div class="actions"><span class="primary">Действие</span><div class="two"><span>Рывок</span><span>Огонь</span></div></div></div>
  </div>
 </div>
-<p class="note"><b>Для проверки дизайна:</b> переключайте размеры и игровые состояния. Это отдельный графический стенд: здесь нет боевой симуляции, реальных ресурсов или сохранений. Форма панелей, порядок показателей, число дронов и расположение способностей соответствуют опубликованной версии игры. В стенде цифры условные. Фон намеренно нейтральный — оцениваем форму приборов, расположение и читаемость.</p>
+<p class="note"><b>Для проверки дизайна:</b> переключайте размеры и игровые состояния. Это отдельный графический стенд: здесь нет боевой симуляции, реальных ресурсов или сохранений. Форма панелей, показания навигации, число дронов и сенсорные рамки соответствуют игровым решениям. В стенде цифры условные; в игре расстояние до точки маршрута вычисляется по координатам. Фон намеренно нейтральный — оцениваем форму приборов, расположение и читаемость.</p>
 <script>
 const stage=document.getElementById('stage');
 function setPressed(group,key,value){

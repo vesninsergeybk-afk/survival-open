@@ -12,7 +12,7 @@ test('HUD contract: unique live element IDs, cache versions and mobile layout',(
  for(const id of ['hud','cockpitFrame','radar','hp','hpbar','hpmeter','shield','xpbar',
    'xpmeter','level','burst','burstbar','bursttext','burstBtn','ore','oreResource',
    'data','bases','wing','hack','interactionCue','contractObjective','message',
-   'miningStatus','stateText','flightMode','wingStatus']){
+   'miningStatus','stateText','flightDistance','flightMode','wingStatus']){
   assert.ok(ids.includes(id),id+' is missing from the page');
  }
  assert.match(source,/hud\.css\?v=hud-responsive-v16/);
@@ -85,6 +85,14 @@ test('HUD reads game state and changes contextual prompts without changing simul
   assert.equal(node('interactionCue').hidden,true);
   assert.equal(node('hud').classList.contains('is-critical'),false);
   assert.equal(node('burstBtn').disabled,true);
+  game.waypoint={x:1500,y:0,label:'Домашний док'};
+  hud.update(game,100,5);
+  assert.equal(node('flightDistance').textContent,'1.5 КМ');
+  assert.equal(node('stateText').textContent,'ДОМАШНИЙ ДОК');
+  assert.equal(node('flightDistance').hidden,false);
+  game.waypoint=null;
+  hud.update(game,100,5);
+  assert.equal(node('flightDistance').hidden,true);
  }finally{
   if(originalDocument===undefined)delete globalThis.document;else globalThis.document=originalDocument;
   if(originalWindow===undefined)delete globalThis.window;else globalThis.window=originalWindow;
