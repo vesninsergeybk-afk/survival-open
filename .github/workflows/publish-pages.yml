@@ -31,6 +31,9 @@ jobs:
       - name: Validate arcade before publication
         run: node --test arcade/tests/*.test.mjs
 
+      - name: Verify public sound catalog and permitted recordings
+        run: node audio-lab/smoke-test.mjs
+
       - name: Prepare standalone static game
         run: |
           mkdir -p _site/arcade
