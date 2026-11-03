@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {contractReturnStation,contractDefenseZone,corridorCue,missionHudText} from '../mission-feedback.js';
 
 const world=()=>({stations:new Map([
@@ -82,4 +83,17 @@ test('cockpit explains defense eligibility, the real EMP phase and probe repair'
  const probe=missionHudText(ship);
  assert.match(probe,/РЕМОНТ 43%/);
  assert.doesNotMatch(probe,/NaN|ГЛУШИТЕЛЬ/);
+});
+
+test('cockpit, map and game import the same mission-feedback module revision',()=>{
+ const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ const hud=readFileSync(new URL('../hud.js',import.meta.url),'utf8');
+ const map=readFileSync(new URL('../map-panel.js',import.meta.url),'utf8');
+ const revision=(source)=>{
+  const match=source.match(/mission-feedback\.js\?v=([^']+)'/);
+  assert.ok(match,'mission-feedback import must have an explicit version');
+  return match[1];
+ };
+ assert.equal(revision(game),revision(hud),'cockpit must receive the active mission phases');
+ assert.equal(revision(game),revision(map),'tactical map must receive the same mission phases');
 });
