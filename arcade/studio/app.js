@@ -1,4 +1,5 @@
 import {SCENARIOS,EFFECTS,CONCEPTS} from './concepts.js?v=studio-design-2';
+import {VISUAL_AUDIT,VISUAL_STATUS} from './visual-audit.js?v=visual-audit-1';
 import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from './design-brief.js?v=studio-design-2';
 
 const $=id=>document.getElementById(id);
@@ -243,6 +244,43 @@ function initBrief(){
  });
 }
 
+function initVisualAudit(){
+ const filters=$('audit-filters'),list=$('audit-list'),summary=$('audit-summary');
+ const states=[['all','Все'],...Object.entries(VISUAL_STATUS).map(([key,value])=>[key,value.label])];
+ let selected='all';
+ const items=[...VISUAL_AUDIT].sort((a,b)=>a.priority-b.priority);
+ const counts=Object.fromEntries(Object.keys(VISUAL_STATUS).map(key=>[key,items.filter(item=>item.status===key).length]));
+ summary.textContent=items.length+' тем: '+Object.entries(VISUAL_STATUS).map(([key,value])=>value.label.toLowerCase()+' — '+counts[key]).join('; ')+'.';
+ const buttons=new Map();
+ function render(){
+  for(const [key,button] of buttons)button.setAttribute('aria-pressed',String(key===selected));
+  list.replaceChildren();
+  for(const item of items){
+   if(selected!=='all'&&item.status!==selected)continue;
+   const details=make('details','audit-item audit-'+item.status);
+   const head=make('summary'),titles=make('span','audit-item-title');
+   titles.append(make('strong',null,item.title),make('small',null,['Проверить сначала','Следующая очередь','После основных задач'][item.priority]));
+   const badge=make('span','audit-state',VISUAL_STATUS[item.status].label);
+   head.append(titles,badge);
+   const body=make('div','audit-item-body');
+   for(const [field,labelText] of [['fact','В исходниках'],['limit','Что не доказано или не готово'],['next','Следующий шаг'],['criterion','Как принять результат']]){
+    const paragraph=make('p');paragraph.append(make('b',null,labelText+': '),document.createTextNode(item[field]));body.append(paragraph);
+   }
+   const source=make('a','audit-source','Исходный файл в GitHub');
+   source.href='https://github.com/vesninsergeybk-afk/survival-open/blob/main/'+item.source;
+   source.target='_blank';source.rel='noopener noreferrer';
+   body.append(source);details.append(head,body);list.append(details);
+  }
+ }
+ for(const [key,labelText] of states){
+  const button=make('button','audit-filter',labelText+(key==='all'?' · '+items.length:' · '+counts[key]));
+  button.type='button';button.setAttribute('aria-pressed',String(key===selected));
+  button.addEventListener('click',()=>{selected=key;render();});
+  buttons.set(key,button);filters.append(button);
+ }
+ render();
+}
+
 function initConcepts(){
  const root=$('concept-grid');root.replaceChildren();
  for(const c of CONCEPTS){
@@ -258,7 +296,7 @@ try{$('concept-notes').value=localStorage.getItem(noteKey)||'';}catch{}
 $('concept-notes').addEventListener('input',e=>{try{localStorage.setItem(noteKey,e.target.value);}catch{}$('notes-status').textContent='Сохранено в этом браузере';});
 $('clear-notes').addEventListener('click',()=>{$('concept-notes').value='';try{localStorage.removeItem(noteKey);}catch{}$('notes-status').textContent='Заметки очищены';});
 $('copy-notes').addEventListener('click',async()=>{
- const data={title:'Мастерская концепций «Выжившего»',type:'design-prototype',scenarios:SCENARIOS,baselines:SCENARIO_BASELINES,experiments:TACTICAL_EXPERIMENTS,baseRoles:BASE_ROLES,playtest:PLAYTEST_CHECKS,effects:EFFECTS,concepts:CONCEPTS,notes:$('concept-notes').value};
+ const data={title:'Мастерская концепций «Выжившего»',type:'design-prototype',scenarios:SCENARIOS,baselines:SCENARIO_BASELINES,experiments:TACTICAL_EXPERIMENTS,baseRoles:BASE_ROLES,playtest:PLAYTEST_CHECKS,effects:EFFECTS,visualAudit:VISUAL_AUDIT,concepts:CONCEPTS,notes:$('concept-notes').value};
  try{await navigator.clipboard.writeText(JSON.stringify(data,null,2));$('notes-status').textContent='Концепции и заметки скопированы';}
  catch{$('notes-status').textContent='Буфер недоступен: скопируйте заметки из поля вручную';}
 });
@@ -291,6 +329,6 @@ function selectStudioTab(name,updateUrl=false){
 }
 document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>selectStudioTab(btn.dataset.tab,true)));
 window.addEventListener('hashchange',()=>selectStudioTab(location.hash.slice(1)));
-initScenario();initEffects();initBrief();initConcepts();
+initScenario();initEffects();initBrief();initConcepts();initVisualAudit();
 selectStudioTab(location.hash.slice(1));
 requestAnimationFrame(animate);
