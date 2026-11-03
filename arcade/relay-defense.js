@@ -33,7 +33,7 @@ export function relayOffer(base,operation,now=0){
  if(base.relayDefenseDone)return {status:'complete',...RELAY_DEFENSE};
  if(operation?.id===RELAY_DEFENSE.id&&operation.baseId===base.id)
   return {status:'active',...RELAY_DEFENSE,
-   hp:operation.hp,phase:operation.phase,wave:operation.wave,x:operation.x,y:operation.y};
+   hp:operation.hp,phase:operation.phase,wave:operation.wave,nextAt:operation.nextAt,x:operation.x,y:operation.y};
  if(base.relayRetryAt>now)return {status:'cooldown',...RELAY_DEFENSE,
   remaining:Math.ceil(base.relayRetryAt-now)};
  return {status:base.active?'available':'locked',...RELAY_DEFENSE,
