@@ -28,4 +28,21 @@
 <path d="M11 51V64" stroke="#F3BB57" stroke-opacity=".84" stroke-width="1.6"/>
 <path d="M441 41H449M441 45H449" stroke="#D9FCFF" stroke-opacity=".27"/>
 <path d="M8 122L23 137H66M452 119L437 135H393" stroke="#87DDE7" stroke-opacity=".28"/>
+<!-- Art Pass 06: engraved micro-rulers and diagnostic fibers. -->
+<g stroke="#A4EFF7" stroke-opacity=".36" stroke-width=".65">
+ <path d="M122 26H145M151 26H172M178 26H196M204 26H227"/>
+ <path d="M130 46V50M144 46V50M158 46V50M172 46V50M186 46V50M200 46V50M214 46V50"/>
+ <path d="M130 79V83M144 79V83M158 79V83M172 79V83M186 79V83M200 79V83M214 79V83"/>
+ <path d="M130 109V113M144 109V113M158 109V113M172 109V113M186 109V113M200 109V113M214 109V113"/>
+</g>
+<g fill="#8FEFF6">
+ <rect x="398" y="9" width="20" height="1.6" opacity=".37"/>
+ <rect x="420" y="9" width="7" height="1.6" opacity=".64"/>
+ <rect x="432" y="16" width="2" height="7" opacity=".46"/>
+ <rect x="117" y="33" width="1.3" height="77" opacity=".22"/>
+</g>
+<g fill="#FEC879">
+ <rect x="11" y="72" width="2" height="4" opacity=".8"/>
+ <rect x="11" y="79" width="2" height="4" opacity=".35"/>
+</g>
 </svg>
