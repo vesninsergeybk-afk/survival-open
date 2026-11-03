@@ -1,6 +1,6 @@
-import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=arcade-probe-59';
+import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=corridor-return-1';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
-import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=relay-def-1';
+import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=corridor-return-1';
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
@@ -21,7 +21,8 @@ export function renderStationRoutePreview(base,state={}){
  const resolvedCorridor=isCorridorDock(base)&&!!base.corridorSecured;
  const corridor=isCorridorDock(base)&&!base.corridorSecured;
  const probe=isProbeLab(base)&&!base.probeRecovered;
- const target=active||(corridor||resolvedCorridor?corridorPosition(base):probe?probePosition(base,world):null);
+ const target=active?.id==='silent-corridor'&&active.phase==='return'?base:
+  active||(corridor||resolvedCorridor?corridorPosition(base):probe?probePosition(base,world):null);
  const uncertain=probe&&!active,w=440,h=206;
  const cx=target?(base.x+target.x)/2:base.x,cy=target?(base.y+target.y)/2:base.y;
  const dx=target?Math.abs(target.x-base.x):1600,dy=target?Math.abs(target.y-base.y):800;
@@ -91,7 +92,8 @@ export function renderWorldMap(game){
   return '<path d="M '+x.x.toFixed(1)+' '+x.y.toFixed(1)+' L '+y.x.toFixed(1)+' '+y.y.toFixed(1)+
    '" stroke="#77e2d3" opacity=".52" stroke-width="2" stroke-dasharray="7 5"/>';
  }).join('');
- const readyStation=contractReturnStation(game.contract,world);
+ const readyStation=game.operation?.id==='silent-corridor'&&game.operation.phase==='return'?
+   world.stations.get(game.operation.baseId):contractReturnStation(game.contract,world);
  const defenseZone=contractDefenseZone(game.contract,world);
  const defenseRing=defenseZone?(()=>{
   const q=point(defenseZone.station.x,defenseZone.station.y,p,scale),r=defenseZone.radius*scale;
@@ -127,7 +129,8 @@ export function renderWorldMap(game){
  const previewTarget=previewProbe?probePosition(previewBase,world):
   previewCorridor?corridorPosition(previewBase):
   previewRelay?relayPosition(previewBase,world):null;
- const objectiveMarker=operation?{x:operation.x,y:operation.y}:previewTarget||
+ const objectiveMarker=operation?(operation.id==='silent-corridor'&&operation.phase==='return'?
+   world.stations.get(operation.baseId):{x:operation.x,y:operation.y}):previewTarget||
   (home.corridorSecured?corridorPosition(home):null);
  const marker=objectiveMarker?point(objectiveMarker.x,objectiveMarker.y,p,scale):null;
  const operationMark=marker&&visible(marker)?
@@ -137,7 +140,8 @@ export function renderWorldMap(game){
   (operation||previewTarget?'#edacf9':'#7ce9bf')+'"/>'+
   '<text x="'+(marker.x+16).toFixed(1)+'" y="'+(marker.y-12).toFixed(1)+
   '" fill="#edd7fa" font-size="11">'+(operation?(operation.id===PROBE_OPERATION.id?'Аварийный зонд':
-   operation.id===RELAY_DEFENSE.id?'Ретранслятор':'Глушитель'):
+   operation.id===RELAY_DEFENSE.id?'Ретранслятор':
+    operation.phase==='return'?'Док · передать данные':'Глушитель'):
    previewProbe?'Область поиска зонда':previewRelay?'Ретранслятор':
    previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
  const goal=game.waypoint?point(game.waypoint.x,game.waypoint.y,p,scale):null;
@@ -150,7 +154,8 @@ export function renderWorldMap(game){
   operation.id===RELAY_DEFENSE.id?
   'Особая операция «Оборона ретранслятора»: '+relayDefenseCue(operation,game.time)+'. Передатчик: '+
    Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. У налётчиков есть прицельный залп: перехватывайте до его завершения.':
-  'Особая операция «Глухой коридор»: уничтожьте отмеченный передатчик. Осталось '+Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. Фаза: '+
+  operation.phase==='return'?'Особая операция «Глухой коридор»: глушитель отключён. Телеметрия сохранена. Вернитесь в домашний док и нажмите E для передачи данных и получения награды.':
+   'Особая операция «Глухой коридор»: уничтожьте отмеченный передатчик. Осталось '+Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. Фаза: '+
   (corridorCue(operation,game.time,distance(operation,p))?.label||'неизвестна')+'.'):
   previewTarget?(previewProbe?'Предварительная разведка: здесь ожидается аварийный зонд. Место пока известно приблизительно.':
    previewRelay?'Предварительный маршрут: ретранслятор арсенала. Отразите три конечные волны.':

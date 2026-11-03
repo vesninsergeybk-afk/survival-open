@@ -49,6 +49,11 @@ export function missionHudText(game) {
  if(op){
   const d=Math.round(Math.hypot(op.x-p.x,op.y-p.y));
   if(op.id==='silent-corridor'){
+   if(op.phase==='return'){
+    const base=game.world?.stations?.get?.(op.baseId);
+    const homeDistance=base?Math.round(Math.hypot(base.x-p.x,base.y-p.y)):d;
+    return '✓ ГЛУШИТЕЛЬ ОТКЛЮЧЁН · ВЕРНИТЕСЬ В ДОК · '+homeDistance+' М';
+   }
    const phase=corridorCue(op,game.time,d)?.label||'СИГНАЛ ПОТЕРЯН';
    return '◈ ГЛУШИТЕЛЬ · '+Math.ceil(op.hp/op.maxHp*100)+'% · '+phase;
   }

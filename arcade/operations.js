@@ -5,7 +5,7 @@ export const CORRIDOR_OPERATION=Object.freeze({
  kicker:'ОСОБАЯ ОПЕРАЦИЯ',rewardOre:30,rewardData:22,
  maxHp:150,focusRange:255,escortTrigger:650,
  pulseRange:315,pulsePeriod:4.2,pulseDamage:13,
- desc:'На восточном маршруте работает вражеский глушитель. Подлетите к передатчику и уничтожьте его. Его охранение можно обойти или сначала устранить. На расстоянии до 255 м луч автоматически переключится на передатчик. В радиусе 315 м начинается зарядка ЭМ-импульса. Когда ИИ сообщает о неизбежном разряде, отлетите за пределы опасного кольца: там импульс не наносит урон.',
+ desc:'Найдите глушитель на восточном маршруте, уклоняйтесь от ЭМ-импульсов и отключите передатчик. Бортовой ИИ сохранит телеметрию: возвращайтесь с ней в док за наградой. На обратном пути можно перехватить преследователей или уйти от боя на форсаже.',
  consequence:'После уничтожения передатчика разведка дока расширится на 350 м, а вражеские патрули в домашнем секторе станут реже.'
 });
 export const isCorridorDock=base=>base?.id==='0:0'&&base?.type==='dock'&&!base?.enemy;
@@ -14,17 +14,17 @@ export function createCorridorOperation(base){
  if(!isCorridorDock(base))return null;
  const {x,y}=corridorPosition(base);
  return {...CORRIDOR_OPERATION,baseId:base.id,x,y,hp:CORRIDOR_OPERATION.maxHp,
-  guardsSpawned:false,reinforcementsAt:0,waves:0,pulseCharge:0,pulseLocked:false,pulseWarned:false,pulseFlashUntil:0,overheatedUntil:0};
+  phase:'attack',pursuitStarted:false,guardsSpawned:false,reinforcementsAt:0,waves:0,pulseCharge:0,pulseLocked:false,pulseWarned:false,pulseFlashUntil:0,overheatedUntil:0};
 }
 export function corridorOffer(base,operation){
  if(!isCorridorDock(base))return null;
  if(base.corridorSecured)return {status:'complete',...CORRIDOR_OPERATION};
  if(operation?.id===CORRIDOR_OPERATION.id&&operation.baseId===base.id)
   return {status:'active',...CORRIDOR_OPERATION,
-   x:operation.x,y:operation.y,hp:Math.max(0,operation.hp)};
+   x:operation.x,y:operation.y,hp:Math.max(0,operation.hp),phase:operation.phase||'attack'};
  const remembered=base.corridorMission;
  return {status:base.active?'available':'locked',...CORRIDOR_OPERATION,
-  ...corridorPosition(base),resumable:!!remembered,
+  ...corridorPosition(base),resumable:!!remembered,phase:remembered?.phase||'attack',
   hp:remembered?.hp??CORRIDOR_OPERATION.maxHp};
 }
 // The mission changes pressure only around the home dock. No permanent safe-zone exploit.

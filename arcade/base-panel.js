@@ -1,7 +1,7 @@
 import {renderStationRoutePreview} from './map-panel.js?v=arcade-station-followup-65';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
-import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=arcade-controls-63';
+import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=corridor-return-1';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
@@ -198,27 +198,29 @@ const contractPanel=o=>{
 const corridorPanel=(base,state,compact=false)=>{
  const op=corridorOffer(base,state.operation);
  if(!op)return '';
- const done=op.status==='complete',active=op.status==='active';
+ const done=op.status==='complete',active=op.status==='active',returning=op.phase==='return';
  const hp=active||op.resumable?Math.ceil(op.hp/CORRIDOR_OPERATION.maxHp*100):100;
- const body=done?'Передатчик уничтожен. Коридор стал спокойнее, местная разведка работает дальше.':
+ const body=done?'Передатчик уничтожен, телеметрия доставлена. Разведка дока работает дальше.':
+  returning?'Глушитель отключён. Бортовой ИИ сохранил телеметрию. Вернитесь в домашний док и передайте её при стыковке (E). По дороге можно обойти преследователей или отбиться.':
   active?'Цель отмечена. Луч поражает передатчик с расстояния до 255 м; в радиусе 315 м заряжается ЭМ-импульс. Можно сначала уничтожить охранение.':
   'Глушитель обнаружен примерно в 1,3 км к востоку. Луч поражает его с дистанции до 255 м; в радиусе 315 м заряжается ЭМ-импульс. Можно устранить охранение или прорваться под огнём.';
  const actions=done?'<span class="base-op-done">✓ Изменения действуют в секторе</span>':
-  active?action('baseMap','Показать маршрут')+(compact?'':action('abandonOperation','Отложить · сохранить повреждения')):
+  active?action('baseMap',returning?'Маршрут к доку':'Показать маршрут')+(compact?'':action('abandonOperation',returning?'Отложить передачу':'Отложить · сохранить повреждения')):
   action('baseMap','Посмотреть маршрут')+
    action('acceptOperation','Принять операцию',op.status==='available'&&!state.operation?'':'Сначала завершите другую операцию или включите станцию');
  const warning=!done&&!active&&op.status!=='available'?'Сначала включите станцию.':
   !done&&!active&&state.operation?'Сначала завершите или отложите текущую особую операцию.':'';
  const facts='<div class="base-op-details">'+
-  '<div><span>ЗАДАЧА</span><b>Уничтожить передатчик</b></div>'+
+  '<div><span>ЗАДАЧА</span><b>Подавить помехи и доставить телеметрию</b></div>'+
   '<div><span>ОПАСНОСТЬ</span><b>Охранение · ЭМ-импульс</b></div>'+
   '<div><span>ИЗМЕНЕНИЕ МИРА</span><b>Разведка +350 м · патрули реже</b></div></div>';
  return '<article class="base-featured-op '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ДОК</span><span>'+
-  (done?'КОРИДОР ОТКРЫТ':active?'ВЫЛЕТ НАЧАТ':'РАЗВЕДКА ПОД ПОМЕХАМИ')+'</span></div>'+
+  (done?'КОРИДОР ОТКРЫТ':returning?'ОСТАЛОСЬ ВЕРНУТЬСЯ':active?'ВЫЛЕТ НАЧАТ':'РАЗВЕДКА ПОД ПОМЕХАМИ')+'</span></div>'+
   '<strong>'+CORRIDOR_OPERATION.name+'</strong><p>'+body+'</p>'+
   (compact?'':facts)+
-  (active||op.resumable?'<small>Передатчик: '+hp+'% прочности. Повреждения сохраняются при отступлении.</small>':'')+
+  (returning?'<small>Телеметрия получена. Награда и разведка откроются после возвращения в док.</small>':
+   active||op.resumable?'<small>Передатчик: '+hp+'% прочности. Повреждения сохраняются при отступлении.</small>':'')+
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
   CORRIDOR_OPERATION.rewardOre+' сплава · +'+CORRIDOR_OPERATION.rewardData+
@@ -294,6 +296,8 @@ const baseBrief=(base,state,o)=>{
  if(op){
   if(op.status==='complete')return ['ПОМЕХИ УСТРАНЕНЫ','Коридор открыт',
    'Дальность местной разведки выросла, патрули возле дома стали реже. Станция больше не заглушена.'];
+  if(op.phase==='return')return ['ПОМЕХИ СНЯТЫ','Вернитесь с телеметрией',
+   'Передатчик отключён. Сохранённые данные нужно доставить в док. По дороге возможен перехват; вступать в бой необязательно.'];
   if(op.status==='active')return ['ОПЕРАЦИЯ ВЫПОЛНЯЕТСЯ','Найдите передатчик',
    'Можно прорваться к глушителю или сначала уничтожить охранение. Передатчик заряжает ЭМ-импульс вблизи; затяжной бой привлечёт подкрепление.'];
   return ['РАЗВЕДКА ПОД ПОМЕХАМИ','Глушитель на востоке',
@@ -465,6 +469,7 @@ export function renderBasePanel(base,state){
    'Операция «Последний сигнал»: при ремонте зонда корабль не стреляет. Дрон может прикрыть его, но не гарантирует безопасность.':
    missionForPreparation.id===RELAY_DEFENSE.id?
    'Операция «Оборона ретранслятора»: противники стремятся к передатчику. Перехватывайте заряженные залпы; атака состоит из трёх конечных волн.':
+   missionForPreparation.phase==='return'?'Операция «Глухой коридор»: помехи сняты, но награда ждёт передачи телеметрии в домашнем доке.':
    'Операция «Глухой коридор»: у глушителя есть охранение и ЭМ-импульсы. Можно сначала уничтожить охранение или прорваться к цели.') :
   'Выберите дальнейший маршрут и подготовьте корабль к ожидаемой угрозе.';
  const readiness='<section class="base-sortie-context"><div><span class="base-kicker">ГОТОВНОСТЬ К ВЫЛЕТУ</span>'+
