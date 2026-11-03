@@ -156,8 +156,8 @@ export class ArcadeGame {
   }
   this.bind();this.resize();this.world.discover(0,0);
   this.notice(matchMedia('(pointer: coarse)').matches?
-   'Подлетите к объекту и используйте кнопку действия. Автоогонь можно отключить.':
-   'WASD — полёт · E — действие · C — автоогонь · Shift — рывок.',8);
+   'Подлетите к домашнему доку и нажмите «Действие». В ангаре есть бесплатный образец оружия.':
+   'WASD — полёт · E — домашний док · Ангар: бесплатный «Ионный проводник» · Shift — рывок.',9);
   this.last=performance.now();this.loop=this.loop.bind(this);
   requestAnimationFrame(this.loop);
  }
