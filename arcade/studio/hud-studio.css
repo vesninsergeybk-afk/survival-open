@@ -1,0 +1,32 @@
+
+/* HUD concept workshop: isolated from real arcade HUD. */
+.hud-status-notice{border:1px solid #3b6473;background:#0d3040;border-radius:12px;padding:12px 16px;color:#cde2eb;margin:0 0 18px;line-height:1.6}
+.hud-status-notice strong{color:#f3fdff}
+.hud-studio-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(270px,.8fr);gap:18px;align-items:start}
+.hud-visual,.hud-control-panel{min-width:0;background:#0b1d30;border:1px solid #2d485e;border-radius:15px;padding:15px}
+.hud-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+.hud-device-picker,.hud-state-picker{display:flex;flex-wrap:wrap;gap:8px}
+.hud-device-picker button,.hud-state-picker button{border:1px solid #416376;background:#112d43;color:#bfd8e9;padding:9px 12px;border-radius:9px;min-height:42px;line-height:1.25;cursor:pointer}
+.hud-device-picker button[aria-pressed=true],.hud-state-picker button[aria-pressed=true]{background:#1c5066;border-color:#70d9e5;color:#f0ffff}
+.hud-mockup-label{font-size:10px;color:#a3c6d1;letter-spacing:.12em}
+.hud-concept-frame{margin:0;padding:0;background:#05101b;border:1px solid #385e75;border-radius:11px;overflow:hidden}
+.hud-concept-frame img{display:block;width:100%;height:auto;object-fit:contain}
+.hud-concept-frame figcaption{padding:9px 12px;font-size:13px;color:#d4e9f4;background:#0c2337}
+.hud-mockup-caveat,.hud-selector-note{font-size:12px;line-height:1.55;color:#b2c9d8;margin:10px 0 0}
+.hud-control-panel h3{margin:5px 0 12px;font-size:20px}
+.hud-state-picker{margin:0 0 14px}
+.hud-state-detail{background:#102a40;border-left:3px solid #68d6df;border-radius:9px;padding:14px}
+.hud-state-detail h4{font-size:18px;margin:0 0 10px}
+.hud-state-detail div{margin-top:10px}
+.hud-state-detail strong{display:block;font-size:11px;letter-spacing:.055em;color:#8ee5e2;text-transform:uppercase}
+.hud-state-detail p{font-size:13px;line-height:1.55;margin:4px 0 0;color:#d6e5f0}
+.hud-priority-grid,.hud-review-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:14px 0 20px}
+.hud-priority-grid article,.hud-review-grid article{background:#102438;border:1px solid #2e4e64;border-radius:13px;padding:16px}
+.hud-priority-grid h3,.hud-review-grid h3{font-size:17px;margin:9px 0 7px}
+.hud-priority-grid p,.hud-review-grid p{font-size:13px;color:#bdcfe0;line-height:1.6;margin:0}
+.hud-priority{font-weight:750;letter-spacing:.1em;font-size:10px}
+.hud-priority.p0{color:#ffbbc1}.hud-priority.p1{color:#91f5e2}.hud-priority.p2{color:#f8d38f}
+.hud-rules{border:1px solid #2d4a60;border-radius:13px;background:#0c2134;padding:15px 19px}
+.hud-rules h3{margin:0 0 8px}.hud-rules ul{margin:0;padding-left:20px}.hud-rules li{margin:7px 0;color:#c3d6e4;font-size:14px;line-height:1.55}.hud-rules b{color:#f3feff}
+@media(max-width:1080px){.hud-studio-grid{grid-template-columns:1fr}.hud-priority-grid,.hud-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.hud-priority-grid,.hud-review-grid{grid-template-columns:1fr}.hud-visual,.hud-control-panel{padding:10px}.hud-device-picker{width:100%}.hud-device-picker button{flex:1}.hud-mockup-label{font-size:9px}}

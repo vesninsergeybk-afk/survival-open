@@ -10,6 +10,8 @@
 <script type="module" src="./app.js?v=studio-explosions-2-gameplay-2"></script>
 <link rel="stylesheet" href="./systems.css?v=systems-3">
 <script type="module" src="./systems-app.js?v=systems-3"></script>
+<link rel="stylesheet" href="./hud-studio.css?v=hud-v03">
+<script type="module" src="./hud-studio.js?v=hud-v03"></script>
 </head>
 <body>
 <header class="topbar">
@@ -33,6 +35,7 @@
   <button type="button" data-tab="systems" aria-pressed="false">Игровые системы · 31 идея</button>
   <button type="button" data-tab="loop" aria-pressed="false">Петля игры и баланс</button>
   <button type="button" data-tab="effects" aria-pressed="false">VFX · эффекты</button>
+  <button type="button" data-tab="hud" aria-pressed="false">HUD · интерфейс корабля</button>
   <button type="button" data-tab="concepts" aria-pressed="false">Концепты и критерии</button>
   <button type="button" data-tab="tools" aria-pressed="false">Стенды ресурсов</button>
  </nav>
@@ -228,6 +231,65 @@
    <iframe id="vfx-compare-frame" title="Сравнение визуальных эффектов на изображениях игры" src="../../visual-lab/?embed=1" loading="lazy"></iframe>
    <p class="disclaimer">Здесь показывается специализированный стенд внутри общей мастерской. Прежний адрес лаборатории теперь ведёт в этот раздел; отдельного второго каталога концепций больше нет.</p>
   </section>
+ </section>
+
+ <section id="panel-hud" class="tab-panel" hidden aria-labelledby="hud-title">
+  <div class="section-head">
+   <div><span class="eyebrow">HUD / ПРОЕКТНАЯ ВЕРСИЯ 0.3 · 03.11.2026</span><h2 id="hud-title">Интерфейс корабля: информация для решения</h2></div>
+   <p>Сначала выясняем, что игрок должен заметить в полёте, добыче и бою. Затем проверяем читаемость и соответствие действующим правилам. Игровой HUD пока не изменён.</p>
+  </div>
+  <div class="hud-status-notice"><strong>Изображения — художественные ориентиры.</strong> Окружение на них детальнее нынешней Canvas2D-сцены; показанные числа примерные. Панели предстоит собрать из настоящих данных игры, без фоновой картинки под интерфейсом.</div>
+  <div class="hud-studio-grid">
+   <div class="hud-visual">
+    <div class="hud-toolbar">
+     <div class="hud-device-picker" role="group" aria-label="Устройство для концепции">
+      <button type="button" data-hud-device="desktop" aria-pressed="true">ПК · приборная панель</button>
+      <button type="button" data-hud-device="mobile" aria-pressed="false">Телефон · сенсорное управление</button>
+     </div>
+     <span class="hud-mockup-label">КОНЦЕПТ · НЕ СКРИНШОТ ИГРЫ</span>
+    </div>
+    <figure class="hud-concept-frame">
+     <img id="hud-mockup" src="./assets/hud-desktop-v03.png" alt="Предлагаемый HUD для ПК: корпус и опыт слева, действия снизу, ресурсы справа, цель и радар сверху" loading="lazy" decoding="async">
+     <figcaption id="hud-mockup-caption">ПК: заметные показатели корпуса и действия, компактные второстепенные сведения, свободная середина боя.</figcaption>
+    </figure>
+    <p class="hud-mockup-caveat"><strong>Замечание:</strong> красота фоновой станции — художественный ориентир для другой задачи. Здесь утверждаем логику и оформление приборов, а не новый движок или графику окружения.</p>
+   </div>
+   <aside class="hud-control-panel">
+    <span class="mini-label">ПРОВЕРЯЕМ СЛЕДСТВИЕ ДЛЯ ИГРОКА</span>
+    <h3>Состояния HUD</h3>
+    <div class="hud-state-picker" role="group" aria-label="Сценарий интерфейса">
+     <button type="button" data-hud-state="flight" aria-pressed="true">Свободный полёт</button>
+     <button type="button" data-hud-state="mining" aria-pressed="false">Добыча и патруль</button>
+     <button type="button" data-hud-state="combat" aria-pressed="false">Бой</button>
+     <button type="button" data-hud-state="critical" aria-pressed="false">Критический корпус</button>
+     <button type="button" data-hud-state="base" aria-pressed="false">Станция</button>
+    </div>
+    <article id="hud-state-detail" class="hud-state-detail" aria-live="polite"></article>
+    <p class="hud-selector-note">Переключатель меняет правила и сценарий проверки. Изображение остаётся эскизом конкретной сцены и не имитирует работу игровых данных.</p>
+   </aside>
+  </div>
+  <div class="section-head compact-head"><div><span class="eyebrow">ИЕРАРХИЯ ИНФОРМАЦИИ</span><h3>Что должно быть видно всегда, а что — по ситуации</h3></div><p>Место на экране получает информация, от которой прямо сейчас зависит решение игрока.</p></div>
+  <div class="hud-priority-grid">
+   <article><span class="hud-priority p0">01 · БЕЗОПАСНОСТЬ</span><h3>Сразу заметить</h3><p>Корпус, действующий щит, опасную атаку и готовность рывка. При низком здоровье — ясный текст и форма сигнала, не только красный цвет.</p></article>
+   <article><span class="hud-priority p1">02 · ДЕЙСТВИЕ</span><h3>Когда становится доступно</h3><p>Добыча, ремонт, открытие базы, выполнение операции. Подсказка показывает одно доступное действие и правильный способ: нажать или удерживать.</p></article>
+   <article><span class="hud-priority p2">03 · ПЛАНИРОВАНИЕ</span><h3>Компактно и по запросу</h3><p>Сплав, данные, ведомые, коды, опыт, следующая станция. Подробности флота, экономики и развития — в соответствующем меню.</p></article>
+  </div>
+  <div class="hud-rules">
+   <h3>Согласованный зрительный язык</h3>
+   <ul>
+    <li><b>Холодный голубой</b> — обычная телеметрия, ремонт и добыча; <b>мятный</b> — готовность или союзники.</li>
+    <li><b>Янтарный</b> — известная опасность, поиск патруля или нагрев события; <b>красный</b> — активная атака, удар или критическое состояние.</li>
+    <li><b>Золотой</b> — готовая к получению награда. Просто наличие сплава не должно выглядеть как тревога или награда.</li>
+    <li>Радар показывает только объекты в локальном радиусе 1100 игровых единиц. Карта по Tab остаётся отдельным инструментом.</li>
+    <li>На телефоне подписываем сенсорные действия словами, без клавиш E, C и Shift. Кнопки действия, рывка и автоогня должны быть доступны одновременно с движением.</li>
+   </ul>
+  </div>
+  <div class="hud-review-grid">
+   <article><h3>Что в исходниках подтверждено</h3><p>Корпус, щит, опыт, рывок, добыча и шум, автоогонь, локальный радар, ресурсы, ведомые, коды, карта и развитие. Сейчас HUD занимает нижнюю полосу высотой 244 px на широком экране; в мобильном CSS встречаются подписи 6–9 px.</p></article>
+   <article><h3>Что только предлагается</h3><p>Перенос радара вверх, приоритетные уведомления, укрупнение основной типографики, компактная сводка ресурсов и отдельная мобильная компоновка. Боеприпасы, перегрев и новые способности не утверждены и в макет не включены.</p></article>
+   <article><h3>Что проверим перед переносом</h3><p>Начало забега, добычу с поиском патруля, орбитальный удар, критический урон, открытие базы, получение очка развития; затем обычный ПК, слабый ПК и горизонтальный телефон, включая снижение движения.</p></article>
+  </div>
+  <p class="disclaimer">Подробные правила, сценарии приёмки и план внедрения: <a href="https://github.com/vesninsergeybk-afk/survival-open/blob/main/arcade/studio/HUD-CONCEPT-V03.md" target="_blank" rel="noopener noreferrer">HUD-CONCEPT-V03.md</a>. Действующий дизайн: <a href="https://github.com/vesninsergeybk-afk/survival-open/blob/main/arcade/HUD-DESIGN.md" target="_blank" rel="noopener noreferrer">HUD-DESIGN.md</a>. Изменение этого раздела не меняет игру.</p>
  </section>
  <section id="panel-concepts" class="tab-panel" hidden aria-labelledby="concepts-title">
   <div class="section-head">
