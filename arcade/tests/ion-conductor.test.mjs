@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {ION_CONDUCTOR,ionLoanOffer,createIonLoan,markIonCluster,planIonDischarge}
+import {ION_CONDUCTOR,ionLoanOffer,createIonLoan,markIonCluster,planIonDischarge,ionMasteryAward}
  from '../ion-conductor.js';
 
 const home={id:'0:0',type:'dock',active:true};
@@ -106,4 +106,16 @@ test('desktop and touch input share one manual action; repair and mining remain 
  assert.match(panel,/action\('returnIon'/);
  assert.match(panel,/action\('baseTab','Испытать оружие'/);
  assert.match(game,/Ангар: бесплатный «Ионный проводник»/);
+});
+
+test('the first real multi-target chain awards tactical data once per run, not per rental',()=>{
+ assert.equal(ionMasteryAward(0,false),0);
+ assert.equal(ionMasteryAward(1,false),0);
+ assert.equal(ionMasteryAward(2,false),12);
+ assert.equal(ionMasteryAward(3,false),12);
+ assert.equal(ionMasteryAward(3,true),0);
+ const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ assert.match(game,/ionMasteryAward\(plan\.targets\.length,this\.ionMasteryAwarded\)/);
+ assert.match(game,/this\.collect\(\{type:'data',value:mastery\}\)/);
+ assert.match(game,/зарядка /);
 });
