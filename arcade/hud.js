@@ -25,7 +25,7 @@ export class CockpitDisplay {
    shield:el('shield'),shieldmeter:el('shieldmeter'),shieldbar:el('shieldbar'),
    leftBurstMeter:el('leftBurstMeter'),leftBurstText:el('leftBurstText'),
    hudSupportRing:el('hudSupportRing'),hudStrikeCount:el('hudStrikeCount'),
-   droneIcons:[el('hudDrone0'),el('hudDrone1'),el('hudDrone2')],
+   droneIcons:[el('hudDrone0'),el('hudDrone1')],
    ore:el('ore'),data:el('data'),bases:el('bases'),
    wing:el('wing'),hack:el('hack'),fps:el('fps'),enemies:el('enemies'),
    points:el('points'),burst:el('burst'),burstbar:el('burstbar'),
@@ -69,10 +69,10 @@ export class CockpitDisplay {
   n.hudSupportRing.classList.toggle('available',strikes>0);
   const liveAllies=game.allies.filter(a=>a.hp>0).length;
   for(let i=0;i<n.droneIcons.length;i++)n.droneIcons[i].classList.toggle('active',i<liveAllies);
-  display(n.wingStatus,bombers?'АВИАГРУППА В БОЮ':
-   strikes?'ДРОНЫ '+game.allies.length+' · УДАР B: '+strikes:
-   !game.allies.length?'ДРОНЫ: 0/2':cover?'ПРИКРЫТИЕ · '+cover:
-    'ДРОНЫ В СТРОЮ · '+game.allies.length+'/2');
+  display(n.wingStatus,liveAllies+'/2');
+  n.wingStatus.setAttribute('aria-label',bombers?'Авиагруппа выполняет удар; '+liveAllies+' дронов в строю':
+   cover?'Прикрывают корабль: '+cover+'; '+liveAllies+' дронов в строю':
+   liveAllies+' из 2 дронов в строю');
   const focus=game.actionHeld||game.interactionFocus;
   n.interactionCue.hidden=!focus||game.paused||game.dead||!game.overlay.hidden;
   if(!n.interactionCue.hidden) {

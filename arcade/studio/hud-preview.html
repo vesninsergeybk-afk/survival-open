@@ -141,11 +141,65 @@ header a{color:#9ce8f0;font-size:12px}
 .note b{color:#e5faff}
 @media(max-width:760px){header{align-items:flex-start}header strong{font-size:12px}.toolbar{padding-top:8px}}
 @media(prefers-reduced-motion:reduce){.stage,.stage *{animation:none!important;transition:none!important}}
+
+/* Art Pass 03: geometry mirrors the live instrument hierarchy; demo values stay within this workbench. */
+.top-node{top:2%;left:2.3%;border-left:2px solid #F4BB62;padding-left:12px;font-size:clamp(10px,.8cqw,13px)}
+.top-node span,.top-node small{border:0;padding:0}
+.top-node span{color:#F7C976;letter-spacing:.17em;font-size:.75em}
+.top-node small{margin-top:3px;font-size:1.1em;font-weight:750;text-transform:uppercase;color:#E6F8FB}
+.mission{width:38%;top:2%}
+.radar{width:13%;top:8.5%;right:1%}
+.panel-left{bottom:2%;width:31%}
+.panel-right{bottom:2%;width:30%}
+.panel-left .gauges{left:27%;right:6%;top:10%;bottom:19%}
+.panel-left .gauge{grid-template-rows:50% 40%}
+.panel-left .gauge .name{font-size:clamp(9px,.85cqw,13px)}
+.panel-left .gauge .value{font-size:clamp(11px,1.05cqw,16px)}
+.panel-left .level-strip{position:absolute;left:27%;right:6%;bottom:4%;display:flex;justify-content:space-between;font-size:clamp(6px,.66cqw,10px);color:#9BC4D1}
+.panel-right .weapon-icon{left:4%;top:19%;width:20%;height:53%}
+.panel-right .weapon-line{left:26%;top:12%;right:23%;justify-content:flex-start}
+.panel-right .weapon-line strong{font-size:clamp(10px,.88cqw,13px);letter-spacing:.09em;white-space:nowrap}
+.panel-right .weapon-mode{position:absolute;left:26%;top:32%;right:23%;padding-bottom:7px;border-bottom:1px solid #6DE2E066;color:#83F0E1;font-size:clamp(8px,.7cqw,11px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel-right .readiness{right:4.2%;top:9%;width:19%;aspect-ratio:1;border:0;border-radius:0;box-shadow:none;
+ background:url('./hud-kit/support-ring.svg') center/contain no-repeat;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.panel-right .readiness b{font-size:clamp(12px,1.25cqw,18px);color:#FFE4AE}
+.panel-right .readiness span{font-size:clamp(6px,.56cqw,8px);display:flex;flex-direction:column;align-items:center}
+.panel-right .support-drones{left:26%;right:6%;top:60%;bottom:auto;height:17%;gap:6px}
+.panel-right .support-drones strong{font-size:clamp(8px,.8cqw,11px);font-weight:750}
+.panel-right .support-drones img{width:22px;height:22px;filter:grayscale(.8);opacity:.3}
+.panel-right .support-drones img.active{filter:drop-shadow(0 0 4px #68EEEB9c);opacity:1}
+.panel-right .support-drones b{margin-left:auto;color:#D4F9FC;font-size:clamp(10px,.95cqw,13px)}
+.panel-right .resource-line{position:absolute;left:26%;right:6%;bottom:8%;display:flex;align-items:center;justify-content:space-between;gap:10px;color:#A9D2DB;white-space:nowrap;font-size:clamp(7px,.7cqw,10px)}
+.panel-right .resource-line b{margin-left:4px;color:#EDF9FD;font-size:1.2em}
+.abilities{bottom:1.5%;gap:1cqw}
+.stage.phone-landscape .top-node{left:1.2%;top:3%;font-size:10px}
+.stage.phone-landscape .mission{width:44%;top:3.5%}
+.stage.phone-landscape .radar{width:14%;right:1%;top:31%}
+.stage.phone-landscape .panel-left{left:1.2%;top:18%;width:29%}
+.stage.phone-landscape .panel-right{left:1.2%;right:auto;top:40%;width:29%}
+.stage.phone-landscape .abilities{bottom:2%;width:19%}
+.stage.phone-landscape .panel-right .support-drones img{width:12px;height:12px}
+.stage.phone-landscape .panel-right .support-drones strong{font-size:7px}
+.stage.phone-landscape .panel-right .support-drones b{font-size:8px}
+.stage.phone-landscape .panel-right .resource-line{gap:3px;font-size:6px}
+.stage.phone-landscape .panel-right .weapon-mode{font-size:7px;padding-bottom:2px}
+.stage.phone-landscape .panel-right .readiness b{font-size:11px}
+.stage.phone-portrait .top-node{left:3%;top:7%;font-size:11px}
+.stage.phone-portrait .mission{top:15%;width:63%;left:1.7%;transform:none}
+.stage.phone-portrait .radar{top:13%;right:2%;width:29%}
+.stage.phone-portrait .panel-left{top:29%;bottom:auto;left:2%;width:96%}
+.stage.phone-portrait .panel-right{top:42%;bottom:auto;left:2%;right:auto;width:96%}
+.stage.phone-portrait .abilities{top:73%;bottom:auto;width:48%}
+.stage.phone-portrait .panel-right .support-drones img{height:18px;width:18px}
+.stage.phone-portrait .panel-right .resource-line{font-size:8px}
+.stage.phone-portrait .panel-right .weapon-mode{font-size:8px}
+.stage.phone-portrait .panel-right .readiness b{font-size:13px}
 </style>
 </head>
 <body>
 <header>
- <div><strong>ВЫЖИВШИЙ · МАСТЕРСКАЯ HUD / ART PASS 01</strong><small>Графические элементы SVG · отдельно от игрового кода</small></div>
+ <div><strong>ВЫЖИВШИЙ · МАСТЕРСКАЯ HUD / ART PASS 03</strong><small>Реальные контуры приборов · согласовано с игровым HUD</small></div>
  <a href="./">← Мастерская концепций</a>
 </header>
 <div class="toolbar">
@@ -163,7 +217,7 @@ header a{color:#9ce8f0;font-size:12px}
 </div>
 <div class="workbench">
  <div id="stage" class="stage desktop cruise" aria-label="Испытательный стенд нового HUD">
-  <div class="top-node"><span>УЗЕЛ 03</span><small>РЕАКТОР <em>2/3</em></small></div>
+  <div class="top-node"><span>СЕКТОР</span><small>Аметистовая туманность</small></div>
   <div class="mission"><img src="./hud-kit/mission-ribbon.svg" alt=""><div class="textline"><strong>Добраться до реактора</strong><span class="distance">420 м</span></div></div>
   <div class="radar"><canvas id="contactRadar" width="184" height="184" aria-label="Демонстрационный радар"></canvas><img class="bezel" src="./hud-kit/radar-bezel.svg" alt=""></div>
   <div class="world-contact">[E] Восстановить</div>
@@ -180,26 +234,29 @@ header a{color:#9ce8f0;font-size:12px}
     <div class="gauge"><span class="name"><span class="glyph">ϟ</span> РЫВОК</span><span class="value" id="boostText">86%</span>
      <div class="bar"><img src="./hud-kit/segments-muted.svg" alt=""><img id="boostBar" class="fill" src="./hud-kit/segments-amber.svg" alt=""></div></div>
    </div>
+   <div class="level-strip"><span>УРОВЕНЬ 1</span><span>до ур. 2</span></div>
   </section>
   <div class="abilities">
-   <div class="ability"><img class="skin" src="./hud-kit/ability-frame.svg" alt=""><img class="icon-art" src="./hud-kit/repair.svg" alt=""><span class="key">E</span></div>
-   <div class="ability"><img class="skin" src="./hud-kit/ability-frame.svg" alt=""><img class="icon-art" src="./hud-kit/strike.svg" alt=""><span class="key">B</span></div>
+   <div class="ability disabled"><img class="skin" src="./hud-kit/ability-frame.svg" alt=""><img class="icon-art" src="./hud-kit/code.svg" alt=""><span class="key">Q</span></div>
    <div class="ability"><img class="skin" src="./hud-kit/ability-frame.svg" alt=""><img class="icon-art" src="./hud-kit/burst.svg" alt=""><span class="key">⇧</span></div>
+   <div class="ability disabled"><img class="skin" src="./hud-kit/ability-frame.svg" alt=""><img class="icon-art" src="./hud-kit/strike.svg" alt=""><span class="key">B</span></div>
   </div>
-  <section class="panel panel-right" aria-label="Оружие и ведомые">
+  <section class="panel panel-right" aria-label="Вооружение и дроны">
    <img class="skin" src="./hud-kit/panel-right.svg" alt="">
    <img class="weapon-icon" src="./hud-kit/weapon.svg" alt="">
-   <div class="weapon-line"><span>АВТООГОНЬ</span><b id="weaponText">ВКЛ.</b></div>
-   <div class="weapon-bar"><img src="./hud-kit/segments-cyan.svg" alt=""></div>
-   <div class="readiness"><span>УДАР<b id="strikeText">×2</b></span></div>
-   <div class="support-drones"><strong>ДРОНЫ</strong><span id="droneText">2/3</span><span class="divider"></span>
-    <img src="./hud-kit/drone.svg" alt=""><img src="./hud-kit/drone.svg" alt=""><img class="off" src="./hud-kit/drone.svg" alt="">
+   <div class="weapon-line"><strong>БОЕВОЙ КОНТУР</strong></div>
+   <div class="weapon-mode" id="weaponText">АВТООГОНЬ · АКТИВЕН</div>
+   <div class="readiness"><b id="strikeText">×2</b><span>УДАР</span></div>
+   <div class="support-drones"><strong>ДРОНЫ</strong>
+    <img src="./hud-kit/drone.svg" alt=""><img src="./hud-kit/drone.svg" alt="">
+    <b id="droneText">2/2</b>
    </div>
+   <div class="resource-line"><span>ДАННЫЕ <b>120</b></span><span>СПЛАВ <b>43</b></span></div>
   </section>
   <div class="touch" aria-hidden="true"><div class="stick"></div><div class="actions"><span>Рывок</span><span>Огонь</span><span>Действие</span><span>Карта</span></div></div>
  </div>
 </div>
-<p class="note"><b>Для проверки дизайна:</b> переключайте размеры и игровые состояния. Это отдельный графический стенд: здесь нет боевой симуляции, реальных ресурсов или сохранений. В настоящую игру можно переносить только согласованные элементы и подключать их к действующим показателям. Фон намеренно нейтральный — оцениваем форму приборов, расположение и читаемость.</p>
+<p class="note"><b>Для проверки дизайна:</b> переключайте размеры и игровые состояния. Это отдельный графический стенд: здесь нет боевой симуляции, реальных ресурсов или сохранений. Форма панелей, порядок показателей, число дронов и расположение способностей соответствуют опубликованной версии игры. В стенде цифры условные. Фон намеренно нейтральный — оцениваем форму приборов, расположение и читаемость.</p>
 <script>
 const stage=document.getElementById('stage');
 function setPressed(group,key,value){
@@ -214,9 +271,9 @@ document.querySelectorAll('[data-screen]').forEach(button=>button.addEventListen
  setPressed('screen',null,button.dataset.screen);
 }));
 const states={
- cruise:{hull:72,shield:41,boost:86,weapon:'ВКЛ.',strike:'×2',drones:'2/3'},
- combat:{hull:54,shield:18,boost:38,weapon:'ВКЛ.',strike:'×1',drones:'2/3'},
- critical:{hull:16,shield:0,boost:0,weapon:'ВЫКЛ.',strike:'×0',drones:'1/3'}
+ cruise:{hull:72,shield:41,boost:86,weapon:'АВТООГОНЬ · АКТИВЕН',strike:'×2',drones:'2/2'},
+ combat:{hull:54,shield:18,boost:38,weapon:'АВТООГОНЬ · АКТИВЕН',strike:'×1',drones:'2/2'},
+ critical:{hull:16,shield:0,boost:0,weapon:'АВТООГОНЬ · ПАУЗА',strike:'×0',drones:'1/2'}
 };
 function gauge(id,value){
  document.getElementById(id+'Text').textContent=value+'%';
@@ -230,7 +287,7 @@ function setState(state){
  document.getElementById('strikeText').textContent=s.strike;
  document.getElementById('droneText').textContent=s.drones;
  const drones=document.querySelectorAll('.support-drones img');
- drones.forEach((d,i)=>d.classList.toggle('off',i>=Number(s.drones.split('/')[0])));
+ drones.forEach((d,i)=>{const off=i>=Number(s.drones.split('/')[0]);d.classList.toggle('off',off);d.classList.toggle('active',!off);});
 }
 document.querySelectorAll('[data-state]').forEach(button=>button.addEventListener('click',()=>setState(button.dataset.state)));
 function radarContacts(){
