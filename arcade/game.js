@@ -11,7 +11,7 @@ import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=corridor-return-3';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=arcade-progressive-noise-58';
-import {ArcadeHeritage} from './heritage.js?v=audio-fidelity-01';
+import {ArcadeHeritage} from './heritage.js?v=explosion-grammar-01';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=corridor-return-2';
@@ -1161,7 +1161,7 @@ export class ArcadeGame {
     const hit=e?.hp>0&&!e.converted&&Math.hypot(m.x-e.x,m.y-e.y)<e.r+24;
     const contact=hit?contactOnCircle(e.x,e.y,e.r,m.prevX,m.prevY):null;
     if(hit)this.damageEnemy(e,m.damage,'rocket',contact);
-    if(hit)this.heritage.vfx.rocketImpact(contact?.x??m.x,contact?.y??m.y,26);
+    if(hit)this.heritage.vfx.rocketImpact(contact?.x??m.x,contact?.y??m.y,26,contact);
     else this.heritage.vfx.rocketImpact(m.x,m.y,12);
     // The warhead has an audible detonation, not just a visual flash.
     this.heritage.play('rocketImpact',.2,{x:contact?.x??m.x,y:contact?.y??m.y});
@@ -2097,6 +2097,7 @@ export class ArcadeGame {
   this.drawCorridorBeacon(c,cam);
   this.drawRelayDefense(c,cam);
   this.drawProbe(c,cam);
+  this.heritage.vfx.beginSurfaceLights();
   const signaledGroups=new Set();
   for(const e of this.enemies){
    if(outsideCamera(e.x,e.y,cam,e.r+30))continue;
@@ -2114,6 +2115,7 @@ export class ArcadeGame {
       !this.drawSprite(this.images[spriteKey],e.x,e.y,e.r*3,e.r*3,e.angle)){
     c.fillStyle=e.converted?'#6fe7ba':'#f07887';c.beginPath();c.arc(e.x,e.y,e.r,0,TAU);c.fill();
    }
+   this.heritage.vfx.renderSurfaceLight(c,e.x,e.y,e.r);
    // The painted rupture supersedes the old circular damage decal.
    if(!e.capitalWearPainted)
     drawHullDamage(c,e,this.time,this.fps,this.visuals.reducedMotion);
@@ -2151,6 +2153,7 @@ export class ArcadeGame {
    if(outsideCamera(a.x,a.y,cam,50))continue;
    const image=this.images[a.role==='fighter'?'allyfighter':'allyscout'];
    this.visuals.drawAlly(c,a,this.time,image);
+   this.heritage.vfx.renderSurfaceLight(c,a.x,a.y,a.r);
    drawHullDamage(c,a,this.time,this.fps,this.visuals.reducedMotion);
    if(a.messageUntil>this.time){
     c.font='11px system-ui';c.textAlign='center';c.fillStyle='#9af8ff';
@@ -2161,6 +2164,7 @@ export class ArcadeGame {
    for(const craft of mission.craft){
     if(craft.hp<=0||outsideCamera(craft.x,craft.y,cam,45))continue;
     this.visuals.drawAlly(c,craft,this.time,this.images.allybomber);
+    this.heritage.vfx.renderSurfaceLight(c,craft.x,craft.y,craft.r);
     drawHullDamage(c,craft,this.time,this.fps,this.visuals.reducedMotion);
     c.save();c.fillStyle='#ffe1a4';c.textAlign='center';c.font='bold 10px system-ui';
     c.fillText('АВИАГРУППА',craft.x,craft.y-34);c.restore();
@@ -2183,6 +2187,7 @@ export class ArcadeGame {
     c.fillStyle='#8cecff';c.beginPath();c.moveTo(p.x,p.y-25);c.lineTo(p.x-16,p.y+20);
     c.lineTo(p.x+16,p.y+20);c.fill();
    }
+   this.heritage.vfx.renderSurfaceLight(c,p.x,p.y,22);
   }
   if(!this.dead&&p.shield>0){
    c.strokeStyle='#73dffc77';c.lineWidth=3;c.beginPath();c.arc(p.x,p.y,37,0,TAU);c.stroke();
