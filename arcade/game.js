@@ -8,7 +8,7 @@ import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
 import {ArcadeVisuals} from './visuals.js?v=arcade-capital-hit-63';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=relay-def-1';
+import {CockpitDisplay} from './hud.js?v=corridor-return-3';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=arcade-progressive-noise-58';
 import {ArcadeHeritage} from './heritage.js?v=cinematic-rotation-01';
@@ -16,8 +16,8 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=corridor-return-2';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation} from './operations.js?v=corridor-return-1';
-import {renderWorldMap} from './map-panel.js?v=corridor-return-2';
-import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=corridor-return-2';
+import {renderWorldMap} from './map-panel.js?v=corridor-return-3';
+import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=corridor-return-3';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 
 const $=id=>document.getElementById(id);
