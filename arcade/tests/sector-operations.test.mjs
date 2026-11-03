@@ -42,7 +42,7 @@ test('a completed corridor changes patrol pressure only near its own dock',()=>{
  assert.equal(corridorPatrolModifier({...home,corridorSecured:true},home.x+1300,home.y),1);
 });
 const src=readFileSync(new URL('../game.js',import.meta.url),'utf8');
-const start=src.indexOf(' updateCorridor(');
+const start=src.indexOf(' updateCorridorReturn(');
 const end=src.indexOf('\n baseState(){',start);
 assert.ok(start>0&&end>start,'operation lifecycle must be present in game');
 const Ops=new Function('RULES','ENEMY_TYPES','dist','CORRIDOR_OPERATION','TAU','baseNames',
@@ -97,23 +97,64 @@ test('a committed EMP pulse continues after retreat, is harmless outside its rin
  game.completeCorridor();game.updateCorridor(30);
  assert.equal(damage,op.pulseDamage,'a destroyed jammer never pulses');
 });
-test('completing the mission pays once, clears the marker, and secures the sector',()=>{
+test('the destroyed jammer starts a return journey without paying prematurely',()=>{
  const {game,b,op,value}=fake();
  game.completeCorridor();
+ assert.equal(op.phase,'return');
+ assert.equal(op.hp,0);
+ assert.equal(b.corridorSecured,undefined);
+ assert.equal(game.operation,op);
+ assert.equal(game.waypoint.id,op.id);
+ assert.equal(game.waypoint.x,b.x);
+ assert.equal(game.waypoint.y,b.y);
+ assert.equal(game.player.ore,0);
+ assert.equal(value.ore,0);
+ assert.equal(value.data,0);
+ assert.equal(corridorOffer(b,op).phase,'return');
+ assert.equal(corridorOffer({...b,corridorMission:op},null).phase,'return',
+  'the delivery phase must survive postponing the mission');
+});
+test('optional pursuit appears once on the return route and never requires kills',()=>{
+ const {game,b,op}=fake();
+ game.completeCorridor();
+ game.player.x=b.x+720;game.player.y=b.y-100;
+ game.updateCorridor(1);
+ assert.equal(game.enemies.length,2);
+ assert.ok(game.enemies.every(e=>e.scenario==='corridor-pursuit'));
+ game.updateCorridor(4);
+ assert.equal(game.enemies.length,2,'the pursuit cannot be farmed repeatedly');
+ assert.equal(game.operation.phase,'return');
+});
+test('delivery at the issuing dock pays once, clears the marker and secures the route',()=>{
+ const {game,b,value}=fake();
+ game.completeCorridor();
+ // This is the same docking action invoked by keyboard E or the touch action button.
+ const dockStart=src.indexOf('  dock(selected=null){');
+ const dockEnd=src.indexOf('\n baseAction(act,role){',dockStart);
+ assert.ok(dockStart>0&&dockEnd>dockStart);
+ const Dock=new Function('dist','RULES','CORRIDOR_OPERATION',
+  'return class DockHarness {'+src.slice(dockStart,dockEnd)+'}')(
+  (a,b)=>Math.hypot(a.x-b.x,a.y-b.y),{baseInteract:180},CORRIDOR_OPERATION);
+ game.player.x=b.x;game.player.y=b.y;
+ game.overlay={hidden:true,dataset:{}};game.endInteraction=()=>{};
+ game.heritage.pause=()=>{};game.heritage.ui=()=>{};game.renderDock=()=>{};
+ Dock.prototype.dock.call(game,b);
  assert.equal(b.corridorSecured,true);
  assert.equal(game.operation,null);
  assert.equal(game.waypoint,null);
  assert.equal(game.player.ore,CORRIDOR_OPERATION.rewardOre);
  assert.equal(value.ore,CORRIDOR_OPERATION.rewardOre);
  assert.equal(value.data,CORRIDOR_OPERATION.rewardData);
- game.completeCorridor();
+ game.deliverCorridor();
  assert.equal(game.player.ore,CORRIDOR_OPERATION.rewardOre,
-  'a completed operation cannot pay twice');
+  'returning a second time must never pay twice');
 });
 test('clearing the corridor reveals a nearby station as a new reason to explore',()=>{
  const station={id:'1:0',x:1500,y:150,type:'lab',active:false,discovered:false};
  const {game,value}=fake([station]);
  game.completeCorridor();
+ assert.equal(station.discovered,false,'the next lead is awarded after returning');
+ game.deliverCorridor();
  assert.equal(station.discovered,true);
  assert.equal(game.world.discovered.has(station.id),true);
  assert.equal(game.waypoint?.id,station.id);
@@ -133,6 +174,10 @@ test('station UI exposes a briefing, route, equipment, and network independently
   assert.doesNotMatch(html,/\d+ целей/);
  const underway=renderBasePanel(b,state({operation:createCorridorOperation(b)}));
  assert.match(underway,/Отложить · сохранить повреждения/);
+ const homebound=createCorridorOperation(b);homebound.phase='return';homebound.hp=0;
+ const delivery=renderBasePanel(b,state({operation:homebound}));
+ assert.match(delivery,/ОСТАЛОСЬ ВЕРНУТЬСЯ/);
+ assert.match(delivery,/Награда и разведка откроются после возвращения/);
  const done=renderBasePanel({...b,corridorSecured:true},st);
  assert.doesNotMatch(done,/data-act="acceptOperation"/);
  assert.match(done,/ПОМЕХИ УСТРАНЕНЫ/);
@@ -146,6 +191,12 @@ test('the navigation map displays the actual target and the secured-route outcom
  assert.match(before,/ВОСТОЧНЫЙ КОРИДОР/);
  assert.match(before,/Отложить операцию/);
  assert.match(before,/Глушитель/);
+ op.phase='return';op.hp=0;
+ game.waypoint={id:op.id,x:world.home.x,y:world.home.y,label:'Док'};
+ const returnMap=renderWorldMap(game);
+ assert.match(returnMap,/Док · передать данные/);
+ assert.match(returnMap,/Телеметрия сохранена/);
+ assert.match(returnMap,/Построить маршрут к награде/);
  world.home.corridorSecured=true;game.operation=null;
  const after=renderWorldMap(game);
  assert.match(after,/Разведка возле дока расширена/);
