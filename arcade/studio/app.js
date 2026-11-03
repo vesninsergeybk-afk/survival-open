@@ -1,5 +1,5 @@
-import {SCENARIOS,EFFECTS,CONCEPTS} from './concepts.js';
-import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from './design-brief.js';
+import {SCENARIOS,EFFECTS,CONCEPTS} from './concepts.js?v=studio-design-2';
+import {SCENARIO_BASELINES,TACTICAL_EXPERIMENTS,BASE_ROLES,PLAYTEST_CHECKS} from './design-brief.js?v=studio-design-2';
 
 const $=id=>document.getElementById(id);
 const make=(tag,klass,text)=>{const el=document.createElement(tag);if(klass)el.className=klass;if(text!==undefined)el.textContent=text;return el;};
