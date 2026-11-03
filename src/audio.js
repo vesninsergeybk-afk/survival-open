@@ -1,6 +1,7 @@
 import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=starter-soft-66';
 import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=starter-soft-66';
 import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
+import { MUSIC_TRACKS, MUSIC_POOLS, MusicRotation } from '../arcade/music-playlist.js?v=cinematic-rotation-01';
 
 /**
  * @module audio
@@ -13,11 +14,7 @@ import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
  *   - class AudioEngine
  */
 
-const CINEMATIC_TRACKS = Object.freeze({
-    exploration: { file: 'starfire.ogg', level: 0.75 },
-    combat: { file: 'pursuit.ogg', level: 0.58 },
-    boss: { file: 'eyes-in-the-void.ogg', level: 0.65 }
-});
+
 
 export class AudioEngine {
     constructor(settings) {
@@ -27,6 +24,10 @@ export class AudioEngine {
         this.sfxGain = null;
         this.musicGain = null;
         this.musicSlots = new Map();
+        this.musicRotation = new MusicRotation();
+        this._firstMusic = true;
+        this._resumeMusic = null;
+        this._musicFailures = new Set();
         this._activeMusic = null;
         this.musicState = 'exploration';
         this.musicOn = false;
@@ -385,49 +386,83 @@ export class AudioEngine {
             attack: 0.025, release: 0.2, sweep: 42 });
     }
 
-    // Licensed cinematic music: streamed as HTMLAudioElement, never decoded
-    // wholesale into AudioBuffers (five-minute scores on mobile are large).
-    // Each track has its own gain for a seamless, voice-free crossfade.
-    _musicSlot(state) {
-        if (this.musicSlots.has(state)) return this.musicSlots.get(state);
-        const def = CINEMATIC_TRACKS[state];
+    // Stream one licensed cue at a time. Rotate tracks only on complete cues
+    // or meaningful changes in threat, and crossfade before the cue ends.
+    _musicSlot(id) {
+        if (this.musicSlots.has(id)) return this.musicSlots.get(id);
+        const def = MUSIC_TRACKS[id];
         if (!def || !this.ctx) return null;
         const element = new Audio(new URL('../assets/audio/music/' + def.file, import.meta.url).href);
-        element.loop = true;
+        element.loop = false;
         element.preload = 'metadata';
-        element.addEventListener('error', () =>
-            console.warn('[audio] Music unavailable:', state, element.error?.code));
         const gain = this.ctx.createGain();
         gain.gain.value = 0;
         const source = this.ctx.createMediaElementSource(element);
         source.connect(gain).connect(this.musicGain);
-        const slot = { state, element, gain, level: def.level };
-        this.musicSlots.set(state, slot);
+        const slot = { id, element, gain, level: def.level, category: null };
+        this.musicSlots.set(id, slot);
+        element.addEventListener('timeupdate', () => {
+            if (!this.musicOn || this._activeMusic !== slot || element.paused) return;
+            if (Number.isFinite(element.duration) && element.duration > 16 &&
+                element.duration - element.currentTime <= 7) {
+                this._playMusicState(this.musicState, 4.2, true);
+            }
+        });
+        element.addEventListener('ended', () => {
+            if (this.musicOn && this._activeMusic === slot)
+                this._playMusicState(this.musicState, 1.2, true);
+        });
+        element.addEventListener('error', () => {
+            this._musicFailures.add(id);
+            console.warn('[audio] Music asset unavailable:', id, element.error?.code);
+            if (this.musicOn && this._activeMusic === slot)
+                this._playMusicState(this.musicState, 1, true);
+        });
         return slot;
     }
 
-    _playMusicState(state, fadeSeconds = 2.6) {
+    _chooseMusic(state, avoid) {
+        const pool = MUSIC_POOLS[state];
+        if (!pool?.length) return null;
+        // The first music after entering a fresh run comes from a curated
+        // opening pool, shuffled across sessions via localStorage.
+        const group = this._firstMusic && state === 'exploration' ? 'opening' : state;
+        for (let attempt = 0; attempt < MUSIC_POOLS[group].length; attempt++) {
+            const id = this.musicRotation.next(group, avoid);
+            if (!this._musicFailures.has(id)) return id;
+            avoid = id;
+        }
+        return null;
+    }
+
+    _playMusicState(state, fadeSeconds = 3.8, forceNext = false) {
         if (!this.musicOn || !this.ctx || this.settings.musicEnabled === false) return;
-        const next = this._musicSlot(state);
-        if (!next) return;
         const prev = this._activeMusic;
-        const now = this.ctx.currentTime;
-        if (prev === next) {
-            next.gain.gain.cancelScheduledValues(now);
-            next.gain.gain.setTargetAtTime(next.level, now, 0.15);
-            if (next.element.paused) next.element.play().catch(err =>
+        if (!forceNext && prev?.category === state) {
+            if (prev.element.paused) prev.element.play().catch(err =>
                 console.warn('[audio] Music playback blocked:', err));
             return;
         }
-
+        const resumed = !forceNext && this._resumeMusic?.category === state ?
+            this._resumeMusic : null;
+        const id = resumed?.id || this._chooseMusic(state, prev?.id);
+        if (!id) return;
+        const next = this._musicSlot(id);
+        if (!next) return;
+        this._firstMusic = false;
+        this._resumeMusic = null;
+        next.category = state;
+        if (prev === next) return;
+        const now = this.ctx.currentTime;
+        if (!resumed) {
+            try { next.element.currentTime = 0; } catch { /* Metadata still loading */ }
+        }
         next.gain.gain.cancelScheduledValues(now);
         next.gain.gain.setValueAtTime(0, now);
         next.gain.gain.linearRampToValueAtTime(next.level, now + fadeSeconds);
         this._activeMusic = next;
-        // The first play follows the player's Start/Unmute gesture.
         next.element.play().catch(err =>
-            console.warn('[audio] Cannot start music', state, err));
-
+            console.warn('[audio] Cannot start music:', id, err));
         if (prev) {
             prev.gain.gain.cancelScheduledValues(now);
             prev.gain.gain.setValueAtTime(prev.gain.gain.value, now);
@@ -436,12 +471,12 @@ export class AudioEngine {
                 if (this._activeMusic === prev) return;
                 prev.element.pause();
                 prev.gain.gain.value = 0;
-            }, Math.ceil(fadeSeconds * 1000) + 100);
+            }, Math.ceil(fadeSeconds * 1000) + 150);
         }
     }
 
     setMusicState(state) {
-        if (!CINEMATIC_TRACKS[state] || state === this.musicState) return;
+        if (!MUSIC_POOLS[state] || state === this.musicState) return;
         this.musicState = state;
         if (this.musicOn) this._playMusicState(state);
     }
@@ -454,10 +489,9 @@ export class AudioEngine {
     }
 
     stopMusic() {
+        if (this._activeMusic) this._resumeMusic = this._activeMusic;
         this.musicOn = false;
         this._activeMusic = null;
-        // Pause immediately on game pause/quit; keep playback positions so
-        // resuming the same encounter does not restart the score.
         for (const slot of this.musicSlots.values()) {
             slot.element.pause();
             slot.gain.gain.cancelScheduledValues(this.ctx.currentTime);
@@ -471,4 +505,5 @@ export class AudioEngine {
         if (on) this.startMusic();
         else this.stopMusic();
     }
+
 }

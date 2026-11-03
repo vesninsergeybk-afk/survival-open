@@ -11,7 +11,7 @@ import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=relay-def-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=arcade-progressive-noise-58';
-import {ArcadeHeritage} from './heritage.js?v=starter-soft-66';
+import {ArcadeHeritage} from './heritage.js?v=cinematic-rotation-01';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=relay-def-1';
@@ -233,6 +233,29 @@ export class ArcadeGame {
    this.overlay.querySelector('.base-tabs [aria-selected="true"]')?.focus({preventScroll:true});
   });
   $('audioBtn').onclick=()=>this.toggleAudio();
+  const credits = $('creditsDialog'), creditsButton = $('audioCredits');
+  if (credits && creditsButton) {
+   creditsButton.addEventListener('click', () => {
+    if (credits.open) return;
+    this._creditsRestore={paused:this.paused,modal:this.heritage.modal};
+    this.paused=true;this.pausedRenderPending=true;
+    this.heritage.pause('credits');
+    credits.showModal();
+    $('creditsClose')?.focus({preventScroll:true});
+   });
+   credits.addEventListener('close', () => {
+    const prior=this._creditsRestore;
+    if (!prior) return;
+    this._creditsRestore=null;
+    this.paused=prior.paused;
+    this.pausedRenderPending=true;
+    if(prior.paused)this.heritage.pause(prior.modal || 'map');
+    else this.heritage.resume();
+    creditsButton.focus({preventScroll:true});
+   });
+   credits.addEventListener('keydown',e=>e.stopPropagation());
+   credits.addEventListener('click',e=>{if(e.target===credits)credits.close();});
+  }
   for(const control of document.querySelectorAll('[data-audio-channel]')){
    const channel=control.dataset.audioChannel;
    control.value=String(Math.round(this.heritage.settings[channel]*100));
@@ -279,7 +302,7 @@ export class ArcadeGame {
  notice(text,seconds=3){this.message.textContent=text;this.messageUntil=this.time+seconds;}
  toggleAudio(){
   const enabled=this.heritage.toggleSound();
-  $('audioBtn').textContent=enabled?'🔊 Звук включён':'🔇 Звук выключен';
+  $('audioBtn').textContent=enabled?'🔊 Звук включён':'♫ Начать со звуком';
   $('audioBtn').setAttribute('aria-pressed',String(enabled));
   if(enabled)this.heritage.ui('audioOn');
   this.notice(enabled?'Звук и музыка включены':'Звук и музыка выключены',2.3);

@@ -1,32 +1,49 @@
-# «Выживший»: кинематографическая музыка
+# «Выживший» — музыка и авторство (12 композиций)
 
-Музыка: Scott Buckley — Creative Commons Attribution 4.0 International (CC BY 4.0).
-Лицензия: https://creativecommons.org/licenses/by/4.0/
-Автор: https://www.scottbuckley.com.au/
+**Автор:** Scott Buckley (https://www.scottbuckley.com.au/). Все перечисленные произведения
+доступны по **Creative Commons Attribution 4.0 International (CC BY 4.0)**:
+https://creativecommons.org/licenses/by/4.0/.
 
-Используемые оригинальные композиции:
+Формулировка автора: «Music by Scott Buckley — released under CC-BY 4.0.
+www.scottbuckley.com.au». Отдельное указание авторства есть на игровом экране
+в меню «Авторы и лицензии».
 
-1. 'Starfire' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au
-   Источник: https://www.scottbuckley.com.au/library/starfire/
-   Роль: исследование космоса, начало забега.
-   Исходный файл: MP3 (Full Mix), загружен с официального сайта автора.
+## Композиции
 
-2. 'Pursuit' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au
-   Источник: https://www.scottbuckley.com.au/library/pursuit/
-   Роль: интенсивные волны врагов и опасные столкновения.
-   Исходный файл: MP3 (Full Mix), загружен с официального сайта автора.
+| Название | Официальная страница автора | Файл игры | Назначение |
+|---|---|---|---|
+| Starfire | https://www.scottbuckley.com.au/library/starfire/ | starfire.ogg | Начало, исследование |
+| Pursuit | https://www.scottbuckley.com.au/library/pursuit/ | pursuit.ogg | Интенсивное сражение |
+| Eyes in the Void | https://www.scottbuckley.com.au/library/eyes-in-the-void/ | eyes-in-the-void.ogg | Босс, осада |
+| Aphelion | https://www.scottbuckley.com.au/library/aphelion/ | aphelion.ogg | Кинематографическое начало |
+| Decoherence | https://www.scottbuckley.com.au/library/decoherence/ | decoherence.ogg | Дальний космос, исследование |
+| Shadows and Dust | https://www.scottbuckley.com.au/library/shadows-and-dust/ | shadows-and-dust.ogg | Таинственное начало, исследование |
+| Meanwhile | https://www.scottbuckley.com.au/library/meanwhile/ | meanwhile.ogg | Спокойное исследование |
+| Nightfall | https://www.scottbuckley.com.au/library/nightfall/ | nightfall.ogg | Нарастание угрозы |
+| Convergence | https://www.scottbuckley.com.au/library/convergence/ | convergence.ogg | Нарастание угрозы |
+| Simulacra | https://www.scottbuckley.com.au/library/simulacra/ | simulacra.ogg | Интенсивное сражение |
+| Red | https://www.scottbuckley.com.au/library/red/ | red.ogg | Интенсивное сражение |
+| Ambush | https://www.scottbuckley.com.au/library/ambush/ | ambush.ogg | Осада, кульминация |
 
-3. 'Eyes in the Void' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au
-   Источник: https://www.scottbuckley.com.au/library/eyes-in-the-void/
-   Роль: сражения с боссами.
-   Исходный файл: MP3 (Full Mix), загружен с официального сайта автора.
+## Как используются записи
 
-Изменения файлов: транскодирование MP3 → Ogg/Opus, 96 кбит/с, 48 кГц, стерео.
-Музыкальные произведения не переаранжированы. Во время игры их громкость
-автоматически меняется; переходы между композициями плавные.
+- Исходные MP3 получены с официальных страниц Scott Buckley.
+- Для запуска браузерной игры аудио перекодировано в Ogg/Opus, 96 кбит/с,
+  48 кГц, стерео; музыкальные произведения не переаранжированы.
+- Длительные композиции не загружаются заранее как AudioBuffer. Браузер
+  подгружает нужную запись, когда проигрыватель её выбирает.
+- Время звучания, громкость и переходы зависят от угрозы в игре.
+- Лицензия CC BY 4.0 не зависит от того, коммерческая игра или нет.
+  Автор требует указания имени и ссылки; запрещены отдельная продажа
+  его записей и повторная публикация на музыкальных стримингах.
+  Подробности: https://www.scottbuckley.com.au/library/using-this-music/
 
-Уведомление об авторстве также находится непосредственно на стартовом экране
-игры; эта запись нужна для сопровождения исходных ресурсов.
+## Другая графика с обязательным авторством
 
-Аудиосистема: все остальные игровые эффекты и Kenney CC0-файлы
-документированы в ../../audio-lab/SOURCES.md.
+В игре используются «Tiny Spaceships» художника Disruptor Art,
+CC BY 4.0, изображения обработаны и анимированы для «Выжившего».
+Ссылка: https://disruptorart.itch.io/tiny-ships-free-spaceships.
+Подробности: ../../disruptor-ships/CREDITS.md.
+
+Источники эффектов с CC0: ../../../audio-lab/assets/sfx/SOURCES.md
+и ../../../audio-lab/assets/sfx/base/SOURCES.md.

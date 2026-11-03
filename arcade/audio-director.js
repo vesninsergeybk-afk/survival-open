@@ -1,10 +1,10 @@
 /**
- * Аркадный музыкальный режиссёр. Не загружает новые записи и не меняет
- * игровой баланс: управляет тремя лицензированными темами по событиям игры.
+ * Аркадный музыкальный режиссёр. Оценивает угрозу без вмешательства
+ * в боевой баланс; подбор конкретных композиций выполняет музыкальный плеер.
  */
 export const MUSIC_SCENES = Object.freeze({
   drift: {track:'exploration',level:0,volume:1,label:'Исследование'},
-  alert: {track:'exploration',level:1,volume:.83,label:'Нарастание угрозы'},
+  alert: {track:'tension',level:1,volume:.88,label:'Нарастание угрозы'},
   battle: {track:'combat',level:2,volume:1,label:'Схватка'},
   siege: {track:'boss',level:3,volume:.94,label:'Штурм базы'},
   recovery: {track:'exploration',level:0,volume:.79,label:'Передышка'}

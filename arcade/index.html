@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#071426">
 <title>Выживший · Бесконечная аркада — прототип</title>
-<link rel="stylesheet" href="./style.css?v=arcade-station-followup-65">
+<link rel="stylesheet" href="./style.css?v=cinematic-rotation-01">
 <link rel="stylesheet" href="./hud.css?v=arcade-extraction-risk-34">
 </head>
 <body>
@@ -64,7 +64,7 @@
 </div>
 <div id="audioControls">
  <button id="audioBtn" type="button" aria-pressed="false"
-  title="Включить музыку и звуковые эффекты">🔇 Звук выключен</button>
+  title="Включить музыку и звуковые эффекты">♫ Начать со звуком</button>
  <details id="audioMixer">
   <summary>Настроить громкость</summary>
   <div class="audio-mixer-body">
@@ -80,8 +80,7 @@
    <small>Звук включается только кнопкой выше</small>
   </div>
  </details>
- <a id="audioCredits" href="../assets/audio/music/CREDITS.md" target="_blank"
-  rel="noopener">Музыка: Scott Buckley · CC BY 4.0</a>
+ <button id="audioCredits" type="button" aria-haspopup="dialog" aria-controls="creditsDialog">Авторы и лицензии</button>
 </div>
 <div id="tips">WASD / стрелки — полёт · E — действие · C — автоогонь · Shift — рывок · Q — код · B — авиаудар · Tab — карта · U — развитие</div>
 <div class="mobile">
@@ -104,6 +103,41 @@
 </div>
 <div id="overlay" hidden></div>
 <a id="back" href="https://vesninmed.ru/lab/" title="Вернуться в Лабораторию абсурда">← Лаборатория</a>
-<script type="module" src="./game.js?v=relay-def-2"></script>
+<dialog id="creditsDialog" class="credits-dialog" aria-labelledby="creditsTitle">
+ <div class="credits-head">
+  <div><span class="credits-kicker">ВЫЖИВШИЙ · ИСТОЧНИКИ</span><h2 id="creditsTitle">Авторы и лицензии</h2></div>
+  <form method="dialog"><button id="creditsClose" type="submit" aria-label="Закрыть раздел авторов">Закрыть ×</button></form>
+ </div>
+ <p>Мы используем музыку и графику авторов, которые разрешили включать их работы в игры. Спасибо им за эту возможность.</p>
+ <section>
+  <h3>Музыка</h3>
+  <p>Все перечисленные композиции написал <a href="https://www.scottbuckley.com.au/" target="_blank" rel="noopener noreferrer">Scott Buckley</a>. Лицензия — <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</p>
+  <ol class="credits-track-list">
+<li><a href="https://www.scottbuckley.com.au/library/starfire/" target="_blank" rel="noopener noreferrer">Starfire</a></li>
+<li><a href="https://www.scottbuckley.com.au/library/pursuit/" target="_blank" rel="noopener noreferrer">Pursuit</a></li>
+<li><a href="https://www.scottbuckley.com.au/library/eyes-in-the-void/" target="_blank" rel="noopener noreferrer">Eyes in the Void</a></li>
+<li><a href="https://www.scottbuckley.com.au/library/aphelion/" target="_blank" rel="noopener noreferrer">Aphelion</a></li>
+<li><a href="https://www.scottbuckley.com.au/library/decoherence/" target="_blank" rel="noopener noreferrer">Decoherence</a></li>
+<li><a href="https://www.scottbuckley.com.au/library/shadows-and-dust/" target="_blank" rel="noopener noreferrer">Shadows and Dust</a></li>
+<li><a href="https://www.scottbuckley.com.au/library/meanwhile/" target="_blank" rel="noopener noreferrer">Meanwhile</a></li>
+<li><a href="https://www.scottbuckley.com.au/library/nightfall/" target="_blank" rel="noopener noreferrer">Nightfall</a></li>
+<li><a href="https://www.scottbuckley.com.au/library/convergence/" target="_blank" rel="noopener noreferrer">Convergence</a></li>
+<li><a href="https://www.scottbuckley.com.au/library/simulacra/" target="_blank" rel="noopener noreferrer">Simulacra</a></li>
+<li><a href="https://www.scottbuckley.com.au/library/red/" target="_blank" rel="noopener noreferrer">Red</a></li>
+<li><a href="https://www.scottbuckley.com.au/library/ambush/" target="_blank" rel="noopener noreferrer">Ambush</a></li>
+  </ol>
+  <p class="credits-legal">Music by Scott Buckley — released under CC-BY 4.0. www.scottbuckley.com.au. Исходные MP3 перекодированы в Ogg/Opus для игры; произведения не переаранжированы.</p>
+ </section>
+ <section>
+  <h3>Графика и корабли</h3>
+  <p><a href="https://disruptorart.itch.io/tiny-ships-free-spaceships" target="_blank" rel="noopener noreferrer">Tiny Spaceships — Disruptor Art</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Исходная анимация переработана: отделены изображения кораблей, удалён фон, изменены кадры и эффекты свечения.</p>
+ </section>
+ <section>
+  <h3>Дополнительные ресурсы — CC0</h3>
+  <p>Благодарим <a href="https://kenney.nl/" target="_blank" rel="noopener noreferrer">Kenney</a>, <a href="https://quaternius.com/" target="_blank" rel="noopener noreferrer">Quaternius</a>, авторов эффектов с <a href="https://opengameart.org/" target="_blank" rel="noopener noreferrer">OpenGameArt</a> (rubberduck, Joth, Julie Damsgaard / Spring Spring). Их ресурсы опубликованы по CC0.</p>
+ </section>
+ <p class="credits-legal">Упоминание авторов не означает, что они одобряют игру или участвуют в её разработке.</p>
+</dialog>
+<script type="module" src="./game.js?v=cinematic-rotation-01"></script>
 </body>
 </html>

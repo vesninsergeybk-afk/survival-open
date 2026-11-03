@@ -1,6 +1,6 @@
 import {WorldVFX} from '../src/world-vfx.js?v=arcade-impact-51';
-import {AudioEngine} from '../src/audio.js?v=starter-soft-66';
-import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=arcade-audio-41';
+import {AudioEngine} from '../src/audio.js?v=cinematic-rotation-01';
+import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=cinematic-rotation-01';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=arcade-sound-material-53';
 
 const STORAGE_KEY='survivor_arcade_audio_v2';
