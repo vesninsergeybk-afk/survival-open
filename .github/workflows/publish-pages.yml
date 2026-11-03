@@ -38,7 +38,12 @@ jobs:
           cp asset-gallery.html _site/
           cp -R arcade/. _site/arcade/
           cp -R assets _site/assets
+          cp asset-gallery.html _site/asset-gallery.html
+          mkdir -p _site/visual-lab
+          cp -R visual-lab/. _site/visual-lab/
           test -f _site/arcade/index.html
+          test -f _site/asset-gallery.html
+          test -f _site/visual-lab/index.html
           test -f _site/assets/space/hero-evolution/ship_10_damaged.png || test -f _site/assets/space/hero-evolution/ship_10_damaged.webp
 
       - name: Configure GitHub Pages

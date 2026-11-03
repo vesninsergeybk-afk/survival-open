@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Выживший — лаборатория визуальных концепций</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#07101b;color:#eaf2ff}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 15% -12%,#244c68 0,transparent 34%),radial-gradient(ellipse at 90% 8%,#20365d 0,transparent 36%),#07101b}
+a{color:#94e9ed}button,select,input{font:inherit}
+header,main,footer{max-width:1500px;margin:auto;padding:20px clamp(16px,3vw,42px)}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid #28415c}
+nav{display:flex;gap:12px;flex-wrap:wrap}nav a{font-size:.84rem;color:#bad5ef;text-decoration:none;border:1px solid #31465d;border-radius:10px;padding:8px 12px}
+nav a:hover{border-color:#78ddf0;color:white}
+.eyebrow{font-size:.74rem;text-transform:uppercase;letter-spacing:.2em;color:#6ddbdc;font-weight:750}
+h1{font-size:clamp(2rem,4.3vw,3.9rem);line-height:1.06;max-width:850px;letter-spacing:-.05em;margin:13px 0}
+h2{font-size:1.27rem;margin:0 0 12px}
+h3{margin:0 0 8px;font-size:1rem}
+.lead{max-width:950px;line-height:1.65;color:#bacde1;font-size:1.04rem}
+.pill{display:inline-block;border:1px solid #41738a;border-radius:99px;font-size:.72rem;color:#83e4e9;padding:6px 10px;margin-top:10px}
+.notice{border-left:3px solid #d4a15c;background:#172435;padding:13px 17px;color:#d8e5f1;border-radius:0 11px 11px 0;font-size:.88rem;line-height:1.55;margin:23px 0}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:18px;align-items:start}
+.panel{background:#0c1a2a;border:1px solid #2b4660;border-radius:17px;padding:18px}
+.toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:14px}
+button,select{border-radius:10px;border:1px solid #3d6279;background:#172e43;color:#eaf5ff;padding:10px 12px;cursor:pointer}
+button:hover{background:#22435e}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #80e9e0;outline-offset:3px}
+button.active,button.primary{background:#236d73;border-color:#64d2d1;color:white}
+button.active{font-weight:700}
+.preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.preview{min-width:0;border:1px solid #365066;background:#020913;border-radius:14px;overflow:hidden}
+.preview .heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 13px;font-size:.9rem}
+.preview .heading span{font-size:.72rem;color:#9bc6d5}
+canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#050f1b}
+.preview p{font-size:.82rem;line-height:1.45;color:#bbd1dd;margin:12px 13px 15px;min-height:40px}
+.fineprint{color:#96adc3;font-size:.79rem;line-height:1.55;margin:13px 0 0}
+.setting{display:grid;gap:8px;margin:13px 0 20px;font-size:.88rem}
+.setting label{color:#c6d6e6}
+.setting input[type=range]{accent-color:#71e0de;width:100%}
+.setting select{width:100%}
+.checkbox{display:flex;align-items:center;gap:10px;line-height:1.4}
+.checkbox input{accent-color:#65d2d8;width:18px;height:18px}
+#description{color:#bfd3e4;line-height:1.65;font-size:.93rem}
+.criteria{margin-top:14px;border-top:1px solid #29425c;padding-top:14px}
+.criteria li{font-size:.85rem;color:#c7dbeb;margin:9px 0;line-height:1.45}
+.bottom{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:20px}
+.bottom .panel p{color:#acc3d7;font-size:.86rem;line-height:1.6;margin:0}
+footer{font-size:.82rem;color:#8ea7ba}
+@media(max-width:1100px){.lab{grid-template-columns:1fr}.side{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.side h2{grid-column:1/-1}.setting{margin:0}}
+@media(max-width:720px){.preview-grid,.bottom,.side{grid-template-columns:1fr}.preview p{min-height:0}header,main,footer{padding-left:14px;padding-right:14px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header>
+  <div><span class="eyebrow">Survival Open / Visual Concept Lab</span><div style="font-size:.82rem;color:#a2b4c9;margin-top:5px">Рабочая мастерская · 03.11.2026</div></div>
+  <nav aria-label="Переходы"><a href="../arcade/">Играть</a><a href="../asset-gallery.html">Галерея ассетов</a><a href="https://vesninmed.ru/games/survivor/audio-lab/">Звук</a><a href="https://vesninmed.ru/lab/">Лаборатория абсурда</a></nav>
+</header>
+<main>
+  <span class="pill">Исследование · варианты не утверждены</span>
+  <h1>Сначала понять событие. Затем нарисовать его.</h1>
+  <p class="lead">Сравниваем два визуальных решения на реальных изображениях «Выжившего»: в движении, в масштабе игровой камеры, с возможностью замедления и ограничения декоративных частиц. Здесь нет урона, баланса или механик — это отдельная проверка того, насколько быстро игрок понимает происходящее.</p>
+  <div class="notice"><strong>Важно:</strong> оба окна показывают экспериментальные концепции, а не достоверную запись нынешних эффектов игры. Вариант A намеренно проще, вариант B проверяет более выразительную и причинно связанную реакцию материала. Ни один вариант не становится частью игры без просмотра, сравнения и отдельного внедрения.</div>
+  <div class="lab">
+    <section class="panel" aria-label="Сравнение концепций">
+      <div class="toolbar">
+        <label for="event">Событие:</label>
+        <select id="event">
+          <option value="mining">Добыча руды лучом</option>
+          <option value="shield">Удар по щиту</option>
+          <option value="hull">Попадание в корпус</option>
+          <option value="rocket">Взрыв ракеты</option>
+          <option value="capital">Гибель крупного корабля</option>
+          <option value="orbital">Орбитальная атака</option>
+        </select>
+        <button class="primary" id="restart">Повторить событие</button>
+        <button id="pause" aria-pressed="false">Пауза</button>
+      </div>
+      <div class="preview-grid">
+        <article class="preview">
+          <div class="heading"><strong>A · сдержанный</strong><span>Гипотеза 1</span></div>
+          <canvas id="a" width="640" height="360" role="img" aria-label="Анимированный концепт А"></canvas>
+          <p id="note-a"></p>
+        </article>
+        <article class="preview">
+          <div class="heading"><strong>B · материальный</strong><span>Гипотеза 2</span></div>
+          <canvas id="b" width="640" height="360" role="img" aria-label="Анимированный концепт Б"></canvas>
+          <p id="note-b"></p>
+        </article>
+      </div>
+      <p class="fineprint">Сравнение синхронное. Корабли, астероид и туманность загружаются из ресурсов открытого репозитория. Мелкие искры, дуги и ударные волны здесь построены процедурно и ещё не являются готовыми игровыми ассетами.</p>
+    </section>
+    <aside class="panel side" aria-label="Настройка и критерии">
+      <h2>Настройки опыта</h2>
+      <div class="setting"><label for="speed">Скорость: <output id="speed-value">1×</output></label><input id="speed" type="range" min="0.25" max="1.5" step="0.25" value="1"></div>
+      <div class="setting"><label for="density">Детализация</label><select id="density"><option value="0.45">Экономная</option><option value="1" selected>Обычная</option><option value="1.5">Повышенная</option></select></div>
+      <div class="setting"><label class="checkbox"><input id="reduce" type="checkbox">Уменьшить движение</label><span style="font-size:.75rem;color:#97b3c8">Оставляет опознавательные контуры; подавляет длинные вспышки и часть искр.</span></div>
+      <div id="description"></div>
+      <div class="criteria"><h3>Что проверяем</h3><ul id="criteria"></ul></div>
+    </aside>
+  </div>
+  <div class="bottom">
+    <section class="panel"><h3>1. Причина</h3><p>Место контакта совпадает с концом луча или точкой удара. Щит, металл и минерал реагируют по-разному; частицы следуют направлению события.</p></section>
+    <section class="panel"><h3>2. Иерархия</h3><p>Предупреждение опасности и повреждение игрока важнее второстепенного дыма. Декоративные детали можно убрать без потери смысла.</p></section>
+    <section class="panel"><h3>3. Приёмка</h3><p>Проверяем обычную скорость, маленький экран, уменьшенное движение и насыщенный бой. Только после этого переносим утверждённый вариант в аркаду.</p></section>
+  </div>
+</main>
+<footer>Основа замысла: <a href="../arcade/VFX-ROADMAP-2026-11-03.md">план эффектов</a>, <a href="../arcade/IMPACT-VFX-CONTRACT-2026-11-03.md">контракт попаданий</a>, <a href="../arcade/ASSET-REUSE-MAP.md">карта существующих ресурсов</a>. Без сохранения данных и без воздействия на игру.</footer>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const contexts = [$('a').getContext('2d'),$('b').getContext('2d')];
+const specs = {
+ mining:{intro:'Добывающий луч должен восприниматься как электрическое извлечение вещества, а не как стрельба.',a:'Однородный луч и короткая вспышка: действие заметно, но материал почти не чувствуется.',b:'Ломаные разряды приходят к поверхности; из контакта выходит каменная пыль и редкая холодная искра.',criteria:['Электрический контакт не проходит сквозь астероид.','Минеральная пыль заметнее огня.','Слабая детализация сохраняет факт добычи.']},
+ shield:{intro:'Игрок должен сразу отличать попадание по щиту от повреждения брони.',a:'Общее свечение корпуса без направления попадания.',b:'Холодный локальный разряд со стороны удара и короткая дуга защитного поля.',criteria:['Удар происходит на стороне прилёта.','Нет горячих металлических осколков.','Щит различим без чтения HUD.']},
+ hull:{intro:'Металл отвечает горячей точкой и направленным разлётом осколков.',a:'Центральная вспышка без привязки к поверхности.',b:'Контакт у левого борта, горячие искры наружу, слабый дым и короткий остаточный след.',criteria:['Вспышка совпадает с концом выстрела.','Искры вылетают от поверхности.','Силуэт корабля не теряется.']},
+ rocket:{intro:'Боеприпас должен выглядеть мощнее рядового попадания, но оставлять экран читаемым.',a:'Одно световое кольцо вокруг цели.',b:'Короткое горячее ядро, расширяющийся фронт, редкие искры и последующий дым.',criteria:['Вспышка крупнее попадания в корпус.','Дым живёт дольше яркого ядра.','Новый опасный объект не скрыт свечением.']},
+ capital:{intro:'Большой корабль имеет массу: разрушается несколькими разнесёнными событиями.',a:'Весь корпус одновременно исчезает в центральной вспышке.',b:'Первый разрыв и два вторичных очага в разных секциях; крупные обломки остаются различимыми.',criteria:['Разрывы разнесены по месту и времени.','Уцелевший корпус читается до финала.','Следы похожи на разрывы, не на круглые пятна.']},
+ orbital:{intro:'При орбитальном ударе предупреждение важнее зрелищности взрыва.',a:'Ранний слабый намёк и большая вспышка при ударе.',b:'Чёткая граница опасной области до удара, обратный отсчёт и короткая ударная волна.',criteria:['Границу опасности видно заранее.','Радиус предупреждения не меняется из-за детализации.','После удара сохраняется видимость следующей угрозы.']}
+};
+const imageMap={hero:'../assets/space/hero-evolution/ship_04.webp',enemy:'../assets/space/enemy_fighter.png',rock:'../assets/space/asteroid-realistic.webp',capital:'../assets/space/boss-capital-cruiser.webp',nebula:'../assets/space/nebula_azure_v1.png'};
+const images={};
+Object.entries(imageMap).forEach(([k,url])=>{const im=new Image();im.src=url;images[k]=im;});
+let choice='mining', t=0, last=0, paused=false;
+const color={cyan:'#80e9ff',metal:'#ffb774',rock:'#c1b0a2',warning:'#ffd082'};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const smooth=(x)=>{x=clamp(x,0,1);return x*x*(3-2*x);};
+const count=()=>Math.max(1,Number($('density').value));
+const motion=()=>!$('reduce').checked;
+function sprite(ctx,key,x,y,w,h,angle=0){
+ ctx.save();ctx.translate(x,y);ctx.rotate(angle);
+ const im=images[key];if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,-w/2,-h/2,w,h);
+ else{ctx.fillStyle=key==='rock'?'#727779':key==='capital'?'#54677e':'#5b91ae';ctx.beginPath();ctx.ellipse(0,0,w*.4,h*.42,0,0,Math.PI*2);ctx.fill();}
+ ctx.restore();
+}
+function glow(ctx,x,y,r,rgb,alpha){
+ const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba('+rgb+','+alpha+')');g.addColorStop(1,'rgba('+rgb+',0)');
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+}
+function ring(ctx,x,y,r,hue,alpha,width=3,start=0,end=Math.PI*2){
+ ctx.globalAlpha=clamp(alpha,0,1);ctx.strokeStyle=hue;ctx.lineWidth=width;ctx.beginPath();ctx.arc(x,y,Math.max(1,r),start,end);ctx.stroke();ctx.globalAlpha=1;
+}
+function sparks(ctx,x,y,age,dir,hue,quantity,spread=.9){
+ if(age<0||age>1.4)return;
+ const n=Math.round(quantity*count()*(motion()?1:.3));
+ ctx.save();ctx.strokeStyle=hue;ctx.lineCap='round';
+ for(let i=0;i<n;i++){const f=i+1;const angle=dir+Math.sin(f*18.79)*spread;const dist=(14+f%7*8)*(age*.85);const sx=x+Math.cos(angle)*dist,sy=y+Math.sin(angle)*dist;ctx.globalAlpha=clamp(1-age*.85,0,1);ctx.lineWidth=f%3===0?2.4:1.3;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx-Math.cos(angle)*(5+age*12),sy-Math.sin(angle)*(5+age*12));ctx.stroke();}
+ ctx.restore();
+}
+function rockDust(ctx,x,y,age,qty=15){
+ if(age<0||age>1.3)return;
+ const n=Math.round(qty*count()*(motion()?1:.5));ctx.save();
+ for(let i=0;i<n;i++){const a=Math.PI+Math.sin((i+1)*14.31)*.9;const d=(6+(i*17)%44)*age;const rr=2+((i*3)%5)*age;ctx.globalAlpha=.6*(1-age/1.3);ctx.fillStyle=i%3===0?'#e5cc9c':'#81919c';ctx.beginPath();ctx.arc(x+Math.cos(a)*d,y+Math.sin(a)*d,rr,0,Math.PI*2);ctx.fill();}
+ ctx.restore();
+}
+function scenery(ctx,variant,kind){
+ ctx.fillStyle='#05101d';ctx.fillRect(0,0,640,360);
+ ctx.save();ctx.globalAlpha=.25;const bg=images.nebula;if(bg.complete&&bg.naturalWidth)ctx.drawImage(bg,0,0,640,360);ctx.restore();
+ for(let i=0;i<48;i++){const x=(i*151+23)%640,y=(i*73+41)%360;ctx.fillStyle=i%4===0?'#718eb4':'#344f70';ctx.fillRect(x,y,1.5,1.5);}
+ ctx.strokeStyle='rgba(132,185,215,.10)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,180);ctx.lineTo(640,180);ctx.moveTo(320,0);ctx.lineTo(320,360);ctx.stroke();
+ const target=kind==='mining'?null:kind==='capital'?'capital':'hero';
+ if(kind==='mining'){sprite(ctx,'hero',168,180,118,105,Math.PI/2);sprite(ctx,'rock',425,180,150,145);}
+ else if(kind==='capital'){sprite(ctx,'capital',392,180,255,195);sprite(ctx,'hero',138,180,85,75,Math.PI/2);}
+ else if(kind==='orbital'){sprite(ctx,'hero',360,180,105,95);}
+ else {sprite(ctx,'enemy',143,180,105,95,Math.PI/2);sprite(ctx,target,386,180,114,110);}
+ ctx.fillStyle='rgba(196,219,235,.66)';ctx.font='12px system-ui';ctx.fillText(variant?'КОНЦЕПТ B':'КОНЦЕПТ A',15,26);
+}
+function effect(ctx,variant,kind,time){
+ const t=time,hi=variant,reduce=!motion();
+ ctx.lineCap='round';
+ if(kind==='mining'){
+  if(t<2.3){
+   const x1=226,y1=180,x2=357,y2=180;
+   ctx.strokeStyle=hi?'#70f5d8':'#83ddeb';ctx.lineWidth=hi?3:4;ctx.beginPath();ctx.moveTo(x1,y1);
+   if(hi){for(let i=1;i<7;i++){const x=x1+(x2-x1)*i/7;ctx.lineTo(x,y1+Math.sin(i*12.7+t*22)*(reduce?3:9));}}
+   ctx.lineTo(x2,y2);ctx.stroke();if(hi){glow(ctx,x2,y2,29,'94,240,221',.17);rockDust(ctx,x2,y2,(t*1.4)%1.1,11);sparks(ctx,x2,y2,(t*1.3)%1,Math.PI,'#9debf9',7);}
+   else glow(ctx,x2,y2,14,'139,218,237',.15);
+  }
+ } else if(kind==='shield'){
+  const age=t-.72;
+  if(age>0&&age<1.1){
+   if(hi){glow(ctx,332,180,24,'72,181,255',.36*(1-age));ring(ctx,386,180,67+age*5,color.cyan,.9-age*.6,5,2.35,3.95);sparks(ctx,332,180,age,Math.PI,color.cyan,8);}
+   else{glow(ctx,386,180,95,'73,165,251',.22*(1-age));ring(ctx,386,180,68+age*20,color.cyan,.65-age*.45,5);}
+  }
+ }else if(kind==='hull'){
+  const age=t-.75;
+  if(age>0&&age<1.4){const x=hi?334:386;
+   glow(ctx,x,180,hi?30:55,'255,133,53',.48*(1-age/1.4));
+   if(hi){sparks(ctx,x,180,age,Math.PI,color.metal,18);rockDust(ctx,x,180,age*.6,5);}
+   else ring(ctx,x,180,12+age*34,'#ffc584',.7-age*.45,3);
+  }
+ }else if(kind==='rocket'){
+  const age=t-.68;
+  if(age>0&&age<1.5){const x=348,y=180;
+   if(hi){glow(ctx,x,y,66*(1-age/1.5)+13,'255,164,64',.8*(1-age/1.5));ring(ctx,x,y,16+age*65,'#ffc77f',.95-age*.68,4);sparks(ctx,x,y,age,0,'#ffb87a',22,Math.PI);}
+   else {ring(ctx,x,y,10+age*58,'#ffcd8b',1-age/1.5,5);glow(ctx,x,y,24,'255,173,80',.25*(1-age/1.5));}
+  }
+ }else if(kind==='capital'){
+  const bursts=hi?[[.58,348,162],[.94,448,150],[1.28,404,215]]:[[.65,392,180]];
+  bursts.forEach(([begin,x,y],index)=>{const age=t-begin;if(age>0&&age<.8){const radius=(hi?45:105)*(1-age/.8);glow(ctx,x,y,Math.max(9,radius),'255,144,60',(.75-age*.7)*(hi?1:.8));ring(ctx,x,y,10+age*(hi?40:105),'#ffae76',.9-age,hi?3:7);if(hi)sparks(ctx,x,y,age,index===1?0:Math.PI,'#ffc085',14,2.5);}});
+  if(hi&&t>1.2&&t<2.5){rockDust(ctx,427,211,(t-1.2)*.75,16);}
+ }else if(kind==='orbital'){
+  const x=360,y=180;
+  if(t<1.55){
+   if(hi){
+    ring(ctx,x,y,86,'#ffc36c',.88,4);
+    if(!reduce)ring(ctx,x,y,86-(t%0.5)*16,'#ffe1a5',.35,2);
+    ctx.fillStyle='#ffe5ad';ctx.font='bold 20px system-ui';ctx.fillText(String(Math.max(1,Math.ceil((1.55-t)*2))),x-7,y-104);
+    ctx.strokeStyle='rgba(255,190,95,.22)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x-80,y);ctx.lineTo(x+80,y);ctx.moveTo(x,y-80);ctx.lineTo(x,y+80);ctx.stroke();
+   }else{glow(ctx,x,y,30,'255,155,61',.18);}
+  }else{const age=t-1.55;if(age<1.4){glow(ctx,x,y,100*(1-age/1.4)+10,'255,151,57',.6*(1-age/1.4));ring(ctx,x,y,30+age*85,'#ffcf7e',.9-age*.6,hi?4:8);if(hi)sparks(ctx,x,y,age,0,'#ffd09a',14,Math.PI);}}
+ }
+}
+function draw(){
+ const kind=choice,cycle=kind==='orbital'?3.3:kind==='capital'?3.1:2.8,phase=t%cycle;
+ contexts.forEach((ctx,i)=>{if(!ctx)return;scenery(ctx,i,kind);effect(ctx,i,kind,phase);});
+}
+function updateText(){
+ const s=specs[choice];$('description').textContent=s.intro;$('note-a').textContent=s.a;$('note-b').textContent=s.b;
+ $('criteria').replaceChildren(...s.criteria.map(v=>{const li=document.createElement('li');li.textContent=v;return li;}));
+}
+function step(now){
+ if(!last)last=now;const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
+ if(!paused)t+=dt*Number($('speed').value);
+ draw();requestAnimationFrame(step);
+}
+$('event').addEventListener('change',e=>{choice=e.target.value;t=0;updateText();});
+$('restart').addEventListener('click',()=>{t=0;});
+$('pause').addEventListener('click',()=>{paused=!paused;$('pause').textContent=paused?'Продолжить':'Пауза';$('pause').setAttribute('aria-pressed',String(paused));});
+$('speed').addEventListener('input',()=>{$('speed-value').textContent=Number($('speed').value).toFixed(2).replace(/\.00$/,'').replace(/0$/,'')+'×';});
+$('density').addEventListener('change',draw);$('reduce').addEventListener('change',draw);
+$('reduce').checked=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+updateText();requestAnimationFrame(step);
+</script>
+</body>
+</html>
