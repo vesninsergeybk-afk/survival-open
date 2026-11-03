@@ -1,5 +1,7 @@
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=arcade-probe-59';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
+import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=relay-def-1';
+import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -89,10 +91,24 @@ export function renderWorldMap(game){
   return '<path d="M '+x.x.toFixed(1)+' '+x.y.toFixed(1)+' L '+y.x.toFixed(1)+' '+y.y.toFixed(1)+
    '" stroke="#77e2d3" opacity=".52" stroke-width="2" stroke-dasharray="7 5"/>';
  }).join('');
+ const readyStation=contractReturnStation(game.contract,world);
+ const defenseZone=contractDefenseZone(game.contract,world);
+ const defenseRing=defenseZone?(()=>{
+  const q=point(defenseZone.station.x,defenseZone.station.y,p,scale),r=defenseZone.radius*scale;
+  return '<g><circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="'+r.toFixed(1)+
+   '" fill="#6fe6d20b" stroke="#78e4d6" stroke-width="2" stroke-dasharray="7 7"/>'+
+   '<text x="'+q.x.toFixed(1)+'" y="'+(q.y-r-6).toFixed(1)+
+   '" text-anchor="middle" fill="#b8fff0" font-size="11">ЗОНА ЗАЩИТЫ · 650 М</text></g>';
+ })():'';
  const marks=known.map(b=>{
   const q=point(b.x,b.y,p,scale);if(!visible(q))return '';
   const color=b.enemy?'#ff777d':b.active?'#84ead2':'#ffca84';
-  return '<g>'+(b.relayBoost?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="12" fill="none" stroke="#6fffee" stroke-width="1.5"/>':'')+dot(q.x,q.y,color,b.active?8:6,b.enemy?'square':'circle')+
+  const returnCue=readyStation?.id===b.id;
+  return '<g>'+(returnCue?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+   '" r="17" fill="#ffd27e1a" stroke="#ffd27e" stroke-width="2.5"/>'+
+   '<text x="'+q.x.toFixed(1)+'" y="'+(q.y-20).toFixed(1)+
+   '" text-anchor="middle" fill="#ffe2a0" font-size="17" font-weight="700">!</text>':'')+
+   (b.relayBoost?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="12" fill="none" stroke="#6fffee" stroke-width="1.5"/>':'')+dot(q.x,q.y,color,b.active?8:6,b.enemy?'square':'circle')+
    '<text x="'+(q.x+11).toFixed(1)+'" y="'+(q.y-9).toFixed(1)+
    '" fill="#e3f4f4" font-size="11">'+enc(baseNames[b.type]||'Станция')+'</text></g>';
  }).join('');
@@ -107,8 +123,10 @@ export function renderWorldMap(game){
  const previewBase=game.mapReturnToBase?game.docked:null;
  const previewProbe=!operation&&previewBase&&isProbeLab(previewBase)&&!previewBase.probeRecovered;
  const previewCorridor=!operation&&previewBase&&isCorridorDock(previewBase)&&!previewBase.corridorSecured;
+ const previewRelay=!operation&&previewBase&&isRelayArsenal(previewBase)&&!previewBase.relayDefenseDone;
  const previewTarget=previewProbe?probePosition(previewBase,world):
-  previewCorridor?corridorPosition(previewBase):null;
+  previewCorridor?corridorPosition(previewBase):
+  previewRelay?relayPosition(previewBase,world):null;
  const objectiveMarker=operation?{x:operation.x,y:operation.y}:previewTarget||
   (home.corridorSecured?corridorPosition(home):null);
  const marker=objectiveMarker?point(objectiveMarker.x,objectiveMarker.y,p,scale):null;
@@ -118,7 +136,10 @@ export function renderWorldMap(game){
   '<circle cx="'+marker.x.toFixed(1)+'" cy="'+marker.y.toFixed(1)+'" r="4" fill="'+
   (operation||previewTarget?'#edacf9':'#7ce9bf')+'"/>'+
   '<text x="'+(marker.x+16).toFixed(1)+'" y="'+(marker.y-12).toFixed(1)+
-  '" fill="#edd7fa" font-size="11">'+(operation?(operation.id===PROBE_OPERATION.id?'Аварийный зонд':'Глушитель'):previewProbe?'Область поиска зонда':previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
+  '" fill="#edd7fa" font-size="11">'+(operation?(operation.id===PROBE_OPERATION.id?'Аварийный зонд':
+   operation.id===RELAY_DEFENSE.id?'Ретранслятор':'Глушитель'):
+   previewProbe?'Область поиска зонда':previewRelay?'Ретранслятор':
+   previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
  const goal=game.waypoint?point(game.waypoint.x,game.waypoint.y,p,scale):null;
  const route=goal&&visible(goal)?
   '<path d="M 340 240 L '+goal.x.toFixed(1)+' '+goal.y.toFixed(1)+
@@ -126,18 +147,28 @@ export function renderWorldMap(game){
  const objective=game.contract;
  const operationText=operation?(operation.id===PROBE_OPERATION.id?
   'Особая операция «Последний сигнал»: удерживайте E в 150 м от зонда. Восстановлено '+Math.round(operation.repair)+'%. Во время ремонта автоогонь отключён.':
-  'Особая операция «Глухой коридор»: уничтожьте отмеченный передатчик. Осталось '+Math.ceil(operation.hp/operation.maxHp*100)+'% прочности.'):
-  previewTarget?(previewProbe?'Предварительная разведка: здесь ожидается аварийный зонд. Место пока известно приблизительно.':'Предварительная разведка: источник помех находится к востоку от дока. Операция ещё не принята.'):
+  operation.id===RELAY_DEFENSE.id?
+  'Особая операция «Оборона ретранслятора»: '+relayDefenseCue(operation,game.time)+'. Передатчик: '+
+   Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. У налётчиков есть прицельный залп: перехватывайте до его завершения.':
+  'Особая операция «Глухой коридор»: уничтожьте отмеченный передатчик. Осталось '+Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. Фаза: '+
+  (corridorCue(operation,game.time,distance(operation,p))?.label||'неизвестна')+'.'):
+  previewTarget?(previewProbe?'Предварительная разведка: здесь ожидается аварийный зонд. Место пока известно приблизительно.':
+   previewRelay?'Предварительный маршрут: ретранслятор арсенала. Отразите три конечные волны.':
+   'Предварительная разведка: источник помех находится к востоку от дока. Операция ещё не принята.'):
   home.corridorSecured?'Восточный коридор открыт. Разведка возле дока расширена на 350 м, патрулей стало меньше.':'';
  const objectiveText=objective?
-  (objective.progress>=objective.goal?'Награда готова. Вернитесь на станцию.':
+  (objective.progress>=objective.goal?'Награда готова. Вернитесь на '+
+    (readyStation?baseNames[readyStation.type]:'станцию')+'.':
    'Поручение: '+objective.name+' · '+objective.progress+'/'+objective.goal):
   'Активных поручений нет. На включённых станциях доступны задания.';
+ const readyRoute=readyStation?'<button type="button" data-act="waypoint" data-id="'+enc(readyStation.id)+
+  '" data-x="'+Number(readyStation.x).toFixed(2)+'" data-y="'+Number(readyStation.y).toFixed(2)+
+  '" data-label="'+enc(baseNames[readyStation.type]||'Станция')+'">Построить маршрут к награде</button>':'';
  const row=(b,isSignal)=>{
   const label=isSignal?'Неопознанный сигнал':baseNames[b.type]||'Станция';
   const d=distance(b,p),same=game.waypoint?.id===b.id;
   const status=isSignal?'координаты приблизительные (погрешность до 170 м)':
-   b.enemy?'вражеская база':b.active?(topology.linked.has(b.id)?'узел сети'+(b.relayBoost?' · усиленная связь':''):'автономный узел'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
+   b.enemy?'вражеская база':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети'+(b.relayBoost?' · усиленная связь':''):'автономный узел'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
   const value=isSignal?'Приблизиться и исследовать':'Построить маршрут';
   return '<article class="map-contact'+(same?' selected':'')+'">'+
    '<div><strong>'+enc(label)+'</strong><small>'+Math.round(d)+' м · '+status+'</small></div>'+
@@ -159,7 +190,7 @@ export function renderWorldMap(game){
   '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
   '<circle cx="340" cy="240" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
-  grid.join('')+activeLinks+route+echoes+marks+operationMark+
+  grid.join('')+activeLinks+defenseRing+route+echoes+marks+operationMark+
   '<g><circle cx="340" cy="240" r="13" fill="none" stroke="#8affff"/>'+
   dot(340,240,'#9bf9ff',5)+'</g>'+
   '<text x="351" y="266" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
@@ -170,7 +201,7 @@ export function renderWorldMap(game){
   '<aside class="map-side"><div class="map-objective"><span>ОБСТАНОВКА В СЕКТОРЕ</span><p>'+enc(territory)+'</p></div>'+
   (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+
    (operation?'<button type="button" data-act="abandonOperation">Отложить операцию</button>':'')+'</div>':'')+
-  '<div class="map-objective"><span>ПОЛЕВОЙ ЗАКАЗ</span><p>'+enc(objectiveText)+'</p>'+
+  '<div class="map-objective"><span>ПОЛЕВОЙ ЗАКАЗ</span><p>'+enc(objectiveText)+'</p>'+readyRoute+
   (objective&&objective.progress<objective.goal?'<button type="button" data-act="abandonContract">Отказаться · потерять прогресс</button>':'')+'</div>'+
   '<h3>Обнаруженные станции</h3><div class="map-contact-list">'+(discovered||
     '<p class="map-empty">Станций ещё нет. Продвигайтесь по сигналам радара.</p>')+'</div>'+

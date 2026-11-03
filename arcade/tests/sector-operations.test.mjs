@@ -72,20 +72,28 @@ test('the escort appears at the real target, not at unrelated kills',()=>{
  game.time+=50;game.updateCorridor();assert.equal(game.enemies.length,3,
   'reinforcements are bounded: no infinite mission-only wave farm');
 });
-test('the jammer warns, pulses once after sustained proximity, and cools after retreat',()=>{
+test('a committed EMP pulse continues after retreat, is harmless outside its ring and then overheats',()=>{
  const {game,op}=fake();let damage=0;
  game.hurt=value=>{damage+=value};
  game.player.x=op.x+100;
  game.updateCorridor(2);
  assert.equal(damage,0);
  assert.equal(op.pulseCharge,2);
+ assert.equal(op.pulseLocked,true,'after a clear warning the emitter commits to its next pulse');
  game.player.x=op.x+500;game.updateCorridor(2);
- assert.equal(op.pulseCharge,0,'retreat beyond the hazard ring cools the emitter');
- game.player.x=op.x+100;game.updateCorridor(op.pulsePeriod-.1);
- assert.equal(damage,0,'the warning gives time to react');
+ assert.equal(op.pulseCharge,4,'flying away must not silently cancel an already committed pulse');
+ game.updateCorridor(.25);
+ assert.equal(damage,0,'the pulse is safe outside the indicated danger radius');
+ assert.equal(op.pulseCharge,0);
+ assert.ok(op.overheatedUntil>game.time,'discharge opens a short vulnerability window');
+ game.player.x=op.x+100;game.updateCorridor(1);
+ assert.equal(op.pulseCharge,0,'an overheated emitter does not restart immediately');
+ game.time=op.overheatedUntil+.1;
+ game.updateCorridor(op.pulsePeriod-.1);
+ assert.equal(damage,0,'the next charge still has a readable warning interval');
  game.updateCorridor(.12);
  assert.equal(damage,op.pulseDamage);
- assert.equal(op.pulseCharge,0,'the next pulse must charge again');
+ assert.equal(op.pulseCharge,0);
  game.completeCorridor();game.updateCorridor(30);
  assert.equal(damage,op.pulseDamage,'a destroyed jammer never pulses');
 });
