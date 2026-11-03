@@ -35,7 +35,7 @@ test('каждая концепция даёт игроку выбор и опи
 test('частичная реализация не получает ложный статус готовности', () => {
  for (const ref of PARTIAL_REFS) assert.ok(ISSUE_REFS.includes(ref));
  for (const item of SYSTEMS) {
-  assert.ok(['Концепция', 'Согласование', 'Частично в игре'].includes(item.phase));
+  assert.ok(['Концепция', 'Согласование', 'Частично в игре', 'Пробная версия в игре'].includes(item.phase));
  }
  assert.ok(SYSTEMS.find(item => item.id === 'return').refs.includes('А4'));
  assert.ok(SYSTEMS.find(item => item.id === 'storm').refs.includes('Г2'));
