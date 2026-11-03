@@ -65,6 +65,17 @@ test('Space discharge chains to nearby marks, not enemies across the sector',()=
  assert.equal(loan.charges,3,'planning alone does not consume ammo');
 });
 
+test('manual discharge favors a marked pair over an isolated nearest enemy',()=>{
+ const player={x:0,y:0},loan=createIonLoan('0:0');
+ const isolated={...enemy(60,0),ionMarkUntil:9};
+ const groupA={...enemy(380,0),ionMarkUntil:9};
+ const groupB={...enemy(415,95),ionMarkUntil:9};
+ const result=planIonDischarge([isolated,groupA,groupB],player,5,loan);
+ assert.equal(result.ok,true);
+ assert.deepEqual(result.targets,[groupA,groupB]);
+ assert.equal(result.chargesAfter,2);
+});
+
 test('discharge is predictable with one mark and never wastes a charge on no target',()=>{
  const p={x:0,y:0},loan=createIonLoan('0:0');
  assert.equal(planIonDischarge([],p,0,loan).ok,false);
