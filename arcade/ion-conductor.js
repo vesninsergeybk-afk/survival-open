@@ -56,16 +56,27 @@ export function planIonDischarge(enemies,player,now,loan){
    Math.hypot(b.x-player.x,b.y-player.y));
  if(!candidates.length)return {ok:false,
   reason:'Нет ионных меток. Подлетите к врагу: автоогонь подготовит разряд.'};
- const chain=[candidates.shift()];
- while(chain.length<ION_CONDUCTOR.maxTargets){
-  const from=chain[chain.length-1];
-  const nearby=candidates.filter(e=>inRange(from,e,ION_CONDUCTOR.chainRadius))
-   .sort((a,b)=>Math.hypot(a.x-from.x,a.y-from.y)-
-    Math.hypot(b.x-from.x,b.y-from.y));
-  if(!nearby.length)break;
-  const target=nearby[0];
-  chain.push(target);
-  candidates.splice(candidates.indexOf(target),1);
+ // Prefer the largest available chain over an isolated nearest mark.
+ // A small bounded set is evaluated only on a manual key press, never per frame.
+ const chainFrom=start=>{
+  const remaining=candidates.filter(e=>e!==start),chain=[start];
+  while(chain.length<ION_CONDUCTOR.maxTargets){
+   const from=chain[chain.length-1];
+   const nearby=remaining.filter(e=>inRange(from,e,ION_CONDUCTOR.chainRadius))
+    .sort((a,b)=>Math.hypot(a.x-from.x,a.y-from.y)-
+     Math.hypot(b.x-from.x,b.y-from.y));
+   if(!nearby.length)break;
+   const target=nearby[0];
+   chain.push(target);
+   remaining.splice(remaining.indexOf(target),1);
+  }
+  return chain;
+ };
+ let chain=[];
+ for(const start of candidates){
+  const candidate=chainFrom(start);
+  if(candidate.length>chain.length)chain=candidate;
+  if(chain.length===ION_CONDUCTOR.maxTargets)break;
  }
  return {ok:true,targets:chain,damage:chain.map((_,i)=>ION_CONDUCTOR.damage[i]),
   chargesAfter:loan.charges-1,cooldownUntil:now+ION_CONDUCTOR.cooldown};
