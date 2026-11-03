@@ -265,9 +265,10 @@ test('workshop roadmap links to real system concepts and sets measurable accepta
  const html=read('../studio/index.html'),script=read('../studio/systems-app.js'),css=read('../studio/systems.css');
  for(const id of ['sys-roadmap-title','sys-roadmap-list'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(script,/renderWorkstreams\(\)/);
+ assert.match(script,/systems-data\.js\?v=live-qa-20261103-1/);
  assert.match(script,/WORKSTREAMS/);
  assert.match(css,/\.sys-milestone:focus-visible/);
- assert.match(html,/systems-app\.js\?v=emp-cue-1/);
+ assert.match(html,/systems-app\.js\?v=live-qa-20261103-1/);
  const app=read('../studio/app.js');
  assert.match(html,/app\.js\?v=studio-carrier-live-1/);
  assert.match(app,/concepts\.js\?v=carrier-live-1/);
