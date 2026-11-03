@@ -8,7 +8,7 @@ import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
 import {ArcadeVisuals} from './visuals.js?v=arcade-capital-hit-63';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=corridor-return-3';
+import {CockpitDisplay} from './hud.js?v=emp-cue-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=arcade-progressive-noise-58';
 import {ArcadeHeritage} from './heritage.js?v=explosion-grammar-01';
@@ -16,8 +16,8 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=operation-leads-hangar-2';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=operation-leads-1';
-import {renderWorldMap} from './map-panel.js?v=corridor-return-3';
-import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=corridor-return-3';
+import {renderWorldMap} from './map-panel.js?v=emp-cue-1';
+import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=emp-cue-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 
 const $=id=>document.getElementById(id);
@@ -1934,15 +1934,25 @@ export class ArcadeGame {
    c.arc(0,0,29,-Math.PI/2,-Math.PI/2+TAU*op.hp/op.maxHp);c.stroke();
    c.font='bold 11px system-ui';c.textAlign='center';
    c.fillStyle='#f8d7ff';c.fillText('ГЛУШИТЕЛЬ',0,-68);
-   const cue=corridorCue(op,this.time,dist(this.player,op));
+   const distanceToJammer=dist(this.player,op);
+   const cue=corridorCue(op,this.time,distanceToJammer);
    if(cue){
-    c.fillStyle=cue.color;c.font='bold 11px system-ui';
-    c.fillText('БОРТОВОЙ ИИ · '+cue.label,0,-104,300);
-    c.fillStyle='#d3e3ef';c.font='10px system-ui';
-    c.fillText(cue.hint,0,-88,305);
+    // One small solid backing keeps the mission status readable over bright asteroids.
+    // The same phase appears in the cockpit when the target leaves the screen.
+    c.save();c.shadowBlur=0;
+    c.fillStyle='#081a2be8';c.strokeStyle=cue.color;c.lineWidth=1.2;
+    c.fillRect(-160,-127,320,47);
+    c.strokeRect(-160,-127,320,47);
+    c.textAlign='center';c.fillStyle=cue.color;c.font='bold 11px system-ui';
+    c.fillText('БОРТОВОЙ ИИ · '+cue.label,0,-107,302);
+    c.fillStyle='#e1eef4';c.font='10px system-ui';
+    c.fillText(cue.hint,0,-90,300);
+    c.restore();
    }
    c.fillStyle='#e3b9f4';c.font='10px system-ui';
-   c.fillText(Math.ceil(op.hp/op.maxHp*100)+'% · сблизьтесь для атаки',0,-54);
+   const attackDistanceOk=distanceToJammer<=CORRIDOR_OPERATION.focusRange;
+   c.fillText(Math.ceil(op.hp/op.maxHp*100)+'% · '+
+    (attackDistanceOk?'В ДАЛЬНОСТИ ЛУЧА':'СБЛИЗЬТЕСЬ ДЛЯ АТАКИ'),0,-54);
   }else{
    c.fillStyle='#9adac8';c.font='bold 10px system-ui';c.textAlign='center';
    c.fillText(returning?'ПЕРЕДАТЧИК ОТКЛЮЧЁН':'СИГНАЛ ВОССТАНОВЛЕН',0,-57);

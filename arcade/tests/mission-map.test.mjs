@@ -40,7 +40,7 @@ test('an authored operation does not show an ordinary contract return marker',()
  game.operation={id:'silent-corridor',name:'Глухой коридор',
   x:900,y:-400,hp:100,maxHp:150,pulsePeriod:4.2,pulseRange:315,pulseCharge:3.8};
  const html=renderWorldMap(game);
- assert.match(html,/ОПАСНОСТЬ · ИМПУЛЬС/);
+ assert.match(html,/СКОРО ЭМ-РАЗРЯД/);
  assert.doesNotMatch(html,/Построить маршрут к награде/);
 });
 

@@ -264,7 +264,7 @@ test('workshop roadmap links to real system concepts and sets measurable accepta
  assert.match(script,/renderWorkstreams\(\)/);
  assert.match(script,/WORKSTREAMS/);
  assert.match(css,/\.sys-milestone:focus-visible/);
- assert.match(html,/systems-app\.js\?v=emp-concept-1/);
+ assert.match(html,/systems-app\.js\?v=emp-cue-1/);
  const app=read('../studio/app.js');
  assert.match(html,/app\.js\?v=studio-explosions-2-gameplay-2/);
  assert.match(app,/concepts\.js\?v=studio-design-3/);
