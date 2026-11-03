@@ -36,21 +36,15 @@ test('original pooled effects downshift instead of exceeding the frame budget',(
  h.setBudget(60);assert.equal(h.vfx.budgetScale,1);
 });
 
-test('a station comes online immediately; its cinematic tail does not block mechanics',()=>{
- const h=new ArcadeHeritage();
- const calls=[],pending=[];
+test('station starts one complete recorded reactor cue without synthetic layers',()=>{
+ const h=new ArcadeHeritage(),calls=[],pending=[];
  h.soundOn=true;
  h.audio={baseAction:options=>calls.push(options.action+':'+options.type),
-  tone:options=>calls.push('tone:'+options.type),
   playEvent:key=>calls.push(key)};
  h.scheduled=(callback,delay)=>pending.push({callback,delay});
  h.station('activate','dock');
- assert.equal(calls[0],'activate:dock');
- assert.equal(calls.filter(s=>s.startsWith('tone:')).length,2);
- assert.deepEqual(pending.map(x=>x.delay),[650,1560,2690]);
- pending.forEach(x=>x.callback());
- assert.equal(calls.filter(s=>s.startsWith('tone:')).length,7);
- assert.ok(!calls.includes('upgrade_standard'), 'startup must not add a generic arcade success chime');
+ assert.deepEqual(calls,['activate:dock']);
+ assert.equal(pending.length,0,'reactor OGG contains its own full tail');
 });
 test('station transactions are audible only after success and map to separate cues',()=>{
  const h=new ArcadeHeritage();const events=[];
@@ -68,24 +62,21 @@ test('rockets use the real sound catalog key instead of an absent weapon',()=>{
  assert.deepEqual(shots,['knife']);
 });
 
-test('menu, discoveries and musical motifs are audible only when enabled',()=>{
- const h=new ArcadeHeritage();
- const calls=[];
- h.audio={tone:note=>calls.push(note),setMusicState:()=>{}};
+test('menu, discoveries and recorded motifs only play when audio is enabled',()=>{
+ const h=new ArcadeHeritage(),calls=[];
+ h.audio={playEvent:(key,options)=>calls.push({key,...options}),setMusicState:()=>{}};
  h.scheduled=(callback)=>callback();
- h.ui('dock');
- h.world('discover');
+ h.ui('dock');h.world('discover');
  assert.equal(calls.length,0);
  h.soundOn=true;
- h.ui('dock');
- h.world('discover');
- assert.equal(calls.length,4);
- assert.ok(calls.every(n=>n.bus==='sfx'));
- h.emitNotes([{freq:110,dur:.2,bus:'music',afterMs:0}]);
- assert.equal(calls.at(-1).bus,'music');
+ h.ui('dock');h.world('discover');
+ assert.deepEqual(calls.map(x=>x.key),['ui_dock','world_discover']);
+ h.emitNotes([{key:'scene_alert',intensity:.6,afterMs:0}]);
+ assert.equal(calls.at(-1).key,'scene_alert');
+ assert.equal(calls.at(-1).intensity,.6);
  h.hidden=true;
- h.emitNotes([{freq:200,dur:.2,afterMs:0}]);
- assert.equal(calls.length,5);
+ h.emitNotes([{key:'scene_battle',afterMs:0}]);
+ assert.equal(calls.length,3);
 });
 test('antenna and module construction use dedicated events',()=>{
  const h=new ArcadeHeritage(),events=[];
