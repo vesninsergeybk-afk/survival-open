@@ -25,6 +25,8 @@ export class CockpitDisplay {
    shield:el('shield'),shieldmeter:el('shieldmeter'),shieldbar:el('shieldbar'),
    leftBurstMeter:el('leftBurstMeter'),leftBurstText:el('leftBurstText'),
    hudSupportRing:el('hudSupportRing'),hudStrikeCount:el('hudStrikeCount'),
+   hudThermal:el('hudThermal'),hudThermalLabel:el('hudThermalLabel'),
+   hudThermalText:el('hudThermalText'),hudThermalMeter:el('hudThermalMeter'),
    droneIcons:[el('hudDrone0'),el('hudDrone1')],
    ore:el('ore'),data:el('data'),bases:el('bases'),
    wing:el('wing'),hack:el('hack'),fps:el('fps'),enemies:el('enemies'),
@@ -173,6 +175,25 @@ export class CockpitDisplay {
    game.nearDockField||game.nearArsenalDefense?'ПОЛЕ СТАНЦИИ · УРОН −18%':
    game.nearDock?.module==='workshop'?'ДОК · РЕМОНТ +60%':
    game.nearQuietLab?'ЛАБОРАТОРИЯ · ШУМ −32%':'АВТООГОНЬ · АКТИВЕН');
+  // Future thermal mechanics opt in explicitly. Without a real model, no
+  // misleading empty heat gauge is rendered in the live cockpit.
+  const thermal=game.weaponThermal;
+  const thermalEnabled=!!thermal?.enabled&&Number.isFinite(thermal.current)&&
+   Number.isFinite(thermal.limit)&&thermal.limit>0;
+  n.hudThermal.hidden=!thermalEnabled;
+  this.root.classList.toggle('thermal-enabled',thermalEnabled);
+  if(thermalEnabled){
+   const fill=100*clamp01(thermal.current/thermal.limit);
+   const cooling=thermal.cooling===true,locked=thermal.locked===true;
+   n.hudThermal.classList.toggle('warning',fill>=75&&!locked);
+   n.hudThermal.classList.toggle('locked',locked);
+   n.hudThermal.classList.toggle('cooling',cooling&&!locked);
+   n.hudThermalMeter.style.setProperty('--meter-fill',fill+'%');
+   n.hudThermalMeter.setAttribute('aria-valuenow',String(Math.round(fill)));
+   display(n.hudThermalText,Math.round(fill)+'%');
+   display(n.hudThermalLabel,locked?'ПЕРЕГРЕВ':cooling?'ОСТЫВАНИЕ':'НАГРЕВ');
+   if(locked)display(n.flightMode,'ОГОНЬ ЗАБЛОКИРОВАН · ПЕРЕГРЕВ');
+  }
   n.message.style.opacity=game.messageUntil>game.time?'1':'0';
   // HUD remains stationary: no cockpit sway when the player steers.
   const interval=game.fps<35?.34:.2;

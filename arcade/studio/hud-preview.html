@@ -216,11 +216,30 @@ header a{color:#9ce8f0;font-size:12px}
 .stage.phone-landscape .touch .actions{width:23%;right:2%;bottom:2%}
 .stage.phone-landscape .touch .actions span{min-height:39px}
 .stage.phone-landscape .touch .actions span.primary{min-height:44px}
+
+/* Art Pass 05 — opt-in thermal readout in future-ready weapon console. */
+.thermal-preview{position:absolute;left:26%;right:25%;top:46.5%;height:18%;display:flex;
+ flex-direction:column;justify-content:center;gap:2px;pointer-events:none;color:#ffd995}
+.thermal-preview[hidden]{display:none}
+.thermal-preview-title{display:flex;justify-content:space-between;gap:5px;font-weight:750;
+ font-size:clamp(7px,.7cqw,11px);line-height:1;text-shadow:0 0 5px #050a12;letter-spacing:.045em}
+.thermal-preview-track{width:100%;height:38%;min-height:3px;background:#203643;
+ border:1px solid #b78b426e;overflow:hidden;transform:skew(-12deg)}
+.thermal-preview-track>span{display:block;width:var(--thermal-fill,0%);height:100%;
+ background:url('./hud-kit/segments-amber.svg') left center/auto 100% repeat-x,linear-gradient(90deg,#ffbb42,#ffd779);
+ filter:drop-shadow(0 0 3px #ffa640);transition:width .22s ease}
+.thermal-preview.locked{color:#ff807c}
+.thermal-preview.locked .thermal-preview-track>span{background:url('./hud-kit/segments-red.svg') left center/auto 100% repeat-x,#e65046;filter:drop-shadow(0 0 4px #ee4b42)}
+.thermal-preview.cooling{color:#85f7f2}
+.thermal-preview.cooling .thermal-preview-track>span{background:url('./hud-kit/segments-cyan.svg') left center/auto 100% repeat-x,#38c8dd;filter:none}
+.stage.phone-landscape .thermal-preview-title{font-size:5px}
+.stage.phone-portrait .thermal-preview-title{font-size:8px}
+@media(prefers-reduced-motion:reduce){.thermal-preview-track>span{transition:none}}
 </style>
 </head>
 <body>
 <header>
- <div><strong>ВЫЖИВШИЙ · МАСТЕРСКАЯ HUD / ART PASS 04</strong><small>Навигация по маршруту · графические сенсорные органы управления</small></div>
+ <div><strong>ВЫЖИВШИЙ · МАСТЕРСКАЯ HUD / ART PASS 05</strong><small>Навигация по маршруту · графические сенсорные органы управления</small></div>
  <a href="./">← Мастерская концепций</a>
 </header>
 <div class="toolbar">
@@ -234,7 +253,13 @@ header a{color:#9ce8f0;font-size:12px}
   <button type="button" data-state="combat" aria-pressed="false">Бой</button>
   <button type="button" data-state="critical" aria-pressed="false">Повреждение</button>
  </div>
- <span class="hint">Все показания — демонстрационные</span>
+ <div class="button-group" role="group" aria-label="Экспериментальная тепловая система">
+  <button type="button" data-thermal="none" aria-pressed="true">Без нагрева</button>
+  <button type="button" data-thermal="warm" aria-pressed="false">Нагрев</button>
+  <button type="button" data-thermal="locked" aria-pressed="false">Перегрев</button>
+  <button type="button" data-thermal="cooling" aria-pressed="false">Остывание</button>
+ </div>
+ <span class="hint">Показания условные · тепловая механика ещё не включена в игре</span>
 </div>
 <div class="workbench">
  <div id="stage" class="stage desktop cruise" aria-label="Испытательный стенд нового HUD">
@@ -267,6 +292,10 @@ header a{color:#9ce8f0;font-size:12px}
    <img class="weapon-icon" src="./hud-kit/weapon.svg" alt="">
    <div class="weapon-line"><strong>БОЕВОЙ КОНТУР</strong></div>
    <div class="weapon-mode" id="weaponText">АВТООГОНЬ · АКТИВЕН</div>
+   <div id="thermalPreview" class="thermal-preview" hidden aria-label="Экспериментальная шкала нагрева">
+    <div class="thermal-preview-title"><span id="thermalPreviewLabel">НАГРЕВ</span><b id="thermalPreviewValue">0%</b></div>
+    <div class="thermal-preview-track"><span id="thermalPreviewFill"></span></div>
+   </div>
    <div class="readiness"><b id="strikeText">×2</b><span>УДАР</span></div>
    <div class="support-drones"><strong>ДРОНЫ</strong>
     <img src="./hud-kit/drone.svg" alt=""><img src="./hud-kit/drone.svg" alt="">
@@ -280,6 +309,30 @@ header a{color:#9ce8f0;font-size:12px}
 <p class="note"><b>Для проверки дизайна:</b> переключайте размеры и игровые состояния. Это отдельный графический стенд: здесь нет боевой симуляции, реальных ресурсов или сохранений. Форма панелей, показания навигации, число дронов и сенсорные рамки соответствуют игровым решениям. В стенде цифры условные; в игре расстояние до точки маршрута вычисляется по координатам. Фон намеренно нейтральный — оцениваем форму приборов, расположение и читаемость.</p>
 <script>
 const stage=document.getElementById('stage');
+let activeState='cruise';
+let thermalMode='none';
+const thermalModes={
+ none:{visible:false,fill:0,label:'',tone:''},
+ warm:{visible:true,fill:62,label:'НАГРЕВ',tone:''},
+ locked:{visible:true,fill:100,label:'ПЕРЕГРЕВ',tone:'locked'},
+ cooling:{visible:true,fill:45,label:'ОСТЫВАНИЕ',tone:'cooling'}
+};
+function applyThermal(){
+ const e=document.getElementById('thermalPreview');
+ const v=thermalModes[thermalMode];
+ e.hidden=!v.visible;
+ e.classList.toggle('locked',v.tone==='locked');
+ e.classList.toggle('cooling',v.tone==='cooling');
+ document.getElementById('thermalPreviewFill').style.setProperty('--thermal-fill',v.fill+'%');
+ document.getElementById('thermalPreviewLabel').textContent=v.label;
+ document.getElementById('thermalPreviewValue').textContent=v.fill+'%';
+ document.getElementById('weaponText').textContent=v.tone==='locked'?'ОГОНЬ ЗАБЛОКИРОВАН':states[activeState].weapon;
+}
+document.querySelectorAll('[data-thermal]').forEach(button=>button.addEventListener('click',()=>{
+ thermalMode=button.dataset.thermal;
+ setPressed('thermal',null,thermalMode);
+ applyThermal();
+}));
 function setPressed(group,key,value){
  document.querySelectorAll('[data-'+group+']').forEach(button=>{
   const active=button.dataset[group]===value;
@@ -301,6 +354,7 @@ function gauge(id,value){
  document.getElementById(id+'Bar').style.clipPath='inset(0 '+(100-value)+'% 0 0)';
 }
 function setState(state){
+ activeState=state;
  stage.classList.remove('cruise','combat','critical');
  stage.classList.add(state);setPressed('state',null,state);
  const s=states[state];gauge('hull',s.hull);gauge('shield',s.shield);gauge('boost',s.boost);
@@ -309,6 +363,7 @@ function setState(state){
  document.getElementById('droneText').textContent=s.drones;
  const drones=document.querySelectorAll('.support-drones img');
  drones.forEach((d,i)=>{const off=i>=Number(s.drones.split('/')[0]);d.classList.toggle('off',off);d.classList.toggle('active',!off);});
+ applyThermal();
 }
 document.querySelectorAll('[data-state]').forEach(button=>button.addEventListener('click',()=>setState(button.dataset.state)));
 function radarContacts(){

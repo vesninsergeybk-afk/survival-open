@@ -12,7 +12,8 @@ test('HUD contract: unique live element IDs, cache versions and mobile layout',(
  for(const id of ['hud','cockpitFrame','radar','hp','hpbar','hpmeter','shield','xpbar',
    'xpmeter','level','burst','burstbar','bursttext','burstBtn','ore','oreResource',
    'data','bases','wing','hack','interactionCue','contractObjective','message',
-   'miningStatus','stateText','flightDistance','flightMode','wingStatus']){
+   'miningStatus','stateText','flightDistance','flightMode','wingStatus',
+   'hudThermal','hudThermalLabel','hudThermalText','hudThermalMeter']){
   assert.ok(ids.includes(id),id+' is missing from the page');
  }
  assert.match(source,/hud\.css\?v=hud-responsive-v16/);
@@ -80,6 +81,28 @@ test('HUD reads game state and changes contextual prompts without changing simul
   assert.equal(node('hpmeter')['aria-valuenow'],'28');
   assert.equal(node('hud').classList.contains('is-critical'),true);
   assert.equal(node('burstBtn').disabled,false);
+  assert.equal(node('hudThermal').hidden,true,'no fake heat reading before mechanics exist');
+  assert.equal(node('hud').classList.contains('thermal-enabled'),false);
+  // Hypothetical future model: HUD must opt in and render real values accurately.
+  game.weaponThermal={enabled:true,current:80,limit:100,cooling:false,locked:false};
+  hud.update(game,100,5);
+  assert.equal(node('hudThermal').hidden,false);
+  assert.equal(node('hudThermalText').textContent,'80%');
+  assert.equal(node('hudThermalLabel').textContent,'НАГРЕВ');
+  assert.equal(node('hudThermalMeter')['aria-valuenow'],'80');
+  assert.equal(node('hudThermal').classList.contains('warning'),true);
+  game.weaponThermal.current=100;
+  game.weaponThermal.locked=true;
+  hud.update(game,100,5);
+  assert.equal(node('hudThermalLabel').textContent,'ПЕРЕГРЕВ');
+  assert.equal(node('flightMode').textContent,'ОГОНЬ ЗАБЛОКИРОВАН · ПЕРЕГРЕВ');
+  game.weaponThermal.locked=false;game.weaponThermal.cooling=true;game.weaponThermal.current=45;
+  hud.update(game,100,5);
+  assert.equal(node('hudThermalLabel').textContent,'ОСТЫВАНИЕ');
+  game.weaponThermal.enabled=false;
+  hud.update(game,100,5);
+  assert.equal(node('hudThermal').hidden,true);
+
   game.interactionFocus=null;game.player.hp=100;game.player.burstCooldown=3;
   hud.update(game,100,5);
   assert.equal(node('interactionCue').hidden,true);
