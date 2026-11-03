@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ArcadeVisuals} from '../visuals.js';
 import {WorldVFX} from '../../src/world-vfx.js';
+import {getExplosionAtlas,BLAST_FRAMES} from '../../src/explosion-art.js';
 
 test('each sector uses its own artwork and a distant planet tracks world coordinates',()=>{
  const previous=globalThis.document;
@@ -34,17 +35,24 @@ test('each sector uses its own artwork and a distant planet tracks world coordin
 test('explosion atlas is prepared once and preserves existing impact particles',()=>{
  const previous=globalThis.document;
  let gradients=0;
- const paint={save(){},restore(){},translate(){},fillRect(){},
+ const paint={save(){},restore(){},translate(){},scale(){},
+  fillRect(){},fill(){},stroke(){},beginPath(){},moveTo(){},lineTo(){},
+  closePath(){},quadraticCurveTo(){},arc(){},
   createRadialGradient(){gradients++;return {addColorStop(){}};}};
  globalThis.document={createElement:()=>({
   width:0,height:0,getContext:()=>paint
  })};
  try{
   const effects=new WorldVFX();
-  assert.ok(gradients>=100);
+  assert.equal(gradients,BLAST_FRAMES*2,'one core and one irregular front per baked frame');
   const prepared=gradients;
   new WorldVFX();
   assert.equal(gradients,prepared,'the same texture atlas must be reused');
+  const rocket=getExplosionAtlas('orange','rocket');
+  assert.ok(rocket,'rocket uses a dedicated cached silhouette');
+  assert.equal(gradients,prepared+BLAST_FRAMES*2);
+  getExplosionAtlas('orange','rocket');
+  assert.equal(gradients,prepared+BLAST_FRAMES*2,'rocket frames are not repainted');
   effects.shipExplosion(20,30,18,'#ff8866');
   assert.equal(effects.explosions.length,1);
   assert.ok(effects.particles.length>0);
