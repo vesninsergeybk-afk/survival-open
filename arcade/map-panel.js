@@ -5,7 +5,7 @@ import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} fr
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-1';
-import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-2';
+import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-3';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>

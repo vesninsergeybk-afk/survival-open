@@ -2,7 +2,7 @@ import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-2';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=regions-1';
-import {defenseStatus} from './network-defense.js?v=network-defense-2';
+import {defenseStatus} from './network-defense.js?v=network-defense-3';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
@@ -700,9 +700,13 @@ export function renderBasePanel(base,state){
  const protectionText='ПВО '+protection.charges+'/'+protection.capacity+' · радиус '+protection.radius+' м'+
   (protection.rechargeIn?' · заряд через '+protection.rechargeIn+' с':'')+
   (protection.stasis?' · стазис по группе: '+(protection.stasisIn?
-   'через '+protection.stasisIn+' с':'готов'):' · стазис доступен при связи двух узлов');
+   'через '+protection.stasisIn+' с':'готов'):' · стазис доступен при связи двух узлов')+
+  ' · орбитальные удары: '+(protection.meteorEnabled?'перехват':'пропуск');
+ const meteorChoice=action('toggleMeteorDefense',protection.meteorEnabled?
+  'Пропускать орбитальные удары':'Перехватывать орбитальные удары');
  const network='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">УПРАВЛЕНИЕ СЕТЬЮ</span><strong>Связь, технологии и территория</strong>'+
-  '<p>'+protectionText+'. ПВО перехватывает часть снарядов и орбитальных ударов рядом с кораблём. При соединении двух узлов сеть также ненадолго останавливает группы противников. За пределами радиуса оборона не действует.</p></div></div>'+
+  '<p>'+protectionText+'. ПВО тратит заряды на опасные снаряды и орбитальные удары. Стазис останавливает группу рядом с кораблём. Режим «Пропуск» оставляет орбитальные удары: они могут повредить врагов и астероиды, но опасны и для вас. Снаряды ПВО продолжает перехватывать.</p>'+
+  '<div class="base-defense-choice">'+meteorChoice+'</div></div></div>'+
   networkPreview(base,state)+'<div class="base-grid">'+upgrade+antenna+'</div>'+modules+transit+'</div>';
  const opening=active?
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+

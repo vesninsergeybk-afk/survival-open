@@ -142,6 +142,8 @@ export function validateCheckpoint(data){
    !Number.isInteger(b.defense.charges)||b.defense.charges<0||b.defense.charges>2||
    !finite(b.defense.rechargeAt,0,1e9)||!finite(b.defense.interceptAt,0,1e9)||
    !finite(b.defense.stasisAt,0,1e9)||
+   (b.defense.lastLinked!==undefined&&typeof b.defense.lastLinked!=='boolean')||
+   (b.defense.meteorEnabled!==undefined&&typeof b.defense.meteorEnabled!=='boolean')||
    !['','shot','meteor','stasis'].includes(b.defense.visualKind)||
    !finite(b.defense.visualAt,-Infinity,1e9)))return false;
   ids.add(b.id);if(b.id===data.baseId)dock=b;if(b.id==='0:0')home=true;

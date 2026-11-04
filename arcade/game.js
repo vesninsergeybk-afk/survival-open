@@ -4,7 +4,7 @@ import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {strategicCapture} from './regional-supply.js?v=regions-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30';
 import {World} from './world.js?v=regions-1';
-import {updateStationDefense,drawStationDefense,defenseLinked} from './network-defense.js?v=network-defense-2';
+import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense} from './network-defense.js?v=network-defense-3';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-1';
@@ -24,7 +24,7 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-2';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-3';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-2';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
@@ -40,7 +40,7 @@ import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=regions-1-enemy-world-response-1';
 import {pickDesignatedTarget,activeDesignatedTarget} from './target-designation.js?v=enemy-world-response-1';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=weapons-cycle-2-regions-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -309,6 +309,16 @@ export class ArcadeGame {
     this.overlay.querySelector('[data-act="loanField"]:not(:disabled)')?.focus({preventScroll:true});
    }
     if(act==='baseMap')this.openMap();
+   if(act==='toggleMeteorDefense'&&this.docked?.active){
+    const base=this.docked;
+    const linked=defenseLinked(base,this.world.networkTopology());
+    const defense=ensureStationDefense(base,linked,this.time);
+    defense.meteorEnabled=!defense.meteorEnabled;
+    this.heritage.ui('tab');
+    this.renderDock();
+    this.overlay.querySelector('[data-act="toggleMeteorDefense"]')?.focus({preventScroll:true});
+    return;
+   }
     if(act==='baseBack'&&this.mapReturnToBase&&this.docked){
      this.mapReturnToBase=false;this.overlay.dataset.mode='base';
      this.heritage.pause('base');this.renderDock();
