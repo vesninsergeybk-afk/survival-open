@@ -21,7 +21,7 @@ const DRONES = Object.freeze({
  carrier:{role:'fighter',name:'Дрон «Клинок»',cost:54,desc:'Ударный перехватчик. Защищает от крупных противников.'}
 });
 const TECH = Object.freeze({
- dock:{key:'armor',name:'Защитные системы',desc:'Дроны лучше выдерживают обстрел.'},
+ dock:{key:'armor',name:'Броня дронов',desc:'Повышает живучесть ваших дронов. На ПВО станции не влияет.'},
  lab:{key:'engine',name:'Приводы дронов',desc:'Помощники быстрее возвращаются и прикрывают добычу.'},
  arsenal:{key:'armament',name:'Вооружение дронов',desc:'Оба дрона сильнее бьют при перехвате.'},
  carrier:{key:'strikePower',name:'Авиационная связь',desc:'Открывает ударные вылеты B. Каждый следующий уровень усиливает бомбардировку.'}
@@ -802,9 +802,9 @@ export function renderBasePanel(base,state){
   (base.relayBoost||o.reasons.antenna?antenna:'');
  const network='<div class="base-operations"><section class="base-network-simple">'+
   '<span class="base-kicker">ОБОРОНА СТАНЦИИ</span><h3>Защитные заряды · '+protection.charges+'/'+protection.capacity+'</h3>'+
-  '<p class="base-defense-summary">Автоматическая защита прикрывает корабль в бирюзовом круге. Орбитальные удары сейчас '+
+  '<p class="base-defense-summary">ПВО действует автоматически: в бирюзовом круге станция тратит заряд на опасный снаряд или разрешённый к перехвату орбитальный удар. Орбитальные удары сейчас '+
   (protection.meteorEnabled?'перехватываются':'пропускаются')+'. '+
-  (protection.stasis?'Стазис остановит группу обычных врагов при выполнении условий.':
+  (protection.stasis?'Стазис тоже автоматический: импульс сработает, только если рядом с вами и станцией окажутся не менее двух обычных врагов. Кнопки запуска нет.':
    'Стазис станет доступен после соединения двух станций.')+'</p>'+
   '<p class="base-defense-tradeoff" role="note">'+(protection.meteorEnabled?
    'Если пропускать орбитальные удары, они смогут поражать врагов и астероиды, но также могут повредить Ваш корабль.':

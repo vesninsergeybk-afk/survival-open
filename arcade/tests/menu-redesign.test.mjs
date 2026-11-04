@@ -157,7 +157,7 @@ test('published entry points invalidate the entire changed ES-module import chai
  const preview=source('hangar-preview.js');
  assert.match(source('index.html'),/game\.js\?v=[^"']*living-world-3/);
  assert.match(source('index.html'),/game\.js\?v=[^"']*network-defense-4/);
- assert.match(game,/region-runtime\.js\?v=living-world-3/);
+ assert.match(game,/region-runtime\.js\?v=living-world-3-logistics-audit-1/);
  assert.match(game,/network-defense\.js\?v=network-defense-4/);
  assert.match(game,/base-panel\.js\?v=first-contract-reward-1/);
  assert.match(game,/first-contract-reward\.js\?v=first-contract-reward-1/);

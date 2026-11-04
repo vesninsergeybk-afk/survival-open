@@ -1,4 +1,4 @@
-import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3';
+import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-logistics-audit-1';
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
@@ -251,7 +251,7 @@ export function renderWorldMap(game){
   '<button data-act="close">'+(unapplied?'В полёт · сборка не применена':'В полёт · Esc')+'</button></div></header>'+
   (unapplied?'<p class="map-unapplied-note" role="status">Сборка ангара не применена. Перед вылетом потребуется подтверждение.</p>':'')+
   '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">Схема сектора</button>'+
-  '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">Цели и сигналы · '+(known.length+signals.length)+'</button></nav>'+
+  '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">Регионы и цели · '+(known.length+signals.length)+'</button></nav>'+
   '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
   '<circle cx="340" cy="240" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+

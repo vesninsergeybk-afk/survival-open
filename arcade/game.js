@@ -1,9 +1,10 @@
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-3';
-import {REGIONS,regionAt} from './regions.js?v=regions-1';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-3-logistics-audit-1';
+import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
+import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expedition-1';
 import {strategicCapture} from './regional-supply.js?v=living-world-3';
 import {disableCentralWorker} from './central-industry.js?v=living-world-1';
-import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3';
+import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3-logistics-audit-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30';
 import {World} from './world.js?v=living-world-3';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
@@ -27,9 +28,9 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -42,7 +43,7 @@ import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBac
 import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH} from './station-progression.js?v=rpg-precision-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
-import {pickDesignatedTarget,activeDesignatedTarget} from './target-designation.js?v=living-world-2';
+import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2';
 import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
@@ -152,6 +153,8 @@ export class ArcadeGame {
   this.enemyLearning=this.visuals.capitalDamageQA?null:new EnemyLearning(hangarStorage);
   this.enemyComms=new EnemyComms();
   this.designatedTarget=null;
+  this.lastTargetHintAt=-Infinity;
+  this.cruiseCharge=0;this.cruising=false;
   window.addEventListener?.('pagehide',()=>this.enemyLearning?.flush(this.time));
   this.manualRailMode=false;this.precisionRailAvailable=false;
   this.weaponThermal=createThermal();this.moduleClocks={rail:0,flak:0};
@@ -441,13 +444,21 @@ export class ArcadeGame {
    if(this.manualRailMode){this.fireManualRailAt(worldPoint);return;}
    const item=pickDesignatedTarget(this,worldPoint,
      Math.max(34,28*cam.w/rect.width));
-   if(!item){this.designatedTarget=null;return;}
+   if(!item){
+    if(this.designatedTarget){
+     this.designatedTarget=null;this.notice('Приоритет цели снят.',1.8);
+    }else if(this.time-this.lastTargetHintAt>=8){
+     this.lastTargetHintAt=this.time;
+     this.notice('Коснитесь видимой цели в пределах 900 м: автооружие будет выбирать её 14 с.',3.8);
+    }
+    return;
+   }
    if(this.designatedTarget?.target===item.target){
     this.designatedTarget=null;this.notice('Приоритет цели отменён',1.7);
    }else{
-    this.designatedTarget={target:item.target,expiresAt:this.time+14};
-    this.notice('Приоритет: '+(item.target.type?ENEMY_TYPES[item.target.type]?.name||'цель':
-     item.kind==='turret'?'турель':'вражеская база'),2.2);
+    this.designatedTarget={target:item.target,expiresAt:this.time+TARGET_DESIGNATION.duration};
+    this.notice('Приоритет: '+designationLabel(item)+' · '+TARGET_DESIGNATION.duration+
+     ' с. Автооружие выберет цель, когда она в зоне огня.',3.6);
    }
   });
   this.canvas?.addEventListener('pointercancel',()=>{aimStart=null;});
@@ -623,7 +634,7 @@ export class ArcadeGame {
     ...(this.world.regionalSupply?.frontier?.azure?.convoys||[]),
     ...(this.world.regionalSupply?.frontier?.teal?.convoys||[])].find(c=>c.id===data.id&&c.seen);
    if(!region&&!cargo&&(!base||(!base.discovered&&!data.signal)))return;
-   const waypoint=region?{id:data.id,...region.entry,label:region.name}:
+   const waypoint=region?{id:data.id,...region.survey,label:region.name}:
     cargo?{id:cargo.id,x:cargo.x,y:cargo.y,label:cargo.frontierCargo?
      (cargo.frontierNetwork==='azure'?'Энерготранспорт':'Ремонтный груз'):
      cargo.centralCargo?'Местный груз':'Рудный транспорт'}:
@@ -2369,7 +2380,12 @@ export class ArcadeGame {
   let my=(this.keys.has('KeyS')||this.keys.has('ArrowDown')?1:0)-
     (this.keys.has('KeyW')||this.keys.has('ArrowUp')?1:0)+this.touch.y;
   const m=length(mx,my);if(m>1){mx/=m;my/=m;}
-  const speed=(272+this.skillRanks.engine*35)*(this.mining.active?.78:1);
+  const cruiseStarted=updateCruise(this,mx,my,dt);
+  if(cruiseStarted&&this.time>this.messageUntil)
+   this.notice('Маршевый перелёт ×'+EXPEDITION_CRUISE.multiplier+
+    ': при угрозе корабль возвращается к обычной скорости.',3.5);
+  const speed=(272+this.skillRanks.engine*35)*(this.mining.active?.78:1)*
+   (this.cruising?EXPEDITION_CRUISE.multiplier:1);
   const boosting=p.burstRemaining>0;
   const targetX=boosting?p.burstX*speed*2.25:mx*speed;
   const targetY=boosting?p.burstY*speed*2.25:my*speed;
@@ -2520,7 +2536,9 @@ export class ArcadeGame {
    const director=this.sectorDirector(openingThreat(this.time,this.player.level));
    const frontier=spawnFrontierRaid(this,director);
    const central=frontier?0:spawnCentralRaid(this,director);
-   const recovery=frontier?6:central?central:spawnRegionalRaid(this,director)?6:this.spawnGroup(director);
+   // Paid reinforcements now accompany a regular encounter. They must not
+   // silently grant six seconds of relief after the larger formation.
+   const recovery=frontier||central||spawnRegionalRaid(this,director)||this.spawnGroup(director);
    // Give the player room to clear an overwhelming formation, without
    // suppressing the large waves when a strong build is mowing them down.
    const pressure=this.enemies.length/Math.max(1,director.cap);
@@ -3087,13 +3105,18 @@ export class ArcadeGame {
   this.drawProbe(c,cam);
   this.heritage.vfx.beginSurfaceLights();
   const chosenTarget=activeDesignatedTarget(this);
+  if(this.cruising){
+   c.save();c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle='#9afce5';
+   c.fillText('МАРШЕВЫЙ ПЕРЕЛЁТ ×'+EXPEDITION_CRUISE.multiplier,p.x,p.y+56);c.restore();
+  }
   if(chosenTarget&&!outsideCamera(chosenTarget.x,chosenTarget.y,cam,60)){
    const radius=(chosenTarget.r||24)+14;
    c.save();c.strokeStyle='#b7f9e0';c.lineWidth=1.8;
    c.setLineDash([7,5]);c.beginPath();
    c.arc(chosenTarget.x,chosenTarget.y,radius,0,TAU);c.stroke();
    c.setLineDash([]);c.textAlign='center';c.font='bold 10px system-ui';
-   c.fillStyle='#c9fff1';c.fillText('ПРИОРИТЕТ',chosenTarget.x,chosenTarget.y-radius-12);
+   c.fillStyle='#c9fff1';c.fillText('ПРИОРИТЕТ · '+Math.max(0,Math.ceil(this.designatedTarget.expiresAt-this.time))+' С',
+    chosenTarget.x,chosenTarget.y-radius-12);
    c.restore();
   }
   // Heading previews belong to the tactical world, not to the cockpit HUD.

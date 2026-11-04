@@ -8,6 +8,7 @@ import {FRONTIERS,FRONTIER_RESPONSE,FRONTIER_ROUTES,frontierRouteLength,
 import {updateRegionalWorld,hitRegionalCargo,spawnFrontierRaid} from '../region-runtime.js';
 import {renderRegionAtlas,regionalMapOverlay} from '../regional-map.js';
 import {regionAt} from '../regions.js';
+import {openingThreat} from '../balance.js';
 
 const noop=()=>{};
 function game(id='azure'){
@@ -183,19 +184,21 @@ test('capturing the source spends one stored reserve on one announced, avoidable
  assert.ok(strategicCapture(g.world,source,0));
  assert.equal(s.reserves,0);
  assert.ok(s.strategy.emergency);
- assert.equal(spawnFrontierRaid(g,{cap:30}),false,'warning required');
+ const director={...openingThreat(500,5),cap:30};
+ assert.equal(spawnFrontierRaid(g,director),false,'warning required');
  g.time=1;updateRegionalWorld(g,1);
  assert.ok(s.strategy.emergency.announced);
  assert.ok(g.notices.some(n=>n.includes('ответный отряд')));
  const due=s.strategy.emergency.readyAt;
  g.time=due;
- assert.equal(spawnFrontierRaid(g,{cap:1}),false,'director cap applies');
- assert.equal(spawnFrontierRaid(g,{cap:30}),true);
+ assert.equal(spawnFrontierRaid(g,{...director,cap:1}),false,'director cap applies');
+ assert.ok(spawnFrontierRaid(g,director));
  assert.equal(s.strategy.emergency,null);
  assert.equal(s.strategy.emergencyRaids,1);
- assert.ok(g.enemies.every(e=>e.scenario==='teal-last-reserve'));
+ assert.equal(g.enemies.filter(e=>e.scenario==='teal-last-reserve').length,1);
+ assert.equal(g.enemies.length,director.groupSize+1);
  g.enemies=[];
- assert.equal(spawnFrontierRaid(g,{cap:30}),false,'no free repeat');
+ assert.equal(spawnFrontierRaid(g,director),false,'no free repeat');
  tick(g,1600);
  assert.equal(s.strategy.emergencyRaids,1);
  assert.ok(regionalSupplyValid(g.world.regionalSupply,g.time));

@@ -91,6 +91,7 @@ test('checkpoint restores hull, inventory, progression, changed rocks and networ
  const rock=g.world.nearbyRocks(800,400,700)[0];rock.hp=0;rock.alive=false;
  const other=g.world.nearbyRocks(900,500,700).find(r=>r.alive);other.hp-=7;other.x+=12;
  const {storage}=save(g),loaded=new RunCheckpointStore(storage).load(),fresh=scene();
+ g.cruiseCharge=2.2;g.cruising=true;
  restoreCheckpoint(fresh,loaded);
  assert.equal(fresh.player.hp,73);assert.equal(fresh.player.ore,59);assert.equal(fresh.player.points,2);
  assert.equal(fresh.shipLoadout.slots[1],'rail');assert.equal(fresh.shipLoadout.specializations.rail.rank,1);
@@ -101,6 +102,8 @@ test('checkpoint restores hull, inventory, progression, changed rocks and networ
  assert.equal(restoredRocks.find(r=>r.id===other.id).hp,other.hp);
  assert.equal(restoredRocks.find(r=>r.id===other.id).x,other.x);
  assert.equal(fresh.time,243.5);assert.equal(fresh.spawnClock,3.4);assert.ok(fresh.paused);
+ assert.equal(fresh.cruising,false,'a docked continuation never resumes cruise movement');
+ assert.equal(fresh.cruiseCharge,0);
 });
 test('station point defense does not regain spent charges when the run is resumed',()=>{
  const g=scene(),base=g.docked;

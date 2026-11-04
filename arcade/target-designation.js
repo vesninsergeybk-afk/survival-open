@@ -3,6 +3,23 @@ import {combatTargets,targetDistance,targetRadius,clearLine}
 
 export const TARGET_DESIGNATION=Object.freeze({duration:14,tapRadius:34,maxDistance:900});
 
+// The cargo ships have ordinary AI type keys for combat, but their player-
+// facing names must describe what was actually selected on the canvas.
+export function designationLabel(item){
+ const t=item?.target;if(!t)return 'Цель';
+ if(t.frontierCargo)return t.frontierNetwork==='azure'?'Энерготранспорт':'Транспорт запчастей';
+ if(t.centralCargo)return 'Местный грузовой транспорт';
+ if(t.regionalCargo)return 'Рудный транспорт';
+ if(t.frontierWorker)return 'Рабочий утилизационного комбината';
+ if(t.centralWorker)return 'Шахтёрский дрон';
+ if(t.frontierSalvage)return 'Залежь обломков';
+ if(item.kind==='turret')return 'Турель';
+ if(item.kind==='base')return t.title||'Вражеская база';
+ if(item.kind==='jammer')return 'Глушитель';
+ return ({scout:'Разведчик',fighter:'Штурмовик',flanker:'Перехватчик',
+  healer:'Ремонтник',berserker:'Таранщик',gunship:'Тяжёлый корабль'})[t.type]||'Противник';
+}
+
 /** Optional player decision on the game canvas, shared by mouse and touch.
  * It can only point at an already targetable, unoccluded visible enemy. */
 export function pickDesignatedTarget(game,worldPoint,tapRadius=TARGET_DESIGNATION.tapRadius){

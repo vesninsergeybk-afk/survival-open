@@ -204,6 +204,7 @@ export function restoreCheckpoint(game,data){
  game.defenseTopology=null;game.defenseTopologyAt=0;
  game.cachedTarget=null;game.cachedWorldLinks=[];game.cachedNetworkLinked=world.networkTopology().linked;
  game.docked=world.stations.get(data.baseId);game.dead=false;game.paused=true;game.pausedRenderPending=true;
+ game.cruiseCharge=0;game.cruising=false;
  return game.docked;
 }
 

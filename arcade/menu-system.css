@@ -502,6 +502,13 @@
 .region-atlas summary{cursor:pointer;color:#d9d9ff;font-weight:650;padding:9px 0}
 .region-atlas svg{width:100%;max-height:240px;display:block}
 .region-directions{display:grid;gap:7px}.region-directions button{text-align:left}
+.region-card{padding:7px 9px;border:1px solid #7ebec84f;border-radius:9px;background:#091d2b9c}
+.region-card summary{display:flex;flex-wrap:wrap;justify-content:space-between;gap:5px;cursor:pointer}
+.region-card summary strong{font-size:12px;color:#eaf7ff}
+.region-card summary small{font-size:11px;color:#b2ccdb}
+.region-card p{font-size:11px;line-height:1.45;margin:7px 0;color:#c9e4ed}
+.region-card p b{color:#eff7fc}
+.region-card button{width:100%;margin-top:7px}
 .region-status>small{display:block;line-height:1.5;color:#bbd3df}
 .map-radio-log{border-color:#b69aff83;background:#211b3be0}
 .map-radio-log summary{color:#d8bfff;font-size:12px;font-weight:700;cursor:pointer}
