@@ -2,7 +2,7 @@ import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-n
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
-import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1';
+import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
