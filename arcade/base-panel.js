@@ -1,4 +1,4 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-2-frontier-2';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-2';
@@ -821,7 +821,7 @@ export function renderBasePanel(base,state){
  const opening=active?
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
   tabButton('summary','Главная',selected)+tabButton('operations','Задания',selected)+
-  tabButton('hangar','Корабль',selected)+tabButton('network','Улучшения',selected)+'</nav>'+
+  tabButton('hangar','Корабль',selected)+tabButton('network','Станция',selected)+'</nav>'+
   tabPanel('summary',selected,dashboard+(report?'<details class="base-secondary-info base-report-details">'+
     '<summary>Итоги последнего вылета</summary>'+report+'</details>':''))+
   tabPanel('operations',selected,operations)+
@@ -837,11 +837,10 @@ export function renderBasePanel(base,state){
   state.connectedBases+' · Дроны '+state.allies+'/'+o.cap+(base.type==='carrier'?' · Вылеты '+state.charges:'')+'</p></div>'+
   '<span class="base-pill '+(o.connected?'online':'offline')+'">'+status+'</span></header>'+
   (active&&!o.connected?'<p class="base-network-warning">Работает локально. Для сетевых услуг подключите промежуточные станции.</p>':'')+
-  opening+'<footer class="base-foot"><small>'+
-  (active?'Задания, корабль и улучшения доступны в разделах выше.':
-  'После подключения откроются услуги станции.')+
-  (state.checkpointNote?'<br><span role="status">'+state.checkpointNote+'</span>':'')+
-  '</small>'+(state.hangarSession?.dirty(state.loadout)?
+  opening+'<footer class="base-foot">'+
+  (!active||state.checkpointNote?'<small>'+(!active?'После подключения откроются услуги станции.':'')+
+  (state.checkpointNote?'<span role="status">'+state.checkpointNote+'</span>':'')+'</small>':'')+
+  (state.hangarSession?.dirty(state.loadout)?
    '<span class="base-unapplied-note" role="status">В ангаре есть неприменённая сборка</span>':'')+
   '<div class="base-footer-actions">'+
   action('close',state.hangarSession?.dirty(state.loadout)?'В полёт · сборка не применена':'В полёт')+'</div></footer></div>';

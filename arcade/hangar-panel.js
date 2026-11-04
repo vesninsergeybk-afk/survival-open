@@ -147,7 +147,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   '<div class="hg-current-bar" role="status">✓ Текущее вооружение установлено. Чтобы изменить его, нажмите на узел корабля.</div>';
  const nextUnlock=next?'Следующий узел: уровень '+next.level+' · '+next.cost+' сплава':'Все узлы открыты';
  return '<section class="ship-hangar'+(editing?' hg-catalog-open':'')+(session.inspect?' hg-inspect-open':'')+'" aria-label="Конструктор корабля">'+
-  '<header class="hg-title"><div><span class="hg-eyebrow">АНГАР · ОСНАЩЕНИЕ КОРАБЛЯ</span><h2>Оружие корабля</h2></div><span class="hg-live-pill">В ПОЛЁТЕ: '+loadoutProfile(current).automatic+' АВТО'+(loadoutProfile(current).ion?' + ИОН':loadoutProfile(current).resonator?' + РЕЗОНАНС':'')+(loadoutProfile(current).howitzer?' + H':'')+'</span></header>'+
+  '<header class="hg-title"><div><span class="hg-eyebrow">АНГАР · ОСНАЩЕНИЕ КОРАБЛЯ</span><h2>Оружие корабля</h2></div><span class="hg-live-pill">УСТАНОВЛЕНО: '+loadoutProfile(current).automatic+' АВТО'+(loadoutProfile(current).ion?' + ИОН':loadoutProfile(current).resonator?' + РЕЗОНАНС':'')+(loadoutProfile(current).howitzer?' + H':'')+'</span></header>'+
   pendingApply+
   '<div class="hg-combat-cue">'+esc(combatCue)+'</div>'+
   '<div class="hg-layout'+(editing?' hg-layout-editing':' hg-layout-centered')+'">'+

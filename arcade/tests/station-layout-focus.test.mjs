@@ -86,3 +86,10 @@ test('station network shows its current protection, but folds away advanced calc
  assert.match(network,/<details class="base-secondary-info base-network-advanced"><summary>Карта связи/);
  assert.match(network,/data-act="toggleMeteorDefense"/);
 });
+
+test('station navigation is named for the place it manages and has no duplicate footer instructions',()=>{
+ const html=renderBasePanel(home,state());
+ assert.match(html,/data-role="network"[^>]*>Станция<\/button>/);
+ assert.match(html,/data-role="hangar"[^>]*>Корабль<\/button>/);
+ assert.doesNotMatch(html,/Задания, корабль и улучшения доступны в разделах выше/);
+});
