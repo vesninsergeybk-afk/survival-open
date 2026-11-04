@@ -16,7 +16,7 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=economy-integrity-3-copy-1-menu-exit-1-econ-audit-2';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=station-choices-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
@@ -303,7 +303,7 @@ export class ArcadeGame {
     if(act==='waypoint')this.selectWaypoint(b.dataset);
     if(act==='abandonContract')this.abandonContract();
     if(act==='loanIon'||act==='returnIon')this.baseAction(act,'');
-   if(act==='acceptOperation'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimContract'||act==='installModule'||act==='antenna')
+   if(act==='acceptOperation'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimContract'||act==='installModule'||act==='antenna'||act==='loanField'||act==='returnField'||act==='fieldCharge')
     this.baseAction(act,b.dataset.role||'');
    if(act==='restart')location.reload();
   });

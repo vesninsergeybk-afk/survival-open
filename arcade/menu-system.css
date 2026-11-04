@@ -70,6 +70,11 @@
 .base-route-graphic svg,.base-network-preview svg,.map-canvas svg{border-radius:5px!important;background:#071828}
 .base-dashboard-links{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .base-dashboard-links button{min-height:43px}
+.base-dashboard-main-actions{display:grid;margin:14px 0 10px}
+.base-dashboard-main-actions button{margin:0!important;font-size:14px!important;font-weight:750}
+.base-dashboard-main-actions button:first-child{background:#2b6471!important;border-color:#83dbe1!important}
+.base-dashboard-main>.base-mission-more{margin-top:6px}
+.base-dashboard-main>.base-mission-more p{font-size:13px;line-height:1.5}
 .base-economy{margin:0 0 12px;padding:12px 14px;border:1px solid #638f9b8c;border-left:3px solid #78dfc7;
  background:linear-gradient(135deg,#153544,#0b2030);display:grid;gap:11px;border-radius:6px}
 .base-economy-head{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:9px}
@@ -83,6 +88,12 @@
 .base-economy>p{margin:0;color:#b4cfda;font-size:12px;line-height:1.45}
 .base-economy>.base-economy-claim{padding:8px 10px;color:#d6f8e3;border-left:3px solid #78dfc7;background:#143d36}
 .base-economy-breakdown{border-top:1px solid #6e92965c;padding-top:6px}
+.base-economy-optional{display:block;padding:0;margin:12px 0 0}
+.base-economy-optional>summary{cursor:pointer;padding:12px 14px;color:#e2f7f2;font-size:14px;font-weight:700;
+ min-height:45px;list-style-position:inside}
+.base-economy-optional>summary span{float:right;font-size:12px;color:#9cc5cc;font-weight:500}
+.base-economy-optional[open]{padding:0 14px 12px}
+.base-economy-optional[open]>summary{margin:0 -14px 12px;border-bottom:1px solid #638f9b6e}
 .base-economy-breakdown summary{cursor:pointer;color:#b9e7e3;font-size:13px;padding:6px 0}
 .base-economy-sources{display:grid;gap:4px;padding:5px 0;color:#c3dce2}
 .base-economy-sources p{margin:0;font-size:12px;line-height:1.5}
@@ -107,6 +118,49 @@
 .base-view-intro strong{display:block;color:#f0faf9;font-size:17px;margin:4px 0}
 .base-view-intro p{margin:0;font-size:12px;line-height:1.45;color:var(--menu-muted)}
 .base-view-intro button{flex:none;min-height:43px}
+/* Mission choices: visible goal, reward and one primary action.
+   The long tactical briefing must be opt-in, including on short screens. */
+.base-mission-board{display:grid;gap:13px}
+.base-mission-heading h3{margin:0 0 3px;font-size:20px;color:#f1fbfa}
+.base-mission-heading p{margin:0;color:#b7d5de;font-size:13px;line-height:1.35}
+.base-mission-feature{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:14px;align-items:center;
+ padding:16px 18px;border:1px solid #7eacb6a1;border-left:4px solid #ecc079;
+ background:linear-gradient(120deg,#173646,#0e2536);border-radius:7px}
+.base-mission-main{min-width:0}
+.base-mission-main>strong{display:block;color:#f8fbfc;font-size:clamp(19px,2vw,24px);line-height:1.2;margin:5px 0}
+.base-mission-main>p{font-size:14px;color:#cfdee5;line-height:1.4;margin:0 0 8px}
+.base-mission-reward{font-size:13px;color:#ffdfa0;font-weight:700}
+.base-mission-progress{font-size:13px;color:#a9edcd;font-weight:750;display:block;margin-top:6px}
+.base-mission-actions{display:grid;justify-items:stretch;gap:10px}
+.base-mission-actions>button,.base-contract-choice>button{margin:0!important;min-height:44px;
+ background:#296676!important;border-color:#83d3de!important;color:#f5feff!important;
+ font-size:14px!important;font-weight:750}
+.base-mission-actions>button:hover,.base-contract-choice>button:hover{background:#337b8b!important}
+.base-mission-more{min-width:0;margin-top:5px}
+.base-mission-more summary{cursor:pointer;padding:8px 0;min-height:40px;align-content:center;
+ color:#a7dbe7;font-size:13px;line-height:1.3}
+.base-mission-more[open]{border-top:1px solid #7fa9b04c;padding-top:4px}
+.base-mission-more p{font-size:13px;color:#c0d7e2;line-height:1.5;margin:7px 0}
+.base-mission-more button{margin:8px 6px 4px 0!important;min-height:42px;font-size:13px!important}
+.base-contract-board{padding:0!important;border:0!important;background:none!important}
+.base-contract-board>h3{margin:2px 0 2px;color:#e2f3f5;font-size:16px}
+.base-contract-board>p{margin:0 0 9px;font-size:12px;color:#aacbd6}
+.base-contract-choices{gap:10px}
+.base-contract-choice{padding:13px 15px!important;gap:7px!important;background:#102c3e!important;
+ border:1px solid #5c8ca08f!important}
+.base-contract-choice>span{font-size:11px;color:#a2cdd6}
+.base-contract-choice>strong{font-size:17px;line-height:1.2;color:#e6f9fb}
+.base-contract-choice>.base-mission-more{margin-top:0}
+.base-contract-choice>.base-mission-more p{font-size:13px}
+.base-contract{padding:14px 17px!important}
+.base-contract strong{font-size:17px}
+.base-contract small{font-size:13px;line-height:1.45}
+.base-contract .base-mission-more button{width:auto}
+.base-network-advanced{margin:10px 0;border:1px solid #578c9a7b;border-radius:5px;padding:0 12px}
+.base-network-advanced>summary{cursor:pointer;min-height:46px;align-content:center;
+ color:#d7eff1;font-weight:700;font-size:14px}
+.base-network-advanced[open]>summary{border-bottom:1px solid #629da363;margin-bottom:10px}
+.base-network-advanced .base-card{margin:8px 0}
 .base-featured-op{position:relative;border-color:#aa8eb08c;
  background:linear-gradient(125deg,#3a2f49aa,#102637 45%,#0d2134)}
 .base-featured-op.mission-corridor{--mission-art:url('./studio/menu-kit/mission/corridor.webp')}
@@ -135,6 +189,7 @@
 .base-foot:has(.base-unapplied-note){display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .base-foot:has(.base-unapplied-note)>small{flex:1 1 100%}
 .base-foot:has(.base-unapplied-note) .base-footer-actions{flex:0 1 auto}
+.base-foot:has(>small:empty)>small{display:none}
 .base-module-options{gap:10px}
 .base-module-option{border-left:3px solid #739aaf80}
 .base-module-option.selected{border-left-color:var(--menu-ok)}
@@ -321,6 +376,17 @@
  .base-view-intro{margin-bottom:7px;padding:8px}
  .base-view-intro strong{font-size:15px}
  .base-view-intro p{font-size:11px}
+  .base-mission-board{gap:9px}
+  .base-mission-heading h3{font-size:17px}
+  .base-mission-heading p{font-size:13px}
+  .base-mission-feature{padding:10px 12px;gap:10px;grid-template-columns:minmax(0,1fr) 160px}
+  .base-mission-main>strong{font-size:18px}
+  .base-mission-main>p{font-size:13px}
+  .base-contract-choices{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .base-contract-choice{padding:10px!important}
+  .base-contract-choice>strong{font-size:15px}
+  .base-mission-more summary{min-height:44px}
+  .base-economy-optional>summary span{display:none}
  .base-op-details{grid-template-columns:1fr}
  .base-featured-op{padding:11px}
  .base-featured-foot button{min-height:43px}
@@ -386,6 +452,12 @@
  .departure-kicker{font-size:9px}
  .departure-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
  #overlay .departure-actions button{font-size:11px;padding:7px 6px;white-space:normal}
+}
+@media(max-width:650px){
+ .base-mission-feature{grid-template-columns:1fr}
+ .base-mission-actions{grid-template-columns:1fr;gap:4px}
+ .base-contract-choices{grid-template-columns:1fr}
+ .base-economy-optional>summary span{display:none}
 }
 @media(max-width:480px) and (min-height:581px){
  .base-head p{font-size:10px}

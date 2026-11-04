@@ -139,6 +139,55 @@ test('activated stations issue renewable field assignments with a cooldown',()=>
  assert.equal(foreign.status,'other');
 });
 
+test('mission menu shows a decision first and leaves tactical details collapsed',()=>{
+ const dock=base('dock',{active:true});
+ const html=renderBasePanel(dock,state({ore:20,baseTab:'operations'}));
+ assert.match(html,/Куда вылетим\?/);
+ assert.match(html,/Глухой коридор/);
+ assert.match(html,/data-act="acceptOperation"[^>]*>Начать операцию/);
+ assert.match(html,/data-act="acceptContract" data-role="standard"/);
+ assert.match(html,/data-act="acceptContract" data-role="alternate"/);
+ assert.match(html,/<details class="base-mission-more"><summary>Подробности и опасности<\/summary>/);
+ assert.doesNotMatch(html,/class="base-op-details"/,
+  'the long three-column tactical briefing must not fill the mission screen');
+ assert.match(html,/\+30 сплава · \+22 опыта/);
+});
+
+test('active mission shows route and progress without an accidental restart',()=>{
+ const dock=base('dock',{active:true});
+ const mission={id:'silent-corridor',baseId:dock.id,hp:75,phase:'attack'};
+ const html=renderBasePanel(dock,state({baseTab:'operations',operation:mission}));
+ assert.match(html,/Глушитель: 50%/);
+ assert.match(html,/data-act="baseMap">Показать цель/);
+ assert.match(html,/data-act="abandonOperation">Отложить операцию/);
+ assert.doesNotMatch(html,/data-act="acceptOperation"/);
+});
+
+test('foreign contract shows the actual accepted assignment',()=>{
+ const dock=base('dock',{active:true});
+ const foreign={baseId:'9:9',name:'Добыча образцов',kind:'rich',
+  goal:2,progress:1,ore:20,data:10,choiceId:'alternate'};
+ const offer=contractOffer(dock,state({contract:foreign}));
+ assert.equal(offer.status,'other');
+ assert.equal(offer.name,'Добыча образцов');
+ const html=renderBasePanel(dock,state({contract:foreign,baseTab:'operations'}));
+ assert.match(html,/Добыча образцов/);
+ assert.doesNotMatch(html,/data-act="acceptContract"/);
+});
+
+test('loan actions shown in station UI are dispatched through its click handler',()=>{
+ const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ const start=source.indexOf("this.overlay.addEventListener('click'");
+ const end=source.indexOf("this.overlay.addEventListener('keydown'",start);
+ const dispatch=source.slice(start,end);
+ assert.ok(start>=0&&end>start);
+ for(const act of ['loanField','returnField','fieldCharge']){
+  assert.match(renderBasePanel(base('dock',{active:true}),state({ore:20})),
+   /data-act="loanField"/);
+  assert.ok(dispatch.includes("act==='"+act+"'"),act+' must reach baseAction');
+ }
+});
+
 test('station objectives count only relevant real events',()=>{
  const dock={...contractFor('dock'),progress:0},lab={...contractFor('lab'),progress:0};
  const arsenal={...contractFor('arsenal'),progress:0};
@@ -179,7 +228,7 @@ test('accepting and claiming a station assignment immediately refreshes its menu
  assert.equal(fake.renders,1);
  assert.equal(fake.pausedRenderPending,true);
  const before=renderBasePanel(dock,fake.baseState());
- assert.match(before,/Выполняется · 0\/4/);
+ assert.match(before,/Выполнено: 0 из 4/);
  fake.contract.progress=4;
  Actions.prototype.baseAction.call(fake,'claimContract');
  assert.equal(fake.contract,null);

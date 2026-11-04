@@ -52,7 +52,9 @@ test('alternate task pays its own reward and remains selected after claiming',()
  assert.equal(dock.completedContract,'alternate');
  assert.equal(contractOffer(dock,game.baseState()).name,'Геологические сведения');
  assert.equal(contractOffer(dock,game.baseState()).status,'cooldown');
- assert.match(renderBasePanel(dock,game.baseState()),/data-act="acceptContract" disabled>Ожидание/);
+ const cooling=renderBasePanel(dock,game.baseState());
+ assert.match(cooling,/ВРЕМЕННО НЕДОСТУПЕН/);
+ assert.doesNotMatch(cooling,/data-act="acceptContract" disabled>Ожидание/);
 });
 
 test('station module purchase is affordable, local, and irreversible',()=>{
