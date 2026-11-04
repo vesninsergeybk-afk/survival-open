@@ -107,6 +107,16 @@ test('a scout cannot repeatedly escape before its first retaliatory shot',()=>{
  assert.equal(e._irisRetreatAt,undefined);
 });
 
+test('mission bodyguards and scouts fighting escorts keep their established orders',()=>{
+ const a=drone(1,230),b=drone(2,250),{game}=scene([a,b]);
+ a.protect={hp:40};b.target={x:300,y:0,hp:20};game.time=2;
+ a.hit=.12;b.hit=.12;
+ assert.equal(updateIrisSwarm(a,game,game.player),null);
+ assert.equal(updateIrisSwarm(b,game,game.player),null);
+ assert.equal(a._irisRetreatUntil,undefined);
+ assert.equal(b._irisWingUntil,undefined);
+});
+
 test('real starter plasma continues to damage scouts normally; their response creates attack opportunities',()=>{
  const a=drone(1,345),b=drone(2,365,80);
  const s=scene([a,b]);advance(s,7);
