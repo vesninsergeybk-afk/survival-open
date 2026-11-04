@@ -80,11 +80,15 @@ test('station network shows its current protection, but folds away advanced calc
  const html=renderBasePanel(home,state({baseTab:'network'}));
  const network=html.slice(html.indexOf('id="base-panel-network"'));
  assert.match(network,/ОБОРОНА СТАНЦИИ/);
- assert.match(network,/ПВО · 1\/1 зарядов/);
+ assert.match(network,/Защитные заряды · 1\/1/);
+ assert.match(network,/Если пропускать орбитальные удары, они смогут поражать врагов/);
  assert.match(network,/<details class="base-secondary-info base-defense-rules"><summary>Точные условия ПВО и стазиса/);
  assert.match(network,/<details class="base-secondary-info base-network-future"><summary>Следующие улучшения/);
  assert.match(network,/<details class="base-secondary-info base-network-advanced"><summary>Карта связи/);
  assert.match(network,/data-act="toggleMeteorDefense"/);
+ const withoutInterception=renderBasePanel({...home,defense:{charges:1,meteorEnabled:false}},state({baseTab:'network'}));
+ assert.match(withoutInterception,/Перехват отключён: орбитальные удары могут поражать врагов, астероиды и Ваш корабль/);
+ assert.match(withoutInterception,/data-act="toggleMeteorDefense">Перехватывать орбитальные удары/);
 });
 
 test('station navigation is named for the place it manages and has no duplicate footer instructions',()=>{

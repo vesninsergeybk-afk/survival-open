@@ -583,6 +583,12 @@
   width:min(calc(100vw - 36px),1160px)
  }
 }
+@media(min-width:981px) and (min-height:700px){
+ #overlay:has(.base-dialog .base-tabs){padding-top:clamp(30px,6.4dvh,60px)}
+ #overlay .base-dialog:has(.base-tabs){
+  max-height:calc(100dvh - clamp(30px,6.4dvh,60px) - 18px)
+ }
+}
 @media(max-height:580px){
  #overlay:has(.base-dialog .base-tabs){padding:6px}
  #overlay .base-dialog:has(.base-tabs){max-height:calc(100dvh - 12px)}
@@ -605,6 +611,8 @@
 #overlay .base-contract-abandon button{width:100%;min-height:39px;margin:0!important;
  background:#53333b;color:#fff0eb;border-color:#ab7376;font-size:11px}
 .base-contract-wait{color:#d0dce3;font-size:12px;max-width:190px;text-align:right}
+.base-network-simple .base-defense-tradeoff{color:#f7d7a3;margin:0 0 8px;
+ font-size:12px;line-height:1.45}
 @media(max-width:700px){
  .base-contract-actions{flex:1 1 100%;width:100%}
  .base-contract-progress{text-align:left}
