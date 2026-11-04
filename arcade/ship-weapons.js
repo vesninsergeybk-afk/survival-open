@@ -79,12 +79,80 @@ export function updateAutomaticWeapons(game,dt,allowed){
  const clock=id=>id==='plasma'?game.beamClock:id==='rocket'?game.rocketClock:game.moduleClocks[id];
  // Overdue salvos fire first after cooling. A fixed family order must not
  // repeatedly spend the heat budget before another installed family can fire.
- const ready=['plasma','rail','flak','rocket'].filter(id=>game.weaponProfile[id]&&clock(id)<=0)
+ const ready=['plasma','rail','flak','rocket'].filter(id=>
+  game.weaponProfile[id]&&!(id==='rail'&&game.manualRailMode)&&clock(id)<=0)
   .sort((a,b)=>clock(a)-clock(b));
  for(const id of ready){
   if(game.weaponThermal.locked)break;
   if(id==='rocket')fireRockets(game);else fireBeamFamily(game,id);
  }
+}
+// Aimed rail fire shares the actual rail family's heat, installed mounts,
+// cooldown and target/cover rules. It cannot be stacked on top of auto fire.
+// A small tap assist centres a shot only on a genuinely nearby visible target;
+// the beam still stops at the first hostile hull or solid asteroid on its line.
+const shotCircle=(from,to,centre,radius)=>{
+ const dx=to.x-from.x,dy=to.y-from.y,fx=from.x-centre.x,fy=from.y-centre.y;
+ const a=dx*dx+dy*dy,b=2*(fx*dx+fy*dy),c=fx*fx+fy*fy-radius*radius;
+ if(a<1e-9)return null;
+ if(c<=0)return 0;
+ const delta=b*b-4*a*c;
+ if(delta<0)return null;
+ const t=(-b-Math.sqrt(delta))/(2*a);
+ return t>=0&&t<=1?t:null;
+};
+const onRay=(from,to,t)=>({x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t});
+export function fireAimedRail(game,point){
+ if(!game.manualRailMode||!game.weaponProfile?.rail)return {ok:false,reason:'Включите ручной режим установленного рельсового орудия'};
+ if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))return {ok:false,reason:'Укажите точку выстрела'};
+ if(game.holdFire||game.mining?.active||game.probeRepairing||game.heavyCharge)
+  return {ok:false,reason:'Ручной выстрел недоступен во время тишины, добычи, ремонта или подготовки гаубицы'};
+ if(game.weaponThermal.locked)return {ok:false,reason:'Оружие перегрето'};
+ if((game.moduleClocks?.rail||0)>0)return {ok:false,reason:'Рельс перезаряжается: '+Math.ceil(game.moduleClocks.rail*10)/10+' с'};
+ const stats=statsFor(game,'rail'),targets=combatTargets(game,stats.range+85);
+ const assisted=targets.filter(item=>targetDistance(point,item.target)<=targetRadius(item)+24)
+  .sort((a,b)=>targetDistance(point,a.target)-targetDistance(point,b.target))[0];
+ const aim=assisted?assisted.target:point;
+ const dx=aim.x-game.player.x,dy=aim.y-game.player.y,d=Math.hypot(dx,dy);
+ if(d<10)return {ok:false,reason:'Наведите прицел дальше от корабля'};
+ const ux=dx/d,uy=dy/d,penetration=penetrationFactor(game.shipLoadout);
+ let hits=0,rocksHit=0;
+ for(const from of positions(game,'rail')){
+  const end={x:from.x+ux*stats.range,y:from.y+uy*stats.range};
+  const intersections=targets.map(item=>({item,t:shotCircle(from,end,item.target,targetRadius(item))}))
+   .filter(hit=>hit.t!==null).sort((a,b)=>a.t-b.t);
+  const rocks=game.rockGrid.query((from.x+end.x)*.5,(from.y+end.y)*.5,stats.range*.5+80);
+  const cover=firstRockImpact(from.x,from.y,end.x,end.y,rocks,2,game.player);
+  const before=intersections.find(hit=>!cover||hit.t<=cover.t+1e-8);
+  const damage=stats.damage*1.5*weaponDamageFactor(game.shipLoadout,'rail',before?.item?.target||
+   intersections[0]?.item?.target);
+  let impact=end;
+  if(before){
+   impact=onRay(from,end,before.t);
+   if(damageTarget(game,before.item,damage,'rail',impact)>0)hits++;
+  }else if(cover){
+   impact=cover;rocksHit++;
+   game.damageRock(cover.rock,damage*.85,from.x,from.y,'auto',true,
+    contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y));
+   if(penetration){
+    const beyond=intersections.find(hit=>hit.t>cover.t+1e-8);
+    const second=firstRockImpact(cover.x+ux*2,cover.y+uy*2,end.x,end.y,
+     rocks.filter(rock=>rock!==cover.rock),2,game.player);
+    if(second&&(!beyond||targetDistance(from,second)<beyond.t*stats.range)){
+     game.damageRock(second.rock,damage*penetration,from.x,from.y,'auto',true,
+      contactAtPoint(second.rock.x,second.rock.y,second.x,second.y));
+    }else if(beyond&&damageTarget(game,beyond.item,damage*penetration,'rail',onRay(from,end,beyond.t))>0)hits++;
+   }
+  }
+  game.flash(from.x,from.y,impact.x,impact.y,before?'#b8e6ff':cover?'#f6ca87':'#7b9be9');
+  game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(uy,ux),'railgun');
+ }
+ heatWeapons(game.weaponThermal,MODULES.rail.heat*game.weaponProfile.rail);
+ // The deliberate shot has more punch, but takes longer to reload. A miss
+ // costs the same heat and time, so manual control is not free extra DPS.
+ game.moduleClocks.rail=stats.interval*1.3;
+ game.heritage.play('rocket',.34,{x:game.player.x,y:game.player.y});
+ return {ok:true,hits,rocksHit,cooldown:game.moduleClocks.rail};
 }
 // Kept as the auxiliary-only public entry point for tools and isolated scenarios.
 export function updateAuxiliaryWeapons(game,dt,allowed){

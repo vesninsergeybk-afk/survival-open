@@ -27,19 +27,20 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-4-living-world-3-frontier-3';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
 import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2';
 
-import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1';
+import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1';
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
-import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=living-world-2';
+import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1';
+import {precisionRailUnlocked,PRECISION_RAIL_TECH} from './station-progression.js?v=rpg-precision-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
 import {pickDesignatedTarget,activeDesignatedTarget} from './target-designation.js?v=living-world-2';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2';
@@ -152,6 +153,7 @@ export class ArcadeGame {
   this.enemyComms=new EnemyComms();
   this.designatedTarget=null;
   window.addEventListener?.('pagehide',()=>this.enemyLearning?.flush(this.time));
+  this.manualRailMode=false;this.precisionRailAvailable=false;
   this.weaponThermal=createThermal();this.moduleClocks={rail:0,flak:0};
   this.heavyCharge=null;this.heavyCooldown=0;this.syncShipLoadout();
   this.doctrine=null;this.lastDamageAt=-Infinity;
@@ -252,6 +254,7 @@ export class ArcadeGame {
      if(e.code==='Space')this.callFieldWeapon();
      if(e.code==='KeyF')this.callHowitzer();
      if(e.code==='KeyB')this.callStrike();
+     if(e.code==='KeyR'&&!this.dead)this.toggleManualRail();
     if(e.code==='Tab'||e.code==='KeyM')this.openMap();
      if(e.code==='KeyU')this.skills();
     if(e.code==='Escape')this.dismiss();
@@ -392,6 +395,7 @@ export class ArcadeGame {
   $('hackBtn').onclick=()=>this.hack();
    const ionButton=$('ionBtn');if(ionButton)ionButton.onclick=()=>this.callFieldWeapon();
    const heavyButton=$('heavyBtn');if(heavyButton)heavyButton.onclick=()=>this.callHowitzer();
+   const railButton=$('precisionBtn');if(railButton)railButton.onclick=()=>this.toggleManualRail();
    const strikeButton=$('strikeBtn');if(strikeButton)strikeButton.onclick=()=>this.callStrike();
   $('burstBtn').onclick=()=>this.startBurst();
   const actionButton=$('actionBtn');
@@ -418,8 +422,9 @@ export class ArcadeGame {
   pad.addEventListener('pointermove',e=>{if(e.pointerId===active)pointer(e);});
   const release=e=>{if(e.pointerId!==active)return;active=null;this.touch.x=0;this.touch.y=0;$('knob').style.transform='';};
   pad.addEventListener('pointerup',release);pad.addEventListener('pointercancel',release);
-  // An ordinary click/tap selects the next auto-aim priority. No extra
-  // mobile button, no weapon-stat boost and no manual firing mode.
+  // In ordinary flight a tap chooses auto-target priority. Manual rail mode
+  // explicitly replaces that tap with a precision shot; R / the mode button
+  // restores ordinary designation. Both use the same camera projection.
   let aimStart=null;
   this.canvas?.addEventListener('pointerdown',e=>{
    if(e.button!==0||this.paused||this.dead)return;
@@ -433,6 +438,7 @@ export class ArcadeGame {
    if(!rect.width||!rect.height)return;
    const worldPoint={x:cam.x+(e.clientX-rect.left)/rect.width*cam.w,
      y:cam.y+(e.clientY-rect.top)/rect.height*cam.h};
+   if(this.manualRailMode){this.fireManualRailAt(worldPoint);return;}
    const item=pickDesignatedTarget(this,worldPoint,
      Math.max(34,28*cam.w/rect.width));
    if(!item){this.designatedTarget=null;return;}
@@ -1157,6 +1163,7 @@ export class ArcadeGame {
   this.shipLoadout.slots=this.shipLoadout.slots.map(id=>available(id)?id:null);
   if(this.hangarSession?.draft)this.hangarSession.draft.slots=this.hangarSession.draft.slots.map(id=>available(id)?id:null);
   this.weaponProfile=loadoutProfile(this.shipLoadout);
+   if(!this.weaponProfile.rail){this.manualRailMode=false;this.canvas?.classList?.remove('rail-manual');}
   if(!this.weaponProfile.resonator)this.fieldEffects=[];
   this.player.weaponSlots=this.shipLoadout.slots;
  }
@@ -1212,6 +1219,27 @@ export class ArcadeGame {
  updateShipWeapons(dt){
   updateAutomaticWeapons(this,dt,!this.heavyCharge&&automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing));
  }
+  toggleManualRail(){
+   if(this.dead||this.paused||!this.overlay.hidden)return false;
+   if(!this.weaponProfile.rail){this.notice('Для точной стрельбы установите рельсовое орудие в ангаре.',3);return false;}
+   if(!precisionRailUnlocked(this.world)){
+    this.notice('Ручной режим рельса откроется после включения первого арсенала.',4);return false;
+   }
+   this.manualRailMode=!this.manualRailMode;
+   this.canvas?.classList?.toggle('rail-manual',this.manualRailMode);
+   this.notice(this.manualRailMode?
+    'РЕЛЬС · РУЧНОЙ РЕЖИМ. Нажмите на цель или точку выстрела. Остальные орудия работают автоматически.':
+    'РЕЛЬС · АВТООГОНЬ. Нажатие на врага снова назначает приоритетную цель.',4);
+   this.heritage.ui('tab');this.hud();return true;
+  }
+  fireManualRailAt(point){
+   if(this.dead||this.paused||!this.overlay.hidden)return false;
+   const result=fireAimedRail(this,point);
+   if(!result.ok){this.notice(result.reason,2);return false;}
+   this.notice(result.hits?'ТОЧНЫЙ ВЫСТРЕЛ · попадание'+(result.hits>1?' ×'+result.hits:''):
+    result.rocksHit?'Выстрел перехвачен астероидом':'Рельсовый выстрел прошёл мимо цели',1.6);
+   this.hud();return true;
+  }
  callHowitzer(){
   if(this.dead||this.paused||!this.overlay.hidden||this.mining.active||this.probeRepairing)return false;
   const plan=planHowitzer(this);
@@ -1280,6 +1308,9 @@ export class ArcadeGame {
   if(!this.pendingCheckpoint)return;
   try{restoreCheckpoint(this,this.pendingCheckpoint);}
   catch{this.notice('Сохранённый вылет не удалось восстановить. Запись оставлена без изменений.',6);return;}
+  this.precisionRailAvailable=precisionRailUnlocked(this.world);
+  this.manualRailMode=false;
+  this.canvas?.classList?.remove('rail-manual');
   // Existing saves predate the reward: preserve their contract progress and
   // offer the choice once instead of requiring another completed contract.
   if(this.firstHardwareReward==null&&[...this.world.stations.values()].some(b=>
@@ -1371,8 +1402,20 @@ export class ArcadeGame {
     (this.fieldLoan.cooldownUntil>this.time?' · зарядка '+Math.ceil(this.fieldLoan.cooldownUntil-this.time)+' с':' · Space'):'';
    if(ion){ion.hidden=!fitted;ion.disabled=!ready;ion.textContent=fieldText.replace(' · Space','');}
    const status=$('fieldWeaponStatus');if(status){
-    status.hidden=!fitted||this.paused||this.dead||!this.overlay.hidden;
-    status.textContent=fieldText;status.setAttribute('aria-label',fieldText);
+    const railText=this.manualRailMode?'РЕЛЬС: ручное прицеливание · R — авто · нажмите на цель':'';
+    const text=[railText,fitted?fieldText:''].filter(Boolean).join(' · ');
+    status.hidden=!text||this.paused||this.dead||!this.overlay.hidden;
+    status.textContent=text;status.setAttribute('aria-label',text);
+   }
+   const precision=$('precisionBtn'),precisionAvailable=!!this.weaponProfile.rail&&
+    (this.precisionRailAvailable??precisionRailUnlocked(this.world));
+   if(precision){
+    precision.hidden=!precisionAvailable;
+    precision.setAttribute('aria-pressed',String(!!this.manualRailMode));
+    precision.textContent=this.manualRailMode?'Рельс · руч.':'Рельс · авто';
+    precision.setAttribute('aria-label',this.manualRailMode?
+     'Перевести рельсовое орудие в автоматический режим':
+     'Перевести рельсовое орудие в ручной режим прицеливания');
    }
    const heavy=$('heavyBtn');if(heavy){heavy.hidden=!this.weaponProfile.howitzer;
     heavy.disabled=!!this.heavyCharge||this.heavyCooldown>0||this.weaponThermal.locked;
@@ -1381,7 +1424,8 @@ export class ArcadeGame {
     const base='WASD / стрелки — полёт · E — действие · C — автоогонь · Shift — рывок · Q — код · B — авиаудар · Tab — карта · U — развитие';
     const hint=fitted?' · SPACE — '+fieldText.replace(' · Space',''):'';
     const heavyHint=this.weaponProfile.howitzer?' · F — ГАУБИЦА':'';
-    if(tip.textContent!==base+hint+heavyHint)tip.textContent=base+hint+heavyHint;
+    const railHint=precisionAvailable?' · R — рельс '+(this.manualRailMode?'вручную (нажмите на точку)':'авто/вручную'):'';
+    if(tip.textContent!==base+hint+heavyHint+railHint)tip.textContent=base+hint+heavyHint+railHint;
    }
   const skills=$('skillBtn');
   if(skills)skills.classList.toggle('has-points',this.player.points>0);
@@ -1616,9 +1660,11 @@ export class ArcadeGame {
   }
   if(act==='activate'){
    if(o.reasons.activate){this.notice(o.reasons.activate,2);return;}
+    const precisionUnlockedHere=b.type==='arsenal'&&!precisionRailUnlocked(this.world);
    p.ore-=o.relayCost;
    recordEconomyExpense(this,'stations',o.relayCost);
    b.active=true;b.discovered=true;this.activeBases++;b.activationIndex=this.activeBases;
+    if(precisionUnlockedHere)this.precisionRailAvailable=true;
     if(this.waypoint?.id===b.id)this.waypoint=null;
    b.activated=true;b.activationTime=this.time;
    p.ore+=o.rewardAlloy;
@@ -1627,10 +1673,11 @@ export class ArcadeGame {
    this.cachedNetworkLinked=topology.linked;
    this.defenseTopology=null;
    synchronizeStationDefenses(this.world,this.time,topology);
-   this.notice('Станция активна'+(topology.linked.has(b.id)?
+    this.notice('Станция активна'+(topology.linked.has(b.id)?
     ' · подключено узлов: '+topology.count:' · ищите ретранслятор')+
     (o.rewardAlloy?' · +'+o.rewardAlloy+' сплава':'')+
-    (o.relayCost?' · −'+o.relayCost+' сплава':''),3.8);
+     (o.relayCost?' · −'+o.relayCost+' сплава':'')+
+     (precisionUnlockedHere?' · ОТКРЫТО: '+PRECISION_RAIL_TECH.name+' (R)':''),precisionUnlockedHere?6:3.8);
    this.heritage.vfx.nova(b.x,b.y,130,'cyan');
   }else if(!b.active){this.notice('Сначала активируйте станцию',2);return;}
   else if(act==='hire'){

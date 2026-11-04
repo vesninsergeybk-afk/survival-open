@@ -6,6 +6,7 @@ import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './rela
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-1';
 import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-4';
+import {precisionRailUnlocked} from './station-progression.js?v=rpg-precision-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -70,6 +71,7 @@ export function renderStationRoutePreview(base,state={}){
 export function renderWorldMap(game){
  const p=game.player,world=game.world,enemyVisible=game.enemyBasesUnlocked();
  const topology=world.networkTopology();
+ const precisionUnlocked=precisionRailUnlocked(world);
  const localControl=world.sectorControl?.(p.x,p.y)||{kind:'neutral',base:null};
  const control=enemyVisible||localControl.base?.strategicRole?localControl:{kind:'neutral',base:null};
  const territory=control.kind==='hostile'?'Вражеский сектор: патрули прибывают примерно на 18% чаще. Захватите базу, чтобы снизить угрозу.':
@@ -217,8 +219,10 @@ export function renderWorldMap(game){
   const status=isSignal?'координаты приблизительные (погрешность до 170 м)':
    b.enemy?'вражеская база':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети · ПВО'+(topology.count>=2?' и стазис':'')+(b.relayBoost?' · усиленная связь':''):'автономный узел · ПВО'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
   const value=isSignal?'Приблизиться и исследовать':'Построить маршрут';
+  const discovery=!isSignal&&!b.enemy&&b.type==='arsenal'&&!precisionUnlocked?
+   ' · ОТКРЫТИЕ: ручной прицел для рельсового орудия':'';
   return '<article class="map-contact'+(same?' selected':'')+'">'+
-   '<div><strong>'+enc(label)+'</strong><small>'+Math.round(d)+' м · '+status+'</small></div>'+
+   '<div><strong>'+enc(label)+'</strong><small>'+Math.round(d)+' м · '+status+discovery+'</small></div>'+
    '<button type="button" data-act="waypoint" data-id="'+enc(b.id)+
    '" data-x="'+Number(b.x).toFixed(2)+'" data-y="'+Number(b.y).toFixed(2)+
    '" data-label="'+enc(label)+'"'+(isSignal?' data-signal="1"':'')+
