@@ -1,7 +1,8 @@
 import {World} from './world.js?v=arcade-base-network-40';
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=weapons-cycle-2';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=weapons-cycle-2';
-import {validSortieReports} from './sortie-economy.js?v=weapons-cycle-2';
+import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1';
+import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
@@ -13,7 +14,7 @@ const FIELDS=('player skillRanks shipLoadout weaponThermal moduleClocks heavyCha
  'contract operation geoScanUntil overchargeUntil fieldLoan fieldTrialTaken fieldReturnAt ionMasteryAwarded '+
  'holdFire beamClock rocketClock zoneClock stationary lastX lastY hacks activeBases enemySerial '+
  'allySerial groupSerial heavyPortalShown lastEncounter lastEncounterLabelAt amberBeltSeen ionFieldSeen '+
- 'waypoint lastIonAudioCycle fieldEffects sortieReports').split(' ');
+ 'waypoint lastIonAudioCycle fieldEffects sortieReports economyExpenses').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const cell=v=>typeof v==='string'&&/^-?\d+:-?\d+$/.test(v);
@@ -115,6 +116,7 @@ export function validateCheckpoint(data){
  if(Object.values(s.skillRanks).some(v=>!Number.isInteger(v)||v<0||v>10)||
   Object.keys(s).some(k=>!FIELDS.includes(k)))return false;
  if(s.sortieReports!==undefined&&!validSortieReports(s.sortieReports))return false;
+ if(s.economyExpenses!==undefined&&!validEconomyExpenses(s.economyExpenses))return false;
  for(const k of ['enemies','allies','drops','shots','missiles','flashes','zones','hacks'])
   if(!Array.isArray(s[k])||s[k].length>2000)return false;
  if(s.enemies.length>512||s.allies.length>64||!Array.isArray(s.support.missions))return false;

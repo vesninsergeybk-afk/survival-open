@@ -7,6 +7,8 @@ import {createCorridorOperation} from '../operations.js';
 import {createCarrierInterception} from '../carrier-interception.js';
 import {createIonLoan} from '../ion-conductor.js';
 import {RUN_KEYS,RunCheckpointStore,captureCheckpoint,restoreCheckpoint,packRun,unpackRun,validateCheckpoint} from '../run-checkpoint.js';
+import {startSortie,finishSortie,appendSortieReport} from '../sortie-economy.js';
+import {emptyEconomyExpenses,recordEconomyExpense} from '../sortie-ledger.js';
 
 const entry=new URL('../game.js',import.meta.url);
 const source=readFileSync(entry,'utf8').replace(/\nnew ArcadeGame\(\);\s*$/,'\n')
@@ -67,6 +69,56 @@ test('return reports survive a checkpoint, but an unfinished sortie never duplic
  assert.ok(validateCheckpoint(loaded));
  loaded.state.sortieReports.push({seconds:-4,ore:0,data:0,hull:0,drones:0,levels:0,baseId:'0:0'});
  assert.equal(validateCheckpoint(loaded),false);
+});
+test('a claimed field contract is credited to its completed flight and saved exactly once',()=>{
+ const g=scene(),b=g.docked;
+ g.sortieReports=[];g.sortieStart=startSortie(g);
+ g.contract={baseId:b.id,kind:'kill',goal:1,progress:0,choiceId:'standard',
+  name:'Перехват',ore:16,data:15};
+ g.advanceContract('kill',{type:'scout',x:b.x,y:b.y});
+ assert.equal(g.contract.completedSortieId,g.sortieStart.id);
+ g.time+=45;g.player.data+=7;
+ g.sortieReports=appendSortieReport(g.sortieReports,finishSortie(g.sortieStart,g,b));
+ g.sortieStart=null;g.renderDock=noop;
+ g.baseAction('claimContract','');
+ assert.equal(g.player.ore,36);assert.equal(g.player.data,52);
+ assert.equal(g.sortieReports[0].ore,16);
+ assert.equal(g.sortieReports[0].data,22);
+ assert.equal(g.sortieReports[0].details.oreContracts,16);
+ assert.equal(g.sortieReports[0].details.dataContracts,15);
+ assert.deepEqual(g.lastContractReceipt,{ore:16,data:15,credited:true});
+ g.baseAction('claimContract','');
+ assert.equal(g.player.ore,36);assert.equal(g.sortieReports[0].ore,16);
+ const {storage}=save(g),fresh=scene();restoreCheckpoint(fresh,new RunCheckpointStore(storage).load());
+ assert.equal(fresh.player.ore,36);assert.equal(fresh.sortieReports[0].ore,16);
+ assert.equal(fresh.sortieReports[0].details.oreContracts,16);
+});
+test('station purchases remain separate from sortie income and expenses survive a checkpoint',()=>{
+ const g=scene();g.economyExpenses=emptyEconomyExpenses();
+ const start=startSortie(g);g.sortieStart=start;
+ g.time+=60;g.player.ore+=38;
+ g.sortieReports=appendSortieReport([],finishSortie(start,g,g.docked));
+ g.sortieStart=null;
+ g.player.ore-=20;recordEconomyExpense(g,'drones',20);
+ g.player.ore-=24;recordEconomyExpense(g,'stations',24);
+ const {storage}=save(g),fresh=scene();restoreCheckpoint(fresh,new RunCheckpointStore(storage).load());
+ assert.equal(fresh.sortieReports[0].ore,38,'a post-dock purchase cannot rewrite earned ore');
+ assert.deepEqual(fresh.economyExpenses,{weapons:0,drones:20,repairs:0,stations:24,services:0,travel:0});
+ assert.ok(validateCheckpoint(new RunCheckpointStore(storage).load()));
+ const forged=new RunCheckpointStore(storage).load();forged.state.economyExpenses.drones=-10;
+ assert.equal(validateCheckpoint(forged),false);
+});
+test('the live pickup path records mined alloy and recovered combat data by source',()=>{
+ const g=scene();g.sortieStart=startSortie(g);g.time+=24;
+ g.heritage={...g.heritage,play:noop};
+ g.collect({type:'ore',value:9,source:'mining'});
+ g.collect({type:'ore',value:2,source:'salvage'});
+ g.collect({type:'data',value:7,source:'combat'});
+ const report=finishSortie(g.sortieStart,g,g.docked);
+ assert.equal(report.ore,11);assert.equal(report.data,7);
+ assert.equal(report.details.oreMining,9);assert.equal(report.details.oreSalvage,2);
+ assert.equal(report.details.dataCombat,7);
+ assert.equal(report.details.dataOperations,0);
 });
 test('the real leave-and-dock lifecycle records one flight and ignores instant reopening',()=>{
  const g=scene();g.sortieReports=[];g.sortieStart=null;

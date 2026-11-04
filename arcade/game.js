@@ -3,6 +3,7 @@ import {World} from './world.js?v=arcade-base-network-40';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=relay-def-1-scout-evasion-1-iris-scan-1-inertial-2';
+import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1';
 import {createSignalIntel,alertSignalIntel} from './signal-perception.js?v=arcade-perception-61';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
 import {ArcadeVisuals} from './visuals.js?v=weapons-cycle-2';
@@ -15,7 +16,7 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=weapons-cycle-2-menu-permanence-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=economy-integrity-2-menu-permanence-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=weapons-cycle-2';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
@@ -28,8 +29,10 @@ import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=weapons-cycle-2';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=weapons-cycle-2';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=weapons-cycle-2';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=weapons-cycle-2';
-import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=weapons-cycle-2';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=economy-integrity-1';
+import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1';
+import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
+ creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -141,6 +144,8 @@ export class ArcadeGame {
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';this.mapReturnToBase=false;
   this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
+  this.lastContractReceipt=null;
+  this.economyExpenses=emptyEconomyExpenses();
    this.geoScanUntil=0;this.overchargeUntil=0;
    this.fieldLoan=null;this.fieldTrialTaken=false;this.fieldReturnAt=-Infinity;this.fieldEffects=[];
    this.ionMasteryAwarded=false;
@@ -265,6 +270,13 @@ export class ArcadeGame {
     if(act==='baseTab'&&['summary','operations','hangar','network'].includes(b.dataset.role)){
      this.baseTab=b.dataset.role;this.heritage.ui('tab');this.renderDock();
      this.overlay.querySelector('.base-tabs [aria-selected="true"]')?.focus({preventScroll:true});}
+   if(act==='showFieldTrial'&&this.docked?.id==='0:0'&&
+    !this.fieldTrialTaken&&!this.fieldLoan){
+    this.baseTab='hangar';this.heritage.ui('tab');this.renderDock();
+    const services=this.overlay.querySelector('[data-hangar-section="services"]');
+    if(services){services.open=true;services.scrollIntoView({block:'nearest'});}
+    this.overlay.querySelector('[data-act="loanField"]:not(:disabled)')?.focus({preventScroll:true});
+   }
     if(act==='baseMap')this.openMap();
     if(act==='baseBack'&&this.mapReturnToBase&&this.docked){
      this.mapReturnToBase=false;this.overlay.dataset.mode='base';
@@ -395,6 +407,7 @@ export class ArcadeGame {
    if(!this.overlay.hidden&&this.docked&&
     (this.stationExitArmed||this.overlay.dataset.mode==='base'))
     this.sortieStart=startSortie(this);
+   if(this.sortieStart)this.lastContractReceipt=null;
    this.stationExitArmed=false;
    this.saveAtStation();
    this.endInteraction();
@@ -562,8 +575,11 @@ export class ArcadeGame {
   const station=c?this.world.stations.get(c.baseId):null;
   if(!eligibleContractProgress(c,kind,subject,station))return;
   c.progress++;
-  if(c.progress===c.goal)this.notice('Задание выполнено! '+
+  if(c.progress===c.goal){
+   c.completedSortieId=this.sortieStart?.id??null;
+   this.notice('Задание выполнено! '+
     'Вернитесь на '+(station?baseNames[station.type]:'станцию')+' за наградой. Золотая отметка покажет её на карте.',4.5);
+  }
  }
 
  // Finite assault on a fragile relay. Leaving the sector never grants a free win.
@@ -666,8 +682,10 @@ export class ArcadeGame {
    if(!this.waypoint)this.waypoint={id:next.id,x:next.x,y:next.y,
     label:baseNames[next.type]||'Станция'};}
   this.player.ore+=RELAY_DEFENSE.rewardOre;
+  recordSortieIncome(this,'ore','operation',RELAY_DEFENSE.rewardOre);
   this.cockpit.resourceGain(RELAY_DEFENSE.rewardOre,this.time);
   this.collect({type:'data',value:RELAY_DEFENSE.rewardData});
+  recordSortieIncome(this,'data','operation',RELAY_DEFENSE.rewardData);
   this.heritage.vfx.nova(op.x,op.y,130,'green');
   this.heritage.station('claimContract',base.type);
   this.notice('РЕТРАНСЛЯТОР ЗАЩИЩЁН! +'+RELAY_DEFENSE.rewardOre+' сплава, +'+
@@ -786,8 +804,10 @@ export class ArcadeGame {
    base.supplyIntercepted=true;base.carrierMission=null;this.operation=null;
    if(this.waypoint?.id===CARRIER_INTERCEPTION.id)this.waypoint=null;
    this.player.ore+=CARRIER_INTERCEPTION.rewardOre;
+   recordSortieIncome(this,'ore','operation',CARRIER_INTERCEPTION.rewardOre);
    this.cockpit.resourceGain(CARRIER_INTERCEPTION.rewardOre,this.time);
    this.collect({type:'data',value:CARRIER_INTERCEPTION.rewardData});
+   recordSortieIncome(this,'data','operation',CARRIER_INTERCEPTION.rewardData);
    this.spawnClock=Math.max(this.spawnClock||0,10);
    this.heritage.vfx.nova(base.x,base.y,132,'green');
    this.heritage.station('claimContract',base.type);
@@ -913,8 +933,10 @@ export class ArcadeGame {
     label:baseNames[nextStation.type]||'Станция'};
   }
   this.player.ore+=CORRIDOR_OPERATION.rewardOre;
+  recordSortieIncome(this,'ore','operation',CORRIDOR_OPERATION.rewardOre);
   this.cockpit.resourceGain(CORRIDOR_OPERATION.rewardOre,this.time);
   this.collect({type:'data',value:CORRIDOR_OPERATION.rewardData});
+  recordSortieIncome(this,'data','operation',CORRIDOR_OPERATION.rewardData);
   this.heritage.vfx.nova(base.x,base.y,130,'green');
   this.heritage.station('claimContract',base.type);
   this.notice('КОРИДОР ОТКРЫТ! +'+CORRIDOR_OPERATION.rewardOre+' сплава, +'+CORRIDOR_OPERATION.rewardData+
@@ -954,8 +976,10 @@ export class ArcadeGame {
     label:baseNames[next.type]||'Станция'};
   }
   this.player.ore+=PROBE_OPERATION.rewardOre;
+  recordSortieIncome(this,'ore','operation',PROBE_OPERATION.rewardOre);
   this.cockpit.resourceGain(PROBE_OPERATION.rewardOre,this.time);
   this.collect({type:'data',value:PROBE_OPERATION.rewardData});
+  recordSortieIncome(this,'data','operation',PROBE_OPERATION.rewardData);
   this.heritage.vfx.nova(op.x,op.y,105,'cyan');
   this.heritage.station('claimContract',base.type);
   this.notice('СИГНАЛ ВОССТАНОВЛЕН! +'+PROBE_OPERATION.rewardOre+' сплава, +'+
@@ -997,6 +1021,7 @@ export class ArcadeGame {
    ore:this.player.ore,points:this.player.points,activeBases:this.activeBases,
    ranks:this.skillRanks,fieldLoan:this.fieldLoan,baseActive:this.docked.active,earlyRail:!!this.world.home?.corridorSecured});
   if(result?.ok){
+   recordEconomyExpense(this,'weapons',Math.max(0,this.player.ore-result.ore));
    this.shipLoadout=result.loadout;this.player.ore=result.ore;
    if(result.type==='specialization')this.player.points=result.points;
    this.syncShipLoadout();
@@ -1032,7 +1057,8 @@ export class ArcadeGame {
    allies:this.allies.length,droneRoles:this.allies.map(a=>a.role),network:this.network,doctrine:this.doctrine,
    droneDamage:this.allies.reduce((sum,a)=>sum+Math.max(0,a.maxHp-a.hp),0),
    charges:this.support.charges,contract:this.contract,operation:this.operation,baseTab:this.baseTab,
-   sortieReports:this.sortieReports,
+   sortieReports:this.sortieReports,economyExpenses:this.economyExpenses,
+   lastContractReceipt:this.lastContractReceipt,
     fieldLoan:this.fieldLoan,fieldTrialTaken:this.fieldTrialTaken,earlyRail:!!this.world.home?.corridorSecured,
     fieldReturnNotice:this.time-this.fieldReturnAt<6,
     position:{x:this.player.x,y:this.player.y},shield:this.player.shield,
@@ -1269,6 +1295,7 @@ export class ArcadeGame {
    const id=act==='loanIon'?'ion':role,offer=fieldLoanOffer(b,this.baseState(),id);
    if(!offer||offer.mode==='return'||offer.reason){this.heritage.ui('deny');return;}
    p.ore-=offer.cost;
+   recordEconomyExpense(this,'services',offer.cost);
    this.fieldLoan=createFieldLoan(id,b.id,this.time,missionAssignment(this.operation,this.contract));
    const suggested=this.suggestShipModule(id);
    if(offer.mode==='trial')this.fieldTrialTaken=true;
@@ -1287,6 +1314,7 @@ export class ArcadeGame {
    const quote=refillQuote(this.fieldLoan,p.ore);
    if(!quote.ok){this.notice(quote.reason,2.5);this.heritage.ui('deny');return;}
    p.ore-=quote.cost;this.fieldLoan.charges=quote.charges;
+   recordEconomyExpense(this,'services',quote.cost);
    this.notice(fieldWeapon(this.fieldLoan).short+': зарядов '+quote.charges+'/3 · −'+quote.cost+' сплава',3);
    this.heritage.ui('upgrade');this.renderDock();return;
   }
@@ -1325,6 +1353,7 @@ export class ArcadeGame {
   if(act==='antenna'){
    if(o.reasons.antenna){this.heritage.ui('deny');this.notice(o.reasons.antenna,2.6);return;}
    p.ore-=o.antennaCost;b.relayBoost=true;
+   recordEconomyExpense(this,'stations',o.antennaCost);
    const topology=this.world.networkTopology();
    this.cachedNetworkLinked=topology.linked;
    this.notice('Антенна усилена · в сети '+topology.count+' станций',3.5);
@@ -1336,6 +1365,7 @@ export class ArcadeGame {
    const spec=stationModule(b.type,role);
    if(!b.active||!spec||b.module||p.ore<spec.cost){this.heritage.ui('deny');this.notice('Модуль недоступен: проверьте сплав и оснащение станции',3);return;}
    p.ore-=spec.cost;b.module=role;
+   recordEconomyExpense(this,'stations',spec.cost);
    this.notice('Оснащение станции: '+spec.name+' · −'+spec.cost+' сплава',3.2);
    this.heritage.vfx.nova(b.x,b.y,96,'cyan');
    this.heritage.station('upgrade',b.type,{tech:'module'});
@@ -1360,12 +1390,17 @@ export class ArcadeGame {
    finishFieldAssignment(this.fieldLoan,'contract',c);
    p.ore+=c.ore;this.cockpit.resourceGain(c.ore,this.time);
    this.collect({type:'data',value:c.data});
+   this.sortieReports=creditContractReward(this.sortieReports||[],c,b);
+   this.lastContractReceipt={ore:c.ore,data:c.data,
+    credited:this.sortieReports.some(r=>r.id===c.completedSortieId&&r.details?.oreContracts>=c.ore)||
+     (c.completedSortieId==null&&this.sortieReports.some(r=>r.baseId===b.id))};
    this.notice('Поручение выполнено: +'+c.ore+' сплава · +'+c.data+' данных',4);
    this.heritage.station(act,b.type);
    this.pausedRenderPending=true;this.renderDock();return;
   }else if(act==='respec'){
    if(!b.active||!this.doctrine||p.ore<12){this.notice('Нужны активная база и 12 сплава',2);return;}
    p.ore-=12;this.doctrine=null;p.points++;
+   recordEconomyExpense(this,'services',12);
    this.heritage.station('respec',b.type);
    this.heritage.pause('skills');
    this.overlay.dataset.mode='skills';this.renderSkills();return;
@@ -1373,6 +1408,7 @@ export class ArcadeGame {
   if(act==='activate'){
    if(o.reasons.activate){this.notice(o.reasons.activate,2);return;}
    p.ore-=o.relayCost;
+   recordEconomyExpense(this,'stations',o.relayCost);
    b.active=true;b.discovered=true;this.activeBases++;b.activationIndex=this.activeBases;
     if(this.waypoint?.id===b.id)this.waypoint=null;
    b.activated=true;b.activationTime=this.time;
@@ -1389,6 +1425,7 @@ export class ArcadeGame {
   else if(act==='hire'){
    if(o.reasons.hire||role!==o.drone.role){this.notice(o.reasons.hire||'Нет такого дрона',2);return;}
    p.ore-=o.hireCost;
+   recordEconomyExpense(this,'drones',o.hireCost);
    if(o.replacing)this.allies.splice(o.replacementIndex,1);
    const maxHp=role==='fighter'?78:58;
    this.allies.push({serial:++this.allySerial,role,x:b.x,y:b.y,vx:0,vy:0,
@@ -1400,16 +1437,19 @@ export class ArcadeGame {
   }else if(act==='upgrade'){
    if(o.reasons.upgrade){this.notice(o.reasons.upgrade,2);return;}
    p.ore-=o.upgradeCost;this.network[o.tech.key]++;b.usedUpgrade=true;
+   recordEconomyExpense(this,'stations',o.upgradeCost);
    this.notice('Технология: '+o.tech.name+' · уровень '+this.network[o.tech.key],3);
    this.heritage.vfx.nova(b.x,b.y,90,'violet');
   }else if(act==='repair'){
    if(o.reasons.repair){this.notice(o.reasons.repair,2);return;}
    p.ore-=o.repairCost;p.hp=Math.min(p.maxHp,p.hp+Math.round(p.maxHp*.45));
+   recordEconomyExpense(this,'repairs',o.repairCost);
    this.notice('Корпус восстановлен',2.4);
    this.heritage.vfx.nova(p.x,p.y,70,'green');
   }else if(act==='repairDrones'){
    if(o.reasons.drones){this.notice(o.reasons.drones,2);return;}
    p.ore-=o.droneRepairCost;
+   recordEconomyExpense(this,'repairs',o.droneRepairCost);
    for(const a of this.allies)a.hp=a.maxHp;
    this.notice('Дроны восстановлены',2.4);
    this.heritage.vfx.nova(b.x,b.y,60,'green');
@@ -1418,6 +1458,7 @@ export class ArcadeGame {
     this.notice(o.reasons.service||'Услуга недоступна',2);return;
    }
    p.ore-=o.localService.cost;
+   recordEconomyExpense(this,'services',o.localService.cost);
    if(b.type==='dock')p.shield=Math.max(30,p.shield);
    else if(b.type==='lab')this.geoScanUntil=this.time+o.localService.duration;
    else if(b.type==='arsenal')this.overchargeUntil=this.time+o.localService.duration;
@@ -1426,6 +1467,7 @@ export class ArcadeGame {
   }else if(act==='supply'){
    if(o.reasons.supply){this.notice(o.reasons.supply,2);return;}
    p.ore-=o.chargeCost;this.support.charges++;
+   recordEconomyExpense(this,'services',o.chargeCost);
    this.notice('Вылетов: '+this.support.charges+' / 2 · B у вражеской базы',3.4);
    this.heritage.vfx.nova(b.x,b.y,70,'cyan');
   }else if(act==='transfer'){
@@ -1437,6 +1479,7 @@ export class ArcadeGame {
    const price=transitCost(b,target);
    if(p.ore<price){this.notice('Для перелёта нужно ещё '+(price-p.ore)+' сплава',2.5);return;}
    p.ore-=price;
+   recordEconomyExpense(this,'travel',price);
    this.heritage.vfx.nova(b.x,b.y,110,'cyan');
    p.x=target.x+75;p.y=target.y+30;p.vx=0;p.vy=0;p.burstRemaining=0;
    for(let i=0;i<this.allies.length;i++){
@@ -1502,7 +1545,8 @@ export class ArcadeGame {
   this.fieldLoan.cooldownUntil=plan.cooldownUntil;
   this.fieldLoan.used++;
   const mastery=ionMasteryAward(plan.targets.length,this.ionMasteryAwarded);
-  if(mastery){this.ionMasteryAwarded=true;this.collect({type:'data',value:mastery});}
+  if(mastery){this.ionMasteryAwarded=true;this.collect({type:'data',value:mastery});
+   recordSortieIncome(this,'data','other',mastery);}
   this.heritage.vfx.nova(plan.targets[0].x,plan.targets[0].y,43,'cyan');
   this.heritage.play('laser',.26,{x:plan.targets[0].x,y:plan.targets[0].y});
   this.notice(mastery?'Цепной разряд освоен: '+plan.targets.length+
@@ -1600,6 +1644,7 @@ export class ArcadeGame {
   const remaining=Math.max(0,damage-absorbed);
   const previousHp=p.hp;
   p.hp-=remaining;p.invul=.55+this.skillRanks.dodge*.12;this.lastDamageAt=this.time;
+  recordSortieDamage(this,Math.min(previousHp,remaining),absorbed);
   if(previousHp/p.maxHp>.3&&p.hp/p.maxHp<=.3&&p.hp>0)
    this.heritage.play('criticalHull',3);
   const contact=source?contactOnCircle(p.x,p.y,p.r,source.x,source.y):null;
@@ -1618,6 +1663,9 @@ export class ArcadeGame {
  }
  die(){
   if(this.dead)return;
+  const failed=finishSortie(this.sortieStart,this,this.docked||this.world.home,'lost');
+  this.sortieReports=appendSortieReport(this.sortieReports,failed);
+  this.sortieStart=null;
   this.heritage.vfx.shipExplosion(this.player.x,this.player.y,35,'#83e9ff',false);
   this.heritage.vfx.nova(this.player.x,this.player.y,100,'cyan');
   this.heritage.play('death',.1);
@@ -1628,7 +1676,12 @@ export class ArcadeGame {
   this.overlay.hidden=true;this.overlay.dataset.mode='death';
   this.overlay.innerHTML='<div class="dialog"><h2>Корабль потерян</h2><p>Время полёта: '+
     Math.floor(this.time/60)+' мин · уровень '+this.player.level+
-    ' · открыто станций '+this.activeBases+'</p><button data-act="restart">Новый вылет</button></div>';
+    ' · открыто станций '+this.activeBases+'</p>'+
+    (failed?'<p>Последний вылет: '+failed.seconds+' с · сплав '+(failed.ore>=0?'+':'')+failed.ore+
+     ' · данные '+(failed.data>=0?'+':'')+failed.data+
+     ' · получено повреждений '+failed.details.damageTaken+
+     ' · потеряно дронов '+failed.details.dronesLost+'.</p>':'')+
+    '<button data-act="restart">Новый вылет</button></div>';
  }
  updateMissiles(dt){
   for(const m of this.missiles){
@@ -1908,9 +1961,9 @@ export class ArcadeGame {
  addDrop(type,x,y,value,options={}){
   if(this.drops.length>=RULES.maxDrops){
    // When the cap is reached, award pickups directly rather than lose progress.
-   return this.collect({type,value})!==false;
+   return this.collect({type,value,source:options.source})!==false;
   }
-  this.drops.push({type,x,y,value,
+  this.drops.push({type,x,y,value,source:options.source||null,
    vx:options.vx??(Math.random()-.5)*55,
    vy:options.vy??(Math.random()-.5)*55,
    hot:!!options.hot,life:options.life??34});
@@ -1933,8 +1986,12 @@ export class ArcadeGame {
    this.notice(spec.short+': подобран заряд · '+this.fieldLoan.charges+'/'+spec.capacity,2.5);return true;
   }
   this.heritage.play('pickup',.21);
-  if(item.type==='ore'){p.ore+=item.value;this.cockpit.resourceGain(item.value,this.time);}
+  if(item.type==='ore'){
+   p.ore+=item.value;this.cockpit.resourceGain(item.value,this.time);
+   recordSortieIncome(this,'ore',item.source||'mining',item.value);
+  }
   else{
+   if(item.source)recordSortieIncome(this,'data',item.source,item.value);
    p.data+=item.value;p.xp+=item.value;
    while(p.xp>=expForNext(p.level)){
     p.xp-=expForNext(p.level);p.level++;p.points++;
@@ -2033,6 +2090,7 @@ export class ArcadeGame {
   if(this.nearDock&&dist(this.nearDock,p)<165&&this.time-this.lastDamageAt>4){
    const before=p.hp;
    p.hp=Math.min(p.maxHp,p.hp+2.9*dt*(this.nearDock.module==='workshop'?1.6:1));
+   recordSortieRepair(this,p.hp-before);
    let serviced=p.hp>before;
    for(const a of this.allies)if(dist(a,this.nearDock)<200){
     const prior=a.hp;
@@ -2182,7 +2240,12 @@ export class ArcadeGame {
    if(!e.expAwarded&&!e.converted){
     e.expAwarded=true;
     this.advanceContract('kill',e);
-    this.addDrop('data',e.x,e.y,ENEMY_TYPES[e.type].score);
+    this.addDrop('data',e.x,e.y,enemyDataReward(e),{source:'combat'});
+    const salvage=enemySalvage(e);
+    // The dock repairs the ship for free. Standing inside its healing field
+    // should never become a safe, automatic source of alloy.
+    if(salvage&&!(this.nearDock&&dist(this.nearDock,p)<180))
+     this.addDrop('ore',e.x+10,e.y-9,salvage,{source:'salvage',life:24});
    }
   }
   this.enemies=this.enemies.filter(e=>e.hp>0&&
@@ -2255,6 +2318,7 @@ export class ArcadeGame {
    this.heritage.vfx.shipExplosion(a.x,a.y,a.r*1.2,'#8df5e2');
    this.heritage.play('droneDestroyed',.22,{x:a.x,y:a.y});
   }
+  recordSortieDroneLoss(this,this.allies.filter(a=>a.hp<=0).length);
   this.allies=this.allies.filter(a=>a.hp>0);
   for(const d of this.drops){
    d.life-=dt;d.x+=d.vx*dt;d.y+=d.vy*dt;

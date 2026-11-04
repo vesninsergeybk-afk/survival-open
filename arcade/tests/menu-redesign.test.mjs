@@ -135,8 +135,11 @@ test('published entry points invalidate the entire changed ES-module import chai
  const source=relative=>readFileSync(new URL('../'+relative,import.meta.url),'utf8');
  const game=source('game.js'),base=source('base-panel.js');
  const preview=source('hangar-preview.js');
- assert.match(source('index.html'),/game\.js\?v=[^"']*weapons-cycle-2/);
- assert.match(game,/base-panel\.js\?v=weapons-cycle-2/);
+ assert.match(source('index.html'),/game\.js\?v=economy-integrity-2-module-confirm-1/);
+ assert.match(game,/base-panel\.js\?v=economy-integrity-2-menu-permanence-1/);
+ assert.match(game,/sortie-economy\.js\?v=economy-integrity-1/);
+ assert.match(game,/sortie-ledger\.js\?v=economy-ledger-1/);
+ assert.match(base,/sortie-economy\.js\?v=economy-integrity-1/);
  assert.match(game,/map-panel\.js\?v=weapons-cycle-2/);
  assert.match(base,/hangar-panel\.js\?v=weapons-cycle-2/);
  assert.match(base,/map-panel\.js\?v=weapons-cycle-2/);
@@ -169,5 +172,5 @@ test('landscape phone layout reserves notches and exposes navigation without thr
  assert.match(coarse,/\.hg-layout\{display:block/);
  assert.match(coarse,/\.hg-mobile-only\{display:inline-block!important/);
  assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),
-  /menu-system\.css\?v=menus-gameplay-first-4-economy-1-mobile-safe-1/);
+  /menu-system\.css\?v=menus-gameplay-first-4-economy-integrity-2-mobile-safe-1/);
 });
