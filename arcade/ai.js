@@ -2,7 +2,7 @@ import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-n
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
-import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1';
+import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
@@ -29,6 +29,9 @@ export function scoutSteering(e,game,target,speed){
   // alternating lateral passes. They still close in and remain hittable.
   const rangeFactor=clamp((distance-60)/165,0,1);
   let lateral=side*speed*(.12+(.30+(serial%5)*.035)*rangeFactor);
+  const style=e._enemyLearning?.style;
+  if(style==='diverge')lateral*=1.27;
+  else if(style==='cutoff')lateral*=.69;
   const underFire=(e.hit||0)>.025;
   let missileNearby=false;
   if(distance>85&&game.missiles?.length){
@@ -99,8 +102,10 @@ export function scoutAttack(e,game,target,scanning=false){
   const tx=target.x+clamp((target.vx||0)*lead,-45,45);
   const ty=target.y+clamp((target.vy||0)*lead,-45,45);
   const accepted=game.enemyShot(e.x,e.y,tx,ty,IRIS_COMBAT.damage,
-    {kind:'iris',speed:IRIS_COMBAT.projectileSpeed,r:4.5});
+    {kind:'iris',speed:IRIS_COMBAT.projectileSpeed,r:4.5,
+     learnToken:game.enemyLearning?.shotToken(e)});
   if(accepted===false)return false;
+  game.enemyLearning?.fired(e);
   e._irisHasFired=true;
   e.fire=2.0+(Math.abs(Math.trunc(e.serial||0))%4)*.23;
   e._irisChargeStarted=null;
@@ -181,6 +186,16 @@ export function updateEnemy(e,game,dt){
   const irisTactic=e.type==='scout'?
     updateIrisSwarm(e,game,game.player):null;
   const packTactic=e.type==='scout'?irisPackDirective(e,game):null;
+  // Reuse a short-lived sight sample instead of tracing rocks for every
+  // member of a 200-drone swarm on every rendered frame.
+  if(game.enemyLearning&&e._enemyLearningSightAt==null)
+    e._enemyLearningSightAt=game.time+(Math.abs(e.serial||0)%7)*.035;
+  if(game.enemyLearning&&game.time>=e._enemyLearningSightAt){
+    e._enemyLearningSightAt=game.time+.36+(Math.abs(e.serial||0)%5)*.042;
+    e._enemyLearningSaw=dist(e,game.player)<290&&
+      !!game.enemyCanSee?.(e,game.player);
+  }
+  if(e._enemyLearningSaw)game.enemyLearning?.observePlayer(game.player,game.time);
   if(updateIrisPerception(e,game,dt)){
     if(e.type==='scout')scoutAttack(e,game,
       e.signalIntel?.combatFocus||game.player,true);
@@ -202,6 +217,12 @@ export function updateEnemy(e,game,dt){
     }
     return;
   }
+  // Only ordinary engaged enemy pilots learn manoeuvres. Mission scripts,
+  // signal searches, converted allies and cargo keep their authored orders.
+  const learningStyle=!e.boss&&!e.missionStructure&&!e.relayAssault&&
+    !e.interceptCargo?game.enemyLearning?.styleFor(e,game.time):null;
+  if(e._enemyLearningSaw&&dist(e,game.player)<205)
+    game.enemyLearning?.close(e,dt);
   if(e.think<=0){
     e.think=RULES.tacticalInterval+(e.serial%5)*.065;
     e.target=pickTarget(e,game);
@@ -238,14 +259,20 @@ export function updateEnemy(e,game,dt){
     (e.type==='scout'?irisBurstThrust(e,game.time):1);
   if(e.state==='flank'){
     const a=game.time*.24+(e.group||0)*1.45+(e.serial%3)*.6;
-    goalX=p.x+Math.cos(a)*118;goalY=p.y+Math.sin(a)*118;
+    const radius=learningStyle==='wide'?176:118;
+    const lead=learningStyle==='cutoff'?.22:0;
+    goalX=p.x+Math.cos(a)*radius+clamp((p.vx||0)*lead,-40,40);
+    goalY=p.y+Math.sin(a)*radius+clamp((p.vy||0)*lead,-40,40);
   }else if(e.state==='standoff'){
     const d=dist(e,p),v=norm(e.x-p.x,e.y-p.y);
     // Continuous orbital steering avoids the old 260-unit approach/retreat flip.
-    const correction=clamp((d-290)/90,-1,1);
+    const ideal=learningStyle==='sideslip'?340:
+      learningStyle==='intercept'?255:290;
+    const correction=clamp((d-ideal)/90,-1,1);
     const direction=e.serial%2===0?1:-1;
-    goalX=e.x-v.x*correction*125-v.y*55*direction;
-    goalY=e.y-v.y*correction*125+v.x*55*direction;
+    const lateral=learningStyle==='sideslip'?84:55;
+    goalX=e.x-v.x*correction*125-v.y*lateral*direction;
+    goalY=e.y-v.y*correction*125+v.x*lateral*direction;
   }else if(e.state==='guard'&&e.protect?.hp>0){
     // Guardians remain between their medic and the incoming player.
     const v=norm(p.x-e.protect.x,p.y-e.protect.y);
@@ -274,19 +301,37 @@ export function updateEnemy(e,game,dt){
       patient=null;let bestDistance=Infinity;
       if(reserve>0)for(const other of game.grid.query(e.x,e.y,410)){
        if(other===e||other.hp<=0||other.converted||other.hp>=other.maxHp*.88)continue;
-       const d=dist(e,other);
+       const d=dist(e,other)+(learningStyle==='critical'?other.hp/other.maxHp*140:0);
        if(d<bestDistance){patient=other;bestDistance=d;}
       }
       e.healTarget=patient;e.healSearch=.45;
     }
     if(patient){
-      goalX=patient.x+55;goalY=patient.y+28;
+      if(learningStyle==='screen'){
+        const away=norm(patient.x-p.x,patient.y-p.y);
+        goalX=patient.x+away.x*72;goalY=patient.y+away.y*72;
+      }else{goalX=patient.x+55;goalY=patient.y+28;}
       if(dist(e,patient)<175 && (e.healReserve??110)>0){
         const amount=Math.min((e.healReserve??110),13*dt,patient.maxHp-patient.hp);
         patient.hp+=amount;e.healReserve=(e.healReserve??110)-amount;
+        if(amount>0)game.enemyLearning?.supported(e,amount);
         if(amount>0) e.healFlash=.15;
       }
     }else{goalX=p.x+260;goalY=p.y+240;}
+  }
+  if(p===game.player&&e.state==='hunt'){
+    if(e.type==='fighter'&&learningStyle==='intercept'){
+      goalX+=clamp((p.vx||0)*.24,-48,48);
+      goalY+=clamp((p.vy||0)*.24,-48,48);
+    }else if(e.type==='fighter'&&learningStyle==='pressure'){
+      goalX=p.x;goalY=p.y;
+    }else if(e.type==='berserker'&&learningStyle==='intercept'){
+      goalX+=clamp((p.vx||0)*.22,-45,45);
+      goalY+=clamp((p.vy||0)*.22,-45,45);
+    }else if(e.type==='berserker'&&learningStyle==='offset'){
+      const heading=norm(p.x-e.x,p.y-e.y);
+      goalX-=heading.y*48;goalY+=heading.x*48;
+    }
   }
   const search=e.type==='scout'&&e.state==='hunt'?irisSearchGoal(e,game):null;
   if(search){goalX=search.x;goalY=search.y;speed*=.78;}
@@ -315,7 +360,7 @@ export function updateEnemy(e,game,dt){
       const jink=scoutSteering(e,game,p,speed);
       const sway=packTactic?.26:(orbit?.42:1);
       extraX+=jink.x*sway;extraY+=jink.y*sway;
-    }else if(e.type==='fighter'){
+    }else if(e.type==='fighter'&&learningStyle!=='pressure'){
       // Heavier fighters make long, slow sweeps, unlike nervous scouts.
       const heading=norm(p.x-e.x,p.y-e.y);
       const sweep=Math.sin(game.time*.81+(e.group||0)*.73+(e.serial%5)*.39);
@@ -329,14 +374,19 @@ export function updateEnemy(e,game,dt){
     e._irisScanMode==='acquire'&&game.time<(e._irisScanUntil||0));
   if(e.type==='gunship'&&!e.relayAssault&&e.fire<=0&&dist(e,p)<535){
     e.fire=1.65;
-    game.enemyShot(e.x,e.y,p.x,p.y,15);
+    if(game.enemyShot(e.x,e.y,p.x,p.y,15,
+      {learnToken:game.enemyLearning?.shotToken(e)})!==false)
+      game.enemyLearning?.fired(e);
   }
   if(p!==game.player&&p.hp>0&&dist(e,p)<e.r+p.r){
     p.hp-=e.damage*dt*1.4;
     if(p.hp<=0)game.heritage.vfx.shipExplosion(p.x,p.y,24,'#9aefff');
   }
   if(dist(e,game.player)<e.r+game.player.r&&game.player.invul<=0){
+    const prior=game.player.hp+game.player.shield;
     game.hurt(e.type==='berserker'&&e.state==='charge'?29:e.damage,{x:e.x,y:e.y});
+    game.enemyLearning?.dealt(game.enemyLearning.shotToken(e),
+      Math.max(0,prior-game.player.hp-game.player.shield));
     if(e.type==='berserker'&&e.state==='charge')e.hp=0;
   }
 }
