@@ -1,5 +1,5 @@
-import {renderShipHangar} from './hangar-panel.js?v=hangar-3';
-import {renderStationRoutePreview} from './map-panel.js?v=carrier-intercept-2';
+import {renderShipHangar} from './hangar-panel.js?v=menus-gameplay-first-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menus-gameplay-first-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=operation-leads-1';

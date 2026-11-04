@@ -78,3 +78,16 @@ test('new artwork is lightweight and every path is present in the actual Pages g
  assert.match(game,/act==='mapView'/);
  assert.match(css,/prefers-reduced-motion/);
 });
+
+test('published entry points invalidate the entire changed ES-module import chain',()=>{
+ const source=relative=>readFileSync(new URL('../'+relative,import.meta.url),'utf8');
+ const game=source('game.js'),base=source('base-panel.js');
+ const preview=source('hangar-preview.js');
+ assert.match(source('index.html'),/game\.js\?v=[^"']*menus-1/);
+ assert.match(game,/base-panel\.js\?v=menus-gameplay-first-1/);
+ assert.match(game,/map-panel\.js\?v=menus-gameplay-first-1/);
+ assert.match(base,/hangar-panel\.js\?v=menus-gameplay-first-1/);
+ assert.match(base,/map-panel\.js\?v=menus-gameplay-first-1/);
+ assert.match(source('hangar-preview.html'),/hangar-preview\.js\?v=menus-gameplay-first-1/);
+ assert.match(preview,/hangar-panel\.js\?v=menus-gameplay-first-1/);
+});
