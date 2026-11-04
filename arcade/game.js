@@ -309,7 +309,9 @@ export class ArcadeGame {
    if(act==='doctrine')this.buyDoctrine(b.dataset.id);
     if(act==='waypoint')this.selectWaypoint(b.dataset);
     if(act==='abandonContract')this.abandonContract();
-    if(act==='loanIon'||act==='returnIon')this.baseAction(act,'');
+    if(['loanField','returnField','fieldCharge','loanIon','returnIon'].includes(act)){
+     this.baseAction(act,b.dataset.role||'');return;
+    }
    if(act==='acceptOperation'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimContract'||act==='claimFirstModule'||act==='installModule'||act==='antenna')
     this.baseAction(act,b.dataset.role||'');
    if(act==='restart')location.reload();
