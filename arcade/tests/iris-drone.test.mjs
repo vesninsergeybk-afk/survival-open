@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {drawIrisDrone,irisEnabledByQuery,irisFrameAt,irisCycleFrameAt,
- irisManeuverFrameAt,irisThrustLevel,isIrisDroneReady}
+ irisManeuverFrameAt,irisDodgeFrameAt,irisDrawSize,irisThrustLevel,isIrisDroneReady}
  from '../iris-drone-renderer.js';
 
 test('I.R.I.S. is enabled by default, with an explicit rollback switch',()=>{
@@ -69,6 +69,14 @@ test('ion exhaust has off and bounded power states',()=>{
   assert.equal(irisThrustLevel(999),5);
   assert.equal(irisThrustLevel(Number.NaN),-1);
 });
+test('the painted scout is smaller than the hero and blinks during dodges',()=>{
+  assert.ok(irisDrawSize(14)>28&&irisDrawSize(14)<34);
+  assert.ok(irisDrawSize(14)<39,'the scout hull is smaller than the hero hull');
+  assert.equal(irisDodgeFrameAt(-1),8);
+  assert.equal(irisDodgeFrameAt(0),8);
+  assert.ok(irisDodgeFrameAt(.245)<=2);
+  assert.equal(irisDodgeFrameAt(.49),8);
+});
 test('without loaded images, the old scout renderer remains available',()=>{
   assert.equal(isIrisDroneReady(),false);
   assert.equal(drawIrisDrone({}, {type:'scout',x:0,y:0,r:14},2),false);
@@ -86,7 +94,7 @@ test('the optional art loads only when a scout requests it',()=>{
    this.onload?.();
   }
  };
- const draws=[],ctx={save(){},restore(){},translate(){},rotate(){},
+ const draws=[],rotations=[],ctx={save(){},restore(){},translate(){},rotate(a){rotations.push(a);},
   drawImage(...args){draws.push(args);},set imageSmoothingEnabled(value){}};
  try{
   assert.equal(drawIrisDrone(ctx,{type:'fighter'},2),false);
@@ -96,6 +104,7 @@ test('the optional art loads only when a scout requests it',()=>{
   assert.equal(constructed,2);
   assert.equal(draws.length,2,'engines run even when the armor is closed');
   assert.deepEqual(draws[1].slice(1,5),[0,0,160,160]);
+  assert.ok(draws[1][7]<34,'rendered hull has been reduced to scout scale');
   draws.length=0;
   assert.equal(drawIrisDrone(ctx,e,3),true);
   assert.equal(draws.length,2);
@@ -114,6 +123,15 @@ test('the optional art loads only when a scout requests it',()=>{
   e.vx=0;e.vy=0;
   assert.equal(drawIrisDrone(ctx,e,4.6),true);
   assert.equal(draws.length,1,'engines stop when the drone has stopped');
+  e.vx=0;e.vy=160;e._scoutDodgeStarted=4.8;e._scoutDodgeSide=1;
+  draws.length=0;rotations.length=0;
+  assert.equal(drawIrisDrone(ctx,e,5.045),true);
+  assert.ok(rotations[0]>.1,'the hull banks visibly during a dodge');
+  assert.deepEqual(draws[0].slice(1,5),[800,0,160,320],
+    'a side-dash uses the strongest existing exhaust art');
+  assert.deepEqual(draws[1].slice(1,5),[320,0,160,160],
+    'the shell briefly half-closes during the side-dash');
   assert.equal(constructed,2);
  }finally{globalThis.Image=originalImage;}
 });
+

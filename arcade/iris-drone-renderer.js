@@ -59,6 +59,14 @@ export function irisManeuverFrameAt(elapsed){
   if(!Number.isFinite(elapsed)||elapsed<0||elapsed>=.72)return 8;
   return clamp(Math.round(8-5*Math.sin(Math.PI*elapsed/.72)),3,8);
 }
+/** A fast defensive blink synchronized with the scout's actual side-dash. */
+export function irisDodgeFrameAt(elapsed){
+  if(!Number.isFinite(elapsed)||elapsed<0||elapsed>=.49)return 8;
+  return clamp(Math.round(8-6*Math.sin(Math.PI*elapsed/.49)),2,8);
+}
+export function irisDrawSize(radius=14){
+  return clamp((radius||14)*2.3,27,35);
+}
 /** Engine levels 0–5 plus -1 for off. Acceleration and turning add thrust. */
 export function irisThrustLevel(speed,acceleration=0,turnRate=0,pulse=0){
   if(!Number.isFinite(speed)||speed<7)return -1;
@@ -108,22 +116,30 @@ export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
   const scanFrame=irisCycleFrameAt(age,enemy.serial,reducedMotion);
   const maneuverFrame=reducedMotion?8:
     irisManeuverFrameAt(now-(enemy._irisManeuverAt??-Infinity));
-  const frame=Math.min(scanFrame,maneuverFrame);
-  const side=clamp((enemy.r||14)*3,32,46);
+  const dodgeElapsed=now-(enemy._scoutDodgeStarted??-Infinity);
+  const dodgeFrame=reducedMotion?8:irisDodgeFrameAt(dodgeElapsed);
+  const frame=Math.min(scanFrame,maneuverFrame,dodgeFrame);
+  // The player's ship is ~39 px across. Scout body shrinks from 42 to 32 px,
+  // while its gameplay collision radius remains 14 world units.
+  const side=irisDrawSize(enemy.r);
+  const banking=(!reducedMotion&&dodgeElapsed>=0&&dodgeElapsed<.49)?
+    (enemy._scoutDodgeSide||0)*.16*Math.sin(Math.PI*dodgeElapsed/.49):0;
   ctx.save();
   ctx.translate(enemy.x,enemy.y);
-  ctx.rotate(Number.isFinite(enemy.visualAngle)?enemy.visualAngle:0);
+  ctx.rotate((Number.isFinite(enemy.visualAngle)?enemy.visualAngle:0)+banking);
   ctx.imageSmoothingEnabled=true;
   // Thrust remains visible with the armor fully closed.
   if(ion){
     const seed=Number.isFinite(enemy.serial)?enemy.serial:0;
     const pulse=reducedMotion?0:Math.sin(now*7.5+(seed%23)*.8);
-    const level=irisThrustLevel(speed,acceleration,turnRate,pulse);
+    const level=irisThrustLevel(speed,
+      dodgeFrame<8?Math.max(180,acceleration):acceleration,turnRate,pulse);
     if(level>=0)ctx.drawImage(ion,level*CELL,0,CELL,320,
-      -side/2,-side/2+side*.30,side,side*2);
+      -side/2,-side/2+side*.30,side,side*1.65);
   }
   ctx.drawImage(body,(frame%3)*CELL,Math.floor(frame/3)*CELL,
     CELL,CELL,-side/2,-side/2,side,side);
   ctx.restore();
   return true;
 }
+
