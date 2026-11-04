@@ -135,6 +135,7 @@
 .base-mission-main{min-width:0}
 .base-mission-main>strong{display:block;color:#f8fbfc;font-size:clamp(19px,2vw,24px);line-height:1.2;margin:5px 0}
 .base-mission-main>p{font-size:14px;color:#cfdee5;line-height:1.4;margin:0 0 8px}
+.base-mission-risk{display:block;margin:0 0 7px;color:#f0cba7;font-size:12px;line-height:1.35}
 .base-mission-reward{font-size:13px;color:#ffdfa0;font-weight:700}
 .base-mission-progress{font-size:13px;color:#a9edcd;font-weight:750;display:block;margin-top:6px}
 .base-mission-main progress{display:block;max-width:230px;width:100%;height:7px;margin-top:5px;accent-color:#7bdcc9}
@@ -157,6 +158,7 @@
  border:1px solid #5c8ca08f!important}
 .base-contract-choice>span{font-size:11px;color:#a2cdd6}
 .base-contract-choice>strong{font-size:17px;line-height:1.2;color:#e6f9fb}
+.base-contract-choice>.base-contract-goal{font-size:13px;color:#c8e0e8;line-height:1.35;flex:0 0 auto}
 .base-contract-choice>.base-mission-more{margin-top:0}
 .base-contract-choice>.base-mission-more p{font-size:13px}
 .base-contract{padding:14px 17px!important}
