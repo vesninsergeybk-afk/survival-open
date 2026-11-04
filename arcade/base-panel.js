@@ -1,5 +1,5 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-regions-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-1-regions-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=regions-1';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
