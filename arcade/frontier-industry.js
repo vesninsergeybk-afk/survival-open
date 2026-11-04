@@ -10,7 +10,7 @@ export const FRONTIERS=Object.freeze({
   route:[{x:5750,y:37000},{x:8000,y:38200},{x:11000,y:40500}],
   capacity:12,cost:6,dispatch:85,speed:215,hp:135,
   harvest:3,assembly:20,warning:11,raidInterval:115,
-  rewardOre:7,rewardData:11,escort:['flanker','fighter'],raid:['flanker','flanker']
+  rewardOre:7,rewardData:11,escort:['flanker','fighter'],reinforcement:'flanker'
  }),
  teal:Object.freeze({id:'teal',name:'Бирюзовая бездна',resource:'обломки',
   sourceId:'frontier:teal:source',depotId:'frontier:teal:depot',
@@ -18,7 +18,7 @@ export const FRONTIERS=Object.freeze({
   route:[{x:-35500,y:10500},{x:-38200,y:12000},{x:-42000,y:9000}],
   capacity:16,cost:8,dispatch:90,speed:185,hp:145,
   assembly:22,warning:12,raidInterval:120,
-  rewardOre:9,rewardData:7,escort:['fighter','healer'],raid:['fighter','healer','fighter']
+  rewardOre:9,rewardData:7,escort:['fighter','healer'],reinforcement:'healer'
  })
 });
 export const FRONTIER_STATIONS=Object.freeze([

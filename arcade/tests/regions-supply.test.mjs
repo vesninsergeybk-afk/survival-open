@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RuntimeHarness} from './runtime-game.mjs';
 import {World} from '../world.js';
+import {openingThreat} from '../balance.js';
 import {REGIONS,centralBoundary,regionAt} from '../regions.js';
 import {SUPPLY,advanceRegionalSupply,interceptSupply,strategicCapture,regionalSupplyValid} from '../regional-supply.js';
 import {updateRegionalWorld,spawnRegionalRaid,hitRegionalCargo} from '../region-runtime.js';
@@ -52,7 +53,7 @@ function simulate(intercept){
  for(let t=1;t<=900;t++){
   g.time=t;updateRegionalWorld(g,1);
   if(intercept)for(const c of [...g.world.regionalSupply.convoys]){c.hp=0;assert.ok(interceptSupply(g.world,c,t));}
-  if(spawnRegionalRaid(g,{cap:30}))raiders++;
+  if(spawnRegionalRaid(g,{...openingThreat(t,5),cap:30}))raiders++;
   g.enemies=[];
  }
  return {raiders,s:g.world.regionalSupply};
@@ -85,14 +86,16 @@ test('strategic structures and cargo are ordinary weapon targets even before old
  damageTarget(other,target,200,'rail');assert.equal(other.world.regionalSupply.convoys.length,0);
  assert.equal(other.drops.length,2);hitRegionalCargo(other,cargo,200);assert.equal(other.drops.length,2);
 });
-test('a heavy reinforcement always warns, replaces a patrol and waits for cap space',()=>{
+test('a heavy reinforcement always warns, adds a ship to a patrol and waits for cap space',()=>{
  const g=game(),s=g.world.regionalSupply;s.reserves=1;s.assemblyUntil=1;
  g.time=10;updateRegionalWorld(g,1);assert.ok(s.pendingRaid.announced);
- assert.equal(spawnRegionalRaid(g,{cap:30}),false);
- g.time=21;assert.equal(spawnRegionalRaid(g,{cap:2}),false);
- assert.equal(spawnRegionalRaid(g,{cap:30}),true);
+ const director={...openingThreat(500,5),cap:30};
+ assert.equal(spawnRegionalRaid(g,director),false);
+ g.time=21;assert.equal(spawnRegionalRaid(g,{...director,cap:2}),false);
+ assert.ok(spawnRegionalRaid(g,director));
  assert.equal(g.enemies.filter(e=>e.type==='gunship').length,1);
- assert.equal(g.enemies.length,3);assert.equal(spawnRegionalRaid(g,{cap:30}),false);
+ assert.equal(g.enemies.length,director.groupSize+1);
+ assert.equal(spawnRegionalRaid(g,director),false);
 });
 test('the map explains long-distance choices without revealing unseen industrial bases',()=>{
  const g=game(),html=renderWorldMap(g);
@@ -127,7 +130,7 @@ test('actual map buttons select canonical region entries and track only discover
  const g=game();g.overlay={dataset:{mode:'map'}};
  g.requestWaypointDeparture=waypoint=>{g.selected=waypoint;};
  g.selectWaypoint({id:'region-amber',x:'1',y:'1',label:'arbitrary'});
- assert.deepEqual(g.selected,{id:'region-amber',...REGIONS[1].entry,label:REGIONS[1].name});
+ assert.deepEqual(g.selected,{id:'region-amber',...REGIONS[1].survey,label:REGIONS[1].name});
  advanceRegionalSupply(g.world,61);const c=g.world.regionalSupply.convoys[0];g.selected=null;
  g.selectWaypoint({id:c.id,x:'1',y:'1'});assert.equal(g.selected,null);
  c.seen=true;g.selectWaypoint({id:c.id,x:'1',y:'1'});assert.equal(g.selected.x,c.x);

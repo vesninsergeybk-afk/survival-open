@@ -1,9 +1,9 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
 import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-3';
-import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-1';
+import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
 import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralWorkerPosition,centralEvent} from './central-industry.js?v=living-world-1';
-import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3';
+import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-logistics-audit-1';
 import {stormPhase} from './regional-storms.js?v=regions-1';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -105,9 +105,10 @@ export function updateRegionalWorld(game,dt){
   game.notice('Перехват радиосвязи: после захвата производственной станции верфь готовит ответный отряд из накопленного резерва. Отступление или бой — ваш выбор.',8);
  }
 }
-// Region-specific paid reinforcement, replacing a normal director encounter.
-// Storm pilots retain the ordinary flanker hitbox but seek storm energy;
-// teal medics have a finite healing reservoir and can be prioritized.
+// A shipment adds a specialist to an ordinary encounter; it never substitutes
+// a weaker, unscaled formation for the normal director wave. If there is no
+// room for both, the paid reinforcement remains pending until a later wave.
+// Storm pilots seek electrical discharges; teal medics support the same wave.
 export function spawnFrontierRaid(game,director){
  const region=regionAt(game.player.x,game.player.y).id;
  const cfg=FRONTIERS[region],s=game.world.regionalSupply?.frontier?.[region];
@@ -117,28 +118,36 @@ export function spawnFrontierRaid(game,director){
   distance(game.player,cfg.source)<=13500;
  const ordinaryReady=s.pendingRaid?.announced&&game.time>=s.pendingRaid.readyAt&&
   distance(game.player,cfg.depot)<=13500;
+ const cap=Math.min(RULES.maxEnemies,director.cap);
  if((!emergencyReady&&!ordinaryReady)||
-   game.enemies.length+cfg.raid.length>Math.min(RULES.maxEnemies,director.cap))return false;
+   !director.types?.length||!game.spawnGroup||
+   game.enemies.length+Math.max(1,director.groupSize||0)+1>cap)return false;
+ const before=game.enemies.length;
+ const pause=game.spawnGroup(director);
+ if(game.enemies.length<=before||game.enemies.length>=cap)return false;
  const retaliating=Boolean(emergencyReady),origin=retaliating?cfg.source:cfg.depot;
  const cam=game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
  const side=Math.abs(dx)>Math.abs(dy)?(dx>0?1:0):(dy>0?3:2);
  ++game.groupSerial;
- for(let i=0;i<cfg.raid.length;i++){
-  const pos=spawnOutside(cam,side,.5+(i-(cfg.raid.length-1)/2)*.12,150+i*18);
-  game.enemies.push(makeEnemy(game,cfg.raid[i],pos.x,pos.y,
-   region+(retaliating?'-last-reserve':'-funded'),null,region));
- }
- if(retaliating){s.strategy.emergency=null;s.strategy.emergencyRaids++;
+ const pos=spawnOutside(cam,side,.5,170);
+ const specialist=makeEnemy(game,cfg.reinforcement,pos.x,pos.y,
+  region+(retaliating?'-last-reserve':'-funded'),null,region);
+ specialist.hp*=1+Math.min(2.5,game.time/550);
+ specialist.maxHp=specialist.hp;
+ if(region==='teal')specialist.healReserve=120;
+ game.enemies.push(specialist);
+ if(retaliating){
+  s.strategy.emergency=null;s.strategy.emergencyRaids++;
   frontierEvent(s,region,'emergency-raid',game.time);
-  game.notice('Прибыл оплаченный резервный контрудар. Нового снабжения не будет, но старые запасы верфи могут сохраняться.',7);
+  game.notice('Верфь отправила последний резервный корабль с обычным патрулём. Нового снабжения нет, но готовые запасы ещё опасны.',7);
  }else{
   s.pendingRaid=null;s.raids++;s.nextRaid=game.time+cfg.raidInterval;
   frontierEvent(s,region,'raid',game.time);
   game.notice(region==='azure'?
-   'Электроангар отправил перехватчиков. Вывод из строя вышки лишит их будущих зарядов.':
-   'С верфи прибыл ремонтный караул. Уничтожение грузов оставит верфь без запчастей.',6);
+   'Снабжение усилило обычный патруль заряженным перехватчиком. Лишите электроангар батарей, чтобы остановить такие подкрепления.':
+   'Снабжение добавило к патрулю ремонтника. Перехватывайте запчасти, чтобы лишить врага этого усиления.',6);
  }
- return true;
+ return Math.max(.001,pause||0);
 }
 // A delivered shipment finances one *additional* escort in a regular wave.
 // The director's cap and group size still bound the encounter. Preventing
@@ -167,24 +176,30 @@ export function spawnCentralRaid(game,director){
  game.notice('Сборочный пост усилил патруль сопровождающим истребителем. Перехват грузов лишит врага таких подкреплений.',5);
  return Math.max(.001,ambientRecovery);
 }
-// Replace one ambient encounter, respect its pressure cap, and spend one
-// delivered cargo. A warning always precedes the arrival, including on return.
+// Add one funded heavy ship to an ambient encounter, respect its pressure cap,
+// and spend one delivered cargo. A warning precedes every arrival.
 export function spawnRegionalRaid(game,director){
  const s=game.world.regionalSupply,raid=s?.pendingRaid;
  if(!raid?.announced||game.time<raid.readyAt||Math.hypot(game.player.x,game.player.y)>70000||
   !['amethyst','amber'].includes(regionAt(game.player.x,game.player.y).id)||
-  game.enemies.length+3>Math.min(RULES.maxEnemies,director.cap))return false;
+  !director.types?.length||!game.spawnGroup||
+  game.enemies.length+Math.max(1,director.groupSize||0)+1>Math.min(RULES.maxEnemies,director.cap))return false;
+ const before=game.enemies.length;
+ const pause=game.spawnGroup(director);
+ if(game.enemies.length<=before||game.enemies.length>=Math.min(RULES.maxEnemies,director.cap))return false;
  const cam=game.camera(),origin=game.world.stations.get(SUPPLY.militaryId);
  const dx=origin.x-game.player.x,dy=origin.y-game.player.y;
  const side=Math.abs(dx)>Math.abs(dy)?(dx>0?1:0):(dy>0?3:2);
- ++game.groupSerial;let leader=null;
- for(let i=0;i<3;i++){
-  const pos=spawnOutside(cam,side,.5+(i-1)*.11,170+i*12);
-  const e=makeEnemy(game,i?'fighter':'gunship',pos.x,pos.y,'regional-heavy',leader);
-  if(!leader)leader=e;game.enemies.push(e);
- }
+ ++game.groupSerial;
+ const pos=spawnOutside(cam,side,.5,170);
+ const heavy=makeEnemy(game,'gunship',pos.x,pos.y,'regional-heavy');
+ heavy.hp*=1+Math.min(2.5,game.time/550);
+ heavy.maxHp=heavy.hp;
+ game.enemies.push(heavy);
  s.pendingRaid=null;s.raids++;s.nextRaid=game.time+SUPPLY.raidPeriod;
- supplyEvent(s,'raid',game.time);return true;
+ supplyEvent(s,'raid',game.time);
+ game.notice('Военный узел добавил тяжёлый корабль к обычному патрулю. Перехват руды предотвращает такое усиление.',5);
+ return Math.max(.001,pause||0);
 }
 export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  if(cargo.hp<=0||!Number.isFinite(damage)||damage<=0)return;
@@ -200,11 +215,11 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  game.addDrop('data',cargo.x+14,cargo.y,frontier?.rewardData??(cargo.centralCargo?CENTRAL_INDUSTRY.dataReward:SUPPLY.dataReward),{source:'combat',life:60});
  game.notice(frontier?
   (cargo.frontierNetwork==='azure'?
-   'Батареи перехвачены. Электроангар не получит этот заряд; уже собранные отряды остаются опасны.':
-   'Партия запчастей уничтожена. Верфь не сможет собрать отряд из этой поставки.'):
+   'Батареи уничтожены: электроангар не получит усиление для одного будущего патруля. Готовые резервы сохраняются.':
+   'Запчасти уничтожены: верфь не усилит патруль ремонтником из этой поставки. Готовые резервы сохраняются.'):
   cargo.centralCargo?
-  'Местный груз уничтожен: сборочный пост не получит эту партию. Запас уже доставленной руды пока остаётся.':
-  'Груз перехвачен. Военный узел не получит эту руду — одного тяжёлого отряда не будет. Трофеи рядом.',7);
+  'Местный груз уничтожен: сборочный пост не усилит один будущий патруль. Ранее доставленные резервы сохраняются.':
+  'Рудный груз перехвачен: военный узел не усилит один будущий патруль тяжёлым кораблём. Резервы сохраняются.',7);
 }
 export function drawRegionalWorld(game,c,cam){
  const p=game.player,s=game.world.regionalSupply;if(!s)return;

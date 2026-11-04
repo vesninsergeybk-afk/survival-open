@@ -395,7 +395,9 @@ test('map and station terminal show actual protection, without adding a menu',()
  const panelLinked=renderBasePanel(home,{...state,connectedBases:2});
  assert.match(panelLinked,/ПВО 1\/2 · радиус 345 м/);
  assert.match(panelLinked,/стазис по группе/);
- assert.match(panelLinked,/Автоматическая защита прикрывает корабль в бирюзовом круге/);
+ assert.match(panelLinked,/ПВО действует автоматически/);
+ assert.match(panelLinked,/Стазис тоже автоматический/);
+ assert.match(panelLinked,/Кнопки запуска нет/);
  assert.match(panelLinked,/<details class="base-secondary-info base-defense-rules">/);
  assert.match(panelLinked,/не дальше 235 м от станции и 185 м от вас/);
  assert.match(panelLinked,/орбитальные удары: перехват/);

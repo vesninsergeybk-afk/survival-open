@@ -12,6 +12,7 @@ import {combatTargets,selectTargets,damageTarget} from '../combat-targets.js';
 import {pickDesignatedTarget} from '../target-designation.js';
 import {renderRegionAtlas,regionalMapOverlay} from '../regional-map.js';
 import {RULES} from '../balance.js';
+import {openingThreat} from '../balance.js';
 
 const noop=()=>{};
 function game(region='azure'){
@@ -31,7 +32,7 @@ function advance(g,seconds,{intercept=false,raid=false}={}){
     ...g.world.regionalSupply.frontier.teal.convoys]){
    c.hp=0;assert.ok(interceptSupply(g.world,c,t));
   }
-  if(raid&&spawnFrontierRaid(g,{cap:30})){spawned++;g.enemies=[];}
+  if(raid&&spawnFrontierRaid(g,{...openingThreat(t,5),cap:30})){spawned++;g.enemies=[];}
  }
  return spawned;
 }
@@ -143,15 +144,19 @@ test('funded patrols warn before spawning, respect director capacity, and have d
   g.time=1;updateRegionalWorld(g,1);
   assert.ok(s.pendingRaid?.announced);
   assert.ok(g.notices.some(n=>n.includes(id==='azure'?'электроангар':'ремонтная верфь')));
-  assert.equal(spawnFrontierRaid(g,{cap:30}),false,'warning must not be skipped');
+  const director={...openingThreat(500,5),cap:30};
+  assert.equal(spawnFrontierRaid(g,director),false,'warning must not be skipped');
   g.time=s.pendingRaid.readyAt;
-  assert.equal(spawnFrontierRaid(g,{cap:1}),false,'never break the live cap');
-  assert.equal(spawnFrontierRaid(g,{cap:30}),true);
-  assert.equal(g.enemies.length,FRONTIERS[id].raid.length);
-  assert.ok(g.enemies.every(e=>e.frontierRole===id));
-  if(id==='azure')assert.ok(g.enemies.every(e=>e.stormAdapted));
-  else assert.ok(g.enemies.some(e=>e.type==='healer'&&e.healReserve===90));
-  assert.equal(spawnFrontierRaid(g,{cap:30}),false,'stock cannot launch twice');
+  assert.equal(spawnFrontierRaid(g,{...director,cap:1}),false,'never break the live cap');
+  assert.ok(spawnFrontierRaid(g,director),'one normal wave plus one financed specialist');
+  assert.equal(g.enemies.length,director.groupSize+1);
+  const specialist=g.enemies.filter(e=>e.frontierRole===id);
+  assert.equal(specialist.length,1);
+  assert.equal(specialist[0].type,FRONTIERS[id].reinforcement);
+  assert.ok(specialist[0].hp>=specialist[0].maxHp);
+  if(id==='azure')assert.equal(specialist[0].stormAdapted,true);
+  else assert.equal(specialist[0].healReserve,120);
+  assert.equal(spawnFrontierRaid(g,director),false,'stock cannot launch twice');
  }
 });
 test('teal salvage requires an explicit target; other enemies remain automatically targetable',()=>{
