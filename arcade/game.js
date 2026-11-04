@@ -9,9 +9,9 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4';
-import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1';
-import {EnemyComms} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-2';
+import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
+import {EnemyComms,ENEMY_COMMS} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-2';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-1';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1';
 import {createSignalIntel,alertSignalIntel} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-1';
@@ -1960,8 +1960,8 @@ export class ArcadeGame {
    if(e.hp<=0)this.completeCarrierInterception(e);
    return;
   }
-  // A shot reveals its real origin, even when the first hit destroys the ship.
-  // Drone fire must not tell the patrol the player's hidden position.
+  // A surviving ship can infer an approximate firing sector from an impact.
+  // Other attackers cannot reveal the player's coordinates by proxy.
   const aggressor=(['beam','rocket','ion','rail','flak','howitzer'].includes(source))?this.player:
     (source&&typeof source==='object'&&Number.isFinite(source.x)&&
      Number.isFinite(source.y)&&source.hp>0)?source:null;
@@ -1972,7 +1972,8 @@ export class ArcadeGame {
   this.enemyLearning?.damaged(e,Math.min(hpBefore,Math.max(0,damage)));
   this.enemyComms?.reportHit(e,Math.min(hpBefore,Math.max(0,damage)),this.time);
   if(aggressor===this.player&&e.hp>0)
-   this.enemyComms?.reportAttack(e,source,dist(e,this.player),this.time);
+   this.enemyComms?.reportAttack(e,source,dist(e,this.player),this.time,contact);
+  if(e.hp<=0)this.enemyComms?.reportLoss(e,this);
   if(this.visuals?.capitalDamageQA&&e.type==='gunship'&&e.serial%2===0)
    recordCapitalHit(e,contact,this.time);
   if(this.time>(e.nextVfxHit||0)){
@@ -2105,6 +2106,10 @@ export class ArcadeGame {
   // This is deliberately different from the enemy's directional sensor.
   const rocks=this.rockGrid.query((p.x+enemy.x)*.5,(p.y+enemy.y)*.5,d*.5+80);
   return !firstRockImpact(p.x,p.y,enemy.x,enemy.y,rocks,0,enemy);
+ }
+ playerCanInterceptEnemyRadio(enemy){
+  // Listening to nearby broadcasts does not reveal the broadcaster's position.
+  return !!enemy&&dist(this.player,enemy)<=ENEMY_COMMS.interceptRange;
  }
  sectorDirector(director){
   let adjusted=director;
@@ -2437,6 +2442,7 @@ export class ArcadeGame {
     }
    }
   }
+  this.enemyComms?.confirmExecution(this);
   for(const a of this.allies){
    a.hit=Math.max(0,(a.hit||0)-dt);
    updateAlly(a,this,dt);
@@ -2537,8 +2543,11 @@ export class ArcadeGame {
       .filter(a=>a.hp>0&&dist(a,t)<350)
       .sort((a,c)=>dist(t,a)-dist(t,c))[0]||p;
      if(dist(t,target)<530){
+      // Turrets track only a target within their own weapon envelope.
+      // Other patrols' motion sightings cannot adjust this gun's aim.
+      if(target===p)this.enemyLearning?.observePlayer(p,this.time,t);
       const aim=target===p?learnedTurretAim(target,turretStyle,
-       this.enemyLearning?.turnSign||0):{x:target.x,y:target.y};
+       t._learningObservation?.turnSign||0):{x:target.x,y:target.y};
       if(this.enemyShot(t.x,t.y,aim.x,aim.y,16+b.rank*2,
        {learnToken:this.enemyLearning?.shotToken(t)})!==false)
        this.enemyLearning?.fired(t);
@@ -3077,7 +3086,7 @@ export class ArcadeGame {
   }
   drawFieldEffects(c,this);
   // Actual radio-message receipts, drawn in world space behind ship sprites.
-  this.enemyComms?.render(c,cam,this.time,this.visuals.reducedMotion,this.fps);
+  this.enemyComms?.render(c,cam,this.time,this.visuals.reducedMotion,this.fps,this);
   for(const m of this.missiles){
    if(outsideCamera(m.x,m.y,cam,80))continue;
    drawSeekingMissile(c,m,this.fps);

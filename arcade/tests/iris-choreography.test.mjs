@@ -57,6 +57,22 @@ test('a real angular corridor stays unoccupied by reserve positions',()=>{
  }
 });
 
+test('scout pack responds to delivered close and scatter orders without changing its roles',()=>{
+ const {game,drones}=scene(10);game.time=2;
+ const e=drones[0],baseline=irisPackDirective(e,game),plan=game._irisPackPlan;
+ game.enemyComms={directiveFor:()=>({mode:'close'})};
+ const close=irisPackDirective(e,game);
+ assert.equal(close.radioApplied,true);
+ assert.equal(close.radioMode,'close');
+ assert.ok(Math.hypot(close.x,close.y)<Math.hypot(baseline.x,baseline.y));
+ game.enemyComms.directiveFor=()=>({mode:'scatter'});
+ const scatter=irisPackDirective(e,game);
+ assert.equal(scatter.radioApplied,true);
+ assert.equal(scatter.radioMode,'scatter');
+ assert.ok(Math.hypot(scatter.x,scatter.y)>Math.hypot(baseline.x,baseline.y));
+ assert.equal(game._irisPackPlan,plan,'radio does not rebuild authored roles');
+});
+
 test('roles persist between frames and survivors regroup after the lead dies',()=>{
  const {game,drones}=scene(10);game.time=5;
  drones.forEach(e=>irisPackDirective(e,game));

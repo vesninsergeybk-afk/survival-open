@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {EnemyComms,ENEMY_COMMS,collectiveDecision,enemyOrderMessage,
- classifyEnemyAttack,assessEnemyThreat} from '../enemy-comms.js';
+ classifyEnemyAttack,assessEnemyThreat,incomingFireEstimate} from '../enemy-comms.js';
 import {updateEnemy} from '../ai.js';
+import {RuntimeHarness} from './runtime-game.mjs';
+import {contactOnCircle} from '../impact-geometry.js';
 
 const ship=(serial,type='scout',x=serial*34,y=60)=>({
  serial,type,group:1,x,y,vx:0,vy:0,r:14,hp:70,maxHp:70,
@@ -18,6 +20,10 @@ function scene(enemies){
   avoidance:()=>({x:0,y:0}),enemyCanSee:()=>true,
   heritage:{play(){},vfx:{shipExplosion(){}}},hurt(){},enemyShot(){return true;}};
  game.enemyComms=new EnemyComms();return game;
+}
+function execute(game){
+ for(const e of game.enemies)updateEnemy(e,game,.016);
+ game.enemyComms.confirmExecution(game);
 }
 
 test('a verified scout report travels to a caller and the shared order travels back',()=>{
@@ -120,6 +126,12 @@ test('real weapon hits are classified without reading private player equipment',
  assert.equal(assessEnemyThreat([{kind:'long',at:1},{kind:'long',at:1.2}],2),null);
  assert.equal(assessEnemyThreat([{kind:'long',at:1},{kind:'long',at:2.3}],3).kind,'long');
  assert.equal(assessEnemyThreat([{kind:'long',at:1},{kind:'long',at:2.3}],10),null);
+ assert.equal(assessEnemyThreat([{kind:'area',at:.1},{kind:'area',at:1.2},
+   {kind:'long',at:3.1},{kind:'long',at:4.3}],4.4).kind,'long',
+  'obsolete area attacks must not override a newer corroborated threat');
+ assert.equal(incomingFireEstimate({x:410,y:50},400,
+   {directed:true,nx:-1,ny:0}).estimated,true);
+ assert.equal(incomingFireEstimate({x:410,y:50},400,{directed:false}),null);
 });
 
 test('two communicated long-range hits change a real collective order to closing',()=>{
@@ -171,19 +183,22 @@ test('a quoted change of strategy has the same cause as the real tactical vote',
   'the subtitles refer to distinct physical maneuvers');
 });
 
-test('only an acknowledged, visible radio order enters the intercepted log',()=>{
- const scout=ship(1,'scout',90),fighter=ship(2,'fighter',150);
+test('only an executed, intercepted radio order enters the transcript',()=>{
+ const scout=ship(1,'flanker',90),fighter=ship(2,'fighter',150);
  const game=scene([scout,fighter]),net=game.enemyComms;
  game.playerCanInspectEnemyIntent=()=>false;
  net.update(game);net.reportSight(scout,game.player,.1);
- game.time=.7;net.update(game);
+ game.time=.7;net.update(game);execute(game);
  assert.equal(net.intercepted(game.time).length,0,
   'a hidden enemy cannot be eavesdropped from the map');
- const visible=scene([ship(1,'scout',90),ship(2,'fighter',150)]);
+ const visible=scene([ship(1,'flanker',90),ship(2,'fighter',150)]);
  visible.playerCanInspectEnemyIntent=()=>true;
  const radio=visible.enemyComms;
  radio.update(visible);radio.reportSight(visible.enemies[0],visible.player,.1);
  visible.time=.7;radio.update(visible);
+ assert.equal(radio.intercepted(.7).length,0,
+  'transmission alone cannot be presented as an executed maneuver');
+ execute(visible);
  const capture=radio.intercepted(.7);
  assert.equal(capture.length,1);
  assert.equal(capture[0].mode,radio.cells[0].mode);
@@ -192,7 +207,7 @@ test('only an acknowledged, visible radio order enters the intercepted log',()=>
  const ctx={save(){},restore(){},setLineDash(){},beginPath(){},
   moveTo(){},lineTo(){},stroke(){},arc(){},fill(){},
   fillRect(){},strokeRect(){},fillText(s){labels.push(s);}};
- radio.render(ctx,{x:0,y:0,w:400,h:260},.9);
+ radio.render(ctx,{x:0,y:0,w:400,h:260},.9,false,60,visible);
  assert.ok(labels.some(line=>line.includes('ПЕРЕХВАЧЕН ПРИКАЗ')));
  assert.ok(labels.some(line=>capture[0].message.includes(line)),
   'world-space subtitle must be derived from the captured message');
@@ -200,20 +215,115 @@ test('only an acknowledged, visible radio order enters the intercepted log',()=>
 });
 
 test('a long-distance counter-order is visible only after two real transmitted hits',()=>{
- const scout=ship(1,'scout',90),fighter=ship(2,'fighter',160);
+ const scout=ship(1,'flanker',90),fighter=ship(2,'fighter',160);
  const game=scene([scout,fighter]),net=game.enemyComms;
  game.playerCanInspectEnemyIntent=()=>true;
  net.update(game);net.reportSight(scout,game.player,.1);
- game.time=.7;net.update(game);
+ game.time=.7;net.update(game);execute(game);
  net.reportAttack(scout,'rail',345,1.5);
- game.time=1.6;net.update(game);
+ game.time=1.6;net.update(game);execute(game);
  assert.equal(net.intercepted(1.6).length,1);
  net.reportAttack(fighter,'beam',330,2.8);
  net.reportSight(scout,game.player,2.8);
- game.time=2.9;net.update(game);
- game.time=3.7;net.update(game);
+ game.time=2.9;net.update(game);execute(game);
+ game.time=3.7;net.update(game);execute(game);
  assert.equal(net.intercepted(3.7)[0].mode,'close');
  assert.match(net.intercepted(3.7)[0].message,/бьёт издалека/);
+});
+
+test('real player damage beyond sight becomes an uncertain, executed radio response',()=>{
+ const wing=ship(1,'flanker',390,30),leader=ship(2,'fighter',455,30);
+ const game=scene([wing,leader]),net=game.enemyComms;
+ game.enemyCanSee=()=>false;
+ game.playerCanInspectEnemyIntent=()=>false;
+ game.playerCanInterceptEnemyRadio=()=>true;
+ const notices=[];game.notice=(message)=>notices.push(message);
+ const harness=new RuntimeHarness();
+ Object.assign(harness,{player:game.player,enemyComms:net,
+  enemyLearning:{damaged(){}},heritage:{play(){},vfx:{hullImpact(){}}},
+  visuals:{},time:0});
+ net.update(game);
+ for(const [e,now,weapon] of [[wing,1.0,'rail'],[leader,2.4,'beam']]){
+  game.time=harness.time=now;
+  const hit=contactOnCircle(e.x,e.y,e.r,game.player.x,game.player.y);
+  harness.damageEnemy(e,5,weapon,hit);
+  net.update(game);execute(game);
+  if(now===1.0){
+   assert.equal(net.cells[0].mode,null,'a single hit is not a combat strategy');
+   assert.equal(notices.length,0);
+  }
+ }
+ const directive=net.directiveFor(wing,game.time);
+ assert.equal(directive?.mode,'close');
+ assert.equal(directive.intel.estimated,true);
+ assert.equal(directive.intel.vx,0,'an unseen target has no live motion track');
+ assert.equal(wing._commsIntent?.mode,'close','the wingman actually obeys');
+ assert.equal(net.intercepted(game.time)[0].mode,'close');
+ assert.ok(notices.some(text=>text.includes('бьёт издалека')));
+ game.time=10;net.update(game);
+ assert.equal(net.directiveFor(wing,10),null,'a firing sector must expire');
+});
+
+test('no tactical label or radio transcript leaks from an unheard conversation',()=>{
+ const wing=ship(1,'flanker',90),leader=ship(2,'fighter',150);
+ const game=scene([wing,leader]),net=game.enemyComms;
+ game.playerCanInspectEnemyIntent=()=>false;
+ game.playerCanInterceptEnemyRadio=()=>false;
+ net.update(game);net.reportSight(wing,game.player,.1);
+ game.time=.7;net.update(game);execute(game);
+ assert.ok(wing._commsIntent,'the maneuver may still happen offscreen');
+ assert.equal(net.intercepted(.7).length,0);
+ const labels=[];
+ const ctx={save(){},restore(){},setLineDash(){},beginPath(){},
+  moveTo(){},lineTo(){},stroke(){},arc(){},fill(){},
+  fillText(v){labels.push(v);}};
+ net.render(ctx,{x:0,y:0,w:500,h:250},.8,false,60,game);
+ assert.deepEqual(labels,[]);
+});
+
+test('a healing pair does not broadcast maneuvers that neither ship can execute',()=>{
+ const medic=ship(1,'healer',100),guard=ship(2,'fighter',145);
+ guard.protect=medic;guard.state='guard';guard.hp=24;
+ const game=scene([medic,guard]),net=game.enemyComms;
+ game.playerCanInspectEnemyIntent=()=>true;
+ net.update(game);net.reportSight(guard,game.player,.1);
+ game.time=.7;net.update(game);execute(game);
+ assert.equal(net.cells[0].mode,null);
+ assert.equal(net.intercepted(.7).length,0);
+ assert.equal(medic._commsIntent,null);
+ assert.equal(guard._commsIntent,null);
+});
+
+test('witnessed losses make surviving pilots disperse without a global kill oracle',()=>{
+ const wing=ship(1,'flanker',100),leader=ship(2,'fighter',155),
+  victim1=ship(3,'scout',115),victim2=ship(4,'scout',140);
+ const game=scene([wing,leader,victim1,victim2]),net=game.enemyComms;
+ game.playerCanInspectEnemyIntent=()=>true;
+ const harness=new RuntimeHarness();
+ Object.assign(harness,{player:game.player,enemyComms:net,
+  enemyLearning:{damaged(){}},heritage:{play(){},vfx:{hullImpact(){}}},
+  visuals:{},grid:game.grid,time:0,enemyCanSee:game.enemyCanSee});
+ net.update(game);net.reportSight(wing,game.player,.1);
+ game.time=.7;net.update(game);execute(game);
+ const before=net.cells[0].mode;
+ game.time=harness.time=1.4;
+ harness.damageEnemy(victim1,100,'other');
+ net.update(game);execute(game);
+ assert.notEqual(net.cells[0].mode,'scatter',
+  'one observed loss does not trigger fleet-wide panic');
+ game.time=harness.time=2.6;
+ harness.damageEnemy(victim2,100,'other');
+ net.reportSight(wing,game.player,2.6);
+ net.update(game);execute(game);
+ assert.notEqual(before,'scatter');
+ assert.equal(net.cells[0].threat?.kind,'loss');
+ assert.equal(net.cells[0].mode,'scatter');
+ assert.equal(wing._commsIntent?.mode,'scatter');
+ assert.match(net.intercepted(game.time)[0].message,/несёт потери/);
+ const stranger=ship(9,'scout',5000);
+ game.grid.query=()=>[stranger];game.enemyCanSee=()=>false;
+ assert.equal(net.reportLoss({serial:20,x:5000,y:60,hp:0},game),0);
+ assert.equal(stranger._commsLoss,undefined);
 });
 
 test('destroying a caller breaks the net before a survivor can be elected',()=>{
@@ -227,8 +337,8 @@ test('destroying a caller breaks the net before a survivor can be elected',()=>{
  assert.equal(net.directiveFor(other,game.time),null);
  assert.ok(net.events.every(ev=>ev.from.hp>0&&ev.to.hp>0),
   'no ghost links remain attached to a dead commander');
- net.reportSight(other,game.player,2.1);
- game.time=2.3;net.update(game);
+ net.reportSight(other,game.player,3.4);
+ game.time=3.6;net.update(game);
  assert.equal(net.cells[0].leader,third);
  assert.ok(net.directiveFor(other,game.time),'a survivor restores coordination');
 });
@@ -278,19 +388,21 @@ test('rendered world-space pulses correspond to messages and have a hard density
 });
 
 test('visible captions identify actual majority decisions at elected callers',()=>{
- const scout=ship(1,'scout',90),fighter=ship(2,'fighter',160);
+ const scout=ship(1,'flanker',90),fighter=ship(2,'fighter',160);
  const game=scene([scout,fighter]),net=game.enemyComms;
  net.update(game);net.reportSight(scout,game.player,.1);
- game.time=.7;net.update(game);
+ game.playerCanInspectEnemyIntent=()=>true;
+ game.time=.7;net.update(game);execute(game);
  const labels=[];
  const ctx={save(){},restore(){},setLineDash(){},beginPath(){},
-  moveTo(){},lineTo(){},stroke(){},arc(){},fill(){},
+  moveTo(){},lineTo(){},stroke(){},arc(){},fill(){},fillRect(){},strokeRect(){},
   fillText(...args){labels.push(args);}};
- net.render(ctx,{x:0,y:0,w:300,h:200},.8,false,60);
- assert.ok(labels.some(([message,x,y])=>message==='ПЕРЕХВАТ'&&
+ net.render(ctx,{x:0,y:0,w:300,h:200},.8,false,60,game);
+ assert.ok(labels.some(([message,x,y])=>message==='ПЕРЕХВАЧЕН ПРИКАЗ · ОБХОД'&&
   x===fighter.x&&y<fighter.y));
- net.render(ctx,{x:0,y:0,w:300,h:200},3.2,false,60);
- assert.equal(labels.length,1,'a decision caption must disappear promptly');
+ const count=labels.length;
+ net.render(ctx,{x:0,y:0,w:300,h:200},4.4,false,60,game);
+ assert.equal(labels.length,count,'a decision caption must disappear promptly');
 });
 
 test('a subtle persistent line exists only while an acknowledged order is active',()=>{

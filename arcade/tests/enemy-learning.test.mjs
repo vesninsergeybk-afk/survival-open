@@ -134,6 +134,30 @@ test('player movement model distinguishes steady flight from repeated turns',()=
  assert.equal(model.observePlayer({vx:0,vy:0},2.5),'slow');
 });
 
+test('an isolated pilot cannot inherit another patrol’s live movement observations',()=>{
+ const model=new EnemyLearning(),witness=actor('fighter',1),isolated=actor('fighter',2);
+ const p={vx:175,vy:0};
+ model.observePlayer(p,1,witness);
+ assert.equal(witness._learningObservation.context,'straight');
+ assert.equal(model.context,'slow','local observations must not mutate global motion');
+ model.observePlayer({vx:0,vy:0},1.2);
+ model.observePlayer({vx:195,vy:0},1.6);
+ assert.equal(model.context,'straight','even a legacy global sample must be ignored');
+ model.styleFor(isolated,2);
+ model.styleFor(witness,2);
+ assert.equal(isolated._enemyLearning.context,'slow');
+ assert.equal(witness._enemyLearning.context,'straight');
+ const informed=actor('fighter',3);
+ informed._commsOrder={intel:{motion:'straight',at:1.8}};
+ model.styleFor(informed,2);
+ assert.equal(informed._enemyLearning.context,'straight',
+  'an actual delivered report may inform the recipient');
+ const uninformed=actor('fighter',4);
+ uninformed._commsOrder={intel:{motion:'turning',at:-9}};
+ model.styleFor(uninformed,2);
+ assert.equal(uninformed._enemyLearning.context,'slow','old radio knowledge expires');
+});
+
 test('moving turrets use capped, imperfect predictions and never change damage or fire rate',()=>{
  const p={x:10,y:20,vx:300,vy:160};
  const direct=learnedTurretAim(p,'direct');

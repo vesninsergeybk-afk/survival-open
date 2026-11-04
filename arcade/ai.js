@@ -3,8 +3,9 @@ import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-n
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-1';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
-import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1';
-import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1';
+import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-2';
+import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-2';
+import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-2';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
@@ -360,10 +361,8 @@ export function updateEnemy(e,game,dt){
   // A received order adjusts destinations but cannot override an escort's
   // guard, a medic's treatment or IRIS's authored pack choreography.
   const radio=game.enemyComms?.directiveFor(e,game.time);
-  if(radio&&targetingPlayer&&!e.protect&&!e.boss&&
-    !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&
-    e.type!=='healer'&&!(e.type==='scout'&&tactical)&&
-    (e.state==='hunt'||e.state==='flank'||e.state==='standoff')){
+  if(radio&&targetingPlayer&&radioOrderCapable(e,game.time)&&
+    !(e.type==='scout'&&tactical)){
     const intel=radio.intel;
     const reported={x:intel.x+clamp(intel.vx*.12,-26,26),
       y:intel.y+clamp(intel.vy*.12,-26,26)};
@@ -395,6 +394,14 @@ export function updateEnemy(e,game,dt){
       goalX=radio.medic.x+toward.x*105-toward.y*radio.side*35;
       goalY=radio.medic.y+toward.y*105+toward.x*radio.side*35;
     }
+    e._commsIntent={x:goalX,y:goalY,mode:radio.mode,
+      leader:radio.leader,at:game.time};
+  }else if(radio&&targetingPlayer&&radioOrderCapable(e,game.time)&&
+    e.type==='scout'&&tactical===packTactic&&
+    packTactic.radioApplied&&packTactic.radioMode===radio.mode){
+    // The established IRIS formation has altered its actual flight radius
+    // or lead in response to this message. Do not claim obedience for scouts
+    // whose cover/break animation took priority instead.
     e._commsIntent={x:goalX,y:goalY,mode:radio.mode,
       leader:radio.leader,at:game.time};
   }

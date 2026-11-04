@@ -54,7 +54,27 @@ export class EnemyLearning {
     }catch{/* Storage can be disabled, corrupted or unavailable. */}
   }
 
-  observePlayer(player,now){
+  observePlayer(player,now,observer=null){
+    if(observer){
+      // Situational observations belong to a pilot (or a single turret).
+      // Only accumulated success statistics are shared by the archetype.
+      const old=observer._learningObservation;
+      if(!player||now-(old?.at??-Infinity)<.26)
+        return old?.context||'slow';
+      const vx=finite(player.vx),vy=finite(player.vy),speed=Math.hypot(vx,vy);
+      let turning=old?.turning||0,turnSign=old?.turnSign||0;
+      if(old&&Math.hypot(old.vx,old.vy)>45&&speed>45){
+        const oldSpeed=Math.hypot(old.vx,old.vy);
+        const dot=(old.vx*vx+old.vy*vy)/(oldSpeed*speed);
+        const cross=(old.vx*vy-old.vy*vx)/(oldSpeed*speed);
+        turning=turning*.8+Math.acos(clamp(dot,-1,1))*.2;
+        turnSign=turnSign*.8+cross*.2;
+      }else{turning*=.85;turnSign*=.85;}
+      const context=speed<55?'slow':turning>.16?'turning':'straight';
+      observer._learningObservation={at:now,vx,vy,turning,turnSign,context};
+      if(this.dirty&&now>=this.nextSave)this.flush(now);
+      return context;
+    }
     if(!player||now-this.lastObservation<.26)return this.context;
     const vx=finite(player.vx),vy=finite(player.vy),speed=Math.hypot(vx,vy);
     if(this.lastPlayer){
@@ -98,7 +118,12 @@ export class EnemyLearning {
     if(active&&active.type===type&&now<active.until)return active.style;
     if(active)this.finish(actor,now);
     const serial=actor.serial??Math.round(finite(actor.x)*.31+finite(actor.y)*.73);
-    const context=this.context,style=this.choose(type,context,serial);
+    const own=actor._learningObservation;
+    const received=actor._commsOrder?.intel;
+    const context=own&&now-own.at<=8?own.context:
+      received&&now-received.at<=3.5&&validContext(received.motion)?
+        received.motion:'slow';
+    const style=this.choose(type,context,serial);
     actor._enemyLearning={type,context,style,start:now,until:now+9.6,
       dealt:0,lost:0,support:0,shots:0,close:0,
       maxHp:Math.max(1,finite(actor.maxHp,100))};
