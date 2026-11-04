@@ -1,3 +1,4 @@
+import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=regions-1';
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
@@ -67,12 +68,13 @@ export function renderStationRoutePreview(base,state={}){
 export function renderWorldMap(game){
  const p=game.player,world=game.world,enemyVisible=game.enemyBasesUnlocked();
  const topology=world.networkTopology();
- const control=enemyVisible?world.sectorControl(p.x,p.y):{kind:'neutral',base:null};
+ const localControl=world.sectorControl?.(p.x,p.y)||{kind:'neutral',base:null};
+ const control=enemyVisible||localControl.base?.strategicRole?localControl:{kind:'neutral',base:null};
  const territory=control.kind==='hostile'?'Вражеский сектор: патрули прибывают примерно на 18% чаще. Захватите базу, чтобы снизить угрозу.':
   control.kind==='secured'?'Безопасный сектор: захваченная база сокращает число патрулей и даёт передышку.':
   'Нейтральный сектор: обычная активность патрулей.';
  const known=[...world.stations.values()]
-  .filter(b=>b.discovered&&(enemyVisible||!b.enemy))
+  .filter(b=>b.discovered&&(enemyVisible||b.strategicRole||!b.enemy))
   .sort((a,b)=>distance(a,p)-distance(b,p));
  const survey=[...world.stations.values()].some(b=>
   b.active&&b.type==='lab'&&b.module==='survey'&&distance(b,p)<1900);
@@ -201,7 +203,7 @@ export function renderWorldMap(game){
   '" data-x="'+Number(readyStation.x).toFixed(2)+'" data-y="'+Number(readyStation.y).toFixed(2)+
   '" data-label="'+enc(baseNames[readyStation.type]||'Станция')+'">Построить маршрут к награде</button>':'';
  const row=(b,isSignal)=>{
-  const label=isSignal?'Неопознанный сигнал':baseNames[b.type]||'Станция';
+  const label=isSignal?'Неопознанный сигнал':b.title||baseNames[b.type]||'Станция';
   const d=distance(b,p),same=game.waypoint?.id===b.id;
   const status=isSignal?'координаты приблизительные (погрешность до 170 м)':
    b.enemy?'вражеская база':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети'+(b.relayBoost?' · усиленная связь':''):'автономный узел'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
@@ -233,7 +235,7 @@ export function renderWorldMap(game){
   '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
   '<circle cx="340" cy="240" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
-  grid.join('')+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+marks+operationMark+
+  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,p,scale),visible)+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+marks+operationMark+
   '<g><circle cx="340" cy="240" r="13" fill="none" stroke="#8affff"/>'+
   dot(340,240,'#9bf9ff',5)+'</g>'+
   '<text x="351" y="266" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
@@ -241,7 +243,7 @@ export function renderWorldMap(game){
   '<span>◈ противник</span><span>? сигнал</span><span>◎ операция</span></div>'+
   '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
     ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
-  '<aside class="map-side"><div class="map-objective"><span>ОБСТАНОВКА В СЕКТОРЕ</span><p>'+enc(territory)+'</p>'+
+  '<aside class="map-side">'+renderRegionAtlas(game)+'<div class="map-objective"><span>ОБСТАНОВКА В СЕКТОРЕ</span><p>'+enc(territory)+'</p>'+
   (securedSupply.length?'<p>Зелёным отмечены перехваченные маршруты снабжения. В пределах 740 м от них вражеские патрули появляются реже.</p>':'')+'</div>'+
   (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
      operation?.id===CARRIER_INTERCEPTION.id?'ПЕРЕХВАТ КОНВОЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+

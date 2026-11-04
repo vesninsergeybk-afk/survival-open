@@ -17,14 +17,14 @@ test('each sector uses its own artwork and a distant planet tracks world coordin
  try{
   const visuals=new ArcadeVisuals();
   assert.match(skies[0].props['--sector-image'],/nebula_main\.jpg/);
-  visuals.updateSky(0,6000);
+  visuals.updateSky(6000,40000);
   const azure=skies[visuals.layer];
   assert.match(azure.props['--sector-image'],/nebula_azure_v1\.png/);
   assert.match(azure.props['--planet-image'],/planet_ice_v1\.png/);
   const before=azure.props['--planet-x'];
-  visuals.updateSky(400,6100);
+  visuals.updateSky(6400,40100);
   assert.notEqual(azure.props['--planet-x'],before);
-  visuals.updateSky(0,12000);
+  visuals.updateSky(35000,7000);
   const amber=skies[visuals.layer];
   assert.match(amber.props['--sector-image'],/nebula_amber_v1\.png/);
   assert.equal(amber.props['--planet-opacity'],'0');

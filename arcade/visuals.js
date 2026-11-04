@@ -1,4 +1,5 @@
-import {drawInstalledModules} from './ship-weapons.js?v=weapons-cycle-2';
+import {regionAt} from './regions.js?v=regions-1';
+import {drawInstalledModules} from './ship-weapons.js?v=weapons-cycle-2-regions-1';
 /**
  * Arcade presentation uses the artwork and animation systems already approved
  * for Survivor. Visual variants never consume gameplay randomness.
@@ -53,7 +54,7 @@ const SKY_IMAGES=Object.freeze([
 ].map(name=>new URL('../assets/space/'+name,import.meta.url).href));
 const PLANET_ICE=new URL('../assets/space/planet_ice_v1.png',import.meta.url).href;
 const DERELICT_CRUISER=new URL('../assets/space/derelict-cruiser-v1.png',import.meta.url).href;
-const DERELICT_ANCHOR=Object.freeze({x:-2100,y:1150,width:510,height:236});
+const DERELICT_ANCHOR=Object.freeze({x:-40000,y:7000,width:510,height:236});
 
 export function enemySkin(type,serial){
  const list=SKINS[type]||SKINS.scout;
@@ -64,8 +65,7 @@ export function allySkin(role,serial){
  return list[Math.abs(Math.imul(serial,5)+1)%list.length];
 }
 export function sectorAt(x,y){
- const sx=Math.floor(x/5600),sy=Math.floor(y/5600);
- return ((sx*7+sy*11)%THEMES.length+THEMES.length)%THEMES.length;
+ return regionAt(x,y).theme;
 }
 export const sectorName=index=>THEMES[index]?.name||THEMES[0].name;
 
@@ -202,7 +202,7 @@ export class ArcadeVisuals {
    sky.style.setProperty('--sector-image','url("'+SKY_IMAGES[id]+'")');
    // One true distant landmark with world-coordinate parallax.
    // Other sectors keep a clean sky instead of a screen-locked fake planet.
-   const planet=id===1&&Math.floor(x/5600)===0&&Math.floor(y/5600)===1;
+   const planet=id===1&&Math.hypot(x-6000,y-40000)<18000;
    sky.style.setProperty('--planet-image',planet?'url("'+PLANET_ICE+'")':'none');
    sky.style.setProperty('--planet-opacity',planet?'.36':'0');
    sky.classList.add('visible');
@@ -215,9 +215,9 @@ export class ArcadeVisuals {
   return !force;
  }
  positionPlanet(x,y,force=false){
-  if(this.sector!==1||Math.floor(x/5600)!==0||Math.floor(y/5600)!==1)return;
-  const px=(80-12*x/5600).toFixed(1)+'%';
-  const py=(15-8*(y-5600)/5600).toFixed(1)+'%';
+  if(this.sector!==1||Math.hypot(x-6000,y-40000)>=18000)return;
+  const px=(80-12*(x-6000)/12000).toFixed(1)+'%';
+  const py=(15-8*(y-40000)/12000).toFixed(1)+'%';
   const key=px+':'+py;
   if(!force&&key===this.planetPosition)return;
   this.planetPosition=key;

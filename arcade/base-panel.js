@@ -1,11 +1,11 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-regions-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
-import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
+import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=regions-1';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
-import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2';
+import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1';
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1';
 import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1';

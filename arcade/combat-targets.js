@@ -24,8 +24,10 @@ export function combatTargets(game,range,origin=game.player){
  };
  if(op?.id==='silent-corridor')add({kind:'jammer',target:op,goal:true});
  if(op?.interceptCargo)add({kind:'enemy',target:op,goal:true});
- const bases=game.enemyBasesUnlocked?.()===false?[]:
-  game.world?.nearbyStations?game.world.nearbyStations(origin.x,origin.y,range+150,true).filter(b=>b.enemy&&!b.captured):
+ for(const target of game.world?.regionalSupply?.convoys||[])
+  add({kind:'enemy',target,goal:true});
+ const bases=game.world?.nearbyStations?game.world.nearbyStations(origin.x,origin.y,range+150,true)
+  .filter(b=>b.enemy&&!b.captured&&(b.strategicRole||game.enemyBasesUnlocked?.()!==false)):
    [game.nearbyEnemyBase?.(range+150)].filter(Boolean);
  for(const base of bases){
   for(const target of base.turrets||[])add({kind:'turret',target,base});

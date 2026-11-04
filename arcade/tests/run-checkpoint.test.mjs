@@ -353,3 +353,32 @@ test('continuation renders the restored sector and terrain before the dock pause
  };
  g.continueRun();assert.ok(rendered);assert.equal(g.pendingCheckpoint,null);
 });
+
+
+test('regional production, live cargo identity and captured sources survive station saves and old saves migrate',async()=>{
+ const {SUPPLY,advanceRegionalSupply}=await import('../regional-supply.js');
+ const g=scene();advanceRegionalSupply(g.world,g.time);
+ const cargo=g.world.regionalSupply.convoys[0];assert.ok(cargo);
+ g.enemies.push({x:cargo.x,y:cargo.y,hp:20,protect:cargo});
+ const mine=g.world.stations.get(SUPPLY.mineId);mine.enemy=false;mine.active=true;mine.captured=true;
+ const {storage}=save(g),loaded=new RunCheckpointStore(storage).load(),fresh=scene();
+ restoreCheckpoint(fresh,loaded);
+ assert.equal(fresh.enemies[0].protect,fresh.world.regionalSupply.convoys[0]);
+ assert.equal(fresh.world.stations.get(SUPPLY.mineId).enemy,false);
+ assert.equal(fresh.world.regionalSupply.nextDispatch,g.world.regionalSupply.nextDispatch);
+ const legacy=captureCheckpoint(g,g.docked);delete legacy.world.regionalSupply;
+ restoreCheckpoint(scene(),legacy);assert.ok(validateCheckpoint(legacy));
+ const broken=captureCheckpoint(g,g.docked);broken.world.regionalSupply.ore=-1;
+ assert.equal(validateCheckpoint(broken),false);
+});
+
+
+test('saving unseen damage cannot silently rebuild a regional garrison on restore',async()=>{
+ const {SUPPLY}=await import('../regional-supply.js');
+ const g=scene(),mine=g.world.stations.get(SUPPLY.mineId);
+ mine.turrets[0].hp=9;mine.hp=150;
+ assert.equal(mine.discovered,false);
+ const snapshot=captureCheckpoint(g,g.docked),fresh=scene();restoreCheckpoint(fresh,snapshot);
+ assert.equal(fresh.world.stations.get(SUPPLY.mineId).turrets[0].hp,9);
+ assert.equal(fresh.world.stations.get(SUPPLY.mineId).hp,150);
+});
