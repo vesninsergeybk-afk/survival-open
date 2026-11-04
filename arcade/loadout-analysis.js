@@ -1,6 +1,6 @@
 import {beamDamage} from './balance.js';
-import {MODULES,moduleStats,loadoutProfile} from './ship-loadout.js?v=hangar-2';
-import {plasmaDamageFactor} from './weapon-specializations.js?v=weapon-branches-1';
+import {MODULES,moduleStats,loadoutProfile} from './ship-loadout.js?v=weapons-cycle-2';
+import {plasmaDamageFactor} from './weapon-specializations.js?v=weapons-cycle-2';
 
 // One unarmored target, no cover or misses. Heat is reported separately, never
 // presented as a promise of sustained DPS. Additional flak targets aren't DPS
@@ -20,9 +20,10 @@ export function loadoutAnalysis(loadout,ranks={}){
  const maxRange=Math.max(0,...families.filter(id=>counts[id]).map(id=>stats[id].range));
  const notes=[];
  if(counts.flak)notes.push('Осколочное оружие поражает до '+stats.flak.targets+' целей в пределах 245 м. Таблица считает урон только по одной.');
- if(counts.rail)notes.push('Рельс выбирает тяжёлые цели. Непробиваемое укрытие принимает выстрел на себя.');
+ if(counts.rail)notes.push('Рельс предпочитает цель операции и тяжёлые корабли. Непробиваемое укрытие принимает выстрел на себя.');
  if(counts.rocket)notes.push('Ракетам нужно долететь до цели; манёвр и астероиды могут сорвать попадание.');
  if(counts.ion)notes.push('Ион: три ручных разряда по плазменным меткам. Для обычного урона в секунду он не учитывается.');
+ if(counts.resonator)notes.push('Резонатор связывает группу: 35% нанесённого урона передаётся соседям. По одиночной цели не действует; таблица связь не учитывает.');
  if(counts.howitzer)notes.push('Гаубица даёт 70 нагрева и приостанавливает автоогонь во время подготовки. В таблицу автоогня не входит.');
  if(maxRange<650)notes.push('Дальше '+maxRange+' м эта сборка не ведёт автоматический огонь.');
  return {ranges,dps:ranges.map(damageAt),heatRate,maxRange,notes};

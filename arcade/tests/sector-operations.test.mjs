@@ -1,3 +1,4 @@
+import {RuntimeHarness} from './runtime-game.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -47,10 +48,7 @@ const src=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 const start=src.indexOf(' updateCorridorReturn(');
 const end=src.indexOf('\n baseState(){',start);
 assert.ok(start>0&&end>start,'operation lifecycle must be present in game');
-const Ops=new Function('RULES','ENEMY_TYPES','dist','CORRIDOR_OPERATION','TAU','baseNames','chooseOperationLead',
- 'return class OperationHarness {'+src.slice(start,end)+'}')(
- {maxEnemies:180},{scout:{hp:45,dmg:7},fighter:{hp:70,dmg:11}},
- (a,b)=>Math.hypot(a.x-b.x,a.y-b.y),CORRIDOR_OPERATION,Math.PI*2,baseNames,chooseOperationLead);
+const Ops=RuntimeHarness;
 const fake=(nextStations=[])=>{
  const b={...home},op=createCorridorOperation(b);
  const value={ore:0,data:0},messages=[],game=new Ops();
@@ -134,10 +132,7 @@ test('delivery at the issuing dock pays once, clears the marker and secures the 
  const dockStart=src.indexOf('  dock(selected=null){');
  const dockEnd=src.indexOf('\n baseAction(act,role){',dockStart);
  assert.ok(dockStart>0&&dockEnd>dockStart);
- const Dock=new Function('dist','RULES','CORRIDOR_OPERATION','CARRIER_INTERCEPTION','finishSortie','appendSortieReport',
-  'return class DockHarness {'+src.slice(dockStart,dockEnd)+'}')(
-  (a,b)=>Math.hypot(a.x-b.x,a.y-b.y),{baseInteract:180},CORRIDOR_OPERATION,CARRIER_INTERCEPTION,
-  finishSortie,appendSortieReport);
+ const Dock=RuntimeHarness;
  game.player.x=b.x;game.player.y=b.y;
  game.overlay={hidden:true,dataset:{}};game.endInteraction=()=>{};
  game.heritage.pause=()=>{};game.heritage.ui=()=>{};game.renderDock=()=>{};
@@ -172,7 +167,7 @@ test('station UI exposes a briefing, route, equipment, and network independently
   assert.match(html,new RegExp('data-role="'+tab+'"'));
  assert.match(html,/data-act="acceptOperation"/);
  assert.match(html,/data-act="baseMap"/);
- assert.match(html,/255 м/);
+ assert.match(html,/435 м/);
   assert.match(html,/Принять заказ/);
   assert.doesNotMatch(html,/\d+ целей/);
  const underway=renderBasePanel(b,state({operation:createCorridorOperation(b)}));

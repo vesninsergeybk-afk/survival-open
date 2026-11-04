@@ -9,12 +9,12 @@ const arsenal={id:'1:0',type:'arsenal',active:true};
 const enemy=(x,y,hp=80)=>({x,y,hp,converted:false});
 
 test('first home dock lends one free three-charge trial, then only an arsenal can rent',()=>{
- const offer=ionLoanOffer(home,{ore:0,ionTrialTaken:false,ionLoan:null});
+ const offer=ionLoanOffer(home,{ore:0,fieldTrialTaken:false,fieldLoan:null});
  assert.equal(offer.mode,'trial');
  assert.equal(offer.cost,0);
  assert.equal(offer.charges,3);
- assert.equal(ionLoanOffer(home,{ore:0,ionTrialTaken:true,ionLoan:null}),null);
- const paid=ionLoanOffer(arsenal,{ore:40,ionTrialTaken:true,ionLoan:null});
+ assert.equal(ionLoanOffer(home,{ore:0,fieldTrialTaken:true,fieldLoan:null}),null);
+ const paid=ionLoanOffer(arsenal,{ore:40,fieldTrialTaken:true,fieldLoan:null});
  assert.equal(paid.mode,'rent');
  assert.equal(paid.cost,ION_CONDUCTOR.rentalCost);
  assert.equal(paid.reason,'');
@@ -27,9 +27,9 @@ test('only one loan can be equipped; any active station accepts its return',()=>
  assert.equal(loan.sourceId,home.id);
  assert.equal(loan.charges,ION_CONDUCTOR.charges);
  assert.equal(loan.used,0);
- assert.equal(ionLoanOffer(arsenal,{ionLoan:loan,ore:999}).mode,'return');
- assert.equal(ionLoanOffer(home,{ionLoan:loan,ionTrialTaken:true}).mode,'return');
- assert.equal(ionLoanOffer({...home,active:false},{ionLoan:loan}),null);
+ assert.equal(ionLoanOffer(arsenal,{fieldLoan:loan,ore:999}).mode,'return');
+ assert.equal(ionLoanOffer(home,{fieldLoan:loan,fieldTrialTaken:true}).mode,'return');
+ assert.equal(ionLoanOffer({...home,active:false},{fieldLoan:loan}),null);
 });
 
 test('automatic beam marks live hostile ships including transport, never captured allies',()=>{
@@ -106,15 +106,15 @@ test('desktop and touch input share one manual action; repair and mining remain 
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const panel=readFileSync(new URL('../base-panel.js',import.meta.url),'utf8');
- assert.match(game,/if\(e\.code==='Space'\)this\.callIonDischarge\(\)/);
- assert.match(game,/ionButton\.onclick=\(\)=>this\.callIonDischarge\(\)/);
+ assert.match(game,/if\(e\.code==='Space'\)this\.callFieldWeapon\(\)/);
+ assert.match(game,/ionButton\.onclick=\(\)=>this\.callFieldWeapon\(\)/);
  assert.match(game,/this\.mining\.active\|\|this\.probeRepairing/);
- assert.match(game,/this\.ionLoan\?\.missionStarted/);
+ assert.match(game,/this\.fieldLoan\?\.missionStarted/);
  assert.match(html,/id="ionBtn"/);
- assert.match(panel,/action\('loanIon'/);
- assert.match(panel,/action\('returnIon'/);
+ assert.match(panel,/action\('loanField'/);
+ assert.match(panel,/action\('returnField'/);
  assert.match(panel,/action\('baseTab','Испытать оружие'/);
- assert.match(game,/Ангар: бесплатный «Ионный проводник»/);
+ assert.match(game,/Ангар: бесплатная проба полевого оружия/);
 });
 
 test('the first real multi-target chain awards tactical data once per run, not per rental',()=>{

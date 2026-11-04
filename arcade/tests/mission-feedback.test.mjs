@@ -137,7 +137,7 @@ test('фаза после удара и окно +35% не дают ложных
  assert.doesNotMatch(flashed.hint,/ОПАСНАЯ ЗОНА|ОТОЙДИТЕ/);
  const boost=corridorCue(mission,12.8,240);
  assert.equal(boost.key,'overheat');
- assert.match(boost.hint,/ЛУЧ \+35%/);
+ assert.match(boost.hint,/ОРУЖИЕ \+35%/);
  assert.equal(corridorCue(mission,14.4,240).key,'ready');
  assert.doesNotMatch(corridorCue(mission,14.4,240).label,/УЯЗВИМ/);
 });

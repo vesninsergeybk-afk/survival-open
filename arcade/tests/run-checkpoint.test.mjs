@@ -25,8 +25,8 @@ function scene(){
   weaponThermal:createThermal(),moduleClocks:{rail:0,flak:0},network:{armor:0,armament:0,engine:0,strikePower:0},
   support:{charges:1,cooldown:7,missions:[]},time:243.5,spawnClock:3.4,
   enemies:[],allies:[],shots:[],missiles:[],drops:[],flashes:[],zones:[],hacks:[],
-  contract:null,operation:null,ionLoan:null,ionTrialTaken:false,ionMasteryAwarded:false,
-  lastDamageAt:-Infinity,ionReturnAt:-Infinity,activeBases:1,
+  contract:null,operation:null,fieldLoan:null,fieldTrialTaken:false,ionMasteryAwarded:false,
+  lastDamageAt:-Infinity,fieldReturnAt:-Infinity,activeBases:1,
   keys:new Set(),touch:{x:0,y:0},overlay:{hidden:false,dataset:{mode:'base'}},
   cockpit:{resourceGain:noop},heritage:{play:noop,station:noop,vfx:{nova:noop}},notice:noop});
  return g;
@@ -128,12 +128,12 @@ test('delivering restored telemetry twice cannot duplicate ore, experience or th
  assert.equal(again.player.ore,50);assert.equal(again.player.data,52);assert.ok(again.world.home.corridorSecured);
 });
 test('loan charges, cooldown, spent trial and owned hardware survive without a free refill',()=>{
- const g=scene();g.ionLoan=createIonLoan(g.docked.id,200);g.ionLoan.charges=1;
- g.ionLoan.used=2;g.ionLoan.cooldownUntil=247;g.ionLoan.missionStarted=true;g.ionTrialTaken=true;
+ const g=scene();g.fieldLoan=createIonLoan(g.docked.id,200);g.fieldLoan.charges=1;
+ g.fieldLoan.used=2;g.fieldLoan.cooldownUntil=247;g.fieldLoan.missionStarted=true;g.fieldTrialTaken=true;
  g.shipLoadout.slots[1]='ion';
  const {storage}=save(g),fresh=scene();restoreCheckpoint(fresh,new RunCheckpointStore(storage).load());
- assert.equal(fresh.ionLoan.charges,1);assert.equal(fresh.ionLoan.used,2);
- assert.equal(fresh.ionLoan.cooldownUntil,247);assert.ok(fresh.ionTrialTaken);
+ assert.equal(fresh.fieldLoan.charges,1);assert.equal(fresh.fieldLoan.used,2);
+ assert.equal(fresh.fieldLoan.cooldownUntil,247);assert.ok(fresh.fieldTrialTaken);
  assert.equal(fresh.shipLoadout.slots[1],'ion');assert.equal(fresh.player.ore,20);
 });
 test('interrupted or quota-limited writes preserve the previous valid checkpoint',()=>{

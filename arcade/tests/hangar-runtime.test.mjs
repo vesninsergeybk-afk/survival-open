@@ -21,7 +21,7 @@ function game(){
   moduleClocks:{rail:0,flak:0},beamClock:0,rocketClock:0,heavyCooldown:0,heavyCharge:null,
   world:new World(20261102),activeBases:1,allies:[],support:{charges:0,missions:[]},
   network:{armor:0,armament:0,engine:0,strikePower:0},doctrine:null,
-  ionLoan:null,ionTrialTaken:false,ionReturnAt:-Infinity,ionMasteryAwarded:false,
+  fieldLoan:null,fieldTrialTaken:false,fieldReturnAt:-Infinity,ionMasteryAwarded:false,
   operation:null,contract:null,time:0,geoScanUntil:0,overchargeUntil:0,
   holdFire:false,mining:{active:false},probeRepairing:false,actionHeld:null,
   dead:false,paused:true,baseTab:'hangar',isTouchLayout:false,
@@ -51,7 +51,7 @@ function equip(g,slots){
 test('taking an ion loan on a rail-only ship does not install an unusable manual weapon',()=>{
  const g=game();equip(g,['rail',null,null,null,null,null]);g.shipLoadout.owned.rail=1;
  g.baseAction('loanIon','');
- assert.ok(g.ionLoan);assert.equal(g.weaponProfile.ion,false);
+ assert.ok(g.fieldLoan);assert.equal(g.weaponProfile.ion,false);
  assert.ok(!g.hangarSession.draft.slots.includes('ion'),'no plasma means no valid automatic suggestion');
 });
 test('a loan suggests a valid draft but the live ship changes only on Apply',()=>{
@@ -80,7 +80,7 @@ test('rental return and repeated docking clean live and staged ion modules witho
  assert.ok(g.weaponProfile.ion);g.baseAction('returnIon','');
  assert.equal(g.weaponProfile.ion,false);
  assert.ok(!g.player.weaponSlots.includes('ion'),'the rendered ship must update immediately');assert.ok(!g.hangarSession.draft.slots.includes('ion'));
- g.baseAction('loanIon','');assert.equal(g.ionLoan,null,'the home trial cannot be farmed');
+ g.baseAction('loanIon','');assert.equal(g.fieldLoan,null,'the home trial cannot be farmed');
 });
 test('returning an ion loan preserves unrelated unfinished edits in the hangar',()=>{
  const g=game();g.baseAction('loanIon','');g.hangarAction({act:'hgApply'});
@@ -106,7 +106,7 @@ test('beginning mining or probe repair cancels howitzer preparation immediately'
 });
 test('the real starter weapon can fire for five minutes without overheating; C, mining and repair stop it',()=>{
  const g=game(),e=target();g.grid.insert(e);battle(g,300);
- assert.ok(g.hits.length>=450&&g.hits.length<=477);assert.ok(g.hits.every(x=>x.damage===14));
+ assert.ok(g.hits.length>=450&&g.hits.length<=477);assert.ok(g.hits.every(x=>x.damage===18));
  assert.equal(g.weaponThermal.locked,false);assert.equal(g.missiles.length,0);
  for(const mode of ['holdFire','mining','repair']){
   const before=g.hits.length;
@@ -146,7 +146,7 @@ test('choosing and mastering a plasma branch in the real hangar changes real bea
  assert.deepEqual(g.shipLoadout.specializations.plasma,{path:'furnace',rank:1});
  assert.equal(g.player.points,19,'choosing the other branch must not spend points');
  g.grid.insert(target(100));battle(g,1/60);
- assert.equal(g.hits.length,1);assert.equal(g.hits[0].damage,17.5);
+ assert.equal(g.hits.length,1);assert.equal(g.hits[0].damage,22.5);
 
  g.activeBases=3;g.paused=true;g.overlay.hidden=false;
  g.hangarAction({act:'hgSpec',id:'plasma:furnace'});

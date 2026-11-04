@@ -1,3 +1,4 @@
+import {RuntimeHarness} from './runtime-game.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -16,8 +17,7 @@ const gameSource=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 const start=gameSource.indexOf(' baseAction(act,role){');
 const end=gameSource.indexOf('\n callStrike(){',start);
 assert.ok(start>=0&&end>start,'baseAction method must exist');
-const Actions=new Function('baseOffer','transitCost','baseNames','stationModule',
- 'return class TestActions {'+gameSource.slice(start,end)+'}')(baseOffer,transitCost,baseNames,stationModule);
+const Actions=RuntimeHarness;
 const fakeGame=(base)=>({
  dead:false,docked:base,contract:null,time:10,player:{ore:80,data:0,hp:110,maxHp:110,shield:0,points:0},
  heritage:{station:()=>{},ui:()=>{},vfx:{nova:()=>{}}},cockpit:{resourceGain:()=>{}},
@@ -93,8 +93,7 @@ test('an unfinished assignment may be abandoned without locking progression',()=
  const abandonStart=gameSource.indexOf('  abandonContract(){');
  const abandonEnd=gameSource.indexOf('\n  openMap(){',abandonStart);
  assert.ok(abandonStart>=0&&abandonEnd>abandonStart);
- const Cancel=new Function('renderWorldMap','return class TestCancel {'+
-  gameSource.slice(abandonStart,abandonEnd)+'}')(null);
+ const Cancel=RuntimeHarness;
  game.overlay={dataset:{mode:'base'}};
  Cancel.prototype.abandonContract.call(game);
  assert.equal(game.contract,null);
@@ -141,7 +140,7 @@ test('the scheduled wave director responds to nearby enemy control and capture',
  const i=gameSource.indexOf(' sectorDirector(director){');
  const j=gameSource.indexOf('\n spawnGroup(',i);
  assert.ok(i>=0&&j>i);
- const Sector=new Function('RULES','return class Sector {'+gameSource.slice(i,j)+'}')( {maxEnemies:180} );
+ const Sector=RuntimeHarness;
  const context={player:{x:enemy.x,y:enemy.y},world,enemyBasesUnlocked:()=>true};
  const wave={types:['fighter'],cap:20,interval:6};
  const hostile=Sector.prototype.sectorDirector.call(context,wave);

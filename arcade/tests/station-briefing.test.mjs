@@ -1,3 +1,4 @@
+import {RuntimeHarness} from './runtime-game.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {renderBasePanel} from '../base-panel.js';
@@ -137,8 +138,7 @@ test('postponing a probe retains the correct completion message',()=>{
  const start=source.indexOf(' abandonOperation(){');
  const end=source.indexOf('  abandonContract(){',start);
  assert.ok(start>0&&end>start,'abandon operation handler must exist');
- const Harness=new Function('PROBE_OPERATION','CORRIDOR_OPERATION','RELAY_DEFENSE','CARRIER_INTERCEPTION',
-  'return class TestAbandon {'+source.slice(start,end)+'}')(PROBE_OPERATION,{id:'silent-corridor'},RELAY_DEFENSE,CARRIER_INTERCEPTION);
+ const Harness=RuntimeHarness;
  const messages=[],game=new Harness();
  Object.assign(game,{dead:false,probeRepairing:true,
   operation:{id:PROBE_OPERATION.id,name:PROBE_OPERATION.name},

@@ -1,3 +1,4 @@
+import {RuntimeHarness} from './runtime-game.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -52,8 +53,7 @@ const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 function method(name,next,...deps){
  const from=source.indexOf('\n '+name),to=source.indexOf('\n '+next,from+1);
  assert.ok(from>=0&&to>from,`${name} should be extractable from real game source`);
- return new Function('contactOnCircle','impactRock','firstRockImpact','contactAtPoint',
-  'return class VFXWiring {'+source.slice(from,to)+'\n}')(contactOnCircle,()=>false,firstRockImpact,contactAtPoint);
+ return RuntimeHarness;
 }
 
 test('damage events do not change balance while contacting the enemy hull',()=>{

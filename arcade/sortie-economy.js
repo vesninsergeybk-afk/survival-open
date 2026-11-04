@@ -1,4 +1,4 @@
-import {MODULES,slotOpen} from './ship-loadout.js?v=hangar-2';
+import {MODULES,slotOpen} from './ship-loadout.js?v=weapons-cycle-2';
 
 // A sortie begins when the player actually leaves a station. Checkpoints are
 // station-only: the baseline never needs to be saved halfway through a flight.
@@ -40,8 +40,13 @@ export function nextEconomyChoices(base,state,offer){
    offer.localService.cost,'service','',offer.reasons.service);
  const loadout=state.loadout;
  if(loadout?.slots&&loadout.owned){
-  const free=loadout.slots.findIndex((id,index)=>!id&&slotOpen(loadout,index));
+  const free=loadout.slots.findIndex((id,index)=>!id&&index<5&&slotOpen(loadout,index));
   if(free>=0){
+   if(state.earlyRail&&!loadout.slots.includes('rail')){
+    const price=(loadout.owned.rail||0)>0?0:MODULES.rail.cost;
+    add('Рельсовое орудие','Первый успех открыл чертёж. Редкие выстрелы до 700 м; удобно атаковать цель операции издалека.',
+     price,'baseTab','hangar');
+   }
    const installed=loadout.slots.filter(id=>id==='plasma').length;
    const price=(loadout.owned.plasma||0)>installed?0:MODULES.plasma.cost;
    add(price?(installed===1?'Второй плазменный луч':'Ещё один плазменный луч'):

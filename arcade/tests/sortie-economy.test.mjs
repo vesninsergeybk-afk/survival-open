@@ -74,3 +74,13 @@ test('the dock shows the last completed result and honest, labelled purchase rou
  assert.match(html,/data-act="baseMap"/);
  assert.doesNotMatch(renderBasePanel(home,state()),/ПОСЛЕ ВЫЛЕТА/);
 });
+
+test('the first-operation reward offers a distinct range choice and never proposes an ordinary gun for H',()=>{
+ const loadout={frame:4,slots:['plasma',null,null,null,null,null],owned:{plasma:1}};
+ const offer={reasons:{hire:'Лимит',service:'Недоступно'},relayCost:48};
+ const choices=nextEconomyChoices({active:true},{loadout,earlyRail:true,civilianBases:2},offer);
+ assert.ok(choices.some(c=>c.title==='Рельсовое орудие'&&c.cost===36));
+ assert.ok(choices.some(c=>c.title==='Второй плазменный луч'));
+ loadout.slots=['plasma','rail','flak','rocket','plasma',null];
+ assert.equal(nextEconomyChoices({active:true},{loadout,civilianBases:2},offer).length,0);
+});

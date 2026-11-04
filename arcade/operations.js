@@ -3,7 +3,7 @@
 export const CORRIDOR_OPERATION=Object.freeze({
  id:'silent-corridor',kind:'jammer',name:'Глухой коридор',
  kicker:'ОСОБАЯ ОПЕРАЦИЯ',rewardOre:30,rewardData:22,
- maxHp:150,focusRange:255,escortTrigger:650,
+ maxHp:150,focusRange:435,escortTrigger:650,
  pulseRange:315,pulsePeriod:4.2,pulseDamage:13,
  desc:'Найдите глушитель на восточном маршруте, уклоняйтесь от ЭМ-импульсов и отключите передатчик. Бортовой ИИ сохранит телеметрию: возвращайтесь с ней в док за наградой. На обратном пути можно перехватить преследователей или уйти от боя на форсаже.',
  consequence:'После уничтожения передатчика разведка дока расширится на 350 м, а вражеские патрули в домашнем секторе станут реже.'

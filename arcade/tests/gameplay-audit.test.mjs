@@ -30,7 +30,7 @@ function scene(){
   skillRanks:{beam:0,range:0,double:0,rocket:0},shipLoadout:createLoadout(),
   weaponThermal:createThermal(),moduleClocks:{rail:0,flak:0},beamClock:0,rocketClock:0,
   heavyCharge:null,heavyCooldown:0,holdFire:false,mining:{active:false},probeRepairing:false,
-  nearArsenalBonus:false,ionLoan:null,overchargeUntil:0,
+  nearArsenalBonus:false,fieldLoan:null,overchargeUntil:0,
   grid:new SpatialGrid(110),rockGrid:new SpatialGrid(140),flashes:[],missiles:[],allies:[],
   cockpit:{resourceGain:noop},heritage:{play:noop,station:noop,
    vfx:{nova:noop,hullImpact:noop,shipExplosion:noop,muzzle:noop,rocketImpact:noop}},
@@ -67,10 +67,10 @@ test('rear hits interrupt propulsion, but engine lockout prevents endless immobi
 test('plasma marks transport for the ion chain and a rented beam boost also affects cargo',()=>{
  const {g,op}=scene();g.updateCarrierInterception(.01);
  Object.assign(g.player,position(op,'side'));
- g.ionLoan=createIonLoan(base.id);g.weaponProfile.ion=true;g.overchargeUntil=5;
- const previous=op.hp;g.damageEnemy(op,10,'beam');
- assert.equal(previous-op.hp,12);assert.ok(op.ionMarkUntil>g.time);
- const plan=planIonDischarge(g.enemies,g.player,g.time,g.ionLoan);
+ g.fieldLoan=createIonLoan(base.id);g.weaponProfile.ion=true;g.overchargeUntil=5;g.grid.insert(op);
+ const previous=op.hp;g.updateShipWeapons(.01);
+ const expected=18*1.2;assert.ok(Math.abs(previous-op.hp-expected)<1e-8);assert.ok(op.ionMarkUntil>g.time);
+ const plan=planIonDischarge(g.enemies,g.player,g.time,g.fieldLoan);
  assert.equal(plan.ok,true);assert.ok(plan.targets.includes(op));
 });
 test('transport collisions destroy rock cover without creating alloy or mining progress',()=>{
@@ -152,10 +152,10 @@ test('telemetry payout remains one-time and creates an actual post-mission breat
 });
 test('hangar compares distance and heat without multiplying single-target flak by its victim count',()=>{
  const ship=createLoadout(),initial=loadoutAnalysis(ship);
- assert.ok(Math.abs(initial.dps[0]-14/.63)<1e-8);assert.equal(initial.dps[2],0);
+ assert.ok(Math.abs(initial.dps[0]-18/.63)<1e-8);assert.equal(initial.dps[2],0);
  ship.slots=['rail',null,null,null,null,null];const rail=loadoutAnalysis(ship);
  assert.equal(rail.dps[0],rail.dps[2]);
- ship.slots=['flak',null,null,null,null,null];assert.equal(loadoutAnalysis(ship).dps[0],10/1.15);
+ ship.slots=['flak',null,null,null,null,null];assert.equal(loadoutAnalysis(ship).dps[0],14/1.15);
  ship.slots=['plasma','plasma','plasma','plasma','plasma',null];ship.frame=3;
  assert.ok(loadoutAnalysis(ship).heatRate>14);
  const session=new HangarSession();session.begin(createLoadout());session.draft=ship;
@@ -165,7 +165,7 @@ test('hangar compares distance and heat without multiplying single-target flak b
 });
 test('a rail penetrator passes one asteroid but a second still protects the target',()=>{
  for(const count of [1,2]){
-  const {g}=scene(),enemy={type:'gunship',x:g.player.x+500,y:g.player.y,hp:1000,r:20};
+  const {g}=scene();g.operation=null;const enemy={type:'gunship',x:g.player.x+500,y:g.player.y,hp:1000,r:20};
   g.shipLoadout.slots=['rail',null,null,null,null,null];
   g.shipLoadout.specializations={rail:{path:'penetrator',rank:2}};g.weaponProfile=loadoutProfile(g.shipLoadout);
   g.grid.insert(enemy);const rocks=[150,300].slice(0,count).map(offset=>({x:g.player.x+offset,y:g.player.y,r:40,hp:500,alive:true}));

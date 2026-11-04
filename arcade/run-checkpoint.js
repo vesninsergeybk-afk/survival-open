@@ -1,6 +1,7 @@
 import {World} from './world.js?v=arcade-base-network-40';
-import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=hangar-2';
-import {validSortieReports} from './sortie-economy.js?v=economy-return-1';
+import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=weapons-cycle-2';
+import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=weapons-cycle-2';
+import {validSortieReports} from './sortie-economy.js?v=weapons-cycle-2';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
@@ -9,10 +10,10 @@ const DERIVED=new Set(['capitalPaintCache']);
 const FIELDS=('player skillRanks shipLoadout weaponThermal moduleClocks heavyCharge heavyCooldown '+
  'doctrine lastDamageAt network enemies allies drops shots missiles flashes support zones time '+
  'spawnClock miningNoise lastNoiseSource noiseAlert miningNoiseWarned miningIntroShown coverWearWarned '+
- 'contract operation geoScanUntil overchargeUntil ionLoan ionTrialTaken ionReturnAt ionMasteryAwarded '+
+ 'contract operation geoScanUntil overchargeUntil fieldLoan fieldTrialTaken fieldReturnAt ionMasteryAwarded '+
  'holdFire beamClock rocketClock zoneClock stationary lastX lastY hacks activeBases enemySerial '+
  'allySerial groupSerial heavyPortalShown lastEncounter lastEncounterLabelAt amberBeltSeen ionFieldSeen '+
- 'waypoint lastIonAudioCycle sortieReports').split(' ');
+ 'waypoint lastIonAudioCycle fieldEffects sortieReports').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const cell=v=>typeof v==='string'&&/^-?\d+:-?\d+$/.test(v);
@@ -84,11 +85,26 @@ export function captureCheckpoint(game,base){
    Math.abs(r.x-r.originX)>.01||Math.abs(r.y-r.originY)>.01||Math.abs(r.vx)+Math.abs(r.vy)>.01);
   if(changed.length)rocks.push([key,changed]);
  }
- return {version:1,seed:game.seed,baseId:base.id,state,world:{
+ return {version:2,seed:game.seed,baseId:base.id,state,world:{
   stations:[...game.world.stations],rocks,discovered:[...game.world.discovered]}};
 }
+export function migrateCheckpoint(data){
+ if(data?.version!==1)return data;
+ const old=data.state,s={...old};
+ s.fieldLoan=old.fieldLoan||old.ionLoan||null;
+ if(s.fieldLoan){
+  s.fieldLoan={...s.fieldLoan,moduleId:s.fieldLoan.moduleId||'ion'};
+  s.fieldLoan.assignment=s.fieldLoan.assignment||
+   (s.fieldLoan.missionStarted?missionAssignment(s.operation,s.contract):null);
+  s.fieldLoan.returnDue=!!s.fieldLoan.missionStarted&&!s.fieldLoan.assignment;
+ }
+ s.fieldTrialTaken=old.fieldTrialTaken??old.ionTrialTaken??false;
+ s.fieldReturnAt=old.fieldReturnAt??old.ionReturnAt??-Infinity;s.fieldEffects=[];
+ delete s.ionLoan;delete s.ionTrialTaken;delete s.ionReturnAt;
+ return {...data,version:2,state:s};
+}
 export function validateCheckpoint(data){
- if(!object(data)||data.version!==1||!Number.isInteger(data.seed)||!cell(data.baseId)||
+ if(!object(data)||data.version!==2||!Number.isInteger(data.seed)||!cell(data.baseId)||
   !object(data.state)||!object(data.world))return false;
  const s=data.state,p=s.player,w=data.world;
  if(!object(p)||!finite(p.x)||!finite(p.y)||!finite(p.hp,.001,100000)||
@@ -123,10 +139,21 @@ export function validateCheckpoint(data){
  }
  if(s.operation&&(!ids.has(s.operation.baseId)||!['silent-corridor','last-signal','relay-defense','carrier-interception'].includes(s.operation.id)))return false;
  if(s.contract&&!ids.has(s.contract.baseId))return false;
+ if(s.fieldLoan){
+  const loan=s.fieldLoan,spec=FIELD_WEAPONS[loan.moduleId||'ion'];
+  if(!spec||!Number.isInteger(loan.charges)||loan.charges<0||loan.charges>spec.capacity||
+   !finite(loan.cooldownUntil,0,1e9)||!Number.isInteger(loan.used)||loan.used<0)return false;
+  if(loan.assignment&&(!['operation','contract'].includes(loan.assignment.kind)||
+   typeof loan.assignment.id!=='string'||!ids.has(loan.assignment.baseId)))return false;
+ }
+ if(s.fieldEffects&&(!Array.isArray(s.fieldEffects)||s.fieldEffects.length>1||s.fieldEffects.some(e=>
+  !finite(e.until,0,1e9)||!Array.isArray(e.targets)||e.targets.length>3||
+  e.targets.some(t=>!object(t)||!object(t.target)||!['enemy','jammer','turret','base'].includes(t.kind)))))return false;
  try{return quoteLoadout(s.shipLoadout,s.shipLoadout,{baseActive:true,level:p.level,ore:0,
-  ranks:s.skillRanks,ionLoan:s.ionLoan}).ok;}catch{return false;}
+  ranks:s.skillRanks,fieldLoan:s.fieldLoan,earlyRail:w.stations.find(([id])=>id==='0:0')?.[1].corridorSecured}).ok;}catch{return false;}
 }
 export function restoreCheckpoint(game,data){
+ data=migrateCheckpoint(data);
  if(!validateCheckpoint(data))throw new Error('invalid-checkpoint');
  const world=new World(data.seed);
  world.stations=new Map(data.world.stations);world.home=world.stations.get('0:0');
@@ -157,12 +184,13 @@ export function restoreCheckpoint(game,data){
 function decodeRecord(text){
  if(!text)return null;
  const r=JSON.parse(text);
- if(!object(r)||r.format!==1||!Number.isSafeInteger(r.serial)||r.serial<1||
+ if(!object(r)||![1,2].includes(r.format)||!Number.isSafeInteger(r.serial)||r.serial<1||
   typeof r.runId!=='string'||r.runId.length>100||!['checkpoint','new','ended'].includes(r.kind)||
   typeof r.body!=='string'||r.body.length>MAX_CHECKPOINT_LENGTH||
   hash(r.serial+'|'+r.runId+'|'+r.kind+'|'+r.body)!==r.checksum)throw new Error('invalid-record');
  if(r.kind==='checkpoint'){
-  r.data=unpackRun(r.body);if(!validateCheckpoint(r.data))throw new Error('invalid-checkpoint');
+  const raw=unpackRun(r.body);if(raw?.version>2)throw new Error('unsupported-version');
+  r.data=migrateCheckpoint(raw);if(!validateCheckpoint(r.data))throw new Error('invalid-checkpoint');
  }
  return r;
 }
@@ -177,9 +205,10 @@ export class RunCheckpointStore{
   for(const key of RUN_KEYS)try{
    const text=this.storage.getItem(key);if(!text)continue;
    const header=JSON.parse(text);
-   if(header?.format!==1){unsupported=true;continue;}
+   if(![1,2].includes(header?.format)){unsupported=true;continue;}
    records.push(decodeRecord(text));
-  }catch(e){damaged=true;if(e?.name==='SecurityError'){this.issue='unavailable';this.blocked=true;}}
+  }catch(e){if(e?.message==='unsupported-version')unsupported=true;else damaged=true;
+   if(e?.name==='SecurityError'){this.issue='unavailable';this.blocked=true;}}
   if(unsupported){this.issue='unsupported';this.blocked=true;return null;}
   const latest=records.sort((a,b)=>b.serial-a.serial)[0]||null;
   this.issue=this.blocked?this.issue:damaged?'damaged':'';
@@ -204,7 +233,7 @@ export class RunCheckpointStore{
    this.blocked=true;this.issue='conflict';return {ok:false,reason:'conflict'};
   }
   const serial=(latest?.serial||0)+1;
-  const r={format:1,serial,runId:this.runId,kind,savedAt:this.now(),body,
+  const r={format:2,serial,runId:this.runId,kind,savedAt:this.now(),body,
    checksum:hash(serial+'|'+this.runId+'|'+kind+'|'+body)};
   try{this.storage.setItem(RUN_KEYS[serial%2],JSON.stringify(r));}
   catch{return {ok:false,reason:'unavailable'};}

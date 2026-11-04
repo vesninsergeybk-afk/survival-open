@@ -163,7 +163,7 @@ test('gameplay and HUD use the same player-facing signal state',async()=>{
  assert.match(game,/this\.lastNoiseSource=\{x:rock\.x,y:rock\.y\}/);
  assert.match(game,/this\.noiseAlert=\{x:source\.x,y:source\.y,/);
  assert.match(game,/if\(e\.signalIntel&&aggressor\)/);
- assert.match(game,/canAutoTarget\(e\)/);
+ assert.match(readFileSync(new URL('../combat-targets.js',import.meta.url),'utf8'),/canAutoTarget\(t\)/);
  assert.match(hud,/ПАТРУЛЬ ИЩЕТ ИСТОЧНИК/);
  assert.match(hud,/ПЕРЕХОД В АТАКУ/);
  assert.match(hud,/SIGNAL|СИГНАЛ/);

@@ -83,13 +83,13 @@ test('published entry points invalidate the entire changed ES-module import chai
  const source=relative=>readFileSync(new URL('../'+relative,import.meta.url),'utf8');
  const game=source('game.js'),base=source('base-panel.js');
  const preview=source('hangar-preview.js');
- assert.match(source('index.html'),/game\.js\?v=[^"']*menus-2/);
- assert.match(game,/base-panel\.js\?v=menus-gameplay-first-2/);
- assert.match(game,/map-panel\.js\?v=menus-gameplay-first-1/);
- assert.match(base,/hangar-panel\.js\?v=menus-gameplay-first-2/);
- assert.match(base,/map-panel\.js\?v=menus-gameplay-first-1/);
- assert.match(source('hangar-preview.html'),/hangar-preview\.js\?v=menus-gameplay-first-2/);
- assert.match(preview,/hangar-panel\.js\?v=menus-gameplay-first-2/);
+ assert.match(source('index.html'),/game\.js\?v=[^"']*weapons-cycle-2/);
+ assert.match(game,/base-panel\.js\?v=weapons-cycle-2/);
+ assert.match(game,/map-panel\.js\?v=weapons-cycle-2/);
+ assert.match(base,/hangar-panel\.js\?v=weapons-cycle-2/);
+ assert.match(base,/map-panel\.js\?v=weapons-cycle-2/);
+ assert.match(source('hangar-preview.html'),/hangar-preview\.js\?v=weapons-cycle-2/);
+ assert.match(preview,/hangar-panel\.js\?v=weapons-cycle-2/);
 });
 
 test('active menu controls never override positioning transforms used by ship hardpoints',()=>{

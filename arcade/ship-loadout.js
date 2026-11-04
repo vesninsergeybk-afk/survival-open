@@ -1,4 +1,5 @@
-import {applySpecialization} from './weapon-specializations.js?v=weapon-branches-1';
+import {ionDamage} from './ion-conductor.js?v=weapons-cycle-2';
+import {applySpecialization} from './weapon-specializations.js?v=weapons-cycle-2';
 // Run-owned hardware; saved blueprints contain choices, never resources/unlocks.
 export const FRAME_STEPS=Object.freeze([
  {nodes:2,heavy:false,level:1,cost:0,name:'Лёгкий корпус'},
@@ -18,7 +19,9 @@ export const MODULES=Object.freeze({
  rocket:{id:'rocket',name:'Самонаводящиеся ракеты',short:'Ракеты',kind:'auto',role:'Дальний бой',level:5,cost:48,heat:16,color:'#ffad85',
   desc:'Ракеты преследуют выбранный корабль. Требуется технология «Авторакеты». Её первый ранг даёт один ракетный модуль.'},
  ion:{id:'ion',name:'Ионный проводник',short:'Ион',kind:'manual',role:'Цепной разряд',level:1,cost:null,heat:0,color:'#a4f4ff',
-  desc:'Space / «Ион»: разряд по меткам плазменного луча. Прокатный модуль: три заряда, возврат после задания. Занимает обычный узел.'},
+  desc:'Space / «Ион»: разряд по меткам плазменного луча. Калибровка орудий усиливает цепь. Прокатный модуль: три заряда, возврат после задания. Занимает обычный узел.'},
+ resonator:{id:'resonator',name:'Резонатор',short:'Резонанс',kind:'manual',role:'Связь целей',level:1,cost:null,heat:0,color:'#d5a1f0',
+  desc:'Space: связывает до трёх целей на 4 с. Между ними передаётся 35% нанесённого урона, если расстояние не больше 260 м и нет каменного экрана. Нужны минимум две цели. Три заряда, возврат после задания.'},
  howitzer:{id:'howitzer',name:'Осадная гаубица',short:'Гаубица',kind:'heavy',role:'Крупные цели',level:14,cost:160,heat:70,color:'#e1b2ff',
   desc:'F / «Гаубица»: подготовка 1,25 с и удар по отмеченной точке. Во время подготовки автоогонь корабля приостанавливается. Цель может уйти из зоны удара.'}
 });
@@ -34,27 +37,34 @@ const countSlots=slots=>slots.reduce((out,id)=>{if(id)out[id]=(out[id]||0)+1;ret
 export function loadoutProfile(loadout){
  const counts=countSlots(loadout.slots);
  return {plasma:counts.plasma||0,rail:counts.rail||0,flak:counts.flak||0,
-  rocket:counts.rocket||0,ion:!!counts.ion,howitzer:!!counts.howitzer,
+  rocket:counts.rocket||0,ion:!!counts.ion,resonator:!!counts.resonator,howitzer:!!counts.howitzer,
   automatic:(counts.plasma||0)+(counts.rail||0)+(counts.flak||0)+(counts.rocket||0)};
 }
 export function moduleStats(id,ranks={},specialization=null){
  const beam=ranks.beam||0,range=ranks.range||0,rocket=ranks.rocket||0;
+ const power=1+beam*.2,rate=1+beam*.08;
  const spread=specialization?.path==='sweep'&&id==='flak';
  return ({
-  plasma:{damage:14+beam*3.3,range:435+range*56,interval:.63/(1+beam*.12),targets:1+Math.min(2,ranks.double||0)},
-  rail:{damage:38,range:700,interval:1.65,targets:1},
-  flak:{damage:spread?8:10,range:245,interval:1.15,targets:spread?(specialization.rank>=2?5:4):3},
-  rocket:{damage:48+rocket*19,range:720,interval:3.5/(1+rocket*.28),targets:1},
-  ion:{damage:'38 / 30 / 22',range:485,interval:4.5,targets:3},
+  plasma:{damage:18*power,range:435+range*56,interval:.63/rate,targets:1+Math.min(2,ranks.double||0)},
+  rail:{damage:38*power,range:700,interval:1.65/rate,targets:1},
+  flak:{damage:(spread?11:14)*power,range:245,interval:1.15/rate,targets:spread?(specialization.rank>=2?5:4):3},
+  rocket:{damage:(48+rocket*19)*power,range:720,interval:3.5/(1+rocket*.28)/rate,targets:1},
+  ion:{damage:ionDamage(beam).map(d=>Number(d.toFixed(2)).toLocaleString('ru-RU')).join(' / '),range:485,interval:4.5,targets:3},
+  resonator:{damage:'35% между целями',range:485,interval:6,targets:3},
   howitzer:{damage:180,range:900,interval:12,targets:'радиус 110 м'}
  })[id];
 }
+export const plasmaSplitWeights=count=>count>=3?[.45,.45,.45]:count===2?[.6,.6]:[1];
+export const contextFieldLoan=context=>context.fieldLoan||context.ionLoan||null;
+export const matchingFieldLoan=(context,id)=>{
+ const loan=contextFieldLoan(context);return loan&&(loan.moduleId||'ion')===id?loan:null;
+};
 export function moduleLock(id,context){
  if(!Object.hasOwn(MODULES,id))return 'Неизвестный модуль';
  const m=MODULES[id];
- if((context.level||1)<m.level)return 'Нужен уровень '+m.level;
+ if((context.level||1)<m.level&&!(id==='rail'&&context.earlyRail))return 'Нужен уровень '+m.level;
  if(id==='rocket'&&!(context.ranks?.rocket>0))return 'Изучите «Авторакеты» в ангаре';
- if(id==='ion'&&!context.ionLoan)return 'Возьмите модуль в прокат ниже';
+ if(m.kind==='manual'&&!matchingFieldLoan(context,id))return 'Возьмите этот модуль в прокат ниже';
  return '';
 }
 export function quoteLoadout(current,draft,context){
@@ -72,11 +82,13 @@ export function quoteLoadout(current,draft,context){
  const profile=loadoutProfile(draft);
  if(!profile.automatic)return fail('Оставьте хотя бы одно автоматическое орудие');
  if(profile.ion&&!profile.plasma)return fail('Ионному проводнику нужен луч для ионных меток');
+ if(profile.ion&&profile.resonator)return fail('Выберите один полевой модуль на Space; узел H использует F');
  const counts=countSlots(draft.slots),missing={};let cost=0;
  for(const [id,number] of Object.entries(counts)){
-  const owned=id==='ion'?(context.ionLoan?1:0):(current.owned[id]||0);
+  const manual=MODULES[id].kind==='manual';
+  const owned=manual?(matchingFieldLoan(context,id)?1:0):(current.owned[id]||0);
   const need=Math.max(0,number-owned);
-  if(id==='ion'&&need)return fail('Доступен только один прокатный ионный модуль');
+  if(manual&&need)return fail('Доступен только один прокатный полевой модуль');
   if(need){missing[id]=need;cost+=need*MODULES[id].cost;}
  }
  if(cost>(context.ore||0))return {ok:false,reason:'Не хватает '+(cost-(context.ore||0))+' ед. сплава',cost,missing};
@@ -93,7 +105,7 @@ export function applyLoadout(current,draft,context){
 export const quoteBlueprint=(current,draft,context)=>
  quoteLoadout(current,draft,{...context,ore:Number.MAX_SAFE_INTEGER});
 export function moduleStock(current,draft,context,id){
- const owned=id==='ion'?(context.ionLoan?1:0):(current.owned[id]||0);
+ const owned=MODULES[id]?.kind==='manual'?(matchingFieldLoan(context,id)?1:0):(current.owned[id]||0);
  const installed=current.slots.filter(value=>value===id).length;
  const planned=draft.slots.filter(value=>value===id).length;
  return {owned,installed,free:Math.max(0,owned-installed),needed:Math.max(0,planned-owned)};

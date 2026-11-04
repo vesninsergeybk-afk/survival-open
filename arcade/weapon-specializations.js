@@ -10,7 +10,7 @@ export const WEAPON_SPECIALIZATIONS=Object.freeze({
   penetrator:{name:'Сквозной сердечник',desc:'Выстрел через астероид сохраняет 65% урона по цели; мастерство — 85%.'}
  }),
  flak:Object.freeze({
-  sweep:{name:'Широкий веер',desc:'4 цели за залп (5 с мастерством), но лишь 8 урона по каждой вместо 10.'},
+  sweep:{name:'Широкий веер',desc:'4 цели за залп (5 с мастерством), но базовый урон по каждой — 11 вместо 14. Калибровка действует на оба варианта.'},
   interceptor:{name:'Перехватчик',desc:'По разведчикам и фланкерам +30% урона; мастерство +50%.'}
  }),
  rocket:Object.freeze({
@@ -46,7 +46,7 @@ export function plasmaDamageFactor(spec,d,range){
  if(spec.path==='furnace')return d<=150?(spec.rank>=2?1.45:1.25):1;
  if(spec.path==='focus'){
   const fraction=Math.max(0,Math.min(1,(d-115)/Math.max(1,range-115)));
-  return 1+((spec.rank>=2?.60:.48)/.28-1)*fraction;
+  return (1-(1-(spec.rank>=2?.60:.48))*fraction)/(1-.72*fraction);
  }
  return 1;
 }
