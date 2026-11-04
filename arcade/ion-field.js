@@ -3,7 +3,7 @@
  * Geometry and timing are shared by danger checks and Canvas feedback.
  * No gameplay randomness and no new per-frame particle systems.
  */
-export const ION_FIELD=Object.freeze({x:900,y:6650,r:145});
+export const ION_FIELD=Object.freeze({x:6000,y:40000,r:145});
 export const ION_PERIOD=9;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const TAU=Math.PI*2;

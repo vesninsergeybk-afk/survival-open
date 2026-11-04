@@ -1,3 +1,4 @@
+import {stormSeek} from './regional-storms.js?v=regions-1';
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20';
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
@@ -182,6 +183,7 @@ export function updateEnemy(e,game,dt){
   // Every visible intent must be renewed by real steering this frame.
   e._commsIntent=null;
   if(e.converted){updateConverted(e,game,dt);return;}
+  if(stormSeek(e,game,dt))return;
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;
   const signalOrder=updateSignalIntent(e,game,dt);

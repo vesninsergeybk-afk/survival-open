@@ -3,7 +3,7 @@ import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight} fr
 import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {combatTargets,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=weapons-cycle-2';
+import {combatTargets,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=regions-1';
 
 export const shipTargets=(game,range,limit=1,nearest=false,focus='precision')=>
  selectTargets(game,range,limit,!nearest&&focus==='precision');

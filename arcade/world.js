@@ -1,3 +1,5 @@
+import {amberRegion} from './regions.js?v=regions-1';
+import {STRATEGIC_STATIONS,createRegionalSupply} from './regional-supply.js?v=regions-1';
 import {RULES, hash, dist, baseNames} from './balance.js?v=arcade-network-20';
 import {amberBeltDensity,nearAmberBelt,inAmberCorridor} from './terrain.js?v=arcade-belt-26';
 const BASE_CELL = 1250;
@@ -18,6 +20,28 @@ export class World {
     this.rocks = new Map();
     this.discovered = new Set();
     this.home = this.station(0, 0, true);
+    this.ensureRegionalStations();
+    this.regionalSupply=createRegionalSupply();
+  }
+  ensureRegionalStations(){
+    for(const spec of STRATEGIC_STATIONS){
+      const old=this.stations.get(spec.id);
+      // Existing explored saves retain ownership, damage and installed equipment.
+      if(old&&(old.strategicRole||old.discovered||old.active||old.captured||old.hp<old.maxHp||
+        old.turrets?.some(t=>t.hp<t.maxHp))){
+        old.strategicRole=spec.strategicRole;old.title=spec.title;continue;
+      }
+      const b={id:spec.id,x:spec.x,y:spec.y,type:spec.type,rank:spec.rank,
+        strategicRole:spec.strategicRole,title:spec.title,enemy:true,active:false,
+        activationIndex:0,discovered:false,usedUpgrade:false,captured:false,
+        hp:spec.hp,maxHp:spec.hp,turrets:[],signalAt:0};
+      for(let i=0;i<spec.turrets;i++){
+        const a=i*Math.PI*2/spec.turrets;
+        b.turrets.push({x:b.x+Math.cos(a)*92,y:b.y+Math.sin(a)*92,
+          hp:spec.turretHp,maxHp:spec.turretHp,shot:1+i*.4});
+      }
+      this.stations.set(b.id,b);
+    }
   }
   station(cx, cy, forced=false) {
     const key = cellKey(cx,cy);
@@ -51,17 +75,19 @@ export class World {
     // Only the amber test field gets additional rocks; elsewhere the old
     // procedural world and its resource economy remain exactly the same.
     const field=nearAmberBelt((cx+.5)*ROCK_CELL,(cy+.5)*ROCK_CELL);
-    const count=ordinary+(field?5:0);
+    const regional=amberRegion((cx+.5)*ROCK_CELL,(cy+.5)*ROCK_CELL);
+    const count=ordinary+(field?5:regional?3:0);
     for(let i=0;i<count;i++){
       const x=(cx+hash(cx*17+i,cy,this.seed))*ROCK_CELL;
       const y=(cy+hash(cx,cy*13+i,this.seed+3))*ROCK_CELL;
-      if(Math.hypot(x,y)<250||inAmberCorridor(x,y))continue;
+      if(Math.hypot(x,y)<250||inAmberCorridor(x,y)||
+        (amberRegion(x,y)&&Math.abs(y-x*.2)<175))continue;
       const density=amberBeltDensity(x,y);
-      if(i>=ordinary&&density<.25)continue;
+      if(i>=ordinary&&density<.25&&!amberRegion(x,y))continue;
       const r=23+Math.floor(hash(cx+i*3,cy-i*5,this.seed+8)*24)+
         (density>=.25?10:0);
       if(this.nearbyStations(x,y,170).some(b=>dist(b,{x,y})<105+r))continue;
-      const rich=hash(Math.floor(x),Math.floor(y),this.seed)>.82;
+      const rich=hash(Math.floor(x),Math.floor(y),this.seed)>(amberRegion(x,y)?.65:.82);
       const durability=(30+r*.65)*(rich?1.35:1);
       list.push({x,y,r,originX:x,originY:y,vx:0,vy:0,spin:0,spinVelocity:0,
         flash:0,heat:0,rich,hp:durability,maxHp:durability,alive:true,id:key+'/'+i});
@@ -107,7 +133,7 @@ export class World {
   // The chart shows imprecise signatures, never exact positions of unseen stations.
   // This function does not reveal the station type or permanently discover it.
   signals(x,y,r=2200,allowEnemy=false){
-    return this.nearbyStations(x,y,r,true).filter(b=>!b.discovered&&(allowEnemy||!b.enemy))
+    return this.nearbyStations(x,y,r,true).filter(b=>!b.discovered&&(allowEnemy||b.strategicRole||!b.enemy))
       .map(b=>({id:b.id,x:b.x+(hash(b.x|0,b.y|0,this.seed+233)-.5)*240,
         y:b.y+(hash(b.y|0,b.x|0,this.seed+239)-.5)*240,
         distance:Math.round(Math.hypot(b.x-x,b.y-y))}))

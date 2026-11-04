@@ -1,4 +1,4 @@
-import {FIELD_WEAPONS,fieldLoanOffer,createFieldLoan} from './field-weapons.js?v=weapons-cycle-2';
+import {FIELD_WEAPONS,fieldLoanOffer,createFieldLoan} from './field-weapons.js?v=weapons-cycle-2-regions-1';
 // Ion behavior is one choice in the shared field-weapon rental.
 // Loans are saved with the run and never enter the permanent blueprint inventory.
 export const ION_CONDUCTOR = Object.freeze({

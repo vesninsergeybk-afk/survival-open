@@ -17,7 +17,7 @@ test('allied roles also preserve variation without touching combat RNG',()=>{
 });
 test('world positions reach five named colour sectors, including negative coordinates',()=>{
  const ids=new Set();
- for(let x=-15000;x<=15000;x+=2900)for(let y=-8000;y<=8000;y+=4200){
+ for(let x=-55000;x<=55000;x+=9000)for(let y=-50000;y<=50000;y+=12000){
   const n=sectorAt(x,y);
   assert.ok(Number.isInteger(n)&&n>=0&&n<5);
   assert.ok(sectorName(n).length>6);
@@ -136,7 +136,7 @@ test('cruiser landmark paints a stable salvage field only near the camera',()=>{
   });
   visuals.drawDerelict(ctx,{x:0,y:0,w:400,h:300},0,60);
   assert.deepEqual(counts,{plates:0,images:0});
-  const cam={x:-2300,y:900,w:400,h:350};
+  const cam={x:-40200,y:6750,w:400,h:350};
   visuals.drawDerelict(ctx,cam,0,60);
   assert.equal(counts.plates,13); // Twelve plates plus the transponder light.
   assert.equal(counts.images,1);

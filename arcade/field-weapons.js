@@ -1,4 +1,4 @@
-import {combatTargets,targetAlive,targetDistance,clearLine,damageTarget} from './combat-targets.js?v=weapons-cycle-2';
+import {combatTargets,targetAlive,targetDistance,clearLine,damageTarget} from './combat-targets.js?v=regions-1';
 import {contactOnCircle} from './impact-geometry.js?v=arcade-impact-51';
 
 export const FIELD_WEAPONS=Object.freeze({

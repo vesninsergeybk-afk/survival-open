@@ -1,13 +1,16 @@
-import {World} from './world.js?v=arcade-base-network-40';
+import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=regions-1';
+import {World} from './world.js?v=regions-1';
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1';
-import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=weapons-cycle-2';
+import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=weapons-cycle-2-regions-1';
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
 const FORBIDDEN=new Set(['__proto__','prototype','constructor']);
-const DERIVED=new Set(['capitalPaintCache']);
+// Radio cells contain runtime Maps and are rebuilt from the restored ships.
+// Keep serialization strict for every other field; never dismantle the live mesh.
+const DERIVED=new Set(['capitalPaintCache','_commsCell']);
 const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal moduleClocks heavyCharge heavyCooldown '+
  'doctrine lastDamageAt network enemies allies drops shots missiles flashes support zones time '+
  'spawnClock miningNoise lastNoiseSource noiseAlert miningNoiseWarned miningIntroShown coverWearWarned '+
@@ -87,7 +90,7 @@ export function captureCheckpoint(game,base){
   if(changed.length)rocks.push([key,changed]);
  }
  return {version:2,seed:game.seed,baseId:base.id,state,world:{
-  stations:[...game.world.stations],rocks,discovered:[...game.world.discovered]}};
+  regionalSupply:game.world.regionalSupply,stations:[...game.world.stations],rocks,discovered:[...game.world.discovered]}};
 }
 export function migrateCheckpoint(data){
  if(data?.version!==1)return data;
@@ -108,6 +111,7 @@ export function validateCheckpoint(data){
  if(!object(data)||data.version!==2||!Number.isInteger(data.seed)||!cell(data.baseId)||
   !object(data.state)||!object(data.world))return false;
  const s=data.state,p=s.player,w=data.world;
+ if(w.regionalSupply!==undefined&&!regionalSupplyValid(w.regionalSupply,s.time))return false;
  if(!object(p)||!finite(p.x)||!finite(p.y)||!finite(p.hp,.001,100000)||
   !finite(p.maxHp,p.hp,100000)||!Number.isInteger(p.level)||p.level<1||p.level>1000||
   !['xp','ore','data','points'].every(k=>finite(p[k],0,1e12))||!finite(s.time,0,1e9)||
@@ -165,6 +169,8 @@ export function restoreCheckpoint(game,data){
  const world=new World(data.seed);
  world.stations=new Map(data.world.stations);world.home=world.stations.get('0:0');
  world.discovered=new Set(data.world.discovered);
+ world.ensureRegionalStations();
+ world.regionalSupply=data.world.regionalSupply||createRegionalSupply(data.state.time);
  for(const [key,patches] of data.world.rocks){
   const [x,y]=key.split(':').map(Number),list=world.rockCell(x,y);
   for(const patch of patches){
@@ -182,6 +188,7 @@ export function restoreCheckpoint(game,data){
  game.keys.clear();game.touch.x=0;game.touch.y=0;
  game.player.vx=0;game.player.vy=0;game.player.burstRemaining=0;
  game.actionHeld=null;game.mining={active:false,target:null,fxClock:0};game.probeRepairing=false;
+ game.regionalStormFields=[];game._stormQueryAt=0;game._stormWarnings=[];
  game.nearRocks=[];game.localStations=[];game.worldQueryClock=0;game.worldVisualLast=-Infinity;
  game.cachedTarget=null;game.cachedWorldLinks=[];game.cachedNetworkLinked=world.networkTopology().linked;
  game.docked=world.stations.get(data.baseId);game.dead=false;game.paused=true;game.pausedRenderPending=true;
