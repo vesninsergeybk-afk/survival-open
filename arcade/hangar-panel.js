@@ -124,8 +124,9 @@ export function renderShipHangar(state,session=state.hangarSession){
  const upgrades=state.hangarUpgrades?.length?'<details class="hg-upgrades" data-hangar-section="upgrades"><summary>Улучшения оружия и систем · очков: '+(state.points||0)+'</summary><div class="hg-upgrade-grid">'+
   state.hangarUpgrades.map(s=>'<article><div><strong>'+esc(s.title)+'</strong><b>'+s.rank+' / '+s.max+'</b></div><p>'+esc(s.effect)+'</p>'+
    button('hgUpgrade',s.reason,s.id,!s.canBuy)+'<small>'+esc(s.desc)+'</small></article>').join('')+'</div></details>':'';
- const blueprints='<details class="hg-presets" data-hangar-section="blueprints"><summary>Сохранённые конфигурации · 3 схемы</summary><p class="hg-note">Схемы сохраняются на этом устройстве бесплатно. Сплав потребуется только для изготовления при применении. При новом вылете оружие и узлы нужно открыть заново.</p><div>'+BLUEPRINT_NAMES.map((name,i)=>
-  '<article><b>'+name+'</b>'+button('hgLoad','Загрузить',String(i),!session.blueprints[i])+button('hgSave','Записать',String(i),!blueprintQuote.ok)+'</article>').join('')+'</div></details>';
+ const savedBlueprints=session.blueprints.filter(Boolean).length;
+ const blueprints='<details class="hg-presets" data-hangar-section="blueprints"><summary>Схемы оснащения · сохранено '+savedBlueprints+' из 3</summary><p class="hg-note">Есть три ячейки для сохранения сборок на этом устройстве. Сплав потребуется только для изготовления при применении. При новом вылете оружие и узлы нужно открыть заново.</p><div>'+BLUEPRINT_NAMES.map((name,i)=>
+  '<article><b>'+name+'</b><small>'+(session.blueprints[i]?'Сохранена':'Пустая ячейка')+'</small>'+button('hgLoad','Загрузить',String(i),!session.blueprints[i])+button('hgSave','Записать',String(i),!blueprintQuote.ok)+'</article>').join('')+'</div></details>';
  const compareNow=report.ranges.map((range,i)=>'<span><small>'+range+' м</small><b>'+fmt(report.dps[i])+'</b></span>').join('');
  const draftCount=draft.slots.filter((item,i)=>item&&slotOpen(current,i)).length;
  return '<section class="ship-hangar'+(session.catalog?' hg-catalog-open':'')+(session.inspect?' hg-inspect-open':'')+'" aria-label="Конструктор корабля">'+

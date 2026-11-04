@@ -1,5 +1,5 @@
-import {renderShipHangar} from './hangar-panel.js?v=weapons-cycle-2';
-import {renderStationRoutePreview} from './map-panel.js?v=weapons-cycle-2';
+import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
@@ -661,7 +661,9 @@ export function renderBasePanel(base,state){
   (active?'Полевые заказы доступны повторно через 150 с после сдачи. Особая операция меняет обстановку в секторе.':
   'Первая станция включается бесплатно; следующие требуют сплав.')+
   (state.checkpointNote?'<br><span role="status">'+state.checkpointNote+'</span>':'')+
-  '</small><div class="base-footer-actions">'+
+  '</small>'+(state.hangarSession?.dirty(state.loadout)?
+   '<span class="base-unapplied-note" role="status">В ангаре есть неприменённая сборка</span>':'')+
+  '<div class="base-footer-actions">'+
   (active&&state.doctrine?action('respec','Сменить доктрину · 12 сплава',state.ore<12?'Нужно 12 сплава':''):'')+
-  action('close',active&&selected==='hangar'&&state.hangarSession?.dirty(state.loadout)?'В полёт без замены оружия':'В полёт')+'</div></footer></div>';
+  action('close',state.hangarSession?.dirty(state.loadout)?'В полёт · сборка не применена':'В полёт')+'</div></footer></div>';
 }

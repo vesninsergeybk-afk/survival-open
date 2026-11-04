@@ -36,7 +36,11 @@ export function mountMobileLaunch(doc=globalThis.document,win=globalThis.window)
   const installed=win.matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches
     || win.navigator?.standalone===true;
   const portrait=()=>win.matchMedia('(orientation: portrait)').matches;
-  const close=()=>{prompt.hidden=true;doc.body.classList.remove('mobile-launch-open');};
+  const close=()=>{
+    const wasOpen=!prompt.hidden;
+    prompt.hidden=true;doc.body.classList.remove('mobile-launch-open');
+    if(wasOpen)doc.dispatchEvent?.(new Event('survivor:mobile-launch-closed'));
+  };
   const sync=()=>{
     const copy=mobileLaunchCopy(portrait());
     title.textContent=copy.title;
@@ -54,6 +58,16 @@ export function mountMobileLaunch(doc=globalThis.document,win=globalThis.window)
       error.textContent='Этот браузер не поддерживает полноэкранный режим. Можно продолжить обычным способом.';
     }
   }
+  prompt.addEventListener('keydown',event=>{
+    if(event.key!=='Tab'||prompt.hidden)return;
+    const choices=[enter,skip].filter(button=>!button.disabled);
+    if(!choices.length)return;
+    const current=choices.indexOf(doc.activeElement);
+    const next=current<0?(event.shiftKey?choices.length-1:0):
+      (current+(event.shiftKey?-1:1)+choices.length)%choices.length;
+    event.preventDefault();choices[next].focus();
+  });
+  if(!prompt.hidden)(enter.disabled?skip:enter).focus?.({preventScroll:true});
   sync();
 
   skip.addEventListener('click',close);

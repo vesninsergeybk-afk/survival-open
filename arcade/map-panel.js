@@ -220,12 +220,14 @@ export function renderWorldMap(game){
  const clear='<button type="button" data-act="waypoint" data-id="clear"'+
   (!game.waypoint?' disabled':'')+'>Сбросить маршрут</button>';
  const view=game.mapView==='targets'?'targets':'map';
- return '<div class="dialog map-dialog map-mode-'+view+'"><header class="map-heading"><div>'+
-  '<span class="map-kicker">НАВИГАЦИОННЫЙ КОМПЛЕКС</span><h2>Карта сектора</h2>'+
+ const unapplied=game.mapReturnToBase&&game.hangarSession?.dirty(game.shipLoadout);
+ return '<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
+  '<span class="map-kicker">НАВИГАЦИОННЫЙ КОМПЛЕКС</span><h2 id="map-menu-title">Карта сектора</h2>'+
   '<p>Прокладывайте маршруты по разведанным станциям. Связь действует на 1450 м; каждая усиленная антенна добавляет 500 м. Неизвестные сигналы указаны приблизительно.</p>'+
   '</div><div class="map-heading-actions"><span>В сети <b>'+topology.count+'</b> · Открыто <b>'+known.length+
   '</b></span>'+(game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':'')+
-  '<button data-act="close">В полёт · Esc</button></div></header>'+
+  '<button data-act="close">'+(unapplied?'В полёт · сборка не применена':'В полёт · Esc')+'</button></div></header>'+
+  (unapplied?'<p class="map-unapplied-note" role="status">Сборка ангара не применена. Перед вылетом потребуется подтверждение.</p>':'')+
   '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">Схема сектора</button>'+
   '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">Цели и сигналы · '+(known.length+signals.length)+'</button></nav>'+
   '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
