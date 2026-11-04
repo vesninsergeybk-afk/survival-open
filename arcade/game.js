@@ -27,7 +27,7 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-2';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-2-station-layout-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-4-living-world-2-frontier-2';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
@@ -203,7 +203,7 @@ export class ArcadeGame {
   this.bind();this.resize();this.world.discover(0,0);
   this.notice(matchMedia('(pointer: coarse)').matches?
    'Подлетите к доку и нажмите «Действие».':
-   'WASD — полёт · E — домашний док · Ангар: бесплатная проба полевого оружия · Shift — рывок.',9);
+   'WASD — полёт · E — домашний док · В доке можно выбрать пробное оружие · Shift — рывок.',9);
   this.runStore=this.visuals.capitalDamageQA?null:new RunCheckpointStore(hangarStorage);
   const saved=this.runStore?.load();
   if(saved||['damaged','unsupported'].includes(this.runStore?.issue))this.offerContinuation(saved);
@@ -306,10 +306,11 @@ export class ArcadeGame {
      this.overlay.querySelector('.base-tabs [aria-selected="true"]')?.focus({preventScroll:true});}
    if(act==='showFieldTrial'&&this.docked?.id==='0:0'&&
     !this.fieldTrialTaken&&!this.fieldLoan){
-    this.baseTab='hangar';this.heritage.ui('tab');this.renderDock();
-    const services=this.overlay.querySelector('[data-hangar-section="services"]');
-    if(services){services.open=true;services.scrollIntoView({block:'nearest'});}
-    this.overlay.querySelector('[data-act="loanField"]:not(:disabled)')?.focus({preventScroll:true});
+    this.baseTab='summary';this.fieldTrialPickerOpen=!this.fieldTrialPickerOpen;
+    this.heritage.ui('tab');this.renderDock();
+    this.overlay.querySelector('.base-trial-picker')?.scrollIntoView({block:'nearest'});
+    this.overlay.querySelector(this.fieldTrialPickerOpen?
+     '.base-trial-picker [data-act="loanField"]':'[data-act="showFieldTrial"]')?.focus({preventScroll:true});
    }
     if(act==='baseMap')this.openMap();
    if(act==='toggleMeteorDefense'&&this.docked?.active){
@@ -1197,6 +1198,12 @@ export class ArcadeGame {
   const selector='[data-act="'+data.act+'"]'+(data.id?'[data-id="'+data.id+'"]':'');
   const focus=this.overlay.querySelector(selector);
   if(focus&&!focus.disabled)focus.focus({preventScroll:true});
+  if(data.act==='hgInstall'||data.act==='hgRemove')this.revealLoadoutApply();
+  if(data.act==='hgSelect'){
+   const choice=this.overlay.querySelector('.hg-inspector [data-act="hgInstall"]:not(:disabled)')||
+    this.overlay.querySelector('.hg-inspector [data-act="hgCatalog"]');
+   choice?.focus({preventScroll:true});
+  }
   if((this.isTouchLayout||(typeof matchMedia==='function'&&matchMedia('(max-width:700px)').matches))&&
    ['hgSlot','hgShip','hgInstall','hgSelect','hgCatalog'].includes(data.act)){
    this.overlay.querySelector('.base-dialog').scrollTop=0;
@@ -1226,7 +1233,8 @@ export class ArcadeGame {
    charges:this.support.charges,contract:this.contract,operation:this.operation,baseTab:this.baseTab,
    sortieReports:this.sortieReports,economyExpenses:this.economyExpenses,
    lastContractReceipt:this.lastContractReceipt,
-    fieldLoan:this.fieldLoan,fieldTrialTaken:this.fieldTrialTaken,earlyRail:!!this.world.home?.corridorSecured,
+    fieldLoan:this.fieldLoan,fieldTrialTaken:this.fieldTrialTaken,fieldTrialPickerOpen:!!this.fieldTrialPickerOpen,
+    earlyRail:!!this.world.home?.corridorSecured,
     fieldReturnNotice:this.time-this.fieldReturnAt<6,
     position:{x:this.player.x,y:this.player.y},shield:this.player.shield,
    scanRemaining:Math.max(0,this.geoScanUntil-this.time),
@@ -1413,6 +1421,7 @@ export class ArcadeGame {
   this.sortieStart=null;
   this.endInteraction();
   this.hangarSession?.begin(this.shipLoadout);
+  this.fieldTrialPickerOpen=false;
   this.docked=b;this.baseTab='summary';this.paused=true;this.pausedRenderPending=true;
   this.stationExitArmed=true;
   this.heritage.pause('base');
@@ -1476,6 +1485,8 @@ export class ArcadeGame {
    this.fieldLoan=createFieldLoan(id,b.id,this.time,missionAssignment(this.operation,this.contract));
    const suggested=this.suggestShipModule(id);
    if(offer.mode==='trial')this.fieldTrialTaken=true;
+   this.fieldTrialPickerOpen=false;
+   this.baseTab='hangar';
    const name=FIELD_WEAPONS[id].name;
    this.hangarSession.message=suggested?name+' добавлен в предварительную сборку. Нажмите «Применить».':
     name+' получен. Выберите свободный узел в ангаре и примените сборку.';

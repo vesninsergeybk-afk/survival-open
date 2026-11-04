@@ -34,6 +34,8 @@ test('frame progression opens exactly 2, 3, 4, 5 and then a separate H node',()=
 });
 test('the hangar exposes an actual, gated specialization choice without adding combat buttons',()=>{
  const current=createLoadout(),session=new HangarSession();session.begin(current);
+ session.dispatch({act:'hgSlot',id:'0'},context({loadout:current,activeBases:3,points:3}));
+ session.dispatch({act:'hgSelect',id:'plasma'},context({loadout:current,activeBases:3,points:3}));
  const view=renderShipHangar({...context({loadout:current,activeBases:3,points:3}),skillRanks:{}},session);
  assert.match(view,/Специализация/);
  assert.match(view,/data-act="hgSpec"/);
@@ -131,7 +133,9 @@ test('a blueprint with foreign module ids is ignored and text remains escaped',(
  const session=new HangarSession({getItem:()=>JSON.stringify(bad)});
  assert.equal(session.blueprints[0],null);
  const html=renderShipHangar({level:1,ore:0,loadout:createLoadout()});
- assert.match(html,/Конструктор корабля/);assert.match(html,/hgApply/);
+ assert.match(html,/Конструктор корабля/);
+ assert.doesNotMatch(html,/data-act="hgApply"/,'no disabled confirmation before any change');
+ assert.match(html,/data-act="hgSlot"/,'the fitting action is available from the ship');
  assert.match(html,/Узел 1/);assert.match(html,/ship_01.webp/);
  assert.doesNotMatch(html,/<canvas|<iframe/);
 });
