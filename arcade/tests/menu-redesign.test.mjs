@@ -97,7 +97,7 @@ test('unfinished hangar changes are shown on every station tab and never describ
  for(const tab of ['summary','operations','hangar','network']){
   const html=renderBasePanel(base,{...stationState,baseTab:tab,loadout:current,hangarSession:session});
   assert.match(html,/В ангаре есть неприменённая сборка/,tab);
-  assert.match(html,/В полёт · сборка не применена/,tab);
+   assert.match(html,/Вылет · сборка не применена/,tab);
  }
  const draft=renderShipHangar({...stationState,loadout:current,hangarSession:session},session);
  assert.match(draft,/Схемы оснащения · сохранено 0 из 3/);
@@ -155,8 +155,8 @@ test('published entry points invalidate the entire changed ES-module import chai
  const source=relative=>readFileSync(new URL('../'+relative,import.meta.url),'utf8');
  const game=source('game.js'),base=source('base-panel.js');
  const preview=source('hangar-preview.js');
- assert.match(source('index.html'),/game\.js\?v=economy-integrity-3-copy-1-iris-pack-1-menu-exit-1-econ-audit-2/);
- assert.match(game,/base-panel\.js\?v=economy-integrity-3-copy-1-menu-exit-1-econ-audit-2/);
+  assert.match(source('index.html'),/game\.js\?v=station-choices-1/);
+  assert.match(game,/base-panel\.js\?v=station-choices-1/);
  assert.match(game,/sortie-economy\.js\?v=economy-integrity-1-econ-audit-2/);
  assert.match(game,/sortie-ledger\.js\?v=economy-ledger-1/);
  assert.match(base,/sortie-economy\.js\?v=economy-integrity-1-econ-audit-2/);
@@ -176,7 +176,7 @@ test('active menu controls never override positioning transforms used by ship ha
  assert.ok(reducedRule,'reduced-motion settings are missing');
  assert.doesNotMatch(reducedRule,/transform\s*:/,'reduced motion must not displace ship hardpoints');
  assert.match(css,/\.base-foot\s*\{position:sticky;bottom:0/,'station return action must stay visible while panels scroll');
- assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/menu-system\.css\?v=menus-gameplay-first-5-menu-exit-1/);
+ assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/menu-system\.css\?v=station-choices-1/);
 });
 
 test('landscape phone layout reserves notches and exposes navigation without three desktop columns',()=>{
@@ -192,7 +192,7 @@ test('landscape phone layout reserves notches and exposes navigation without thr
  assert.match(coarse,/\.hg-layout\{display:block/);
  assert.match(coarse,/\.hg-mobile-only\{display:inline-block!important/);
  assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),
-  /menu-system\.css\?v=menus-gameplay-first-5-menu-exit-1/);
+  /menu-system\.css\?v=station-choices-1/);
  assert.match(compact, /\.base-tabs\{position:sticky/);
  assert.match(compact, /\.hg-apply-bar\{position:sticky;top:51px/);
 });

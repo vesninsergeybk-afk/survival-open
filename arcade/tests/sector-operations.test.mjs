@@ -168,13 +168,13 @@ test('station UI exposes a briefing, route, equipment, and network independently
  assert.match(html,/data-act="acceptOperation"/);
  assert.match(html,/data-act="baseMap"/);
  assert.match(html,/435 м/);
-  assert.match(html,/Принять заказ/);
+   assert.match(html,/Взять заказ/);
   assert.doesNotMatch(html,/\d+ целей/);
  const underway=renderBasePanel(b,state({operation:createCorridorOperation(b)}));
- assert.match(underway,/Отложить · сохранить повреждения/);
+  assert.match(underway,/Отложить · повреждения сохранятся/);
  const homebound=createCorridorOperation(b);homebound.phase='return';homebound.hp=0;
  const delivery=renderBasePanel(b,state({operation:homebound}));
- assert.match(delivery,/ОСТАЛОСЬ ВЕРНУТЬСЯ/);
+  assert.match(delivery,/Вернуться с данными/);
  assert.match(delivery,/Награда и разведка откроются после возвращения/);
  const done=renderBasePanel({...b,corridorSecured:true},st);
  assert.doesNotMatch(done,/data-act="acceptOperation"/);

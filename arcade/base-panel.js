@@ -188,7 +188,7 @@ const contractPanel=o=>{
   '</div></section>';
  const summary={
   available:c.desc,active:c.desc,ready:'Задание выполнено. Заберите награду.',
-  cooldown:'Новые поручения через '+c.remaining+' с. Пока можно отправиться к другим станциям.',
+   cooldown:'Ожидание: новые поручения через '+c.remaining+' с. Пока можно отправиться к другим станциям.',
   other:'Сначала завершите поручение другой станции.'
  };
  return '<section class="base-contract '+c.status+'"><div class="base-contract-copy">'+
@@ -350,7 +350,7 @@ const missionChoice=(base,state)=>{
  }[op.id]||op.name;
  const warning={
   'silent-corridor':'Охрана и ЭМ-импульсы',
-  'last-signal':'Во время ремонта оружие не стреляет',
+  'last-signal':'Возможны перехватчики; во время ремонта оружие не стреляет',
   'relay-defense':'Враги атакуют передатчик',
   'carrier-interception':'Бронированный транспорт с охраной'
  }[op.id]||'Боевой вылет';
@@ -358,19 +358,27 @@ const missionChoice=(base,state)=>{
   active?'Задание выполняется':done?'Завершено':
   op.status==='cooldown'?'Новая попытка через '+op.remaining+' с':
   op.status==='locked'?'Включите станцию':
-  state.operation?'Другая особая операция уже начата':'Доступно';
+  state.operation?'Сначала завершите или отложите текущую особую операцию':'Доступно';
+ const repairPct=Math.round((op.repair||0)/PROBE_OPERATION.maxRepair*100);
  const progress=active&&op.id==='last-signal'?
-  '<span class="base-mission-progress">Ремонт: '+Math.round((op.repair||0)/PROBE_OPERATION.maxRepair*100)+'%</span>':
+  '<span class="base-mission-progress">Ремонт: '+repairPct+'%</span>'+
+  '<progress value="'+repairPct+'" max="100" aria-label="Восстановление зонда"></progress>':
   active&&op.id==='silent-corridor'&&op.hp!==undefined?
    '<span class="base-mission-progress">Глушитель: '+Math.ceil(op.hp/CORRIDOR_OPERATION.maxHp*100)+'%</span>':
-  active&&op.id==='relay-defense'&&op.wave?
-   '<span class="base-mission-progress">Волна '+op.wave+' из 3</span>':'';
+  active&&op.id==='relay-defense'?
+   '<span class="base-mission-progress">'+relayDefenseCue(op,state.time)+'</span>':'';
+ const abandonLabel=op.id==='silent-corridor'?'Отложить · повреждения сохранятся':
+  op.id==='last-signal'?'Отложить · ремонт сохранится':
+  op.id==='relay-defense'?'Прервать · волны начнутся заново':
+  'Прервать · погоня начнётся заново';
  const primary=active?action('baseMap',returning?'Маршрут назад':'Показать цель'):
   available&&!state.operation?action('acceptOperation',op.resumable?'Продолжить':'Начать операцию'):
   '';
- return '<section class="base-mission-feature" aria-label="Особая операция">'+
+ return '<section class="base-mission-feature mission-'+
+  (op.id==='silent-corridor'?'corridor':op.id==='last-signal'?'probe':
+   op.id==='relay-defense'?'relay':'carrier')+'" aria-label="Особая операция">'+
   '<div class="base-mission-main"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · '+current+'</span>'+
-  '<strong>'+op.name+'</strong><p>'+(returning?'Вернитесь на исходную станцию для получения награды.':objective)+
+  '<strong>'+op.name+'</strong><p>'+(returning?'Вернитесь на исходную станцию. Награда и разведка откроются после возвращения.':objective)+
   '</p><div class="base-mission-reward">+'+op.rewardOre+' сплава · +'+op.rewardData+' опыта</div>'+
   progress+'</div><div class="base-mission-actions">'+primary+
   '<details class="base-mission-more"><summary>Подробности и опасности</summary>'+
@@ -378,7 +386,7 @@ const missionChoice=(base,state)=>{
   '<p><b>После выполнения:</b> '+op.consequence+'</p>'+
   (op.status==='cooldown'?'<p>Новая попытка через '+op.remaining+' с.</p>':'')+
   (!active&&!done?action('baseMap','Посмотреть район'):'')+
-  (active?action('abandonOperation','Отложить операцию'):'')+
+  (active?action('abandonOperation',abandonLabel):'')+
   '</details></div></section>';
 };
 const baseBrief=(base,state,o)=>{

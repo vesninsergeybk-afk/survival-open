@@ -113,7 +113,8 @@ test('desktop and touch input share one manual action; repair and mining remain 
  assert.match(html,/id="ionBtn"/);
  assert.match(panel,/action\('loanField'/);
  assert.match(panel,/action\('returnField'/);
- assert.match(panel,/action\('baseTab','Испытать оружие'/);
+ assert.match(panel,/action\('showFieldTrial','Посмотреть'/);
+ assert.match(game,/if\(act==='showFieldTrial'/);
  assert.match(game,/Ангар: бесплатная проба полевого оружия/);
 });
 

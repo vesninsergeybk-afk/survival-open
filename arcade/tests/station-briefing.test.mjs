@@ -55,11 +55,11 @@ test('the full map previews a mission without accepting it and offers return to 
 test('station operations expose risk, consequences, route and preparation without spoiling waves',()=>{
  const b=home(),w=world([b]);
  const h=renderBasePanel(b,stationState(w,{baseTab:'operations'}));
- assert.match(h,/ЗАДАЧА/);
- assert.match(h,/ОПАСНОСТЬ/);
- assert.match(h,/ИЗМЕНЕНИЕ МИРА/);
- assert.match(h,/Посмотреть маршрут/);
- assert.match(h,/Данные <b>0<\/b> \(опыт\)/);
+ assert.match(h,/Отключить глушитель и вернуться в док/);
+ assert.match(h,/Подробности и опасности/);
+ assert.match(h,/После выполнения:/);
+ assert.match(h,/Посмотреть район/);
+ assert.match(h,/Опыт <b>0<\/b>/);
  assert.match(h,/aria-controls="base-panel-hangar"/);
  const prep=renderBasePanel(b,stationState(w,{baseTab:'hangar',hp:30}));
  assert.match(prep,/ГОТОВНОСТЬ К ВЫЛЕТУ/);
@@ -77,7 +77,7 @@ test('lab operation marks an uncertain search area and shows repair progress',()
  const html=renderBasePanel(b,stationState(w,{operation,baseTab:'operations'}));
  assert.match(html,/<progress value="45" max="100"/);
  assert.match(html,/Возможны перехватчики/);
- assert.match(html,/возможен новый сигнал/);
+ assert.match(html,/покажет ещё один сигнал станции/);
 });
 
 test('unavailable special operations state their actual blocking condition',()=>{
@@ -85,7 +85,8 @@ test('unavailable special operations state their actual blocking condition',()=>
  const foreign={id:'last-signal',baseId:'1:0',repair:15};
  const html=renderBasePanel(b,stationState(w,{operation:foreign,baseTab:'operations'}));
  assert.match(html,/Сначала завершите или отложите текущую особую операцию/);
- assert.match(html,/data-act="acceptOperation" disabled/);
+ assert.doesNotMatch(html,/data-act="acceptOperation"/,
+  'a blocked mission must not offer a misleading start button');
 });
 
 

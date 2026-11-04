@@ -144,7 +144,9 @@ test('income and combat risk remain visible even when repairs hide net hull loss
  assert.equal(report.details.oreMining,9);assert.equal(report.details.oreSalvage,2);
  assert.equal(report.details.dataCombat,25);
  const html=renderBasePanel(home,state({sortieReports:[report]}));
- assert.ok(html.indexOf('ПОСЛЕ ВЫЛЕТА')<html.indexOf('КАРТА РАЙОНА'));
+ assert.ok(html.indexOf('ПОСЛЕ ВЫЛЕТА')>html.indexOf('РАЙОН'),
+  'the short station dashboard must precede the optional detailed sortie report');
+ assert.match(html,/<details class="base-economy base-economy-optional">/);
  assert.match(html,/трофеи \+2/);assert.match(html,/Получено повреждений <b>64<\/b>/);
  assert.match(html,/Потеряно дронов <b>1<\/b>/);
 });
