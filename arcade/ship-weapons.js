@@ -48,7 +48,12 @@ function fireBeamFamily(game,id){
  }
  heatWeapons(game.weaponThermal,MODULES[id].heat*game.weaponProfile[id]);
  game.heritage.play(id==='rail'?'rocket':'laser',id==='plasma'?.32:.25,{x:game.player.x,y:game.player.y});
- if(id==='plasma')game.beamClock=stats.interval;
+ if(id==='plasma'){
+  // Only an actual emitted beam provides an observable combat rhythm.
+  // Scouts never read the player's private cooldown or aim selection.
+  game._irisLastPlasmaAt=game.time;
+  game.beamClock=stats.interval;
+ }
  else game.moduleClocks[id]=stats.interval;
  return true;
 }

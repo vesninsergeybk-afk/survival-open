@@ -6,7 +6,7 @@ import {drawInstalledModules} from './ship-weapons.js?v=weapons-cycle-2';
  */
 import {drawEvolvedHero, heroMotionPose} from '../src/hero-evolution.js?v=hangar-2';
 import {drawAnimatedEnemyShip} from '../src/disruptor-ship-sprites.js';
-import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js?v=iris-hunter-1';
+import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js?v=iris-swarm-hunter-1';
 import {drawStationPart, STATION_PARTS} from '../src/station-art.js?v=base-86';
 import {drawTurretMount,drawTurretHead} from '../src/turret-visuals.js?v=turret-visuals-1';
 import {drawEnemyBolt} from '../src/combat-art.js?v=art-888';
