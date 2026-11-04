@@ -153,13 +153,21 @@ export function drawStationDefense(c,base,linked,now,player,lowMotion=false){
   c.strokeStyle='rgba(202,147,255,.7)';c.lineWidth=2;
   c.beginPath();c.arc(base.x,base.y,STATION_DEFENSE.stasisRadius+spread,0,Math.PI*2);c.stroke();
  }
- c.fillStyle=status.charges?'#a7f6e8':'#9eb2bb';c.textAlign='center';
- c.font='bold 10px system-ui';
- c.fillText('ПВО '+status.charges+'/'+status.capacity,base.x,base.y-status.radius-9,100);
+ // Place the readout on the lower-right arc: the top edge is occupied by
+ // mission banners and the station itself already has a title and E prompt.
+ const readoutX=base.x+status.radius*.72;
+ const readoutY=base.y+status.radius*.66;
+ c.fillStyle='rgba(5,22,34,.82)';
+ c.fillRect(readoutX-59,readoutY-14,118,linked?38:22);
+ c.strokeStyle='rgba(135,243,222,.52)';c.lineWidth=.85;
+ c.strokeRect(readoutX-59,readoutY-14,118,linked?38:22);
+ c.fillStyle=status.charges?'#a7f6e8':'#bbcbd2';c.textAlign='center';
+ c.font='bold 11px system-ui';
+ c.fillText('ПВО '+status.charges+'/'+status.capacity,readoutX,readoutY+1,108);
  if(linked){
   c.fillStyle=status.stasisIn?'#c1aacd':'#d9b5ff';
   c.fillText(status.stasisIn?'СТАЗИС · '+status.stasisIn+' С':'СТАЗИС ГОТОВ',
-   base.x,base.y-status.radius-24,130);
+   readoutX,readoutY+17,108);
  }
  c.restore();
 }

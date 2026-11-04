@@ -6,7 +6,7 @@ import {updateEnemy} from '../ai.js';
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
 import {STATION_DEFENSE,ensureStationDefense,defenseStatus,
- updateStationDefense,threateningShot} from '../network-defense.js';
+ updateStationDefense,threateningShot,drawStationDefense} from '../network-defense.js';
 
 function scene(){
  const world=new World(),home=world.home;
@@ -188,6 +188,20 @@ test('map and station terminal show actual protection, without adding a menu',()
  assert.match(map,/stroke="#b790f0"/);
  assert.match(map,/бирюзовый круг — ПВО/);
  assert.equal((panelLinked.match(/role="tab"/g)||[]).length,4);
+});
+
+test('flight readout stays beside the protection ring, clear of the top mission bar',()=>{
+ const {home,player}=scene();
+ const text=[],backdrops=[];
+ const c={save(){},restore(){},setLineDash(){},beginPath(){},arc(){},stroke(){},
+  fillRect(...values){backdrops.push(values);},strokeRect(){},
+  fillText(label,x,y){text.push({label,x,y});}};
+ drawStationDefense(c,home,false,100,player);
+ const pvo=text.find(t=>t.label==='ПВО 1/1');
+ assert.ok(pvo&&pvo.x>home.x+STATION_DEFENSE.soloRadius*.6);
+ assert.ok(pvo.y>home.y+STATION_DEFENSE.soloRadius*.5,
+  'PVO label is positioned in the lower-right, away from the mission banner');
+ assert.equal(backdrops.length,1,'readout has a contrasting background');
 });
 
 test('production update runs interception before shots and before orbital damage',()=>{
