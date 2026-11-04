@@ -1,4 +1,4 @@
-import {SYSTEMS, ISSUE_REFS, REF_TITLES, PARTIAL_REFS, WORKSTREAMS, EMP_CUE_FRAMES} from './systems-data.js?v=whole-scope-1';
+import {SYSTEMS, ISSUE_REFS, REF_TITLES, REF_STATUS, STATUS_LABELS, PARTIAL_REFS, WORKSTREAMS, EMP_CUE_FRAMES} from './systems-data.js?v=whole-scope-2';
 
 const $ = id => document.getElementById(id);
 const make = (tag, klass, value) => {
@@ -8,7 +8,7 @@ const make = (tag, klass, value) => {
  return node;
 };
 const chapters = ['Все', ...new Set(SYSTEMS.map(item => item.chapter))];
-const status = ref => PARTIAL_REFS.includes(ref) ? 'Частично в коде' : 'Концепция';
+const status = ref => STATUS_LABELS[REF_STATUS[ref]];
 const episodeWord = count => {
  const mod10 = count % 10, mod100 = count % 100;
  return mod100 >= 11 && mod100 <= 14 ? 'эпизодов' : mod10 === 1 ? 'эпизод' : mod10 >= 2 && mod10 <= 4 ? 'эпизода' : 'эпизодов';
@@ -253,7 +253,7 @@ function renderCoverage() {
   for (const ref of ids) {
    const button = make('button', 'sys-cover-item');
    button.type = 'button';
-   button.dataset.partial = String(PARTIAL_REFS.includes(ref));
+   button.dataset.status = REF_STATUS[ref];
    button.title = 'Перейти к соответствующей концепции';
    button.append(make('b','',ref), make('span','',REF_TITLES[ref]), make('em','',status(ref)));
    button.addEventListener('click', () => {
