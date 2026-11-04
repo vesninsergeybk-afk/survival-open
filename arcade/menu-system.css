@@ -336,5 +336,6 @@
  .hg-inspector{border-top:1px solid #577b8766;border-left:0}
 }
 @media(prefers-reduced-motion:reduce){
- #overlay .dialog button,.preview-dialog button{transition:none!important;transform:none!important}
+ /* Reduced motion must not undo transforms used for layout (ship hardpoints). */
+ #overlay .dialog button,.preview-dialog button{transition:none!important}
 }
