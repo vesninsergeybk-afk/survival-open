@@ -26,16 +26,16 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 <main>
 <a href="./#reactor">← Мастерская</a>
 <h1>Реактор: геометрия и масштаб на настоящей камере</h1>
-<p>Это испытание непосредственно использует <code>ReactorLandmark</code> из аркады. Корабль и док обозначены условно, но их координаты и размер заданы в игровых единицах. Сравните прежний единый рисунок с новой сценой: далёкие отдельные фермы, неподвижный основной корпус, дымка между планами и ближний металл. Двигайте камеру и выключайте планы по одному; проёмы, корабль и ядро должны оставаться различимыми. Глушилки и стадии запуска здесь — только проверка графики, не реализованная миссия.</p>
+<p>Это испытание непосредственно использует <code>ReactorLandmark</code> из аркады. Корабль и док обозначены условно, но их координаты и размер заданы в игровых единицах. Сравните прежний единый рисунок с новой сценой: далёкие фермы, уменьшенный основной корпус с самостоятельным параллаксом, дымка и частицы на разных планах. Двигайте камеру и выключайте планы по одному; проёмы, корабль и ядро должны оставаться различимыми. Глушилки и стадии запуска здесь — только проверка графики, не реализованная миссия.</p>
 <div class="layout">
 <section class="panel">
 <canvas id="stage" width="1100" height="650" role="img" aria-label="Сцена с корпусом реактора в игровом масштабе"></canvas>
 <div class="legend"><strong id="name">Многослойная сцена</strong> · <span id="status">Загрузка исходника…</span></div>
-<div class="legend">Игровой центр реактора: (80, −310). Док: (360, −85). Все металлические части следуют камере 1:1; дальние самостоятельные фермы и дымка смещаются медленнее; связанные металлические элементы и ядро остаются неподвижны относительно друг друга.</div>
+<div class="legend">Исходная мировая точка: (80, −310). Док: (360, −85). Корабль и док движутся с камерой 1:1; весь реактор вместе с ядром — медленнее, дальние фермы — ещё медленнее. Размер корпуса в игре ограничен 80% ширины кадра.</div>
 </section>
 <aside class="panel controls">
 <label>Версия изображения
-<select id="mode"><option value="new">Новая: планы, параллакс и дымка</option><option value="old">Прежняя: сжатая проекция</option></select>
+<select id="mode"><option value="new">Новая: уменьшенный реактор, параллакс, дымка и частицы</option><option value="old">Прежняя: сжатая проекция</option></select>
 </label>
 <label>Состояние ядра
 <select id="stage-state"><option value="0">0 · Подавлено</option><option value="1">1 · Одна глушилка</option><option value="2">2 · Две глушилки</option><option value="3">3 · Ожидает E</option><option value="4">4 · Реактор работает</option></select>
@@ -47,9 +47,17 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 <label>Вертикальный сдвиг камеры: <output id="cam-y-value">0</output>
 <input id="cam-y" type="range" min="-450" max="450" step="20" value="0">
 </label>
-<label><span><input id="layer-distant" type="checkbox" checked> Дальние фермы · параллакс 0,66</span></label>
-<label><span><input id="layer-mist" type="checkbox" checked> Дымка · параллакс 0,84</span></label>
-<label><span><input id="layer-near" type="checkbox" checked> Ближний металлический план · 1:1</span></label>
+<label>Скорость параллакса всей станции: <output id="depth-value">0,80</output>
+<input id="depth" type="range" min="0.55" max="1" step="0.01" value="0.80">
+</label>
+<label>Масштаб станции: <output id="size-value">авто · 80% экрана</output>
+<input id="size" type="range" min="0.24" max="0.76" step="0.02" value="0.46" disabled>
+</label>
+<label><span><input id="size-auto" type="checkbox" checked> Размер автоматически подстраивается под экран</span></label>
+<label><span><input id="layer-distant" type="checkbox" checked> Дальние фермы · параллакс 0,52</span></label>
+<label><span><input id="layer-mist" type="checkbox" checked> Дымка · параллакс 0,68–0,87</span></label>
+<label><span><input id="layer-near" type="checkbox" checked> Ближний металл · вместе с корпусом</span></label>
+<label><span><input id="layer-particles" type="checkbox" checked> Движущиеся частицы (перед станцией и за ней)</span></label>
 <label>Условная производительность
 <select id="fps"><option value="60">60 FPS</option><option value="25">25 FPS</option></select>
 </label>
@@ -65,9 +73,23 @@ const $=id=>document.getElementById(id);
 const canvas=$('stage'),g=canvas.getContext('2d',{alpha:false});
 const vw=1100,vh=650,ship={x:360,y:-25},dock={x:360,y:-85};
 const reactor=new ReactorLandmark({loadEnergyAtlas:true});
-for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near']]){
+for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near'],['layer-particles','particles']]){
  $(id).addEventListener('change',event=>{reactor.layers[key]=event.target.checked;});
 }
+
+const sizeAuto=$('size-auto'),size=$('size'),depth=$('depth');
+function updateSize(){
+ size.disabled=sizeAuto.checked;
+ reactor.scaleOverride=sizeAuto.checked?null:Number(size.value);
+ $('size-value').textContent=sizeAuto.checked?'авто · 80% экрана':Number(size.value).toFixed(2).replace('.',',');
+}
+size.addEventListener('input',updateSize);
+sizeAuto.addEventListener('change',updateSize);
+depth.addEventListener('input',()=>{
+ reactor.hullRate=Number(depth.value);
+ $('depth-value').textContent=reactor.hullRate.toFixed(2).replace('.',',');
+});
+updateSize();
 const source=new Image();source.decoding='async';source.src='./assets/reactor-ring-03.png';
 let oldHull=null,last=0,launchAt=-100,mode='new';
 source.onload=()=>{
@@ -144,6 +166,8 @@ $('reset').addEventListener('click',()=>{
  $('cam-x').value='0';$('cam-y').value='0';
  $('cam-x-value').textContent='0';$('cam-y-value').textContent='0';
  $('stage-state').value='0';mode='new';$('mode').value='new';launchAt=-100;
+ depth.value='0.80';reactor.hullRate=.80;$('depth-value').textContent='0,80';
+ sizeAuto.checked=true;size.value='0.46';updateSize();
  for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near']]){
   $(id).checked=true;reactor.layers[key]=true;
  }
