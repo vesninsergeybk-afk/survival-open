@@ -1,11 +1,11 @@
 import {CORRIDOR_OPERATION} from './operations.js?v=operation-leads-1';
-import {MODULES,SHIP_ART,moduleStats,mountPosition,heatWeapons,shipArtStage} from './ship-loadout.js?v=hangar-1';
+import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons} from './ship-loadout.js?v=hangar-2';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export function shipTargets(game,range,limit=1){
+export function shipTargets(game,range,limit=1,nearest=false){
  const p=game.player,base=game.nearbyEnemyBase(range+150),op=game.operation;
  const objectives=[];
  if(op?.id===CORRIDOR_OPERATION.id&&op.hp>0&&op.phase!=='return'&&distance(p,op)<=Math.min(range,CORRIDOR_OPERATION.focusRange))
@@ -19,7 +19,9 @@ export function shipTargets(game,range,limit=1){
  objectives.sort((a,b)=>distance(p,a.target)-distance(p,b.target));
  const enemies=game.grid.query(p.x,p.y,range).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e)&&distance(p,e)<=range)
   .sort((a,b)=>distance(p,a)-distance(p,b)).map(target=>({kind:'enemy',target}));
- return [...objectives,...enemies].slice(0,limit);
+ const candidates=[...objectives,...enemies];
+ if(nearest)candidates.sort((a,b)=>distance(p,a.target)-distance(p,b.target));
+ return candidates.slice(0,limit);
 }
 export function damageShipTarget(game,item,damage,source='beam',point=null){
  if(item.kind==='enemy')game.damageEnemy(item.target,damage,source,point);
@@ -35,7 +37,7 @@ export function updateAuxiliaryWeapons(game,dt,allowed){
   game.moduleClocks[id]=Math.max(0,(game.moduleClocks[id]||0)-dt);
   const count=game.weaponProfile[id];
   if(!allowed||!count||game.weaponThermal.locked||game.moduleClocks[id]>0)continue;
-  const stats=moduleStats(id,game.skillRanks),targets=shipTargets(game,stats.range,stats.targets);
+  const stats=moduleStats(id,game.skillRanks),targets=shipTargets(game,stats.range,stats.targets,id==='flak');
   if(!targets.length)continue; // No target means no ammunition, heat or effect.
   game.moduleClocks[id]=stats.interval;
   heatWeapons(game.weaponThermal,MODULES[id].heat*count);
@@ -49,7 +51,10 @@ export function updateAuxiliaryWeapons(game,dt,allowed){
    const damage=stats.damage*count;
    if(cover)game.damageRock(cover.rock,damage*.85,from.x,from.y,'auto',true,point);
    else damageShipTarget(game,item,damage,id,point);
-   game.flash(from.x,from.y,point?.x??target.x,point?.y??target.y,MODULES[id].color);
+   for(let i=0;i<6;i++)if(game.shipLoadout.slots[i]===id){
+    const muzzle=mountPosition(game.player,i);
+    game.flash(muzzle.x,muzzle.y,point?.x??target.x,point?.y??target.y,MODULES[id].color);
+   }
   }
   const first=targets[0].target;
   game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(first.y-from.y,first.x-from.x),id==='rail'?'railgun':undefined);
@@ -73,7 +78,11 @@ export function updateHowitzer(game,dt){
  if(!game.heavyCharge)return;
  if(!game.weaponProfile.howitzer||game.mining?.active||game.probeRepairing){game.heavyCharge=null;return;}
  game.heavyCharge.remaining-=dt;if(game.heavyCharge.remaining>0)return;
- const aim=game.heavyCharge;game.heavyCharge=null;game.heavyCooldown=12;
+ const aim=game.heavyCharge;game.heavyCharge=null;
+ if(distance(game.player,aim)>900){
+  game.notice?.('Подготовка гаубицы отменена: точка удара дальше 900 м',2.8);return;
+ }
+ game.heavyCooldown=12;
  heatWeapons(game.weaponThermal,70);
  const from=mountPosition(game.player,5),d=distance(from,aim),
   cover=firstRockImpact(from.x,from.y,aim.x,aim.y,
@@ -111,11 +120,10 @@ export function drawHowitzerAim(ctx,charge){
 // Their render cost is at most six short paths on the single player ship.
 export function drawInstalledModules(ctx,player){
  if(!player.weaponSlots)return;
- const art=SHIP_ART[shipArtStage(player.level)],w=79.95,h=w*art[1]/512;
  for(let i=0;i<6;i++){
   const id=player.weaponSlots[i];if(!id)continue;
-  const [x,y]=art[i+2],m=MODULES[id];if(!m)continue;
-  ctx.save();ctx.translate((x-.5)*w,(y-.5)*h);
+  const {x,y}=localMountPosition(player,i),m=MODULES[id];if(!m)continue;
+  ctx.save();ctx.translate(x,y);
   ctx.fillStyle='#142a36';ctx.strokeStyle=m.color;ctx.lineWidth=.8;
   ctx.fillRect(-2,-2,4,5);ctx.strokeRect(-2,-2,4,5);
   ctx.beginPath();ctx.moveTo(0,-2);ctx.lineTo(0,id==='howitzer'?-9:-5);ctx.stroke();

@@ -1,10 +1,10 @@
-import {drawInstalledModules} from './ship-weapons.js?v=hangar-1';
+import {drawInstalledModules} from './ship-weapons.js?v=hangar-2';
 /**
  * Arcade presentation uses the artwork and animation systems already approved
  * for Survivor. Visual variants never consume gameplay randomness.
  * The original src/ modules own their shared sprite atlases and licenses.
  */
-import {drawEvolvedHero, heroMotionPose} from '../src/hero-evolution.js';
+import {drawEvolvedHero, heroMotionPose} from '../src/hero-evolution.js?v=hangar-2';
 import {drawAnimatedEnemyShip} from '../src/disruptor-ship-sprites.js';
 import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js';
 import {drawStationPart, STATION_PARTS} from '../src/station-art.js?v=base-86';
@@ -354,7 +354,8 @@ export class ArcadeVisuals {
   ctx.rotate((p.angle||0)+pose.angle);
   const stage=Math.min(9,Math.max(0,Math.floor((level-1)/3)));
   const ratio=p.hp/Math.max(1,p.maxHp);
-  const ok=drawEvolvedHero(ctx,19.5,stage,ratio,thrust);
+  p.weaponGeometry??={};
+  const ok=drawEvolvedHero(ctx,19.5,stage,ratio,thrust,p.weaponGeometry);
   if(ok)drawInstalledModules(ctx,p);
   ctx.restore();
   return ok;

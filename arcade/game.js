@@ -5,7 +5,7 @@ import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impa
 import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=relay-def-1';
 import {createSignalIntel,alertSignalIntel,canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
-import {ArcadeVisuals} from './visuals.js?v=hangar-1';
+import {ArcadeVisuals} from './visuals.js?v=hangar-2';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-multiplane-v3';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
@@ -15,7 +15,7 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=hangar-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=hangar-2';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=operation-leads-1';
 import {renderWorldMap} from './map-panel.js?v=carrier-intercept-1';
 import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=carrier-intercept-1';
@@ -23,8 +23,9 @@ import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from '.
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute} from './carrier-interception.js?v=carrier-intercept-1';
 import {ION_CONDUCTOR,createIonLoan,ionLoanOffer,markIonCluster,planIonDischarge,ionMasteryAward} from './ion-conductor.js?v=ion-first-play-2';
 
-import {createLoadout,loadoutProfile,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,heatWeapons,mountPosition} from './ship-loadout.js?v=hangar-1';
-import {updateAuxiliaryWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=hangar-1';
+import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,heatWeapons,mountPosition} from './ship-loadout.js?v=hangar-2';
+import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
+import {updateAuxiliaryWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=hangar-2';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -59,7 +60,7 @@ function nextSkillEffect(id,rank,levels={}){
     ' · интервал '+fmt(.63/(1+rank*.12))+' → '+fmt(.63/(1+n*.12))+' с';
   case 'double':return 'Целей за залп: '+(1+rank)+' → '+(1+n);
   case 'range':return 'Дальность луча: '+(435+rank*56)+' → '+(435+n*56);
-  case 'rocket':return rank===0?'Откроет авторакеты: 67 урона каждые 2,73 с':
+  case 'rocket':return rank===0?'Даст ракетный модуль: 67 урона каждые 2,73 с. Установите его в узел и примените сборку.':
     'Урон ракеты: '+(48+rank*19)+' → '+(48+n*19);
   case 'hull':return 'Прочность корпуса: ещё +22 · сразу частичный ремонт';
   case 'engine':return 'Скорость: '+(272+rank*35)+' → '+(272+n*35)+
@@ -487,18 +488,20 @@ export class ArcadeGame {
   this.skillRanks[id]++;p.points--;
   if(id==='hull'){p.maxHp+=22;p.hp=Math.min(p.maxHp,p.hp+32);}
   if(id==='shield')p.shield+=18;
+  let moduleSuggested=false;
   if(id==='rocket'&&this.skillRanks.rocket===1){
    this.shipLoadout.owned.rocket=(this.shipLoadout.owned.rocket||0)+1;
-   if(!this.hangarSession.dirty(this.shipLoadout)){
-    const empty=this.shipLoadout.slots.findIndex((value,index)=>index<2+Math.min(3,this.shipLoadout.frame)&&!value);
-    if(empty>=0)this.shipLoadout.slots[empty]='rocket';
-    this.hangarSession.begin(this.shipLoadout);
-   }
-   this.syncShipLoadout();
+   moduleSuggested=this.suggestShipModule('rocket');
   }
   this.heritage.play('upgrade',.14);
   this.notice('Улучшение: '+skill.title,2.4);
-  if(SHIP_UPGRADES.has(id))this.renderDock();else this.renderSkills();
+  if(SHIP_UPGRADES.has(id)){
+   this.hangarSession.message=moduleSuggested?'Ракетный модуль добавлен в предварительную сборку. Нажмите «Применить».':
+    id==='rocket'&&this.skillRanks.rocket===1?'Ракетный модуль получен. Выберите узел, установите его и примените сборку.':'Улучшение изучено: '+skill.title;
+   this.renderDock();
+   if(moduleSuggested)this.revealLoadoutApply();
+   else this.overlay.querySelector('[data-act="hgUpgrade"][data-id="'+id+'"]')?.focus({preventScroll:true});
+  }else this.renderSkills();
  }
 
  advanceContract(kind,subject=null){
@@ -890,6 +893,14 @@ export class ArcadeGame {
   this.weaponProfile=loadoutProfile(this.shipLoadout);
   this.player.weaponSlots=this.shipLoadout.slots;
  }
+ suggestShipModule(id){
+  return stageOwnedModule(this.shipLoadout,this.hangarSession,id,{baseActive:!!this.docked?.active,
+   level:this.player.level,ore:this.player.ore,ranks:this.skillRanks,ionLoan:this.ionLoan});
+ }
+ revealLoadoutApply(){
+  this.overlay.querySelector('.hg-apply-bar')?.scrollIntoView({block:'center'});
+  this.overlay.querySelector('[data-act="hgApply"]')?.focus({preventScroll:true});
+ }
  hangarUpgrades(){
   return SKILLS.filter(s=>SHIP_UPGRADES.has(s.id)).map(s=>{
    const rank=this.skillRanks[s.id],maxed=rank>=s.max;
@@ -914,9 +925,121 @@ export class ArcadeGame {
   const selector='[data-act="'+data.act+'"]'+(data.id?'[data-id="'+data.id+'"]':'');
   const focus=this.overlay.querySelector(selector);
   if(focus&&!focus.disabled)focus.focus({preventScroll:true});
-  if(this.isTouchLayout&&(['hgSlot','hgShip','hgInstall','hgSelect','hgCatalog'].includes(data.act))){
+  if((this.isTouchLayout||(typeof matchMedia==='function'&&matchMedia('(max-width:700px)').matches))&&
+   ['hgSlot','hgShip','hgInstall','hgSelect','hgCatalog'].includes(data.act)){
    this.overlay.querySelector('.base-dialog').scrollTop=0;
   }
+ }
+ updateShipWeapons(dt){
+  const p=this.player;
+  this.beamClock-=dt;
+  const plasmaPower=this.weaponProfile.plasma;
+  if(plasmaPower&&!this.weaponThermal.locked&&!this.heavyCharge&&this.beamClock<=0&&automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing)){
+   this.beamClock=.63/(1+this.skillRanks.beam*.12);
+   const range=RULES.beamRange+this.skillRanks.range*56;
+   const hostile=this.nearbyEnemyBase(range+150);
+   this.plasmaFired=false;
+   const jammer=this.operation?.id===CORRIDOR_OPERATION.id&&this.operation.hp>0&&this.operation.phase!=='return'&&dist(this.operation,p)<=Math.min(range,CORRIDOR_OPERATION.focusRange)?this.operation:null;
+   const turret=hostile?.turrets?.filter(t=>t.hp>0&&dist(t,p)<=Math.min(range,235))
+    .sort((a,b)=>dist(a,p)-dist(b,p))[0];
+   // The player can deliberately focus a base by daring to enter its attack zone.
+   // Endless enemies must not make turret capture impossible.
+   const baseCore=hostile&&!hostile.turrets.some(t=>t.hp>0)&&
+    dist(hostile,p)<=Math.min(range,245)?hostile:null;
+   if(jammer){
+    const d=dist(jammer,p),damage=plasmaPower*beamDamage(21,d,110,range)*
+     (this.nearArsenalBonus?1.18:1)*(this.time<(jammer.overheatedUntil||0)?1.35:1);
+    const cover=firstRockImpact(p.x,p.y,jammer.x,jammer.y,
+     this.rockGrid.query((p.x+jammer.x)*.5,(p.y+jammer.y)*.5,d*.5+40),2,p);
+    const point=cover?contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y):null;
+    if(cover)this.damageRock(cover.rock,damage*.85,p.x,p.y,'auto',true,point);
+    else jammer.hp=Math.max(0,jammer.hp-damage);
+    this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(jammer.y-p.y,jammer.x-p.x));
+    this.heritage.play('laser',.32);
+    this.plasmaFlash(point?.x??jammer.x,point?.y??jammer.y,'#e3a0ff');
+    if(jammer.hp<=0)this.completeCorridor();
+    if(this.skillRanks.double){
+     const escorts=this.grid.query(p.x,p.y,range).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e))
+      .sort((a,b)=>dist(a,p)-dist(b,p)).slice(0,this.skillRanks.double);
+     for(const e of escorts){const d2=dist(e,p);
+      const point=contactOnCircle(e.x,e.y,e.r,p.x,p.y);
+      this.damageEnemy(e,plasmaPower*beamDamage(14+this.skillRanks.beam*3.3,d2,
+       RULES.nearBeam,range,RULES.beamMinFactor)*.65,'beam',point);
+      this.plasmaFlash(point?.x??e.x,point?.y??e.y,'#72effe');}
+    }
+   }else if(turret||baseCore){
+    const objective=turret||baseCore,d=dist(objective,p);
+    const closeBonus=this.doctrine==='assault'&&d<=180?1.22:1;
+    const damage=plasmaPower*beamDamage(turret?23:21,d,110,range)*closeBonus*(this.nearArsenalBonus?1.18:1);
+    const point=turret?contactOnCircle(turret.x,turret.y,22,p.x,p.y):null;
+    if(turret)this.hitTurret(turret,damage,point);
+    else this.hitEnemyBase(baseCore,damage);
+    this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(objective.y-p.y,objective.x-p.x));
+    this.heritage.play('laser',.32);
+    this.plasmaFlash(point?.x??objective.x,point?.y??objective.y,'#ffc18c');
+    // Paired shots still defend the ship while the primary beam focuses a turret.
+    if(this.skillRanks.double){
+     const escortTargets=this.grid.query(p.x,p.y,range).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e)&&
+       dist(e,p)<range).sort((a,b)=>dist(a,p)-dist(b,p))
+       .slice(0,Math.min(2,this.skillRanks.double));
+     for(const e of escortTargets){
+      const d2=dist(e,p);
+      const point=contactOnCircle(e.x,e.y,e.r,p.x,p.y);
+      this.damageEnemy(e,plasmaPower*beamDamage(14+this.skillRanks.beam*3.3,d2,
+       RULES.nearBeam,range,RULES.beamMinFactor)*.65,'beam',point);
+      this.plasmaFlash(point?.x??e.x,point?.y??e.y,'#72effe');
+     }
+    }
+   }else{
+    const targets=this.grid.query(p.x,p.y,range).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e))
+     .sort((a,b)=>dist(a,p)-dist(b,p));
+    const n=1+Math.min(2,this.skillRanks.double);
+    for(const e of targets.slice(0,n)){
+     const d=dist(e,p);if(d>range)continue;
+     const closeBonus=this.doctrine==='assault'&&d<=180?1.22:1;
+     const dmg=plasmaPower*beamDamage(14+this.skillRanks.beam*3.3,d,
+      RULES.nearBeam,range,RULES.beamMinFactor)*closeBonus*(this.nearArsenalBonus?1.18:1);
+     // Asteroid on the firing line intercepts a combat beam.
+     const cover=firstRockImpact(p.x,p.y,e.x,e.y,
+      this.rockGrid.query((p.x+e.x)*.5,(p.y+e.y)*.5,d*.5+45),2,p);
+     const point=cover?contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y):
+      contactOnCircle(e.x,e.y,e.r,p.x,p.y);
+     if(cover)this.damageRock(cover.rock,dmg*.85,p.x,p.y,'auto',true,point);
+     else this.damageEnemy(e,dmg,'beam',point);
+     this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(e.y-p.y,e.x-p.x));
+     this.heritage.play('laser',.32);
+     this.plasmaFlash(point?.x??e.x,point?.y??e.y,cover?'#f6ca87':'#72effe');
+    }
+    if(!targets.length&&hostile){
+     const tur=hostile.turrets.find(t=>t.hp>0&&dist(t,p)<range);
+     if(tur){
+      const point=contactOnCircle(tur.x,tur.y,22,p.x,p.y);
+      this.hitTurret(tur,plasmaPower*beamDamage(23,dist(tur,p),110,range),point);
+      this.plasmaFlash(point?.x??tur.x,point?.y??tur.y);
+     }
+     else if(dist(hostile,p)<range){this.hitEnemyBase(hostile,plasmaPower*beamDamage(21,dist(hostile,p),110,range));
+      this.plasmaFlash(hostile.x,hostile.y);}
+    }
+   }
+   if(this.plasmaFired)heatWeapons(this.weaponThermal,6*plasmaPower);
+  }
+  this.rocketClock-=dt;
+  if(this.weaponProfile.rocket&&!this.weaponThermal.locked&&!this.heavyCharge&&this.rocketClock<=0&&
+   automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing)){
+   this.rocketClock=3.5/(1+this.skillRanks.rocket*.28);
+   const target=this.grid.query(p.x,p.y,720).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e)&&dist(e,p)<=720)
+    .sort((a,b)=>dist(a,p)-dist(b,p))[0];
+   if(target){
+    heatWeapons(this.weaponThermal,16*this.weaponProfile.rocket);
+    if(this.missiles.length>=14)this.missiles.shift();
+    this.missiles.push({x:p.x,y:p.y,prevX:p.x,prevY:p.y,trail:[{x:p.x,y:p.y}],
+     target,tx:target.x,ty:target.y,damage:(48+this.skillRanks.rocket*19)*this.weaponProfile.rocket,
+     speed:540,life:2.3});
+    this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(target.y-p.y,target.x-p.x),'railgun');
+    this.heritage.play('rocket',.5,{x:p.x,y:p.y});
+   }
+  }
+  updateAuxiliaryWeapons(this,dt,!this.heavyCharge&&automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing));
  }
  plasmaFlash(x,y,color){
   this.plasmaFired=true;
@@ -955,9 +1078,9 @@ export class ArcadeGame {
  renderDock(){
   if(!this.docked)return;
   this.syncShipLoadout();
-  const scroll=this.overlay.querySelector('.base-dialog')?.scrollTop||0;
+  const view=captureHangarView(this.overlay);
   this.overlay.innerHTML=renderBasePanel(this.docked,this.baseState());
-  const dialog=this.overlay.querySelector('.base-dialog');if(dialog)dialog.scrollTop=scroll;
+  restoreHangarView(this.overlay,view);
   this.hud();
  }
  nearestInteractionStation(){
@@ -982,6 +1105,7 @@ export class ArcadeGame {
   const action=this.currentInteraction();
   if(!action)return false;
   if(action.kind==='station'){this.dock(action.target);return true;}
+  this.heavyCharge=null;
   this.actionHeld={kind:action.kind,source,target:action.target};
   return true;
  }
@@ -1083,17 +1207,16 @@ export class ArcadeGame {
     if(!offer||offer.mode==='return'||offer.reason){this.heritage.ui('deny');return;}
     p.ore-=offer.cost;
     this.ionLoan=createIonLoan(b.id,this.time);
-    const editing=this.hangarSession.dirty(this.shipLoadout);
-    const empty=this.shipLoadout.slots.findIndex((id,index)=>index<2+Math.min(3,this.shipLoadout.frame)&&!id);
-    if(empty>=0&&!editing)this.shipLoadout.slots[empty]='ion';
-    this.syncShipLoadout();
-    if(!editing)this.hangarSession.begin(this.shipLoadout);
+    const suggested=this.suggestShipModule('ion');
     this.ionLoan.missionStarted=!!(this.operation||this.contract);
     if(offer.mode==='trial')this.ionTrialTaken=true;
-    this.notice(this.weaponProfile.ion?'Ионный проводник: '+ION_CONDUCTOR.charges+
-     ' заряда · автоогонь ставит метки · Space — ручной разряд':
-     'Ионный модуль получен. Выберите узел на схеме и установите его.',5);
-    this.heritage.ui('upgrade');this.renderDock();return;
+    this.hangarSession.message=suggested?
+     'Ионный проводник добавлен в предварительную сборку. Нажмите «Применить».':
+     'Ионный модуль получен. Установите его в узел вместе с плазменным лучом и примените сборку.';
+    this.notice(this.hangarSession.message,5);
+    this.heritage.ui('upgrade');this.renderDock();
+    if(suggested)this.revealLoadoutApply();
+    return;
    }
    if(act==='returnIon'){
     if(!this.ionLoan)return;
@@ -1950,114 +2073,7 @@ export class ArcadeGame {
     this.hitAlly(a,e.damage*dt*.8);
    }
   }
-  this.beamClock-=dt;
-  const plasmaPower=this.weaponProfile.plasma;
-  if(plasmaPower&&!this.weaponThermal.locked&&!this.heavyCharge&&this.beamClock<=0&&automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing)){
-   this.beamClock=.63/(1+this.skillRanks.beam*.12);
-   const range=RULES.beamRange+this.skillRanks.range*56;
-   const hostile=this.nearbyEnemyBase(range+150);
-   this.plasmaFired=false;
-   const jammer=this.operation?.id===CORRIDOR_OPERATION.id&&this.operation.hp>0&&this.operation.phase!=='return'&&dist(this.operation,p)<=Math.min(range,CORRIDOR_OPERATION.focusRange)?this.operation:null;
-   const turret=hostile?.turrets?.filter(t=>t.hp>0&&dist(t,p)<=Math.min(range,235))
-    .sort((a,b)=>dist(a,p)-dist(b,p))[0];
-   // The player can deliberately focus a base by daring to enter its attack zone.
-   // Endless enemies must not make turret capture impossible.
-   const baseCore=hostile&&!hostile.turrets.some(t=>t.hp>0)&&
-    dist(hostile,p)<=Math.min(range,245)?hostile:null;
-   if(jammer){
-    const d=dist(jammer,p),damage=plasmaPower*beamDamage(21,d,110,range)*
-     (this.nearArsenalBonus?1.18:1)*(this.time<(jammer.overheatedUntil||0)?1.35:1);
-    const cover=firstRockImpact(p.x,p.y,jammer.x,jammer.y,
-     this.rockGrid.query((p.x+jammer.x)*.5,(p.y+jammer.y)*.5,d*.5+40),2,p);
-    const point=cover?contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y):null;
-    if(cover)this.damageRock(cover.rock,damage*.85,p.x,p.y,'auto',true,point);
-    else jammer.hp=Math.max(0,jammer.hp-damage);
-    this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(jammer.y-p.y,jammer.x-p.x));
-    this.heritage.play('laser',.32);
-    this.plasmaFlash(point?.x??jammer.x,point?.y??jammer.y,'#e3a0ff');
-    if(jammer.hp<=0)this.completeCorridor();
-    if(this.skillRanks.double){
-     const escorts=this.grid.query(p.x,p.y,range).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e))
-      .sort((a,b)=>dist(a,p)-dist(b,p)).slice(0,this.skillRanks.double);
-     for(const e of escorts){const d2=dist(e,p);
-      const point=contactOnCircle(e.x,e.y,e.r,p.x,p.y);
-      this.damageEnemy(e,plasmaPower*beamDamage(14+this.skillRanks.beam*3.3,d2,
-       RULES.nearBeam,range,RULES.beamMinFactor)*.65,'beam',point);
-      this.plasmaFlash(point?.x??e.x,point?.y??e.y,'#72effe');}
-    }
-   }else if(turret||baseCore){
-    const objective=turret||baseCore,d=dist(objective,p);
-    const closeBonus=this.doctrine==='assault'&&d<=180?1.22:1;
-    const damage=plasmaPower*beamDamage(turret?23:21,d,110,range)*closeBonus*(this.nearArsenalBonus?1.18:1);
-    const point=turret?contactOnCircle(turret.x,turret.y,22,p.x,p.y):null;
-    if(turret)this.hitTurret(turret,damage,point);
-    else this.hitEnemyBase(baseCore,damage);
-    this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(objective.y-p.y,objective.x-p.x));
-    this.heritage.play('laser',.32);
-    this.plasmaFlash(point?.x??objective.x,point?.y??objective.y,'#ffc18c');
-    // Paired shots still defend the ship while the primary beam focuses a turret.
-    if(this.skillRanks.double){
-     const escortTargets=this.grid.query(p.x,p.y,range).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e)&&
-       dist(e,p)<range).sort((a,b)=>dist(a,p)-dist(b,p))
-       .slice(0,Math.min(2,this.skillRanks.double));
-     for(const e of escortTargets){
-      const d2=dist(e,p);
-      const point=contactOnCircle(e.x,e.y,e.r,p.x,p.y);
-      this.damageEnemy(e,plasmaPower*beamDamage(14+this.skillRanks.beam*3.3,d2,
-       RULES.nearBeam,range,RULES.beamMinFactor)*.65,'beam',point);
-      this.plasmaFlash(point?.x??e.x,point?.y??e.y,'#72effe');
-     }
-    }
-   }else{
-    const targets=this.grid.query(p.x,p.y,range).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e))
-     .sort((a,b)=>dist(a,p)-dist(b,p));
-    const n=1+Math.min(2,this.skillRanks.double);
-    for(const e of targets.slice(0,n)){
-     const d=dist(e,p);if(d>range)continue;
-     const closeBonus=this.doctrine==='assault'&&d<=180?1.22:1;
-     const dmg=plasmaPower*beamDamage(14+this.skillRanks.beam*3.3,d,
-      RULES.nearBeam,range,RULES.beamMinFactor)*closeBonus*(this.nearArsenalBonus?1.18:1);
-     // Asteroid on the firing line intercepts a combat beam.
-     const cover=firstRockImpact(p.x,p.y,e.x,e.y,
-      this.rockGrid.query((p.x+e.x)*.5,(p.y+e.y)*.5,d*.5+45),2,p);
-     const point=cover?contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y):
-      contactOnCircle(e.x,e.y,e.r,p.x,p.y);
-     if(cover)this.damageRock(cover.rock,dmg*.85,p.x,p.y,'auto',true,point);
-     else this.damageEnemy(e,dmg,'beam',point);
-     this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(e.y-p.y,e.x-p.x));
-     this.heritage.play('laser',.32);
-     this.plasmaFlash(point?.x??e.x,point?.y??e.y,cover?'#f6ca87':'#72effe');
-    }
-    if(!targets.length&&hostile){
-     const tur=hostile.turrets.find(t=>t.hp>0&&dist(t,p)<range);
-     if(tur){
-      const point=contactOnCircle(tur.x,tur.y,22,p.x,p.y);
-      this.hitTurret(tur,plasmaPower*beamDamage(23,dist(tur,p),110,range),point);
-      this.plasmaFlash(point?.x??tur.x,point?.y??tur.y);
-     }
-     else if(dist(hostile,p)<range){this.hitEnemyBase(hostile,plasmaPower*beamDamage(21,dist(hostile,p),110,range));
-      this.plasmaFlash(hostile.x,hostile.y);}
-    }
-   }
-   if(this.plasmaFired)heatWeapons(this.weaponThermal,6*plasmaPower);
-  }
-  this.rocketClock-=dt;
-  if(this.weaponProfile.rocket&&!this.weaponThermal.locked&&!this.heavyCharge&&this.rocketClock<=0&&
-   automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing)){
-   this.rocketClock=3.5/(1+this.skillRanks.rocket*.28);
-   const target=this.grid.query(p.x,p.y,720).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e)&&dist(e,p)<=720)
-    .sort((a,b)=>dist(a,p)-dist(b,p))[0];
-   if(target){
-    heatWeapons(this.weaponThermal,16*this.weaponProfile.rocket);
-    if(this.missiles.length>=14)this.missiles.shift();
-    this.missiles.push({x:p.x,y:p.y,prevX:p.x,prevY:p.y,trail:[{x:p.x,y:p.y}],
-     target,tx:target.x,ty:target.y,damage:(48+this.skillRanks.rocket*19)*this.weaponProfile.rocket,
-     speed:540,life:2.3});
-    this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(target.y-p.y,target.x-p.x),'railgun');
-    this.heritage.play('rocket',.5,{x:p.x,y:p.y});
-   }
-  }
-  updateAuxiliaryWeapons(this,dt,!this.heavyCharge&&automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing));
+  this.updateShipWeapons(dt);
   const radar=400+this.skillRanks.radar*220;
   for(const b of this.world.nearbyStations(p.x,p.y,Math.max(900,radar))){
    if(!b.enemy||!this.enemyBasesUnlocked()||b.captured)continue;

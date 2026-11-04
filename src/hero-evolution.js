@@ -136,20 +136,23 @@ export function heroStageFromProgress(player, campaign = null, workshop = false)
     ), 0, HERO_STAGE_COUNT - 1);
 }
 
-export function drawEvolvedHero(ctx, size, stage = 0, healthRatio = 1, thrust = 0) {
+export function drawEvolvedHero(ctx, size, stage = 0, healthRatio = 1, thrust = 0, geometry = null) {
     const index = clamp(Math.floor(stage) || 0, 0, HERO_STAGE_COUNT - 1);
     const intact = request(index);
     request(Math.min(index + 1, HERO_STAGE_COUNT - 1));
     const hp = Number.isFinite(healthRatio) ? healthRatio : 1;
     const damaged = hp < .65 ? request(index, true) : null;
-    const showDamage = hp < .4 && !!damaged?.naturalWidth && !!damaged.naturalHeight;
+    const showDamage = hp < .4 && !!damaged?.complete && !!damaged.naturalWidth && !!damaged.naturalHeight;
     const image = showDamage ? damaged : intact;
-    if (!image?.naturalWidth || !image.naturalHeight) return false;
+    if (!image?.complete || !image.naturalWidth || !image.naturalHeight) return false;
     const idle = getIdleHeroSprite(index, showDamage);
     const power = clamp(Number(thrust) || 0, 0, 1);
     const t = typeof performance !== 'undefined' ? performance.now() * .001 : 0;
     const width = size * 4.1;
     const height = width * image.naturalHeight / image.naturalWidth;
+    // Optional output lets separate equipment layers follow the artwork that
+    // actually decoded, including the delayed switch to damaged imagery.
+    if (geometry) Object.assign(geometry, {stage:index,damaged:showDamage,width,height});
     ctx.save();
     ctx.shadowColor = '#51d9fa';
     ctx.shadowBlur = 0;

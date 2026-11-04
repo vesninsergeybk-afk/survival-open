@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createLoadout,cloneLoadout,FRAME_STEPS,SHIP_ART,MODULES,slotOpen,quoteLoadout,
  applyLoadout,upgradeFrame,loadoutProfile,moduleStats,createThermal,coolWeapons,
- heatWeapons,HangarSession,BLUEPRINT_KEY,mountPosition} from '../ship-loadout.js';
+ heatWeapons,HangarSession,BLUEPRINT_KEY,PREVIEW_BLUEPRINT_KEY,mountPosition} from '../ship-loadout.js';
 import {renderShipHangar} from '../hangar-panel.js';
 import {shipTargets,updateAuxiliaryWeapons,planHowitzer,updateHowitzer} from '../ship-weapons.js';
 import {CORRIDOR_OPERATION} from '../operations.js';
+import {drawEvolvedHero} from '../../src/hero-evolution.js';
 
 const context=(extra={})=>({baseActive:true,level:14,ore:400,ranks:{rocket:1},ionLoan:null,...extra});
 const full=()=>({...createLoadout(),frame:4});
@@ -91,6 +92,32 @@ test('blueprints persist only module choices and cannot grant unavailable hardwa
  assert.doesNotThrow(()=>new HangarSession({getItem:()=>'{bad json'}));
  assert.doesNotThrow(()=>new HangarSession({getItem:()=>{throw Error('blocked');}}));
 });
+test('an unaffordable design can be recorded without manufacturing or spending anything',()=>{
+ const memory=new Map(),storage={getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)};
+ const current=createLoadout(),session=new HangarSession(storage);session.begin(current);
+ session.draft.slots[1]='rail';const ctx=context({loadout:current,ore:0});
+ session.dispatch({act:'hgSave',id:'0'},ctx);
+ assert.equal(JSON.parse(memory.get(BLUEPRINT_KEY)).items[0].slots[1],'rail');
+ assert.equal(current.owned.rail,undefined);assert.equal(ctx.ore,0);
+ assert.equal(session.dispatch({act:'hgApply'},ctx),undefined,'recording a plan never bypasses manufacturing cost');
+ assert.equal(current.slots[1],null);
+});
+test('showroom blueprints use a separate durable key and cannot overwrite game blueprints',()=>{
+ const memory=new Map(),storage={getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)};
+ const current=createLoadout(),ctx=context({loadout:current});
+ const real=new HangarSession(storage);real.begin(current);real.dispatch({act:'hgSave',id:'0'},ctx);
+ const before=memory.get(BLUEPRINT_KEY),preview=new HangarSession(storage,PREVIEW_BLUEPRINT_KEY);
+ preview.begin(current);preview.draft.slots[1]='rail';preview.dispatch({act:'hgSave',id:'0'},ctx);
+ assert.equal(memory.get(BLUEPRINT_KEY),before);
+ assert.equal(new HangarSession(storage,PREVIEW_BLUEPRINT_KEY).blueprints[0].slots[1],'rail');
+});
+test('changing from a filtered ordinary node to H resets the incompatible filter',()=>{
+ const current=full(),session=new HangarSession();session.begin(current);const ctx=context({loadout:current});
+ session.dispatch({act:'hgFilter',id:'manual'},ctx);session.dispatch({act:'hgSlot',id:'5'},ctx);
+ assert.equal(session.filter,'all');
+ const html=renderShipHangar({...ctx,level:14},session);
+ assert.match(html,/data-act="hgSelect" data-id="howitzer"/);
+});
 test('a blueprint with foreign module ids is ignored and text remains escaped',()=>{
  const bad={version:1,items:[{slots:['<img onerror=alert(1)>',null,null,null,null,null]}]};
  const session=new HangarSession({getItem:()=>JSON.stringify(bad)});
@@ -119,6 +146,40 @@ test('all ten hull stages have separate anchors with finite in-bounds mount posi
   }
  }
 });
+test('equipment uses the framing of the painted damaged hull and ignores stale stage geometry',()=>{
+ const player={x:0,y:0,level:1,angle:0};const intact=mountPosition(player,0);
+ player.weaponGeometry={stage:0,damaged:true,width:79.95,height:79.95*944/1666};
+ const damaged=mountPosition(player,0);assert.ok(damaged.x<intact.x);
+ assert.ok(Math.abs(damaged.y-(.57-.5)*player.weaponGeometry.height)<1e-9);
+ player.weaponGeometry.stage=9;assert.deepEqual(mountPosition(player,0),intact);
+});
+test('equipment framing switches only after the damaged artwork has actually loaded',()=>{
+ const originalImage=globalThis.Image;
+ let decodedDamage=false;
+ class ImageStub {
+  constructor(){this.complete=true;}
+  set src(value){const damaged=value.includes('_damaged');
+   this.naturalWidth=damaged?1666:512;
+   this.naturalHeight=damaged?944:290;
+   this.complete=!damaged||decodedDamage;
+   if(damaged)this.damageImage=true;
+  }
+ }
+ const noOp=()=>{},draws=[];
+ const ctx={save:noOp,restore:noOp,beginPath:noOp,arc:noOp,fill:noOp,
+  drawImage:(image,...bounds)=>draws.push({image,bounds})};
+ globalThis.Image=ImageStub;
+ try{
+  const geometry={};assert.equal(drawEvolvedHero(ctx,19.5,0,.2,0,geometry),true);
+  assert.equal(geometry.damaged,false);assert.ok(Math.abs(geometry.height-79.95*290/512)<1e-9);
+  // Decode the same requested image; the renderer must keep using intact
+  // geometry until those bytes become usable.
+  decodedDamage=true;
+  const freshGeometry={};assert.equal(drawEvolvedHero(ctx,19.5,1,.2,0,freshGeometry),true);
+  assert.equal(freshGeometry.damaged,true);assert.ok(Math.abs(freshGeometry.height-79.95*944/1666)<1e-9);
+  assert.equal(draws.at(-1).image.damageImage,true);
+ }finally{if(originalImage===undefined)delete globalThis.Image;else globalThis.Image=originalImage;}
+});
 test('an auxiliary gun fires only when mounted, has a target, and automatic fire is allowed',()=>{
  const e=enemy(300),game=combat([e]);
  updateAuxiliaryWeapons(game,.1,false);assert.equal(game.hits.length,0);
@@ -146,6 +207,17 @@ test('auxiliary weapons use the actual corridor mission id and can damage the ja
  assert.equal(shipTargets(game,700)[0].kind,'jammer');
  updateAuxiliaryWeapons(game,1,true);assert.equal(game.operation.hp,112);
 });
+test('anti-swarm targeting picks nearby enemies ahead of a more distant base turret',()=>{
+ const a=enemy(70),b=enemy(90),c=enemy(110),turret={x:220,y:0,hp:100};
+ const game=combat([a,b,c]);game.nearbyEnemyBase=()=>({x:230,y:0,turrets:[turret]});
+ assert.equal(shipTargets(game,245,1)[0].target,turret,'rail retains deliberate objective priority');
+ assert.deepEqual(shipTargets(game,245,3,true).map(x=>x.target),[a,b,c]);
+});
+test('duplicate auxiliary modules emit visible shots from both mounted positions',()=>{
+ const e=enemy(300),game=combat([e]);game.shipLoadout.slots[1]='rail';game.weaponProfile.rail=2;
+ updateAuxiliaryWeapons(game,1,true);assert.deepEqual(game.hits,[76]);
+ assert.equal(game.flashes.length,2);assert.notEqual(game.flashes[0][0],game.flashes[1][0]);
+});
 test('howitzer requires H and a real target, telegraphs a fixed point and waits before damage',()=>{
  const e={...enemy(500),type:'gunship'},game=combat([e]);
  assert.equal(planHowitzer(game).ok,false);
@@ -158,6 +230,16 @@ test('howitzer requires H and a real target, telegraphs a fixed point and waits 
  game.heavyCooldown=0;game.weaponThermal.locked=true;assert.equal(planHowitzer(game).ok,false);
  const moving=combat([enemy(400)]);moving.weaponProfile.howitzer=true;moving.heavyCharge=planHowitzer(moving).charge;
  moving.grid.query()[0].x=650;updateHowitzer(moving,1.26);assert.equal(moving.hits.length,0,'a moving target can leave the fixed blast area');
+});
+test('howitzer cancels cleanly on repair, removal or moving beyond its advertised firing range',()=>{
+ for(const mode of ['repair','removed','range']){
+  const game=combat([enemy(500)]);game.weaponProfile.howitzer=true;game.heavyCharge=planHowitzer(game).charge;
+  if(mode==='repair')game.probeRepairing=true;
+  if(mode==='removed')game.weaponProfile.howitzer=false;
+  if(mode==='range')game.player.x=-500;
+  updateHowitzer(game,1.3);assert.equal(game.heavyCharge,null);assert.equal(game.hits.length,0);
+  assert.equal(game.weaponThermal.current,0);assert.equal(game.heavyCooldown,0);
+ }
 });
 test('the station adapter, heat gates and both manual inputs are wired into the actual game',()=>{
  const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
