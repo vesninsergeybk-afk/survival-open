@@ -108,7 +108,10 @@ export function renderWorldMap(game){
   const q=point(b.x,b.y,p,scale);if(!visible(q))return '';
   const color=b.enemy?'#ff777d':b.active?'#84ead2':'#ffca84';
   const returnCue=readyStation?.id===b.id;
-  return '<g>'+(returnCue?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+  const selected=game.waypoint?.id===b.id;
+  return '<g>'+(selected?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+   '" r="22" fill="#ffd58a18" stroke="#ffe2a0" stroke-width="2" stroke-dasharray="4 3"/>':'')+
+   (returnCue?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
    '" r="17" fill="#ffd27e1a" stroke="#ffd27e" stroke-width="2.5"/>'+
    '<text x="'+q.x.toFixed(1)+'" y="'+(q.y-20).toFixed(1)+
    '" text-anchor="middle" fill="#ffe2a0" font-size="17" font-weight="700">!</text>':'')+
@@ -210,16 +213,21 @@ export function renderWorldMap(game){
    '" data-label="'+enc(label)+'"'+(isSignal?' data-signal="1"':'')+
    '>'+ (same?'✓ Маршрут выбран':value)+'</button></article>';
  };
- const discovered=known.map(b=>row(b,false)).join('');
+ const discovered=[...known].sort((a,b)=>Number(readyStation?.id===b.id)-Number(readyStation?.id===a.id)||
+  Number(game.waypoint?.id===b.id)-Number(game.waypoint?.id===a.id)||distance(a,p)-distance(b,p))
+  .map(b=>row(b,false)).join('');
  const unidentified=signals.map(b=>row(b,true)).join('');
  const clear='<button type="button" data-act="waypoint" data-id="clear"'+
   (!game.waypoint?' disabled':'')+'>Сбросить маршрут</button>';
- return '<div class="dialog map-dialog"><header class="map-heading"><div>'+
+ const view=game.mapView==='targets'?'targets':'map';
+ return '<div class="dialog map-dialog map-mode-'+view+'"><header class="map-heading"><div>'+
   '<span class="map-kicker">НАВИГАЦИОННЫЙ КОМПЛЕКС</span><h2>Карта сектора</h2>'+
   '<p>Прокладывайте маршруты по разведанным станциям. Связь действует на 1450 м; каждая усиленная антенна добавляет 500 м. Неизвестные сигналы указаны приблизительно.</p>'+
   '</div><div class="map-heading-actions"><span>В сети <b>'+topology.count+'</b> · Открыто <b>'+known.length+
   '</b></span>'+(game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':'')+
   '<button data-act="close">В полёт · Esc</button></div></header>'+
+  '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">Схема сектора</button>'+
+  '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">Цели и сигналы · '+(known.length+signals.length)+'</button></nav>'+
   '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
   '<circle cx="340" cy="240" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+

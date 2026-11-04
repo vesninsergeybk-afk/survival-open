@@ -1,0 +1,335 @@
+/* Gameplay-first menu skin. Only presentation; all values and actions remain live.
+   A single lightweight layer, shared with the existing cockpit HUD art language. */
+:root{
+ --menu-ink:#e9f6fa;--menu-muted:#afccd9;--menu-quiet:#87a6b8;
+ --menu-cyan:#8cdee5;--menu-amber:#f3c778;--menu-ok:#90e2c4;
+ --menu-danger:#ff9d9d;--menu-border:#5f9dac90;
+ --menu-glass:#0b1f30;--menu-panel:#112b3c;
+}
+#overlay{background:radial-gradient(ellipse at 50% 26%,#163e5760,#020814dd 72%);backdrop-filter:blur(3px)}
+#overlay .dialog,.preview-dialog{
+ position:relative;color:var(--menu-ink);border:1px solid #80bccaad;border-radius:10px;
+ background:linear-gradient(118deg,#183849 0%,#0b2030 17%,#081727 62%,#112a3b 100%);
+ box-shadow:inset 0 0 0 1px #d6faff1b,inset 0 12px 32px #b4edff0a,
+ 0 22px 80px #010714d9,0 0 34px #3589a519;
+}
+#overlay .dialog::before,.preview-dialog::before{
+ content:"";position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(90deg,var(--menu-amber),var(--menu-amber)) top 0 left 0 / 48px 2px no-repeat,
+ linear-gradient(0deg,var(--menu-amber),var(--menu-amber)) top 0 left 0 / 2px 34px no-repeat,
+ linear-gradient(90deg,var(--menu-cyan),var(--menu-cyan)) bottom 0 right 0 / 56px 2px no-repeat,
+ linear-gradient(0deg,var(--menu-cyan),var(--menu-cyan)) bottom 0 right 0 / 2px 39px no-repeat;
+ opacity:.76;
+}
+#overlay .dialog button,.preview-dialog button{border-radius:6px;transition:background-color .12s,border-color .12s,box-shadow .12s}
+#overlay .dialog button:focus-visible,.preview-dialog button:focus-visible,
+#overlay .dialog summary:focus-visible{outline:2px solid #ffe1a1;outline-offset:3px}
+#overlay .dialog button:disabled,.preview-dialog button:disabled{cursor:not-allowed}
+#overlay .dialog button:not(:disabled):active{transform:translateY(1px)}
+#overlay .dialog h2,#overlay .dialog h3{letter-spacing:.008em}
+
+/* Station identity: quiet materials and a meaningful status line. */
+#overlay .base-dialog{width:min(96vw,1080px);max-height:calc(100dvh - 28px);padding:15px 17px 12px;overflow-y:auto;overflow-x:hidden}
+#overlay .base-dialog:has(#base-panel-hangar:not([hidden])){width:min(98vw,1230px)}
+.base-system-label{display:block;color:var(--menu-cyan);font-size:9px;letter-spacing:.21em;font-weight:750;margin-bottom:5px}
+.base-head{padding:2px 3px 11px;border-bottom:1px solid #85bac547;align-items:center}
+.base-head h2{color:#eafcff;font-size:clamp(20px,2.2vw,25px);margin:0 0 5px;font-weight:790}
+.base-head p{font-size:11px;color:#bbd1dc}
+.base-head b{color:#fff0cf}
+.base-pill{border-radius:3px;border-left-width:3px;font-weight:740;letter-spacing:.06em}
+.base-pill.online{color:#a4f1d0;background:#15483879}
+.base-dialog.station-dock{--station-glow:#5bd5db}
+.base-dialog.station-lab{--station-glow:#bd97eb}
+.base-dialog.station-arsenal{--station-glow:#f0b17c}
+.base-dialog.station-carrier{--station-glow:#77b3ff}
+.base-dialog .base-head{box-shadow:0 1px 0 var(--station-glow,#82dce0) inset}
+.base-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:9px 0 12px}
+#overlay .base-tabs button{position:relative;margin:0!important;min-height:43px;padding:11px 8px!important;
+ font-size:12px!important;letter-spacing:.035em;border:1px solid #527b8f88;border-radius:4px!important;
+ background:linear-gradient(180deg,#183448,#102639);color:#b8d6e1}
+#overlay .base-tabs button[aria-selected="true"]{background:linear-gradient(180deg,#3b4a49,#2b352e)!important;
+ border:1px solid #efc87bc6!important;color:#ffedc5!important;box-shadow:inset 0 -3px 0 #efc477!important}
+.base-tab-panel{padding:0 1px 7px}
+.base-dashboard{grid-template-columns:minmax(0,1.35fr) minmax(280px,.9fr);gap:12px}
+.base-dashboard-main,.base-dashboard-aside,.base-card,.base-featured-op,.base-contract-choice,
+.base-contract,.base-network-preview,.base-module-option,.map-objective{
+ border-radius:6px!important;box-shadow:inset 0 1px 0 #d3fbff0c;
+}
+.base-dashboard-main{position:relative;overflow:hidden;border-color:#629aaa78;padding:clamp(17px,2.4vw,28px);
+ background:radial-gradient(ellipse at 100% 0%,color-mix(in srgb,var(--station-glow,#7ad2de) 17%,transparent),transparent 62%),
+ linear-gradient(145deg,#193447,#0a1d2c)}
+.base-dashboard-main::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.18;
+ background:url('./studio/menu-kit/orbit-engraving.svg') no-repeat 115% 3% / min(53%,370px)}
+.base-dashboard-main>*{position:relative}
+.base-dashboard-main>strong{font-size:clamp(23px,2.5vw,31px);max-width:28ch;line-height:1.13}
+.base-dashboard-main>p{max-width:62ch;color:#c8dfeb;font-size:13px}
+.base-dashboard-aside{border-color:#577f918a;background:linear-gradient(160deg,#102f42,#0a2132)}
+.base-route-graphic svg,.base-network-preview svg,.map-canvas svg{border-radius:5px!important;background:#071828}
+.base-dashboard-links{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.base-dashboard-links button{min-height:43px}
+.base-view-intro{display:flex;justify-content:space-between;align-items:center;gap:14px;
+ padding:12px 14px;margin-bottom:10px;border:1px solid #578c9c70;border-left:3px solid var(--menu-amber);
+ background:linear-gradient(120deg,#1f3b49,#0a2434);border-radius:5px}
+.base-view-intro>div{min-width:0}
+.base-view-intro strong{display:block;color:#f0faf9;font-size:17px;margin:4px 0}
+.base-view-intro p{margin:0;font-size:12px;line-height:1.45;color:var(--menu-muted)}
+.base-view-intro button{flex:none;min-height:43px}
+.base-featured-op{position:relative;border-color:#aa8eb08c;
+ background:linear-gradient(125deg,#3a2f49aa,#102637 45%,#0d2134)}
+.base-featured-op.mission-corridor{--mission-art:url('./studio/menu-kit/mission/corridor.webp')}
+.base-featured-op.mission-probe{--mission-art:url('./studio/menu-kit/mission/probe.webp')}
+.base-featured-op.mission-relay{--mission-art:url('./studio/menu-kit/mission/relay.webp')}
+.base-featured-op.mission-carrier{--mission-art:url('./studio/menu-kit/mission/carrier.webp')}
+.base-featured-op[class*="mission-"]{
+ background-image:linear-gradient(90deg,#102538f5 0%,#102538e9 38%,#102538b3 76%,#102538ac 100%),var(--mission-art);
+ background-position:center,right 47%;background-size:cover,cover;background-repeat:no-repeat;
+}
+.base-featured-op::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:#d2a7e4}
+.base-featured-op.resolved::before{background:var(--menu-ok)}
+.base-featured-op.underway::before{background:var(--menu-amber)}
+.base-featured-op>strong{font-size:clamp(17px,2vw,22px)}
+.base-op-details>div{border-radius:4px;background:#071c2bb0}
+.base-contract-board,.base-network-preview,.base-modules{border-radius:6px!important}
+.base-contract-choice{min-width:0}
+.base-foot{position:relative;margin-top:9px;border-color:#79b0ba4d}
+.base-foot small{font-size:11px;line-height:1.45}
+.base-foot button[data-act="close"]{background:#213f4c;border-color:#8eb9c0a3;min-height:42px;font-weight:700}
+.base-module-options{gap:10px}
+.base-module-option{border-left:3px solid #739aaf80}
+.base-module-option.selected{border-left-color:var(--menu-ok)}
+.base-modules-heading small{max-width:84ch;color:#efc898}
+.base-module-confirm{margin-top:12px;padding:14px 16px;border:1px solid #f2c37bbb;border-left:4px solid var(--menu-amber);
+ background:linear-gradient(120deg,#4b3a29,#162a3a);border-radius:5px;box-shadow:0 12px 34px #0109157a}
+.base-module-confirm strong{display:block;color:#fff1d0;font-size:16px}
+.base-module-confirm p{color:#f4dfc3;font-size:13px;max-width:72ch;line-height:1.5}
+.base-module-confirm>div{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+#overlay .base-module-confirm button{margin:0!important;min-height:43px}
+#overlay .base-module-confirm .base-decision-primary{background:#d9ad61;color:#14242d;font-weight:800;border-color:#f9dba7}
+
+/* Hangar: the ship is the product, comparisons and confirmation are the decisions. */
+.ship-hangar{--hg-gold:#eac57b}
+.hg-title{padding:6px 5px 11px;border-color:#70a6b555}
+.hg-title h2{font-size:clamp(20px,2.3vw,29px)!important;color:#f1fbff!important}
+.hg-live-pill{border-radius:3px;white-space:normal;color:#d2f3df}
+.hg-apply-bar{position:sticky;top:0;z-index:8;margin:0 0 7px;flex-wrap:wrap;
+ border:1px solid #678d99c7;border-left:4px solid #77c9d0;padding:11px 13px;
+ background:#0b2332f5;box-shadow:0 7px 20px #010b19a8;backdrop-filter:blur(3px)}
+.hg-apply-bar.has-changes{border-left-color:#e9b96b;background:#2b2b2aee}
+.hg-apply-bar strong{font-size:13px;color:#e9ffff}
+.hg-apply-bar.has-changes strong{color:#ffe2a8}
+.hg-apply-bar>div:last-child{display:flex;gap:7px;flex:none}
+.hg-apply-bar button{min-height:42px;min-width:92px;margin:0!important}
+.hg-decision-brief{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;
+ padding:10px 12px;margin:0 0 8px;border:1px solid #527f8e7b;border-radius:4px;
+ background:linear-gradient(120deg,#112b3c,#0a1c2b)}
+.hg-decision-brief>p{color:#bfdce5;font-size:12px;line-height:1.42;margin:0!important;min-width:0}
+.hg-range-brief{display:grid;grid-template-columns:repeat(3,1fr);gap:0;min-width:190px}
+.hg-range-brief>span{display:grid;justify-items:center;padding:1px 10px;border-left:1px solid #7db5c43d;white-space:nowrap}
+.hg-range-brief small{color:#94b6c4;font-size:10px}
+.hg-range-brief b{color:#f0d7a5;font-size:15px;font-variant-numeric:tabular-nums}
+.hg-comparison{padding:0 12px;margin:0 0 8px;border:1px solid #587d8c85;border-radius:4px;background:#0c2534}
+.hg-comparison summary{cursor:pointer;padding:10px 2px;font-size:12px;color:#bce8e9;font-weight:700;min-height:40px}
+.hg-comparison[open] summary{border-bottom:1px solid #6d9fb254}
+.hg-comparison .hg-stats{max-width:540px;margin:10px 0}
+.hg-comparison .hg-stats th,.hg-comparison .hg-stats td{padding:6px}
+.hg-comparison ul{max-width:80ch}
+.hg-layout{grid-template-columns:minmax(185px,.93fr) minmax(295px,1.52fr) minmax(225px,1.1fr);
+ border:1px solid #638b9988;background:#071c2ac2}
+.hg-arsenal,.hg-inspector{padding:15px 13px}
+.hg-arsenal{background:linear-gradient(180deg,#122d3a,#071d2c)}
+.hg-inspector{background:linear-gradient(180deg,#102b3b,#071927)}
+.hg-ship{padding:14px 14px 12px;
+ background:radial-gradient(ellipse at 50% 31%,#4a7b8373,transparent 69%),#081c2c}
+.hg-section-head h3,.hg-inspector h3{color:#e7f9ff;font-size:17px;margin:0}
+.hg-blueprint{border-color:#79b5bf6e;background:#091b2a;max-width:520px;margin:9px auto 0;
+ background-image:url('./studio/menu-kit/orbit-engraving.svg'),linear-gradient(#6b9aa717 1px,transparent 1px),
+ linear-gradient(90deg,#6b9aa717 1px,transparent 1px);
+ background-position:center;background-size:90% 90%,30px 30px,30px 30px;background-repeat:no-repeat,repeat,repeat}
+.hg-hull{object-fit:fill;opacity:.97;filter:drop-shadow(0 8px 12px #000b)}
+.hg-node{border-radius:4px!important}
+.hg-slot-strip{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.hg-slot-strip span{font-size:11px;padding:8px 6px;border-radius:3px}
+.hg-thermal-plan{padding:10px;margin-top:10px;background:#0b2333;border:1px solid #557d8a60;border-radius:4px}
+.hg-weapon{border-radius:4px!important}
+.hg-weapon.selected{box-shadow:inset 3px 0 0 var(--module-color),0 0 0 1px #94e6ea33}
+.hg-weapon strong{font-size:13px}
+.hg-weapon em{font-size:11px}
+.hg-weapon small{font-size:11px}
+.hg-inspector .hg-stats{font-size:12px}
+.hg-inspector .hg-stats td{font-weight:700}
+.hg-progression{border-radius:5px;background:linear-gradient(130deg,#173445,#091c2a)}
+.hg-upgrades,.hg-presets,.hg-services{border-radius:5px}
+.hg-upgrades summary,.hg-presets summary,.hg-services>summary{min-height:45px;align-content:center}
+
+/* Sector navigation: large geographic surface, genuinely uncertain signals. */
+#overlay .map-dialog{width:min(97vw,1160px);max-height:calc(100dvh - 28px);padding:17px 18px}
+.map-kicker{color:var(--menu-cyan)}
+.map-heading{border-bottom:1px solid #6e9fa84a;padding-bottom:12px}
+.map-heading h2{color:#ecf9ff!important;font-size:26px}
+.map-heading-actions button{min-height:39px}
+.map-shell{grid-template-columns:minmax(0,1.55fr) minmax(300px,.95fr);gap:12px}
+.map-canvas svg{border-radius:4px;background:#071828}
+.map-legend{font-size:11px;gap:7px 13px}
+.map-active-route{border:1px solid #a9935b72;border-left:3px solid var(--menu-amber);border-radius:4px;background:#2a2e31}
+.map-side{max-height:min(65vh,670px);padding-right:4px}
+.map-objective{border-left:3px solid #80c8cb}
+.map-contact{border-radius:5px;background:#102b3b}
+.map-contact.selected{border-color:#f0c477;box-shadow:inset 3px 0 0 #f0c477}
+.map-contact button{min-height:40px}
+.map-view-switch{display:none}
+
+/* Pilot development: real branches, next effect first, no fictitious ranks. */
+#overlay .skill-dialog{width:min(96vw,1030px);padding:20px 21px 12px}
+.skill-head{border-bottom:1px solid #729ead55;padding:0 4px 10px;margin-bottom:11px}
+.skill-head h2{color:#ecfaff!important;font-size:24px}
+.skill-head p{margin:0!important;color:#b9d1dd}
+.skill-hangar-note{border-left:3px solid #7ccfcb;background:#102b39;border-radius:4px;font-size:12px}
+.doctrine-strip{border:1px solid #638a9e72;border-radius:5px;background:#0c2636}
+.doctrine-grid{gap:8px}
+.doctrine-choice{border-radius:4px!important}
+.doctrine-choice.selected{box-shadow:inset 0 -3px 0 var(--menu-ok)}
+.skill-columns{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.skill-columns section{border:1px solid #6890a172;border-radius:5px;
+ background:linear-gradient(165deg,#153244,#081f31)}
+.skill-columns section:last-child{background:linear-gradient(165deg,#253240,#102638)}
+.skill-columns h3{font-size:15px;color:#e4f6f9}
+.skill-columns .skill-node{border-radius:4px!important;border-left:3px solid #496d89}
+.skill-columns .skill-node.ready{border-left-color:var(--menu-amber);background:#2b3c3d}
+.skill-columns .skill-node.mastered{border-left-color:var(--menu-ok)}
+.skill-columns .skill-node .skill-effect{display:block;font-size:12px;font-weight:750;
+ color:#9cf3d7;margin:8px 0 3px;border-left:2px solid #6bd3bb;padding-left:7px}
+.skill-branch-tabs{display:none}
+.skill-dialog>.close{min-height:42px}
+
+/* Generic small windows continue the same visual language. */
+#overlay .dialog:not(.base-dialog):not(.map-dialog):not(.skill-dialog){border-radius:8px}
+#overlay .dialog:not(.base-dialog):not(.map-dialog):not(.skill-dialog) h2{color:#eafaff}
+#audioMixer{border-radius:5px}
+#audioMixer summary{min-height:32px}
+#creditsDialog{border-radius:8px;background:linear-gradient(135deg,#173a48,#081625 70%)}
+#creditsDialog #creditsClose{min-height:42px;border-radius:5px}
+
+@media(max-width:950px){
+ #overlay .base-dialog{width:min(98vw,940px);padding:11px 12px}
+ .hg-layout{grid-template-columns:minmax(165px,.8fr) minmax(250px,1.25fr)}
+ .hg-inspector{grid-column:1/-1;display:block;border-left:0;border-top:1px solid #6d9ca260}
+ .hg-inspector .hg-stats{margin:10px 0}
+ .hg-decision-brief{gap:8px}
+}
+@media(max-width:760px){
+ .base-dashboard{grid-template-columns:1fr}
+ .base-dashboard-main{padding:14px}
+ .base-view-intro{flex-wrap:wrap;padding:10px 12px}
+ .base-view-intro button{width:100%}
+ .map-shell{grid-template-columns:1fr}
+ .map-side{max-height:none}
+ .hg-layout{display:block}
+ .hg-arsenal,.hg-inspector{display:none}
+ .hg-catalog-open .hg-ship{display:none}
+ .hg-catalog-open .hg-arsenal,.hg-catalog-open .hg-inspector{display:block}
+ .hg-catalog-open:not(.hg-inspect-open) .hg-inspector{display:none}
+ .hg-catalog-open.hg-inspect-open .hg-arsenal{display:none}
+ .hg-ship{padding:11px}
+ .hg-apply-bar{gap:7px;padding:9px 10px}
+ .hg-decision-brief{grid-template-columns:1fr}
+ .hg-range-brief{min-width:0}
+ .hg-range-brief>span{padding:0 9px}
+ .skill-columns{grid-template-columns:1fr}
+}
+@media(max-height:580px) and (max-width:980px){
+ #overlay{padding:4px;align-items:stretch}
+ #overlay .base-dialog,#overlay .map-dialog,#overlay .skill-dialog{max-height:calc(100dvh - 8px);padding:7px 9px;width:99vw}
+ .base-head{padding-bottom:5px;margin-bottom:4px}
+ .base-system-label{font-size:8px;margin-bottom:1px}
+ .base-head h2{font-size:17px;margin-bottom:2px}
+ .base-head p{font-size:10px}
+ .base-pill{font-size:9px;padding:4px 6px}
+ #overlay .base-tabs{margin:3px 0 6px;gap:4px}
+ #overlay .base-tabs button{min-height:39px;padding:7px 3px!important;font-size:12px!important}
+ .base-dashboard-main>strong{font-size:21px}
+ .base-dashboard-main>p{font-size:12px}
+ .base-route-graphic svg{max-height:155px}
+ .base-view-intro{margin-bottom:7px;padding:8px}
+ .base-view-intro strong{font-size:15px}
+ .base-view-intro p{font-size:11px}
+ .base-op-details{grid-template-columns:1fr}
+ .base-featured-op{padding:11px}
+ .base-featured-foot button{min-height:43px}
+ .base-foot small{display:none}
+ .base-foot button{min-height:42px}
+ .base-module-options{grid-template-columns:1fr}
+ .hg-title{padding:4px 2px 6px}
+ .hg-title h2{font-size:18px!important}
+ .hg-live-pill{font-size:9px;padding:5px}
+ .hg-apply-bar{position:sticky;top:0;padding:7px 8px;gap:6px}
+ .hg-apply-bar strong{font-size:12px}
+ .hg-apply-bar span{font-size:10px}
+ .hg-apply-bar>div:last-child{display:flex;gap:4px}
+ .hg-apply-bar button{min-height:42px;min-width:0;font-size:11px;padding:6px!important}
+ .hg-decision-brief{padding:6px 8px;gap:4px}
+ .hg-decision-brief>p{font-size:11px}
+ .hg-range-brief small{font-size:9px}
+ .hg-range-brief b{font-size:13px}
+ .hg-comparison summary{min-height:35px;padding:7px 2px}
+ .hg-ship{padding:9px}
+ .hg-blueprint{max-width:min(100%,390px)}
+ .hg-catalog-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .hg-weapon strong,.hg-weapon small,.hg-weapon em{font-size:11px}
+ .map-heading{padding-bottom:5px;gap:7px}
+ .map-heading h2{font-size:18px;margin:1px 0 2px}
+ .map-heading p{display:none}
+ .map-heading-actions{flex-direction:row;align-items:center;gap:6px}
+ .map-heading-actions button{min-height:39px}
+ .map-view-switch{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:7px 0}
+ #overlay .map-view-switch button{margin:0!important;min-height:43px;background:#102b3b}
+ #overlay .map-view-switch button[aria-pressed="true"]{border-color:#f1c879;background:#53462f;color:#fff0d1}
+ .map-shell{display:block;margin-top:5px}
+ .map-mode-map .map-side{display:none}
+ .map-mode-targets .map-canvas{display:none}
+ .map-canvas svg{width:100%;max-height:calc(100dvh - 175px);object-fit:contain}
+ .map-legend{margin:4px 0;font-size:9px}
+ .map-active-route{padding:6px;font-size:11px}
+ .map-mode-targets .map-side{max-height:none;padding:2px 4px}
+ .map-contact button{min-height:43px}
+ .map-foot{font-size:10px;margin-top:8px}
+ .skill-head{padding-bottom:4px;margin-bottom:7px}
+ .skill-head h2{font-size:18px;margin:0 0 4px}
+ .skill-head p{font-size:11px}
+ .skill-hangar-note{font-size:11px;padding:7px;margin:4px 0 7px}
+ .doctrine-strip{padding:8px;margin-bottom:6px}
+ .doctrine-header small{font-size:10px}
+ .doctrine-choice{padding:8px!important;min-height:0}
+ .doctrine-choice strong{font-size:12px}
+ .doctrine-choice small{font-size:10px}
+ .skill-branch-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
+ #overlay .skill-branch-tabs button{margin:0!important;min-height:43px;padding:6px 7px!important;font-size:12px}
+ #overlay .skill-branch-tabs button[aria-pressed="true"]{background:#4b3e2c;border-color:#edc578;color:#fdf0d1}
+ .skill-columns{display:block}
+ .skill-columns .skill-branch:not(.active){display:none}
+ .skill-columns .skill-branch{padding:10px}
+ .skill-columns button{font-size:12px;min-height:43px}
+}
+@media(max-width:480px) and (min-height:581px){
+ .base-head p{font-size:10px}
+ .base-system-label{font-size:8px}
+ .base-module-options{grid-template-columns:1fr}
+ .hg-decision-brief{padding:8px}
+ .hg-range-brief>span{padding:0 4px}
+}
+/* A landscape phone can be 800-950 CSS pixels wide: width alone is not a
+   reliable phone breakpoint. Keep the existing ship/catalog/inspector flow. */
+@media(pointer:coarse) and (max-height:580px){
+ .hg-layout{display:block}
+ .hg-arsenal,.hg-inspector{display:none}
+ .hg-catalog-open .hg-ship{display:none}
+ .hg-catalog-open .hg-arsenal,.hg-catalog-open .hg-inspector{display:block}
+ .hg-catalog-open:not(.hg-inspect-open) .hg-inspector{display:none}
+ .hg-catalog-open.hg-inspect-open .hg-arsenal{display:none}
+ .hg-mobile-only{display:inline-block!important}
+ .hg-catalog-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .hg-blueprint{max-width:min(100%,385px)}
+ .hg-inspector{border-top:1px solid #577b8766;border-left:0}
+}
+@media(prefers-reduced-motion:reduce){
+ #overlay .dialog button,.preview-dialog button{transition:none!important;transform:none!important}
+}

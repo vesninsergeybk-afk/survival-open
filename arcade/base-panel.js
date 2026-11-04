@@ -217,7 +217,7 @@ const corridorPanel=(base,state,compact=false)=>{
   '<div><span>ЗАДАЧА</span><b>Подавить помехи и доставить телеметрию</b></div>'+
   '<div><span>ОПАСНОСТЬ</span><b>Охранение · ЭМ-импульс</b></div>'+
   '<div><span>ИЗМЕНЕНИЕ МИРА</span><b>Разведка +350 м · патрули реже</b></div></div>';
- return '<article class="base-featured-op '+(done?'resolved':active?'underway':'')+'">'+
+ return '<article class="base-featured-op mission-corridor '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ДОК</span><span>'+
   (done?'КОРИДОР ОТКРЫТ':returning?'ОСТАЛОСЬ ВЕРНУТЬСЯ':active?'ВЫЛЕТ НАЧАТ':'РАЗВЕДКА ПОД ПОМЕХАМИ')+'</span></div>'+
   '<strong>'+CORRIDOR_OPERATION.name+'</strong><p>'+body+'</p>'+
@@ -247,7 +247,7 @@ const probePanel=(base,state,compact=false)=>{
   '<div><span>ЗАДАЧА</span><b>Восстановить зонд</b></div>'+
   '<div><span>ОПАСНОСТЬ</span><b>Возможны перехватчики</b></div>'+
   '<div><span>ИЗМЕНЕНИЕ МИРА</span><b>Разведка +300 м; возможен новый сигнал</b></div></div>';
- return '<article class="base-featured-op '+(done?'resolved':active?'underway':'')+'">'+
+ return '<article class="base-featured-op mission-probe '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ЛАБОРАТОРИЯ</span><span>'+
   (done?'СИГНАЛ ВОССТАНОВЛЕН':active?'РЕМОНТ В ПОЛЁТЕ':'СИГНАЛ БЕДСТВИЯ')+'</span></div>'+
   '<strong>'+PROBE_OPERATION.name+'</strong><p>'+body+'</p>'+
@@ -278,7 +278,7 @@ const relayPanel=(base,state,compact=false)=>{
   '<div><span>ЗАДАЧА</span><b>Сохранить передатчик · 3 волны</b></div>'+
   '<div><span>ОПАСНОСТЬ</span><b>Заряжающиеся залпы · тяжёлый перехватчик</b></div>'+
   '<div><span>ПОСЛЕДСТВИЕ</span><b>Разведка следующего узла · одноразовая награда</b></div></div>';
- return '<article class="base-featured-op '+(done?'resolved':active?'underway':'')+'">'+
+ return '<article class="base-featured-op mission-relay '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · АРСЕНАЛ</span><span>'+
   (done?'ОБОРОНА ЗАВЕРШЕНА':active?'РЕТРАНСЛЯТОР ПОД УГРОЗОЙ':'ОЖИДАЕТ ПОДМОГИ')+'</span></div>'+
   '<strong>'+RELAY_DEFENSE.name+'</strong><p>'+body+'</p>'+
@@ -312,7 +312,7 @@ const carrierPanel=(base,state,compact=false)=>{
   '<div><span>ЗАДАЧА</span><b>Догнать груз до выхода · вернуться</b></div>'+
   '<div><span>УГРОЗА</span><b>Охранение · носовая броня · разряд 230 м</b></div>'+
   '<div><span>ПОСЛЕДСТВИЕ</span><b>Патрули реже вдоль маршрута</b></div></div>';
- return '<article class="base-featured-op '+(done?'resolved':active?'underway':'')+'">'+
+ return '<article class="base-featured-op mission-carrier '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · АВИАНОСЕЦ</span><span>'+
    (done?'МАРШРУТ ОСЛАБЛЕН':returning?'ВЕРНИТЕСЬ С ДАННЫМИ':ongoing?'ПОГОНЯ':'КОНВОЙ НА ПОДХОДЕ')+'</span></div>'+
   '<strong>'+CARRIER_INTERCEPTION.name+'</strong><p>'+body+'</p>'+
@@ -485,7 +485,7 @@ export function renderBasePanel(base,state){
   '</div></section>':'';
  const modules=active?'<section class="base-modules"><div class="base-modules-heading"><span class="base-kicker">СПЕЦИАЛИЗАЦИЯ СТАНЦИИ</span><strong>'+
   (base.module?'Модуль установлен':'Выберите одно оснащение')+'</strong><small>'+
-  (base.module?'Выбор сохраняется на этой станции до конца вылета.':'Один вариант на выбор. Он изменит работу станции и ближайшего сектора.')+
+  (base.module?'Выбор сохраняется на этой станции до конца вылета.':'Можно установить только один модуль. Второй станет недоступен до конца вылета; перед покупкой потребуется подтверждение.')+
   '</small></div><div class="base-module-options">'+o.moduleOptions.map(m=>
   '<div class="base-module-option'+(base.module===m.key?' selected':'')+'"><strong>'+m.name+'</strong><small>'+m.desc+'</small>'+
   (base.module===m.key?'<span class="base-module-installed">✓ УСТАНОВЛЕНО</span>':
@@ -513,7 +513,9 @@ export function renderBasePanel(base,state){
   '<div class="base-dashboard-links">'+
   action('baseTab','Операции','','operations')+
   action('baseTab','Подготовить корабль','','hangar')+'</div></aside></div>';
- const operations='<div class="base-operations">'+
+ const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ЗАДАЧИ И ПОСЛЕДСТВИЯ</span><strong>Выберите, что изменить в секторе</strong>'+
+  '<p>Особая операция меняет обстановку, полевые заказы помогают добыть сплав и данные. Условия и способ получения награды указаны в каждой задаче.</p></div>'+
+  action('baseTab','Подготовить корабль','','hangar')+'</div>'+
   (specialOffer(base,state)?specialPanel(base,state):'')+
   '<h3 class="base-section-title">Полевые заказы</h3>'+contractPanel(o)+'</div>';
  const localMission=specialOffer(base,state),hullPercent=Math.round(state.hp/state.maxHp*100);
@@ -558,8 +560,9 @@ export function renderBasePanel(base,state){
    '<span class="base-ready">ПЕРВАЯ ПРОБА ЗАВЕРШЕНА</span>'):'';
  const hangar=renderShipHangar({...state,baseActive:active})+'<details class="hg-services" data-hangar-section="services"><summary>Подготовка к вылету · ремонт · дроны · прокат оружия</summary><div class="base-operations">'+readiness+
   '<div class="base-grid">'+repair+hire+'</div>'+local+ionPanel+supply+'</div></details>';
- const network='<div class="base-operations"><p class="base-section-note">Усиление антенны расширяет связь. Специализация влияет на работу станции и ближайший сектор.</p>'+
-  '<div class="base-grid">'+upgrade+antenna+'</div>'+networkPreview(base,state)+modules+transit+'</div>';
+ const network='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">УПРАВЛЕНИЕ СЕТЬЮ</span><strong>Связь, технологии и территория</strong>'+
+  '<p>Усиление антенны увеличивает дальность соединения, а специализация определяет, что станция делает для ближайшего сектора.</p></div></div>'+
+  networkPreview(base,state)+'<div class="base-grid">'+upgrade+antenna+'</div>'+modules+transit+'</div>';
  const opening=active?
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
   tabButton('summary','Сводка',selected)+tabButton('operations','Операции',selected)+
@@ -573,7 +576,7 @@ export function renderBasePanel(base,state){
   '<span>Особые операции и полевые заказы</span>'+
   '<span>Дроны, ремонт и оснащение станции</span>'+
   '<span>Маршруты между подключёнными узлами</span></div></div>';
- return '<div class="dialog base-dialog" role="dialog" aria-modal="true" aria-label="Станция"><header class="base-head"><div><h2>'+
+ return '<div class="dialog base-dialog station-'+base.type+'" role="dialog" aria-modal="true" aria-label="Станция"><header class="base-head"><div><span class="base-system-label">ВЫЖИВШИЙ / ТЕРМИНАЛ СТАНЦИИ</span><h2>'+
   (baseNames[base.type]||'Станция')+'</h2><p>Сплав <b>'+o.ore+'</b> · Данные <b>'+(state.data||0)+'</b> (опыт) · Корпус <b>'+Math.ceil(state.hp)+'/'+state.maxHp+'</b> · В сети '+
   state.connectedBases+' · Дроны '+state.allies+'/'+o.cap+(base.type==='carrier'?' · Вылеты '+state.charges:'')+'</p></div>'+
   '<span class="base-pill '+(o.connected?'online':'offline')+'">'+status+'</span></header>'+

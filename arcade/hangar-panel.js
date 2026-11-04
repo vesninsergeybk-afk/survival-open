@@ -73,11 +73,16 @@ export function renderShipHangar(state,session=state.hangarSession){
  const dirty=session.dirty(current),next=FRAME_STEPS[current.frame+1],blueprintQuote=quoteBlueprint(current,draft,context);
  const lock=moduleLock(id,context),wrongNode=(slot===5)!==(m.kind==='heavy');
  const report=loadoutAnalysis(draft,context.ranks),before=loadoutAnalysis(current,context.ranks),rate=report.heatRate;
- const comparison='<section class="hg-comparison" aria-label="Сравнение вооружения на разных дистанциях">'+
-  '<h3>Что изменится в бою</h3><table class="hg-stats"><caption>Расчётный урон в секунду по одной цели без брони, укрытий и перегрева. Ручное оружие не учитывается.</caption>'+
+ const combatCue=state.operation?.id==='silent-corridor'?'Глухой коридор: передатчик охраняют, возможны ЭМ-импульсы. После уничтожения возвращайтесь с данными.':
+  state.operation?.id==='last-signal'?'Последний сигнал: во время ремонта зонда автоогонь отключён. Подумайте о защите корабля.':
+  state.operation?.id==='relay-defense'?'Оборона ретранслятора: предстоит сдержать три волны противников.':
+  state.operation?.id==='carrier-interception'?'Перехват снабжения: у транспорта уязвима корма; охранение мешает сближению.':
+  'Сборка определяет дистанцию боя, нагрев и число одновременно атакуемых целей.';
+ const comparison='<details class="hg-comparison" data-hangar-section="comparison" aria-label="Сравнение вооружения на разных дистанциях">'+
+  '<summary>Подробное сравнение сборок · 100 / 400 / 650 м</summary><table class="hg-stats"><caption>Расчётный урон в секунду по одной цели без брони, укрытий и перегрева. Ручное оружие не учитывается.</caption>'+
   '<thead><tr><th scope="col">Дистанция</th><th scope="col">Сейчас</th><th scope="col">'+(dirty?'После применения':'Эта сборка')+'</th></tr></thead><tbody>'+
   report.ranges.map((d,i)=>'<tr><th scope="row">'+d+' м</th><td>'+fmt(before.dps[i])+'</td><td>'+fmt(report.dps[i])+'</td></tr>').join('')+
-  '</tbody></table><ul>'+report.notes.map(note=>'<li>'+esc(note)+'</li>').join('')+'</ul></section>';
+  '</tbody></table><ul>'+report.notes.map(note=>'<li>'+esc(note)+'</li>').join('')+'</ul></details>';
  const assembly='<section class="hg-ship"><div class="hg-section-head"><div><span class="hg-eyebrow">СХЕМА ОСНАЩЕНИЯ</span><h3>Ваш корабль</h3></div><span class="hg-stage">Корпус '+(shipArtStage(context.level)+1)+' / 10</span></div>'+
   shipScene(context,session)+'<p class="hg-scene-caption">Выберите узел на схеме · нос направлен вверх</p>'+
   '<div class="hg-slot-strip" aria-label="Состав предварительной сборки">'+draft.slots.map((item,i)=>
@@ -85,7 +90,7 @@ export function renderShipHangar(state,session=state.hangarSession){
     (slotOpen(current,i)?(item?MODULES[item].short:'пусто'):'закрыт')+'</span>').join('')+'</div>'+
   '<div class="hg-thermal-plan"><strong>Общее охлаждение · 14 ед/с</strong><span>Автооружие: до '+fmt(rate)+' ед/с при непрерывном огне</span>'+
   '<small>'+(rate>14?'При долгой стрельбе эта сборка перегреется. На 100% огонь блокируется до остывания к 35%.':
-   'Охлаждение справляется с непрерывным автоогнём этой сборки.')+' C отключает автоогонь и ускоряет охлаждение до 25 ед/с.</small></div>'+comparison+'</section>';
+   'Охлаждение справляется с непрерывным автоогнём этой сборки.')+' C отключает автоогонь и ускоряет охлаждение до 25 ед/с.</small></div></section>';
  const available=Object.values(MODULES).filter(item=>(slot===5?item.kind==='heavy':item.kind!=='heavy')&&
   (session.filter==='all'||item.kind===session.filter));
  const catalog='<aside class="hg-arsenal"><div class="hg-section-head"><div><span class="hg-eyebrow">МОДУЛЬНЫЙ АРСЕНАЛ</span><h3>Вооружение</h3></div>'+button('hgShip','← Корабль','','','hg-mobile-only')+'</div>'+
@@ -120,12 +125,15 @@ export function renderShipHangar(state,session=state.hangarSession){
    button('hgUpgrade',s.reason,s.id,!s.canBuy)+'<small>'+esc(s.desc)+'</small></article>').join('')+'</div></details>':'';
  const blueprints='<details class="hg-presets" data-hangar-section="blueprints"><summary>Сохранённые конфигурации · 3 схемы</summary><p class="hg-note">Схемы сохраняются на этом устройстве бесплатно. Сплав потребуется только для изготовления при применении. При новом вылете оружие и узлы нужно открыть заново.</p><div>'+BLUEPRINT_NAMES.map((name,i)=>
   '<article><b>'+name+'</b>'+button('hgLoad','Загрузить',String(i),!session.blueprints[i])+button('hgSave','Записать',String(i),!blueprintQuote.ok)+'</article>').join('')+'</div></details>';
+ const compareNow=report.ranges.map((range,i)=>'<span><small>'+range+' м</small><b>'+fmt(report.dps[i])+'</b></span>').join('');
+ const draftCount=draft.slots.filter((item,i)=>item&&slotOpen(current,i)).length;
  return '<section class="ship-hangar'+(session.catalog?' hg-catalog-open':'')+(session.inspect?' hg-inspect-open':'')+'" aria-label="Конструктор корабля">'+
   '<header class="hg-title"><div><span class="hg-eyebrow">АНГАР · ОСНАЩЕНИЕ КОРАБЛЯ</span><h2>Соберите свой корабль</h2></div><span class="hg-live-pill">В ПОЛЁТЕ: '+loadoutProfile(current).automatic+' АВТО'+(loadoutProfile(current).ion?' + ИОН':'')+(loadoutProfile(current).howitzer?' + H':'')+'</span></header>'+
-  '<div class="hg-layout">'+catalog+assembly+inspector+'</div>'+
-  '<div class="hg-apply-bar"><div><strong>'+(dirty?'Предварительная сборка':'Текущая конфигурация')+'</strong><span>'+
+  '<div class="hg-apply-bar'+(dirty?' has-changes':'')+'" role="region" aria-label="Подтверждение оснащения"><div><strong>'+(dirty?'● Предварительная сборка · '+draftCount+' узл.':'✓ Текущая конфигурация · '+draftCount+' узл.')+'</strong><span>'+
    (quote.cost?'Изготовление: '+quote.cost+' сплава · останется '+Math.max(0,context.ore-quote.cost):'Модули в наличии · замена бесплатна')+'</span>'+(!quote.ok?'<small class="hg-error">'+esc(quote.reason)+'</small>':'')+'</div><div>'+
    button('hgReset','Отменить','',!dirty)+button('hgApply',quote.cost?'Изготовить и применить':'Применить','',!dirty||!quote.ok,'hg-primary')+'</div></div>'+
+  '<div class="hg-decision-brief"><p>'+esc(combatCue)+'</p><div class="hg-range-brief" aria-label="Урон выбранной сборки по дистанциям">'+compareNow+'</div></div>'+
+  comparison+'<div class="hg-layout">'+catalog+assembly+inspector+'</div>'+
   '<p class="hg-message" role="status" aria-live="polite">'+esc(session.message||'Изменения вступят в силу после применения. В ангаре игра приостановлена.')+'</p>'+
   progression+upgrades+blueprints+'</section>';
 }
