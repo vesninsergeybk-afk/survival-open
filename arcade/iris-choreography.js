@@ -187,9 +187,22 @@ export function irisPackDirective(e,game){
   // or teleports are spawned; the existing steering blend does the turning.
   const learned=e._enemyLearning?.style;
   const radio=game.enemyComms?.directiveFor(e,game.time);
+  let radioApplied=false;
   if(learned==='diverge')radius+=role.role==='reserve'?26:18;
-  if(radio?.mode==='screen'&&role.role!=='vanguard')radius+=21;
-  if(radio?.mode==='press'&&role.role==='vanguard')radius-=15;
+  if(radio?.mode==='screen'&&role.role!=='vanguard'){
+    radius+=21;radioApplied=true;
+  }
+  if(radio?.mode==='press'&&role.role==='vanguard'){
+    radius-=15;radioApplied=true;
+  }
+  if(radio?.mode==='close'){
+    radius=Math.max(135,radius-34);radioApplied=true;
+  }
+  if(radio?.mode==='scatter'){
+    radius+=48;radioApplied=true;
+  }
+  if(radio?.mode==='pincer'&&(role.role==='left'||role.role==='right'))
+    radioApplied=true;
   const angle=radio?.mode==='pincer'&&
     (role.role==='left'||role.role==='right')?
     role.angle+(role.role==='left'?.085:-.085):role.angle;
@@ -197,6 +210,7 @@ export function irisPackDirective(e,game){
   // closes the deliberately open escape corridor with an extra squad member.
   const lead=(learned==='cutoff'||radio?.mode==='intercept')&&phase==='strike'&&
     role.role!=='reserve'&&!role.role.startsWith('sentry')?0.16:0;
+  if(radio?.mode==='intercept'&&lead>0&&learned!=='cutoff')radioApplied=true;
   const x=p.x+Math.cos(angle)*radius+
     Math.max(-32,Math.min(32,(p.vx||0)*lead));
   const y=p.y+Math.sin(angle)*radius+
@@ -208,7 +222,8 @@ export function irisPackDirective(e,game){
     // retreat still takes priority over any assigned formation point.
     e._irisWingUntil=0;
   }
-  return {mode:role.role,x,y,speed,phase};
+  return {mode:role.role,x,y,speed,phase,
+    radioApplied,radioMode:radioApplied?radio?.mode:null};
 }
 
 /** Close-range separation, sampled only 4-6 times/s per drone. */

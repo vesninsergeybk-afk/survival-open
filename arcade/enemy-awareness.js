@@ -27,8 +27,8 @@ export function updateEnemyAwareness(e,game){
     if(seen){
       e._awarenessLast={x:player.x,y:player.y,
         vx:player.vx||0,vy:player.vy||0,at:now};
+      game.enemyLearning?.observePlayer(player,now,e);
       game.enemyComms?.reportSight(e,player,now);
-      game.enemyLearning?.observePlayer(player,now);
     }
   }
   e._enemyLearningSaw=!!e._awarenessLast&&
@@ -40,7 +40,7 @@ export function enemyPursuitTarget(e,game){
   const now=game.time;
   if(e._enemyLearningSaw)return game.player;
   const order=game.enemyComms?.directiveFor?.(e,now);
-  if(order?.intel&&now-order.intel.at<=2.6)return point(order.intel,now);
+  if(order?.intel)return point(order.intel,now);
   const intel=e.signalIntel;
   if(intel?.combatFocus===game.player&&
     now-intel.lastSeenAt<=ENEMY_AWARENESS.personalMemory)
