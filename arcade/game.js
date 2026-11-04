@@ -5,6 +5,7 @@ import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impa
 import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1';
 import {EnemyComms} from './enemy-comms.js?v=enemy-comms-1';
+import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1';
 import {createSignalIntel,alertSignalIntel} from './signal-perception.js?v=arcade-perception-61';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
@@ -20,7 +21,7 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -2015,6 +2016,14 @@ export class ArcadeGame {
   const rocks=this.rockGrid.query((enemy.x+target.x)*.5,(enemy.y+target.y)*.5,d*.5+80);
   return !firstRockImpact(enemy.x,enemy.y,target.x,target.y,rocks,0,target);
  }
+ playerCanInspectEnemyIntent(enemy){
+  const p=this.player,d=dist(p,enemy);
+  if(d>290)return false;
+  // Player visibility depends on cover, not on where an enemy is facing.
+  // This is deliberately different from the enemy's directional sensor.
+  const rocks=this.rockGrid.query((p.x+enemy.x)*.5,(p.y+enemy.y)*.5,d*.5+80);
+  return !firstRockImpact(p.x,p.y,enemy.x,enemy.y,rocks,0,enemy);
+ }
  sectorDirector(director){
   let adjusted=director;
   if(this.enemyBasesUnlocked()&&director.types.length){
@@ -2863,6 +2872,8 @@ export class ArcadeGame {
   this.drawRelayDefense(c,cam);
   this.drawProbe(c,cam);
   this.heritage.vfx.beginSurfaceLights();
+  // Heading previews belong to the tactical world, not to the cockpit HUD.
+  drawEnemyIntentions(c,cam,this,this.visuals.reducedMotion,this.fps);
   const signaledGroups=new Set();
   for(const e of this.enemies){
    if(outsideCamera(e.x,e.y,cam,e.r+30))continue;
