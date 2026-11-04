@@ -7,7 +7,9 @@ import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
 const FORBIDDEN=new Set(['__proto__','prototype','constructor']);
-const DERIVED=new Set(['capitalPaintCache']);
+// Radio cells contain runtime Maps and are rebuilt from the restored ships.
+// Keep serialization strict for every other field; never dismantle the live mesh.
+const DERIVED=new Set(['capitalPaintCache','_commsCell']);
 const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal moduleClocks heavyCharge heavyCooldown '+
  'doctrine lastDamageAt network enemies allies drops shots missiles flashes support zones time '+
  'spawnClock miningNoise lastNoiseSource noiseAlert miningNoiseWarned miningIntroShown coverWearWarned '+
