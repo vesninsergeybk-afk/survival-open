@@ -206,7 +206,7 @@ test('one existing workshop hosts playable explosion study without touching comb
   'explosion-scrub','explosion-timeline','explosion-parallel','explosion-quality','explosion-budget','explosion-assets'])
   assert.match(page,new RegExp('id="'+id+'"'),id);
  assert.match(app,/initExplosionLab\(\)/);
- assert.match(page,/studio-carrier-live-1/);
+ assert.match(page,/studio-carrier-live-2/);
  assert.match(app,/explosion-lab\.js\?v=explosions-2/);
  assert.match(read('../studio/explosion-lab.js'),/explosion-design\.js\?v=explosions-2/);
  assert.match(style,/\.explosion-timeline/);
@@ -255,7 +255,7 @@ test('workshop distinguishes corridor hand-in from immediately rewarded probe an
  assert.match(SYSTEMS.find(item=>item.id==='contracts').reality,/после доставки телеметрии/);
 });
 test('workshop roadmap links to real system concepts and sets measurable acceptance gates',()=>{
- assert.equal(WORKSTREAMS.length,6);
+ assert.equal(WORKSTREAMS.length,7);
  assert.equal(new Set(WORKSTREAMS.map(stream=>stream.id)).size,WORKSTREAMS.length);
  for(const stream of WORKSTREAMS){
   assert.ok(SYSTEMS.some(item=>item.id===stream.id),stream.id+' has no linked concept');
@@ -270,7 +270,7 @@ test('workshop roadmap links to real system concepts and sets measurable accepta
  assert.match(css,/\.sys-milestone:focus-visible/);
  assert.match(html,/systems-app\.js\?v=[a-z0-9-]+/);
  const app=read('../studio/app.js');
- assert.match(html,/app\.js\?v=studio-carrier-live-1/);
+ assert.match(html,/app\.js\?v=studio-carrier-live-2/);
  assert.match(app,/concepts\.js\?v=carrier-live-1/);
- assert.match(app,/design-brief\.js\?v=carrier-live-1/);
+ assert.match(app,/design-brief\.js\?v=carrier-live-2/);
 });

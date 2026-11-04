@@ -2,9 +2,12 @@
 // One real cargo object is shared by navigation, combat and world rendering.
 export const CARRIER_INTERCEPTION=Object.freeze({
  id:'carrier-interception',kind:'carrier-interception',name:'Перехват снабжения',
- rewardOre:38,rewardData:30,maxHp:590,speed:43,triggerRange:480,
+ rewardOre:38,rewardData:30,maxHp:420,speed:76,boostSpeed:114,triggerRange:480,
+ boostWarningAt:12,boostAt:14,pulseStart:6,pulsePeriod:11,pulseCharge:2.4,
+ pulseRange:230,pulseDamage:12,ventDuration:3,engineThreshold:65,
+ engineDuration:4,engineCooldown:9,engineSpeedFactor:.60,
  warningDistance:390,lastChanceDistance:570,retryDelay:35,
- desc:'Найдите район встречи, перехватите движущийся груз и вернитесь с телеметрией на авианосец. Охранение можно уничтожить или обойти.',
+ desc:'Перехватите транспорт и вернитесь с телеметрией. Нос прикрыт бронёй, двигатели уязвимы с кормы. Перед круговым разрядом выйдите за 230 м; после него броня открывается на 3 с. Повреждение двигателей замедляет груз. Охранение можно уничтожить или обойти.',
  consequence:'Доставленные сведения уменьшают число вражеских патрулей вдоль маршрута снабжения.'
 });
 export const isCarrierBase=base=>base?.type==='carrier'&&!base?.enemy&&!base?.captured;
@@ -33,7 +36,70 @@ export function createCarrierInterception(base){
   segmentDistance:0,contactAt:0,warningSent:false,lastChanceSent:false,
   reinforcementSent:false,escortSerials:[],interceptCargo:true,
   type:'gunship',angle:0,vx:0,vy:0,hit:0,expAwarded:true,
-  converted:false};
+  converted:false,flightTime:0,boostWarned:false,boosted:false,pulseSerial:0,
+  pulseWarningSerial:-1,engineStress:0,engineDisabledUntil:0,engineReadyAt:0};
+}
+
+// All cues and combat use this same clock. The approach never advances it.
+export function carrierPulseState(op){
+ const elapsed=(op.flightTime||0)-CARRIER_INTERCEPTION.pulseStart;
+ if(elapsed<0)return {key:'cruise',remaining:-elapsed,charge:0};
+ const cycle=Math.floor(elapsed/CARRIER_INTERCEPTION.pulsePeriod);
+ const within=elapsed-cycle*CARRIER_INTERCEPTION.pulsePeriod;
+ if(within<CARRIER_INTERCEPTION.pulseCharge)return {key:'charging',cycle,
+  remaining:CARRIER_INTERCEPTION.pulseCharge-within,charge:within/CARRIER_INTERCEPTION.pulseCharge};
+ if(within<CARRIER_INTERCEPTION.pulseCharge+CARRIER_INTERCEPTION.ventDuration)
+  return {key:'vent',cycle,remaining:CARRIER_INTERCEPTION.pulseCharge+CARRIER_INTERCEPTION.ventDuration-within,charge:1};
+ return {key:'cruise',cycle,remaining:CARRIER_INTERCEPTION.pulsePeriod-within,charge:0};
+}
+export function advanceCarrierSystems(op,dt){
+ if(!carrierInFlight(op)||!Number.isFinite(dt)||dt<=0)return {};
+ op.flightTime=(op.flightTime||0)+dt;
+ const clock=op.flightTime,pulse=carrierPulseState(op),events={};
+ if(!op.boostWarned&&clock>=CARRIER_INTERCEPTION.boostWarningAt){op.boostWarned=true;events.boostWarning=true;}
+ if(!op.boosted&&clock>=CARRIER_INTERCEPTION.boostAt){op.boosted=true;events.boost=true;}
+ if(pulse.key==='charging'&&op.pulseWarningSerial!==pulse.cycle){
+  op.pulseWarningSerial=pulse.cycle;events.pulseWarning=true;
+ }
+ const serial=Math.max(0,Math.floor((clock-CARRIER_INTERCEPTION.pulseStart-
+  CARRIER_INTERCEPTION.pulseCharge)/CARRIER_INTERCEPTION.pulsePeriod)+1);
+ if(serial>(op.pulseSerial||0)){op.pulseSerial=serial;events.discharge=true;}
+ op.speed=(op.boosted?CARRIER_INTERCEPTION.boostSpeed:CARRIER_INTERCEPTION.speed)*
+  (clock<(op.engineDisabledUntil||0)?CARRIER_INTERCEPTION.engineSpeedFactor:1);
+ return events;
+}
+export function carrierAspect(op,origin){
+ if(!origin)return 'side';
+ const dx=origin.x-op.x,dy=origin.y-op.y,d=Math.hypot(dx,dy);
+ if(d<.001)return 'side';
+ const heading=(op.angle||0)-Math.PI/2;
+ const alignment=(dx*Math.cos(heading)+dy*Math.sin(heading))/d;
+ return alignment>.45?'front':alignment<-.45?'rear':'side';
+}
+export function hitCarrierCargo(op,damage,origin){
+ if(!carrierInFlight(op)||op.hp<=0||!Number.isFinite(damage)||damage<=0)return {damage:0};
+ const aspect=carrierAspect(op,origin),vent=carrierPulseState(op).key==='vent';
+ const factor=vent?1.5:aspect==='front'?.45:aspect==='rear'?1.35:1;
+ const actual=Math.min(op.hp,damage*factor);
+ op.hp=Math.max(0,op.hp-actual);op.lastAspect=aspect;
+ let engineDisabled=false;
+ if(aspect==='rear'&&op.flightTime>=(op.engineReadyAt||0)){
+  op.engineStress=(op.engineStress||0)+actual;
+  if(op.engineStress>=CARRIER_INTERCEPTION.engineThreshold&&op.hp>0){
+   op.engineStress=0;op.engineDisabledUntil=op.flightTime+CARRIER_INTERCEPTION.engineDuration;
+   op.engineReadyAt=op.flightTime+CARRIER_INTERCEPTION.engineCooldown;engineDisabled=true;
+  }
+ }
+ return {damage:actual,aspect,vent,engineDisabled};
+}
+export function carrierTacticalCue(op,player){
+ const pulse=carrierPulseState(op);
+ if(pulse.key==='charging')return 'РАЗРЯД '+pulse.remaining.toFixed(1)+' С · '+
+  (Math.hypot(player.x-op.x,player.y-op.y)<=CARRIER_INTERCEPTION.pulseRange?'ВЫЙДИТЕ ЗА 230 М':'ВНЕ ЗОНЫ 230 М');
+ if(pulse.key==='vent')return 'БРОНЯ ОТКРЫТА · УРОН +50% · '+pulse.remaining.toFixed(1)+' С';
+ if(op.flightTime<(op.engineDisabledUntil||0))return 'ДВИГАТЕЛИ ПОВРЕЖДЕНЫ · ГРУЗ ЗАМЕДЛЕН';
+ if(op.boostWarned&&!op.boosted)return 'ФОРСАЖ ЧЕРЕЗ '+Math.max(0,CARRIER_INTERCEPTION.boostAt-op.flightTime).toFixed(1)+' С';
+ return carrierAspect(op,player)==='front'?'НОСОВАЯ БРОНЯ · ОБОЙДИТЕ С ФЛАНГА':'УЯЗВИМАЯ КОРМА · ПОВРЕДИТЕ ДВИГАТЕЛИ';
 }
 export function carrierOffer(base,operation,now=0){
  if(!isCarrierBase(base))return null;

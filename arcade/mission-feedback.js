@@ -1,5 +1,5 @@
 import {RELAY_DEFENSE,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
-import {CARRIER_INTERCEPTION,carrierDistanceRemaining} from './carrier-interception.js?v=carrier-intercept-1';
+import {CARRIER_INTERCEPTION,carrierDistanceRemaining,carrierTacticalCue,carrierPulseState} from './carrier-interception.js?v=carrier-intercept-2';
 // Pure state-derived cues shared by the world renderer and tactical map.
 // Rendering never advances mission progress or changes rewards.
 export function contractReturnStation(contract, world) {
@@ -81,8 +81,10 @@ export function missionHudText(game) {
      (base?Math.round(Math.hypot(base.x-p.x,base.y-p.y)):d)+' М';
    }
    if(op.phase==='approach')return '◈ ПЕРЕХВАТ · НАЙДИТЕ РАЙОН ВСТРЕЧИ · '+d+' М';
-   return '◈ ПЕРЕХВАТ · ГРУЗ '+Math.ceil(op.hp/op.maxHp*100)+
-    '% · ДО ВЫХОДА '+Math.ceil(carrierDistanceRemaining(op))+' М';
+   const urgent=carrierPulseState(op).key!=='cruise'||
+    op.flightTime<(op.engineDisabledUntil||0)||(op.boostWarned&&!op.boosted);
+   return '◈ ПЕРЕХВАТ · ГРУЗ '+Math.ceil(op.hp/op.maxHp*100)+'% · '+
+    (urgent?carrierTacticalCue(op,p):'ДО ВЫХОДА '+Math.ceil(carrierDistanceRemaining(op))+' М');
   }
   return '◈ ОПЕРАЦИЯ · '+d+' М';
  }

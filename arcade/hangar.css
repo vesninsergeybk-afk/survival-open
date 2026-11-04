@@ -80,4 +80,9 @@
 @media(prefers-reduced-motion:reduce){.ship-hangar *{transition:none!important}}
 
 .hg-back-catalog{margin-bottom:14px!important}
+.hg-comparison{margin-top:14px;padding-top:12px;border-top:1px solid #496a7c55}
+.hg-comparison h3{font-size:13px;margin-bottom:6px}.hg-comparison .hg-stats{margin:8px 0}
+.hg-comparison thead th{font-size:10px}.hg-comparison thead th:not(:first-child){text-align:right}
+.hg-comparison ul{padding-left:17px;margin:9px 0 0;color:#a9c2cf;font-size:11px;line-height:1.5}
+.hg-comparison li+li{margin-top:6px}
 @media(max-width:700px){.hg-catalog-open:not(.hg-inspect-open) .hg-inspector{display:none}.hg-catalog-open.hg-inspect-open .hg-arsenal{display:none}.hg-catalog-open.hg-inspect-open .hg-inspector{border-top:0}}

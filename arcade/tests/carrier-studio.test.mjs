@@ -52,7 +52,7 @@ test('workshop loads the refreshed route storyboard and offers a linked concept 
  assert.match(source,/activeScenario==='carrier'&&scenarioMode==='proposal'/);
  assert.match(source,/carrier-concept-link/);
  assert.match(source,/\.\/concepts\.js\?v=carrier-live-1/);
- assert.match(source,/\.\/design-brief\.js\?v=carrier-live-1/);
- assert.match(html,/app\.js\?v=studio-carrier-live-1/);
+ assert.match(source,/\.\/design-brief\.js\?v=carrier-live-2/);
+ assert.match(html,/app\.js\?v=studio-carrier-live-2/);
  assert.match(html,/CARRIER-INTERCEPTION-CONCEPT-2026-11-03\.md/);
 });

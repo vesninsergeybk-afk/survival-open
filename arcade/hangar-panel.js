@@ -1,4 +1,5 @@
 import {WEAPON_SPECIALIZATIONS,specializationState,quoteSpecialization} from './weapon-specializations.js?v=weapon-branches-1';
+import {loadoutAnalysis} from './loadout-analysis.js?v=gameplay-audit-1';
 import {MODULES,FRAME_STEPS,BLUEPRINT_NAMES,SHIP_ART,HangarSession,createLoadout,
  frameSpec,slotOpen,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=hangar-2';
 
@@ -71,8 +72,12 @@ export function renderShipHangar(state,session=state.hangarSession){
   open=slotOpen(current,slot),id=session.selected,m=MODULES[id],old=draft.slots[slot],quote=quoteLoadout(current,draft,context);
  const dirty=session.dirty(current),next=FRAME_STEPS[current.frame+1],blueprintQuote=quoteBlueprint(current,draft,context);
  const lock=moduleLock(id,context),wrongNode=(slot===5)!==(m.kind==='heavy');
- const counts=loadoutProfile(draft);
- const rate=['plasma','rail','flak','rocket'].reduce((sum,key)=>sum+counts[key]*MODULES[key].heat/moduleStats(key,context.ranks).interval,0);
+ const report=loadoutAnalysis(draft,context.ranks),before=loadoutAnalysis(current,context.ranks),rate=report.heatRate;
+ const comparison='<section class="hg-comparison" aria-label="Сравнение вооружения на разных дистанциях">'+
+  '<h3>Что изменится в бою</h3><table class="hg-stats"><caption>Расчётный урон в секунду по одной цели без брони, укрытий и перегрева. Ручное оружие не учитывается.</caption>'+
+  '<thead><tr><th scope="col">Дистанция</th><th scope="col">Сейчас</th><th scope="col">'+(dirty?'После применения':'Эта сборка')+'</th></tr></thead><tbody>'+
+  report.ranges.map((d,i)=>'<tr><th scope="row">'+d+' м</th><td>'+fmt(before.dps[i])+'</td><td>'+fmt(report.dps[i])+'</td></tr>').join('')+
+  '</tbody></table><ul>'+report.notes.map(note=>'<li>'+esc(note)+'</li>').join('')+'</ul></section>';
  const assembly='<section class="hg-ship"><div class="hg-section-head"><div><span class="hg-eyebrow">СХЕМА ОСНАЩЕНИЯ</span><h3>Ваш корабль</h3></div><span class="hg-stage">Корпус '+(shipArtStage(context.level)+1)+' / 10</span></div>'+
   shipScene(context,session)+'<p class="hg-scene-caption">Выберите узел на схеме · нос направлен вверх</p>'+
   '<div class="hg-slot-strip" aria-label="Состав предварительной сборки">'+draft.slots.map((item,i)=>
@@ -80,7 +85,7 @@ export function renderShipHangar(state,session=state.hangarSession){
     (slotOpen(current,i)?(item?MODULES[item].short:'пусто'):'закрыт')+'</span>').join('')+'</div>'+
   '<div class="hg-thermal-plan"><strong>Общее охлаждение · 14 ед/с</strong><span>Автооружие: до '+fmt(rate)+' ед/с при непрерывном огне</span>'+
   '<small>'+(rate>14?'При долгой стрельбе эта сборка перегреется. На 100% огонь блокируется до остывания к 35%.':
-   'Охлаждение справляется с непрерывным автоогнём этой сборки.')+' C отключает автоогонь и ускоряет охлаждение до 25 ед/с.</small></div></section>';
+   'Охлаждение справляется с непрерывным автоогнём этой сборки.')+' C отключает автоогонь и ускоряет охлаждение до 25 ед/с.</small></div>'+comparison+'</section>';
  const available=Object.values(MODULES).filter(item=>(slot===5?item.kind==='heavy':item.kind!=='heavy')&&
   (session.filter==='all'||item.kind===session.filter));
  const catalog='<aside class="hg-arsenal"><div class="hg-section-head"><div><span class="hg-eyebrow">МОДУЛЬНЫЙ АРСЕНАЛ</span><h3>Вооружение</h3></div>'+button('hgShip','← Корабль','','','hg-mobile-only')+'</div>'+

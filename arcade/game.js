@@ -9,24 +9,24 @@ import {ArcadeVisuals} from './visuals.js?v=hangar-2-scout-evasion-1-iris-scan-1
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=hud-impact-art-pass-06';
+import {CockpitDisplay} from './hud.js?v=hud-impact-art-pass-06-gameplay-2';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=arcade-progressive-noise-58';
-import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03';
+import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=hangar-2';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=hangar-3';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=operation-leads-1';
-import {renderWorldMap} from './map-panel.js?v=carrier-intercept-1';
-import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=carrier-intercept-1';
+import {renderWorldMap} from './map-panel.js?v=carrier-intercept-2';
+import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=carrier-intercept-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
-import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute} from './carrier-interception.js?v=carrier-intercept-1';
-import {ION_CONDUCTOR,createIonLoan,ionLoanOffer,markIonCluster,planIonDischarge,ionMasteryAward} from './ion-conductor.js?v=ion-first-play-2';
+import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
+import {ION_CONDUCTOR,createIonLoan,ionLoanOffer,markIonCluster,planIonDischarge,ionMasteryAward} from './ion-conductor.js?v=ion-first-play-3';
 
 import {plasmaDamageFactor,weaponDamageFactor,rocketFlight} from './weapon-specializations.js?v=weapon-branches-1';
 import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,heatWeapons,mountPosition} from './ship-loadout.js?v=hangar-2';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
-import {updateAuxiliaryWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=hangar-2';
+import {updateAuxiliaryWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=hangar-3';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -606,7 +606,7 @@ export class ArcadeGame {
   if(!base||base.relayDefenseDone)return;
   base.relayDefenseDone=true;base.relayMission=null;this.operation=null;
   if(this.waypoint?.id===RELAY_DEFENSE.id)this.waypoint=null;
-  const next=chooseOperationLead(this.world,op,base.id,'lab',2500);
+  const next=chooseOperationLead(this.world,op,base.id,'carrier',2500);
   if(next){next.discovered=true;this.world.discovered.add(next.id);
    if(!this.waypoint)this.waypoint={id:next.id,x:next.x,y:next.y,
     label:baseNames[next.type]||'Станция'};}
@@ -634,10 +634,27 @@ export class ArcadeGame {
     this.enemies.push(op);
     this.spawnCarrierEscort(op,'fighter',0);
     this.spawnCarrierEscort(op,'scout',1);
-    this.notice('Конвой обнаружен! Оранжевая линия ведёт к выходу. Груз движется: перехватите его до границы.',5);
+    this.notice('Конвой обнаружен! Нос бронирован, двигатели уязвимы с кормы. Повредите их, чтобы замедлить груз.',5);
    }
    if(!carrierInFlight(op))return;
+   const events=advanceCarrierSystems(op,dt);
    const result=moveCarrierCargo(op,dt);
+   // A massive transport fractures small asteroids instead of passing through
+   // their artwork. Hostile destruction yields neither alloy nor mining credit.
+   for(const rock of this.world.nearbyRocks(op.x,op.y,110)){
+    if(rock.alive&&dist(rock,op)<rock.r+op.r+8)
+     this.damageRock(rock,rock.hp,op.x,op.y,'cover');
+   }
+   if(events.boostWarning)this.notice('Транспорт готовит форсаж! Заходите на корму: попадания по двигателям замедляют груз.',3.5);
+   if(events.pulseWarning){
+    this.heritage.play('ramWarning',1.8,{x:op.x,y:op.y});
+    this.notice('КРУГОВОЙ РАЗРЯД: выйдите за отмеченные 230 м. После разряда броня откроется на 3 секунды.',3.5);
+   }
+   if(events.discharge){
+    this.heritage.vfx.nova(op.x,op.y,CARRIER_INTERCEPTION.pulseRange,'violet');
+    this.heritage.play('carrierPulse',.3,{x:op.x,y:op.y});
+    if(dist(this.player,op)<=CARRIER_INTERCEPTION.pulseRange)this.hurt(CARRIER_INTERCEPTION.pulseDamage,op);
+   }
    // Updating our own target leaves a manually selected station route untouched.
    if(this.waypoint?.id===CARRIER_INTERCEPTION.id){
     this.waypoint.x=op.x;this.waypoint.y=op.y;
@@ -714,6 +731,7 @@ export class ArcadeGame {
    this.player.ore+=CARRIER_INTERCEPTION.rewardOre;
    this.cockpit.resourceGain(CARRIER_INTERCEPTION.rewardOre,this.time);
    this.collect({type:'data',value:CARRIER_INTERCEPTION.rewardData});
+   this.spawnClock=Math.max(this.spawnClock||0,10);
    this.heritage.vfx.nova(base.x,base.y,132,'green');
    this.heritage.station('claimContract',base.type);
    this.notice('СНАБЖЕНИЕ ПЕРЕХВАЧЕНО! +38 сплава, +30 данных. Вдоль маршрута вражеские патрули станут реже.',6);
@@ -1559,6 +1577,15 @@ export class ArcadeGame {
    const step=Math.min(d,m.speed*dt);
    if(d>0){m.x+=dx/d*step;m.y+=dy/d*step;}
    m.life-=dt;
+   const cover=firstRockImpact(m.prevX,m.prevY,m.x,m.y,
+    this.rockGrid.query((m.prevX+m.x)*.5,(m.prevY+m.y)*.5,step*.5+60),3,this.player);
+   if(cover){
+    const contact=contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y);
+    this.damageRock(cover.rock,m.damage*.85,m.prevX,m.prevY,'auto',true,contact);
+    this.heritage.vfx.rocketImpact(cover.x,cover.y,26,contact);
+    this.heritage.play('rocketImpact',.2,{x:cover.x,y:cover.y});
+    m.life=-1;continue;
+   }
    const arrived=d<=m.speed*dt+8;
    if(arrived||m.life<=0){
     const e=m.target;
@@ -1584,11 +1611,13 @@ export class ArcadeGame {
  }
  damageEnemy(e,damage,source='other',contact=null){
   if(e.hp<=0)return;
+  if(source==='beam'&&this.overchargeUntil>this.time)damage*=1.2;
+  if(source==='beam'&&this.ionLoan&&this.weaponProfile.ion)markIonCluster(this.enemies,e,this.time,this.ionLoan);
   if(e.interceptCargo){
-   const guards=this.enemies.filter(other=>other.hp>0&&other.carrierEscort===e.baseId).length;
-   // Shooting cargo under escort is slower but always possible.
-   damage*=guards>0?.74:1;
-   e.hp=Math.max(0,e.hp-damage);e.hit=.15;
+   const origin=contact?.directed?contact:
+    source&&typeof source==='object'?source:this.player;
+   const hit=hitCarrierCargo(e,damage,origin);damage=hit.damage;e.hit=.15;
+   if(hit.engineDisabled)this.notice('ДВИГАТЕЛИ ПОВРЕЖДЕНЫ! Груз замедлен на 4 секунды.',2.8);
    if(this.time>(e.nextVfxHit||0)){
     this.heritage.vfx.hullImpact(contact?.x??e.x,contact?.y??e.y,damage>30,contact);
     e.nextVfxHit=this.time+.14;
@@ -1597,8 +1626,6 @@ export class ArcadeGame {
    if(e.hp<=0)this.completeCarrierInterception(e);
    return;
   }
-  if(source==='beam'&&this.overchargeUntil>this.time)damage*=1.2;
-   if(source==='beam'&&this.ionLoan&&this.weaponProfile.ion)markIonCluster(this.enemies,e,this.time,this.ionLoan);
   // A shot reveals its real origin, even when the first hit destroys the ship.
   // Drone fire must not tell the patrol the player's hidden position.
   const aggressor=(['beam','rocket','ion','rail','flak','howitzer'].includes(source))?this.player:
@@ -2205,6 +2232,13 @@ export class ArcadeGame {
   }
  }
  drawCarrierCargo(c,e){
+  const pulse=carrierPulseState(e);
+  if(pulse.key==='charging'){
+   c.save();c.translate(e.x,e.y);c.fillStyle='#bb82ff12';c.strokeStyle='#d6a6ff';c.lineWidth=2.5;
+   c.beginPath();c.arc(0,0,CARRIER_INTERCEPTION.pulseRange,0,TAU);c.fill();
+   c.setLineDash([10,7]);c.stroke();c.setLineDash([]);
+   c.lineWidth=4;c.beginPath();c.arc(0,0,60,-Math.PI/2,-Math.PI/2+TAU*pulse.charge);c.stroke();c.restore();
+  }
   c.save();c.translate(e.x,e.y);c.rotate(e.angle||0);
   const flash=e.hit>0;
   c.shadowColor='#ffb46c';c.shadowBlur=this.fps<34?2:flash?19:8;
@@ -2219,12 +2253,19 @@ export class ArcadeGame {
    c.fillStyle='#f2c88f';c.fillRect(x-7,-15,14,3);c.fillRect(x-7,5,14,3);
   }
   c.fillStyle='#78d5f5';c.fillRect(-25,42,12,7);c.fillRect(13,42,12,7);
+  c.strokeStyle=pulse.key==='vent'?'#8af0ca':'#afc5ff';c.lineWidth=4;
+  c.setLineDash(pulse.key==='vent'?[5,8]:[]);
+  c.beginPath();c.arc(0,0,62,-Math.PI/2-1.1,-Math.PI/2+1.1);c.stroke();c.setLineDash([]);
+  c.strokeStyle=e.flightTime<(e.engineDisabledUntil||0)?'#ffbd75':'#83e6c2';c.lineWidth=3;
+  c.beginPath();c.moveTo(-26,54);c.lineTo(0,63);c.lineTo(26,54);c.stroke();
   c.restore();
   const pct=Math.max(0,Math.ceil(e.hp/e.maxHp*100));
   c.save();c.textAlign='center';c.font='bold 12px system-ui';
   c.fillStyle='#ffdfb3';c.fillText('ТРАНСПОРТ · '+pct+'%',e.x,e.y-77,230);
   c.fillStyle='#142338';c.fillRect(e.x-48,e.y-68,96,7);
   c.fillStyle=pct<26?'#ff8569':'#ffcb78';c.fillRect(e.x-47,e.y-67,94*pct/100,5);
+  c.font='bold 11px system-ui';c.fillStyle=pulse.key==='charging'?'#e6beff':'#a8f0d8';
+  c.fillText(carrierTacticalCue(e,this.player),e.x,e.y+88,430);
   c.restore();
  }
 

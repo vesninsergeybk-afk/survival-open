@@ -15,7 +15,7 @@ const SOUND_IDS=Object.freeze({
  death:'player_death',hack:'base_resonance_link',boss:'boss_spawn',
  boost:'engine',allyShot:'orbit',ramWarning:'boss_warning',
  strikeCall:'drone_swarm',orbitalWarning:'base_raid_warning',
- ionWarning:'boss_warning',criticalHull:'boss_warning',
+ ionWarning:'boss_warning',carrierPulse:'world_ion',criticalHull:'boss_warning',
  droneDestroyed:'explosion_small',capturedBase:'base_resonance_link',
  upgrade:'upgrade_standard',doctrine:'unlock_tech_tier'
 });
