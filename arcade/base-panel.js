@@ -383,7 +383,7 @@ const missionChoice=(base,state)=>{
  const active=op.status==='active',done=op.status==='complete',available=op.status==='available';
  const returning=active&&op.phase==='return';
  const objective={
-  'silent-corridor':'Отключить глушитель и вернуться в док',
+  'silent-corridor':'Отключить глушитель и доставить телеметрию в док',
   'last-signal':'Найти и восстановить зонд',
   'relay-defense':'Защитить ретранслятор от трёх волн',
   'carrier-interception':'Перехватить транспорт и доставить сведения'
