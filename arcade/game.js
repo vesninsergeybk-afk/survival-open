@@ -23,6 +23,7 @@ import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from '.
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute} from './carrier-interception.js?v=carrier-intercept-1';
 import {ION_CONDUCTOR,createIonLoan,ionLoanOffer,markIonCluster,planIonDischarge,ionMasteryAward} from './ion-conductor.js?v=ion-first-play-2';
 
+import {plasmaDamageFactor,weaponDamageFactor,rocketFlight} from './weapon-specializations.js?v=weapon-branches-1';
 import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,heatWeapons,mountPosition} from './ship-loadout.js?v=hangar-2';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {updateAuxiliaryWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=hangar-2';
@@ -916,9 +917,12 @@ export class ArcadeGame {
    this.baseTab!=='hangar'||!this.docked?.active)return;
   if(data.act==='hgUpgrade'){this.buySkill(data.id);return;}
   const result=this.hangarSession.dispatch(data,{loadout:this.shipLoadout,level:this.player.level,
-   ore:this.player.ore,ranks:this.skillRanks,ionLoan:this.ionLoan,baseActive:this.docked.active});
+   ore:this.player.ore,points:this.player.points,activeBases:this.activeBases,
+   ranks:this.skillRanks,ionLoan:this.ionLoan,baseActive:this.docked.active});
   if(result?.ok){
-   this.shipLoadout=result.loadout;this.player.ore=result.ore;this.syncShipLoadout();
+   this.shipLoadout=result.loadout;this.player.ore=result.ore;
+   if(result.type==='specialization')this.player.points=result.points;
+   this.syncShipLoadout();
    this.heritage.ui('upgrade');
   }else this.heritage.ui('tab');
   this.renderDock();
@@ -936,6 +940,7 @@ export class ArcadeGame {
   const plasmaPower=this.weaponProfile.plasma;
   if(plasmaPower&&!this.weaponThermal.locked&&!this.heavyCharge&&this.beamClock<=0&&automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing)){
    const range=RULES.beamRange+this.skillRanks.range*56;
+   const plasmaBoost=d=>plasmaDamageFactor(this.shipLoadout.specializations?.plasma,d,range);
    const hostile=this.nearbyEnemyBase(range+150);
    this.plasmaFired=false;
    const jammer=this.operation?.id===CORRIDOR_OPERATION.id&&this.operation.hp>0&&this.operation.phase!=='return'&&dist(this.operation,p)<=Math.min(range,CORRIDOR_OPERATION.focusRange)?this.operation:null;
@@ -946,7 +951,7 @@ export class ArcadeGame {
    const baseCore=hostile&&!hostile.turrets.some(t=>t.hp>0)&&
     dist(hostile,p)<=Math.min(range,245)?hostile:null;
    if(jammer){
-    const d=dist(jammer,p),damage=plasmaPower*beamDamage(21,d,110,range)*
+    const d=dist(jammer,p),damage=plasmaPower*beamDamage(21,d,110,range)*plasmaBoost(d)*
      (this.nearArsenalBonus?1.18:1)*(this.time<(jammer.overheatedUntil||0)?1.35:1);
     const cover=firstRockImpact(p.x,p.y,jammer.x,jammer.y,
      this.rockGrid.query((p.x+jammer.x)*.5,(p.y+jammer.y)*.5,d*.5+40),2,p);
@@ -963,13 +968,13 @@ export class ArcadeGame {
      for(const e of escorts){const d2=dist(e,p);
       const point=contactOnCircle(e.x,e.y,e.r,p.x,p.y);
       this.damageEnemy(e,plasmaPower*beamDamage(14+this.skillRanks.beam*3.3,d2,
-       RULES.nearBeam,range,RULES.beamMinFactor)*.65,'beam',point);
+       RULES.nearBeam,range,RULES.beamMinFactor)*plasmaBoost(d2)*.65,'beam',point);
       this.plasmaFlash(point?.x??e.x,point?.y??e.y,'#72effe');}
     }
    }else if(turret||baseCore){
     const objective=turret||baseCore,d=dist(objective,p);
     const closeBonus=this.doctrine==='assault'&&d<=180?1.22:1;
-    const damage=plasmaPower*beamDamage(turret?23:21,d,110,range)*closeBonus*(this.nearArsenalBonus?1.18:1);
+    const damage=plasmaPower*beamDamage(turret?23:21,d,110,range)*plasmaBoost(d)*closeBonus*(this.nearArsenalBonus?1.18:1);
     const point=turret?contactOnCircle(turret.x,turret.y,22,p.x,p.y):null;
     if(turret)this.hitTurret(turret,damage,point);
     else this.hitEnemyBase(baseCore,damage);
@@ -985,7 +990,7 @@ export class ArcadeGame {
       const d2=dist(e,p);
       const point=contactOnCircle(e.x,e.y,e.r,p.x,p.y);
       this.damageEnemy(e,plasmaPower*beamDamage(14+this.skillRanks.beam*3.3,d2,
-       RULES.nearBeam,range,RULES.beamMinFactor)*.65,'beam',point);
+       RULES.nearBeam,range,RULES.beamMinFactor)*plasmaBoost(d2)*.65,'beam',point);
       this.plasmaFlash(point?.x??e.x,point?.y??e.y,'#72effe');
      }
     }
@@ -997,7 +1002,7 @@ export class ArcadeGame {
      const d=dist(e,p);if(d>range)continue;
      const closeBonus=this.doctrine==='assault'&&d<=180?1.22:1;
      const dmg=plasmaPower*beamDamage(14+this.skillRanks.beam*3.3,d,
-      RULES.nearBeam,range,RULES.beamMinFactor)*closeBonus*(this.nearArsenalBonus?1.18:1);
+      RULES.nearBeam,range,RULES.beamMinFactor)*plasmaBoost(d)*closeBonus*(this.nearArsenalBonus?1.18:1);
      // Asteroid on the firing line intercepts a combat beam.
      const cover=firstRockImpact(p.x,p.y,e.x,e.y,
       this.rockGrid.query((p.x+e.x)*.5,(p.y+e.y)*.5,d*.5+45),2,p);
@@ -1013,10 +1018,10 @@ export class ArcadeGame {
      const tur=hostile.turrets.find(t=>t.hp>0&&dist(t,p)<range);
      if(tur){
       const point=contactOnCircle(tur.x,tur.y,22,p.x,p.y);
-      this.hitTurret(tur,plasmaPower*beamDamage(23,dist(tur,p),110,range),point);
+      this.hitTurret(tur,plasmaPower*beamDamage(23,dist(tur,p),110,range)*plasmaBoost(dist(tur,p)),point);
       this.plasmaFlash(point?.x??tur.x,point?.y??tur.y);
      }
-     else if(dist(hostile,p)<range){this.hitEnemyBase(hostile,plasmaPower*beamDamage(21,dist(hostile,p),110,range));
+     else if(dist(hostile,p)<range){this.hitEnemyBase(hostile,plasmaPower*beamDamage(21,dist(hostile,p),110,range)*plasmaBoost(dist(hostile,p)));
       this.plasmaFlash(hostile.x,hostile.y);}
     }
    }
@@ -1032,11 +1037,13 @@ export class ArcadeGame {
     .sort((a,b)=>dist(a,p)-dist(b,p))[0];
    if(target){
     this.rocketClock=3.5/(1+this.skillRanks.rocket*.28);
+    const rocketTuning=rocketFlight(this.shipLoadout);
     heatWeapons(this.weaponThermal,16*this.weaponProfile.rocket);
     if(this.missiles.length>=14)this.missiles.shift();
     this.missiles.push({x:p.x,y:p.y,prevX:p.x,prevY:p.y,trail:[{x:p.x,y:p.y}],
-     target,tx:target.x,ty:target.y,damage:(48+this.skillRanks.rocket*19)*this.weaponProfile.rocket,
-     speed:540,life:2.3});
+     target,tx:target.x,ty:target.y,damage:(48+this.skillRanks.rocket*19)*this.weaponProfile.rocket*
+      weaponDamageFactor(this.shipLoadout,'rocket',target),
+     speed:rocketTuning.speed,life:rocketTuning.life});
     this.heritage.vfx.muzzle(p.x,p.y,Math.atan2(target.y-p.y,target.x-p.x),'railgun');
     this.heritage.play('rocket',.5,{x:p.x,y:p.y});
    }

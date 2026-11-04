@@ -137,6 +137,22 @@ test('idle guns hold their first shot until a target arrives, then fire without 
  assert.equal(missiles.missiles.length,1,'an equipped rocket should launch immediately');
  assert.ok(missiles.rocketClock>0);
 });
+test('choosing and mastering a plasma branch in the real hangar changes real beam damage',()=>{
+ const g=game();g.activeBases=2;
+ g.hangarAction({act:'hgSpec',id:'plasma:furnace'});
+ assert.deepEqual(g.shipLoadout.specializations.plasma,{path:'furnace',rank:1});
+ assert.equal(g.player.points,19);assert.equal(g.player.ore,400);
+ g.hangarAction({act:'hgSpec',id:'plasma:focus'});
+ assert.deepEqual(g.shipLoadout.specializations.plasma,{path:'furnace',rank:1});
+ assert.equal(g.player.points,19,'choosing the other branch must not spend points');
+ g.grid.insert(target(100));battle(g,1/60);
+ assert.equal(g.hits.length,1);assert.equal(g.hits[0].damage,17.5);
+
+ g.activeBases=3;g.paused=true;g.overlay.hidden=false;
+ g.hangarAction({act:'hgSpec',id:'plasma:furnace'});
+ assert.deepEqual(g.shipLoadout.specializations.plasma,{path:'furnace',rank:2});
+ assert.equal(g.player.points,18);
+});
 test('switching to rail removes plasma and rockets from actual combat even with learned rocket ranks',()=>{
  const g=game();g.skillRanks.rocket=3;equip(g,['rail',null,null,null,null,null]);g.grid.insert(target(500));
  battle(g,30);assert.ok(g.hits.length>10);assert.ok(g.hits.every(x=>x.kind==='rail'));

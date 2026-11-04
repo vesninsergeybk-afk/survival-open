@@ -1,3 +1,4 @@
+import {applySpecialization} from './weapon-specializations.js?v=weapon-branches-1';
 // Run-owned hardware; saved blueprints contain choices, never resources/unlocks.
 export const FRAME_STEPS=Object.freeze([
  {nodes:2,heavy:false,level:1,cost:0,name:'Лёгкий корпус'},
@@ -24,8 +25,8 @@ export const MODULES=Object.freeze({
 export const BLUEPRINT_KEY='survivor.hangar.blueprints.v1';
 export const PREVIEW_BLUEPRINT_KEY='survivor.hangar.preview.blueprints.v1';
 export const BLUEPRINT_NAMES=['Штурм','Дистанция','Резерв'];
-export const createLoadout=()=>({version:1,frame:0,slots:['plasma',null,null,null,null,null],owned:{plasma:1}});
-export const cloneLoadout=value=>({...value,slots:[...value.slots],owned:{...value.owned}});
+export const createLoadout=()=>({version:1,frame:0,slots:['plasma',null,null,null,null,null],owned:{plasma:1},specializations:{}});
+export const cloneLoadout=value=>({...value,slots:[...value.slots],owned:{...value.owned},specializations:{...value.specializations}});
 export const frameSpec=loadout=>FRAME_STEPS[loadout?.frame]||FRAME_STEPS[0];
 export const slotOpen=(loadout,index)=>Number.isInteger(index)&&index>=0&&
  (index<frameSpec(loadout).nodes||(index===5&&frameSpec(loadout).heavy));
@@ -36,12 +37,13 @@ export function loadoutProfile(loadout){
   rocket:counts.rocket||0,ion:!!counts.ion,howitzer:!!counts.howitzer,
   automatic:(counts.plasma||0)+(counts.rail||0)+(counts.flak||0)+(counts.rocket||0)};
 }
-export function moduleStats(id,ranks={}){
+export function moduleStats(id,ranks={},specialization=null){
  const beam=ranks.beam||0,range=ranks.range||0,rocket=ranks.rocket||0;
+ const spread=specialization?.path==='sweep'&&id==='flak';
  return ({
   plasma:{damage:14+beam*3.3,range:435+range*56,interval:.63/(1+beam*.12),targets:1+Math.min(2,ranks.double||0)},
   rail:{damage:38,range:700,interval:1.65,targets:1},
-  flak:{damage:10,range:245,interval:1.15,targets:3},
+  flak:{damage:spread?8:10,range:245,interval:1.15,targets:spread?(specialization.rank>=2?5:4):3},
   rocket:{damage:48+rocket*19,range:720,interval:3.5/(1+rocket*.28),targets:1},
   ion:{damage:'38 / 30 / 22',range:485,interval:4.5,targets:3},
   howitzer:{damage:180,range:900,interval:12,targets:'радиус 110 м'}
@@ -170,6 +172,14 @@ export class HangarSession {
    this.draft.slots[this.slot]=null;this.message='Модуль вернётся на склад после применения';this.catalog=false;
   }
   if(act==='hgReset')this.begin(current);
+  if(act==='hgSpec'){
+   const [id,path]=String(data.id||'').split(':');
+   const result=applySpecialization(current,id,path,context);
+   if(!result.ok){this.message=result.reason;return;}
+   this.message=(result.rank===1?'Ветка выбрана':'Мастерство достигнуто')+
+    ' · потрачено 1 очко развития';
+   return {type:'specialization',...result};
+  }
   if(act==='hgApply'){
    const result=applyLoadout(current,this.draft,context);
    if(!result.ok){this.message=result.reason;return;}
