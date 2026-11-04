@@ -26,7 +26,7 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 <main>
 <a href="./#reactor">← Мастерская</a>
 <h1>Реактор: геометрия и масштаб на настоящей камере</h1>
-<p>Это испытание непосредственно использует <code>ReactorLandmark</code> из аркады. Корабль и док обозначены условно, но их координаты и размер заданы в игровых единицах. Сравните прежний единый рисунок с новой сценой: далёкие фермы, уменьшенный основной корпус с самостоятельным параллаксом, дымка и частицы на разных планах. Двигайте камеру и по очереди отключайте заднюю и переднюю пыль: задняя перемещается медленнее станции, передняя — быстрее. Мягкая дымка остаётся между ними; проёмы, корабль и ядро должны быть различимыми. Глушилки и стадии запуска здесь — только проверка графики, не реализованная миссия.</p>
+<p>Это испытание непосредственно использует <code>ReactorLandmark</code> из аркады. Корабль и док обозначены условно, но их координаты и размер заданы в игровых единицах. Сравните прежний единый рисунок с новой сценой: далёкие фермы, уменьшенный основной корпус с самостоятельным параллаксом, дымка и частицы на разных планах. Двигайте камеру и по очереди отключайте заднюю и переднюю пыль: задняя перемещается медленнее станции, передняя — быстрее. Четыре текстуры дымки медленно сменяют друг друга даже при неподвижной камере; проёмы, корабль и ядро должны быть различимыми. Глушилки и стадии запуска здесь — только проверка графики, не реализованная миссия.</p>
 <div class="layout">
 <section class="panel">
 <canvas id="stage" width="1100" height="650" role="img" aria-label="Сцена с корпусом реактора в игровом масштабе"></canvas>
@@ -60,6 +60,7 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 <label><span><input id="layer-near" type="checkbox" checked> Ближний металл · вместе с корпусом</span></label>
 <label><span><input id="layer-far-dust" type="checkbox" checked> Задняя пыль · параллакс 0,61</span></label>
 <label><span><input id="layer-near-dust" type="checkbox" checked> Передняя пыль · параллакс 0,95</span></label>
+<label><span><input id="fog-fast" type="checkbox"> Ускорить течение облаков ×4 для проверки</span></label>
 <label>Условная производительность
 <select id="fps"><option value="60">60 FPS</option><option value="25">25 FPS</option></select>
 </label>
@@ -70,7 +71,7 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 </div>
 </main>
 <script type="module">
-import {ReactorLandmark,REACTOR_LANDMARK_ANCHOR} from '../reactor-landmark.js?v=reactor-vapour-v6';
+import {ReactorLandmark,REACTOR_LANDMARK_ANCHOR} from '../reactor-landmark.js?v=reactor-fog-motion-v7';
 const $=id=>document.getElementById(id);
 const canvas=$('stage'),g=canvas.getContext('2d',{alpha:false});
 const vw=1100,vh=650,ship={x:360,y:-25},dock={x:360,y:-85};
@@ -93,7 +94,7 @@ depth.addEventListener('input',()=>{
 });
 updateSize();
 const source=new Image();source.decoding='async';source.src='./assets/reactor-ring-03.png';
-let oldHull=null,last=0,launchAt=-100,mode='new';
+let oldHull=null,last=0,launchAt=-100,mode='new',fogClock=0,previousFogTick=0;
 source.onload=()=>{
  oldHull=document.createElement('canvas');oldHull.width=1500;oldHull.height=940;
  const c=oldHull.getContext('2d');
@@ -145,6 +146,9 @@ function drawMarker(cam){
  g.restore();
 }
 function frame(ts){
+ const dt=previousFogTick?Math.min(.2,Math.max(0,(ts-previousFogTick)/1000)):0;
+ previousFogTick=ts;
+ fogClock+=dt*($('fog-fast').checked?4:1);
  const fps=Number($('fps').value),interval=1000/Math.min(30,fps);
  requestAnimationFrame(frame);
  if(ts-last<interval)return;last=ts;
@@ -153,12 +157,14 @@ function frame(ts){
  g.save();g.translate(-cam.x,-cam.y);
  const age=Math.max(0,(ts-launchAt)/1000);
  if(mode==='old')oldDraw(cam);
- else reactor.draw(g,cam,ts/1000,fps,$('reduce').checked,stage,age);
+ else reactor.draw(g,cam,fogClock,fps,$('reduce').checked,stage,age);
  g.restore();
  drawMarker(cam);
  $('name').textContent=mode==='old'?'Прежняя проекция':'Многослойная сцена';
  $('status').textContent=(mode==='old'?!!oldHull:!!reactor.hull)?
-  (labels[stage]+' · '+(mode==='old'?'прежняя геометрия':reactor.vapour?'облака загружены':'дымка загружается…')):
+  (labels[stage]+' · '+(mode==='old'?'прежняя геометрия':
+   [reactor.vapour,reactor.vapourSecondary,reactor.vapourBackAlternate,reactor.vapourFrontAlternate].filter(Boolean).length===4?
+    '4 текстуры дымки загружены':'дымка загружается…')):
   (reactor.failed?'Не удалось загрузить корпус':'Загрузка корпуса…');
 }
 $('mode').addEventListener('change',e=>{mode=e.target.value});
@@ -174,6 +180,7 @@ $('reset').addEventListener('click',()=>{
  $('stage-state').value='0';mode='new';$('mode').value='new';launchAt=-100;
  depth.value='0.80';reactor.hullRate=.80;$('depth-value').textContent='0,80';
  sizeAuto.checked=true;size.value='0.46';updateSize();
+ $('fog-fast').checked=false;fogClock=0;
  for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near'],['layer-far-dust','farParticles'],['layer-near-dust','frontParticles']]){
   $(id).checked=true;reactor.layers[key]=true;
  }
