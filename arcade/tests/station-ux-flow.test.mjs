@@ -40,6 +40,27 @@ test('a different station cannot grant the reward and explains where to return',
  assert.match(html,/Зачистка патрулей/);
 });
 
+test('claiming a completed contract stays more important than an unchosen earlier weapon reward',()=>{
+ const local=visiblePanel(renderBasePanel(home,state({contract:mission,firstHardwareReward:'pending'})));
+ assert.match(local,/data-act="claimContract">Забрать награду/);
+ assert.doesNotMatch(local,/ЧТО СЕЙЧАС ВАЖНО[\s\S]*?Вы получили новое оружие/);
+ const remote=visiblePanel(renderBasePanel(lab,state({contract:mission,firstHardwareReward:'pending'})));
+ assert.match(remote,/Награда ждёт на другой станции/);
+ assert.doesNotMatch(remote,/data-act="claimContract"/);
+});
+
+test('an active contract displays real progress instead of a disabled action and hides abandonment behind a warning',()=>{
+ const html=renderBasePanel(home,state({baseTab:'operations',contract:{...mission,progress:2}}));
+ const tasks=html.slice(html.indexOf('id="base-panel-operations"'),html.indexOf('id="base-panel-hangar"'));
+ assert.match(tasks,/class="base-contract-progress" role="status"/);
+ assert.match(tasks,/В работе · 2 из 4/);
+ assert.match(tasks,/<progress value="2" max="4" aria-label="Выполнение полевого заказа"/);
+ assert.doesNotMatch(tasks,/data-act="acceptContract"[^>]+disabled[^>]*>Выполняется/);
+ assert.match(tasks,/<details class="base-contract-abandon"><summary>Отказаться от заказа<\/summary>/);
+ assert.match(tasks,/Текущий прогресс будет потерян/);
+ assert.match(tasks,/data-act="abandonContract">Подтвердить отказ/);
+});
+
 test('first weapon award has one clear continuation and three real choices',()=>{
  const html=renderBasePanel(home,state({firstHardwareReward:'pending'}));
  const summary=visiblePanel(html);

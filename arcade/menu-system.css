@@ -571,3 +571,43 @@
  .hg-back-ship{display:inline-block}
  .base-trial-options{grid-template-columns:1fr}
 }
+
+/* Switching station sections must not move the navigation under the pointer.
+   A stable top edge and desktop width prevent the short task board from
+   jumping to the middle while the long hangar opens near the top. */
+#overlay:has(.base-dialog .base-tabs){align-items:flex-start}
+#overlay .base-dialog:has(.base-tabs){max-height:calc(100dvh - 36px)}
+@media(min-width:981px){
+ #overlay .base-dialog:has(.base-tabs),
+ #overlay .base-dialog:has(#base-panel-hangar:not([hidden])){
+  width:min(calc(100vw - 36px),1160px)
+ }
+}
+@media(max-height:580px){
+ #overlay:has(.base-dialog .base-tabs){padding:6px}
+ #overlay .base-dialog:has(.base-tabs){max-height:calc(100dvh - 12px)}
+}
+
+/* Active contracts report progress; abandoning is a secondary, deliberate
+   two-step action instead of the only enabled button on the entire card. */
+.base-contract-actions{flex:0 0 208px;min-width:0;display:grid;gap:7px;justify-items:stretch}
+.base-contract-progress{display:grid;gap:6px;text-align:right;color:#afeade}
+.base-contract-progress strong{font-size:12px;font-weight:700;color:#b9e9df}
+.base-contract-progress progress{display:block;width:100%;height:8px;accent-color:#8ee1d0;
+ border:0;border-radius:4px;background:#0c2634}
+.base-contract-abandon{border:0;background:transparent;min-width:0}
+.base-contract-abandon>summary{padding:6px 0;text-align:right;cursor:pointer;
+ color:#9eb9c8;font-size:11px;text-decoration:underline;text-underline-offset:3px}
+.base-contract-abandon[open]{padding:9px;border:1px solid #9c797380;border-radius:5px;
+ background:#301f2480}
+.base-contract-abandon[open]>summary{text-align:left;color:#ffd8c3}
+.base-contract-abandon p{font-size:11px;line-height:1.4;color:#f0d2cb;margin:7px 0}
+#overlay .base-contract-abandon button{width:100%;min-height:39px;margin:0!important;
+ background:#53333b;color:#fff0eb;border-color:#ab7376;font-size:11px}
+.base-contract-wait{color:#d0dce3;font-size:12px;max-width:190px;text-align:right}
+@media(max-width:700px){
+ .base-contract-actions{flex:1 1 100%;width:100%}
+ .base-contract-progress{text-align:left}
+ .base-contract-abandon>summary{text-align:left}
+ .base-contract-wait{text-align:left}
+}

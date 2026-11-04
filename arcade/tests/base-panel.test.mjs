@@ -179,7 +179,7 @@ test('accepting and claiming a station assignment immediately refreshes its menu
  assert.equal(fake.renders,1);
  assert.equal(fake.pausedRenderPending,true);
  const before=renderBasePanel(dock,fake.baseState());
- assert.match(before,/Выполняется · 0\/4/);
+ assert.match(before,/В работе · 0 из 4/);
  fake.contract.progress=4;
  Actions.prototype.baseAction.call(fake,'claimContract');
  assert.equal(fake.contract,null);
@@ -187,7 +187,7 @@ test('accepting and claiming a station assignment immediately refreshes its menu
  assert.equal(fake.player.ore,16);
  assert.equal(fake.player.data,15);
  assert.equal(fake.renders,2);
- assert.match(renderBasePanel(dock,fake.baseState()),/Ожидание/);
+ assert.match(renderBasePanel(dock,fake.baseState()),/Новый заказ через/);
 });
 
 test('each civilian station has a bounded, clearly priced local service',()=>{
