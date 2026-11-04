@@ -162,3 +162,15 @@ test('real station save gate never turns an in-flight or dead state into a check
  g.player.x-=900;g.dead=true;assert.equal(g.saveAtStation(),'');
  assert.equal(g.runStore.record.serial,serial);
 });
+test('continuation renders the restored sector and terrain before the dock pauses it again',()=>{
+ const original=scene(),saved=unpackRun(packRun(captureCheckpoint(original,original.docked)));
+ const g=scene();g.pendingCheckpoint=saved;g.vw=1200;g.vh=800;
+ let sky=null,rendered=false;g.visuals={updateSky(x,y){sky=[x,y];}};
+ g.heritage.pause=noop;g.hangarSession={begin:noop};
+ g.renderDock=()=>{
+  assert.deepEqual(sky,[g.player.x,g.player.y]);
+  assert.ok(g.nearRocks.length>0);assert.ok(g.localStations.includes(g.docked));
+  assert.ok(g.paused);assert.equal(g.time,original.time);rendered=true;
+ };
+ g.continueRun();assert.ok(rendered);assert.equal(g.pendingCheckpoint,null);
+});
