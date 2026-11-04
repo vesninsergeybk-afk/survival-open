@@ -175,12 +175,23 @@ const card=(cls,kicker,title,description,control,reason='')=>
 const action=(name,label,reason='',role='')=>
  '<button type="button" data-act="'+name+'"'+(role?' data-role="'+role+'"':'')+
  (reason?' disabled':'')+'>'+label+'</button>';
+const contractGoal=c=>{
+ const n=c.goal;
+ const ships=n%10===1&&n%100!==11?'корабль':
+  n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'корабля':'кораблей';
+ if(c.kind==='kill')return 'Уничтожить '+n+' '+ships+' противника';
+ if(c.kind==='rich')return 'Разобрать '+n+' '+(n===1?'богатый астероид':'богатых астероида');
+ if(c.kind==='defend')return 'Уничтожить '+n+' врагов возле станции';
+ if(c.kind==='intercept')return 'Перехватить '+n+' боевых '+ships+' (без разведчиков)';
+ return c.desc;
+};
 const contractPanel=o=>{
  const c=o.contract;
  if(c.status==='available')return '<section class="base-contract-board" aria-label="Заказы за ресурсы">'+
   '<h3>Заработать ресурсы</h3><p>Выберите один заказ. Его можно выполнять вместе с особой операцией.</p>'+
   '<div class="base-contract-choices">'+o.contractOptions.map(choice=>
    '<article class="base-contract-choice"><span>'+choice.tag+'</span><strong>'+choice.name+'</strong>'+
+   '<small class="base-contract-goal">'+contractGoal(choice)+'</small>'+
    '<div class="base-mission-reward">+'+choice.ore+' сплава · +'+choice.data+' опыта</div>'+
    action('acceptContract','Взять заказ','',choice.id)+
    '<details class="base-mission-more"><summary>Условия заказа</summary><p>'+choice.desc+
@@ -194,7 +205,8 @@ const contractPanel=o=>{
  return '<section class="base-contract '+c.status+'"><div class="base-contract-copy">'+
   '<span class="base-kicker">ЗАКАЗ · '+(c.status==='ready'?'НАГРАДА ГОТОВА':c.status==='active'?
    'В РАБОТЕ':c.status==='cooldown'?'ВРЕМЕННО НЕДОСТУПЕН':'НЕДОСТУПЕН')+'</span>'+
-  '<strong>'+c.name+'</strong><small>'+summary[c.status]+'</small>'+
+  '<strong>'+c.name+'</strong><small>'+((c.status==='active'||c.status==='ready')?
+   contractGoal(c)+'. ':'')+summary[c.status]+'</small>'+
   (c.status==='active'?'<span class="base-mission-progress">Выполнено: '+c.progress+' из '+c.goal+'</span>':'')+
   (c.status==='active'||c.status==='ready'?'<span class="base-contract-reward">+'+
    c.ore+' сплава · +'+c.data+' опыта</span>':'')+
@@ -379,7 +391,8 @@ const missionChoice=(base,state)=>{
    op.id==='relay-defense'?'relay':'carrier')+'" aria-label="Особая операция">'+
   '<div class="base-mission-main"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · '+current+'</span>'+
   '<strong>'+op.name+'</strong><p>'+(returning?'Вернитесь на исходную станцию. Награда и разведка откроются после возвращения.':objective)+
-  '</p><div class="base-mission-reward">+'+op.rewardOre+' сплава · +'+op.rewardData+' опыта</div>'+
+  '</p><span class="base-mission-risk">Риск: '+warning+'</span>'+
+  '<div class="base-mission-reward">+'+op.rewardOre+' сплава · +'+op.rewardData+' опыта</div>'+
   progress+'</div><div class="base-mission-actions">'+primary+
   '<details class="base-mission-more"><summary>Подробности и опасности</summary>'+
   '<p><b>Опасность:</b> '+warning+'.</p><p>'+op.desc+'</p>'+
