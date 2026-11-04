@@ -93,3 +93,10 @@ test('station navigation is named for the place it manages and has no duplicate 
  assert.match(html,/data-role="hangar"[^>]*>Корабль<\/button>/);
  assert.doesNotMatch(html,/Задания, корабль и улучшения доступны в разделах выше/);
 });
+
+test('station section changes keep the same top and desktop width instead of recentering the whole menu',()=>{
+ const css=readFileSync(new URL('../menu-system.css',import.meta.url),'utf8');
+ assert.match(css,/#overlay:has\(\.base-dialog \.base-tabs\)\{align-items:flex-start\}/);
+ assert.match(css,/width:min\(calc\(100vw - 36px\),1160px\)/);
+ assert.match(css,/max-height:calc\(100dvh - 36px\)/);
+});

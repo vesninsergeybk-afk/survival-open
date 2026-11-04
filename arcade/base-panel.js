@@ -226,20 +226,22 @@ const contractPanel=(o,state)=>{
   '</div></section>';
  const summary={
   available:c.desc,active:c.desc,ready:'Задание выполнено. Заберите награду.',
-  cooldown:'Новые поручения через '+c.remaining+' с. Пока можно отправиться к другим станциям.',
+  cooldown:'Пока здесь нет новых поручений. Можно отправиться к другим станциям.',
   other:'Сначала завершите поручение другой станции.'
  };
- const caption={
-  available:'Принять задание',active:'Выполняется · '+c.progress+'/'+c.goal,
-  ready:'Забрать награду',cooldown:'Ожидание · '+c.remaining+' с',other:'Другое задание активно'
- };
+ const contractActions=c.status==='active'?
+  '<div class="base-contract-actions"><div class="base-contract-progress" role="status">'+
+  '<strong>В работе · '+c.progress+' из '+c.goal+'</strong>'+
+  '<progress value="'+c.progress+'" max="'+c.goal+'" aria-label="Выполнение полевого заказа"></progress></div>'+
+  '<details class="base-contract-abandon"><summary>Отказаться от заказа</summary><p>Текущий прогресс будет потерян. Награду за этот заказ Вы не получите.</p>'+
+  action('abandonContract','Подтвердить отказ')+'</details></div>':
+  c.status==='cooldown'?'<span class="base-contract-wait">Новый заказ через '+c.remaining+' с</span>':
+  action(c.status==='ready'?'claimContract':'acceptContract',c.status==='ready'?'Забрать награду':'Принять задание',
+   ['ready','available'].includes(c.status)?'':'Недоступно');
  return '<section class="base-contract '+c.status+'"><div class="base-contract-copy">'+
   '<span class="base-kicker">ПОЛЕВОЙ ЗАКАЗ</span><strong>'+c.name+'</strong>'+
   '<small>'+summary[c.status]+'</small><span class="base-contract-reward">Награда: '+
-  c.ore+' сплава · '+c.data+' данных'+(c.status==='active'?' · '+c.progress+'/'+c.goal:'')+'</span></div>'+
-  action(c.status==='ready'?'claimContract':'acceptContract',caption[c.status],
-   ['ready','available'].includes(c.status)?'':'Недоступно')+
-   (c.status==='active'?action('abandonContract','Отказаться · прогресс пропадёт'):'')+'</section>';
+  c.ore+' сплава · '+c.data+' данных</span></div>'+contractActions+'</section>';
 };
 // Tactical station briefing. The mission is a world object, not a kill counter.
 const corridorPanel=(base,state,compact=false)=>{
@@ -499,11 +501,7 @@ function stationNextStep(base,state,o){
  let kind='standard',title='Выберите следующее задание';
  let description='Начните с небольшого заказа или особой операции. Награда и условия видны до принятия.';
  let buttons=action('baseTab','Посмотреть задания','','operations');
- if(state.firstHardwareReward==='pending'){
-  kind='reward';title='Вы получили новое оружие';
-  description='Первый заказ уже оплачен. Осталось бесплатно выбрать один из трёх боевых модулей. Сплав не тратится.';
-  buttons=action('baseTab','Выбрать оружие','','operations');
- }else if(ready){
+ if(ready){
   kind='reward';title='Заказ выполнен — заберите награду';
   description=c.name+': +'+c.ore+' сплава и +'+c.data+' данных. Награда ещё не зачислена.';
   buttons=action('claimContract','Забрать награду');
@@ -516,6 +514,10 @@ function stationNextStep(base,state,o){
   kind='return';title='Доставьте сведения на исходную станцию';
   description='Цель особой операции достигнута. Для завершения вернитесь на станцию, где приняли её, и нажмите E.';
   buttons=action('baseMap','Показать маршрут');
+ }else if(state.firstHardwareReward==='pending'){
+  kind='reward';title='Вы получили новое оружие';
+  description='Первый заказ уже оплачен. Осталось бесплатно выбрать один из трёх боевых модулей. Сплав не тратится.';
+  buttons=action('baseTab','Выбрать оружие','','operations');
  }else if(c){
   kind='active';title='Заказ в работе: '+c.progress+' из '+c.goal;
   description='«'+c.name+'». '+(local?'Здесь Вы сможете сдать его после выполнения.':
