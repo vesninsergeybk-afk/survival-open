@@ -138,6 +138,12 @@ export function validateCheckpoint(data){
   if(!object(b)||b.id!==pair[0]||!['dock','arsenal','lab','carrier'].includes(b.type)||
    !finite(b.x)||!finite(b.y)||typeof b.active!=='boolean'||typeof b.enemy!=='boolean'||
    !Array.isArray(b.turrets))return false;
+  if(b.defense!==undefined&&(!object(b.defense)||
+   !Number.isInteger(b.defense.charges)||b.defense.charges<0||b.defense.charges>2||
+   !finite(b.defense.rechargeAt,0,1e9)||!finite(b.defense.interceptAt,0,1e9)||
+   !finite(b.defense.stasisAt,0,1e9)||
+   !['','shot','meteor','stasis'].includes(b.defense.visualKind)||
+   !finite(b.defense.visualAt,-Infinity,1e9)))return false;
   ids.add(b.id);if(b.id===data.baseId)dock=b;if(b.id==='0:0')home=true;
  }
  if(!home||!dock?.active||dock.enemy||Math.hypot(p.x-dock.x,p.y-dock.y)>210||
@@ -190,6 +196,8 @@ export function restoreCheckpoint(game,data){
  game.actionHeld=null;game.mining={active:false,target:null,fxClock:0};game.probeRepairing=false;
  game.regionalStormFields=[];game._stormQueryAt=0;game._stormWarnings=[];
  game.nearRocks=[];game.localStations=[];game.worldQueryClock=0;game.worldVisualLast=-Infinity;
+ game.nextDefenseCheckAt=0;game.lastDefenseNoticeAt=-Infinity;
+ game.defenseTopology=null;game.defenseTopologyAt=0;
  game.cachedTarget=null;game.cachedWorldLinks=[];game.cachedNetworkLinked=world.networkTopology().linked;
  game.docked=world.stations.get(data.baseId);game.dead=false;game.paused=true;game.pausedRenderPending=true;
  return game.docked;

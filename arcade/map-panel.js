@@ -5,6 +5,7 @@ import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} fr
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-1';
+import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -111,9 +112,15 @@ export function renderWorldMap(game){
  const marks=known.map(b=>{
   const q=point(b.x,b.y,p,scale);if(!visible(q))return '';
   const color=b.enemy?'#ff777d':b.active?'#84ead2':'#ffca84';
+  const protectedNode=b.active&&!b.enemy;
+  const linkedDefense=protectedNode&&defenseLinked(b,topology);
+  const pvoRing=protectedNode?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+   '" r="'+(defenseRadius(linkedDefense)*scale).toFixed(1)+'" fill="#6debd608" stroke="#7ce7d1" stroke-width="1.2" stroke-dasharray="4 5"/>'+
+   (linkedDefense?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+    '" r="'+(STATION_DEFENSE.stasisRadius*scale).toFixed(1)+'" fill="none" stroke="#b790f0" stroke-width="1"/>':''):'';
   const returnCue=readyStation?.id===b.id;
   const selected=game.waypoint?.id===b.id;
-  return '<g>'+(selected?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+  return '<g>'+pvoRing+(selected?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
    '" r="22" fill="#ffd58a18" stroke="#ffe2a0" stroke-width="2" stroke-dasharray="4 3"/>':'')+
    (returnCue?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
    '" r="17" fill="#ffd27e1a" stroke="#ffd27e" stroke-width="2.5"/>'+
@@ -208,7 +215,7 @@ export function renderWorldMap(game){
   const label=isSignal?'Неопознанный сигнал':b.title||baseNames[b.type]||'Станция';
   const d=distance(b,p),same=game.waypoint?.id===b.id;
   const status=isSignal?'координаты приблизительные (погрешность до 170 м)':
-   b.enemy?'вражеская база':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети'+(b.relayBoost?' · усиленная связь':''):'автономный узел'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
+   b.enemy?'вражеская база':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети · ПВО'+(topology.count>=2?' и стазис':'')+(b.relayBoost?' · усиленная связь':''):'автономный узел · ПВО'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
   const value=isSignal?'Приблизиться и исследовать':'Построить маршрут';
   return '<article class="map-contact'+(same?' selected':'')+'">'+
    '<div><strong>'+enc(label)+'</strong><small>'+Math.round(d)+' м · '+status+'</small></div>'+
@@ -249,7 +256,8 @@ export function renderWorldMap(game){
   dot(340,240,'#9bf9ff',5)+'</g>'+
   '<text x="351" y="266" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
   '<div class="map-legend"><span>● вы</span><span>● активна</span><span>● выключена</span>'+
-  '<span>◈ противник</span><span>⇢ согласованный манёвр</span><span>? сигнал</span><span>◎ операция</span></div>'+
+  '<span>◈ противник</span><span>⇢ согласованный манёвр</span><span>? сигнал</span><span>◎ операция</span>'+
+  (known.some(b=>b.active&&!b.enemy)?'<span>бирюзовый круг — ПВО · фиолетовый — стазис</span>':'')+'</div>'+
   '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
     ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
   '<aside class="map-side">'+renderRegionAtlas(game)+radioHistory+

@@ -4,9 +4,10 @@ import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {strategicCapture} from './regional-supply.js?v=regions-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30';
 import {World} from './world.js?v=regions-1';
+import {updateStationDefense,drawStationDefense,defenseLinked} from './network-defense.js?v=network-defense-1';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1';
 import {EnemyComms} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-1';
@@ -23,9 +24,9 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -39,7 +40,7 @@ import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=regions-1-enemy-world-response-1';
 import {pickDesignatedTarget,activeDesignatedTarget} from './target-designation.js?v=enemy-world-response-1';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=weapons-cycle-2-regions-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -178,6 +179,8 @@ export class ArcadeGame {
   this.messageUntil=0;this.vw=1200;this.vh=800;
   this.worldVisualLast=-Infinity;this.cachedWorldLinks=[];
   this.cachedNetworkLinked=new Set();this.cachedTarget=null;
+  this.nextDefenseCheckAt=0;this.lastDefenseNoticeAt=-Infinity;
+  this.defenseTopology=null;this.defenseTopologyAt=0;
    this.waypoint={id:this.world.home.id,x:this.world.home.x,y:this.world.home.y,label:'Домашний док'};
    this.nearArsenalBonus=false;this.nearArsenalDefense=false;this.nearDockField=false;this.nearQuietLab=false;
   for(const [k,url] of Object.entries(MODELS))sprite(url,this.images,k);
@@ -1512,6 +1515,7 @@ export class ArcadeGame {
    recordEconomyExpense(this,'stations',o.antennaCost);
    const topology=this.world.networkTopology();
    this.cachedNetworkLinked=topology.linked;
+   this.defenseTopology=null;
    this.notice('Антенна усилена · в сети '+topology.count+' станций',3.5);
    this.heritage.vfx.nova(b.x,b.y,105,'cyan');
    this.heritage.station('upgrade',b.type,{tech:'relay'});
@@ -1588,6 +1592,7 @@ export class ArcadeGame {
    p.hp=Math.min(p.maxHp,p.hp+o.rewardRepair);
    const topology=this.world.networkTopology();
    this.cachedNetworkLinked=topology.linked;
+   this.defenseTopology=null;
    this.notice('Станция активна'+(topology.linked.has(b.id)?
     ' · подключено узлов: '+topology.count:' · ищите ретранслятор')+
     (o.rewardAlloy?' · +'+o.rewardAlloy+' сплава':'')+
@@ -1990,6 +1995,7 @@ export class ArcadeGame {
   base.hp-=damage;
   if(base.hp<=0){
    base.hp=Math.max(1,Math.round(base.maxHp*.3));base.captured=true;base.enemy=false;base.active=true;
+   this.defenseTopology=null;
    base.activated=true;base.activationTime=this.time;
    this.activeBases++;base.activationIndex=this.activeBases;
    this.hacks.push(base.rank>=3?'screen':'area');
@@ -2404,7 +2410,11 @@ export class ArcadeGame {
    updateAlly(a,this,dt);
   }
   this.updateMissiles(dt);
+  // Defense resolves warned impacts and imminent shots before collision damage.
+  // It does not kill enemies or award loot/experience while the player waits.
+  updateStationDefense(this);
   for(const s of this.shots){
+   if(!s.alive)continue;
    const nextX=s.x+s.vx*dt,nextY=s.y+s.vy*dt;
    const travel=Math.hypot(nextX-s.x,nextY-s.y);
    const candidates=this.rockGrid.query((s.x+nextX)*.5,(s.y+nextY)*.5,65+travel*.5);
@@ -2909,7 +2919,12 @@ export class ArcadeGame {
    this.world.stations.get(this.operation.baseId):contractReturnStation(this.contract,this.world);
   for(const b of this.world.nearbyStations(p.x,p.y,Math.max(cam.w,cam.h)+350)){
    if(b.enemy&&!b.strategicRole&&!this.enemyBasesUnlocked())continue;
-   if(!outsideCamera(b.x,b.y,cam,170))this.drawBase(b,returnBase?.id);
+   if(!outsideCamera(b.x,b.y,cam,170)){
+    this.drawBase(b,returnBase?.id);
+    if(b.active&&!b.enemy)
+     drawStationDefense(c,b,defenseLinked(b,{count:this.cachedNetworkLinked.size,
+      linked:this.cachedNetworkLinked}),this.time,p,this.visuals.reducedMotion);
+   }
   }
   this.drawInteractionFocus(c,cam);
   for(const d of this.drops){
@@ -2964,6 +2979,15 @@ export class ArcadeGame {
    }
    this.heritage.vfx.renderSurfaceLight(c,e.x,e.y,e.r);
    drawStormCharge(c,e,this.time);
+   if(this.time<(e.stasisUntil||0)){
+    c.save();c.strokeStyle='#d5a6ff';c.lineWidth=2.5;
+    c.beginPath();c.arc(e.x,e.y,e.r+10,0,TAU);c.stroke();
+    if(this.time<(e.stasisLabelUntil||0)){
+     c.fillStyle='#f4d8ff';c.textAlign='center';c.font='bold 10px system-ui';
+     c.fillText('СТАЗИС',e.x,e.y-e.r-16,90);
+    }
+    c.restore();
+   }
    if(this.weaponProfile.ion&&this.fieldLoan?.charges>0)drawIonMark(c,e,this.time);
    // The painted rupture supersedes the old circular damage decal.
    if(!e.capitalWearPainted)
