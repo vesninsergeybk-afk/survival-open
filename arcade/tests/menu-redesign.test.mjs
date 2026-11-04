@@ -97,5 +97,8 @@ test('active menu controls never override positioning transforms used by ship ha
  const activeRule=css.match(/#overlay \.dialog button:not\(:disabled\):active\s*\{([^}]*)\}/)?.[1];
  assert.ok(activeRule,'menu active-state rule is missing');
  assert.doesNotMatch(activeRule,/transform\s*:/,'active-state must not displace a ship node during click');
- assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/menu-system\.css\?v=menus-gameplay-first-2/);
+ const reducedRule=css.match(/@media\(prefers-reduced-motion:reduce\)\s*\{([\s\S]*?)\}\s*\}/)?.[1];
+ assert.ok(reducedRule,'reduced-motion settings are missing');
+ assert.doesNotMatch(reducedRule,/transform\s*:/,'reduced motion must not displace ship hardpoints');
+ assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/menu-system\.css\?v=menus-gameplay-first-3/);
 });
