@@ -19,7 +19,7 @@ const ENERGY_ASSET = './studio/assets/reactor-energy-milestones-v1.png';
 // like ships. The connected station is between the starfield and gameplay.
 export const REACTOR_DEPTH_RATES = Object.freeze({
  distant:.52, haze:.68, hazeSecondary:.73, hull:.80,
- hazeFront:.87, hazeFrontSecondary:.91, foregroundDust:.95
+ hazeFront:.93, hazeFrontSecondary:.965, foregroundDust:.985
 });
 const VIEWPORT_FRACTION = .80;
 const MAX_SCENE_SCALE = .58;
@@ -60,7 +60,7 @@ export class ReactorLandmark {
   this.vapourFrontAlternate = null;
   this.mote = this.makeMote();
   this.nearHull = null;
-  this.layers = {distant:true,mist:true,near:true,particles:true,farParticles:true,frontParticles:true};
+  this.layers = {distant:true,mist:true,backMist:true,frontMist:true,near:true,particles:true,farParticles:true,frontParticles:true};
   this.hullRate = Number.isFinite(options.hullRate)?
    Math.max(.5,Math.min(1,options.hullRate)):REACTOR_DEPTH_RATES.hull;
   this.scaleOverride = Number.isFinite(options.scale)?options.scale:null;
@@ -297,7 +297,8 @@ export class ReactorLandmark {
  drawMist(ctx,cam,time,fps,reducedMotion,inFront=false,scale=1) {
   const primary=inFront?(this.vapourSecondary||this.vapour):this.vapour;
   const alternate=inFront?this.vapourFrontAlternate:this.vapourBackAlternate;
-  if(!this.layers.mist || (!this.mist&&!primary&&!alternate))return;
+  if(!this.layers.mist || (inFront?this.layers.frontMist===false:this.layers.backMist===false) ||
+    (!this.mist&&!primary&&!alternate))return;
   // Autonomous motion uses elapsed game time. Changing the camera adds
   // parallax, but a stationary camera still sees distinct fog currents.
   const elapsed=reducedMotion?0:Math.max(0,Number(time)||0);
@@ -305,22 +306,22 @@ export class ReactorLandmark {
   const rate=inFront?REACTOR_DEPTH_RATES.hazeFront:REACTOR_DEPTH_RATES.haze;
   const pos=reactorParallaxAnchor(cam,rate);
   ctx.save();ctx.translate(pos.x,pos.y);ctx.scale(scale,scale);
-  if(this.mist){
-   ctx.globalAlpha=inFront?.19:.26;
-   ctx.drawImage(this.mist,
-    inFront?-565:-790,inFront?-55:-290,
-    inFront?1140:1570,inFront?430:650);
+  // The broad procedural sheet is kept behind the hull. In front of the
+  // hull it looked like a fixed translucent HUD veil even while parallax moved.
+  if(this.mist&&!inFront){
+   ctx.globalAlpha=.26;
+   ctx.drawImage(this.mist,-790,-290,1570,650);
   }
   if(primary){
-   const x=(inFront?-560:-865)+
-    Math.sin(elapsed*(inFront?.11:.065)+.4)*(inFront?93:125);
-   const y=(inFront?-145:-390)+
-    Math.cos(elapsed*(inFront?.071:.051))*(inFront?26:35);
+   const x=(inFront?-620:-865)+
+    Math.sin(elapsed*(inFront?.145:.065)+.4)*(inFront?160:125);
+   const y=(inFront?20:-390)+
+    Math.cos(elapsed*(inFront?.084:.051))*(inFront?44:35);
    ctx.globalCompositeOperation=inFront?'screen':'source-over';
    ctx.globalAlpha=alternate?
-    (inFront?.28+.20*(1-blend):.46+.34*(1-blend)):
-    (inFront?.45:.78);
-   ctx.drawImage(primary,x,y,inFront?1200:1810,inFront?510:775);
+    (inFront?.23+.18*(1-blend):.46+.34*(1-blend)):
+    (inFront?.35:.78);
+   ctx.drawImage(primary,x,y,inFront?1040:1810,inFront?395:775);
   }
   ctx.restore();
   if(alternate){
@@ -329,15 +330,15 @@ export class ReactorLandmark {
    const alternateRate=inFront?REACTOR_DEPTH_RATES.hazeFrontSecondary:
     REACTOR_DEPTH_RATES.hazeSecondary;
    const alternatePos=reactorParallaxAnchor(cam,alternateRate);
-   const x=(inFront?-690:-810)+
-    Math.sin(elapsed*(inFront?.09:.083)+2.0)*(inFront?128:145);
-   const y=(inFront?-130:-250)+
-    Math.cos(elapsed*(inFront?.057:.044)+1.2)*(inFront?48:39);
+   const x=(inFront?-180:-810)+
+    Math.sin(elapsed*(inFront?.12:.083)+2.0)*(inFront?175:145);
+   const y=(inFront?-280:-250)+
+    Math.cos(elapsed*(inFront?.07:.044)+1.2)*(inFront?55:39);
    ctx.save();ctx.translate(alternatePos.x,alternatePos.y);
    ctx.scale(scale,scale);
    ctx.globalCompositeOperation=inFront?'screen':'source-over';
-   ctx.globalAlpha=inFront?.05+.30*blend:.04+.42*blend;
-   ctx.drawImage(alternate,x,y,inFront?1420:1650,inFront?510:690);
+   ctx.globalAlpha=inFront?.04+.27*blend:.04+.42*blend;
+   ctx.drawImage(alternate,x,y,inFront?990:1650,inFront?390:690);
    ctx.restore();
   }
  }
