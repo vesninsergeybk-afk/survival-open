@@ -62,6 +62,23 @@ test('checkpoint restores hull, inventory, progression, changed rocks and networ
  assert.equal(restoredRocks.find(r=>r.id===other.id).x,other.x);
  assert.equal(fresh.time,243.5);assert.equal(fresh.spawnClock,3.4);assert.ok(fresh.paused);
 });
+test('station point defense does not regain spent charges when the run is resumed',()=>{
+ const g=scene(),base=g.docked;
+ base.defense={charges:0,rechargeAt:260.5,interceptAt:244.2,
+  stasisAt:270.1,visualAt:242,visualKind:'meteor'};
+ g.enemies=[{type:'fighter',x:base.x+100,y:base.y,vx:0,vy:0,r:14,hp:50,maxHp:50,
+  stasisUntil:245,stasisImmuneUntil:261}];
+ const {storage}=save(g),fresh=scene();
+ const checkpoint=new RunCheckpointStore(storage).load();
+ assert.ok(checkpoint);
+ restoreCheckpoint(fresh,checkpoint);
+ assert.deepEqual(fresh.world.home.defense,base.defense);
+ assert.equal(fresh.enemies[0].stasisUntil,245);
+ assert.equal(fresh.enemies[0].stasisImmuneUntil,261);
+ assert.equal(fresh.nextDefenseCheckAt,0);
+ checkpoint.world.stations.find(([id])=>id===base.id)[1].defense.charges=3;
+ assert.equal(validateCheckpoint(checkpoint),false,'impossible PVO stock is rejected');
+});
 test('return reports survive a checkpoint, but an unfinished sortie never duplicates',()=>{
  const g=scene();
  g.sortieReports=[{seconds:93,ore:27,data:11,hull:-8,drones:0,levels:0,baseId:'0:0'}];

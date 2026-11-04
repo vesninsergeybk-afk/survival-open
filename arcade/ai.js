@@ -181,6 +181,15 @@ const pickTarget=(e,game)=>{
 };
 export function updateEnemy(e,game,dt){
   if(e.hp<=0)return;
+  // A connected station briefly locks ordinary hostile craft in place.
+  // Authored mission targets, bosses and cargo never receive this status.
+  if(game.time<(e.stasisUntil||0)){
+    e._commsIntent=null;
+    e._irisChargeStarted=null;
+    e.vx*=Math.exp(-8*dt);e.vy*=Math.exp(-8*dt);
+    e.x+=e.vx*dt;e.y+=e.vy*dt;
+    return;
+  }
   // Every visible intent must be renewed by real steering this frame.
   e._commsIntent=null;
   if(e.converted){updateConverted(e,game,dt);return;}

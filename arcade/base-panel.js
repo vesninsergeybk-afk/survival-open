@@ -1,7 +1,8 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=regions-1';
+import {defenseStatus} from './network-defense.js?v=network-defense-1';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
@@ -695,8 +696,13 @@ export function renderBasePanel(base,state){
    '<span class="base-ready">ПЕРВАЯ ПРОБА ЗАВЕРШЕНА</span>'):'';
  const hangar=renderShipHangar({...state,baseActive:active})+'<details class="hg-services" data-hangar-section="services"><summary>Подготовка к вылету · ремонт · дроны · прокат оружия</summary><div class="base-operations">'+readiness+
   '<div class="base-grid">'+repair+hire+'</div>'+local+fieldPanel+supply+'</div></details>';
+ const protection=defenseStatus(base,o.connected&&state.connectedBases>=2,state.time||0);
+ const protectionText='ПВО '+protection.charges+'/'+protection.capacity+' · радиус '+protection.radius+' м'+
+  (protection.rechargeIn?' · заряд через '+protection.rechargeIn+' с':'')+
+  (protection.stasis?' · стазис по группе: '+(protection.stasisIn?
+   'через '+protection.stasisIn+' с':'готов'):' · стазис доступен при связи двух узлов');
  const network='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">УПРАВЛЕНИЕ СЕТЬЮ</span><strong>Связь, технологии и территория</strong>'+
-  '<p>Усиление антенны увеличивает дальность соединения, а специализация определяет, что станция делает для ближайшего сектора.</p></div></div>'+
+  '<p>'+protectionText+'. ПВО перехватывает часть снарядов и орбитальных ударов рядом с кораблём. При соединении двух узлов сеть также ненадолго останавливает группы противников. За пределами радиуса оборона не действует.</p></div></div>'+
   networkPreview(base,state)+'<div class="base-grid">'+upgrade+antenna+'</div>'+modules+transit+'</div>';
  const opening=active?
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
