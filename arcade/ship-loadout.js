@@ -22,6 +22,7 @@ export const MODULES=Object.freeze({
   desc:'F / «Гаубица»: подготовка 1,25 с и удар по отмеченной точке. Во время подготовки автоогонь корабля приостанавливается. Цель может уйти из зоны удара.'}
 });
 export const BLUEPRINT_KEY='survivor.hangar.blueprints.v1';
+export const PREVIEW_BLUEPRINT_KEY='survivor.hangar.preview.blueprints.v1';
 export const BLUEPRINT_NAMES=['Штурм','Дистанция','Резерв'];
 export const createLoadout=()=>({version:1,frame:0,slots:['plasma',null,null,null,null,null],owned:{plasma:1}});
 export const cloneLoadout=value=>({...value,slots:[...value.slots],owned:{...value.owned}});
@@ -47,8 +48,8 @@ export function moduleStats(id,ranks={}){
  })[id];
 }
 export function moduleLock(id,context){
+ if(!Object.hasOwn(MODULES,id))return 'Неизвестный модуль';
  const m=MODULES[id];
- if(!m)return 'Неизвестный модуль';
  if((context.level||1)<m.level)return 'Нужен уровень '+m.level;
  if(id==='rocket'&&!(context.ranks?.rocket>0))return 'Изучите «Авторакеты» в ангаре';
  if(id==='ion'&&!context.ionLoan)return 'Возьмите модуль в прокат ниже';
@@ -86,6 +87,28 @@ export function applyLoadout(current,draft,context){
  for(const [id,n] of Object.entries(quote.missing))loadout.owned[id]=(loadout.owned[id]||0)+n;
  return {...quote,loadout,ore:context.ore-quote.cost};
 }
+// Recording a design does not manufacture it, so its budget is not a gate.
+export const quoteBlueprint=(current,draft,context)=>
+ quoteLoadout(current,draft,{...context,ore:Number.MAX_SAFE_INTEGER});
+export function moduleStock(current,draft,context,id){
+ const owned=id==='ion'?(context.ionLoan?1:0):(current.owned[id]||0);
+ const installed=current.slots.filter(value=>value===id).length;
+ const planned=draft.slots.filter(value=>value===id).length;
+ return {owned,installed,free:Math.max(0,owned-installed),needed:Math.max(0,planned-owned)};
+}
+// A received module may be suggested, but only Apply changes the live ship.
+export function stageOwnedModule(current,session,id,context){
+ if(session.dirty(current))return false;
+ const slot=current.slots.findIndex((value,index)=>!value&&slotOpen(current,index)&&
+  ((index===5)===(MODULES[id]?.kind==='heavy')));
+ if(slot<0)return false;
+ const draft=cloneLoadout(current);draft.slots[slot]=id;
+ const quote=quoteLoadout(current,draft,context);
+ if(!quote.ok||quote.cost)return false;
+ session.draft=draft;session.slot=slot;session.selected=id;
+ session.catalog=false;session.inspect=false;session.filter='all';
+ return true;
+}
 export function upgradeFrame(current,context){
  const next=FRAME_STEPS[current.frame+1];
  const reason=!context.baseActive?'Сначала включите станцию':!next?'Все узлы открыты':
@@ -111,9 +134,9 @@ function validBlueprint(value){
   value.slots.every(id=>id===null||Object.hasOwn(MODULES,id));
 }
 export class HangarSession {
- constructor(storage=null){
-  this.storage=storage;this.blueprints=[null,null,null];
-  try{const saved=JSON.parse(storage?.getItem(BLUEPRINT_KEY)||'null');
+ constructor(storage=null,storageKey=BLUEPRINT_KEY){
+  this.storage=storage;this.storageKey=storageKey;this.blueprints=[null,null,null];
+  try{const saved=JSON.parse(storage?.getItem(storageKey)||'null');
    if(saved?.version===1&&Array.isArray(saved.items))
     this.blueprints=this.blueprints.map((_,i)=>validBlueprint(saved.items[i])?{slots:[...saved.items[i].slots]}:null);
   }catch{/* Storage is optional, including blocked or damaged storage. */}
@@ -127,6 +150,7 @@ export class HangarSession {
   const act=data.act;
   if(act==='hgSlot'){
    const slot=Number(data.id);if(!Number.isInteger(slot)||slot<0||slot>5)return;
+   if((this.slot===5)!==(slot===5))this.filter='all';
    this.slot=slot;this.catalog=true;this.inspect=!slotOpen(current,slot);
    this.selected=this.draft.slots[slot]||(slot===5?'howitzer':'plasma');
   }
@@ -160,15 +184,16 @@ export class HangarSession {
   }
   if(act==='hgSave'){
    const index=Number(data.id);if(!Number.isInteger(index)||index<0||index>2)return;
-   if(!quoteLoadout(current,this.draft,context).ok){this.message='Исправьте состав вооружения перед сохранением';return;}
+   if(!quoteBlueprint(current,this.draft,context).ok){this.message='Исправьте состав вооружения перед сохранением';return;}
    this.blueprints[index]={slots:[...this.draft.slots]};
    try{if(!this.storage)throw Error('unavailable');
-    this.storage.setItem(BLUEPRINT_KEY,JSON.stringify({version:1,items:this.blueprints}));
+    this.storage.setItem(this.storageKey,JSON.stringify({version:1,items:this.blueprints}));
     this.message='Схема «'+BLUEPRINT_NAMES[index]+'» сохранена на этом устройстве';
    }catch{this.message='Схема доступна до закрытия игры: браузер не разрешил сохранить её на устройстве';}
   }
   if(act==='hgLoad'){
-   const index=Number(data.id),saved=this.blueprints[index];if(!saved)return;
+   const index=Number(data.id);if(!Number.isInteger(index)||index<0||index>2)return;
+   const saved=this.blueprints[index];if(!saved)return;
    this.draft={...cloneLoadout(current),slots:[...saved.slots]};this.catalog=false;
    this.message='Схема «'+BLUEPRINT_NAMES[index]+'» загружена для просмотра. Нажмите «Применить»';
   }
@@ -189,9 +214,18 @@ export const SHIP_ART=Object.freeze([
  [.445,421,[.351,.54],[.539,.54],[.445,.65],[.205,.59],[.685,.59],[.445,.30]]
 ]);
 export const shipArtStage=level=>Math.min(9,Math.max(0,Math.floor(((level||1)-1)/3)));
+// Damaged paintings have different framing; centres match their existing
+// registered main-engine masks in src/hero-evolution.js.
+const DAMAGED_HULL_CENTRES=[.541,.486,.563,.498,.562,.460,.540,.500,.535,.471];
+export function localMountPosition(player,index){
+ const stage=shipArtStage(player.level),art=SHIP_ART[stage],point=art[index+2];
+ const painted=player.weaponGeometry?.stage===stage?player.weaponGeometry:null;
+ const shift=painted?.damaged?DAMAGED_HULL_CENTRES[stage]-art[0]:0;
+ const width=painted?.width||79.95,height=painted?.height||width*art[1]/512;
+ return {x:(point[0]+shift-.5)*width,y:(point[1]-.5)*height};
+}
 export function mountPosition(player,index){
- const art=SHIP_ART[shipArtStage(player.level)],point=art[index+2];
- const x=(point[0]-.5)*79.95,y=(point[1]-.5)*79.95*art[1]/512;
+ const {x,y}=localMountPosition(player,index);
  const a=player.angle||0;
  return {x:player.x+x*Math.cos(a)-y*Math.sin(a),y:player.y+x*Math.sin(a)+y*Math.cos(a)};
 }

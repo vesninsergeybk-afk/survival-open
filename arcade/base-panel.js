@@ -1,4 +1,4 @@
-import {renderShipHangar} from './hangar-panel.js?v=hangar-1';
+import {renderShipHangar} from './hangar-panel.js?v=hangar-2';
 import {renderStationRoutePreview} from './map-panel.js?v=carrier-intercept-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
@@ -546,8 +546,8 @@ export function renderBasePanel(base,state){
    'Ионный проводник · '+ionOffer.charges+'/'+ION_CONDUCTOR.charges+' заряда':
    ionOffer.mode==='trial'?'Ионный проводник · бесплатная проба':'Ионный проводник · повторный прокат',
   ionOffer.mode==='return'?
-   'Обычный автоогонь ставит ионные метки на ближайших врагов. Space (или кнопка «Ион») запускает разряд по отмеченной группе. После операции модуль вернётся при стыковке; можно вернуть досрочно.':
-   'Пробный боевой модуль с '+ION_CONDUCTOR.charges+' зарядами. Автоогонь помечает врагов, Space даёт ручной цепной разряд. Обычный луч сохраняется. За один раз можно взять только один модуль.',
+   'Установленный плазменный луч ставит ионные метки на ближайших врагов. Если проводник ещё не установлен, выберите узел на схеме и примените сборку. Space (или кнопка «Ион») запускает разряд по отмеченной группе. После операции модуль вернётся при стыковке; можно вернуть досрочно.':
+   'Пробный боевой модуль с '+ION_CONDUCTOR.charges+' зарядами. После получения установите проводник в обычный узел и нажмите «Применить». Плазменный луч помечает врагов, Space даёт ручной цепной разряд. За один раз можно взять только один модуль.',
   ionOffer.mode==='return'?action('returnIon','Вернуть модуль'):
    action('loanIon',ionOffer.mode==='trial'?'Взять бесплатно':
     'Взять · '+ionOffer.cost+' сплава',ionOffer.reason),ionOffer.reason):
@@ -556,7 +556,7 @@ export function renderBasePanel(base,state){
    (state.ionReturnNotice?'Модуль вернулся после задания. ':'')+
     'Повторный прокат доступен в арсенале; обычное оружие продолжает работать.',
    '<span class="base-ready">ПЕРВАЯ ПРОБА ЗАВЕРШЕНА</span>'):'';
- const hangar=renderShipHangar({...state,baseActive:active})+'<details class="hg-services"><summary>Подготовка к вылету · ремонт · дроны · прокат оружия</summary><div class="base-operations">'+readiness+
+ const hangar=renderShipHangar({...state,baseActive:active})+'<details class="hg-services" data-hangar-section="services"><summary>Подготовка к вылету · ремонт · дроны · прокат оружия</summary><div class="base-operations">'+readiness+
   '<div class="base-grid">'+repair+hire+'</div>'+local+ionPanel+supply+'</div></details>';
  const network='<div class="base-operations"><p class="base-section-note">Усиление антенны расширяет связь. Специализация влияет на работу станции и ближайший сектор.</p>'+
   '<div class="base-grid">'+upgrade+antenna+'</div>'+networkPreview(base,state)+modules+transit+'</div>';
@@ -583,5 +583,5 @@ export function renderBasePanel(base,state){
   'Первая станция включается бесплатно; следующие требуют сплав.')+
   '</small><div class="base-footer-actions">'+
   (active&&state.doctrine?action('respec','Сменить доктрину · 12 сплава',state.ore<12?'Нужно 12 сплава':''):'')+
-  action('close','В полёт')+'</div></footer></div>';
+  action('close',active&&selected==='hangar'&&state.hangarSession?.dirty(state.loadout)?'В полёт без замены оружия':'В полёт')+'</div></footer></div>';
 }
