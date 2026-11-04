@@ -1,3 +1,4 @@
+import {weaponDamageFactor,penetrationFactor} from './weapon-specializations.js?v=weapon-branches-1';
 import {CORRIDOR_OPERATION} from './operations.js?v=operation-leads-1';
 import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons} from './ship-loadout.js?v=hangar-2';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
@@ -40,7 +41,8 @@ export function updateAuxiliaryWeapons(game,dt,allowed){
   game.moduleClocks[id]=Math.max(0,(game.moduleClocks[id]||0)-dt);
   const count=game.weaponProfile[id];
   if(!allowed||!count||game.weaponThermal.locked||game.moduleClocks[id]>0)continue;
-  const stats=moduleStats(id,game.skillRanks),targets=shipTargets(game,stats.range,stats.targets,id==='flak',
+  const stats=moduleStats(id,game.skillRanks,game.shipLoadout.specializations?.[id]),
+   targets=shipTargets(game,stats.range,stats.targets,id==='flak',
    id==='rail'?'precision':'default');
   if(!targets.length)continue; // No target means no ammunition, heat or effect.
   game.moduleClocks[id]=stats.interval;
@@ -52,9 +54,16 @@ export function updateAuxiliaryWeapons(game,dt,allowed){
      game.rockGrid.query((from.x+target.x)*.5,(from.y+target.y)*.5,d*.5+45),2,game.player);
    const point=cover?contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y):
     contactOnCircle(target.x,target.y,target.r||22,from.x,from.y);
-   const damage=stats.damage*count;
-   if(cover)game.damageRock(cover.rock,damage*.85,from.x,from.y,'auto',true,point);
-   else damageShipTarget(game,item,damage,id,point);
+   const damage=stats.damage*count*weaponDamageFactor(game.shipLoadout,id,target);
+   if(cover){
+    game.damageRock(cover.rock,damage*.85,from.x,from.y,'auto',true,point);
+    const penetration=id==='rail'?penetrationFactor(game.shipLoadout):0;
+    if(penetration){
+     const hit=contactOnCircle(target.x,target.y,target.r||22,from.x,from.y);
+     damageShipTarget(game,item,damage*penetration,id,hit);
+     game.flash(cover.x,cover.y,hit?.x??target.x,hit?.y??target.y,'#a5bfff');
+    }
+   }else damageShipTarget(game,item,damage,id,point);
    for(let i=0;i<6;i++)if(game.shipLoadout.slots[i]===id){
     const muzzle=mountPosition(game.player,i);
     game.flash(muzzle.x,muzzle.y,point?.x??target.x,point?.y??target.y,MODULES[id].color);
