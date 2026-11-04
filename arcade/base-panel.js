@@ -798,11 +798,14 @@ export function renderBasePanel(base,state){
  const futureUpgrades=(o.reasons.upgrade?upgrade:'')+
   (base.relayBoost||o.reasons.antenna?antenna:'');
  const network='<div class="base-operations"><section class="base-network-simple">'+
-  '<span class="base-kicker">ОБОРОНА СТАНЦИИ</span><h3>ПВО · '+protection.charges+'/'+protection.capacity+' зарядов</h3>'+
-  '<p class="base-defense-summary">ПВО прикрывает корабль в бирюзовом круге. Орбитальные удары сейчас '+
+  '<span class="base-kicker">ОБОРОНА СТАНЦИИ</span><h3>Защитные заряды · '+protection.charges+'/'+protection.capacity+'</h3>'+
+  '<p class="base-defense-summary">Автоматическая защита прикрывает корабль в бирюзовом круге. Орбитальные удары сейчас '+
   (protection.meteorEnabled?'перехватываются':'пропускаются')+'. '+
   (protection.stasis?'Стазис остановит группу обычных врагов при выполнении условий.':
    'Стазис станет доступен после соединения двух станций.')+'</p>'+
+  '<p class="base-defense-tradeoff" role="note">'+(protection.meteorEnabled?
+   'Если пропускать орбитальные удары, они смогут поражать врагов и астероиды, но также могут повредить Ваш корабль.':
+   'Перехват отключён: орбитальные удары могут поражать врагов, астероиды и Ваш корабль.')+'</p>'+
   '<div class="base-defense-choice">'+meteorChoice+'</div>'+
   '<details class="base-secondary-info base-defense-rules"><summary>Точные условия ПВО и стазиса</summary><div class="base-secondary-body">'+
   '<p class="base-defense-status">'+protectionText+'.</p>'+
