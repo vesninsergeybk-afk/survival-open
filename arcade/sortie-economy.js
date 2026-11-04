@@ -37,16 +37,21 @@ export function nextEconomyChoices(base,state,offer,lastSortie=null){
  const choices=[];
  const add=(title,detail,cost,act,role='',reason='')=>choices.push({title,detail,cost,act,role,reason});
  const usable=reason=>!reason||reason.startsWith('Не хватает');
+ const ore=Math.max(0,state.ore||0);
  const missing=Math.max(0,state.maxHp-state.hp),losses=lastSortie?.details;
- if(missing>=Math.max(18,state.maxHp*.17)&&usable(offer.reasons.repair))
-  add('Восстановить корпус','Снизить риск гибели перед следующим заданием.',
+ // A free healing dock is better for minor scratches. Recommend paying only
+ // when the hull is critical, or when a remote base cannot heal the player.
+ if((state.hp<state.maxHp*.45||(base.type!=='dock'&&missing>=18))&&usable(offer.reasons.repair))
+  add('Срочный ремонт корпуса',base.type==='dock'?
+   'Восстановит корпус сразу. Если рядом безопасно, док починит его бесплатно за несколько секунд.':
+   'На этой станции нет бесплатного восстановления корпуса.',
    offer.repairCost,'repair','',offer.reasons.repair);
  if(usable(offer.reasons.hire))
   add('Дрон сопровождения',losses?.dronesLost?'В прошлом вылете потерян дрон. Верните прикрытие.':
-   'Прикрывает корабль в бою и при добыче.',offer.hireCost,'hire',offer.drone.role,offer.reasons.hire);
- if(base.type==='dock'&&offer.localService?.key==='shield'&&
-  usable(offer.reasons.service)&&((losses?.damageTaken||0)>0||missing>0))
-  add('Аварийный щит','Запас прочности для рискованного вылета; расходуется в бою.',
+   'Постоянный помощник: прикрывает в бою и при добыче, но покупка отложит расширение сети.',
+   offer.hireCost,'hire',offer.drone.role,offer.reasons.hire);
+ if(base.type==='dock'&&offer.localService?.key==='shield'&&usable(offer.reasons.service))
+  add('Аварийный щит','Одноразовые 30 ед. защиты перед опасным вылетом. Дешевле дрона, но после боя щит придётся пополнять.',
    offer.localService.cost,'service','',offer.reasons.service);
  const loadout=state.loadout;
  if(loadout?.slots&&loadout.owned){
@@ -69,7 +74,7 @@ export function nextEconomyChoices(base,state,offer,lastSortie=null){
   }
  }
  if(offer.relayCost>0)
-  add('Следующий узел сети','Откройте карту и проверьте маршрут к новой станции.',
+  add('Расширить сеть','Сохраните сплав для нового узла: он откроет другие услуги и маршруты. На карте можно выбрать цель.',
    offer.relayCost,'baseMap');
  if(Number.isFinite(offer.upgradeCost)&&usable(offer.reasons.upgrade))
   add('Технология сети','Постоянное улучшение, если станция связана с сетью.',
@@ -80,7 +85,38 @@ export function nextEconomyChoices(base,state,offer,lastSortie=null){
   add('Пересмотреть сборку','Сравните вооружение перед следующим вылетом.',
    null,'baseTab','hangar');
  }
- return choices.slice(0,4);
+ // The first cards must represent different strategies, not merely the first
+ // entries of a list of unaffordable items. Reserve room for a long-term goal
+ // and a free experiment even when the hull is damaged.
+ const result=[];
+ const select=c=>{if(c&&!result.includes(c))result.push(c);};
+ const immediate=choices.filter(c=>c.cost>0&&c.cost<=ore&&!c.reason&&c.act!=='baseMap')
+  .sort((a,b)=>{
+   const rank=c=>c.act==='repair'?0:c.title==='Рельсовое орудие'?1:
+    c.act==='hire'?2:c.act==='service'?3:4;
+   return rank(a)-rank(b);
+  });
+ immediate.slice(0,2).forEach(select);
+ select(choices.find(c=>c.act==='baseMap'));
+ select(choices.find(c=>c.cost===0&&!c.reason));
+ if(result.length<4){
+  const canUseContract=offer.contractOptions?.length&&
+   (offer.contract?.status==='available'||
+    (state.contract?.baseId===base.id&&['active','ready'].includes(offer.contract?.status)));
+  if(canUseContract){
+   const bonus=offer.contractOptions.map(c=>c.ore);
+   add(state.contract?'Продолжить заказ':'Заработать сплав',state.contract?
+    'Проверьте цели уже принятого задания и вернитесь за наградой.':
+    'Два полевых заказа: от '+Math.min(...bonus)+' до '+Math.max(...bonus)+' ед. сплава после сдачи. Можно копить на следующую станцию.',
+    null,'baseTab','operations');
+  }else{
+   add('Добыть сплав','Вылетите к астероидам и удерживайте E для извлечения руды. Вернитесь на станцию, когда станет опасно.',
+    null,'close');
+  }
+  select(choices.at(-1));
+ }
+ choices.forEach(c=>{if(result.length<4)select(c);});
+ return result.slice(0,4);
 }
 
 export function validSortieReports(reports){

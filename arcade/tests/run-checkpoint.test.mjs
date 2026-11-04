@@ -9,6 +9,7 @@ import {createIonLoan} from '../ion-conductor.js';
 import {RUN_KEYS,RunCheckpointStore,captureCheckpoint,restoreCheckpoint,packRun,unpackRun,validateCheckpoint} from '../run-checkpoint.js';
 import {startSortie,finishSortie,appendSortieReport} from '../sortie-economy.js';
 import {emptyEconomyExpenses,recordEconomyExpense} from '../sortie-ledger.js';
+import {transitCost} from '../base-panel.js';
 
 const entry=new URL('../game.js',import.meta.url);
 const source=readFileSync(entry,'utf8').replace(/\nnew ArcadeGame\(\);\s*$/,'\n')
@@ -153,6 +154,56 @@ test('departing via the station map arms one sortie, but an in-flight map does n
  assert.equal(g.sortieReports.length,1);
  assert.equal(g.sortieReports[0].seconds,85);
  assert.equal(g.sortieReports[0].ore,26);
+});
+test('a paid network transfer creates one accounted flight and credits its original contract',()=>{
+ const g=scene(),home=g.docked,target=g.world.station(0,-1);
+ target.active=true;g.activeBases=2;g.player.ore=86;
+ assert.ok(g.world.networkTopology().linked.has(target.id));
+ const price=transitCost(home,target);
+ g.sortieStart=null;g.sortieReports=[];g.economyExpenses=emptyEconomyExpenses();
+ g.stationExitArmed=true;g.mining={active:false,target:null};
+ g.heritage={...g.heritage,ui:noop,pause:noop,resume:noop};
+ g.hangarSession={dirty:()=>false,begin:noop};g.endInteraction=noop;
+ g.saveAtStation=noop;g.releaseMenu=noop;g.renderDock=noop;
+ g.contract={baseId:home.id,kind:'rich',goal:1,progress:0,choiceId:'alternate',
+  name:'Геологические сведения',ore:10,data:24};
+ g.baseAction('transfer',target.id);
+ assert.equal(g.overlay.hidden,true);
+ assert.equal(g.docked,null);
+ assert.equal(g.player.ore,86-price);
+ assert.equal(g.economyExpenses.travel,price);
+ assert.equal(g.sortieStart.ore,86-price,'travel is a station expense, not a flight loss');
+ const start=g.sortieStart;
+ g.advanceContract('mine',{rich:true});
+ assert.equal(g.contract.completedSortieId,start.id);
+ g.time+=75;g.player.ore+=12;g.player.data+=8;g.player.hp-=9;
+ // After the long return flight the craft is in interaction range of home.
+ g.player.x=home.x+55;g.player.y=home.y+30;
+ g.dock(home);
+ assert.equal(g.sortieReports.length,1);
+ assert.equal(g.sortieReports[0].ore,12);
+ assert.equal(g.sortieReports[0].data,8);
+ assert.equal(g.sortieReports[0].hull,-9);
+ g.baseAction('claimContract','');
+ assert.equal(g.player.ore,86-price+12+10);
+ assert.equal(g.sortieReports[0].ore,22);
+ assert.equal(g.sortieReports[0].details.oreContracts,10);
+ assert.equal(g.lastContractReceipt.credited,true);
+ assert.equal(g.economyExpenses.travel,price);
+ assert.equal(g.sortieStart,null);
+});
+test('a network transfer cannot spend alloy or discard a pending hangar draft',()=>{
+ const g=scene(),home=g.docked,target=g.world.station(0,-1);
+ target.active=true;g.player.ore=80;g.stationExitArmed=true;g.sortieStart=null;
+ g.hangarSession={dirty:()=>true};g.mining={active:false,target:null};
+ let rendered=0;g.renderDock=()=>{rendered++;};
+ const start={x:g.player.x,y:g.player.y,ore:g.player.ore};
+ g.baseAction('transfer',target.id);
+ assert.equal(g.docked,home);
+ assert.equal(g.player.x,start.x);assert.equal(g.player.y,start.y);
+ assert.equal(g.player.ore,start.ore);
+ assert.equal(g.baseTab,'hangar');assert.equal(rendered,1);
+ assert.equal(g.sortieStart,null);
 });
 test('cargo, station mission, escort targets, missiles and strike bases retain shared identities',()=>{
  const g=scene(),carrier=g.world.nearbyStations(1500,0,2300).find(b=>b!==g.docked);
