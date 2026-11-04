@@ -81,8 +81,9 @@ export function drawEnemyIntentions(ctx,cam,game,reducedMotion=false,fps=60){
 export function enemyIntentMapPaths(game,project,visible){
   // The map may show a nearby, visually confirmed patrol. It must not become
   // a free detector of enemies hiding behind cover or outside optical range.
-  return collectEnemyIntents(game,{max:ENEMY_INTENT_VIEW.maxMap,radius:290})
-    .filter(path=>game.enemyCanSee?.(path.ship,game.player))
+  return collectEnemyIntents(game,{max:8,radius:290})
+    .filter(path=>game.playerCanInspectEnemyIntent?.(path.ship))
+    .slice(0,ENEMY_INTENT_VIEW.maxMap)
     .map(path=>{
       const a=project(path.x,path.y),b=project(path.toX,path.toY);
       if(!visible(a))return '';
