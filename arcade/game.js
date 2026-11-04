@@ -1,11 +1,11 @@
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-2-frontier-2';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-3';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
-import {strategicCapture} from './regional-supply.js?v=living-world-2';
+import {strategicCapture} from './regional-supply.js?v=living-world-3';
 import {disableCentralWorker} from './central-industry.js?v=living-world-1';
-import {damageFrontierAsset} from './frontier-industry.js?v=living-world-2';
+import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30';
-import {World} from './world.js?v=living-world-2';
+import {World} from './world.js?v=living-world-3';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
@@ -27,9 +27,9 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-2-station-layout-2-station-audit-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-4-living-world-2-frontier-2';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-4-living-world-3-frontier-3';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -43,7 +43,7 @@ import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
 import {pickDesignatedTarget,activeDesignatedTarget} from './target-designation.js?v=living-world-2';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-2';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -1953,7 +1953,7 @@ export class ArcadeGame {
  }
  damageEnemy(e,damage,source='other',contact=null){
   if(e.hp<=0)return;
-  if(e.regionalCargo){hitRegionalCargo(this,e,damage,contact);return;}
+  if(e.regionalCargo){hitRegionalCargo(this,e,damage,contact,source);return;}
   if(e.centralWorker){
    e.hp=Math.max(0,e.hp-damage);e.hit=.15;
    this.heritage.vfx.hullImpact(contact?.x??e.x,contact?.y??e.y,damage>30,contact);

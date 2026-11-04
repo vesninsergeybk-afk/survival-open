@@ -1,7 +1,7 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
-import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-2';
+import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE} from './central-industry.js?v=living-world-1';
-import {FRONTIERS} from './frontier-industry.js?v=living-world-2';
+import {FRONTIERS,frontierRoute} from './frontier-industry.js?v=living-world-3';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
@@ -33,10 +33,16 @@ export function renderRegionAtlas(game){
    if(!source?.discovered&&!depot?.discovered)return '<p>'+(id==='azure'?
     'В разломе работают неизвестные индукционные установки. Их грузы питают новые отряды.':
     'В обломках действуют сборщики и ремонтная верфь. Найдите путь их снабжения.')+'</p>';
+   const strat=net.strategy;
+   const tactics=source?.discovered&&strat?
+    ' Текущий грузовой путь: '+(strat.route==='diversion'?'обходной':'прямой')+
+    (strat.routePlan?' (готовится изменение)':'')+'. Охранение: '+
+    (strat.screenPlan?'готовится усиленное':strat.screenUntil>game.time?'усиленное, требует дополнительных материалов':'обычное')+'.':
+    '';
    return '<p><strong>'+(id==='azure'?'Энергосеть разлома':'Ремонтная сеть обломков')+'</strong>: источник — '+known(source)+
     ', сборка — '+known(depot)+'. Замечено грузов: '+net.convoys.filter(c=>c.seen).length+
     '. Резервов: '+(depot?.discovered?net.reserves:'неизвестно')+'. '+
-    (id==='azure'?'Разряды бурь заряжают перехватчиков.':'Сборщики разбирают ограниченные залежи металла.')+'</p>';
+    (id==='azure'?'Разряды бурь заряжают перехватчиков.':'Сборщики разбирают ограниченные залежи металла.')+tactics+'</p>';
   }).join('');
  return '<div class="map-objective region-status"><span>РЕГИОН '+current.number+' · '+enc(current.name)+'</span><p>'+enc(current.cue)+'</p>'+
   '<details class="region-atlas"><summary>Обзор регионов и выбор направления</summary><svg viewBox="0 0 300 240" role="img" aria-label="Старт в центре, рудный пояс на востоке, разлом на юге, военный рубеж на севере, обломки на западе">'+
@@ -59,7 +65,8 @@ export function regionalMapOverlay(game,point,visible){
  for(const id of ['azure','teal']){
   const cfg=FRONTIERS[id];
   if(!game.world.stations.get(cfg.sourceId)?.discovered)continue;
-  out+='<path d="M '+cfg.route.map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+
+  const mode=s.frontier?.[id]?.strategy?.route;
+  out+='<path d="M '+frontierRoute(id,mode).map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+
    '" stroke="'+(id==='azure'?'#90dcff':'#9fe9bb')+'" opacity=".72" stroke-width="2" stroke-dasharray="11 6" fill="none"/>';
  }
  for(const c of [...s.convoys,...(s.central?.convoys||[]),
@@ -67,7 +74,8 @@ export function regionalMapOverlay(game,point,visible){
   const q=point(c);if(!visible(q))continue;
   const color=c.frontierCargo?(c.frontierNetwork==='azure'?'#90dcff':'#9fe9bb'):
    c.centralCargo?'#83efcd':'#ffc481';
-  const label=c.frontierCargo?(c.frontierNetwork==='azure'?'ЭНЕРГОТРАНСПОРТ':'РЕМОНТНЫЙ ГРУЗ'):
+  const label=c.frontierCargo?(c.screened?'УСИЛЕННЫЙ ГРУЗ':
+   (c.frontierNetwork==='azure'?'ЭНЕРГОТРАНСПОРТ':'РЕМОНТНЫЙ ГРУЗ')):
    c.centralCargo?'МЕСТНЫЙ ГРУЗ':'РУДНЫЙ ТРАНСПОРТ';
   out+='<g><rect x="'+(q.x-5)+'" y="'+(q.y-5)+'" width="10" height="10" fill="'+color+'"/><text x="'+(q.x+9)+'" y="'+(q.y-9)+'" fill="#ffdbad" font-size="11">'+label+'</text></g>';
  }

@@ -62,6 +62,25 @@ test('frontier economy, finite wrecks and new station IDs survive a real checkpo
  forbidden.world.regionalSupply.frontier.teal.wrecks[0].stock=999;
  assert.equal(validateCheckpoint(forbidden),false,'wrecks cannot be refilled through a save');
 });
+test('an announced, funded industrial response survives a save without a duplicate charge',()=>{
+ const g=scene(),s=g.world.regionalSupply.frontier.azure;
+ advanceRegionalSupply(g.world,g.time);
+ s.strategy.routePlan={to:'diversion',readyAt:g.time+34};
+ s.strategy.nextRoutePlanAt=g.time+200;
+ s.strategy.reports=[{seq:1,kind:'loss',route:'direct',at:210,receivedAt:222},
+  {seq:2,kind:'loss',route:'direct',at:224,receivedAt:236}];
+ s.strategy.reportSerial=2;s.strategy.routeEvidenceThrough=2;
+ const saved=captureCheckpoint(g,g.docked);
+ assert.ok(validateCheckpoint(saved));
+ const restored=scene();restoreCheckpoint(restored,unpackRun(packRun(saved)));
+ assert.deepEqual(restored.world.regionalSupply.frontier.azure.strategy,s.strategy);
+ const resources=s.resource;
+ advanceRegionalSupply(restored.world,Math.ceil(g.time+34));
+ assert.equal(restored.world.regionalSupply.frontier.azure.strategy.route,'diversion');
+ assert.equal(restored.world.regionalSupply.frontier.azure.strategy.routePlan,null);
+ assert.ok(restored.world.regionalSupply.frontier.azure.resource>=0);
+ assert.equal(resources,s.resource,'saving must not spend funds again');
+});
 test('checkpoint restores hull, inventory, progression, changed rocks and network together',()=>{
  const g=scene(),base=g.world.nearbyStations(1600,0,2100,false).find(b=>b!==g.docked);
  base.active=true;base.relayBoost=true;base.usedUpgrade=true;base.module='armor';
