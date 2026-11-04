@@ -42,7 +42,7 @@ export function enemyPursuitTarget(e,game){
   const order=game.enemyComms?.directiveFor?.(e,now);
   if(order?.intel)return point(order.intel,now);
   const intel=e.signalIntel;
-  if(intel?.combatFocus===game.player&&
+  if((intel?.combatFocus===game.player||intel?.lastSeenEstimated)&&
     now-intel.lastSeenAt<=ENEMY_AWARENESS.personalMemory)
     return point({x:intel.lastSeenX,y:intel.lastSeenY,
       vx:0,vy:0,at:intel.lastSeenAt},now);

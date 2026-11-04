@@ -30,7 +30,8 @@ export function collectEnemyIntents(game,options={}){
     if(!e.hp||e.hp<=0||e.converted||!intent||
        !finitePoint(e)||!finitePoint(intent)||
        now-intent.at<0||now-intent.at>ENEMY_INTENT_VIEW.maxAge||
-       distance(e,game.player)>radius)continue;
+       distance(e,game.player)>radius||
+       options.visibleOnly&&!game.playerCanInspectEnemyIntent?.(e))continue;
     // An intercepted or expired transmission invalidates the drawing even
     // if the old movement target remains on the ship for one more frame.
     const order=game.enemyComms.directiveFor(e,now);
@@ -57,7 +58,8 @@ export function collectEnemyIntents(game,options={}){
 }
 
 export function drawEnemyIntentions(ctx,cam,game,reducedMotion=false,fps=60){
-  const paths=collectEnemyIntents(game,{max:fps<28?2:ENEMY_INTENT_VIEW.maxWorld});
+  const paths=collectEnemyIntents(game,{max:fps<28?2:ENEMY_INTENT_VIEW.maxWorld,
+    visibleOnly:true});
   let drawn=0;
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   for(const path of paths){
@@ -83,8 +85,7 @@ export function drawEnemyIntentions(ctx,cam,game,reducedMotion=false,fps=60){
 export function enemyIntentMapPaths(game,project,visible){
   // The map may show a nearby, visually confirmed patrol. It must not become
   // a free detector of enemies hiding behind cover or outside optical range.
-  return collectEnemyIntents(game,{max:8,radius:290})
-    .filter(path=>game.playerCanInspectEnemyIntent?.(path.ship))
+  return collectEnemyIntents(game,{max:8,radius:290,visibleOnly:true})
     .slice(0,ENEMY_INTENT_VIEW.maxMap)
     .map(path=>{
       const a=project(path.x,path.y),b=project(path.toX,path.toY);

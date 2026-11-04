@@ -21,9 +21,26 @@ export function alertSignalIntel(intel,player,time){
   const changed=intel.mode!=='engaged';
   intel.mode='engaged';
   intel.lastSeenX=player.x;intel.lastSeenY=player.y;intel.lastSeenAt=time;
-  intel.combatFocus=player;
+  intel.combatFocus=player;intel.lastSeenEstimated=false;
   if(changed)intel.cueUntil=time+2.3;
   return changed;
+}
+/** An impact behind cover yields a search area, never a precise attacker track.
+ * A pilot with an existing visual lock keeps its independently verified sighting. */
+export function alertSignalThreat(intel,estimate,time){
+  if(!intel||!estimate?.estimated||!Number.isFinite(estimate.x)||
+     !Number.isFinite(estimate.y)||
+     (intel.mode==='engaged'&&intel.combatFocus))return false;
+  // The attacked patrol becomes a legitimate combat target. Its pursuit goal
+  // is still the coarse impact sector; only a visual observation may upgrade
+  // the estimate into a precise contact.
+  intel.mode='engaged';intel.combatFocus=null;
+  intel.lastSeenX=estimate.x;intel.lastSeenY=estimate.y;
+  intel.lastSeenAt=time;intel.lastSeenEstimated=true;
+  intel.searchX=estimate.x;intel.searchY=estimate.y;
+  intel.searchStarted=time;intel.searchUntil=time+SIGNAL_AI.searchSeconds;
+  intel.cueUntil=time+1.8;
+  return true;
 }
 export function updateSignalIntent(enemy,game,dt){
   const intel=enemy.signalIntel;
@@ -36,9 +53,10 @@ export function updateSignalIntent(enemy,game,dt){
      now-radio.intel.at<=2.6){
     intel._receivedSightAt=radio.intel.at;
     const changed=intel.mode!=='engaged';
-    intel.mode='engaged';intel.combatFocus=p;
+    intel.mode='engaged';intel.combatFocus=radio.intel.estimated?null:p;
     intel.lastSeenX=radio.intel.x;intel.lastSeenY=radio.intel.y;
     intel.lastSeenAt=radio.intel.at;
+    intel.lastSeenEstimated=!!radio.intel.estimated;
     if(changed)intel.cueUntil=now+2.3;
   }
   const distance=Math.hypot(enemy.x-p.x,enemy.y-p.y);

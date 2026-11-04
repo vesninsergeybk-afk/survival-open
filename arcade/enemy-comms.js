@@ -7,7 +7,8 @@ export const ENEMY_COMMS=Object.freeze({
   pulseSeconds:.76,maxEvents:68,maxDrawn:16,
   attackMemory:13,attackFresh:7,maxAttackReports:12,
   interceptRange:560,estimatedIntelAge:6.4,
-  witnessRange:190,lossMemory:8,maxLossReports:8
+  witnessRange:190,lossMemory:8,maxLossReports:8,
+  incidentMemory:6.2
 });
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -29,10 +30,14 @@ const modeLabel=Object.freeze({press:'НАЖИМ',pincer:'ОБХОД',
 export function enemyOrderMessage(mode,threat=null){
   if(mode==='close'&&threat?.kind==='long')
     return 'Он бьёт издалека. Всем на сближение!';
+  if(mode==='pincer'&&threat?.kind==='close')
+    return 'Его оружие опасно вблизи. Держать дистанцию, обойти!';
   if(mode==='scatter'&&threat?.kind==='area')
     return 'У него площадное оружие. Рассредоточиться!';
   if(mode==='scatter'&&threat?.kind==='loss')
     return 'Звено несёт потери. Разомкнуть строй!';
+  if(mode==='intercept'&&threat?.kind==='sabotage')
+    return 'Наш промышленный узел атакован. Проверить район!';
   return ({press:'Контакт подтверждён. Держать давление!',
     pincer:'Два звена — обойти цель с флангов.',
     intercept:'Цель маневрирует. Перехватить курс!',
@@ -46,10 +51,19 @@ export function enemyOrderMessage(mode,threat=null){
 export function classifyEnemyAttack(weapon,range){
   if(!Number.isFinite(range)||range<0)return null;
   if(weapon==='ion'||weapon==='howitzer')return 'area';
-  if(!['beam','rail','rocket','flak'].includes(weapon))return null;
-  if(range>=270)return 'long';
-  if(range<=155)return 'close';
+  // Weapon signatures, not arbitrary firing distance, determine the counter.
+  // Plasma loses damage with range; calling it "long" lures pilots into its
+  // strongest point-blank damage. Rail and rockets work at long distances.
+  if(weapon==='beam'||weapon==='flak')return 'close';
+  if(weapon==='rail'||weapon==='rocket')return 'long';
   return null;
+}
+
+/** A victim outside visual contact can gauge the direction of impact but
+ * cannot measure the hidden attacker's exact distance using the game state. */
+export function estimatedWeaponRange(weapon){
+  return ({beam:200,flak:180,rail:390,rocket:390,
+    ion:300,howitzer:520})[weapon]??260;
 }
 
 /** Require repeat evidence separated in time: one lucky hit cannot change
@@ -138,7 +152,8 @@ function tallyVotes(proposals,intel,hasMedic,threat=null){
   if(threat?.kind==='long')votes.close+=13;
   if(threat?.kind==='area')votes.scatter+=13;
   if(threat?.kind==='loss')votes.scatter+=12;
-  if(threat?.kind==='close')votes.pincer+=3;
+  if(threat?.kind==='close')votes.pincer+=13;
+  if(threat?.kind==='sabotage')votes.intercept+=13;
   // A wounded flight changes its priorities only when there is somebody to
   // protect; it cannot obtain free repairs by voting for the screen maneuver.
   const mode=Object.keys(votes).reduce((best,key)=>
@@ -169,16 +184,41 @@ export class EnemyComms {
     e._commsHit={at:now,damage:Math.min(100,damage)};return true;
   }
 
-  reportLoss(victim,game){
+  reportIncident(asset,game,kind='industry'){
+    // A sabotage alert exists only if a living patrol witnessed damage at
+    // the installation. Its location is public; the saboteur's is not.
+    if(!asset||!game?.grid||!Number.isFinite(game.time))return 0;
+    let witnesses=0;
+    for(const e of game.grid.query(asset.x,asset.y,ENEMY_COMMS.witnessRange)){
+      if(e===asset||!legal(e)||
+        distance(e,asset)>ENEMY_COMMS.witnessRange||
+        !game.enemyCanSee?.(e,asset))continue;
+      e._commsIncident={at:game.time,x:asset.x,y:asset.y,kind};
+      witnesses++;
+    }
+    return witnesses;
+  }
+
+  reportLoss(victim,game,attack=null){
     // Witnessed destruction, not a global kill counter. Observers must be
     // alive, close enough and genuinely able to see the loss.
     if(!victim||victim.hp>0||!game?.grid)return 0;
+    const kind=attack?classifyEnemyAttack(attack.weapon,attack.range):null;
+    const estimate=kind?incomingFireEstimate(victim,attack.range,attack.contact):null;
     let witnesses=0;
     for(const e of game.grid.query(victim.x,victim.y,ENEMY_COMMS.witnessRange)){
       if(e===victim||!legal(e)||
         distance(e,victim)>ENEMY_COMMS.witnessRange||
         !game.enemyCanSee?.(e,victim))continue;
       e._commsLoss={at:game.time,victim:victim.serial};witnesses++;
+      // The dead pilot cannot report. A living witness may recognize a beam,
+      // rocket or blast, but receives only the same coarse impact bearing.
+      // Two deaths at one instant still fail the time-separated corroboration.
+      if(kind&&game.time>=(e._commsNextAttackAt??0)){
+        e._commsNextAttackAt=game.time+1;
+        e._commsAttack={at:game.time,kind,weapon:attack.weapon,
+          estimate:estimate?{...estimate}:null};
+      }
     }
     return witnesses;
   }
@@ -219,6 +259,7 @@ export class EnemyComms {
           cell.brokenUntil=now+ENEMY_COMMS.breakSeconds;
           cell.mode=null;cell.intel=null;cell.proposals=new Map();
           cell.attackReports=[];cell.lossReports=[];cell.threat=null;
+          cell.incident=null;
           for(const e of cell.members)e._commsOrder=null;
         }
         if(now>=cell.brokenUntil){
@@ -260,7 +301,8 @@ export class EnemyComms {
       for(const e of members)claimed.add(e);
       next.push({id:++this.serial,leader,members,mode:null,intel:null,
         holdUntil:0,brokenUntil:0,nextBroadcast:0,lastDecisionAt:-Infinity,
-        votes:null,proposals:new Map(),attackReports:[],lossReports:[],threat:null});
+        votes:null,proposals:new Map(),attackReports:[],lossReports:[],
+        threat:null,incident:null});
     }
     this.cells=next;
     this.intercepts=this.intercepts.filter(e=>now-e.at<=30);
@@ -278,6 +320,8 @@ export class EnemyComms {
       cell.lossReports??=[];
       cell.lossReports=cell.lossReports.filter(report=>
         now-report.at<=ENEMY_COMMS.lossMemory);
+      if(cell.incident&&now-cell.incident.at>ENEMY_COMMS.incidentMemory)
+        cell.incident=null;
       for(const e of cell.proposals.keys())
         if(!cell.members.includes(e))cell.proposals.delete(e);
       const hasMedic=cell.members.some(e=>
@@ -327,17 +371,32 @@ export class EnemyComms {
               cell.attackReports.shift();
           }
         }
+        const incident=e._commsIncident;
+        if(incident&&incident.at>(e._commsDeliveredIncidentAt??-Infinity)&&
+          now-incident.at<1.8){
+          e._commsDeliveredIncidentAt=incident.at;
+          if(e===leader||this.send(e,leader,'distress',now)){
+            if(!cell.incident||incident.at>=cell.incident.at)
+              cell.incident={...incident};
+            distress=true;
+          }
+        }
       }
       cell.threat=assessEnemyThreat(cell.attackReports,now);
       const lossCount=cell.lossReports.length;
       if(!cell.threat&&lossCount>=2)
         cell.threat={kind:'loss',samples:lossCount,
           lastAt:cell.lossReports[cell.lossReports.length-1].at};
+      if(!cell.threat&&cell.incident&&
+        !(cell.intel&&!cell.intel.estimated&&intelFresh(cell.intel,now)))
+        cell.threat={kind:'sabotage',lastAt:cell.incident.at};
       if(!cell.intel||cell.intel.estimated||!intelFresh(cell.intel,now)){
         // Two coherent impacts can locate a rough firing *sector* beyond
         // optical range. It is never promoted to an exact target track.
         const source=cell.threat?.source;
-        cell.intel=source?.estimate?{...source.estimate,at:source.at}:null;
+        cell.intel=source?.estimate?{...source.estimate,at:source.at}:
+          cell.incident?{x:cell.incident.x,y:cell.incident.y,vx:0,vy:0,
+            at:cell.incident.at,estimated:true,incident:true}:null;
       }
       if(!intelFresh(cell.intel,now)){
         cell.intel=null;cell.mode=null;continue;
@@ -398,8 +457,7 @@ export class EnemyComms {
         leader:cell.leader,cellId:cell.id};
       cell.lastIntercept=item;this.intercepts.push(item);
       if(this.intercepts.length>8)this.intercepts.shift();
-      if(!game.playerCanInspectEnemyIntent?.(cell.leader)&&
-        now>=(this.nextNoticeAt||0)){
+      if(now>=(this.nextNoticeAt||0)){
         game.notice?.('Радиоперехват: '+message,3.8);
         this.nextNoticeAt=now+5;
       }
@@ -442,8 +500,10 @@ export class EnemyComms {
         const leader=cell.leader;
         if(member===leader||!this.directiveFor(member,now)||
           (!isVisible(member,cam,15)&&!isVisible(leader,cam,15)))continue;
-        if(game&&!game.playerCanInspectEnemyIntent?.(member)&&
-          !game.playerCanInspectEnemyIntent?.(leader))continue;
+        // Both endpoints must be optically confirmed: drawing a line from a
+        // visible wingman to a concealed caller reveals the caller's position.
+        if(game&&(!game.playerCanInspectEnemyIntent?.(member)||
+          !game.playerCanInspectEnemyIntent?.(leader)))continue;
         ctx.globalAlpha=fps<28?.20:.26;
         ctx.strokeStyle='#c2a7ff';ctx.lineWidth=1.25;
         if(fps>=28)ctx.setLineDash([2,12]);
@@ -458,8 +518,8 @@ export class EnemyComms {
       if(msg.until<=now||!legal(a)||!legal(b)||
         distance(a,b)>ENEMY_COMMS.range*1.12||
         (!isVisible(a,cam,25)&&!isVisible(b,cam,25)))continue;
-      if(game&&!game.playerCanInspectEnemyIntent?.(a)&&
-        !game.playerCanInspectEnemyIntent?.(b))continue;
+      if(game&&(!game.playerCanInspectEnemyIntent?.(a)||
+        !game.playerCanInspectEnemyIntent?.(b)))continue;
       if(drawn>=ENEMY_COMMS.maxDrawn)break;
       const t=clamp((now-msg.start)/ENEMY_COMMS.pulseSeconds,0,1);
       ctx.globalAlpha=(1-t)*(fps<28?.21:.34);
@@ -480,13 +540,14 @@ export class EnemyComms {
     let cues=0;const labelCenters=[];
     for(const cell of this.cells){
       if(cues>=3)break;
-      const e=cell.leader,age=now-cell.lastDecisionAt;
+      const e=cell.leader,age=now-(cell.lastIntercept?.at??-Infinity);
       if(!modeLabel[cell.mode]||age<0||age>3.4||
          !legal(e)||!isVisible(e,cam,30))continue;
       if(!game?.playerCanInspectEnemyIntent?.(e))continue;
       if(labelCenters.some(other=>distance(other,e)<235))continue;
       const heard=cell.lastIntercept?.cellId===cell.id&&
-        cell.lastIntercept.at===cell.lastDecisionAt&&
+        cell.lastIntercept.mode===cell.mode&&
+        cell.lastIntercept.at>=cell.lastDecisionAt&&
         now<=cell.lastIntercept.until;
       if(!heard)continue;
       ctx.globalAlpha=clamp(3.4-(now-cell.lastIntercept.at),0,.95);

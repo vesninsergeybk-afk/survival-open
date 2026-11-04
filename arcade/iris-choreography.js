@@ -203,6 +203,10 @@ export function irisPackDirective(e,game){
   }
   if(radio?.mode==='pincer'&&(role.role==='left'||role.role==='right'))
     radioApplied=true;
+  if(radio?.mode==='pincer'&&radio.threat?.kind==='close'){
+    // Keep the swarm's authored gaps open while contesting a short-range beam.
+    radius=Math.max(radius,295);radioApplied=true;
+  }
   const angle=radio?.mode==='pincer'&&
     (role.role==='left'||role.role==='right')?
     role.angle+(role.role==='left'?.085:-.085):role.angle;

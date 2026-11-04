@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {EnemyComms,ENEMY_COMMS,collectiveDecision,enemyOrderMessage,
- classifyEnemyAttack,assessEnemyThreat,incomingFireEstimate} from '../enemy-comms.js';
+ classifyEnemyAttack,assessEnemyThreat,incomingFireEstimate,
+ estimatedWeaponRange} from '../enemy-comms.js';
 import {updateEnemy} from '../ai.js';
 import {RuntimeHarness} from './runtime-game.mjs';
 import {contactOnCircle} from '../impact-geometry.js';
@@ -41,6 +42,55 @@ test('a verified scout report travels to a caller and the shared order travels b
  assert.equal(net.directiveFor(scout,game.time).leader,fighter);
  assert.equal(net.directiveFor(scout,game.time).intel.x,game.player.x);
  assert.equal(net.directiveFor(scout,game.time).mode,'intercept');
+});
+
+test('witnessed industrial sabotage creates a real local response without a player coordinate',()=>{
+ const scout=ship(1,'scout',115,75),fighter=ship(2,'fighter',180,75);
+ const game=scene([scout,fighter]),net=game.enemyComms;
+ game.player.x=1700;game.player.y=1700;
+ const asset={x:120,y:105,hp:0,centralWorker:true};
+ net.update(game);
+ game.time=.2;
+ assert.equal(net.reportIncident(asset,game,'mining'),2);
+ game.time=.75;net.update(game);
+ const order=net.directiveFor(scout,game.time);
+ assert.equal(order?.mode,'intercept');
+ assert.equal(order.intel.estimated,true);
+ assert.equal(order.intel.incident,true);
+ assert.deepEqual([order.intel.x,order.intel.y],[asset.x,asset.y]);
+ assert.ok(net.events.some(event=>event.kind==='distress'));
+ game.playerCanInspectEnemyIntent=()=>true;
+ game.time=.8;execute(game);
+ assert.equal(scout._commsIntent?.mode,'intercept');
+ assert.ok(Math.hypot(scout._commsIntent.x-asset.x,
+  scout._commsIntent.y-asset.y)<1,'the wingman steers to the damaged facility');
+ assert.equal(enemyOrderMessage('intercept',{kind:'sabotage'}),
+  'Наш промышленный узел атакован. Проверить район!');
+});
+
+test('unwitnessed infrastructure damage never broadcasts an omniscient alarm',()=>{
+ const scout=ship(1,'scout',115,75),fighter=ship(2,'fighter',180,75);
+ const game=scene([scout,fighter]),net=game.enemyComms;
+ game.enemyCanSee=()=>false;
+ net.update(game);game.time=.2;
+ assert.equal(net.reportIncident({x:120,y:105,hp:0},game),0);
+ game.time=.75;net.update(game);
+ assert.equal(net.directiveFor(scout,game.time),null);
+ assert.ok(!net.events.some(event=>event.kind==='distress'));
+});
+
+test('a fresh visual contact supersedes an older industrial alarm',()=>{
+ const scout=ship(1,'scout',115,75),fighter=ship(2,'fighter',180,75);
+ const game=scene([scout,fighter]),net=game.enemyComms;
+ net.update(game);game.time=.2;
+ net.reportIncident({x:120,y:105,hp:0},game,'mining');
+ game.time=.75;net.update(game);
+ assert.equal(net.cells[0].threat.kind,'sabotage');
+ net.reportSight(fighter,game.player,1.0);
+ game.time=1.5;net.update(game);
+ assert.equal(net.cells[0].intel.estimated,undefined);
+ assert.notEqual(net.cells[0].threat?.kind,'sabotage',
+  'seeing the player is more important than investigating a dead worker');
 });
 
 test('a reinforcement cannot obey a group decision before receiving its message',()=>{
@@ -116,10 +166,14 @@ test('a wounded squad with a working medic can collectively choose a screen',()=
 
 test('real weapon hits are classified without reading private player equipment',()=>{
  assert.equal(classifyEnemyAttack('rail',345),'long');
- assert.equal(classifyEnemyAttack('beam',290),'long');
+ assert.equal(classifyEnemyAttack('beam',290),'close');
+ assert.equal(classifyEnemyAttack('beam',430),'close',
+  'a long plasma shot is still a dangerous close-range beam');
+ assert.equal(classifyEnemyAttack('flak',245),'close');
  assert.equal(classifyEnemyAttack('howitzer',450),'area');
  assert.equal(classifyEnemyAttack('ion',90),'area');
  assert.equal(classifyEnemyAttack('beam',130),'close');
+ assert.equal(estimatedWeaponRange('rail'),390);
  assert.equal(classifyEnemyAttack('storm',380),null);
  assert.equal(classifyEnemyAttack('rocket',NaN),null);
  assert.equal(assessEnemyThreat([{kind:'long',at:1}],2),null);
@@ -145,7 +199,7 @@ test('two communicated long-range hits change a real collective order to closing
  assert.notEqual(net.cells[0].mode,'close');
  assert.ok(net.events.some(event=>event.kind==='weapon'&&event.from===scout),
   'a subordinate must transmit its observation');
- net.reportAttack(fighter,'beam',330,2.8);
+ net.reportAttack(fighter,'rocket',330,2.8);
  net.reportSight(scout,game.player,2.8);
  game.time=2.9;net.update(game);
  assert.equal(net.cells[0].attackReports.length,2);
@@ -162,6 +216,21 @@ test('confirmed area attacks trigger dispersal, but isolated hits do not',()=>{
  const area=collectiveDecision(members,{vx:0,vy:0},{kind:'area'});
  assert.equal(long.mode,'close');
  assert.equal(area.mode,'scatter');
+});
+
+test('a confirmed plasma beam provokes a cautious orbit, not suicidal closing',()=>{
+ const fighter=ship(1,'fighter',240,70),flanker=ship(2,'flanker',280,80);
+ const decision=collectiveDecision([fighter,flanker],{vx:0,vy:0},
+  {kind:'close'});
+ assert.equal(decision.mode,'pincer');
+ assert.match(enemyOrderMessage(decision.mode,{kind:'close'}),/Держать дистанцию/);
+ const game=scene([fighter,flanker]);game.time=1;
+ game.enemyComms.directiveFor=()=>({mode:'pincer',side:1,leader:flanker,
+  intel:{x:0,y:0,vx:0,vy:0,at:1},threat:{kind:'close'}});
+ updateEnemy(fighter,game,.016);
+ assert.equal(fighter._commsIntent?.mode,'pincer');
+ assert.ok(Math.hypot(fighter._commsIntent.x,fighter._commsIntent.y)>=300,
+  'the wingman aims for the safer ring instead of the strongest plasma zone');
 });
 
 test('a quoted change of strategy has the same cause as the real tactical vote',()=>{
@@ -214,6 +283,73 @@ test('only an executed, intercepted radio order enters the transcript',()=>{
  assert.equal(radio.intercepted(31).length,0,'old intercepts leave the map');
 });
 
+test('a delayed executed order still creates a visible speech bubble and HUD notice',()=>{
+ const leader=ship(2,'fighter',150),wing=ship(1,'flanker',100);
+ const net=new EnemyComms(),intel={x:0,y:0,vx:0,vy:0,at:1.5};
+ const cell={id:1,leader,members:[leader,wing],mode:'close',intel,
+  threat:{kind:'long'},lastDecisionAt:1,pendingDecision:{at:1,mode:'close'}};
+ net.cells=[cell];wing._commsCell=cell;
+ wing._commsOrder={cellId:1,mode:'close',intel,at:1};
+ wing._commsIntent={x:10,y:20,mode:'close',leader,at:1.5};
+ const notices=[],game={time:1.5,playerCanInspectEnemyIntent:()=>true,
+  playerCanInterceptEnemyRadio:()=>true,notice:text=>notices.push(text)};
+ net.confirmExecution(game);
+ const labels=[],ctx={save(){},restore(){},setLineDash(){},beginPath(){},
+  moveTo(){},lineTo(){},stroke(){},arc(){},fill(){},
+  fillRect(){},strokeRect(){},fillText:text=>labels.push(text)};
+ net.render(ctx,{x:0,y:0,w:500,h:320},1.5,false,60,game);
+ assert.ok(labels.some(line=>line.includes('ПЕРЕХВАЧЕН ПРИКАЗ')));
+ assert.ok(notices.some(line=>line.includes('бьёт издалека')));
+});
+
+test('a visible wingman cannot expose an unseen commander through radio lines',()=>{
+ const leader=ship(2,'fighter',150),wing=ship(1,'flanker',100);
+ const net=new EnemyComms(),intel={x:0,y:0,vx:0,vy:0,at:1};
+ const cell={id:1,leader,members:[leader,wing],mode:'pincer',intel};
+ net.cells=[cell];wing._commsCell=cell;
+ wing._commsOrder={cellId:1,mode:'pincer',intel,at:1};
+ net.events=[{from:leader,to:wing,kind:'order',start:.9,until:1.66}];
+ const strokes=[],ctx={save(){},restore(){},setLineDash(){},beginPath(){},
+  moveTo(x,y){strokes.push([x,y]);},lineTo(){},stroke(){},
+  arc(){},fill(){},fillText(){}};
+ const hidden={playerCanInspectEnemyIntent:e=>e===wing};
+ net.render(ctx,{x:0,y:0,w:500,h:320},1,false,60,hidden);
+ assert.deepEqual(strokes,[],'a one-sided visual trace reveals the hidden endpoint');
+ net.render(ctx,{x:0,y:0,w:500,h:320},1,false,60,
+  {playerCanInspectEnemyIntent:()=>true});
+ assert.ok(strokes.length>0,'acknowledged, visible peers still show real traffic');
+});
+
+test('living witnesses learn signatures from lethal strikes; isolated deaths teach nothing',()=>{
+ const witness=ship(1,'fighter',150,70),victimA=ship(2,'scout',130,90),
+  victimB=ship(3,'scout',175,90),survivor=ship(4,'flanker',165,72);
+ victimA.hp=victimA.maxHp=28;victimB.hp=victimB.maxHp=28;
+ const game=scene([witness,victimA,victimB,survivor]),net=game.enemyComms;
+ const harness=new RuntimeHarness();
+ Object.assign(harness,{player:game.player,enemyComms:net,
+  enemyLearning:{damaged(){}},heritage:{play(){},vfx:{hullImpact(){}}},
+  visuals:{},grid:game.grid,enemyCanSee:game.enemyCanSee,time:0});
+ net.update(game);
+ for(const [victim,at] of [[victimA,1],[victimB,2.4]]){
+  game.time=harness.time=at;
+  harness.damageEnemy(victim,38,'rail',
+   contactOnCircle(victim.x,victim.y,victim.r,game.player.x,game.player.y));
+  assert.ok(victim.hp<=0);
+  net.update(game);
+ }
+ assert.ok(net.cells[0].attackReports.length>=2);
+ assert.equal(net.cells[0].threat?.kind,'long');
+ const lone=ship(4,'scout',130,90),isolated=scene([witness,lone]);
+ lone.hp=lone.maxHp=28;isolated.enemyCanSee=()=>false;
+ Object.assign(harness,{player:isolated.player,enemyComms:isolated.enemyComms,
+  grid:isolated.grid,enemyCanSee:isolated.enemyCanSee,time:4});
+ isolated.time=4;isolated.enemyComms.update(isolated);
+ harness.damageEnemy(lone,38,'rail',
+  contactOnCircle(lone.x,lone.y,lone.r,isolated.player.x,isolated.player.y));
+ assert.equal(witness._commsAttack.at,2.4,
+  'an unseen later destruction must not upgrade the witness observation');
+});
+
 test('a long-distance counter-order is visible only after two real transmitted hits',()=>{
  const scout=ship(1,'flanker',90),fighter=ship(2,'fighter',160);
  const game=scene([scout,fighter]),net=game.enemyComms;
@@ -223,7 +359,7 @@ test('a long-distance counter-order is visible only after two real transmitted h
  net.reportAttack(scout,'rail',345,1.5);
  game.time=1.6;net.update(game);execute(game);
  assert.equal(net.intercepted(1.6).length,1);
- net.reportAttack(fighter,'beam',330,2.8);
+ net.reportAttack(fighter,'rocket',330,2.8);
  net.reportSight(scout,game.player,2.8);
  game.time=2.9;net.update(game);execute(game);
  game.time=3.7;net.update(game);execute(game);
@@ -243,7 +379,7 @@ test('real player damage beyond sight becomes an uncertain, executed radio respo
   enemyLearning:{damaged(){}},heritage:{play(){},vfx:{hullImpact(){}}},
   visuals:{},time:0});
  net.update(game);
- for(const [e,now,weapon] of [[wing,1.0,'rail'],[leader,2.4,'beam']]){
+ for(const [e,now,weapon] of [[wing,1.0,'rail'],[leader,2.4,'rocket']]){
   game.time=harness.time=now;
   const hit=contactOnCircle(e.x,e.y,e.r,game.player.x,game.player.y);
   harness.damageEnemy(e,5,weapon,hit);
@@ -443,4 +579,9 @@ test('the public module chain loads the new tactical network instead of cached c
  assert.match(read('game.js'),/ai\.js\?v=enemy-learning-1-enemy-comms-1/);
  assert.match(read('game.js'),/enemy-comms\.js\?v=enemy-comms-1/);
  assert.match(read('ai.js'),/iris-choreography\.js\?v=[^"']*enemy-comms-1/);
+ const activeAi=read('game.js').match(/from '(\.\/ai\.js\?v=[^']+)'/)?.[1];
+ assert.ok(activeAi);
+ for(const moduleName of ['region-runtime.js','combat-rewards.js'])
+  assert.ok(read(moduleName).includes(activeAi),
+   `${moduleName} must reuse the active AI module instead of loading a stale copy`);
 });
