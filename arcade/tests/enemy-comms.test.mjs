@@ -579,4 +579,9 @@ test('the public module chain loads the new tactical network instead of cached c
  assert.match(read('game.js'),/ai\.js\?v=enemy-learning-1-enemy-comms-1/);
  assert.match(read('game.js'),/enemy-comms\.js\?v=enemy-comms-1/);
  assert.match(read('ai.js'),/iris-choreography\.js\?v=[^"']*enemy-comms-1/);
+ const activeAi=read('game.js').match(/from '(\.\/ai\.js\?v=[^']+)'/)?.[1];
+ assert.ok(activeAi);
+ for(const moduleName of ['region-runtime.js','combat-rewards.js'])
+  assert.ok(read(moduleName).includes(activeAi),
+   `${moduleName} must reuse the active AI module instead of loading a stale copy`);
 });
