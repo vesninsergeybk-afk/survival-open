@@ -2,7 +2,8 @@ import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamer
 import {World} from './world.js?v=arcade-base-network-40';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=iris-pack-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1';
+import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1';
 import {createSignalIntel,alertSignalIntel} from './signal-perception.js?v=arcade-perception-61';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
@@ -136,6 +137,8 @@ export class ArcadeGame {
   this.firstHardwareReward=null;
   let hangarStorage=null;try{hangarStorage=window.localStorage;}catch{}
   this.hangarSession=new HangarSession(hangarStorage);
+  this.enemyLearning=this.visuals.capitalDamageQA?null:new EnemyLearning(hangarStorage);
+  window.addEventListener?.('pagehide',()=>this.enemyLearning?.flush(this.time));
   this.weaponThermal=createThermal();this.moduleClocks={rail:0,flak:0};
   this.heavyCharge=null;this.heavyCooldown=0;this.syncShipLoadout();
   this.doctrine=null;this.lastDamageAt=-Infinity;
@@ -1799,6 +1802,8 @@ export class ArcadeGame {
  }
  die(){
   if(this.dead)return;
+  for(const e of this.enemies)this.enemyLearning?.finish(e,this.time);
+  this.enemyLearning?.flush(this.time);
   const failed=finishSortie(this.sortieStart,this,this.docked||this.world.home,'lost');
   this.sortieReports=appendSortieReport(this.sortieReports,failed);
   this.sortieStart=null;
@@ -1885,7 +1890,9 @@ export class ArcadeGame {
     (source&&typeof source==='object'&&Number.isFinite(source.x)&&
      Number.isFinite(source.y)&&source.hp>0)?source:null;
   if(e.signalIntel&&aggressor)alertSignalIntel(e.signalIntel,aggressor,this.time);
+  const hpBefore=e.hp;
   e.hp-=damage;e.hit=.12;
+  this.enemyLearning?.damaged(e,Math.min(hpBefore,Math.max(0,damage)));
   if(this.visuals?.capitalDamageQA&&e.type==='gunship'&&e.serial%2===0)
    recordCapitalHit(e,contact,this.time);
   if(this.time>(e.nextVfxHit||0)){
@@ -1902,7 +1909,9 @@ export class ArcadeGame {
  }
  hitTurret(t,damage,contact=null){
   if(t.hp<=0)return;
+  this.enemyLearning?.damaged(t,Math.min(t.hp,Math.max(0,damage)));
   t.hp-=damage;t.flash=.1;
+  if(t.hp<=0)this.enemyLearning?.finish(t,this.time);
   if(this.time>(t.nextVfxHit||0)){
    this.heritage.vfx.hullImpact(
     contact?.directed?contact.x:t.x,contact?.directed?contact.y:t.y,
@@ -1955,7 +1964,8 @@ export class ArcadeGame {
   if(this.shots.length>=RULES.maxShots)return false;
   const d=length(tx-x,ty-y)||1,speed=options?.speed||230;
   this.shots.push({x,y,vx:(tx-x)/d*speed,vy:(ty-y)/d*speed,
-   damage,r:options?.r||6,life:3.3,alive:true,kind:options?.kind||'laser'});
+   damage,r:options?.r||6,life:3.3,alive:true,kind:options?.kind||'laser',
+   learnToken:options?.learnToken||null});
   this.heritage.play('enemyShot',.28,{x,y});
   return true;
  }
@@ -2139,6 +2149,8 @@ export class ArcadeGame {
  }
  update(dt){
   const p=this.player;this.time+=dt;this.visuals.updateSky(p.x,p.y);
+  if(this.enemyLearning?.dirty&&this.time>=this.enemyLearning.nextSave)
+   this.enemyLearning.flush(this.time);
   updateFieldEffects(this);
   coolWeapons(this.weaponThermal,dt,this.holdFire);
   updateHowitzer(this,dt);
@@ -2358,7 +2370,12 @@ export class ArcadeGame {
       const point=contactOnCircle(wing.x,wing.y,wing.r,s.x,s.y);
       this.heritage.vfx.hullImpact(point?.x??wing.x,point?.y??wing.y,false,point);
      }}
-    else if(dist(s,p)<s.r+p.r){s.alive=false;this.hurt(s.damage,{x:s.x,y:s.y});}
+    else if(dist(s,p)<s.r+p.r){
+      s.alive=false;
+      const before=p.hp+p.shield;
+      this.hurt(s.damage,{x:s.x,y:s.y});
+      this.enemyLearning?.dealt(s.learnToken,Math.max(0,before-p.hp-p.shield));
+    }
    }
   }
   this.shots=this.shots.filter(s=>s.alive);
@@ -2373,6 +2390,7 @@ export class ArcadeGame {
     if(heavy)this.heritage.vfx.nova(e.x,e.y,110,'red');
     this.heritage.play(heavy?'largeExplosion':'explosion',.18,{x:e.x,y:e.y});
    }
+   this.enemyLearning?.finish(e,this.time);
    this.issueFieldCharge(e);
    if(!e.expAwarded&&!e.converted){
     e.expAwarded=true;
@@ -2400,13 +2418,20 @@ export class ArcadeGame {
    if(dist(b,p)>850)continue;
    for(const t of b.turrets){
     if(t.hp<=0)continue;
+    const turretStyle=this.enemyLearning?.styleFor(t,this.time,'turret');
     t.shot-=dt;t.flash=Math.max(0,(t.flash||0)-dt);
     if(t.shot<=0){
      t.shot=2.2+Math.random()*.35;
      const target=this.support.missions.flatMap(m=>m.craft)
       .filter(a=>a.hp>0&&dist(a,t)<350)
       .sort((a,c)=>dist(t,a)-dist(t,c))[0]||p;
-     if(dist(t,target)<530)this.enemyShot(t.x,t.y,target.x,target.y,16+b.rank*2);
+     if(dist(t,target)<530){
+      const aim=target===p?learnedTurretAim(target,turretStyle,
+       this.enemyLearning?.turnSign||0):{x:target.x,y:target.y};
+      if(this.enemyShot(t.x,t.y,aim.x,aim.y,16+b.rank*2,
+       {learnToken:this.enemyLearning?.shotToken(t)})!==false)
+       this.enemyLearning?.fired(t);
+     }
     }
    }
   }
