@@ -135,8 +135,8 @@ test('published entry points invalidate the entire changed ES-module import chai
  const source=relative=>readFileSync(new URL('../'+relative,import.meta.url),'utf8');
  const game=source('game.js'),base=source('base-panel.js');
  const preview=source('hangar-preview.js');
- assert.match(source('index.html'),/game\.js\?v=economy-integrity-2-module-confirm-1/);
- assert.match(game,/base-panel\.js\?v=economy-integrity-2-menu-permanence-1/);
+ assert.match(source('index.html'),/game\.js\?v=economy-integrity-3-copy-1/);
+ assert.match(game,/base-panel\.js\?v=economy-integrity-3-copy-1/);
  assert.match(game,/sortie-economy\.js\?v=economy-integrity-1/);
  assert.match(game,/sortie-ledger\.js\?v=economy-ledger-1/);
  assert.match(base,/sortie-economy\.js\?v=economy-integrity-1/);
