@@ -749,7 +749,22 @@ export const REF_TITLES = {
   "Д4": "ПК и Android",
   "Д5": "Проверка веток и источника"
 };
-export const PARTIAL_REFS = ["А2","А3","А4","А5","А6","А8","Б1","Б2","Б3","Б5","Б7","Д1"];
+// Состояние по общей сверке WHOLE-GAME-REVIEW-2026-11-04.md.
+// Наличие поведения в коде не означает приёмку его качества в игре.
+export const STATUS_LABELS = Object.freeze({
+ code: 'Есть в коде', partial: 'Частично в коде',
+ missing: 'Нет в коде', unverified: 'Не проверено'
+});
+export const REF_STATUS = Object.freeze({
+ 'А1':'partial', 'А2':'code', 'А3':'code', 'А4':'partial',
+ 'А5':'partial', 'А6':'partial', 'А7':'unverified', 'А8':'partial',
+ 'Б1':'code', 'Б2':'partial', 'Б3':'partial', 'Б4':'code',
+ 'Б5':'code', 'Б6':'partial', 'Б7':'partial',
+ 'В1':'missing', 'В2':'missing', 'В3':'missing', 'В4':'missing', 'В5':'partial',
+ 'Г1':'code', 'Г2':'partial', 'Г3':'partial', 'Г4':'missing', 'Г5':'partial', 'Г6':'partial',
+ 'Д1':'code', 'Д2':'missing', 'Д3':'unverified', 'Д4':'partial', 'Д5':'code'
+});
+export const PARTIAL_REFS = ISSUE_REFS.filter(ref => REF_STATUS[ref] === 'partial');
 
 // Координационные этапы: факты о коде отделены от решений, ещё не принятых в игру.
 // Статусы этого реестра — не подтверждение ручного прохождения.

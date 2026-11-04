@@ -90,7 +90,9 @@
 .sys-cover-item b{flex:none;color:#9adbe0;font-size:.76rem}
 .sys-cover-item span{white-space:normal}
 .sys-cover-item em{font-style:normal;color:#ffcf89;margin-left:auto;font-size:.67rem;flex:none}
-.sys-cover-item[data-partial=false] em{color:#8bafc1}
+.sys-cover-item[data-status=code] em{color:#9adbe0}
+.sys-cover-item[data-status=missing] em{color:#efaaa1}
+.sys-cover-item[data-status=unverified] em{color:#b4bfd1}
 #panel-systems [hidden]{display:none!important}
 @media(max-width:900px){.sys-roadmap-list{grid-template-columns:repeat(2,minmax(0,1fr))}.sys-roadmap-head{display:block}.sys-roadmap-head p{max-width:none;margin-top:8px}.sys-workbench{grid-template-columns:1fr}.sys-cards{max-height:265px}.sys-sidebar{position:static}.sys-cover-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.sys-roadmap-list{grid-template-columns:1fr}.sys-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.sys-model{gap:5px;padding:9px}.sys-model span{font-size:.58rem}.sys-model b{font-size:.9rem}.sys-comparison,.sys-guardrails,.sys-stage-grid{grid-template-columns:1fr}.sys-box.sys-test{grid-column:span 1}.sys-cover-items{grid-template-columns:1fr}.sys-beats button{min-width:69px}.sys-phasehead{align-items:center}}
