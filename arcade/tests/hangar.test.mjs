@@ -213,6 +213,15 @@ test('anti-swarm targeting picks nearby enemies ahead of a more distant base tur
  assert.equal(shipTargets(game,245,1)[0].target,turret,'rail retains deliberate objective priority');
  assert.deepEqual(shipTargets(game,245,3,true).map(x=>x.target),[a,b,c]);
 });
+test('precision rail selects a capital threat while anti-swarm still favors close enemies',()=>{
+ const scout={...enemy(100),type:'scout'},gunship={...enemy(550),type:'gunship'};
+ const game=combat([scout,gunship]);
+ assert.equal(shipTargets(game,700,1,false,'precision')[0].target,gunship);
+ assert.equal(shipTargets(game,700,1,true,'precision')[0].target,scout);
+ updateAuxiliaryWeapons(game,1,true);
+ assert.equal(gunship.hp,262,'rail fires at the armored target');
+ assert.equal(scout.hp,300,'the nearby scout is available for short-range weapons');
+});
 test('duplicate auxiliary modules emit visible shots from both mounted positions',()=>{
  const e=enemy(300),game=combat([e]);game.shipLoadout.slots[1]='rail';game.weaponProfile.rail=2;
  updateAuxiliaryWeapons(game,1,true);assert.deepEqual(game.hits,[76]);
