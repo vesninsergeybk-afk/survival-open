@@ -94,7 +94,9 @@
 .base-op-details>div{border-radius:4px;background:#071c2bb0}
 .base-contract-board,.base-network-preview,.base-modules{border-radius:6px!important}
 .base-contract-choice{min-width:0}
-.base-foot{position:relative;margin-top:9px;border-color:#79b0ba4d}
+.base-foot{position:sticky;bottom:0;z-index:9;margin-top:9px;padding:8px 4px 4px;
+ border-color:#79b0ba4d;background:linear-gradient(180deg,#0b2030f5,#0b2030);
+ box-shadow:0 -9px 18px #04111d80;backdrop-filter:blur(3px)}
 .base-foot small{font-size:11px;line-height:1.45}
 .base-foot button[data-act="close"]{background:#213f4c;border-color:#8eb9c0a3;min-height:42px;font-weight:700}
 .base-module-options{gap:10px}
