@@ -1,3 +1,4 @@
+import {WEAPON_SPECIALIZATIONS,specializationState,quoteSpecialization} from './weapon-specializations.js?v=weapon-branches-1';
 import {MODULES,FRAME_STEPS,BLUEPRINT_NAMES,SHIP_ART,HangarSession,createLoadout,
  frameSpec,slotOpen,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=hangar-2';
 
@@ -14,8 +15,9 @@ const icon=id=>{
   howitzer:'M10 16h12v12H10z M12 2h8v16h-8z M6 23h20 M6 28h20'};
  return '<svg class="hg-module-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="'+paths[id]+'"/></svg>';
 };
-function statTable(id,ranks,oldId){
- const m=MODULES[id],s=moduleStats(id,ranks),old=oldId?moduleStats(oldId,ranks):null;
+function statTable(id,ranks,oldId,loadout){
+ const m=MODULES[id],s=moduleStats(id,ranks,specializationState(loadout,id)),
+  old=oldId?moduleStats(oldId,ranks,specializationState(loadout,oldId)):null;
  const rows=[['Урон за попадание',s.damage,old?.damage],['Дальность, м',s.range,old?.range],
   [id==='howitzer'?'Перезарядка, с':'Интервал, с',s.interval,old?.interval],[id==='howitzer'?'Радиус взрыва, м':'Целей за залп',id==='howitzer'?110:s.targets,old?.targets],
   ['Нагрев за залп',m.heat,oldId?MODULES[oldId].heat:null]];
@@ -23,6 +25,20 @@ function statTable(id,ranks,oldId){
  return '<table class="hg-stats"><caption>Свойства одного модуля'+(oldId&&id!==oldId?' · справа новое значение':'')+'</caption><tbody>'+
   rows.map(([name,value,before])=>'<tr><th scope="row">'+name+'</th><td>'+
    (oldId&&id!==oldId&&before!==value?'<span class="hg-before">'+fmt(before)+' → </span>':'')+fmt(value)+'</td></tr>').join('')+'</tbody></table>';
+}
+function specializationPanel(id,context){
+ const branches=WEAPON_SPECIALIZATIONS[id];if(!branches)return '';
+ const current=specializationState(context.loadout,id);
+ const heading=current?'Выбрана: '+branches[current.path]?.name+' · '+(current.rank===2?'мастерство':'первая ступень'):
+  'Выберите один из двух путей';
+ return '<details class="hg-upgrades hg-branches" data-hangar-section="branches"><summary>Специализация · '+esc(heading)+'</summary>'+
+  '<p class="hg-note">Каждая ветка меняет поведение оружия. Выбор остаётся до конца вылета; переключиться бесплатно нельзя. Сначала нужны 2 активированные станции и уровень 7; мастерство — 3 станции и уровень 11.</p>'+
+  '<div class="hg-upgrade-grid">'+Object.entries(branches).map(([path,branch])=>{
+   const quote=quoteSpecialization(context.loadout,id,path,context),chosen=current?.path===path;
+   const label=quote.ok?(chosen?'Усилить мастерство · 1 очко':'Выбрать · 1 очко'):quote.reason;
+   return '<article><div><strong>'+esc(branch.name)+'</strong><b>'+(chosen?'Выбрана · '+current.rank+'/2':'Ветвь')+'</b></div>'+
+    '<p>'+esc(branch.desc)+'</p>'+button('hgSpec',esc(label),id+':'+path,!quote.ok,chosen?'selected':'')+'</article>';
+  }).join('')+'</div></details>';
 }
 function shipScene(context,session){
  const loadout=context.loadout,draft=session.draft,stage=shipArtStage(context.level),art=SHIP_ART[stage];
@@ -79,7 +95,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   }).join('')+(available.length?'':'<p>Для этого узла нет модулей с выбранным фильтром.</p>')+'</div>'+
   '<p class="hg-note">Снятое оружие остаётся на складе до конца вылета. Повторная установка бесплатна.</p></aside>';
  const inspector='<aside class="hg-inspector">'+button(open?'hgCatalog':'hgShip',open?'← Каталог':'← Корабль','','','hg-mobile-only hg-back-catalog')+'<span class="hg-eyebrow">УЗЕЛ '+labelFor(slot)+' · '+(slot===5?'СВЕРХТЯЖЁЛЫЙ':'УНИВЕРСАЛЬНЫЙ')+'</span>'+
-  (open?'<h3 style="color:'+m.color+'">'+m.name+'</h3><p>'+m.desc+'</p>'+statTable(id,context.ranks,old)+
+  (open?'<h3 style="color:'+m.color+'">'+m.name+'</h3><p>'+m.desc+'</p>'+statTable(id,context.ranks,old,current)+specializationPanel(id,context)+
    '<p class="hg-fit-note">'+(lock?esc(lock):wrongNode?'Для этого оружия нужен другой узел.':
     (current.owned[id]||0)>0?'Имеющиеся модули используются первыми. Недостающие будут изготовлены при применении.':
     id==='ion'?'Прокатный модуль · осталось зарядов: '+context.ionLoan.charges:
