@@ -783,7 +783,11 @@ export function renderBasePanel(base,state){
  const meteorChoice=action('toggleMeteorDefense',protection.meteorEnabled?
   'Пропускать орбитальные удары':'Перехватывать орбитальные удары');
  const network='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">УПРАВЛЕНИЕ СЕТЬЮ</span><strong>Связь, технологии и территория</strong>'+
-  '<p>'+protectionText+'. ПВО защищает корабль внутри бирюзового круга: один заряд — одна угроза, пауза 0,7 с. Стазис сработает, когда хотя бы два обычных врага окажутся одновременно в 235 м от станции и в 185 м от вас; остановит до трёх на 2,6 с. На боссов и цели операций не действует. Режим «Пропуск» позволяет орбитальным ударам повреждать врагов и астероиды. Снаряды ПВО продолжит сбивать.</p>'+
+  '<p class="base-defense-status">'+protectionText+'.</p>'+
+  '<p class="base-defense-summary">ПВО прикрывает корабль в бирюзовом круге. Стазис остановит группу, если возле станции и вашего корабля соберутся хотя бы два обычных врага. Пропуск орбитальных ударов позволяет использовать их против врагов и астероидов, но опасен и для вас.</p>'+
+  '<details class="base-secondary-info base-defense-rules"><summary>Точные условия ПВО и стазиса</summary><div class="base-secondary-body">'+
+  '<p>ПВО отражает одну угрозу за заряд. Между перехватами проходит не меньше 0,7 с; снаряды остаются под защитой и при пропуске орбитальных ударов.</p>'+
+  '<p>Стазис действует только в сети с домашним доком. Два обычных врага должны одновременно находиться не дальше 235 м от станции и 185 м от вас. Импульс останавливает до трёх на 2,6 с, затем восстанавливается 26 с. На боссов и цели операций не действует.</p></div></details>'+
   '<div class="base-defense-choice">'+meteorChoice+'</div></div></div>'+
   networkPreview(base,state)+'<div class="base-grid">'+upgrade+antenna+'</div>'+
   (modules?'<details class="base-secondary-info base-network-advanced"><summary>'+
