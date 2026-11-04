@@ -515,8 +515,10 @@ export function renderBasePanel(base,state){
   ' сплава (вооружение '+expenses.weapons+', дроны '+expenses.drones+
   ', ремонт '+expenses.repairs+', станции '+expenses.stations+
   ', снаряжение '+expenses.services+', перелёты '+expenses.travel+').</p>':'';
- const history='<details class="base-economy-breakdown"><summary>Последние '+recent.length+
-  ' вылетов и расходы</summary>'+expenseText+
+ const flightsWord=n=>n%10===1&&n%100!==11?'вылет':
+  n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'вылета':'вылетов';
+ const history='<details class="base-economy-breakdown"><summary>История: '+recent.length+' '+
+  flightsWord(recent.length)+' и расходы</summary>'+expenseText+
   '<div class="base-economy-history"><table><thead><tr><th scope="col">Время</th><th scope="col">Сплав</th>'+
   '<th scope="col">Данные</th><th scope="col">Итог корпуса</th></tr></thead><tbody>'+
   recent.map(r=>'<tr><td>'+Math.floor(r.seconds/60)+' мин '+r.seconds%60+' с'+
@@ -557,7 +559,7 @@ export function renderBasePanel(base,state){
    '<div class="base-economy-choices">'+choices.map(choice=>
     '<article><strong>'+choice.title+'</strong><small>'+choice.detail+'</small>'+
     '<span>'+(choice.cost===null?'Посмотреть варианты':choice.cost?choice.cost+' сплава':'Бесплатно')+
-     (choice.cost===null?'':' · '+
+     (choice.cost===null?'':choice.cost===0?' · сплав не расходуется':' · '+
      (choice.reason?choice.reason:choice.act==='baseMap'?
       (o.ore>=choice.cost?'уже достаточно для запуска':'до цели '+(choice.cost-o.ore)):
       o.ore>=choice.cost?'после покупки останется '+(o.ore-choice.cost):

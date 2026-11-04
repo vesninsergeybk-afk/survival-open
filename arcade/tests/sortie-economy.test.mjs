@@ -79,9 +79,21 @@ test('the dock shows the last completed result and honest, labelled purchase rou
  assert.match(html,/Корпус, итог <b>-15<\/b>/);
  assert.match(html,/Испытать полевое оружие/);
  assert.match(html,/data-act="showFieldTrial"/);
+ assert.match(html,/История: 1 вылет и расходы/);
+ assert.match(html,/Бесплатно · сплав не расходуется/);
  assert.match(html,/data-act="baseTab" data-role="hangar"/);
  assert.match(html,/data-act="baseMap"/);
  assert.doesNotMatch(renderBasePanel(home,state()),/ПОСЛЕ ВЫЛЕТА/);
+});
+
+test('flight history labels use correct Russian forms',()=>{
+ const report={seconds:40,ore:0,data:0,hull:0,drones:0,levels:0,baseId:'0:0'};
+ for(const [count,word] of [[1,'вылет'],[2,'вылета'],[3,'вылета'],
+  [4,'вылета'],[5,'вылетов']]){
+  const html=renderBasePanel(home,state({sortieReports:Array.from({length:count},()=>report)}));
+  assert.match(html,new RegExp('История: '+count+' '+word+' и расходы'));
+  assert.match(html,new RegExp('вылетов учтено: '+count));
+ }
 });
 
 test('the first-operation reward offers a distinct range choice and never proposes an ordinary gun for H',()=>{
