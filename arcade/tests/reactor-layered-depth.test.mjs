@@ -64,8 +64,10 @@ test('reactor geometry keeps its world anchor and a single source sprite', () =>
   assert.ok(reactor.distant);
   assert.ok(reactor.mist);
   assert.ok(reactor.mote, 'mote glow must be pre-rendered before gameplay');
-  assert.equal(sources.length, 1);
+  assert.ok(reactor.vapour, 'transparent texture should load in workshop and game');
+  assert.equal(sources.length, 2);
   assert.match(sources[0], /reactor-ring-03\.png$/);
+  assert.match(sources[1], /reactor-vapour-v6\.webp$/);
   assert.equal(reactor.energyAtlas, null, 'live game must not load stage atlas before a real stage exists');
  });
 });
@@ -87,8 +89,8 @@ test('reactor culls off-screen drawings and makes no frame-time canvases', () =>
 test('workshop can use four energy tiles without changing gameplay contracts', () => {
  withCanvasMocks(({sources}) => {
   const reactor = new ReactorLandmark({loadEnergyAtlas: true});
-  assert.equal(sources.length, 2);
-  assert.match(sources[1], /reactor-energy-milestones-v1\.png$/);
+  assert.equal(sources.length, 3);
+  assert.match(sources[2], /reactor-energy-milestones-v1\.png$/);
   const ctx = makeContext(), cam = {x: -470, y: -650, w: 1100, h: 650};
   for (let stage = 0; stage <= 4; stage++) reactor.draw(ctx, cam, stage, 60, false, stage, stage === 4 ? .25 : Infinity);
   assert.ok(ctx.events.filter(v => v === 'drawImage').length >= 15);
@@ -137,6 +139,22 @@ test('particles occupy two passes without allocating canvases during motion', ()
   assert.equal(canvasCreations(),pre);
  });
 });
+
+test('vapour draws at two intermediate depth planes and does not allocate per frame', () => {
+ withCanvasMocks(({canvasCreations}) => {
+  const reactor=new ReactorLandmark(),cam={x:-470,y:-650,w:1100,h:650};
+  const ready=canvasCreations();
+  const context=makeContext();
+  reactor.draw(context,cam,3,60,false);
+  const wisps=context.drawCalls.filter(v=>v.source===reactor.vapour);
+  assert.equal(wisps.length,2,'one real vapour sheet before and after metal');
+  assert.ok(wisps[0].alpha>0&&wisps[1].alpha>0);
+  assert.ok(wisps[0].rect[2]!==wisps[1].rect[2],'vapour layers need different extent');
+  reactor.draw(context,cam,4,25,false);
+  assert.equal(canvasCreations(),ready,'vapour should not create runtime textures');
+ });
+});
+
 
 test('far and near particles are visible at both 60 and 25 fps, with cached glows', () => {
  withCanvasMocks(({canvasCreations}) => {
