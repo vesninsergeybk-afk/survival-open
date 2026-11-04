@@ -1,6 +1,6 @@
 import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=hangar-2';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
-import {renderShipHangar} from './hangar-panel.js?v=menus-gameplay-first-1';
+import {renderShipHangar} from './hangar-panel.js?v=menus-gameplay-first-2';
 
 let context,session;
 function setup(advanced){

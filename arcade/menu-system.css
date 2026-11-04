@@ -25,7 +25,10 @@
 #overlay .dialog button:focus-visible,.preview-dialog button:focus-visible,
 #overlay .dialog summary:focus-visible{outline:2px solid #ffe1a1;outline-offset:3px}
 #overlay .dialog button:disabled,.preview-dialog button:disabled{cursor:not-allowed}
-#overlay .dialog button:not(:disabled):active{transform:translateY(1px)}
+/* Many game controls (especially the ship hardpoints) use transforms for
+   exact placement. Overriding transform during :active moves the hit target
+   away from the pointer and prevents the click from completing. */
+#overlay .dialog button:not(:disabled):active{filter:brightness(1.08)}
 #overlay .dialog h2,#overlay .dialog h3{letter-spacing:.008em}
 
 /* Station identity: quiet materials and a meaningful status line. */
@@ -124,6 +127,8 @@
  background:linear-gradient(120deg,#112b3c,#0a1c2b)}
 .hg-decision-brief>p{color:#bfdce5;font-size:12px;line-height:1.42;margin:0!important;min-width:0}
 .hg-range-brief{display:grid;grid-template-columns:repeat(3,1fr);gap:0;min-width:190px}
+.hg-range-brief .hg-range-title{grid-column:1/-1;justify-self:center;font-size:9px;letter-spacing:.1em;
+ font-weight:800;color:#add6df;line-height:1.35}
 .hg-range-brief>span{display:grid;justify-items:center;padding:1px 10px;border-left:1px solid #7db5c43d;white-space:nowrap}
 .hg-range-brief small{color:#94b6c4;font-size:10px}
 .hg-range-brief b{color:#f0d7a5;font-size:15px;font-variant-numeric:tabular-nums}
