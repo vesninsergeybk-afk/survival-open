@@ -40,11 +40,14 @@ export function updateIrisPerception(e,game,dt){
   if(e.type!=='scout'||e.converted||e.boss||e.missionStructure)return false;
   const now=game.time, intel=e.signalIntel;
   if(intel){
-    const previous=e._irisIntelMode??null;
-    e._irisIntelMode=intel.mode;
-    if(intel.mode==='engaged'&&previous!=='engaged')
-      beginScan(e,game,'acquire');
-    if(previous==='engaged'&&intel.mode==='search')
+    // Signal patrols can engage the player's allies as well. A drone shot
+    // must not freeze the patrol in a player-search animation or make it
+    // forget the attacker. Track actual player contact, not group alert mode.
+    const playerContact=intel.mode==='engaged'&&intel.combatFocus===game.player;
+    const hadPlayerContact=!!e._irisTrackedPlayer;
+    e._irisTrackedPlayer=playerContact;
+    if(playerContact&&!hadPlayerContact)beginScan(e,game,'acquire');
+    if(hadPlayerContact&&!playerContact&&intel.mode==='search')
       beginScan(e,game,'lost');
   }else if(now>=(e._irisNextSenseAt??0)){
     const player=game.player;
