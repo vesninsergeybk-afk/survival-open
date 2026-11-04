@@ -70,6 +70,64 @@
 .base-route-graphic svg,.base-network-preview svg,.map-canvas svg{border-radius:5px!important;background:#071828}
 .base-dashboard-links{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .base-dashboard-links button{min-height:43px}
+/* Station home: a single next action and two immediately useful services.
+   Detailed mission art, map and sortie accounting remain available on demand. */
+.base-next-step{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;
+ padding:20px 22px;margin-bottom:12px;border:1px solid #6fa5b8a3;border-left:4px solid #84d5d9;
+ background:linear-gradient(120deg,#1a3c4b,#0d2637);border-radius:7px}
+.base-next-step.reward{border-color:#f3d18bbd;border-left-color:#ffe099;
+ background:linear-gradient(110deg,#3d3526,#132e3a)}
+.base-next-step.return{border-left-color:#f3c778}
+.base-next-step h3{margin:5px 0 6px;font-size:clamp(19px,2vw,25px);line-height:1.15;color:#f0fbff}
+.base-next-step p{margin:0;max-width:68ch;font-size:13px;line-height:1.45;color:#d2e4e9}
+.base-next-actions{display:flex;align-items:center;justify-content:flex-end}
+#overlay .base-next-actions button{min-height:48px;min-width:190px;margin:0!important;
+ padding:11px 18px!important;font-size:14px!important;font-weight:750;color:#092c36!important;
+ background:#a4f3e5!important;border:1px solid #d0fff0!important}
+#overlay .base-next-step.reward button{background:#f2ce7c!important;border-color:#fff0b9!important;color:#2a240f!important}
+.base-quick-services{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.base-quick-service{display:flex;flex-direction:column;min-width:0;gap:7px;padding:17px 18px;
+ border:1px solid #5b879c8a;border-radius:6px;background:linear-gradient(145deg,#142f40,#0c2233)}
+.base-quick-service h3{margin:0;font-size:17px;line-height:1.25;color:#eaf7fa}
+.base-quick-service p{flex:1;margin:0;color:#bfd5df;font-size:12px;line-height:1.5}
+.base-quick-reason{color:#efc994;font-size:11px;line-height:1.4}
+.base-quick-buttons{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px}
+#overlay .base-quick-buttons button{min-height:43px;margin:0!important;padding:9px 13px!important}
+.base-secondary-info,.base-mission-details{margin:10px 0 0;border:1px solid #567b8a7d;
+ border-radius:6px;background:#0a2030ad}
+.base-secondary-info>summary,.base-mission-details>summary{list-style:none;cursor:pointer;padding:12px 15px;
+ font-size:13px;font-weight:650;color:#bfdce4}
+.base-secondary-info>summary::-webkit-details-marker,.base-mission-details>summary::-webkit-details-marker{display:none}
+.base-secondary-info>summary::before,.base-mission-details>summary::before{content:'▸';display:inline-block;
+ margin-right:9px;color:#b0e9e0;transition:transform .15s}
+.base-secondary-info[open]>summary::before,.base-mission-details[open]>summary::before{transform:rotate(90deg)}
+.base-secondary-body{padding:2px 14px 15px}
+.base-secondary-body p{font-size:12px;color:#bdd5e1;line-height:1.5}
+.base-report-details>.base-economy{margin:0 10px 10px}
+.base-quiet-promise{margin:11px 2px;color:#a9c4cd;font-size:11px}
+.base-mission-details{margin:10px 0 14px}
+.base-mission-details>.base-featured-op{margin:0 9px 9px}
+.base-network-advanced>.base-modules,.base-network-advanced>.base-transit{margin:0 10px 10px}
+.base-network-advanced>.base-doctrine-service{margin:0 10px 10px}
+.base-doctrine-service{margin-top:14px;padding:13px 15px;border:1px solid #6e8b9a70;background:#102c3a}
+.base-doctrine-service p{font-size:12px;color:#b5ccd9}
+@media(max-width:760px){
+ .base-next-step{grid-template-columns:1fr;padding:13px;gap:10px}
+ .base-next-actions{justify-content:stretch}
+ #overlay .base-next-actions button{width:100%;min-width:0}
+ .base-quick-services{grid-template-columns:1fr;gap:8px}
+ .base-quick-service{padding:12px}
+}
+@media(max-height:580px) and (max-width:980px){
+ .base-next-step{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 12px}
+ .base-next-step h3{font-size:17px}
+ .base-next-step p{font-size:11px}
+ #overlay .base-next-actions button{min-width:138px;min-height:44px;font-size:12px!important}
+ .base-quick-services{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .base-quick-service{padding:9px 11px;gap:5px}
+ .base-quick-service h3{font-size:14px}
+ .base-quick-service p{font-size:11px}
+}
 .base-first-reward{display:grid;gap:10px;margin:0 0 12px;padding:clamp(12px,2vw,20px);
  border:1px solid #f1cf87a8;border-left:4px solid #f2c875;border-radius:6px;
  background:radial-gradient(ellipse at 100% 0%,#e0ac4f2b,transparent 63%),linear-gradient(140deg,#1b3942,#102533)}

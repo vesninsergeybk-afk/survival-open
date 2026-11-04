@@ -144,7 +144,8 @@ test('income and combat risk remain visible even when repairs hide net hull loss
  assert.equal(report.details.oreMining,9);assert.equal(report.details.oreSalvage,2);
  assert.equal(report.details.dataCombat,25);
  const html=renderBasePanel(home,state({sortieReports:[report]}));
- assert.ok(html.indexOf('ПОСЛЕ ВЫЛЕТА')<html.indexOf('КАРТА РАЙОНА'));
+ assert.ok(html.indexOf('ЧТО СЕЙЧАС ВАЖНО')<html.indexOf('ПОСЛЕ ВЫЛЕТА'));
+ assert.match(html,/<details class="base-secondary-info base-report-details"><summary>Итоги последнего вылета/);
  assert.match(html,/трофеи \+2/);assert.match(html,/Получено повреждений <b>64<\/b>/);
  assert.match(html,/Потеряно дронов <b>1<\/b>/);
 });

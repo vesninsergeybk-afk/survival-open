@@ -36,16 +36,16 @@ test('each station offers exactly two mutually exclusive tasks',()=>{
   assert.match(html,/data-act="acceptContract" data-role="alternate"/);
  }
 });
-test('the first contract visibly promises a free combat choice and displays three claim actions',()=>{
+test('first contract advertises free hardware, then offers one clear choice location',()=>{
  const dock=station();
  const intro=renderBasePanel(dock,state({loadout:createLoadout(),firstHardwareReward:null}));
- assert.match(intro,/Награда за первый сданный полевой заказ/);
- assert.match(intro,/бесплатный боевой модуль на выбор/);
+ assert.match(intro,/Первый сданный заказ даст бесплатное оружие на выбор/);
  const ready=renderBasePanel(dock,state({loadout:createLoadout(),firstHardwareReward:'pending'}));
- assert.equal((ready.match(/data-act="claimFirstModule"/g)||[]).length,6,
-  'each of three choices is accessible from summary and operations');
+ assert.match(ready,/data-act="baseTab" data-role="operations">Выбрать оружие/);
+ assert.equal((ready.match(/data-act="claimFirstModule"/g)||[]).length,3,
+  'one choice location avoids duplicated award buttons');
  for(const id of ['rail','flak','plasma'])assert.match(ready,new RegExp('data-act="claimFirstModule" data-role="'+id+'"'));
- assert.doesNotMatch(ready,/Награда за первый сданный полевой заказ/);
+ assert.doesNotMatch(ready,/Первый сданный заказ даст бесплатное оружие на выбор/);
 });
 
 test('alternate task pays its own reward and remains selected after claiming',()=>{
