@@ -56,6 +56,34 @@ test('checkpoint restores hull, inventory, progression, changed rocks and networ
  assert.equal(restoredRocks.find(r=>r.id===other.id).x,other.x);
  assert.equal(fresh.time,243.5);assert.equal(fresh.spawnClock,3.4);assert.ok(fresh.paused);
 });
+test('return reports survive a checkpoint, but an unfinished sortie never duplicates',()=>{
+ const g=scene();
+ g.sortieReports=[{seconds:93,ore:27,data:11,hull:-8,drones:0,levels:0,baseId:'0:0'}];
+ g.sortieStart={time:90,ore:0,data:0,hp:110,level:1,allies:0};
+ const {storage}=save(g),loaded=new RunCheckpointStore(storage).load(),fresh=scene();
+ restoreCheckpoint(fresh,loaded);
+ assert.deepEqual(fresh.sortieReports,g.sortieReports);
+ assert.equal(fresh.sortieStart,null);
+ assert.ok(validateCheckpoint(loaded));
+ loaded.state.sortieReports.push({seconds:-4,ore:0,data:0,hull:0,drones:0,levels:0,baseId:'0:0'});
+ assert.equal(validateCheckpoint(loaded),false);
+});
+test('the real leave-and-dock lifecycle records one flight and ignores instant reopening',()=>{
+ const g=scene();g.sortieReports=[];g.sortieStart=null;
+ g.heritage={ui:noop,pause:noop,resume:noop};
+ g.hangarSession={begin:noop};g.endInteraction=noop;g.renderDock=noop;g.saveAtStation=noop;
+ g.dismiss();
+ assert.equal(g.sortieStart.ore,20);
+ assert.equal(g.overlay.hidden,true);
+ g.time+=95;g.player.ore+=34;g.player.hp-=16;
+ g.dock(g.world.home);
+ assert.equal(g.sortieReports.length,1);
+ assert.equal(g.sortieReports[0].ore,34);
+ assert.equal(g.sortieReports[0].hull,-16);
+ assert.equal(g.sortieStart,null);
+ g.dismiss();g.time+=2;g.dock(g.world.home);
+ assert.equal(g.sortieReports.length,1);
+});
 test('cargo, station mission, escort targets, missiles and strike bases retain shared identities',()=>{
  const g=scene(),carrier=g.world.nearbyStations(1500,0,2300).find(b=>b!==g.docked);
  carrier.type='carrier';carrier.enemy=false;

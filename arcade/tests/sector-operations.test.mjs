@@ -8,6 +8,7 @@ import {CARRIER_INTERCEPTION} from '../carrier-interception.js';
 import {World} from '../world.js';
 import {baseNames} from '../balance.js';
 import {renderWorldMap} from '../map-panel.js';
+import {finishSortie,appendSortieReport} from '../sortie-economy.js';
 
 const home={id:'0:0',x:360,y:-85,type:'dock',active:true};
 const state=(extra={})=>({
@@ -133,9 +134,10 @@ test('delivery at the issuing dock pays once, clears the marker and secures the 
  const dockStart=src.indexOf('  dock(selected=null){');
  const dockEnd=src.indexOf('\n baseAction(act,role){',dockStart);
  assert.ok(dockStart>0&&dockEnd>dockStart);
- const Dock=new Function('dist','RULES','CORRIDOR_OPERATION','CARRIER_INTERCEPTION',
+ const Dock=new Function('dist','RULES','CORRIDOR_OPERATION','CARRIER_INTERCEPTION','finishSortie','appendSortieReport',
   'return class DockHarness {'+src.slice(dockStart,dockEnd)+'}')(
-  (a,b)=>Math.hypot(a.x-b.x,a.y-b.y),{baseInteract:180},CORRIDOR_OPERATION,CARRIER_INTERCEPTION);
+  (a,b)=>Math.hypot(a.x-b.x,a.y-b.y),{baseInteract:180},CORRIDOR_OPERATION,CARRIER_INTERCEPTION,
+  finishSortie,appendSortieReport);
  game.player.x=b.x;game.player.y=b.y;
  game.overlay={hidden:true,dataset:{}};game.endInteraction=()=>{};
  game.heritage.pause=()=>{};game.heritage.ui=()=>{};game.renderDock=()=>{};
