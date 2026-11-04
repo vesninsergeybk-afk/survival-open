@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {ReactorLandmark, REACTOR_LANDMARK_ANCHOR, REACTOR_LANDMARK_SIZE, REACTOR_DEPTH_RATES, reactorParallaxAnchor, reactorSceneScale} from '../reactor-landmark.js';
 
 function makeContext() {
- const events = [];
+ const events = [], drawCalls = [], fillCalls = [];
  const gradient = () => ({addColorStop() {}});
  const ctx = {
-  events,
+  events, drawCalls, fillCalls,
   save() { events.push('save'); },
   restore() { events.push('restore'); },
   translate() { events.push('translate'); },
@@ -14,8 +14,8 @@ function makeContext() {
   moveTo() {},
   lineTo() {},
   transform() { events.push('transform'); },
-  drawImage() { events.push('drawImage'); },
-  fillRect() { events.push('fillRect'); },
+  drawImage(source,...rect) { events.push('drawImage'); drawCalls.push({source,alpha:this.globalAlpha,rect}); },
+  fillRect(...rect) { events.push('fillRect'); fillCalls.push({alpha:this.globalAlpha,rect}); },
   createRadialGradient: gradient,
   createLinearGradient: gradient,
   beginPath() {},
@@ -63,6 +63,7 @@ test('reactor geometry keeps its world anchor and a single source sprite', () =>
   assert.ok(reactor.nearHull);
   assert.ok(reactor.distant);
   assert.ok(reactor.mist);
+  assert.ok(reactor.mote, 'mote glow must be pre-rendered before gameplay');
   assert.equal(sources.length, 1);
   assert.match(sources[0], /reactor-ring-03\.png$/);
   assert.equal(reactor.energyAtlas, null, 'live game must not load stage atlas before a real stage exists');
@@ -125,7 +126,7 @@ test('visual reactor fits inside 80 percent of both desktop and mobile view widt
 test('particles occupy two passes without allocating canvases during motion', () => {
  withCanvasMocks(({canvasCreations}) => {
   const reactor=new ReactorLandmark(),cam={x:-470,y:-650,w:1100,h:650};
-  assert.equal(reactor.particles.length,64);
+  assert.equal(reactor.particles.length,108);
   const frame=makeContext(),pre=canvasCreations();
   reactor.draw(frame,cam,10,60,false);
   const withDust=frame.events.filter(x=>x==='fillRect').length;
@@ -136,6 +137,48 @@ test('particles occupy two passes without allocating canvases during motion', ()
   assert.equal(canvasCreations(),pre);
  });
 });
+
+test('far and near particles are visible at both 60 and 25 fps, with cached glows', () => {
+ withCanvasMocks(({canvasCreations}) => {
+  const reactor=new ReactorLandmark(),cam={x:-470,y:-650,w:1100,h:650};
+  const cached=canvasCreations();
+  for (const fps of [60,25]) {
+   for (const front of [false,true]) {
+    const ctx=makeContext();
+    reactor.drawParticles(ctx,cam,2,fps,false,front,.45);
+    const glows=ctx.drawCalls.filter(v=>v.source===reactor.mote);
+    const motes=ctx.fillCalls;
+    assert.ok(glows.length>=10, `missing ${front?'front':'back'} dust at ${fps} fps`);
+    assert.equal(glows.length,motes.length);
+    assert.ok(glows.some(v=>v.alpha>=.48),
+      `no visually legible glow in the ${front?'front':'back'} pass`);
+    assert.ok(motes.every(v=>v.rect[2]>=(front?1.5:1.1)));
+   }
+  }
+  assert.equal(canvasCreations(),cached);
+ });
+});
+
+
+test('workshop can isolate far and front dust without disabling the hull', () => {
+ withCanvasMocks(() => {
+  const reactor=new ReactorLandmark(),cam={x:-470,y:-650,w:1100,h:650};
+  const far=makeContext(),near=makeContext();
+  reactor.layers.frontParticles=false;
+  reactor.draw(far,cam,0,60,false);
+  assert.ok(far.drawCalls.some(call=>call.source===reactor.mote));
+  reactor.layers.farParticles=false;
+  reactor.layers.frontParticles=true;
+  reactor.draw(near,cam,0,60,false);
+  assert.ok(near.drawCalls.some(call=>call.source===reactor.mote));
+  reactor.layers.frontParticles=false;
+  const noDust=makeContext();
+  reactor.draw(noDust,cam,0,60,false);
+  assert.equal(noDust.drawCalls.filter(call=>call.source===reactor.mote).length,0);
+  assert.ok(noDust.drawCalls.some(call=>call.source===reactor.hull));
+ });
+});
+
 
 test('depth planes can be disabled independently without hiding the reactor core', () => {
  withCanvasMocks(() => {

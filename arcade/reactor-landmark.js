@@ -53,17 +53,18 @@ export class ReactorLandmark {
   this.glow = this.makeGlow();
   this.distant = this.makeDistant();
   this.mist = this.makeMist();
+  this.mote = this.makeMote();
   this.nearHull = null;
-  this.layers = {distant:true,mist:true,near:true,particles:true};
+  this.layers = {distant:true,mist:true,near:true,particles:true,farParticles:true,frontParticles:true};
   this.hullRate = Number.isFinite(options.hullRate)?
    Math.max(.5,Math.min(1,options.hullRate)):REACTOR_DEPTH_RATES.hull;
   this.scaleOverride = Number.isFinite(options.scale)?options.scale:null;
   // Fixed particle seeds: no random placement and no array allocations per frame.
-  this.particles=Array.from({length:64},(_,i)=>({
+  this.particles=Array.from({length:108},(_,i)=>({
    x:((i*397+113)%1880)-940,
    y:((i*227+41)%940)-470,
-   speed:.8+(i%5)*.43,
-   size:i%9===0?2.2:i%3===0?1.5:1,
+   speed:.55+(i%7)*.31,
+   size:i%11===0?2.8:i%4===0?2.1:1.45,
    near:i%3===0,
    phase:i*.73
   }));
@@ -194,27 +195,49 @@ export class ReactorLandmark {
  }
  // Soft translucent haze, baked once; no CPU blur/filter or texture upload
  // during a frame. The same small texture can be reused at different depths.
+ // Two translucent vapour sheets share one pre-rendered texture; their
+ // independent camera rates, not a screen-space animation, create depth.
  makeMist() {
   const canvas=texture(640,280),c=canvas.getContext('2d');
   if(!c)return null;
-  for(let i=0;i<22;i++){
-   const x=60+((i*193+51)%540),y=45+((i*73+23)%190);
-   const r=42+(i*37)%105,stretch=1.4+(i%5)*.44;
-   c.save();c.translate(x,y);c.scale(stretch,.42+(i%4)*.1);
+  for(let i=0;i<32;i++){
+   const x=30+((i*193+51)%580),y=28+((i*73+23)%225);
+   const r=46+(i*37)%98,stretch=1.25+(i%5)*.48;
+   c.save();c.translate(x,y);c.scale(stretch,.37+(i%4)*.13);
    const grad=c.createRadialGradient(0,0,3,0,0,r);
-   const a=.09+(i%4)*.021;
-   grad.addColorStop(0,'rgba(80,156,187,'+a.toFixed(3)+')');
-   grad.addColorStop(.46,'rgba(48,98,143,'+(a*.62).toFixed(3)+')');
+   const a=.21+(i%5)*.032;
+   const tint=i%7===0?['128,124,190','83,79,145']:
+              i%3===0?['91,190,192','40,111,146']:
+                       ['92,163,204','42,89,144'];
+   grad.addColorStop(0,'rgba('+tint[0]+','+a.toFixed(3)+')');
+   grad.addColorStop(.37,'rgba('+tint[1]+','+(a*.58).toFixed(3)+')');
    grad.addColorStop(1,'rgba(22,62,111,0)');
    c.fillStyle=grad;c.fillRect(-r,-r,r*2,r*2);c.restore();
   }
+  // Feather both ends so no rectangular sheet edge appears on screen.
   c.save();c.globalCompositeOperation='destination-in';
   const edge=c.createLinearGradient(0,0,640,0);
   edge.addColorStop(0,'rgba(0,0,0,0)');
-  edge.addColorStop(.15,'rgba(0,0,0,1)');
-  edge.addColorStop(.85,'rgba(0,0,0,1)');
+  edge.addColorStop(.12,'rgba(0,0,0,.75)');
+  edge.addColorStop(.27,'rgba(0,0,0,1)');
+  edge.addColorStop(.76,'rgba(0,0,0,1)');
+  edge.addColorStop(.91,'rgba(0,0,0,.7)');
   edge.addColorStop(1,'rgba(0,0,0,0)');
   c.fillStyle=edge;c.fillRect(0,0,640,280);c.restore();
+  return canvas;
+ }
+ // Reused for every mote. Glow is baked once so the frame never builds
+ // gradients or allocates dozens of small canvases.
+ makeMote() {
+  const canvas=texture(48,48),c=canvas.getContext('2d');
+  if(!c)return null;
+  const halo=c.createRadialGradient(24,24,0,24,24,23.5);
+  halo.addColorStop(0,'rgba(230,251,255,1)');
+  halo.addColorStop(.09,'rgba(171,226,250,.88)');
+  halo.addColorStop(.27,'rgba(96,187,228,.46)');
+  halo.addColorStop(.62,'rgba(58,134,187,.12)');
+  halo.addColorStop(1,'rgba(42,92,151,0)');
+  c.fillStyle=halo;c.fillRect(0,0,48,48);
   return canvas;
  }
  // This near-metal highlight comes from exactly the same projected source
@@ -252,37 +275,44 @@ export class ReactorLandmark {
   const pos=reactorParallaxAnchor(cam,rate);
   const drift=(!reducedMotion&&fps>=34)?Math.sin(time*(inFront?.17:.12))*20:0;
   ctx.save();ctx.translate(pos.x,pos.y);ctx.scale(scale,scale);
-  ctx.globalAlpha=inFront?.65:.42;
+  ctx.globalAlpha=inFront?.78:.7;
   ctx.drawImage(this.mist,
    (inFront?-565:-790)+drift,inFront?-55:-290,
    inFront?1140:1570,inFront?430:650);
   ctx.restore();
  }
  drawParticles(ctx,cam,time,fps,reducedMotion,front,scale) {
-  if(!this.layers.particles)return;
+  if(!this.layers.particles || (front?this.layers.frontParticles===false:this.layers.farParticles===false))return;
+  // Dust behind the hull stays ahead of distant stars; the foreground
+  // motes drift between reactor and the player ship in screen depth.
   const rate=front?REACTOR_DEPTH_RATES.foregroundDust:.61;
   const pos=reactorParallaxAnchor(cam,rate);
-  const count=fps<34?22:fps<50?40:this.particles.length;
+  const count=fps<34?54:fps<50?78:this.particles.length;
   const elapsed=(!reducedMotion&&fps>=34)?time:0;
   ctx.save();
   ctx.globalCompositeOperation='lighter';
   for(let i=0;i<count;i++){
    const p=this.particles[i];
    if(p.near!==front)continue;
-   const drift=elapsed*p.speed*7;
-   const x=((p.x+drift+940)%1880)-940;
-   const y=p.y+Math.sin(elapsed*.19+p.phase)*(reducedMotion?0:8);
-   const fade=Math.max(0,1-Math.abs(x)/940)*Math.max(0,1-Math.abs(y)/470);
-   if(fade<.07)continue;
+   const drift=elapsed*p.speed*(front?11:5);
+   const x=((p.x+drift+940)%1880+1880)%1880-940;
+   const y=p.y+Math.sin(elapsed*.19+p.phase)*(reducedMotion?0:11);
+   // The rectangular field fades gently at the edges; central particles
+   // remain readable against both the station and the dark background.
+   const fade=Math.max(0,Math.min(1,(940-Math.abs(x))/170))*
+              Math.max(0,Math.min(1,(470-Math.abs(y))/105));
+   if(fade<.06)continue;
    const px=pos.x+x*scale,py=pos.y+y*scale;
-   ctx.globalAlpha=fade*(front?.37:.24);
-   ctx.fillStyle=front?'#92dce8':'#668eaf';
-   const dot=p.size*(scale<.35?1.65:1);
-   ctx.fillRect(px,py,dot,dot);
-   if(front&&p.size>2&&fps>=50&&!reducedMotion){
-    ctx.strokeStyle='#78b8c9';ctx.lineWidth=.7;
-    ctx.beginPath();ctx.moveTo(px-4,py+1);ctx.lineTo(px+2,py);ctx.stroke();
+   const haloSize=Math.max(front?15:10,p.size*scale*(front?13:10));
+   const alpha=fade*(front?.79:.53);
+   if(this.mote) {
+    ctx.globalAlpha=alpha;
+    ctx.drawImage(this.mote,px-haloSize/2,py-haloSize/2,haloSize,haloSize);
    }
+   ctx.globalAlpha=alpha*(front?.92:.72);
+   ctx.fillStyle=front?'#c0f3fc':'#8cc2d6';
+   const dot=Math.max(front?1.5:1.1,p.size*scale*(front?1.8:1.45));
+   ctx.fillRect(px-dot/2,py-dot/2,dot,dot);
   }
   ctx.restore();
  }
