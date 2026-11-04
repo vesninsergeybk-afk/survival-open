@@ -8,10 +8,26 @@
 <link rel="stylesheet" href="./style.css?v=ion-first-play-1">
 <link rel="stylesheet" href="./hud.css?v=hud-responsive-v16">
 <link rel="stylesheet" href="./hud-art.css?v=hud-impact-art-pass-06">
-<link rel="stylesheet" href="./mobile-hud.css?v=landscape-rail-02">
+<link rel="stylesheet" href="./mobile-hud.css?v=landscape-rail-03">
 <link rel="stylesheet" href="./hangar.css?v=hangar-2">
+<link rel="stylesheet" href="./mobile-launch.css?v=mobile-gate-01">
 </head>
 <body>
+<div id="mobileLaunch" role="dialog" aria-modal="true" aria-labelledby="mobileLaunchTitle" aria-describedby="mobileLaunchHint" hidden>
+ <div class="mobile-launch-card">
+  <div class="mobile-launch-mark" aria-hidden="true"><span class="mobile-launch-phone"></span></div>
+  <div class="mobile-launch-copy">
+   <span class="mobile-launch-label">ВЫЖИВШИЙ · МОБИЛЬНАЯ ИГРА</span>
+   <h2 id="mobileLaunchTitle">Поверните телефон горизонтально</h2>
+   <p id="mobileLaunchHint">Так удобнее управлять кораблём и видеть происходящее.</p>
+   <div class="mobile-launch-actions">
+    <button id="mobileFullscreenBtn" type="button">⛶ На весь экран</button>
+    <button id="mobileContinueBtn" type="button">Играть в браузере</button>
+   </div>
+   <p id="mobileLaunchError" role="status" hidden></p>
+  </div>
+ </div>
+</div>
 <div class="space-sky" id="sky0" aria-hidden="true"></div>
 <div class="space-sky" id="sky1" aria-hidden="true"></div>
 <canvas id="game" aria-label="Игровое поле"></canvas>
@@ -116,7 +132,7 @@
    <small>Звук включается только кнопкой выше</small>
   </div>
  </details>
- <button id="audioCredits" type="button" aria-haspopup="dialog" aria-controls="creditsDialog">Авторы и лицензии</button>
+ <button id="audioCredits" type="button" aria-label="Авторы и лицензии" aria-haspopup="dialog" aria-controls="creditsDialog">Авторы и лицензии</button>
 </div>
 <div id="tips">WASD / стрелки — полёт · E — действие · C — автоогонь · Shift — рывок · Q — код · B — авиаудар · Tab — карта · U — развитие</div>
 <div class="mobile">
@@ -124,6 +140,7 @@
  <div class="mobile-menu" role="group" aria-label="Карта и развитие">
   <button id="mapBtn" type="button">Карта</button>
   <button id="skillBtn" type="button">Развитие</button>
+  <button id="exitFullscreenBtn" type="button" aria-label="Выйти из полноэкранного режима" title="Выйти из полноэкранного режима" hidden>⤡</button>
  </div>
  <div class="mobile-buttons" role="group" aria-label="Управление кораблём">
   <div class="mobile-abilities">
@@ -176,6 +193,7 @@
  </section>
  <p class="credits-legal">Упоминание авторов не означает, что они одобряют игру или участвуют в её разработке.</p>
 </dialog>
+<script type="module" src="./mobile-launch.js?v=mobile-gate-01"></script>
 <script type="module" src="./game.js?v=hangar-2-hud-impact-art-pass-06-reactor-depth-v4-mobile-02-scout-evasion-1"></script>
 </body>
 </html>
