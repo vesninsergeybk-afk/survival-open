@@ -2,11 +2,11 @@ import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamer
 import {World} from './world.js?v=arcade-base-network-40';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=iris-swarm-hunter-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=iris-pack-1';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1';
 import {createSignalIntel,alertSignalIntel} from './signal-perception.js?v=arcade-perception-61';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
-import {ArcadeVisuals} from './visuals.js?v=iris-swarm-hunter-1';
+import {ArcadeVisuals} from './visuals.js?v=iris-pack-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';

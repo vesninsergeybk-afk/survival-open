@@ -17,7 +17,7 @@ const direction=(from,to)=>{
 };
 const active=e=>e?.type==='scout'&&e.hp>0&&!e.converted&&
   !e.boss&&!e.missionStructure&&!e.interceptCargo;
-const freeHunter=(e,player)=>active(e)&&
+export const irisFreeHunter=(e,player)=>active(e)&&
   (!e.state||e.state==='hunt')&&!(e.protect?.hp>0)&&
   (!e.target||e.target===player||e.target.hp<=0);
 
@@ -58,7 +58,7 @@ function coverDestination(e,game,player){
 /** Call once per physics tick before scan/flight. Uses a rising hit signal,
  * so a single damage flash cannot reissue the same order every frame. */
 export function updateIrisSwarm(e,game,player){
-  if(!freeHunter(e,player)||
+  if(!irisFreeHunter(e,player)||
      e.signalIntel?.mode&&e.signalIntel.mode!=='engaged')return null;
   const now=game.time,d=distance(e,player);
   // The shell's EM sensors catch a REAL plasma emission in sight. A brief
@@ -77,7 +77,7 @@ export function updateIrisSwarm(e,game,player){
     // A damaged scout broadcasts an actual observation, not the player's
     // weapon cooldown. Only close members of this encounter react.
     if(game.grid?.query)for(const wing of game.grid.query(e.x,e.y,IRIS_SWARM.wingRadius)){
-      if(wing===e||!freeHunter(wing,player)||!Number.isFinite(e.group)||
+      if(wing===e||!irisFreeHunter(wing,player)||!Number.isFinite(e.group)||
          wing.group!==e.group||
          wing.signalIntel?.mode&&wing.signalIntel.mode!=='engaged'||
          distance(wing,e)>IRIS_SWARM.wingRadius)continue;
