@@ -94,6 +94,36 @@ test('a claimed field contract is credited to its completed flight and saved exa
  assert.equal(fresh.player.ore,36);assert.equal(fresh.sortieReports[0].ore,16);
  assert.equal(fresh.sortieReports[0].details.oreContracts,16);
 });
+test('the first claimed contract gives one free early weapon, installs it and survives a checkpoint',()=>{
+ const g=scene();g.heritage.ui=noop;g.renderDock=noop;g.firstHardwareReward=null;
+ g.contract={baseId:g.docked.id,kind:'kill',goal:1,progress:1,choiceId:'standard',
+  name:'Первый патруль',ore:16,data:15};
+ g.baseAction('claimContract','');
+ assert.equal(g.firstHardwareReward,'pending');
+ assert.equal(g.player.ore,36);assert.equal(g.player.data,45);
+ g.baseAction('claimFirstModule','rail');
+ assert.equal(g.firstHardwareReward,'rail');
+ assert.deepEqual(g.shipLoadout.slots.slice(0,2),['plasma','rail']);
+ assert.equal(g.shipLoadout.owned.rail,1);
+ assert.equal(g.weaponProfile.rail,1,'the new weapon fires immediately without another hangar step');
+ g.baseAction('claimFirstModule','flak');
+ assert.equal(g.shipLoadout.owned.flak,undefined,'the same reward cannot be received again');
+ assert.equal(g.player.ore,36,'the free weapon does not spend the contract payment');
+ const {storage}=save(g),fresh=scene();
+ restoreCheckpoint(fresh,new RunCheckpointStore(storage).load());
+ assert.equal(fresh.firstHardwareReward,'rail');
+ assert.deepEqual(fresh.shipLoadout.slots.slice(0,2),['plasma','rail']);
+});
+test('an unfinished hangar draft is preserved while the first reward goes to storage',()=>{
+ const g=scene();g.heritage.ui=noop;g.renderDock=noop;g.firstHardwareReward='pending';
+ const draft={...g.shipLoadout,slots:['plasma','plasma',null,null,null,null]};
+ g.hangarSession={draft,dirty:()=>true};
+ g.baseAction('claimFirstModule','flak');
+ assert.equal(g.firstHardwareReward,'flak');
+ assert.equal(g.shipLoadout.slots[1],null);
+ assert.equal(g.shipLoadout.owned.flak,1);
+ assert.deepEqual(draft.slots.slice(0,2),['plasma','plasma']);
+});
 test('station purchases remain separate from sortie income and expenses survive a checkpoint',()=>{
  const g=scene();g.economyExpenses=emptyEconomyExpenses();
  const start=startSortie(g);g.sortieStart=start;

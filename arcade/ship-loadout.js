@@ -62,7 +62,10 @@ export const matchingFieldLoan=(context,id)=>{
 export function moduleLock(id,context){
  if(!Object.hasOwn(MODULES,id))return 'Неизвестный модуль';
  const m=MODULES[id];
- if((context.level||1)<m.level&&!(id==='rail'&&context.earlyRail))return 'Нужен уровень '+m.level;
+ // The first contract can grant one higher-tier weapon early. Only that
+ // particular, actually owned module may be removed and reinstalled early.
+ const rewarded=id===context.firstHardwareReward&&(context.loadout?.owned?.[id]||0)>0;
+ if((context.level||1)<m.level&&!(id==='rail'&&context.earlyRail)&&!rewarded)return 'Нужен уровень '+m.level;
  if(id==='rocket'&&!(context.ranks?.rocket>0))return 'Изучите «Авторакеты» в ангаре';
  if(m.kind==='manual'&&!matchingFieldLoan(context,id))return 'Возьмите этот модуль в прокат ниже';
  return '';

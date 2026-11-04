@@ -70,6 +70,29 @@
 .base-route-graphic svg,.base-network-preview svg,.map-canvas svg{border-radius:5px!important;background:#071828}
 .base-dashboard-links{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .base-dashboard-links button{min-height:43px}
+.base-first-reward{display:grid;gap:10px;margin:0 0 12px;padding:clamp(12px,2vw,20px);
+ border:1px solid #f1cf87a8;border-left:4px solid #f2c875;border-radius:6px;
+ background:radial-gradient(ellipse at 100% 0%,#e0ac4f2b,transparent 63%),linear-gradient(140deg,#1b3942,#102533)}
+.base-first-reward h3{margin:0;color:#ffedc1;font-size:clamp(17px,2vw,23px);line-height:1.18}
+.base-first-reward>p,.base-first-reward>small{margin:0;color:#d7e6e4;font-size:12px;line-height:1.5}
+.base-first-reward-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.base-first-reward-choices article{display:flex;flex-direction:column;gap:10px;min-width:0;
+ padding:12px;border:1px solid #8299a16e;background:#081e2bc7;border-radius:5px}
+.base-first-reward-choices strong{font-size:14px;color:#ffe8aa}
+.base-first-reward-choices p{flex:1;margin:0;color:#c4d9e3;font-size:12px;line-height:1.4}
+#overlay .base-first-reward-choices button{width:100%;min-height:43px;margin:0!important;
+ background:#33605b!important;border:1px solid #b9e0ac!important;color:#f2ffdd!important;font-weight:700}
+#overlay .base-first-reward button:focus-visible{outline:2px solid #fff5bf;outline-offset:2px}
+.base-first-reward-done{border-color:#7accacaa;border-left-color:#7accac;background:linear-gradient(145deg,#143e37,#0e2b32)}
+.base-first-reward-done h3{color:#d5fff0}
+.base-first-reward-hint,.base-first-reward-promise{border-left:3px solid #e6c17d;
+ background:#30434a75;color:#e9e1c7;padding:9px 12px;font-size:12px;line-height:1.45}
+.base-first-reward-promise{display:grid;gap:6px;border-radius:3px}
+.base-first-reward-promise strong{color:#ffeca9;font-size:13px}
+.base-first-reward-promise p{margin:0;color:#d0e0e5}
+.base-first-reward-promise button{justify-self:start;margin:2px 0 0!important}
+@media(max-width:700px){.base-first-reward-choices{grid-template-columns:1fr}
+ .base-first-reward-choices article{gap:6px;padding:10px}.base-first-reward{padding:12px}}
 .base-economy{margin:0 0 12px;padding:12px 14px;border:1px solid #638f9b8c;border-left:3px solid #78dfc7;
  background:linear-gradient(135deg,#153544,#0b2030);display:grid;gap:11px;border-radius:6px}
 .base-economy-head{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:9px}

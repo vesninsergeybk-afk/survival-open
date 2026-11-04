@@ -1,4 +1,4 @@
-import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
@@ -7,6 +7,8 @@ import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=rel
 import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2';
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
+import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1';
+import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -174,6 +176,32 @@ const card=(cls,kicker,title,description,control,reason='')=>
 const action=(name,label,reason='',role='')=>
  '<button type="button" data-act="'+name+'"'+(role?' data-role="'+role+'"':'')+
  (reason?' disabled':'')+'>'+label+'</button>';
+function firstContractRewardPanel(state){
+ if(state.firstHardwareReward==='pending'){
+  const draftDirty=!!state.hangarSession?.dirty?.(state.loadout);
+  const freeSlot=state.loadout?.slots?.some((id,i)=>i<5&&slotOpen(state.loadout,i)&&id===null);
+  return '<section class="base-first-reward" aria-label="Выбор первого боевого модуля">'+
+  '<span class="base-kicker">ПЕРВЫЙ ЗАКАЗ · ОСОБАЯ НАГРАДА</span>'+
+  '<h3>Выберите, как будет сражаться Ваш корабль</h3>'+
+  '<p>Вы заслужили один модуль. Он бесплатный и остаётся до конца прохождения. '+
+  (draftDirty?'В ангаре есть незавершённая сборка: модуль поступит на склад.':
+   freeSlot?'Модуль сразу займёт свободный узел.':'Если свободных узлов нет, модуль поступит на склад.')+
+  ' Выберите один из трёх вариантов:</p>'+
+  '<div class="base-first-reward-choices">'+Object.entries(FIRST_CONTRACT_MODULES).map(([id,choice])=>
+   '<article><strong>'+choice.title+'</strong><p>'+choice.detail+'</p>'+
+   action('claimFirstModule',draftDirty||!freeSlot?'Получить на склад':'Получить и установить','',id)+'</article>').join('')+'</div>'+
+  '<small>После выбора попробуйте новую тактику в следующем бою. Можно позже переставить оружие в ангаре.</small></section>';
+ }
+ if(Object.hasOwn(FIRST_CONTRACT_MODULES,state.firstHardwareReward)&&
+  state.lastContractReceipt?.firstHardwareReward===state.firstHardwareReward){
+  const id=state.firstHardwareReward,choice=FIRST_CONTRACT_MODULES[id],installed=state.loadout?.slots.includes(id);
+  return '<section class="base-first-reward base-first-reward-done" role="status">'+
+   '<span class="base-kicker">ОРУЖИЕ ПОЛУЧЕНО</span><h3>'+choice.title+'</h3>'+
+   '<p>'+(installed?'Модуль уже на корабле. ':'Модуль на складе: установите его в ангаре. ')+choice.test+'</p>'+
+   (!installed?action('baseTab','Открыть ангар','','hangar'):'')+'</section>';
+ }
+ return '';
+}
 const contractPanel=o=>{
  const c=o.contract;
  if(c.status==='available')return '<section class="base-contract-board"><div class="base-contract-copy">'+
@@ -505,6 +533,11 @@ export function renderBasePanel(base,state){
   base.relayBoost?'<span class="base-ready">✓ УСТАНОВЛЕНО</span>':
    action('antenna','Усилить · '+o.antennaCost+' сплава',o.reasons.antenna),o.reasons.antenna):'';
  const selected=['summary','operations','hangar','network'].includes(state.baseTab)?state.baseTab:'summary';
+ const firstReward=active?firstContractRewardPanel(state):'';
+ const firstRewardPromise=active&&state.firstHardwareReward==null?
+  '<div class="base-first-reward-promise"><strong>Награда за первый сданный полевой заказ</strong>'+
+  '<p>Кроме сплава и данных Вы бесплатно выберете новое оружие: дальнобойное, против роя или второй плазменный луч. Если узел свободен, модуль установится сразу.</p>'+
+  action('baseTab','Выбрать заказ','','operations')+'</div>':'';
  const brief=baseBrief(base,state,o);
  const lastSortie=state.sortieReports?.at(-1);
  const signed=n=>(n>0?'+':'')+n;
@@ -596,6 +629,7 @@ export function renderBasePanel(base,state){
  const dashboard='<div class="base-dashboard">'+
   '<div class="base-dashboard-main"><span class="base-kicker">'+brief[0]+'</span>'+
   '<strong>'+brief[1]+'</strong><p>'+brief[2]+'</p>'+
+  firstRewardPromise+
   (specialOffer(base,state)?specialPanel(base,state,true):
     '<div class="base-shortcuts"><span>Местные услуги доступны в ангаре.</span></div>')+
   (base.id==='0:0'&&base.type==='dock'&&!state.fieldTrialTaken&&!state.fieldLoan?
@@ -609,6 +643,8 @@ export function renderBasePanel(base,state){
  const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ЗАДАЧИ И ПОСЛЕДСТВИЯ</span><strong>Выберите, что изменить в секторе</strong>'+
   '<p>Особая операция меняет обстановку, полевые заказы помогают добыть сплав и данные. Условия и способ получения награды указаны в каждой задаче.</p></div>'+
   action('baseTab','Подготовить корабль','','hangar')+'</div>'+
+  (state.firstHardwareReward==null?'<p class="base-first-reward-hint">Первый выполненный и сданный полевой заказ также даст бесплатный боевой модуль на выбор.</p>':'')+
+  firstReward+
   (specialOffer(base,state)?specialPanel(base,state):'')+
   '<h3 class="base-section-title">Полевые заказы</h3>'+contractPanel(o)+'</div>';
  const localMission=specialOffer(base,state),hullPercent=Math.round(state.hp/state.maxHp*100);
@@ -666,7 +702,7 @@ export function renderBasePanel(base,state){
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
   tabButton('summary','Сводка',selected)+tabButton('operations','Операции',selected)+
   tabButton('hangar','Ангар',selected)+tabButton('network','Сеть',selected)+'</nav>'+
-  tabPanel('summary',selected,report+dashboard)+
+  tabPanel('summary',selected,firstReward+report+dashboard)+
   tabPanel('operations',selected,operations)+
   tabPanel('hangar',selected,hangar)+
   tabPanel('network',selected,network):

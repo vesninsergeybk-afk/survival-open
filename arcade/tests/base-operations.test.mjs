@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import {baseOffer,renderBasePanel,contractChoices,contractOffer,eligibleContractProgress,stationModule,transitCost} from '../base-panel.js';
 import {baseNames} from '../balance.js';
 import {World} from '../world.js';
+import {createLoadout} from '../ship-loadout.js';
 
 const state=(extra={})=>({
  ore:80,hp:110,maxHp:110,shield:0,activeBases:1,connectedBases:1,connected:true,
@@ -34,6 +35,17 @@ test('each station offers exactly two mutually exclusive tasks',()=>{
   assert.match(html,/data-act="acceptContract" data-role="standard"/);
   assert.match(html,/data-act="acceptContract" data-role="alternate"/);
  }
+});
+test('the first contract visibly promises a free combat choice and displays three claim actions',()=>{
+ const dock=station();
+ const intro=renderBasePanel(dock,state({loadout:createLoadout(),firstHardwareReward:null}));
+ assert.match(intro,/Награда за первый сданный полевой заказ/);
+ assert.match(intro,/бесплатный боевой модуль на выбор/);
+ const ready=renderBasePanel(dock,state({loadout:createLoadout(),firstHardwareReward:'pending'}));
+ assert.equal((ready.match(/data-act="claimFirstModule"/g)||[]).length,6,
+  'each of three choices is accessible from summary and operations');
+ for(const id of ['rail','flak','plasma'])assert.match(ready,new RegExp('data-act="claimFirstModule" data-role="'+id+'"'));
+ assert.doesNotMatch(ready,/Награда за первый сданный полевой заказ/);
 });
 
 test('alternate task pays its own reward and remains selected after claiming',()=>{
