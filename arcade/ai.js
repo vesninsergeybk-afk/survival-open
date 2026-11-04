@@ -181,6 +181,9 @@ const pickTarget=(e,game)=>{
 };
 export function updateEnemy(e,game,dt){
   if(e.hp<=0)return;
+  // A successfully hacked craft is friendly immediately, even if an earlier
+  // hostile stasis pulse has not expired yet.
+  if(e.converted){e._commsIntent=null;updateConverted(e,game,dt);return;}
   // A connected station briefly locks ordinary hostile craft in place.
   // Authored mission targets, bosses and cargo never receive this status.
   if(game.time<(e.stasisUntil||0)){
@@ -192,7 +195,6 @@ export function updateEnemy(e,game,dt){
   }
   // Every visible intent must be renewed by real steering this frame.
   e._commsIntent=null;
-  if(e.converted){updateConverted(e,game,dt);return;}
   if(stormSeek(e,game,dt))return;
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;

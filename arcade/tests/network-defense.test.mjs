@@ -5,8 +5,10 @@ import {World} from '../world.js';
 import {updateEnemy} from '../ai.js';
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
+import {RuntimeHarness} from './runtime-game.mjs';
 import {STATION_DEFENSE,ensureStationDefense,defenseStatus,
- updateStationDefense,threateningShot,shotThreat,drawStationDefense} from '../network-defense.js';
+ updateStationDefense,threateningShot,shotThreat,drawStationDefense,
+ synchronizeStationDefenses} from '../network-defense.js';
 
 function scene(){
  const world=new World(),home=world.home;
@@ -141,7 +143,7 @@ test('protection ends at its marked boundary, including disconnected bases',()=>
  g.zones=[{x:player.x,y:player.y,r:60,fuse:.3,ttl:.3}];
  updateStationDefense(g);
  assert.equal(g.zones.length,1);
- assert.equal(home.defense,undefined,'no distant state is created');
+ assert.equal(home.defense.charges,1,'remote defenses stay synchronized even outside their ring');
  world.nearbyStations(home.x,home.y,1450,false);
  const second=world.stations.get('1:0');second.active=true;
  assert.equal(world.networkTopology().count,2);
@@ -159,6 +161,54 @@ test('the station protects a ship inside its ring from an overlapping blast outs
  g.zones=[{x:home.x+STATION_DEFENSE.soloRadius+50,y:home.y,r:80,fuse:.3,ttl:.3}];
  updateStationDefense(g);
  assert.equal(g.zones.length,0,'the blast footprint crosses the protection perimeter');
+});
+test('an imminent bullet hits a ship inside the ring even if the bullet never enters the ring',()=>{
+ const {g,home,player}=scene();
+ player.x=home.x+STATION_DEFENSE.soloRadius-10;
+ const danger=shot(home.x+300,home.y,-230);
+ g.shots=[danger];
+ for(let step=0;step<10&&danger.alive;step++){
+  g.time=100+step*.03;
+  updateStationDefense(g);
+  if(!danger.alive)break;
+  danger.x+=danger.vx*.03;
+  assert.ok(danger.x-player.x>(player.r+danger.r),
+   'the projectile must be destroyed before the real shot loop reaches the hero');
+ }
+ assert.equal(danger.alive,false);
+ assert.equal(home.defense.charges,0);
+});
+test('a bullet absorbed by a moving strike escort does not waste the hero PVO charge',()=>{
+ const {g,home,player}=scene();
+ const danger=shot(player.x+160,player.y,-230);
+ const escort={x:player.x+85,y:player.y,r:17,hp:70,vx:0,vy:0};
+ g.shots=[danger];g.support={missions:[{craft:[escort]}]};
+ updateStationDefense(g);
+ assert.equal(danger.alive,true);
+ assert.equal(home.defense.charges,1);
+ // Once the craft moves out of the trajectory, the same bullet threatens us.
+ escort.vy=150;
+ g.time+=.2;updateStationDefense(g);
+ assert.equal(danger.alive,false);
+});
+test('the last-step warning is still preventable at 10, 30 and 60 simulation Hz',()=>{
+ for(const hz of [10,30,60]){
+  const {g,home,player}=scene();
+  const impact={x:player.x+100,y:player.y,r:60,fuse:.04,ttl:.3};
+  g.zones=[impact];
+  // In the real game fuse is decremented on one frame, then resolved in the next.
+  g.time=100;updateStationDefense(g);
+  assert.equal(g.zones.length,1,'moving ship starts outside the strike');
+  player.x=impact.x;
+  for(let step=1;step<=5&&g.zones.length;step++){
+   g.time=100+step/hz;
+   updateStationDefense(g);
+   // Actual updateStrikes: the frame which crosses zero only decrements.
+   if(impact.fuse>0)impact.fuse-=1/hz;
+  }
+  assert.equal(g.zones.length,0,'PVO must run before the pending impact at '+hz+'Hz');
+  assert.equal(home.defense.charges,0);
+ }
 });
 
 test('an imminent meteor is ignored when the moving ship is leaving its blast and PVO range',()=>{
@@ -194,6 +244,22 @@ test('connected nodes suppress a real hostile group briefly, not authored object
  assert.equal(a.stasisUntil,firstPulse,'cooldown and immunity prevent a repeated lock');
  g.time=135;updateStationDefense(g);
  assert.ok(a.stasisUntil>firstPulse,'the station can help again after recovery');
+});
+test('hacking a stunned enemy immediately frees it to act as an ally',()=>{
+ const {g,player}=scene();
+ Object.setPrototypeOf(g,RuntimeHarness.prototype);
+ Object.assign(g,{hacks:['area'],flashes:[],allies:[],holdFire:true,
+  grid:{query:()=>[]},avoidance:()=>({x:0,y:0})});
+ const frozen=enemy(player.x+60,player.y,{stasisUntil:130,stasisLabelUntil:130,
+  stasisImmuneUntil:150});
+ g.enemies=[frozen];
+ g.hack();
+ assert.equal(frozen.converted,true);
+ assert.equal(frozen.stasisUntil,0);
+ assert.equal(frozen.stasisLabelUntil,0);
+ assert.equal(frozen.stasisImmuneUntil,0);
+ updateEnemy(frozen,g,.1);
+ assert.ok(frozen.convertedTime<19,'the actual converted AI begins on the first frame');
 });
 
 test('stasis does not fire at two distant ships while the player is elsewhere in the ring',()=>{
@@ -240,6 +306,30 @@ test('an old fully charged solo station does not instantly gain ammo or stasis o
  assert.equal(state.charges,1);
  state=ensureStationDefense(home,true,213.1);
  assert.equal(state.charges,2);
+});
+test('remote link creation starts both timers immediately and the terminal agrees on return',()=>{
+ const {g,home,world}=scene();
+ ensureStationDefense(home,false,100);
+ world.nearbyStations(home.x,home.y,1450,false);
+ const second=world.stations.get('1:0');
+ second.active=true;
+ synchronizeStationDefenses(world,200);
+ assert.equal(defenseStatus(home,true,200).stasisIn,8);
+ assert.equal(defenseStatus(home,true,200).rechargeIn,13);
+ assert.equal(home.defense.charges,1);
+ assert.equal(ensureStationDefense(home,true,230).stasisAt,208);
+ assert.equal(defenseStatus(home,true,230).charges,2);
+ assert.equal(defenseStatus(home,true,230).stasisIn,0);
+});
+test('a depleted solo magazine cannot jump to two full charges on late linking',()=>{
+ const {home,world}=scene();
+ const state=ensureStationDefense(home,false,100);
+ state.charges=0;state.rechargeAt=117;
+ world.nearbyStations(home.x,home.y,1450,false);
+ world.stations.get('1:0').active=true;
+ synchronizeStationDefenses(world,200);
+ assert.equal(state.charges,1,'only the old solo charge is restored');
+ assert.equal(state.rechargeAt,213);
 });
 
 test('the orbital-strike switch leaves shots protected but lets meteor resources exist',()=>{
@@ -330,6 +420,19 @@ test('flight readout stays beside the protection ring, clear of the top mission 
  assert.ok(pvo.y>home.y+STATION_DEFENSE.soloRadius*.5,
   'PVO label is positioned in the lower-right, away from the mission banner');
  assert.equal(backdrops.length,1,'readout has a contrasting background');
+});
+test('in-flight readout tells the player recharge time and missing stasis targets',()=>{
+ const {home,world,player}=scene();
+ world.nearbyStations(home.x,home.y,1450,false);
+ world.stations.get('1:0').active=true;
+ const state=ensureStationDefense(home,true,100);
+ state.charges=0;state.rechargeAt=108;state.stasisAt=90;
+ const labels=[];
+ const c={save(){},restore(){},setLineDash(){},beginPath(){},arc(){},stroke(){},
+  fillRect(){},strokeRect(){},fillText(value){labels.push(value);}};
+ drawStationDefense(c,home,true,100,player,false,[enemy(home.x+50,home.y)]);
+ assert.ok(labels.includes('ЗАРЯД ЧЕРЕЗ 8 С'));
+ assert.ok(labels.includes('СТАЗИС · ЦЕЛИ 1/2'));
 });
 
 test('production update runs interception before shots and before orbital damage',()=>{

@@ -63,25 +63,32 @@ export function updateRegionalWorld(game,dt){
   game.notice('Перехвачена передача: сборочный пост выпустил патруль. Его снабжает местная шахта — перехватывайте грузы.',7);
  }
 }
-// Spend one delivery for a local, modest patrol. This replaces one ambient
-// encounter; it never adds an unbounded wave on top of the director.
+// A delivered shipment finances one *additional* escort in a regular wave.
+// The director's cap and group size still bound the encounter. Preventing
+// delivery therefore removes measurable combat pressure rather than merely
+// replacing a weak pair with a potentially stronger ambient formation.
 export function spawnCentralRaid(game,director){
  const s=game.world.regionalSupply?.central,raid=s?.pendingRaid;
  const origin=game.world.stations.get(CENTRAL_INDUSTRY.depotId);
+ const limit=Math.min(RULES.maxEnemies,director.cap);
  if(!raid?.announced||!origin?.enemy||game.time<raid.readyAt||
   distance(game.player,origin)>11000||
-  game.enemies.length+2>Math.min(RULES.maxEnemies,director.cap))return false;
+  !director.types?.length||!game.spawnGroup||
+  game.enemies.length+Math.max(1,director.groupSize||0)+1>limit)return false;
+ const before=game.enemies.length;
+ const ambientRecovery=game.spawnGroup(director);
+ if(game.enemies.length<=before||game.enemies.length>=limit)return false;
  const cam=game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
  const side=Math.abs(dx)>Math.abs(dy)?(dx>0?1:0):(dy>0?3:2);
  ++game.groupSerial;
- for(let i=0;i<2;i++){
-  const pos=spawnOutside(cam,side,.43+i*.14,150+i*25);
-  game.enemies.push(makeEnemy(game,i?'fighter':'scout',pos.x,pos.y,'central-funded'));
- }
+ const pos=spawnOutside(cam,side,.5,170);
+ const escort=makeEnemy(game,'fighter',pos.x,pos.y,'central-funded');
+ escort.hp*=1+Math.min(2.5,game.time/550);escort.maxHp=escort.hp;
+ game.enemies.push(escort);
  s.pendingRaid=null;s.raids++;s.nextRaid=game.time+90;
  centralEvent(s,'central-raid',game.time);
- game.notice('Местный патруль прибыл. Разрушение грузовой цепочки сократит такие вылеты.',5);
- return true;
+ game.notice('Сборочный пост усилил патруль сопровождающим истребителем. Перехват грузов лишит врага таких подкреплений.',5);
+ return Math.max(.001,ambientRecovery);
 }
 // Replace one ambient encounter, respect its pressure cap, and spend one
 // delivered cargo. A warning always precedes the arrival, including on return.

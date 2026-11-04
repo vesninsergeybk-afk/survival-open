@@ -85,15 +85,40 @@ test('capturing either station changes production or combat, without erasing car
 });
 test('funded patrol waits for a visible warning, respects the cap and spends one reserve',()=>{
  const g=game(),s=g.world.regionalSupply.central;
+ g.spawnGroup=director=>{
+  for(let i=0;i<Math.min(director.groupSize,director.cap-g.enemies.length);i++)
+   g.enemies.push({hp:25,scenario:'ambient'});
+  return 0;
+ };
+ const director={cap:30,groupSize:2,types:['scout','fighter']};
  s.reserves=1;s.assemblyUntil=1;
  g.time=10;updateRegionalWorld(g,1);
  assert.ok(s.pendingRaid?.announced);
- assert.equal(spawnCentralRaid(g,{cap:30}),false);
- g.time=21;assert.equal(spawnCentralRaid(g,{cap:1}),false);
- assert.equal(spawnCentralRaid(g,{cap:30}),true);
- assert.equal(g.enemies.length,2);assert.equal(s.raids,1);
- assert.equal(spawnCentralRaid(g,{cap:30}),false);
+ assert.equal(spawnCentralRaid(g,director),false);
+ g.time=21;assert.equal(spawnCentralRaid(g,{...director,cap:1}),false);
+ assert.ok(spawnCentralRaid(g,director)>0);
+ assert.equal(g.enemies.length,3,'a paid shipment adds one ship on top of the ambient pair');
+ assert.equal(g.enemies.filter(e=>e.scenario==='ambient').length,2);
+ assert.equal(g.enemies.filter(e=>e.scenario==='central-funded').length,1);
+ assert.equal(s.raids,1);
+ assert.equal(spawnCentralRaid(g,director),false);
  assert.ok(g.notices.some(text=>text.includes('патруль')));
+});
+test('preventing a funded patrol measurably removes one fighter, without deleting ambient pressure',()=>{
+ const director={cap:10,groupSize:3,types:['scout','fighter']};
+ const create=paid=>{
+  const g=game(),s=g.world.regionalSupply.central;
+  g.spawnGroup=d=>{
+   for(let i=0;i<d.groupSize;i++)g.enemies.push({hp:25,scenario:'ambient'});
+   return 0;
+  };
+  g.time=100;s.pendingRaid=paid?{announced:true,readyAt:90}:null;
+  const funded=spawnCentralRaid(g,director);
+  if(!funded)g.spawnGroup(director);
+  return {count:g.enemies.length,bonus:g.enemies.filter(e=>e.scenario==='central-funded').length};
+ };
+ assert.deepEqual(create(true),{count:4,bonus:1});
+ assert.deepEqual(create(false),{count:3,bonus:0});
 });
 test('the worker stays out of automatic fire until explicitly designated; destroying it halts mining',()=>{
  const g=game(),worker=g.world.regionalSupply.central.worker;

@@ -5,7 +5,7 @@ import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} fr
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-1';
-import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-3';
+import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-4';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -257,7 +257,7 @@ export function renderWorldMap(game){
   '<text x="351" y="266" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
   '<div class="map-legend"><span>● вы</span><span>● активна</span><span>● выключена</span>'+
   '<span>◈ противник</span><span>⇢ согласованный манёвр</span><span>? сигнал</span><span>◎ операция</span>'+
-  (known.some(b=>b.active&&!b.enemy)?'<span>бирюзовый круг — ПВО · фиолетовый — стазис</span>':'')+'</div>'+
+  (known.some(b=>b.active&&!b.enemy)?'<span>бирюзовый круг — ПВО корабля · фиолетовый — радиус станции для стазиса (нужны 2 врага рядом с вами)</span>':'')+'</div>'+
   '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
     ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
   '<aside class="map-side">'+renderRegionAtlas(game)+radioHistory+

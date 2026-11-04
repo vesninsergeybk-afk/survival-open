@@ -1,8 +1,8 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-2';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-2';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=regions-1';
-import {defenseStatus} from './network-defense.js?v=network-defense-3';
+import {defenseStatus} from './network-defense.js?v=network-defense-4';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
@@ -783,7 +783,7 @@ export function renderBasePanel(base,state){
  const meteorChoice=action('toggleMeteorDefense',protection.meteorEnabled?
   'Пропускать орбитальные удары':'Перехватывать орбитальные удары');
  const network='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">УПРАВЛЕНИЕ СЕТЬЮ</span><strong>Связь, технологии и территория</strong>'+
-  '<p>'+protectionText+'. ПВО тратит заряды на опасные снаряды и орбитальные удары. Стазис останавливает группу рядом с кораблём. Режим «Пропуск» оставляет орбитальные удары: они могут повредить врагов и астероиды, но опасны и для вас. Снаряды ПВО продолжает перехватывать.</p>'+
+  '<p>'+protectionText+'. ПВО защищает корабль внутри бирюзового круга: один заряд — одна угроза, пауза 0,7 с. Стазис сработает, когда хотя бы два обычных врага окажутся одновременно в 235 м от станции и в 185 м от вас; остановит до трёх на 2,6 с. На боссов и цели операций не действует. Режим «Пропуск» позволяет орбитальным ударам повреждать врагов и астероиды. Снаряды ПВО продолжит сбивать.</p>'+
   '<div class="base-defense-choice">'+meteorChoice+'</div></div></div>'+
   networkPreview(base,state)+'<div class="base-grid">'+upgrade+antenna+'</div>'+
   (modules?'<details class="base-secondary-info base-network-advanced"><summary>'+
