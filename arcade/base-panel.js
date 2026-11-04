@@ -581,6 +581,7 @@ export function renderBasePanel(base,state){
   opening+'<footer class="base-foot"><small>'+
   (active?'Полевые заказы доступны повторно через 150 с после сдачи. Особая операция меняет обстановку в секторе.':
   'Первая станция включается бесплатно; следующие требуют сплав.')+
+  (state.checkpointNote?'<br><span role="status">'+state.checkpointNote+'</span>':'')+
   '</small><div class="base-footer-actions">'+
   (active&&state.doctrine?action('respec','Сменить доктрину · 12 сплава',state.ore<12?'Нужно 12 сплава':''):'')+
   action('close',active&&selected==='hangar'&&state.hangarSession?.dirty(state.loadout)?'В полёт без замены оружия':'В полёт')+'</div></footer></div>';

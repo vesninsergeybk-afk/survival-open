@@ -11,11 +11,11 @@ import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=hud-impact-art-pass-06-gameplay-2';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
-import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=arcade-progressive-noise-58';
+import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=hangar-3';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=checkpoint-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=operation-leads-1';
 import {renderWorldMap} from './map-panel.js?v=carrier-intercept-2';
 import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=carrier-intercept-2';
@@ -27,6 +27,7 @@ import {plasmaDamageFactor,weaponDamageFactor,rocketFlight} from './weapon-speci
 import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,heatWeapons,mountPosition} from './ship-loadout.js?v=hangar-2';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {updateAuxiliaryWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=hangar-3';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=checkpoint-1';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -169,6 +170,10 @@ export class ArcadeGame {
   this.notice(matchMedia('(pointer: coarse)').matches?
    'Подлетите к доку и нажмите «Действие».':
    'WASD — полёт · E — домашний док · Ангар: бесплатный «Ионный проводник» · Shift — рывок.',9);
+  this.runStore=this.visuals.capitalDamageQA?null:new RunCheckpointStore(hangarStorage);
+  const saved=this.runStore?.load();
+  if(saved||['damaged','unsupported'].includes(this.runStore?.issue))this.offerContinuation(saved);
+  else this.runStore?.startNew();
   this.last=performance.now();this.loop=this.loop.bind(this);
   requestAnimationFrame(this.loop);
  }
@@ -188,6 +193,7 @@ export class ArcadeGame {
  bind(){
   window.addEventListener('resize',()=>this.resize());
   document.addEventListener('keydown',e=>{
+   if(!this.overlay.hidden&&this.overlay.dataset.mode==='run-start')return;
    // A menu owns Tab for focus navigation; during flight Tab opens the map.
    if(e.code==='Escape'&&!this.overlay.hidden){e.preventDefault();this.dismiss();return;}
    if(e.code==='Tab'&&!this.overlay.hidden)return;
@@ -223,6 +229,12 @@ export class ArcadeGame {
    const b=e.target.closest('button[data-act]');if(!b)return;
    const act=b.dataset.act;
    if(b.disabled)return;
+   if(act==='runContinue'){this.continueRun();return;}
+   if(act==='runNew'){
+    this.pendingCheckpoint=null;this.runStore?.startNew();
+    this.overlay.dataset.mode='';this.dismiss();
+    this.notice('Новый вылет. На активных станциях прогресс сохраняется.',5);return;
+   }
    if(act.startsWith('hg')){this.hangarAction(b.dataset);return;}
    if(act==='close')this.dismiss();
     if(act==='baseTab'&&['summary','operations','hangar','network'].includes(b.dataset.role)){
@@ -350,6 +362,8 @@ export class ArcadeGame {
    return true;
   }
   dismiss(){
+   if(!this.overlay.hidden&&this.overlay.dataset.mode==='run-start')return;
+   this.saveAtStation();
    this.endInteraction();
    if(!this.overlay.hidden)this.heritage.ui('close');
    this.overlay.hidden=true;this.paused=false;this.mapReturnToBase=false;this.heritage.resume();
@@ -1106,9 +1120,45 @@ export class ArcadeGame {
   if(!this.docked)return;
   this.syncShipLoadout();
   const view=captureHangarView(this.overlay);
-  this.overlay.innerHTML=renderBasePanel(this.docked,this.baseState());
+  const checkpointNote=this.saveAtStation();
+  this.overlay.innerHTML=renderBasePanel(this.docked,{...this.baseState(),checkpointNote});
   restoreHangarView(this.overlay,view);
   this.hud();
+ }
+ offerContinuation(saved){
+  this.pendingCheckpoint=saved;this.paused=true;this.pausedRenderPending=true;
+  this.overlay.dataset.mode='run-start';this.overlay.hidden=false;this.heritage.pause('base');
+  const base=saved?.world.stations.find(([id])=>id===saved.baseId)?.[1];
+  const p=saved?.state.player;
+  this.overlay.innerHTML='<div class="dialog" role="dialog" aria-modal="true" aria-label="Сохранённый вылет">'+
+   '<h2>'+(saved?'Продолжить вылет?':'Сохранённый вылет недоступен')+'</h2><p>'+
+   (saved?(baseNames[base.type]||'Станция')+' · уровень '+p.level+' · сплав '+p.ore+' · данные '+p.data:
+    this.runStore?.issue==='unsupported'?'Этот вылет сохранён более новой версией игры. Прежняя запись останется; новый вылет в этой версии можно начать без сохранений.':
+     'Не удалось прочитать контрольную точку. Можно начать новый вылет.')+'</p><p>'+
+   'Прогресс сохраняется на активных станциях и после подготовки корабля. Продолжение возвращает к последней контрольной точке. После гибели начинается новый вылет.</p>'+
+   (saved?'<button data-act="runContinue">Продолжить со станции</button><p>Новый вылет заменит это сохранение.</p>':'')+
+   '<button data-act="runNew">Новый вылет</button></div>';
+  this.overlay.querySelector('[data-act="'+(saved?'runContinue':'runNew')+'"]')?.focus();
+ }
+ continueRun(){
+  if(!this.pendingCheckpoint)return;
+  try{restoreCheckpoint(this,this.pendingCheckpoint);}
+  catch{this.notice('Сохранённый вылет не удалось восстановить. Запись оставлена без изменений.',6);return;}
+  this.pendingCheckpoint=null;this.syncShipLoadout();this.hangarSession.begin(this.shipLoadout);
+  this.baseTab='summary';this.overlay.dataset.mode='base';this.overlay.hidden=false;
+  this.heritage.pause('base');this.renderDock();
+  this.notice('Вылет продолжен с последней стыковки.',4);
+ }
+ saveAtStation(){
+  if(!this.runStore||this.dead||!this.paused||!this.docked?.active||this.docked.enemy||
+   dist(this.player,this.docked)>RULES.baseInteract||this.overlay.dataset.mode==='run-start')return '';
+  let result;
+  try{result=this.runStore.save(captureCheckpoint(this,this.docked));}
+  catch{result={ok:false,reason:'invalid'};}
+  if(result.ok)return 'Вылет сохранён на этой станции. После перезагрузки продолжите отсюда.';
+  if(result.reason==='conflict')return 'Вылет изменён в другой вкладке. Эта вкладка не перезаписывает сохранение; для продолжения перезагрузите игру.';
+  if(result.reason==='unsupported')return 'Прежнее сохранение оставлено без изменений. Этот вылет пока не сохраняется.';
+  return 'Не удалось сохранить вылет. Чтобы продолжить его, оставьте эту вкладку открытой.';
  }
  nearestInteractionStation(){
   let nearest=null,closest=RULES.baseInteract;
@@ -1201,7 +1251,9 @@ export class ArcadeGame {
    focus.kind==='station'?'#87f0cf':'#7de5f5';
   c.setLineDash([7,6]);c.beginPath();c.arc(t.x,t.y,r,0,TAU);c.stroke();
   c.setLineDash([]);c.fillStyle='#c9f6f6';c.font='bold 12px system-ui';
-  c.textAlign='center';c.fillText(focus.label+(this.isTouchLayout?'':' · E'),t.x,t.y-r-13);
+  c.textAlign='center';
+  if(!(focus.kind==='mine'&&this.mining.active))
+   c.fillText(focus.label+(this.isTouchLayout?'':' · E'),t.x,t.y-r-13);
   c.restore();
  }
   dock(selected=null){
@@ -1559,6 +1611,7 @@ export class ArcadeGame {
   this.heritage.play('death',.1);
   this.heritage.onDeath();
   this.dead=true;this.paused=true;this.pausedRenderPending=true;
+  this.runStore?.end();
   this.deathVfxAt=performance.now();this.deathSceneEnd=this.deathVfxAt+1100;
   this.overlay.hidden=true;this.overlay.dataset.mode='death';
   this.overlay.innerHTML='<div class="dialog"><h2>Корабль потерян</h2><p>Время полёта: '+

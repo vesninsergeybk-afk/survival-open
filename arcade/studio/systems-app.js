@@ -1,4 +1,4 @@
-import {SYSTEMS, ISSUE_REFS, REF_TITLES, REF_STATUS, STATUS_LABELS, PARTIAL_REFS, WORKSTREAMS, EMP_CUE_FRAMES} from './systems-data.js?v=whole-scope-2';
+import {SYSTEMS, ISSUE_REFS, REF_TITLES, REF_STATUS, STATUS_LABELS, PARTIAL_REFS, WORKSTREAMS, EMP_CUE_FRAMES} from './systems-data.js?v=whole-scope-3';
 
 const $ = id => document.getElementById(id);
 const make = (tag, klass, value) => {
