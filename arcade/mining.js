@@ -134,6 +134,6 @@ export function drawExtraction(ctx,player,rock,time,rank,active) {
  ctx.restore();
  ctx.save();ctx.font='600 10px Inter,system-ui,sans-serif';ctx.textAlign='center';
  ctx.fillStyle=active?'#b7fff6':'#91d9e7';ctx.shadowColor='#000';ctx.shadowBlur=4;
- ctx.fillText(active?'РАСЩЕПЛЕНИЕ · '+Math.round(progress*100)+'%':'F · ДОБЫЧА',rock.x,rock.y-rock.r-19);
+ if(active)ctx.fillText('РАСЩЕПЛЕНИЕ · '+Math.round(progress*100)+'%',rock.x,rock.y-rock.r-19);
  ctx.restore();
 }
