@@ -10,7 +10,7 @@ export const ION_CONDUCTOR = Object.freeze({
  chainRadius:235,
  maxTargets:3,
  cooldown:4.5,
- damage:Object.freeze([24,18,14])
+ damage:Object.freeze([38,30,22])
 });
 
 const inRange=(a,b,r)=>Math.hypot(a.x-b.x,a.y-b.y)<=r;
