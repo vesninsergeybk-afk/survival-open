@@ -82,6 +82,24 @@ test('HUD reads game state and changes contextual prompts without changing simul
   assert.equal(node('hpmeter')['aria-valuenow'],'28');
   assert.equal(node('hud').classList.contains('is-critical'),true);
   assert.equal(node('burstBtn').disabled,false);
+  assert.equal(node('flightMode').textContent,'АВТООГОНЬ',
+   'touch HUD uses a short, complete weapon state');
+  assert.equal(node('flightMode')['aria-label'],'АВТООГОНЬ · АКТИВЕН',
+   'the original detailed state remains accessible');
+  game.holdFire=true;
+  hud.update(game,100,5);
+  assert.equal(node('flightMode').textContent,'ТИХИЙ РЕЖИМ');
+  game.holdFire=false;
+  game.mining.active=true;
+  hud.update(game,100,5);
+  assert.equal(node('flightMode').textContent,'ДОБЫЧА');
+  game.mining.active=false;
+  hud.compactHud=false;
+  hud.update(game,100,5);
+  assert.equal(node('flightMode').textContent,'АВТООГОНЬ · АКТИВЕН',
+   'desktop retains the complete original instrument text');
+  hud.compactHud=true;
+
   // Damage feedback must only respond to real combat hits, with no effect on
   // health, inventory or flight controls.
   hud.reducedMotion=false;
@@ -112,7 +130,8 @@ test('HUD reads game state and changes contextual prompts without changing simul
   game.weaponThermal.locked=true;
   hud.update(game,100,5);
   assert.equal(node('hudThermalLabel').textContent,'ПЕРЕГРЕВ');
-  assert.equal(node('flightMode').textContent,'ОГОНЬ ЗАБЛОКИРОВАН · ПЕРЕГРЕВ');
+  assert.equal(node('flightMode').textContent,'ПЕРЕГРЕВ');
+  assert.equal(node('flightMode')['aria-label'],'ОГОНЬ ЗАБЛОКИРОВАН · ПЕРЕГРЕВ');
   game.weaponThermal.locked=false;game.weaponThermal.cooling=true;game.weaponThermal.current=45;
   hud.update(game,100,5);
   assert.equal(node('hudThermalLabel').textContent,'ОСТЫВАНИЕ');

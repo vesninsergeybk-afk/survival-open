@@ -39,6 +39,7 @@ export class CockpitDisplay {
    miningLabel:el('miningLabel'),
    contractObjective:el('contractObjective'),interactionCue:el('interactionCue')};
   this.reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  this.compactHud=window.matchMedia('(pointer: coarse)').matches;
   this.drawRadarShell();
  }
  update(game,nextXp,boostCooldown) {
@@ -166,7 +167,7 @@ export class CockpitDisplay {
    baseFocus||overcharge>0||scan>0;
   display(n.stateText,hasRoute&&!priorityStatus?
    String(goal.label||'МАРШРУТ').toUpperCase():systemStatus);
-  display(n.flightMode,game.holdFire?'АВТООГОНЬ · ВЫКЛЮЧЕН':
+  const modeFull=game.holdFire?'АВТООГОНЬ · ВЫКЛЮЧЕН':
    repairing?'ОРУЖИЕ ОТКЛ. · РЕМОНТ':
    extracting?(game.nearQuietLab?'ДОБЫЧА · ШУМ −32%':'ОРУЖИЕ ОТКЛ. · ДОБЫЧА'):
    boosting?'МАНЁВР · ФОРСАЖ':baseFocus?'АВТОЦЕЛЬ · БАЗА':
@@ -174,7 +175,18 @@ export class CockpitDisplay {
    game.nearArsenalBonus?'РЕТРАНСЛЯТОР · ЛУЧ +18%':
    game.nearDockField||game.nearArsenalDefense?'ПОЛЕ СТАНЦИИ · УРОН −18%':
    game.nearDock?.module==='workshop'?'ДОК · РЕМОНТ +60%':
-   game.nearQuietLab?'ЛАБОРАТОРИЯ · ШУМ −32%':'АВТООГОНЬ · АКТИВЕН');
+   game.nearQuietLab?'ЛАБОРАТОРИЯ · ШУМ −32%':'АВТООГОНЬ · АКТИВЕН';
+  // Phone instrument uses short, readable states; full context stays available
+  // as the accessible label. Desktop retains its detailed telemetry.
+  const modeCompact=game.holdFire?'ТИХИЙ РЕЖИМ':
+   repairing?'РЕМОНТ':extracting?(game.nearQuietLab?'ДОБЫЧА · ТИХО':'ДОБЫЧА'):
+   boosting?'ФОРСАЖ':baseFocus?'БАЗА · ЦЕЛЬ':
+   overcharge?'ЛУЧ +20%':game.nearArsenalBonus?'ЛУЧ +18%':
+   game.nearDockField||game.nearArsenalDefense?'ЗАЩИТА +18%':
+   game.nearDock?.module==='workshop'?'РЕМОНТ +60%':
+   game.nearQuietLab?'ШУМ −32%':'АВТООГОНЬ';
+  display(n.flightMode,this.compactHud?modeCompact:modeFull);
+  n.flightMode.setAttribute('aria-label',modeFull);
   // Future thermal mechanics opt in explicitly. Without a real model, no
   // misleading empty heat gauge is rendered in the live cockpit.
   const thermal=game.weaponThermal;
@@ -192,7 +204,10 @@ export class CockpitDisplay {
    n.hudThermalMeter.setAttribute('aria-valuenow',String(Math.round(fill)));
    display(n.hudThermalText,Math.round(fill)+'%');
    display(n.hudThermalLabel,locked?'ПЕРЕГРЕВ':cooling?'ОСТЫВАНИЕ':'НАГРЕВ');
-   if(locked)display(n.flightMode,'ОГОНЬ ЗАБЛОКИРОВАН · ПЕРЕГРЕВ');
+   if(locked){
+    display(n.flightMode,this.compactHud?'ПЕРЕГРЕВ':'ОГОНЬ ЗАБЛОКИРОВАН · ПЕРЕГРЕВ');
+    n.flightMode.setAttribute('aria-label','ОГОНЬ ЗАБЛОКИРОВАН · ПЕРЕГРЕВ');
+   }
   }
   n.message.style.opacity=game.messageUntil>game.time?'1':'0';
   // HUD remains stationary: no cockpit sway when the player steers.
