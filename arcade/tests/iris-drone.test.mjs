@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {drawIrisDrone,irisEnabledByQuery,irisFrameAt,irisThrustLevel,isIrisDroneReady}
+import {drawIrisDrone,irisEnabledByQuery,irisFrameAt,irisCycleFrameAt,
+ irisManeuverFrameAt,irisThrustLevel,isIrisDroneReady}
  from '../iris-drone-renderer.js';
 
 test('I.R.I.S. is enabled by default, with an explicit rollback switch',()=>{
@@ -27,11 +28,44 @@ test('all nine shell frames are reachable and ordered',()=>{
   }
   assert.deepEqual([...visited],[0,1,2,3,4,5,6,7,8]);
 });
+test('full close/reopen cycles remain visible after the initial reveal',()=>{
+  for(let serial=0;serial<20;serial++){
+    const frames=new Set();
+    for(let t=.9;t<8;t+=1/60)frames.add(irisCycleFrameAt(t,serial));
+    assert.deepEqual([...frames].sort((a,b)=>a-b),[0,1,2,3,4,5,6,7,8]);
+    assert.equal(irisCycleFrameAt(50,serial,true),8);
+  }
+  const synchronized=new Set(Array.from({length:20},(_,i)=>irisCycleFrameAt(2,i)));
+  assert.ok(synchronized.size>=4,'scouts must not blink together');
+});
+
+test('shell motion remains continuous at 30 FPS and maneuver half-close is smooth',()=>{
+  for(let serial=0;serial<12;serial++){
+    let prior=irisCycleFrameAt(0,serial);
+    for(let i=1;i<360;i++){
+      const current=irisCycleFrameAt(i/30,serial);
+      assert.ok(Math.abs(current-prior)<=2,
+        `frame jumped ${prior} to ${current} at ${i}/30 for scout ${serial}`);
+      prior=current;
+    }
+  }
+  assert.equal(irisManeuverFrameAt(-1),8);
+  assert.equal(irisManeuverFrameAt(0),8);
+  assert.ok(irisManeuverFrameAt(.36)<=3);
+  assert.equal(irisManeuverFrameAt(.72),8);
+});
+
 test('ion exhaust has off and bounded power states',()=>{
   assert.equal(irisThrustLevel(0),-1);
-  assert.equal(irisThrustLevel(4.99),-1);
-  assert.equal(irisThrustLevel(5),2);
-  assert.equal(irisThrustLevel(180),4);
+  assert.equal(irisThrustLevel(6.99),-1);
+  assert.equal(irisThrustLevel(7),0);
+  assert.equal(irisThrustLevel(40),1);
+  assert.equal(irisThrustLevel(110),3);
+  assert.equal(irisThrustLevel(158),4);
+  assert.equal(irisThrustLevel(180),5);
+  assert.equal(irisThrustLevel(110,200,2),5);
+  assert.equal(irisThrustLevel(110,0,0,1),4);
+  assert.equal(irisThrustLevel(110,0,0,-1),2);
   assert.equal(irisThrustLevel(999),5);
   assert.equal(irisThrustLevel(Number.NaN),-1);
 });
@@ -60,11 +94,26 @@ test('the optional art loads only when a scout requests it',()=>{
   const e={type:'scout',serial:1,x:10,y:20,r:14,vx:110,vy:0,visualAngle:0};
   assert.equal(drawIrisDrone(ctx,e,2),true);
   assert.equal(constructed,2);
-  assert.equal(draws.length,1);
+  assert.equal(draws.length,2,'engines run even when the armor is closed');
+  assert.deepEqual(draws[1].slice(1,5),[0,0,160,160]);
   draws.length=0;
   assert.equal(drawIrisDrone(ctx,e,3),true);
   assert.equal(draws.length,2);
   assert.deepEqual(draws[1].slice(1,5),[320,320,160,160]);
+  draws.length=0;
+  assert.equal(drawIrisDrone(ctx,e,3.8),true);
+  assert.notDeepEqual(draws[1].slice(1,3),[320,320],
+    'the live scout must close its armor again');
+  draws.length=0;
+  e.vx=0;e.vy=160;
+  assert.equal(drawIrisDrone(ctx,e,4.01),true);
+  assert.equal(e._irisManeuverAt,4.01,'a sharp turn starts a short shell gesture');
+  assert.deepEqual(draws[0].slice(1,5),[800,0,160,320],
+    'the same turn pushes exhaust to its strongest sprite');
+  draws.length=0;
+  e.vx=0;e.vy=0;
+  assert.equal(drawIrisDrone(ctx,e,4.6),true);
+  assert.equal(draws.length,1,'engines stop when the drone has stopped');
   assert.equal(constructed,2);
  }finally{globalThis.Image=originalImage;}
 });
