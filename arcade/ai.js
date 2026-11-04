@@ -11,6 +11,46 @@ const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   body.x+=body.vx*dt;body.y+=body.vy*dt;
   if(m>12)body.angle=Math.atan2(body.vy,body.vx)+Math.PI/2;
 };
+/** Small scouts weave on approach and briefly side-slip under fire.
+ * There are no dodge i-frames: player beams hit instantly and rockets home.
+ * A jink changes the flight path, not the hitbox or the damage calculation.
+ * Per-drone serials stagger the course changes without consuming game RNG. */
+export function scoutSteering(e,game,target,speed){
+  const dx=target.x-e.x,dy=target.y-e.y;
+  const distance=Math.hypot(dx,dy)||1;
+  const serial=Math.abs(Math.trunc(e.serial||0));
+  const legSeconds=1.02+(serial%4)*.17;
+  const leg=Math.floor((game.time+serial*.29)/legSeconds);
+  const side=(leg+serial)%2===0?1:-1;
+  // Distant patrols approach fairly directly; closer scouts make uneven,
+  // alternating lateral passes. They still close in and remain hittable.
+  const rangeFactor=clamp((distance-60)/165,0,1);
+  let lateral=side*speed*(.12+(.30+(serial%5)*.035)*rangeFactor);
+  const underFire=(e.hit||0)>.025;
+  let missileNearby=false;
+  if(distance>85&&game.missiles?.length){
+    for(const missile of game.missiles){
+      if(missile.target===e&&missile.life>0&&
+          Math.hypot(missile.x-e.x,missile.y-e.y)<155){
+        missileNearby=true;break;
+      }
+    }
+  }
+  if(distance>85&&(underFire||missileNearby)&&
+      game.time>=(e._scoutDodgeCooldown??0)){
+    e._scoutDodgeSide=side;
+    e._scoutDodgeStarted=game.time;
+    e._scoutDodgeUntil=game.time+.49;
+    e._scoutDodgeCooldown=game.time+2.45+(serial%5)*.19;
+  }
+  if(game.time<(e._scoutDodgeUntil??0)){
+    const progress=clamp((game.time-e._scoutDodgeStarted)/.49,0,1);
+    lateral=e._scoutDodgeSide*speed*(.70+.34*Math.sin(Math.PI*progress));
+  }
+  // Perpendicular movement is blended by steer(), so there is no teleport
+  // or instantaneous direction flip when a new leg starts.
+  return {x:-dy/distance*lateral,y:dx/distance*lateral};
+}
 export const ENEMY_TYPES = Object.freeze({
   scout:{name:'Разведчик',hp:28,speed:158,dmg:9,score:7},
   fighter:{name:'Штурмовик',hp:58,speed:120,dmg:12,score:10},
@@ -165,7 +205,20 @@ export function updateEnemy(e,game,dt){
     }else{goalX=p.x+260;goalY=p.y+240;}
   }
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
-  steer(e,goalX,goalY,speed,dt,{x:avoid.x*speed*1.3,y:avoid.y*speed*1.3});
+  let extraX=avoid.x*speed*1.3,extraY=avoid.y*speed*1.3;
+  if(e.state==='hunt'&&!e.boss&&!e.missionStructure){
+    if(e.type==='scout'){
+      const jink=scoutSteering(e,game,p,speed);
+      extraX+=jink.x;extraY+=jink.y;
+    }else if(e.type==='fighter'){
+      // Heavier fighters make long, slow sweeps, unlike nervous scouts.
+      const heading=norm(p.x-e.x,p.y-e.y);
+      const sweep=Math.sin(game.time*.81+(e.group||0)*.73+(e.serial%5)*.39);
+      extraX-=heading.y*speed*.17*sweep;
+      extraY+=heading.x*speed*.17*sweep;
+    }
+  }
+  steer(e,goalX,goalY,speed,dt,{x:extraX,y:extraY});
   e.healFlash=Math.max(0,(e.healFlash||0)-dt);
   if(e.type==='gunship'&&!e.relayAssault&&e.fire<=0&&dist(e,p)<535){
     e.fire=1.65;
@@ -305,3 +358,4 @@ export function updateAlly(a,game,dt){
     }
   }
 }
+
