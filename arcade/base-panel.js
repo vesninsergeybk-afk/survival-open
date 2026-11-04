@@ -1,10 +1,10 @@
-import {renderShipHangar} from './hangar-panel.js?v=hangar-2';
-import {renderStationRoutePreview} from './map-panel.js?v=carrier-intercept-1';
+import {renderShipHangar} from './hangar-panel.js?v=hangar-3';
+import {renderStationRoutePreview} from './map-panel.js?v=carrier-intercept-2';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=operation-leads-1';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
-import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-1';
+import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
 import {ION_CONDUCTOR,ionLoanOffer} from './ion-conductor.js?v=ion-first-play-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
@@ -296,9 +296,9 @@ const carrierPanel=(base,state,compact=false)=>{
  const ongoing=active&&['contact','pursuit','turn','last'].includes(op.phase);
  const body=done?'Перехваченные сведения доставлены. На маршруте снабжения меньше вражеских патрулей.':
   returning?'Груз остановлен. Вернитесь на этот авианосец и нажмите E, чтобы сдать сведения и получить награду.':
-  ongoing?'Транспорт движется к отмеченной линии выхода. Можно атаковать груз под огнём охраны или сначала устранить сопровождающих. Положение корабля помогает выбирать цель автоматическим оружием.':
+  ongoing?'Нос прикрыт бронёй; с кормы урон выше и можно повредить двигатели. Выйдите за 230 м перед разрядом и атакуйте в трёхсекундное окно открытой брони. Охранение можно обойти или уничтожить.':
   active?'Найдите отмеченный район. Транспорт начнёт движение только после сближения; до этого времени ограничение отсутствует.':
-  'Снабжение противника проходит поблизости. Выследите транспорт, остановите его до линии выхода и доставьте сведения на авианосец.';
+  'Снабжение противника проходит поблизости. '+CARRIER_INTERCEPTION.desc;
  const actions=done?'<span class="base-op-done">✓ ПАТРУЛИ ОСЛАБЛЕНЫ</span>':
   active?action('baseMap',returning?'Маршрут к авианосцу':'Показать конвой')+
    (compact?'':action('abandonOperation','Отложить · начать погоню заново')):
@@ -310,7 +310,7 @@ const carrierPanel=(base,state,compact=false)=>{
   state.operation&&!active?'Сначала завершите или отложите текущую особую операцию.':'';
  const facts='<div class="base-op-details">'+
   '<div><span>ЗАДАЧА</span><b>Догнать груз до выхода · вернуться</b></div>'+
-  '<div><span>УГРОЗА</span><b>Два сопровождающих · возможен третий</b></div>'+
+  '<div><span>УГРОЗА</span><b>Охранение · носовая броня · разряд 230 м</b></div>'+
   '<div><span>ПОСЛЕДСТВИЕ</span><b>Патрули реже вдоль маршрута</b></div></div>';
  return '<article class="base-featured-op '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · АВИАНОСЕЦ</span><span>'+
@@ -525,7 +525,7 @@ export function renderBasePanel(base,state){
    'Операция «Оборона ретранслятора»: противники стремятся к передатчику. Перехватывайте заряженные залпы; атака состоит из трёх конечных волн.':
    missionForPreparation.id===CARRIER_INTERCEPTION.id?
    (missionForPreparation.phase==='return'?'Операция «Перехват снабжения»: вернитесь на авианосец с телеметрией.':
-    'Операция «Перехват снабжения»: транспорт движется после обнаружения; охранение можно обойти или уничтожить.'):
+    'Операция «Перехват снабжения»: заход с кормы повреждает двигатели; перед разрядом выйдите за 230 м. Осколочное оружие помогает убрать охранение, рельс позволяет держать дистанцию.'):
    missionForPreparation.phase==='return'?'Операция «Глухой коридор»: помехи сняты, но награда ждёт передачи телеметрии в домашнем доке.':
    'Операция «Глухой коридор»: у глушителя есть охранение и ЭМ-импульсы. После уничтожения вернитесь с телеметрией в док за наградой.') :
   'Выберите дальнейший маршрут и подготовьте корабль к ожидаемой угрозе.';

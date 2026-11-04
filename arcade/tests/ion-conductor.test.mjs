@@ -32,19 +32,19 @@ test('only one loan can be equipped; any active station accepts its return',()=>
  assert.equal(ionLoanOffer({...home,active:false},{ionLoan:loan}),null);
 });
 
-test('automatic beam marks live nearby enemies, never cargo or captured allies',()=>{
+test('automatic beam marks live hostile ships including transport, never captured allies',()=>{
  const a=enemy(100,0),b=enemy(210,0),far=enemy(600,0),
   converted={...enemy(200,0),converted:true},cargo={...enemy(140,0),interceptCargo:true};
  const list=[a,b,far,converted,cargo];
  assert.deepEqual(markIonCluster(list,a,10,null),[]);
  const loan=createIonLoan('0:0');
  const marked=markIonCluster(list,a,10,loan);
- assert.deepEqual(marked,[a,b]);
+ assert.deepEqual(marked,[a,cargo,b]);
  assert.equal(a.ionMarkUntil,15);
  assert.equal(b.ionMarkUntil,15);
  assert.equal(far.ionMarkUntil,undefined);
  assert.equal(converted.ionMarkUntil,undefined);
- assert.equal(cargo.ionMarkUntil,undefined);
+ assert.equal(cargo.ionMarkUntil,15);
  loan.charges=0;
  assert.equal(markIonCluster(list,a,11,loan).length,0);
 });

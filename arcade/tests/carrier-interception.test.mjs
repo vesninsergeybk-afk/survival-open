@@ -8,7 +8,8 @@ import {renderWorldMap} from '../map-panel.js';
 import {missionHudText} from '../mission-feedback.js';
 import {
  CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,createCarrierInterception,
- carrierOffer,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier
+ carrierOffer,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,
+ advanceCarrierSystems,hitCarrierCargo
 } from '../carrier-interception.js';
 
 const world=new World(20261102);
@@ -59,10 +60,10 @@ const damageEnd=gameSource.indexOf(' flash(x,y,x2,y2,color=',damageStart);
 assert.ok(start>0&&end>start&&damageStart>0&&damageEnd>damageStart);
 const CarrierHarness=new Function(
  'CARRIER_INTERCEPTION','carrierInFlight','carrierDistanceRemaining','moveCarrierCargo',
- 'RULES','ENEMY_TYPES','TAU','dist',
+ 'RULES','ENEMY_TYPES','TAU','dist','advanceCarrierSystems','hitCarrierCargo',
  'return class CarrierHarness {'+gameSource.slice(start,end)+gameSource.slice(damageStart,damageEnd)+'}'
 )(CARRIER_INTERCEPTION,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,
- {maxEnemies:65},ENEMY_TYPES,Math.PI*2,distance);
+ {maxEnemies:65},ENEMY_TYPES,Math.PI*2,distance,advanceCarrierSystems,hitCarrierCargo);
 
 function scenario(){
  const base={...carrier,supplyIntercepted:false,carrierRetryAt:0,carrierMission:null};
@@ -103,10 +104,10 @@ test('only meeting starts pursuit; two real escorts guard the moving cargo',()=>
 test('combat stops cargo, but payout waits for a one-time return to the issuing carrier',()=>{
  const {game,base,op}=scenario();
  game.updateCarrierInterception(.02);
- game.damageEnemy(op,500,'beam');
- assert.ok(op.hp>0,'escorts partly protect transport but do not block damage');
+ game.damageEnemy(op,100,'beam');
+ assert.ok(op.hp>0,'cargo remains damageable under escort');
  assert.equal(game.player.ore,0);
- game.damageEnemy(op,400,'beam');
+ game.damageEnemy(op,500,'beam');
  assert.equal(op.phase,'return');
  assert.equal(game.operation,op);
  assert.equal(game.player.ore,0);

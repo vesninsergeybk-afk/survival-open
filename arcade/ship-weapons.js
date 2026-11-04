@@ -50,8 +50,8 @@ export function updateAuxiliaryWeapons(game,dt,allowed){
   const slot=game.shipLoadout.slots.indexOf(id),from=mountPosition(game.player,slot);
   for(const item of targets){
    const target=item.target,d=distance(from,target),
-    cover=firstRockImpact(from.x,from.y,target.x,target.y,
-     game.rockGrid.query((from.x+target.x)*.5,(from.y+target.y)*.5,d*.5+45),2,game.player);
+    rocks=game.rockGrid.query((from.x+target.x)*.5,(from.y+target.y)*.5,d*.5+45),
+    cover=firstRockImpact(from.x,from.y,target.x,target.y,rocks,2,game.player);
    const point=cover?contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y):
     contactOnCircle(target.x,target.y,target.r||22,from.x,from.y);
    const damage=stats.damage*count*weaponDamageFactor(game.shipLoadout,id,target);
@@ -59,8 +59,12 @@ export function updateAuxiliaryWeapons(game,dt,allowed){
     game.damageRock(cover.rock,damage*.85,from.x,from.y,'auto',true,point);
     const penetration=id==='rail'?penetrationFactor(game.shipLoadout):0;
     if(penetration){
-     const hit=contactOnCircle(target.x,target.y,target.r||22,from.x,from.y);
-     damageShipTarget(game,item,damage*penetration,id,hit);
+     const second=firstRockImpact(cover.x,cover.y,target.x,target.y,
+      rocks.filter(rock=>rock!==cover.rock),2,game.player);
+     const hit=second?contactAtPoint(second.rock.x,second.rock.y,second.x,second.y):
+      contactOnCircle(target.x,target.y,target.r||22,from.x,from.y);
+     if(second)game.damageRock(second.rock,damage*penetration,cover.x,cover.y,'auto',true,hit);
+     else damageShipTarget(game,item,damage*penetration,id,hit);
      game.flash(cover.x,cover.y,hit?.x??target.x,hit?.y??target.y,'#a5bfff');
     }
    }else damageShipTarget(game,item,damage,id,point);

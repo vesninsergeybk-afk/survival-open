@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {contactOnCircle,contactAtPoint} from '../impact-geometry.js';
 import {drawExtraction} from '../mining.js';
+import {firstRockImpact} from '../terrain.js';
 
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 
@@ -51,8 +52,8 @@ const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 function method(name,next,...deps){
  const from=source.indexOf('\n '+name),to=source.indexOf('\n '+next,from+1);
  assert.ok(from>=0&&to>from,`${name} should be extractable from real game source`);
- return new Function('contactOnCircle','impactRock',
-  'return class VFXWiring {'+source.slice(from,to)+'\n}')(contactOnCircle,()=>false);
+ return new Function('contactOnCircle','impactRock','firstRockImpact','contactAtPoint',
+  'return class VFXWiring {'+source.slice(from,to)+'\n}')(contactOnCircle,()=>false,firstRockImpact,contactAtPoint);
 }
 
 test('damage events do not change balance while contacting the enemy hull',()=>{
@@ -109,6 +110,7 @@ test('homing missile retains the approach direction when arriving at target cent
  const enemy={x:100,y:0,r:20,hp:80,converted:false};
  const impacts=[],blasts=[],sound=[];
  const game={
+  rockGrid:{query:()=>[]},player:{x:0,y:0,r:19},
   missiles:[{x:0,y:0,tx:100,ty:0,target:enemy,damage:27,speed:200,life:2}],
   damageEnemy:(e,d,kind,contact)=>impacts.push({e,d,kind,contact}),
   heritage:{vfx:{rocketImpact:(...args)=>blasts.push(args) },

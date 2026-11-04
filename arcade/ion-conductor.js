@@ -14,7 +14,7 @@ export const ION_CONDUCTOR = Object.freeze({
 });
 
 const inRange=(a,b,r)=>Math.hypot(a.x-b.x,a.y-b.y)<=r;
-const markable=e=>!!e&&e.hp>0&&!e.converted&&!e.interceptCargo;
+const markable=e=>!!e&&e.hp>0&&!e.converted;
 
 export function ionLoanOffer(base,state){
  if(!base?.active)return null;
