@@ -1,5 +1,6 @@
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20';
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
+import {updateIrisPerception,irisSearchGoal} from './iris-scanning.js?v=iris-predator-scan-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
@@ -107,6 +108,7 @@ export function updateEnemy(e,game,dt){
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;
   const signalOrder=updateSignalIntent(e,game,dt);
+  if(updateIrisPerception(e,game,dt))return;
   if(signalOrder){
     const avoid=game.avoidance(e.x,e.y,38);
     const speed=ENEMY_TYPES[e.type].speed*signalOrder.speed;
@@ -204,9 +206,11 @@ export function updateEnemy(e,game,dt){
       }
     }else{goalX=p.x+260;goalY=p.y+240;}
   }
+  const search=e.type==='scout'&&e.state==='hunt'?irisSearchGoal(e,game):null;
+  if(search){goalX=search.x;goalY=search.y;speed*=.78;}
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   let extraX=avoid.x*speed*1.3,extraY=avoid.y*speed*1.3;
-  if(e.state==='hunt'&&!e.boss&&!e.missionStructure){
+  if(e.state==='hunt'&&!e.boss&&!e.missionStructure&&!search){
     if(e.type==='scout'){
       const jink=scoutSteering(e,game,p,speed);
       extraX+=jink.x;extraY+=jink.y;
