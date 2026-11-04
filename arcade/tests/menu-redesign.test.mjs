@@ -100,5 +100,6 @@ test('active menu controls never override positioning transforms used by ship ha
  const reducedRule=css.match(/@media\(prefers-reduced-motion:reduce\)\s*\{([\s\S]*?)\}\s*\}/)?.[1];
  assert.ok(reducedRule,'reduced-motion settings are missing');
  assert.doesNotMatch(reducedRule,/transform\s*:/,'reduced motion must not displace ship hardpoints');
- assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/menu-system\.css\?v=menus-gameplay-first-3/);
+ assert.match(css,/\.base-foot\s*\{position:sticky;bottom:0/,'station return action must stay visible while panels scroll');
+ assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/menu-system\.css\?v=menus-gameplay-first-4/);
 });
