@@ -3,7 +3,7 @@ import {baseNames} from './balance.js?v=arcade-base-ops-38';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
-import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-1';
+import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
