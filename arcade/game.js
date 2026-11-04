@@ -1,14 +1,15 @@
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid} from './region-runtime.js?v=living-world-1';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid} from './region-runtime.js?v=living-world-2';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {strategicCapture} from './regional-supply.js?v=living-world-1';
 import {disableCentralWorker} from './central-industry.js?v=living-world-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30';
 import {World} from './world.js?v=living-world-1';
-import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense} from './network-defense.js?v=network-defense-3';
+import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
+ synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1';
 import {EnemyComms} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-1';
@@ -25,9 +26,9 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-3-station-flow-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-3-living-world-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-4-living-world-2';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -1528,6 +1529,7 @@ export class ArcadeGame {
    const topology=this.world.networkTopology();
    this.cachedNetworkLinked=topology.linked;
    this.defenseTopology=null;
+   synchronizeStationDefenses(this.world,this.time,topology);
    this.notice('Антенна усилена · в сети '+topology.count+' станций',3.5);
    this.heritage.vfx.nova(b.x,b.y,105,'cyan');
    this.heritage.station('upgrade',b.type,{tech:'relay'});
@@ -1608,6 +1610,7 @@ export class ArcadeGame {
    const topology=this.world.networkTopology();
    this.cachedNetworkLinked=topology.linked;
    this.defenseTopology=null;
+   synchronizeStationDefenses(this.world,this.time,topology);
    this.notice('Станция активна'+(topology.linked.has(b.id)?
     ' · подключено узлов: '+topology.count:' · ищите ретранслятор')+
     (o.rewardAlloy?' · +'+o.rewardAlloy+' сплава':'')+
@@ -1831,6 +1834,7 @@ export class ArcadeGame {
       dist(e,this.player)<260;
    if(eligible&&count<24){
     e.converted=true;e.convertedTime=19;e.state='converted';e.fire=.2;count++;
+    e.stasisUntil=0;e.stasisLabelUntil=0;e.stasisImmuneUntil=0;
     this.flashes.push({x:e.x,y:e.y,x2:e.x,y2:e.y,color:'#78ffd6',ttl:.5});
    }
   }
@@ -2022,6 +2026,7 @@ export class ArcadeGame {
    this.defenseTopology=null;
    base.activated=true;base.activationTime=this.time;
    this.activeBases++;base.activationIndex=this.activeBases;
+   synchronizeStationDefenses(this.world,this.time);
    this.hacks.push(base.rank>=3?'screen':'area');
    if(this.hacks.length>3)this.hacks.shift();
    this.heritage.vfx.nova(base.x,base.y,200,'green');
@@ -2411,7 +2416,8 @@ export class ArcadeGame {
     this.spawnClock=4.5;
    }else{
    const director=this.sectorDirector(openingThreat(this.time,this.player.level));
-   const recovery=spawnCentralRaid(this,director)||spawnRegionalRaid(this,director)?6:this.spawnGroup(director);
+   const central=spawnCentralRaid(this,director);
+   const recovery=central?central:spawnRegionalRaid(this,director)?6:this.spawnGroup(director);
    // Give the player room to clear an overwhelming formation, without
    // suppressing the large waves when a strong build is mowing them down.
    const pressure=this.enemies.length/Math.max(1,director.cap);
@@ -2949,7 +2955,7 @@ export class ArcadeGame {
     this.drawBase(b,returnBase?.id);
     if(b.active&&!b.enemy)
      drawStationDefense(c,b,defenseLinked(b,{count:this.cachedNetworkLinked.size,
-      linked:this.cachedNetworkLinked}),this.time,p,this.visuals.reducedMotion);
+      linked:this.cachedNetworkLinked}),this.time,p,this.visuals.reducedMotion,this.enemies);
    }
   }
   this.drawInteractionFocus(c,cam);

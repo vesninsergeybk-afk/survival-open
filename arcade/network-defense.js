@@ -36,10 +36,16 @@ export function ensureStationDefense(base,linked,now){
  if(typeof state.lastLinked!=='boolean')state.lastLinked=linked;
  if(typeof state.meteorEnabled!=='boolean')state.meteorEnabled=true;
  if(state.lastLinked!==linked){
+  // Settle the *old* magazine before changing its capacity. A solo station
+  // returning after a long absence may recover one old charge, never two.
+  const oldCap=capacity(state.lastLinked);
+  state.charges=Math.max(0,Math.min(oldCap,Math.trunc(state.charges)||0));
+  if(state.charges<oldCap&&Number.isFinite(state.rechargeAt)&&now>=state.rechargeAt)
+   state.charges=oldCap;
   if(linked){
    state.stasisAt=Math.max(state.stasisAt||0,now+8);
    if(state.charges>=STATION_DEFENSE.soloCharges)
-    state.rechargeAt=Math.max(now+recharge(true),state.rechargeAt||0);
+    state.rechargeAt=now+recharge(true);
   }
   state.lastLinked=linked;
  }
@@ -55,6 +61,15 @@ export function ensureStationDefense(base,linked,now){
    state.rechargeAt+gained*recharge(linked);
  }
  return state;
+}
+// Changing a remote relay affects several stations immediately, not the next
+// time the player happens to fly past each one.
+export function synchronizeStationDefenses(world,now,topology=world.networkTopology()){
+ for(const base of world.stations.values()){
+  if(base.active&&!base.enemy)
+   ensureStationDefense(base,defenseLinked(base,topology),now);
+ }
+ return topology;
 }
 export function defenseStatus(base,linked,now){
  const cap=capacity(linked),state=base.defense;
@@ -72,25 +87,33 @@ const spend=(state,linked,now)=>{
 };
 // Check where the projectile is going, not merely whether it is near a base.
 // A bullet already travelling away, or about to hit a rock, does not waste PVO.
-export function shotThreat(shot,player,rockGrid){
+function collisionEta(a,b,radius){
+ const dx=a.x-b.x,dy=a.y-b.y;
+ const vx=(a.vx||0)-(b.vx||0),vy=(a.vy||0)-(b.vy||0);
+ const c=dx*dx+dy*dy-radius*radius;
+ if(c<=0)return 0;
+ const speed=vx*vx+vy*vy,approach=2*(dx*vx+dy*vy);
+ if(speed<1||approach>=0)return null;
+ const discriminant=approach*approach-4*speed*c;
+ if(discriminant<0)return null;
+ const t=(-approach-Math.sqrt(discriminant))/(2*speed);
+ return t>=0?t:null;
+}
+export function shotThreat(shot,player,rockGrid,escortCraft=[]){
  if(!shot.alive||shot.life<=0)return null;
  // Solve contact against the ship's current velocity, not a projectile's
  // closest approach to where the ship happened to be one frame ago.
- const dx=shot.x-player.x,dy=shot.y-player.y;
- const vx=shot.vx-(player.vx||0),vy=shot.vy-(player.vy||0);
  const radius=(player.r||19)+(shot.r||6)+2;
- const c=dx*dx+dy*dy-radius*radius;
- let t=0;
- if(c>0){
-  const a=vx*vx+vy*vy,b=2*(dx*vx+dy*vy);
-  if(a<1||b>=0)return null;
-  const discriminant=b*b-4*a*c;
-  if(discriminant<0)return null;
-  t=(-b-Math.sqrt(discriminant))/(2*a);
-  if(t<0)return null;
- }
- if(t>STATION_DEFENSE.shotHorizon||t>shot.life)return null;
+ const t=collisionEta(shot,player,radius);
+ if(t===null||t>STATION_DEFENSE.shotHorizon||t>shot.life)return null;
  if((player.invul||0)>t+.03)return null;
+ // The normal projectile loop hits a strike-support craft before the hero.
+ // Keep the player's scarce PVO charge if that craft would take the hit.
+ if(escortCraft.some(c=>{
+  if(c.hp<=0)return false;
+  const first=collisionEta(shot,c,(shot.r||6)+(c.r||17));
+  return first!==null&&first<=t;
+ }))return null;
  const endX=shot.x+shot.vx*t,endY=shot.y+shot.vy*t;
  if(rockGrid){
   const travel=Math.hypot(endX-shot.x,endY-shot.y);
@@ -98,21 +121,25 @@ export function shotThreat(shot,player,rockGrid){
    rockGrid.query((shot.x+endX)*.5,(shot.y+endY)*.5,65+travel*.5),shot.r||6,player);
   if(cover)return null;
  }
- return {eta:t,damage:Math.max(0,shot.damage||0),kind:'shot',object:shot};
+ return {eta:t,damage:Math.max(0,shot.damage||0),kind:'shot',object:shot,
+  targetX:player.x+(player.vx||0)*t,targetY:player.y+(player.vy||0)*t};
 }
 export const threateningShot=(shot,player,rockGrid)=>!!shotThreat(shot,player,rockGrid);
 
 function meteorThreat(zone,base,player,radius){
- if(zone.done||zone.fuse<=0||zone.fuse>STATION_DEFENSE.meteorWindow)return null;
- if((player.invul||0)>zone.fuse+.03)return null;
+ if(zone.done||zone.fuse>STATION_DEFENSE.meteorWindow)return null;
+ // After the timer crosses zero, the real game resolves the strike on its
+ // following simulation step. That still counts as a preventable impact.
+ const eta=Math.max(0,zone.fuse);
+ if((player.invul||0)>eta+.03)return null;
  // The visible ring describes where the ship can receive protection. An
  // impact whose centre is outside it may still reach the ship inside it.
  if(distance(zone,base)>radius+zone.r+(player.r||19))return null;
- const projected={x:player.x+(player.vx||0)*zone.fuse,
-  y:player.y+(player.vy||0)*zone.fuse};
+ const projected={x:player.x+(player.vx||0)*eta,
+  y:player.y+(player.vy||0)*eta};
  if(distance(projected,base)>radius||
     distance(projected,zone)>zone.r+(player.r||19)+2)return null;
- return {eta:zone.fuse,damage:27,kind:'meteor',object:zone};
+ return {eta,damage:27,kind:'meteor',object:zone};
 }
 
 function moreUrgent(next,best){
@@ -141,10 +168,24 @@ const effect=(game,base,at,kind)=>{
    'ПВО станции перехватила '+(kind==='meteor'?'орбитальный удар.':'вражеский снаряд.'),2.7);
  }
 };
+function stasisTargets(enemies,base,player,now){
+ return enemies.filter(e=>e.hp>0&&!e.converted&&!e.boss&&
+  !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&!e.regionalCargo&&
+  now>=(e.stasisImmuneUntil||0)&&distance(e,base)<STATION_DEFENSE.stasisRadius&&
+  distance(e,player)<STATION_DEFENSE.stasisPlayerRadius);
+}
 
 export function updateStationDefense(game){
  const player=game.player,now=game.time;
- if(!player||player.hp<=0||game.dead||now<(game.nextDefenseCheckAt||0))return;
+ if(!player||player.hp<=0||game.dead)return;
+ // A zone with a spent fuse is resolved later this same frame; it must not
+ // wait for the regular ~0.1s scan. Imminent shots are checked on each frame
+ // only if their next-step contact would otherwise be missed.
+ const pendingImpact=game.zones.some(z=>!z.done&&z.fuse<=0);
+ const urgentShot=game.shots.some(s=>s.alive&&s.life>0&&
+  Math.hypot(s.x-player.x,s.y-player.y)<(player.r||19)+(s.r||6)+
+   Math.hypot(s.vx||0,s.vy||0)*.065);
+ if(!pendingImpact&&!urgentShot&&now<(game.nextDefenseCheckAt||0))return;
  game.nextDefenseCheckAt=now+.095;
  // Local lookups have bounded cost even when the long game has many stations.
  const bases=game.world.nearbyStations(player.x,player.y,
@@ -153,8 +194,10 @@ export function updateStationDefense(game){
  if(!game.defenseTopology||now>=(game.defenseTopologyAt||0)){
   game.defenseTopology=game.world.networkTopology();
   game.defenseTopologyAt=now+.55;
+  synchronizeStationDefenses(game.world,now,game.defenseTopology);
  }
  const topology=game.defenseTopology;
+ const escortCraft=(game.support?.missions||[]).flatMap(m=>m.craft||[]).filter(c=>c.hp>0);
  for(const base of bases){
   const linked=defenseLinked(base,topology),radius=defenseRadius(linked);
   if(distance(base,player)>radius)continue;
@@ -168,8 +211,9 @@ export function updateStationDefense(game){
     }
    }
    for(const shot of game.shots){
-    if(!shot.alive||distance(shot,base)>radius)continue;
-    const threat=shotThreat(shot,player,game.rockGrid);
+    if(!shot.alive)continue;
+    const threat=shotThreat(shot,player,game.rockGrid,escortCraft);
+    if(threat&&Math.hypot(threat.targetX-base.x,threat.targetY-base.y)>radius)continue;
     if(threat&&moreUrgent(threat,best))best=threat;
    }
    if(best){
@@ -179,10 +223,7 @@ export function updateStationDefense(game){
    }
   }
   if(!linked||now<state.stasisAt)continue;
-  const eligible=game.enemies.filter(e=>e.hp>0&&!e.converted&&!e.boss&&
-   !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&!e.regionalCargo&&
-   now>=(e.stasisImmuneUntil||0)&&distance(e,base)<STATION_DEFENSE.stasisRadius&&
-   distance(e,player)<STATION_DEFENSE.stasisPlayerRadius);
+  const eligible=stasisTargets(game.enemies,base,player,now);
   if(eligible.length<2)continue;
   eligible.sort((a,b)=>distance(a,player)-distance(b,player));
   const stopped=eligible.slice(0,STATION_DEFENSE.stasisTargets);
@@ -197,11 +238,21 @@ export function updateStationDefense(game){
  }
 }
 
-export function drawStationDefense(c,base,linked,now,player,lowMotion=false){
+export function drawStationDefense(c,base,linked,now,player,lowMotion=false,enemies=[]){
  if(!base.active||base.enemy||distance(base,player)>defenseRadius(linked)+55)return;
  const status=defenseStatus(base,linked,now),state=base.defense;
  const meteorDisabled=!status.meteorEnabled;
  const recent=state&&now-state.visualAt<1.25;
+ const lines=['ПВО '+status.charges+'/'+status.capacity];
+ if(status.charges<status.capacity)lines.push('ЗАРЯД ЧЕРЕЗ '+status.rechargeIn+' С');
+ if(linked){
+  const targets=Math.min(2,stasisTargets(enemies,base,player,now).length);
+  lines.push(status.stasisIn?'СТАЗИС ЧЕРЕЗ '+status.stasisIn+' С':
+   targets<2?'СТАЗИС · ЦЕЛИ '+targets+'/2':'СТАЗИС · 2/2 ЦЕЛИ');
+ }
+ if(meteorDisabled)lines.push('ОРБ. УДАРЫ: ПРОПУСК');
+ const lineHeight=15;
+ const panelHeight=9+lineHeight*lines.length;
  c.save();c.lineWidth=recent?2.2:1.3;
  c.strokeStyle=status.charges?'rgba(115,235,218,'+(recent?.8:.38)+')':'rgba(125,157,168,.34)';
  c.setLineDash([8,12]);c.beginPath();c.arc(base.x,base.y,status.radius,0,Math.PI*2);c.stroke();
@@ -216,20 +267,15 @@ export function drawStationDefense(c,base,linked,now,player,lowMotion=false){
  const readoutX=base.x+status.radius*.72;
  const readoutY=base.y+status.radius*.66;
  c.fillStyle='rgba(5,22,34,.82)';
- c.fillRect(readoutX-59,readoutY-14,118,linked?(meteorDisabled?53:38):meteorDisabled?37:22);
+ c.fillRect(readoutX-70,readoutY-14,140,panelHeight);
  c.strokeStyle='rgba(135,243,222,.52)';c.lineWidth=.85;
- c.strokeRect(readoutX-59,readoutY-14,118,linked?(meteorDisabled?53:38):meteorDisabled?37:22);
+ c.strokeRect(readoutX-70,readoutY-14,140,panelHeight);
  c.fillStyle=status.charges?'#a7f6e8':'#bbcbd2';c.textAlign='center';
- c.font='bold 11px system-ui';
- c.fillText('ПВО '+status.charges+'/'+status.capacity,readoutX,readoutY+1,108);
- if(linked){
-  c.fillStyle=status.stasisIn?'#c1aacd':'#d9b5ff';
-  c.fillText(status.stasisIn?'СТАЗИС · '+status.stasisIn+' С':'СТАЗИС ГОТОВ',
-   readoutX,readoutY+17,108);
- }
- if(meteorDisabled){
-  c.fillStyle='#f6cca2';c.font='bold 9px system-ui';
-  c.fillText('ОРБ. УДАРЫ: ПРОПУСК',readoutX,readoutY+(linked?33:17),108);
- }
+ c.font='bold 10px system-ui';
+ lines.forEach((line,i)=>{
+  c.fillStyle=line.startsWith('СТАЗИС')?'#d9b5ff':line.startsWith('ОРБ.')?'#f6cca2':
+   i===0?'#a7f6e8':'#b8dce3';
+  c.fillText(line,readoutX,readoutY+1+i*lineHeight,132);
+ });
  c.restore();
 }
