@@ -2,7 +2,7 @@ import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-n
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
-import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1';
+import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
@@ -195,6 +195,7 @@ export function updateEnemy(e,game,dt){
     e._enemyLearningSaw=dist(e,game.player)<290&&
       !!game.enemyCanSee?.(e,game.player);
   }
+  if(e._enemyLearningSaw)game.enemyComms?.reportSight(e,game.player,game.time);
   if(e._enemyLearningSaw)game.enemyLearning?.observePlayer(game.player,game.time);
   if(updateIrisPerception(e,game,dt)){
     if(e.type==='scout')scoutAttack(e,game,
@@ -343,6 +344,35 @@ export function updateEnemy(e,game,dt){
   if(tactical&&e.state==='hunt'&&p===game.player){
     goalX=tactical.x;goalY=tactical.y;
     speed*=tactical.speed;
+  }
+  // A received order adjusts destinations but cannot override an escort's
+  // guard, a medic's treatment or IRIS's authored pack choreography.
+  const radio=game.enemyComms?.directiveFor(e,game.time);
+  if(radio&&p===game.player&&!e.protect&&!e.boss&&
+    !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&
+    e.type!=='healer'&&!(e.type==='scout'&&tactical)&&
+    (e.state==='hunt'||e.state==='flank'||e.state==='standoff')){
+    const intel=radio.intel;
+    const reported={x:intel.x+clamp(intel.vx*.12,-26,26),
+      y:intel.y+clamp(intel.vy*.12,-26,26)};
+    if(e.state==='hunt'&&!e._enemyLearningSaw){
+      goalX=reported.x;goalY=reported.y;
+    }
+    const heading=norm(reported.x-e.x,reported.y-e.y);
+    if(radio.mode==='pincer'){
+      goalX-=heading.y*radio.side*76;
+      goalY+=heading.x*radio.side*76;
+    }else if(radio.mode==='intercept'){
+      goalX+=clamp(intel.vx*.22,-52,52);
+      goalY+=clamp(intel.vy*.22,-52,52);
+    }else if(radio.mode==='press'){
+      goalX+=heading.x*34-heading.y*radio.side*22;
+      goalY+=heading.y*34+heading.x*radio.side*22;
+    }else if(radio.mode==='screen'&&radio.medic&&radio.medic!==e){
+      const toward=norm(reported.x-radio.medic.x,reported.y-radio.medic.y);
+      goalX=radio.medic.x+toward.x*105-toward.y*radio.side*35;
+      goalY=radio.medic.y+toward.y*105+toward.x*radio.side*35;
+    }
   }
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   let extraX=avoid.x*speed*1.3,extraY=avoid.y*speed*1.3;

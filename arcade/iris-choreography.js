@@ -186,14 +186,20 @@ export function irisPackDirective(e,game){
   // A single controlled direction change announces the strike. No projectiles
   // or teleports are spawned; the existing steering blend does the turning.
   const learned=e._enemyLearning?.style;
+  const radio=game.enemyComms?.directiveFor(e,game.time);
   if(learned==='diverge')radius+=role.role==='reserve'?26:18;
+  if(radio?.mode==='screen'&&role.role!=='vanguard')radius+=21;
+  if(radio?.mode==='press'&&role.role==='vanguard')radius-=15;
+  const angle=radio?.mode==='pincer'&&
+    (role.role==='left'||role.role==='right')?
+    role.angle+(role.role==='left'?.085:-.085):role.angle;
   // A learned interception remains a small, fallible extrapolation. It never
   // closes the deliberately open escape corridor with an extra squad member.
-  const lead=learned==='cutoff'&&phase==='strike'&&
+  const lead=(learned==='cutoff'||radio?.mode==='intercept')&&phase==='strike'&&
     role.role!=='reserve'&&!role.role.startsWith('sentry')?0.16:0;
-  const x=p.x+Math.cos(role.angle)*radius+
+  const x=p.x+Math.cos(angle)*radius+
     Math.max(-32,Math.min(32,(p.vx||0)*lead));
-  const y=p.y+Math.sin(role.angle)*radius+
+  const y=p.y+Math.sin(angle)*radius+
     Math.max(-32,Math.min(32,(p.vy||0)*lead));
   e._irisPackRole=role.role;e._irisPackPhase=phase;
   e._irisPackCueUntil=game.time+.17;
