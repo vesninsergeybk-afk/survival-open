@@ -379,3 +379,12 @@ test('a real enemy radio cell cannot break a station checkpoint or lose the acti
  assert.ok(fresh.enemies[0]._commsCell.proposals instanceof Map);
  const next=new RunCheckpointStore(storage);next.load();assert.ok(next.save(captureCheckpoint(fresh,fresh.docked)).ok);
 });
+
+test('a lethal hit immediately before docking remains a valid checkpoint before the next update frame',()=>{
+ const g=scene(),e={serial:1,type:'fighter',x:g.player.x+100,y:g.player.y,r:14,hp:10,maxHp:70,expAwarded:false};
+ g.enemies=[e];g.heritage.vfx.hullImpact=noop;
+ g.damageEnemy(e,30,'ion');
+ const {storage}=save(g),fresh=scene();restoreCheckpoint(fresh,new RunCheckpointStore(storage).load());
+ assert.equal(fresh.enemies[0].hp,0);assert.equal(fresh.enemies[0].expAwarded,false);
+ assert.equal(fresh.player.data,30,'the checkpoint must not invent a premature kill reward');
+});

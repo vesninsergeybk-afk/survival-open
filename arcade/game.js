@@ -1895,7 +1895,7 @@ export class ArcadeGame {
      Number.isFinite(source.y)&&source.hp>0)?source:null;
   if(e.signalIntel&&aggressor)alertSignalIntel(e.signalIntel,aggressor,this.time);
   const hpBefore=e.hp;
-  e.hp-=damage;e.hit=.12;
+  e.hp=Math.max(0,e.hp-damage);e.hit=.12;
   this.enemyLearning?.damaged(e,Math.min(hpBefore,Math.max(0,damage)));
   this.enemyComms?.reportHit(e,Math.min(hpBefore,Math.max(0,damage)),this.time);
   if(this.visuals?.capitalDamageQA&&e.type==='gunship'&&e.serial%2===0)
