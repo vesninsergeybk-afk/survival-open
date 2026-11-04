@@ -32,6 +32,14 @@ test('frame progression opens exactly 2, 3, 4, 5 and then a separate H node',()=
  assert.equal(result.loadout.frame,1);assert.equal(result.ore,0);
  assert.equal(loadout.frame,0,'planning never modifies the live ship');
 });
+test('the hangar exposes an actual, gated specialization choice without adding combat buttons',()=>{
+ const current=createLoadout(),session=new HangarSession();session.begin(current);
+ const view=renderShipHangar({...context({loadout:current,activeBases:3,points:3}),skillRanks:{}},session);
+ assert.match(view,/Специализация/);
+ assert.match(view,/data-act="hgSpec"/);
+ assert.match(view,/plasma:furnace/);
+ assert.match(view,/plasma:focus/);
+});
 test('manufacturing is atomic, respects stock, and never charges for reinstalling a module',()=>{
  const current=createLoadout(),draft=cloneLoadout(current);draft.slots[1]='rail';
  const refused=applyLoadout(current,draft,context({ore:35}));assert.equal(refused.ok,false);
@@ -221,6 +229,26 @@ test('precision rail selects a capital threat while anti-swarm still favors clos
  updateAuxiliaryWeapons(game,1,true);
  assert.equal(gunship.hp,262,'rail fires at the armored target');
  assert.equal(scout.hp,300,'the nearby scout is available for short-range weapons');
+});
+test('penetrating rail damages its target beyond a rock, while ordinary rail stops at cover',()=>{
+ const e=enemy(320),game=combat([e]),rock={x:160,y:0,r:45,hp:200,alive:true};
+ game.rockGrid.query=()=>[rock];
+ let rockHits=0;game.damageRock=()=>rockHits++;
+ updateAuxiliaryWeapons(game,1,true);
+ assert.equal(e.hp,300);assert.equal(rockHits,1);
+ game.shipLoadout.specializations={rail:{path:'penetrator',rank:1}};
+ game.moduleClocks.rail=0;
+ updateAuxiliaryWeapons(game,1,true);
+ assert.ok(Math.abs(e.hp-(300-38*.65))<1e-9);
+ assert.equal(rockHits,2);
+});
+test('wide flak branch hits four enemies instead of three at lower per-target damage',()=>{
+ const enemies=[70,80,90,100,110].map(x=>enemy(x));
+ const game=combat(enemies);game.weaponProfile={rail:0,flak:1};
+ game.shipLoadout.slots=['flak',null,null,null,null,null];
+ game.shipLoadout.specializations={flak:{path:'sweep',rank:1}};
+ updateAuxiliaryWeapons(game,1,true);
+ assert.deepEqual(game.hits,[8,8,8,8]);
 });
 test('duplicate auxiliary modules emit visible shots from both mounted positions',()=>{
  const e=enemy(300),game=combat([e]);game.shipLoadout.slots[1]='rail';game.weaponProfile.rail=2;
