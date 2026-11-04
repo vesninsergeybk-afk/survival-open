@@ -1,5 +1,7 @@
 # «Выживший» — браузерный рогалик
 
+> **Историческая документация прежней версии игры.** Описание адреса `/games/survivor/`, PWA и старых механик ниже относится к предыдущему выпуску на Timeweb, а не к действующей космической аркаде. Текущая игра: [`survival-open/arcade/`](https://vesninsergeybk-afk.github.io/survival-open/arcade/); вход с сайта: [`vesninmed.ru/lab/`](https://vesninmed.ru/lab/). См. [единые правила публикации](docs/PUBLICATION_POLICY.md).
+
 Оригинальный проект: https://github.com/ricardo-foundry/canvas-vampire-survivors
 
 Основа: Canvas Vampire Survivors, версия 2.8.0, исходная ревизия `e616704889e57efc9c1f49098786a95c364008d3` (на 27.10.2026).

@@ -1,5 +1,7 @@
 # Статус переноса «Выжившего»
 
+> **Архивный отчёт о переносе от 3 ноября 2026 года.** После переноса все текущие доработки и выпуски находятся в `survival-open/main`. Единая аркада доступна по [адресу](https://vesninsergeybk-afk.github.io/survival-open/arcade/), а кнопка на [`vesninmed.ru/lab/`](https://vesninmed.ru/lab/) ведёт к ней. Правила: [docs/PUBLICATION_POLICY.md](docs/PUBLICATION_POLICY.md).
+
 Дата снимка источника: 3 ноября 2026 года.
 
 - Источник: закрытый `vesninsergeybk-afk/Timeweb`, ветка `production`, каталог `site/games/survivor/`.
