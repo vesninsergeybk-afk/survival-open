@@ -137,11 +137,11 @@ test('the optional art loads only when a scout requests it',()=>{
  }finally{globalThis.Image=originalImage;}
 });
 
-test('actual scan state opens painted petals and purple scanner without new assets',()=>{
- const calls=[],texts=[];
+test('actual scan state opens painted petals and purple scanner without extra art requests',()=>{
+ const calls=[],texts=[],strokes=[];
  const ctx={save(){},restore(){},translate(){},rotate(){},scale(){},
   beginPath(){},closePath(){},clip(){},moveTo(){},lineTo(){},arc(){},
-  fill(){},stroke(){},fillText(...a){texts.push(a);},
+  fill(){},stroke(){strokes.push(1);},fillText(...a){texts.push(a);},
   drawImage(...a){calls.push(a);},set globalAlpha(v){},
   set imageSmoothingEnabled(v){},set strokeStyle(v){},set fillStyle(v){},
   set lineWidth(v){},set lineCap(v){},set textAlign(v){},
@@ -155,5 +155,13 @@ test('actual scan state opens painted petals and purple scanner without new asse
  calls.length=0;texts.length=0;e._irisScanMode='lost';e._irisScanStarted=12;
  assert.equal(drawIrisDrone(ctx,e,12.77),true);
  assert.ok(texts.some(x=>x[0]==='?'),'search indicator');
+ calls.length=0;e._irisScanStarted=20;e._irisFirstPaintTime=0;
+ assert.equal(drawIrisDrone(ctx,e,21.75),true);
+ assert.deepEqual(calls[0].slice(1,5),[320,320,160,160],
+  'the ordinary animation resumes at the same fully retracted pose');
+ assert.ok(Math.abs(e._irisFirstPaintTime-20.85)<.0001);
+ e._irisBurstStarted=21.75;e.vx=170;e.vy=0;strokes.length=0;
+ assert.equal(drawIrisDrone(ctx,e,22.25),true);
+ assert.ok(strokes.length>=2,'the post-scan acceleration draws short violet wakes');
 });
 

@@ -185,7 +185,10 @@ export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
   if(!body)return false;
   const now=Number.isFinite(time)?time:0;
   if(!Number.isFinite(enemy._irisFirstPaintTime))enemy._irisFirstPaintTime=now;
-  const age=Math.max(0,now-enemy._irisFirstPaintTime);
+  let age=Math.max(0,now-enemy._irisFirstPaintTime);
+  const scanElapsed=now-(enemy._irisScanStarted??-Infinity);
+  const scanDuration=IRIS_SCAN.open+IRIS_SCAN.hold+IRIS_SCAN.close;
+  const scanning=scanElapsed>=0&&scanElapsed<=scanDuration;
   const vx=Number.isFinite(enemy.vx)?enemy.vx:0;
   const vy=Number.isFinite(enemy.vy)?enemy.vy:0;
   const speed=Math.hypot(vx,vy);
@@ -205,21 +208,26 @@ export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
     }
     motion.time=now;motion.vx=vx;motion.vy=vy;
   }else enemy._irisMotion={time:now,vx,vy};
-  if(!reducedMotion&&age>OPEN_SECONDS&&
+  if(!scanning&&!reducedMotion&&age>OPEN_SECONDS&&
      (acceleration>140||turnRate>1.1)&&
      now>=(enemy._irisNextManeuverAt??(enemy._irisFirstPaintTime+1.1))){
     enemy._irisManeuverAt=now;
     const seed=Number.isFinite(enemy.serial)?Math.abs(enemy.serial):0;
     enemy._irisNextManeuverAt=now+1.6+(seed%3)*.22;
   }
+  if(Number.isFinite(enemy._irisScanStarted)&&scanElapsed>scanDuration&&
+     enemy._irisCycleRestartScan!==enemy._irisScanStarted){
+    // The scanning puppet retracts to source frame 8. Resume the standard
+    // shell loop at that exact pose, or a mid-cycle frame would visibly snap.
+    enemy._irisCycleRestartScan=enemy._irisScanStarted;
+    enemy._irisFirstPaintTime=now-OPEN_SECONDS;
+    age=OPEN_SECONDS;
+  }
   const scanFrame=irisCycleFrameAt(age,enemy.serial,reducedMotion);
   const maneuverFrame=reducedMotion?8:
     irisManeuverFrameAt(now-(enemy._irisManeuverAt??-Infinity));
   const dodgeElapsed=now-(enemy._scoutDodgeStarted??-Infinity);
   const dodgeFrame=reducedMotion?8:irisDodgeFrameAt(dodgeElapsed);
-  const scanElapsed=now-(enemy._irisScanStarted??-Infinity);
-  const scanDuration=IRIS_SCAN.open+IRIS_SCAN.hold+IRIS_SCAN.close;
-  const scanning=scanElapsed>=0&&scanElapsed<=scanDuration;
   const jawExtension=scanning?irisScanExtension(now,enemy._irisScanStarted,reducedMotion):0;
   const frame=scanning?8:Math.min(scanFrame,maneuverFrame,dodgeFrame);
   // The player's ship is ~39 px across. Scout body shrinks from 42 to 32 px,
@@ -231,7 +239,25 @@ export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
   ctx.translate(enemy.x,enemy.y);
   ctx.rotate((Number.isFinite(enemy.visualAngle)?enemy.visualAngle:0)+banking);
   ctx.imageSmoothingEnabled=true;
-  // Thrust remains visible with the armor fully closed.
+  // Thrust remains visible with the armor fully closed. During the physical
+  // post-scan acceleration, short violet wakes announce the sideways dash.
+  // They follow the existing ship angle and cost only two line strokes.
+  const burstAge=now-(enemy._irisBurstStarted??-Infinity);
+  const burstGlow=!scanning&&!reducedMotion&&burstAge>=0&&
+    burstAge<IRIS_SCAN.burstSeconds?
+    Math.sin(Math.PI*burstAge/IRIS_SCAN.burstSeconds):0;
+  if(burstGlow>.05){
+    ctx.save();
+    ctx.strokeStyle=`rgba(177,110,255,${.43*burstGlow})`;
+    ctx.lineWidth=Math.max(.9,side*.042);
+    ctx.lineCap='round';
+    for(const x of [-side*.19,side*.19]){
+      ctx.beginPath();ctx.moveTo(x,side*.35);
+      ctx.lineTo(x,side*(.48+.67*burstGlow));ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // Engine power is inferred from actual velocity and acceleration.
   if(ion){
     const seed=Number.isFinite(enemy.serial)?enemy.serial:0;
     const pulse=reducedMotion?0:Math.sin(now*7.5+(seed%23)*.8);
