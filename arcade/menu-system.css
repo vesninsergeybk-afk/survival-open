@@ -187,6 +187,10 @@
 .base-view-intro>div{min-width:0}
 .base-view-intro strong{display:block;color:#f0faf9;font-size:17px;margin:4px 0}
 .base-view-intro p{margin:0;font-size:12px;line-height:1.45;color:var(--menu-muted)}
+.base-view-intro .base-defense-status{font-size:13px;line-height:1.5;color:#dcf9f0}
+.base-view-intro .base-defense-summary{margin-top:8px;font-size:13px;line-height:1.5;color:#c5dce4}
+.base-view-intro .base-defense-rules{margin-top:10px}
+.base-view-intro .base-defense-rules .base-secondary-body p{font-size:13px;line-height:1.5;margin:8px 0}
 .base-view-intro button{flex:none;min-height:43px}
 .base-featured-op{position:relative;border-color:#aa8eb08c;
  background:linear-gradient(125deg,#3a2f49aa,#102637 45%,#0d2134)}
