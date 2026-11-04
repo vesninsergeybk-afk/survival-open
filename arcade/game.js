@@ -25,7 +25,7 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-3';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-3-station-flow-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-3-living-world-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
@@ -1578,7 +1578,10 @@ export class ArcadeGame {
    const reward=claimFirstContractModule(this.shipLoadout,this.firstHardwareReward,role,{preserveDraft});
    if(!reward.ok){this.heritage.ui('deny');this.notice(reward.reason,3);return;}
    this.shipLoadout=reward.loadout;this.firstHardwareReward=reward.status;
-   if(this.lastContractReceipt)this.lastContractReceipt.firstHardwareReward=role;
+   if(this.lastContractReceipt){
+    this.lastContractReceipt.firstHardwareReward=role;
+    this.lastContractReceipt.firstHardwareInstalled=reward.installed;
+   }
    if(!preserveDraft)this.hangarSession?.begin(this.shipLoadout);
    this.syncShipLoadout();
    this.notice(MODULES[role].name+(reward.installed?' установлен на корабль!':

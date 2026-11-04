@@ -1,0 +1,87 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {renderBasePanel} from '../base-panel.js';
+import {createLoadout} from '../ship-loadout.js';
+
+const home={id:'0:0',x:360,y:-85,type:'dock',active:true,discovered:true};
+const lab={id:'1:0',x:1500,y:0,type:'lab',active:true,discovered:true};
+const world={home,stations:new Map([[home.id,home],[lab.id,lab]]),
+ networkTopology:()=>({linked:new Set([home.id,lab.id]),count:2,links:[]}),
+ nearbyRocks:()=>[],nearbyStations:()=>[]};
+const state=(extra={})=>({ore:60,data:0,hp:110,maxHp:110,shield:0,allies:0,
+ activeBases:2,connectedBases:2,connected:true,droneRoles:[],droneDamage:0,charges:0,
+ network:{armor:0,engine:0,armament:0,strikePower:0},transfers:[],
+ world,loadout:createLoadout(),skillRanks:{},level:1,points:0,baseTab:'summary',
+ contract:null,operation:null,firstHardwareReward:null,time:30,...extra});
+const mission={baseId:home.id,kind:'kill',goal:4,progress:4,choiceId:'standard',
+ name:'Зачистка патрулей',ore:16,data:15};
+const visiblePanel=html=>html.slice(html.indexOf('<section class="base-tab-panel" id="base-panel-summary"'),
+ html.indexOf('<section class="base-tab-panel" id="base-panel-operations"'));
+
+test('completed contract at its origin offers a direct, prominent reward action',()=>{
+ const html=renderBasePanel(home,state({contract:mission}));
+ const summary=visiblePanel(html);
+ assert.match(summary,/ЧТО СЕЙЧАС ВАЖНО/);
+ assert.match(summary,/Заказ выполнен — заберите награду/);
+ assert.match(summary,/\+16 сплава и \+15 данных/);
+ assert.match(summary,/data-act="claimContract">Забрать награду/);
+ assert.ok(summary.indexOf('data-act="claimContract"')<summary.indexOf('base-quick-services'));
+ assert.doesNotMatch(summary,/base-featured-op/,'detailed special mission must not obscure the reward');
+});
+
+test('a different station cannot grant the reward and explains where to return',()=>{
+ const html=renderBasePanel(lab,state({contract:mission}));
+ const summary=visiblePanel(html);
+ assert.match(summary,/Награда ждёт на другой станции/);
+ assert.match(summary,/Вернитесь на Ремонтный док/);
+ assert.match(summary,/data-act="baseMap">Показать станцию на карте/);
+ assert.doesNotMatch(summary,/data-act="claimContract"/);
+ assert.match(html,/УЖЕ ЕСТЬ ЗАКАЗ/);
+ assert.match(html,/Зачистка патрулей/);
+});
+
+test('first weapon award has one clear continuation and three real choices',()=>{
+ const html=renderBasePanel(home,state({firstHardwareReward:'pending'}));
+ const summary=visiblePanel(html);
+ assert.match(summary,/Вы получили новое оружие/);
+ assert.match(summary,/data-act="baseTab" data-role="operations">Выбрать оружие/);
+ assert.doesNotMatch(summary,/claimFirstModule/);
+ assert.equal((html.match(/data-act="claimFirstModule"/g)||[]).length,3);
+ const result=renderBasePanel(home,state({firstHardwareReward:'rail',
+  lastContractReceipt:{ore:16,data:15,firstHardwareReward:'rail'}}));
+ assert.match(visiblePanel(result),/Оружие получено/);
+ assert.match(visiblePanel(result),/Модуль на складе/);
+ const repeated=renderBasePanel(home,state({firstHardwareReward:'plasma',
+  lastContractReceipt:{ore:16,data:15,firstHardwareReward:'plasma',firstHardwareInstalled:false}}));
+ assert.match(visiblePanel(repeated),/Модуль на складе/,
+  'the starter plasma already on the ship must not be mistaken for the awarded copy');
+});
+
+test('maintenance is accessible on the home screen; statistics stay optional',()=>{
+ const html=renderBasePanel(home,state({hp:70,droneDamage:20,
+  sortieReports:[{seconds:80,ore:10,data:4,hull:-10,levels:0}],
+  economyExpenses:{weapons:0,drones:0,repairs:0,stations:0,services:0,travel:0}}));
+ const summary=visiblePanel(html);
+ assert.match(summary,/data-act="repair">Починить · 15 сплава/);
+ assert.match(summary,/data-act="repairDrones">Ремонт дронов · 8 сплава/);
+ assert.match(summary,/<details class="base-secondary-info base-report-details"><summary>Итоги последнего вылета/);
+ assert.doesNotMatch(summary,/<details class="base-secondary-info base-report-details" open/);
+});
+
+test('regular jobs are visible before long optional mission description',()=>{
+ const html=renderBasePanel(home,state({baseTab:'operations'}));
+ assert.match(html,/<details class="base-mission-details"><summary>Особая операция/);
+ assert.match(html,/<h3 class="base-section-title">Полевые заказы<\/h3>/);
+ assert.match(html,/data-act="acceptContract"/);
+ assert.match(html,/data-act="showFieldTrial"/,'the starter weapon trial stays discoverable');
+ assert.match(html,/role="tab"[^>]*>Задания<\/button>/);
+});
+
+test('an active special mission from another station points back to the map',()=>{
+ const operation={id:'silent-corridor',baseId:home.id,kind:'corridor',phase:'attack',x:1300,y:80};
+ const html=renderBasePanel(lab,state({operation}));
+ const summary=visiblePanel(html);
+ assert.match(summary,/Вы приняли операцию на другой станции/);
+ assert.match(summary,/data-act="baseMap">Показать цель на карте/);
+ assert.doesNotMatch(summary,/data-act="acceptOperation"/);
+});
