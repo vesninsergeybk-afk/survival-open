@@ -6,6 +6,7 @@ import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './ope
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2';
+import {nextEconomyChoices} from './sortie-economy.js?v=weapons-cycle-2';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -500,6 +501,33 @@ export function renderBasePanel(base,state){
    action('antenna','Усилить · '+o.antennaCost+' сплава',o.reasons.antenna),o.reasons.antenna):'';
  const selected=['summary','operations','hangar','network'].includes(state.baseTab)?state.baseTab:'summary';
  const brief=baseBrief(base,state,o);
+ const lastSortie=state.sortieReports?.at(-1);
+ const signed=n=>(n>0?'+':'')+n;
+ const choices=lastSortie?nextEconomyChoices(base,state,o):[];
+ const report=active&&lastSortie?'<section class="base-economy" aria-label="Итоги последнего вылета">'+
+  '<div class="base-economy-head"><div><span class="base-kicker">ПОСЛЕ ВЫЛЕТА</span>'+
+  '<strong>Итоги последнего вылета</strong></div><small>'+Math.floor(lastSortie.seconds/60)+' мин '+
+  (lastSortie.seconds%60)+' с · '+((state.sortieReports?.length||1)>=24?'последние 24 вылета':
+   'вылетов учтено: '+(state.sortieReports?.length||1))+'</small></div>'+
+  '<div class="base-economy-deltas"><span>Сплав <b>'+signed(lastSortie.ore)+'</b></span>'+
+  '<span>Данные <b>'+signed(lastSortie.data)+'</b></span>'+
+  '<span>Корпус <b>'+signed(lastSortie.hull)+'</b></span>'+
+  '<span>Дроны <b>'+signed(lastSortie.drones)+'</b></span>'+
+  (lastSortie.levels?'<span>Уровни <b>+'+lastSortie.levels+'</b></span>':'')+'</div>'+
+  '<p>Это изменение запасов и состояния за время полёта. Ремонт на станции и покупки после стыковки в отчёт не входят.</p>'+
+  (choices.length?'<div class="base-economy-head"><div><span class="base-kicker">СЛЕДУЮЩЕЕ РЕШЕНИЕ</span>'+
+   '<strong>На что направить '+o.ore+' сплава?</strong></div></div>'+
+   '<div class="base-economy-choices">'+choices.map(choice=>
+    '<article><strong>'+choice.title+'</strong><small>'+choice.detail+'</small>'+
+    '<span>'+(choice.cost?choice.cost+' сплава':'Без затрат')+' · '+
+     (choice.reason?choice.reason:choice.act==='baseMap'?
+      (o.ore>=choice.cost?'уже достаточно для запуска':'до цели '+(choice.cost-o.ore)):
+      o.ore>=choice.cost?'после покупки останется '+(o.ore-choice.cost):
+      'нужно ещё '+(choice.cost-o.ore))+'</span>'+
+    action(choice.act,choice.act==='baseMap'?'Открыть карту':
+     choice.act==='baseTab'?'Перейти в ангар':
+     choice.act==='hire'?'Нанять дрона':'Зарядить щит',choice.reason,choice.role)+
+    '</article>').join('')+'</div>':'')+'</section>':'';
  const dashboard='<div class="base-dashboard">'+
   '<div class="base-dashboard-main"><span class="base-kicker">'+brief[0]+'</span>'+
   '<strong>'+brief[1]+'</strong><p>'+brief[2]+'</p>'+
@@ -573,7 +601,7 @@ export function renderBasePanel(base,state){
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
   tabButton('summary','Сводка',selected)+tabButton('operations','Операции',selected)+
   tabButton('hangar','Ангар',selected)+tabButton('network','Сеть',selected)+'</nav>'+
-  tabPanel('summary',selected,dashboard)+
+  tabPanel('summary',selected,dashboard+report)+
   tabPanel('operations',selected,operations)+
   tabPanel('hangar',selected,hangar)+
   tabPanel('network',selected,network):

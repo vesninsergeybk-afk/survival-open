@@ -7,6 +7,7 @@ import {ENEMY_TYPES} from '../ai.js';
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
 import {missionHudText} from '../mission-feedback.js';
+import {finishSortie,appendSortieReport} from '../sortie-economy.js';
 import {
  CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,createCarrierInterception,
  carrierOffer,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,

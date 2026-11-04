@@ -9,6 +9,7 @@ import {CARRIER_INTERCEPTION} from '../carrier-interception.js';
 import {World} from '../world.js';
 import {baseNames} from '../balance.js';
 import {renderWorldMap} from '../map-panel.js';
+import {finishSortie,appendSortieReport} from '../sortie-economy.js';
 
 const home={id:'0:0',x:360,y:-85,type:'dock',active:true};
 const state=(extra={})=>({

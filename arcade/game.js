@@ -29,6 +29,7 @@ import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=weapons-cycle-2';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=weapons-cycle-2';
 import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=weapons-cycle-2';
+import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=weapons-cycle-2';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -139,6 +140,7 @@ export class ArcadeGame {
   this.lastNoiseSource=null;this.noiseAlert=null;
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';this.mapReturnToBase=false;
+  this.sortieStart=null;this.sortieReports=[];
    this.geoScanUntil=0;this.overchargeUntil=0;
    this.fieldLoan=null;this.fieldTrialTaken=false;this.fieldReturnAt=-Infinity;this.fieldEffects=[];
    this.ionMasteryAwarded=false;
@@ -383,6 +385,10 @@ export class ArcadeGame {
   }
   dismiss(){
    if(!this.overlay.hidden&&this.overlay.dataset.mode==='run-start')return;
+   // Only leaving the station starts a sortie. Closing a map, skills panel or
+   // an in-station transfer must never reset its economic baseline.
+   if(!this.overlay.hidden&&this.overlay.dataset.mode==='base'&&this.docked)
+    this.sortieStart=startSortie(this);
    this.saveAtStation();
    this.endInteraction();
    if(!this.overlay.hidden)this.heritage.ui('close');
@@ -905,7 +911,7 @@ export class ArcadeGame {
   this.heritage.vfx.nova(base.x,base.y,130,'green');
   this.heritage.station('claimContract',base.type);
   this.notice('КОРИДОР ОТКРЫТ! +'+CORRIDOR_OPERATION.rewardOre+' сплава, +'+CORRIDOR_OPERATION.rewardData+
-   ' данных. Патрулей у дока станет меньше.'+
+   ' данных. Патрулей у дока станет меньше. В ангаре открыт чертёж рельса: изготовление — 36 сплава.'+
    (nextStation?' На карте отмечена станция: '+(baseNames[nextStation.type]||'неизвестная')+'.':''),6);
  }
 
@@ -1019,6 +1025,7 @@ export class ArcadeGame {
    allies:this.allies.length,droneRoles:this.allies.map(a=>a.role),network:this.network,doctrine:this.doctrine,
    droneDamage:this.allies.reduce((sum,a)=>sum+Math.max(0,a.maxHp-a.hp),0),
    charges:this.support.charges,contract:this.contract,operation:this.operation,baseTab:this.baseTab,
+   sortieReports:this.sortieReports,
     fieldLoan:this.fieldLoan,fieldTrialTaken:this.fieldTrialTaken,earlyRail:!!this.world.home?.corridorSecured,
     fieldReturnNotice:this.time-this.fieldReturnAt<6,
     position:{x:this.player.x,y:this.player.y},shield:this.player.shield,
@@ -1192,6 +1199,9 @@ export class ArcadeGame {
   if(this.operation?.id===CORRIDOR_OPERATION.id&&this.operation.phase==='return'&&this.operation.baseId===b.id)this.deliverCorridor();
    if(this.operation?.id===CARRIER_INTERCEPTION.id&&this.operation.phase==='return'&&this.operation.baseId===b.id)this.deliverCarrierInterception();
    if(this.fieldLoan?.returnDue||(this.fieldLoan?.missionStarted&&!this.fieldLoan.assignment&&!this.operation&&!this.contract))this.returnBorrowedWeapon();
+  const report=finishSortie(this.sortieStart,this,b);
+  this.sortieReports=appendSortieReport(this.sortieReports,report);
+  this.sortieStart=null;
   this.endInteraction();
   this.hangarSession?.begin(this.shipLoadout);
   this.docked=b;this.baseTab='summary';this.paused=true;this.pausedRenderPending=true;
