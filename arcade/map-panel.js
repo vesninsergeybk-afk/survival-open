@@ -1,4 +1,4 @@
-import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-2';
+import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3';
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';

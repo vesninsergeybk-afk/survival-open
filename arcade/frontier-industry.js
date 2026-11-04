@@ -36,14 +36,30 @@ export const FRONTIER_WRECKS=Object.freeze([
  {id:'wreck:1',x:-36100,y:11230,stock:60},
  {id:'wreck:2',x:-35950,y:9880,stock:60}
 ]);
+// Diversions are authored, finite routes. A shipment keeps the route it was
+// assigned at departure even if headquarters changes its plan mid-flight.
+export const FRONTIER_ROUTES=Object.freeze({
+ azure:Object.freeze({direct:FRONTIERS.azure.route,diversion:Object.freeze([
+  FRONTIERS.azure.source,{x:6550,y:35300},{x:9600,y:35800},
+  {x:12100,y:38000},FRONTIERS.azure.depot])}),
+ teal:Object.freeze({direct:FRONTIERS.teal.route,diversion:Object.freeze([
+  FRONTIERS.teal.source,{x:-36600,y:7800},{x:-40500,y:6700},
+  FRONTIERS.teal.depot])})
+});
+export const FRONTIER_RESPONSE=Object.freeze({reportDelay:12,reportMemory:600,
+ routeCost:2,routePrep:34,routeCooldown:200,
+ screenCost:1,screenCargoCost:2,screenPrep:28,screenDuration:330,
+ emergencyWarning:18,emergencyCost:1,maxReports:12});
+export const frontierRoute=(id,mode='direct')=>
+ FRONTIER_ROUTES[id]?.[mode]||FRONTIERS[id].route;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const STORM_SOURCE=stormFields(FRONTIERS.azure.source.x,FRONTIERS.azure.source.y,1500)
  .sort((a,b)=>distance(a,FRONTIERS.azure.source)-distance(b,FRONTIERS.azure.source))[0];
 export const FRONTIER_STORM_FIELD=STORM_SOURCE;
 
-export function frontierCargoPosition(id,progress){
- const path=FRONTIERS[id].route;
+export function frontierCargoPosition(id,progress,routeId='direct'){
+ const path=frontierRoute(id,routeId);
  let rest=Math.max(0,progress);
  for(let i=1;i<path.length;i++){
   const a=path[i-1],b=path[i],d=distance(a,b);
@@ -53,14 +69,18 @@ export function frontierCargoPosition(id,progress){
  }
  return {...path.at(-1),angle:0};
 }
-const routeLength=id=>FRONTIERS[id].route.slice(1)
- .reduce((sum,p,i)=>sum+distance(FRONTIERS[id].route[i],p),0);
+export const frontierRouteLength=(id,routeId='direct')=>frontierRoute(id,routeId)
+ .slice(1).reduce((sum,p,i)=>sum+distance(frontierRoute(id,routeId)[i],p),0);
 const shipOrigin=()=>({x:FRONTIERS.teal.source.x+92,y:FRONTIERS.teal.source.y-66});
+function createStrategy(time){return {route:'direct',routePlan:null,nextRoutePlanAt:Math.floor(time),
+ screenPlan:null,screenUntil:0,nextScreenPlanAt:Math.floor(time),
+ reports:[],reportSerial:0,routeEvidenceThrough:0,screenEvidenceThrough:0,
+ nextAttackAt:0,emergency:null,emergencyCommitted:false,emergencyRaids:0};}
 function createNetwork(id,time){
  const at=Math.floor(time),start=shipOrigin();
  return {clock:at,resource:0,nextDispatch:at+65,serial:0,convoys:[],
   reserves:0,assemblyUntil:0,nextRaid:0,pendingRaid:null,delivered:0,
-  intercepted:0,launched:0,raids:0,lastPulse:-1,history:[],
+  intercepted:0,launched:0,raids:0,lastPulse:-1,history:[],strategy:createStrategy(time),
   worker:id==='teal'?{frontierWorker:true,network:'teal',x:start.x,y:start.y,
    hp:95,maxHp:95,r:18,phase:'seek',cacheId:null,carry:0,
    from:{...start},to:{...start},at,until:at}:null,
@@ -80,6 +100,70 @@ export function frontierWorkerPosition(worker,time){
  const f=clamp((time-worker.at)/Math.max(.01,worker.until-worker.at),0,1);
  return {x:worker.from.x+(worker.to.x-worker.from.x)*f,
   y:worker.from.y+(worker.to.y-worker.from.y)*f};
+}
+
+function strategyOf(s,time){
+ // Older checkpoints are valid. They begin observing only from their load time.
+ return s.strategy||(s.strategy=createStrategy(time));
+}
+function report(s,kind,route,time){
+ const st=strategyOf(s,time);
+ st.reports.push({seq:++st.reportSerial,kind,route,at:Math.floor(time),
+  receivedAt:Math.floor(time)+FRONTIER_RESPONSE.reportDelay});
+ st.reports=st.reports.slice(-FRONTIER_RESPONSE.maxReports);
+}
+export function recordFrontierCargoAttack(world,cargo,weapon,range,time){
+ const id=cargo?.frontierNetwork,s=world.regionalSupply?.frontier?.[id];
+ if(!FRONTIERS[id]||!s?.convoys.includes(cargo)||cargo.hp<=0||
+   !['beam','rail','rocket','flak'].includes(weapon)||range<270||
+   !Number.isFinite(range)||!Number.isFinite(time))return false;
+ const st=strategyOf(s,time);
+ if(time<st.nextAttackAt)return false;
+ st.nextAttackAt=time+1.05;
+ report(s,'long',cargo.routeId||'direct',time);
+ return true;
+}
+
+function updateStrategy(s,id,src,depot,t,emit){
+ const st=strategyOf(s,t),policy=FRONTIER_RESPONSE;
+ st.reports=st.reports.filter(r=>r.at>=t-policy.reportMemory);
+ const active=src?.enemy&&depot?.enemy;
+ if(!active){
+  st.routePlan=null;st.screenPlan=null;st.screenUntil=0;
+  return;
+ }
+ if(st.routePlan&&t>=st.routePlan.readyAt){
+  st.route=st.routePlan.to;st.routePlan=null;emit('route-changed',t);
+ }
+ if(st.screenPlan&&t>=st.screenPlan.readyAt){
+  st.screenUntil=t+policy.screenDuration;st.screenPlan=null;emit('screen-ready',t);
+ }
+ const arrived=st.reports.filter(r=>r.receivedAt<=t);
+ const losses=arrived.filter(r=>r.kind==='loss'&&r.route===st.route&&
+  r.seq>st.routeEvidenceThrough);
+ if(!st.routePlan&&t>=st.nextRoutePlanAt&&s.resource>=policy.routeCost&&
+   losses.length>=2){
+  const evidence=losses.slice(-2);
+  if(evidence[1].at>evidence[0].at){
+   s.resource-=policy.routeCost;
+   st.routeEvidenceThrough=evidence[1].seq;
+   st.routePlan={to:st.route==='direct'?'diversion':'direct',readyAt:t+policy.routePrep};
+   st.nextRoutePlanAt=t+policy.routeCooldown;
+   emit('route-prep',t);
+  }
+ }
+ const hits=arrived.filter(r=>r.kind==='long'&&r.seq>st.screenEvidenceThrough);
+ if(!st.screenPlan&&t>=st.nextScreenPlanAt&&t>=st.screenUntil&&
+   s.resource>=policy.screenCost&&hits.length>=2){
+  const evidence=hits.slice(-2);
+  if(evidence[1].at>evidence[0].at){
+   s.resource-=policy.screenCost;
+   st.screenEvidenceThrough=evidence[1].seq;
+   st.screenPlan={readyAt:t+policy.screenPrep};
+   st.nextScreenPlanAt=t+policy.screenDuration;
+   emit('screen-prep',t);
+  }
+ }
 }
 
 function tealWorkerTick(world,s,t){
@@ -125,18 +209,25 @@ export function advanceFrontierIndustry(world,time){
     }
    }
    if(id==='teal')tealWorkerTick(world,s,t);
+   updateStrategy(s,id,src,depot,t,emit);
    if(src?.enemy&&depot?.enemy&&s.resource>=cfg.cost&&
       t>=s.nextDispatch&&s.convoys.length===0&&s.reserves<2){
-    s.resource-=cfg.cost;s.nextDispatch=t+cfg.dispatch;
+    const st=strategyOf(s,t);
+    const screened=t<st.screenUntil&&
+     s.resource>=cfg.cost+FRONTIER_RESPONSE.screenCargoCost;
+    s.resource-=cfg.cost+(screened?FRONTIER_RESPONSE.screenCargoCost:0);
+    s.nextDispatch=t+cfg.dispatch;
     const cargo={id:'frontier-cargo-'+id+'-'+(++s.serial),frontierCargo:true,
      frontierNetwork:id,regionalCargo:true,type:'fighter',distance:0,launchedAt:t,
-     ...frontierCargoPosition(id,0),r:32,hp:cfg.hp,maxHp:cfg.hp,hit:0,seen:false};
+     routeId:st.route,screened,...frontierCargoPosition(id,0,st.route),
+     r:32,hp:cfg.hp,maxHp:cfg.hp,hit:0,seen:false};
     s.convoys.push(cargo);s.launched++;emit('dispatch',t);
+    if(screened)emit('screen-dispatch',t);
    }
    for(const cargo of s.convoys){
     cargo.distance=(t-cargo.launchedAt)*cfg.speed;
-    Object.assign(cargo,frontierCargoPosition(id,cargo.distance));
-    if(cargo.distance>=routeLength(id)){
+    Object.assign(cargo,frontierCargoPosition(id,cargo.distance,cargo.routeId));
+    if(cargo.distance>=frontierRouteLength(id,cargo.routeId)){
      cargo.hp=0;
      if(depot?.enemy&&s.reserves<2){
       s.reserves++;s.delivered++;s.assemblyUntil=Math.max(s.assemblyUntil,t+cfg.assembly);
@@ -153,7 +244,7 @@ export function advanceFrontierIndustry(world,time){
   }
   for(const cargo of s.convoys){
    cargo.distance=(time-cargo.launchedAt)*cfg.speed;
-   Object.assign(cargo,frontierCargoPosition(id,cargo.distance));
+   Object.assign(cargo,frontierCargoPosition(id,cargo.distance,cargo.routeId));
   }
   if(s.worker)Object.assign(s.worker,frontierWorkerPosition(s.worker,time));
  }
@@ -164,7 +255,9 @@ export function interceptFrontierCargo(world,cargo,time){
  const id=cargo.frontierNetwork,s=world.regionalSupply?.frontier?.[id];
  if(!FRONTIERS[id]||!s?.convoys.includes(cargo)||cargo.rewarded||cargo.hp>0)return false;
  cargo.rewarded=true;s.convoys=s.convoys.filter(c=>c!==cargo);
- s.intercepted++;frontierEvent(s,id,'intercept',time);return true;
+ s.intercepted++;frontierEvent(s,id,'intercept',time);
+ report(s,'loss',cargo.routeId||'direct',time);
+ return true;
 }
 export function damageFrontierAsset(world,target,damage,time){
  const s=world.regionalSupply?.frontier?.teal;
@@ -190,14 +283,54 @@ export function captureFrontierStation(world,base,time){
  if(!parts)return false;
  const [,id,kind]=parts,s=world.regionalSupply.frontier?.[id];
  if(!s)return false;
+ const st=strategyOf(s,time);
+ st.routePlan=null;st.screenPlan=null;st.screenUntil=0;
  if(kind==='source'&&s.worker){s.worker.phase='evacuated';s.worker.carry=0;}
- if(kind==='depot'){s.reserves=0;s.pendingRaid=null;}
+ if(kind==='source'){
+  // A prepared reserve can mount one final response, but it cannot be created
+  // after the producer has fallen or spend reserve units twice.
+  if(world.stations.get(FRONTIERS[id].depotId)?.enemy&&
+    s.reserves>=FRONTIER_RESPONSE.emergencyCost&&!st.emergencyCommitted){
+   s.reserves-=FRONTIER_RESPONSE.emergencyCost;
+    st.emergencyCommitted=true;
+   st.emergency={readyAt:time+FRONTIER_RESPONSE.emergencyWarning,announced:false};
+   frontierEvent(s,id,'emergency-prep',time);
+  }
+ }
+ if(kind==='depot'){
+  s.reserves=0;s.pendingRaid=null;
+  if(s.strategy)s.strategy.emergency=null;
+ }
  frontierEvent(s,id,kind+'-captured',time);return true;
 }
 
 export function frontierIndustryValid(root,time){
  const numeric=(x,a=0,b=1e9)=>Number.isFinite(x)&&x>=a&&x<=b;
  const point=p=>p&&numeric(p.x,-1e9,1e9)&&numeric(p.y,-1e9,1e9);
+ const plan=p=>p===null||p&&numeric(p.readyAt);
+ const responseValid=st=>st===undefined||Boolean(st&&
+  ['direct','diversion'].includes(st.route)&&
+  (st.routePlan===null||plan(st.routePlan)&&
+    ['direct','diversion'].includes(st.routePlan.to)&&st.routePlan.to!==st.route)&&
+  plan(st.screenPlan)&&numeric(st.nextRoutePlanAt)&&numeric(st.nextScreenPlanAt)&&
+  numeric(st.screenUntil)&&numeric(st.nextAttackAt)&&
+  Number.isSafeInteger(st.reportSerial)&&numeric(st.reportSerial)&&
+  Number.isSafeInteger(st.routeEvidenceThrough)&&
+  numeric(st.routeEvidenceThrough,0,st.reportSerial)&&
+  Number.isSafeInteger(st.screenEvidenceThrough)&&
+  numeric(st.screenEvidenceThrough,0,st.reportSerial)&&
+  Number.isSafeInteger(st.emergencyRaids)&&numeric(st.emergencyRaids,0,1)&&
+  typeof st.emergencyCommitted==='boolean'&&
+  (!st.emergency||st.emergencyCommitted)&&
+  (st.emergency===null||plan(st.emergency)&&
+    typeof st.emergency.announced==='boolean')&&
+  Array.isArray(st.reports)&&st.reports.length<=FRONTIER_RESPONSE.maxReports&&
+  st.reports.every((r,i)=>Number.isSafeInteger(r.seq)&&
+    numeric(r.seq,1,st.reportSerial)&&
+    (i===0||st.reports[i-1].seq<r.seq)&&
+    ['loss','long'].includes(r.kind)&&['direct','diversion'].includes(r.route)&&
+    Number.isInteger(r.at)&&numeric(r.at,0,time)&&
+    r.receivedAt===r.at+FRONTIER_RESPONSE.reportDelay));
  if(!root||root.version!==1)return false;
  for(const id of ['azure','teal']){
   const cfg=FRONTIERS[id],s=root[id],w=s?.worker;
@@ -211,14 +344,20 @@ export function frontierIndustryValid(root,time){
    !['delivered','intercepted','launched','raids'].every(k=>
      Number.isSafeInteger(s[k])&&numeric(s[k]))||
    !Number.isInteger(s.lastPulse)||!numeric(s.lastPulse,-1,1e9)||
+   !responseValid(s.strategy)||
    !Array.isArray(s.history)||s.history.length>8||
    s.history.some(e=>e.network!==id||!numeric(e.time,0,time)||
     !['harvest','dispatch','delivery','diverted','raid-warning','raid',
-      'intercept','worker-lost','wreck-emptied','source-captured','depot-captured'].includes(e.kind))||
+      'intercept','worker-lost','wreck-emptied','source-captured','depot-captured',
+      'route-prep','route-changed','screen-prep','screen-ready','screen-dispatch',
+      'emergency-prep','emergency-raid'].includes(e.kind))||
    !Array.isArray(s.convoys)||s.convoys.length>1||
    s.convoys.some(c=>c.frontierCargo!==true||c.regionalCargo!==true||
     c.frontierNetwork!==id||!new RegExp('^frontier-cargo-'+id+'-\\d+$').test(c.id)||
-    !numeric(c.launchedAt,0,time)||!numeric(c.distance,0,routeLength(id)+cfg.speed)||
+    (c.routeId!==undefined&&!['direct','diversion'].includes(c.routeId))||
+    (c.screened!==undefined&&typeof c.screened!=='boolean')||
+    !numeric(c.launchedAt,0,time)||
+    !numeric(c.distance,0,frontierRouteLength(id,c.routeId)+cfg.speed)||
     !point(c)||!numeric(c.hp,.001,cfg.hp)||c.maxHp!==cfg.hp||c.r!==32))return false;
   if(id==='azure'&&(w!==null||!Array.isArray(s.wrecks)||s.wrecks.length!==0))return false;
   if(id==='teal'){
