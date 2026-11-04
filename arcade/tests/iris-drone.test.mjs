@@ -1,7 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {drawIrisDrone,irisFrameAt,irisThrustLevel,isIrisDroneReady}
+import {drawIrisDrone,irisEnabledByQuery,irisFrameAt,irisThrustLevel,isIrisDroneReady}
  from '../iris-drone-renderer.js';
+
+test('I.R.I.S. is enabled by default, with an explicit rollback switch',()=>{
+  assert.equal(irisEnabledByQuery(),true);
+  assert.equal(irisEnabledByQuery('?iris=1'),true);
+  assert.equal(irisEnabledByQuery('?mode=play'),true);
+  assert.equal(irisEnabledByQuery('?mode=play&iris=0'),false);
+  assert.equal(irisEnabledByQuery('?iris=0&mode=play'),false);
+});
 
 test('all nine shell frames are reachable and ordered',()=>{
   assert.equal(irisFrameAt(0),0);

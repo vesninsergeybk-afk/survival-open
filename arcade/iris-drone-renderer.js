@@ -1,5 +1,5 @@
 /**
- * I.R.I.S. («Зрачок») — optional hostile scout visuals.
+ * I.R.I.S. («Зрачок») — default hostile scout visuals with ?iris=0 rollback.
  * Nine painted shell positions and six ion-thrust levels.
  * Visual state is deterministic and never changes gameplay AI or RNG.
  */
@@ -25,6 +25,10 @@ function loadIrisAssets(){
   thrustImage.src=new URL('./studio/assets/iris-drone/iris-ion.webp',import.meta.url).href;
 }
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+
+export function irisEnabledByQuery(search=''){
+  return new URLSearchParams(search).get('iris')!=='0';
+}
 
 export function irisFrameAt(ageSeconds,reducedMotion=false){
   if(reducedMotion)return 8;
