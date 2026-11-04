@@ -1906,7 +1906,7 @@ export class ArcadeGame {
   if(e.signalIntel&&aggressor)alertSignalIntel(e.signalIntel,aggressor,this.time);
   const hpBefore=e.hp;
   damage=stormWeaponDamage(e,damage,source,this.time);
-  e.hp-=damage;e.hit=.12;
+  e.hp=Math.max(0,e.hp-damage);e.hit=.12;
   this.enemyLearning?.damaged(e,Math.min(hpBefore,Math.max(0,damage)));
   this.enemyComms?.reportHit(e,Math.min(hpBefore,Math.max(0,damage)),this.time);
   if(this.visuals?.capitalDamageQA&&e.type==='gunship'&&e.serial%2===0)
