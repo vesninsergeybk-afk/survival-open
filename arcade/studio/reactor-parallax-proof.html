@@ -26,7 +26,7 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 <main>
 <a href="./#reactor">← Мастерская</a>
 <h1>Реактор: геометрия и масштаб на настоящей камере</h1>
-<p>Это испытание непосредственно использует <code>ReactorLandmark</code> из аркады. Корабль и док обозначены условно, но их координаты и размер заданы в игровых единицах. Сравните прежний единый рисунок с новой сценой: далёкие фермы, уменьшенный основной корпус с самостоятельным параллаксом, дымка и частицы на разных планах. Двигайте камеру и выключайте планы по одному; проёмы, корабль и ядро должны оставаться различимыми. Глушилки и стадии запуска здесь — только проверка графики, не реализованная миссия.</p>
+<p>Это испытание непосредственно использует <code>ReactorLandmark</code> из аркады. Корабль и док обозначены условно, но их координаты и размер заданы в игровых единицах. Сравните прежний единый рисунок с новой сценой: далёкие фермы, уменьшенный основной корпус с самостоятельным параллаксом, дымка и частицы на разных планах. Двигайте камеру и по очереди отключайте заднюю и переднюю пыль: задняя перемещается медленнее станции, передняя — быстрее. Мягкая дымка остаётся между ними; проёмы, корабль и ядро должны быть различимыми. Глушилки и стадии запуска здесь — только проверка графики, не реализованная миссия.</p>
 <div class="layout">
 <section class="panel">
 <canvas id="stage" width="1100" height="650" role="img" aria-label="Сцена с корпусом реактора в игровом масштабе"></canvas>
@@ -57,7 +57,8 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 <label><span><input id="layer-distant" type="checkbox" checked> Дальние фермы · параллакс 0,52</span></label>
 <label><span><input id="layer-mist" type="checkbox" checked> Дымка · параллакс 0,68–0,87</span></label>
 <label><span><input id="layer-near" type="checkbox" checked> Ближний металл · вместе с корпусом</span></label>
-<label><span><input id="layer-particles" type="checkbox" checked> Движущиеся частицы (перед станцией и за ней)</span></label>
+<label><span><input id="layer-far-dust" type="checkbox" checked> Задняя пыль · параллакс 0,61</span></label>
+<label><span><input id="layer-near-dust" type="checkbox" checked> Передняя пыль · параллакс 0,95</span></label>
 <label>Условная производительность
 <select id="fps"><option value="60">60 FPS</option><option value="25">25 FPS</option></select>
 </label>
@@ -68,12 +69,12 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 </div>
 </main>
 <script type="module">
-import {ReactorLandmark,REACTOR_LANDMARK_ANCHOR} from '../reactor-landmark.js';
+import {ReactorLandmark,REACTOR_LANDMARK_ANCHOR} from '../reactor-landmark.js?v=reactor-depth-v5';
 const $=id=>document.getElementById(id);
 const canvas=$('stage'),g=canvas.getContext('2d',{alpha:false});
 const vw=1100,vh=650,ship={x:360,y:-25},dock={x:360,y:-85};
 const reactor=new ReactorLandmark({loadEnergyAtlas:true});
-for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near'],['layer-particles','particles']]){
+for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near'],['layer-far-dust','farParticles'],['layer-near-dust','frontParticles']]){
  $(id).addEventListener('change',event=>{reactor.layers[key]=event.target.checked;});
 }
 
@@ -168,7 +169,7 @@ $('reset').addEventListener('click',()=>{
  $('stage-state').value='0';mode='new';$('mode').value='new';launchAt=-100;
  depth.value='0.80';reactor.hullRate=.80;$('depth-value').textContent='0,80';
  sizeAuto.checked=true;size.value='0.46';updateSize();
- for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near']]){
+ for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near'],['layer-far-dust','farParticles'],['layer-near-dust','frontParticles']]){
   $(id).checked=true;reactor.layers[key]=true;
  }
 });
