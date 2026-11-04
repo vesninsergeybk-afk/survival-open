@@ -6,7 +6,7 @@ import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './ope
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2';
-import {nextEconomyChoices} from './sortie-economy.js?v=weapons-cycle-2';
+import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -504,30 +504,69 @@ export function renderBasePanel(base,state){
  const brief=baseBrief(base,state,o);
  const lastSortie=state.sortieReports?.at(-1);
  const signed=n=>(n>0?'+':'')+n;
- const choices=lastSortie?nextEconomyChoices(base,state,o):[];
+ const choices=lastSortie?nextEconomyChoices(base,state,o,lastSortie):[];
+ const details=lastSortie?.details;
+ const oreTracked=details?details.oreMining+details.oreSalvage+details.oreOperations+details.oreContracts:0;
+ const dataTracked=details?details.dataCombat+details.dataOperations+details.dataContracts+details.dataOther:0;
+ const recent=(state.sortieReports||[]).slice(-5).reverse();
+ const expenses=state.economyExpenses;
+ const expenseTotal=expenses?Object.values(expenses).reduce((sum,n)=>sum+n,0):0;
+ const expenseText=expenses?'<p>Потрачено за это прохождение: '+expenseTotal+
+  ' сплава (вооружение '+expenses.weapons+', дроны '+expenses.drones+
+  ', ремонт '+expenses.repairs+', станции '+expenses.stations+
+  ', снаряжение '+expenses.services+', перелёты '+expenses.travel+').</p>':'';
+ const history='<details class="base-economy-breakdown"><summary>Последние '+recent.length+
+  ' вылетов и расходы</summary>'+expenseText+
+  '<div class="base-economy-history"><table><thead><tr><th scope="col">Время</th><th scope="col">Сплав</th>'+
+  '<th scope="col">Данные</th><th scope="col">Итог корпуса</th></tr></thead><tbody>'+
+  recent.map(r=>'<tr><td>'+Math.floor(r.seconds/60)+' мин '+r.seconds%60+' с'+
+   (r.outcome==='lost'?' · гибель':'')+'</td><td>'+signed(r.ore)+'</td><td>'+signed(r.data)+
+   '</td><td>'+signed(r.hull)+'</td></tr>').join('')+'</tbody></table></div></details>';
+ const claim=state.lastContractReceipt;
+ const claimNote=claim?'<p class="base-economy-claim" role="status">Награда за полевой заказ получена: +'+
+  claim.ore+' сплава, +'+claim.data+' данных. '+(claim.credited?
+   'Она включена в отчёт того вылета, где выполнен заказ.':
+   'В прежней истории нет подходящего отчёта; награда зачислена на счёт.')+'</p>':'';
+ const breakdown=details?'<details class="base-economy-breakdown"><summary>Источники ресурсов и последствия боя</summary>'+
+  '<div class="base-economy-sources"><p><b>Сплав:</b> добыча '+signed(details.oreMining)+
+  ' · трофеи '+signed(details.oreSalvage)+' · операции '+signed(details.oreOperations)+
+  ' · заказы '+signed(details.oreContracts)+
+  (lastSortie.ore!==oreTracked?' · прочие изменения '+signed(lastSortie.ore-oreTracked):'')+'</p>'+
+  '<p><b>Данные:</b> сражения '+signed(details.dataCombat)+
+  ' · операции '+signed(details.dataOperations)+' · заказы '+signed(details.dataContracts)+
+  (details.dataOther?' · другие достижения '+signed(details.dataOther):'')+
+  (lastSortie.data!==dataTracked?' · прочие изменения '+signed(lastSortie.data-dataTracked):'')+'</p>'+
+  '<p><b>Повреждения корпуса:</b> '+details.damageTaken+
+  ' · поглощено щитом '+details.shieldDamage+' · восстановлено в полёте '+details.hullRepaired+
+  ' · уничтожено дронов '+details.dronesLost+'.</p></div></details>':'';
  const report=active&&lastSortie?'<section class="base-economy" aria-label="Итоги последнего вылета">'+
   '<div class="base-economy-head"><div><span class="base-kicker">ПОСЛЕ ВЫЛЕТА</span>'+
-  '<strong>Итоги последнего вылета</strong></div><small>'+Math.floor(lastSortie.seconds/60)+' мин '+
+  '<h3>Итоги последнего вылета</h3></div><small>'+Math.floor(lastSortie.seconds/60)+' мин '+
   (lastSortie.seconds%60)+' с · '+((state.sortieReports?.length||1)>=24?'последние 24 вылета':
    'вылетов учтено: '+(state.sortieReports?.length||1))+'</small></div>'+
   '<div class="base-economy-deltas"><span>Сплав <b>'+signed(lastSortie.ore)+'</b></span>'+
   '<span>Данные <b>'+signed(lastSortie.data)+'</b></span>'+
-  '<span>Корпус <b>'+signed(lastSortie.hull)+'</b></span>'+
-  '<span>Дроны <b>'+signed(lastSortie.drones)+'</b></span>'+
+  '<span>Корпус, итог <b>'+signed(lastSortie.hull)+'</b></span>'+
+  (details?'<span>Получено повреждений <b>'+details.damageTaken+'</b></span>':'')+
+  (details?.dronesLost?'<span>Потеряно дронов <b>'+details.dronesLost+'</b></span>':'')+
   (lastSortie.levels?'<span>Уровни <b>+'+lastSortie.levels+'</b></span>':'')+'</div>'+
-  '<p>Это изменение запасов и состояния за время полёта. Ремонт на станции и покупки после стыковки в отчёт не входят.</p>'+
+  '<p>Ресурсы за вылет и награды за сданные заказы. Изменение корпуса показано после восстановления. Покупки на станции в доход не включены.</p>'+
+  claimNote+breakdown+history+
   (choices.length?'<div class="base-economy-head"><div><span class="base-kicker">СЛЕДУЮЩЕЕ РЕШЕНИЕ</span>'+
-   '<strong>На что направить '+o.ore+' сплава?</strong></div></div>'+
+   '<h3>Как распорядиться '+o.ore+' ед. сплава?</h3></div></div>'+
    '<div class="base-economy-choices">'+choices.map(choice=>
     '<article><strong>'+choice.title+'</strong><small>'+choice.detail+'</small>'+
-    '<span>'+(choice.cost?choice.cost+' сплава':'Без затрат')+' · '+
+    '<span>'+(choice.cost===null?'Посмотреть варианты':choice.cost?choice.cost+' сплава':'Бесплатно')+
+     (choice.cost===null?'':' · '+
      (choice.reason?choice.reason:choice.act==='baseMap'?
       (o.ore>=choice.cost?'уже достаточно для запуска':'до цели '+(choice.cost-o.ore)):
       o.ore>=choice.cost?'после покупки останется '+(o.ore-choice.cost):
-      'нужно ещё '+(choice.cost-o.ore))+'</span>'+
+      'нужно ещё '+(choice.cost-o.ore)))+'</span>'+
     action(choice.act,choice.act==='baseMap'?'Открыть карту':
-     choice.act==='baseTab'?'Перейти в ангар':
-     choice.act==='hire'?'Нанять дрона':'Зарядить щит',choice.reason,choice.role)+
+     choice.act==='showFieldTrial'?'Испытать бесплатно':
+     choice.act==='baseTab'?({hangar:'Перейти в ангар',network:'Открыть сеть',
+      operations:'Открыть задания'}[choice.role]||'Открыть раздел'):
+     choice.act==='hire'?'Нанять дрона':choice.act==='repair'?'Ремонтировать':'Зарядить щит',choice.reason,choice.role)+
     '</article>').join('')+'</div>':'')+'</section>':'';
  const dashboard='<div class="base-dashboard">'+
   '<div class="base-dashboard-main"><span class="base-kicker">'+brief[0]+'</span>'+
@@ -602,7 +641,7 @@ export function renderBasePanel(base,state){
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
   tabButton('summary','Сводка',selected)+tabButton('operations','Операции',selected)+
   tabButton('hangar','Ангар',selected)+tabButton('network','Сеть',selected)+'</nav>'+
-  tabPanel('summary',selected,dashboard+report)+
+  tabPanel('summary',selected,report+dashboard)+
   tabPanel('operations',selected,operations)+
   tabPanel('hangar',selected,hangar)+
   tabPanel('network',selected,network):
