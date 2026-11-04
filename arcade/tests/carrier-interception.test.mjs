@@ -6,6 +6,7 @@ import {ENEMY_TYPES} from '../ai.js';
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
 import {missionHudText} from '../mission-feedback.js';
+import {finishSortie,appendSortieReport} from '../sortie-economy.js';
 import {
  CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,createCarrierInterception,
  carrierOffer,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,
@@ -184,9 +185,10 @@ test('docking at the issuing carrier actually delivers telemetry once',()=>{
  const dockStart=gameSource.indexOf('  dock(selected=null){');
  const dockEnd=gameSource.indexOf('\n baseAction(act,role){',dockStart);
  assert.ok(dockStart>0&&dockEnd>dockStart);
- const Dock=new Function('dist','RULES','CORRIDOR_OPERATION','CARRIER_INTERCEPTION',
+ const Dock=new Function('dist','RULES','CORRIDOR_OPERATION','CARRIER_INTERCEPTION','finishSortie','appendSortieReport',
   'return class CarrierDockHarness {'+gameSource.slice(dockStart,dockEnd)+'}')(
-   distance,{baseInteract:180},{id:'silent-corridor'},CARRIER_INTERCEPTION);
+   distance,{baseInteract:180},{id:'silent-corridor'},CARRIER_INTERCEPTION,
+   finishSortie,appendSortieReport);
  Object.assign(game,{overlay:{hidden:true,dataset:{}},endInteraction(){},renderDock(){}});
  game.heritage.pause=()=>{};game.heritage.ui=()=>{};
  game.player.x=base.x;game.player.y=base.y;

@@ -1,5 +1,6 @@
 import {World} from './world.js?v=arcade-base-network-40';
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=hangar-2';
+import {validSortieReports} from './sortie-economy.js?v=economy-return-1';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
@@ -11,7 +12,7 @@ const FIELDS=('player skillRanks shipLoadout weaponThermal moduleClocks heavyCha
  'contract operation geoScanUntil overchargeUntil ionLoan ionTrialTaken ionReturnAt ionMasteryAwarded '+
  'holdFire beamClock rocketClock zoneClock stationary lastX lastY hacks activeBases enemySerial '+
  'allySerial groupSerial heavyPortalShown lastEncounter lastEncounterLabelAt amberBeltSeen ionFieldSeen '+
- 'waypoint lastIonAudioCycle').split(' ');
+ 'waypoint lastIonAudioCycle sortieReports').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const cell=v=>typeof v==='string'&&/^-?\d+:-?\d+$/.test(v);
@@ -97,6 +98,7 @@ export function validateCheckpoint(data){
   !Number.isInteger(s.shipLoadout.frame)||!FRAME_STEPS[s.shipLoadout.frame])return false;
  if(Object.values(s.skillRanks).some(v=>!Number.isInteger(v)||v<0||v>10)||
   Object.keys(s).some(k=>!FIELDS.includes(k)))return false;
+ if(s.sortieReports!==undefined&&!validSortieReports(s.sortieReports))return false;
  for(const k of ['enemies','allies','drops','shots','missiles','flashes','zones','hacks'])
   if(!Array.isArray(s[k])||s[k].length>2000)return false;
  if(s.enemies.length>512||s.allies.length>64||!Array.isArray(s.support.missions))return false;
@@ -141,6 +143,8 @@ export function restoreCheckpoint(game,data){
  // Commit only after the complete world has been reconstructed successfully.
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
+ game.sortieReports=data.state.sortieReports||[];
+ game.sortieStart=null;
  game.keys.clear();game.touch.x=0;game.touch.y=0;
  game.player.vx=0;game.player.vy=0;game.player.burstRemaining=0;
  game.actionHeld=null;game.mining={active:false,target:null,fxClock:0};game.probeRepairing=false;

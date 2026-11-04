@@ -15,7 +15,7 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=menus-gameplay-first-2';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=menus-gameplay-first-2-economy-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=operation-leads-1';
 import {renderWorldMap} from './map-panel.js?v=menus-gameplay-first-1';
 import {contractReturnStation,contractDefenseZone,corridorCue} from './mission-feedback.js?v=carrier-intercept-2';
@@ -27,7 +27,8 @@ import {plasmaDamageFactor,weaponDamageFactor,rocketFlight} from './weapon-speci
 import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,heatWeapons,mountPosition} from './ship-loadout.js?v=hangar-2';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {updateAuxiliaryWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=hangar-3';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=checkpoint-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=checkpoint-1-economy-1';
+import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-return-1';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -133,6 +134,7 @@ export class ArcadeGame {
   this.lastNoiseSource=null;this.noiseAlert=null;
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';this.mapReturnToBase=false;
+  this.sortieStart=null;this.sortieReports=[];
    this.geoScanUntil=0;this.overchargeUntil=0;
    this.ionLoan=null;this.ionTrialTaken=false;this.ionReturnAt=-Infinity;
    this.ionMasteryAwarded=false;
@@ -377,6 +379,10 @@ export class ArcadeGame {
   }
   dismiss(){
    if(!this.overlay.hidden&&this.overlay.dataset.mode==='run-start')return;
+   // Only leaving the station starts a sortie. Closing a map, skills panel or
+   // an in-station transfer must never reset its economic baseline.
+   if(!this.overlay.hidden&&this.overlay.dataset.mode==='base'&&this.docked)
+    this.sortieStart=startSortie(this);
    this.saveAtStation();
    this.endInteraction();
    if(!this.overlay.hidden)this.heritage.ui('close');
@@ -1124,6 +1130,7 @@ export class ArcadeGame {
    allies:this.allies.length,droneRoles:this.allies.map(a=>a.role),network:this.network,doctrine:this.doctrine,
    droneDamage:this.allies.reduce((sum,a)=>sum+Math.max(0,a.maxHp-a.hp),0),
    charges:this.support.charges,contract:this.contract,operation:this.operation,baseTab:this.baseTab,
+   sortieReports:this.sortieReports,
     ionLoan:this.ionLoan,ionTrialTaken:this.ionTrialTaken,
     ionReturnNotice:this.time-this.ionReturnAt<6,
     position:{x:this.player.x,y:this.player.y},shield:this.player.shield,
@@ -1291,6 +1298,9 @@ export class ArcadeGame {
    if(this.ionLoan?.missionStarted&&!this.operation&&!this.contract){
     this.ionLoan=null;this.ionReturnAt=this.time;
    }
+  const report=finishSortie(this.sortieStart,this,b);
+  this.sortieReports=appendSortieReport(this.sortieReports,report);
+  this.sortieStart=null;
   this.endInteraction();
   this.hangarSession?.begin(this.shipLoadout);
   this.docked=b;this.baseTab='summary';this.paused=true;this.pausedRenderPending=true;
