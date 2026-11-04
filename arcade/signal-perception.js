@@ -29,6 +29,18 @@ export function updateSignalIntent(enemy,game,dt){
   const intel=enemy.signalIntel;
   if(!intel)return null;
   const now=game.time,p=game.player;
+  // The investigating patrol has independent memory per ship. A wingman
+  // joins combat only after a real, acknowledged radio report reaches it.
+  const radio=game.enemyComms?.directiveFor?.(enemy,now);
+  if(radio?.intel&&radio.intel.at>(intel._receivedSightAt??-Infinity)&&
+     now-radio.intel.at<=2.6){
+    intel._receivedSightAt=radio.intel.at;
+    const changed=intel.mode!=='engaged';
+    intel.mode='engaged';intel.combatFocus=p;
+    intel.lastSeenX=radio.intel.x;intel.lastSeenY=radio.intel.y;
+    intel.lastSeenAt=radio.intel.at;
+    if(changed)intel.cueUntil=now+2.3;
+  }
   const distance=Math.hypot(enemy.x-p.x,enemy.y-p.y);
   enemy.sensorTimer=(enemy.sensorTimer??0)-dt;
   if(enemy.sensorTimer<=0){

@@ -4,7 +4,7 @@ import {baseNames} from './balance.js?v=arcade-base-ops-38';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
-import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2';
+import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -223,6 +223,13 @@ export function renderWorldMap(game){
  const unidentified=signals.map(b=>row(b,true)).join('');
  const clear='<button type="button" data-act="waypoint" data-id="clear"'+
   (!game.waypoint?' disabled':'')+'>Сбросить маршрут</button>';
+ const intercepted=game.enemyComms?.intercepted?.(game.time)||[];
+ const radioHistory=intercepted.length?
+  '<details class="map-objective map-radio-log" open><summary>Перехваченные приказы · '+
+  intercepted.length+'</summary><ul>'+intercepted.slice(0,3).map(order=>
+   '<li><span>'+enc(({press:'Нажим',pincer:'Обход',intercept:'Перехват',
+    screen:'Прикрытие',close:'Сближение',scatter:'Рассредоточение'})[order.mode]||'Манёвр')+
+   '</span> '+enc(order.message)+'</li>').join('')+'</ul></details>':'';
  const view=game.mapView==='targets'?'targets':'map';
  const unapplied=game.mapReturnToBase&&game.hangarSession?.dirty(game.shipLoadout);
  return '<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
@@ -245,7 +252,8 @@ export function renderWorldMap(game){
   '<span>◈ противник</span><span>⇢ согласованный манёвр</span><span>? сигнал</span><span>◎ операция</span></div>'+
   '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
     ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
-  '<aside class="map-side">'+renderRegionAtlas(game)+'<div class="map-objective"><span>ОБСТАНОВКА В СЕКТОРЕ</span><p>'+enc(territory)+'</p>'+
+  '<aside class="map-side">'+renderRegionAtlas(game)+radioHistory+
+  '<div class="map-objective"><span>ОБСТАНОВКА В СЕКТОРЕ</span><p>'+enc(territory)+'</p>'+
   (securedSupply.length?'<p>Зелёным отмечены перехваченные маршруты снабжения. В пределах 740 м от них вражеские патрули появляются реже.</p>':'')+'</div>'+
   (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
      operation?.id===CARRIER_INTERCEPTION.id?'ПЕРЕХВАТ КОНВОЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+

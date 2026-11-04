@@ -44,7 +44,12 @@ const precisionRank=item=>{
  return item.goal?(item.target.interceptCargo||item.kind==='jammer'?-20:rank-10):rank;
 };
 export function selectTargets(game,range,limit=1,precision=false){
+ const designated=game.designatedTarget;
+ const focus=designated&&game.time<=designated.expiresAt&&
+  designated.target?.hp>0&&!designated.target.converted&&
+  !designated.target.captured?designated.target:null;
  return combatTargets(game,range).sort((a,b)=>
+  (focus?(a.target===focus?-1:b.target===focus?1:0):0)||
   (precision?precisionRank(a)-precisionRank(b):0)||
   targetDistance(game.player,a.target)-targetDistance(game.player,b.target)).slice(0,limit);
 }

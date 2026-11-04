@@ -77,16 +77,18 @@ const actor=(type,x,y,hp=ENEMY_TYPES[type].hp)=>({
   state:'hunt',think:0,fire:1,commitUntil:0,angle:0});
 const world=player=>({
   time:160,player,allies:[],grid:{query:()=>[]},heritage:{play:()=>{}},
-  avoidance:()=>({x:0,y:0}),enemyShot:()=>{},hurt:()=>{}
+  avoidance:()=>({x:0,y:0}),enemyCanSee:()=>true,enemyShot:()=>{},hurt:()=>{}
 });
 test('охранник сначала держится у ремонтника, при сближении перехватывает игрока',()=>{
   const medic=actor('healer',400,0),guard=actor('fighter',350,0);
   guard.protect=medic;
+  guard._awarenessDispatch={x:0,y:0,at:160};
   const game=world({x:0,y:0,hp:110,r:19});
   updateEnemy(guard,game,.05);
   assert.equal(guard.state,'guard');
   assert.ok(guard.x<350);
   game.player.x=300;game.time=164;guard.think=0;
+  guard._awarenessNextAt=game.time;
   updateEnemy(guard,game,.05);
   assert.equal(guard.state,'intercept');
 });

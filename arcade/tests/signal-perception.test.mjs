@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSignalIntel,alertSignalIntel,updateSignalIntent,SIGNAL_AI,canAutoTarget} from '../signal-perception.js';
 import {updateEnemy,updateAlly} from '../ai.js';
+import {EnemyComms} from '../enemy-comms.js';
 
 const actor=(intel=null)=>({
   serial:3,group:7,type:'scout',x:500,y:0,vx:0,vy:0,r:14,hp:28,maxHp:28,
@@ -36,16 +37,26 @@ test('at the source, a patrol searches for a finite time and then withdraws',()=
  assert.equal(order.retreat,true);
  assert.equal(order.x,900,'withdrawal uses the actual entry coordinate');
 });
-test('a real visual contact or a near encounter shares an alert with the whole group',()=>{
- const intel=createSignalIntel(1000,0,30);
- const first=actor(intel),second=actor(intel),game=world({x:300,y:0,hp:110,r:19,invul:0});
- first.x=350;first.sensorTimer=0;second.x=700;
+test('a patrolmate learns of the player only after a transmitted radio alert',()=>{
+ const first=actor(createSignalIntel(1000,0,30));
+ const second=actor(createSignalIntel(1000,0,30));
+ first.serial=1;second.serial=2;first.x=350;second.x=560;
+ const game=world({x:300,y:0,hp:110,r:19,invul:0});
+ game.enemies=[first,second];game.enemyCanSee=ship=>ship===first;
+ game.grid.query=(x,y,r)=>game.enemies.filter(e=>Math.hypot(e.x-x,e.y-y)<=r);
+ game.enemyComms=new EnemyComms();game.enemyComms.update(game);
+ first.sensorTimer=0;second.sensorTimer=0;
  updateEnemy(first,game,.1);
- assert.equal(intel.mode,'engaged');
- assert.equal(intel.lastSeenX,300);
- assert.ok(intel.cueUntil>game.time);
- assert.equal(updateSignalIntent(second,game,.1),null,
-  'the second craft immediately receives the same warning');
+ assert.equal(first.signalIntel.mode,'engaged');
+ assert.equal(first.signalIntel.lastSeenX,300);
+ assert.equal(second.signalIntel.mode,'investigate',
+  'a nearby patrol has not magically read its wingman’s memory');
+ game.time=30.2;updateEnemy(first,game,.1);
+ game.time=30.7;game.enemyComms.update(game);
+ assert.ok(game.enemyComms.events.some(event=>event.kind==='contact'||event.kind==='order'));
+ updateSignalIntent(second,game,.1);
+ assert.equal(second.signalIntel.mode,'engaged');
+ assert.equal(second.signalIntel.lastSeenX,300);
 });
 test('large asteroid occlusion can prevent detection at range',()=>{
  const intel=createSignalIntel(500,0,30),e=actor(intel);
