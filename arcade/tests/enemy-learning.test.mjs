@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {EnemyLearning,ENEMY_STYLES,ENEMY_LEARNING_KEY,learnedTurretAim}
   from '../enemy-learning.js';
 import {updateEnemy,scoutSteering,ENEMY_TYPES} from '../ai.js';
@@ -31,6 +32,16 @@ test('every autonomous enemy archetype and turret has multiple legal learnable s
   ['berserker','fighter','flanker','gunship','healer','scout','turret']);
  for(const styles of Object.values(ENEMY_STYLES))assert.ok(styles.length>=3);
  assert.equal(new EnemyLearning().choose('unknown'),null);
+});
+
+test('the published browser module graph invalidates cached pre-learning tactics',()=>{
+ const ai=readFileSync(new URL('../ai.js',import.meta.url),'utf8');
+ const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/game\.js\?v=[^"']*enemy-learning-1/);
+ assert.match(game,/ai\.js\?v=enemy-learning-1/);
+ assert.match(game,/enemy-learning\.js\?v=enemy-learning-1/);
+ assert.match(ai,/iris-choreography\.js\?v=iris-pack-1-enemy-learning-1/);
 });
 
 test('the learner tries untested alternatives before exploiting a lucky early hit',()=>{
