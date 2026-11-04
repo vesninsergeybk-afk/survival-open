@@ -1,7 +1,7 @@
-import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-1';
-import {World} from './world.js?v=living-world-1';
+import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-2';
+import {World} from './world.js?v=living-world-2';
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1';
-import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-1';
+import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2';
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 
@@ -21,7 +21,8 @@ const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal m
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const cell=v=>typeof v==='string'&&(/^-?\d+:-?\d+$/.test(v)||
- ['industry:source','industry:depot'].includes(v));
+ ['industry:source','industry:depot'].includes(v)||
+ /^frontier:(azure|teal):(source|depot)$/.test(v));
 const hash=text=>{let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);return (h>>>0).toString(16);};
 
 // Runtime targets, operation/cargo objects and station missions share references.
