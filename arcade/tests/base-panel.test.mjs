@@ -159,7 +159,7 @@ test('active mission shows route and progress without an accidental restart',()=
  const html=renderBasePanel(dock,state({baseTab:'operations',operation:mission}));
  assert.match(html,/Глушитель: 50%/);
  assert.match(html,/data-act="baseMap">Показать цель/);
- assert.match(html,/data-act="abandonOperation">Отложить операцию/);
+ assert.match(html,/data-act="abandonOperation">Отложить · повреждения сохранятся/);
  assert.doesNotMatch(html,/data-act="acceptOperation"/);
 });
 
