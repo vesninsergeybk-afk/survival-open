@@ -1,11 +1,11 @@
-import {renderShipHangar} from './hangar-panel.js?v=menus-gameplay-first-2';
-import {renderStationRoutePreview} from './map-panel.js?v=menus-gameplay-first-1';
+import {renderShipHangar} from './hangar-panel.js?v=weapons-cycle-2';
+import {renderStationRoutePreview} from './map-panel.js?v=weapons-cycle-2';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=arcade-base-network-40';
-import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=operation-leads-1';
+import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
-import {ION_CONDUCTOR,ionLoanOffer} from './ion-conductor.js?v=ion-first-play-1';
+import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -205,8 +205,8 @@ const corridorPanel=(base,state,compact=false)=>{
  const hp=active||op.resumable?Math.ceil(op.hp/CORRIDOR_OPERATION.maxHp*100):100;
  const body=done?'Передатчик уничтожен, телеметрия доставлена. Разведка дока работает дальше.':
   returning?'Глушитель отключён. Бортовой ИИ сохранил телеметрию. Вернитесь в домашний док и передайте её при стыковке (E). По дороге можно обойти преследователей или отбиться.':
-  active?'Цель отмечена. Подлетите на дистанцию до 255 м для атаки, учитывая ЭМ-импульсы в радиусе 315 м. Охранение можно обойти. После отключения глушителя доставьте телеметрию в домашний док за наградой.':
-  'Глушитель обнаружен примерно в 1,3 км к востоку. Ваш плазменный луч поражает передатчик с расстояния до 255 м; в радиусе 315 м заряжается ЭМ-импульс. Охранение можно устранить или обойти. После отключения передатчика вернитесь в док с телеметрией за наградой.';
+  active?'Цель отмечена. Выберите дистанцию по установленному оружию: плазма до 435 м, рельс до 700 м. В пределах 315 м заряжается ЭМ-импульс. Охранение можно обойти. После отключения глушителя доставьте телеметрию в домашний док за наградой.':
+  'Глушитель обнаружен примерно в 1,3 км к востоку. Стартовая плазма поражает передатчик до 435 м и сильнее вблизи; в радиусе 315 м заряжается ЭМ-импульс. Охранение можно устранить или обойти. После отключения передатчика вернитесь в док с телеметрией за наградой.';
  const actions=done?'<span class="base-op-done">✓ Изменения действуют в секторе</span>':
   active?action('baseMap',returning?'Маршрут к доку':'Показать маршрут')+(compact?'':action('abandonOperation',returning?'Отложить передачу':'Отложить · сохранить повреждения')):
   action('baseMap','Посмотреть маршрут')+
@@ -505,8 +505,8 @@ export function renderBasePanel(base,state){
   '<strong>'+brief[1]+'</strong><p>'+brief[2]+'</p>'+
   (specialOffer(base,state)?specialPanel(base,state,true):
     '<div class="base-shortcuts"><span>Местные услуги доступны в ангаре.</span></div>')+
-  (base.id==='0:0'&&base.type==='dock'&&!state.ionTrialTaken&&!state.ionLoan?
-   '<div class="base-shortcuts"><span>Бесплатная проба: в ангаре доступен «Ионный проводник» — ручной разряд по меткам автоогня.</span>'+
+  (base.id==='0:0'&&base.type==='dock'&&!state.fieldTrialTaken&&!state.fieldLoan?
+   '<div class="base-shortcuts"><span>Бесплатная проба в ангаре: выберите ионный разряд по меткам плазмы или резонансную связь группы.</span>'+
     action('baseTab','Испытать оружие','','hangar')+'</div>':'')+
   '</div><aside class="base-dashboard-aside"><span class="base-kicker">'+'КАРТА РАЙОНА'+'</span>'+
   basePreview(base,state)+
@@ -542,24 +542,30 @@ export function renderBasePanel(base,state){
     'не хватает '+(o.hireCost-o.ore)+' сплава.'))+
   ' Следующая станция и постоянные улучшения тоже потребуют ресурсов.</small>'+
   '<div>'+action('baseTab','Вернуться к операциям','','operations')+'</div></section>';
- const ionOffer=ionLoanOffer(base,state);
- const ionPanel=ionOffer?card('base-service base-local',
-  'ИСПЫТАТЕЛЬНОЕ ОРУЖИЕ',ionOffer.mode==='return'?
-   'Ионный проводник · '+ionOffer.charges+'/'+ION_CONDUCTOR.charges+' заряда':
-   ionOffer.mode==='trial'?'Ионный проводник · бесплатная проба':'Ионный проводник · повторный прокат',
-  ionOffer.mode==='return'?
-   'Установленный плазменный луч ставит ионные метки на ближайших врагов. Если проводник ещё не установлен, выберите узел на схеме и примените сборку. Space (или кнопка «Ион») запускает разряд по отмеченной группе. После операции модуль вернётся при стыковке; можно вернуть досрочно.':
-   'Пробный боевой модуль с '+ION_CONDUCTOR.charges+' зарядами. После получения установите проводник в обычный узел и нажмите «Применить». Плазменный луч помечает врагов, Space даёт ручной цепной разряд. За один раз можно взять только один модуль.',
-  ionOffer.mode==='return'?action('returnIon','Вернуть модуль'):
-   action('loanIon',ionOffer.mode==='trial'?'Взять бесплатно':
-    'Взять · '+ionOffer.cost+' сплава',ionOffer.reason),ionOffer.reason):
-  base.type==='dock'&&state.ionTrialTaken?card('base-service',
-   'ИСПЫТАТЕЛЬНОЕ ОРУЖИЕ','Пробный образец уже выдавался',
-   (state.ionReturnNotice?'Модуль вернулся после задания. ':'')+
-    'Повторный прокат доступен в арсенале; обычное оружие продолжает работать.',
+ const loan=state.fieldLoan,spec=loan&&fieldWeapon(loan),offer=fieldLoanOffer(base,state);
+ const fieldHelp=id=>id==='ion'?
+  'Плазма ставит метки. Space даёт мгновенный цепной разряд по отмеченной группе. Нужен плазменный луч.':
+  'Space связывает 2–3 близкие цели на 4 с. Затем стреляйте: 35% урона передаётся по связи. Камни и расстояние свыше 260 м разрывают передачу.';
+ const refill=refillQuote(loan,o.ore);
+ const fieldPanel=loan?card('base-service base-local','ПОЛЕВОЙ МОДУЛЬ',
+  spec.name+' · '+loan.charges+'/'+spec.capacity+' заряда',
+  fieldHelp(spec.id)+' После получения установите модуль в обычный узел и примените сборку. '+
+  (loan.assignment?'Прокат закреплён за '+(loan.assignment.kind==='operation'?'особой операцией':'полевым заказом')+'; после её завершения или отмены модуль вернётся при стыковке.':
+   'Прокат будет закреплён за следующим принятым заданием. Можно вернуть досрочно.'),
+  action('fieldCharge','Купить заряд · '+spec.chargeCost+' сплава',refill.ok?'':refill.reason)+
+  action('returnField','Вернуть модуль')):
+  offer?'<div class="base-grid">'+Object.values(FIELD_WEAPONS).map(w=>{
+   const q=fieldLoanOffer(base,state,w.id);
+   return card('base-service base-local','ПОЛЕВОЙ МОДУЛЬ · '+(q.mode==='trial'?'ОДНА БЕСПЛАТНАЯ ПРОБА':'ПРОКАТ'),
+    w.name,fieldHelp(w.id)+' Три заряда. Установите в обычный узел и примените сборку. Одновременно доступен один полевой модуль.',
+    action('loanField',q.mode==='trial'?'Выбрать бесплатно':'Взять · '+q.cost+' сплава',q.reason,w.id),q.reason);
+  }).join('')+'</div>':base.type==='dock'&&state.fieldTrialTaken?card('base-service',
+   'ПОЛЕВОЕ ОРУЖИЕ','Бесплатная проба использована',
+   (state.fieldReturnNotice?'Модуль вернулся после задания. ':'')+
+    'Повторный прокат доступен в арсенале. Обычное оружие продолжает работать.',
    '<span class="base-ready">ПЕРВАЯ ПРОБА ЗАВЕРШЕНА</span>'):'';
  const hangar=renderShipHangar({...state,baseActive:active})+'<details class="hg-services" data-hangar-section="services"><summary>Подготовка к вылету · ремонт · дроны · прокат оружия</summary><div class="base-operations">'+readiness+
-  '<div class="base-grid">'+repair+hire+'</div>'+local+ionPanel+supply+'</div></details>';
+  '<div class="base-grid">'+repair+hire+'</div>'+local+fieldPanel+supply+'</div></details>';
  const network='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">УПРАВЛЕНИЕ СЕТЬЮ</span><strong>Связь, технологии и территория</strong>'+
   '<p>Усиление антенны увеличивает дальность соединения, а специализация определяет, что станция делает для ближайшего сектора.</p></div></div>'+
   networkPreview(base,state)+'<div class="base-grid">'+upgrade+antenna+'</div>'+modules+transit+'</div>';

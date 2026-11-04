@@ -1,6 +1,6 @@
-import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=hangar-2';
+import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=weapons-cycle-2';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
-import {renderShipHangar} from './hangar-panel.js?v=menus-gameplay-first-2';
+import {renderShipHangar} from './hangar-panel.js?v=weapons-cycle-2';
 
 let context,session;
 function setup(advanced){
@@ -10,7 +10,7 @@ function setup(advanced){
  context={loadout,baseActive:true,level:advanced?14:1,ore:advanced?400:60,
   points:advanced?20:0,activeBases:advanced?3:0,
   skillRanks:advanced?{beam:2,double:1,range:1,rocket:1}:{},
-  ionLoan:advanced?{charges:3}:null};
+  fieldLoan:advanced?{moduleId:'ion',charges:3,used:0,cooldownUntil:0}:null};
  // Deliberately isolated: the visual test does not modify saved game blueprints.
  let storage=null;try{storage=window.localStorage;}catch{}
  session=new HangarSession(storage,PREVIEW_BLUEPRINT_KEY);session.begin(loadout);render();

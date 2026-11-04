@@ -1,3 +1,4 @@
+import {RuntimeHarness} from './runtime-game.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -29,10 +30,7 @@ const gameSource=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 const start=gameSource.indexOf(' repairProbe(dt){');
 const end=gameSource.indexOf('\n baseState(){',start);
 assert.ok(start>0&&end>start);
-const Ops=new Function('PROBE_OPERATION','baseNames','dist','chooseOperationLead',
- 'return class ProbeHarness {'+gameSource.slice(start,end)+'}')(
-  PROBE_OPERATION,{dock:'Док',lab:'Лаборатория',arsenal:'Арсенал',carrier:'Авианосец'},
-  (a,b)=>Math.hypot(a.x-b.x,a.y-b.y),chooseOperationLead);
+const Ops=RuntimeHarness;
 const makeGame=()=>{
  const base={...lab},op=createProbeOperation(base,world);
  const game=new Ops(),waves=[],messages=[],drops=[];
@@ -73,10 +71,10 @@ test('no passive shooting while repairing, and no corridor damage applied to pro
  assert.match(gameSource,/this\.probeRepairing=activeInteraction\(this\.actionHeld,'repair',atProbe\)/);
  assert.match(gameSource,/this\.mining\.active=activeInteraction\(this\.actionHeld,'mine',candidate\?\.alive\)/);
  assert.match(gameSource,/if\(this\.probeRepairing\)this\.repairProbe\(dt\)/);
- assert.match(gameSource,/this\.beamClock<=0&&automaticFireAllowed\(this\.holdFire,this\.mining\.active,this\.probeRepairing\)/);
- assert.match(gameSource,/this\.rocketClock<=0&&\s*automaticFireAllowed\(this\.holdFire,this\.mining\.active,this\.probeRepairing\)/);
+ assert.match(gameSource,/updateAutomaticWeapons\(this,dt,!this.heavyCharge&&automaticFireAllowed\(this.holdFire,this.mining.active,this.probeRepairing\)\)/);
  assert.match(gameSource,/op\.id!==CORRIDOR_OPERATION\.id\|\|this\.dead/);
- assert.match(gameSource,/const jammer=this\.operation\?\.id===CORRIDOR_OPERATION\.id/);
+ const targets=readFileSync(new URL('../combat-targets.js',import.meta.url),'utf8');
+ assert.match(targets,/if\(t===game.operation&&!t.interceptCargo\)return false/);
 });
 test('lab terminal and map show the actual mission with a repair instruction',()=>{
  const state={ore:70,hp:110,maxHp:110,shield:0,activeBases:2,

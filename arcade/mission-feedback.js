@@ -1,3 +1,4 @@
+import {MODULES,moduleStats} from './ship-loadout.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,carrierDistanceRemaining,carrierTacticalCue,carrierPulseState} from './carrier-interception.js?v=carrier-intercept-2';
 // Pure state-derived cues shared by the world renderer and tactical map.
@@ -9,7 +10,13 @@ export function contractReturnStation(contract, world) {
   return station?.active && !station.enemy ? station : null;
 }
 
-export function corridorCue(operation, now, distance) {
+export function automaticRange(game){
+ const slots=game.shipLoadout?.slots||['plasma'];
+ return Math.max(0,...slots.filter(id=>MODULES[id]?.kind==='auto').map(id=>
+  moduleStats(id,game.skillRanks||{},game.shipLoadout?.specializations?.[id]).range));
+}
+
+export function corridorCue(operation, now, distance, attackRange=435) {
   if (!operation || operation.id !== 'silent-corridor' || operation.hp <= 0) return null;
   const range = operation.pulseRange || 315;
   const period = operation.pulsePeriod || 4.2;
@@ -17,12 +24,12 @@ export function corridorCue(operation, now, distance) {
   // A pulse hits once at discharge, not throughout the post-pulse visual flash.
   if (now < (operation.pulseFlashUntil || 0)) {
     return {key:'discharge', label:'ЭМ-РАЗРЯД ПРОШЁЛ',
-      hint:'ИМПУЛЬС СРАБОТАЛ · АТАКУЙТЕ', color:'#ffb69a'};
+      hint:'ИМПУЛЬС СРАБОТАЛ · '+(distance<=attackRange?'АТАКУЙТЕ':'ЦЕЛЬ ВНЕ ДАЛЬНОСТИ'), color:'#ffb69a'};
   }
   // Only actual overheat applies the 35% damage bonus.
   if (now < (operation.overheatedUntil || 0)) {
     return {key:'overheat', label:'ПЕРЕГРЕВ · УЯЗВИМ',
-      hint:'ЛУЧ +35% УРОНА · АТАКУЙТЕ', color:'#8bf3cf'};
+      hint:'ОРУЖИЕ +35% УРОНА · '+(distance<=attackRange?'АТАКУЙТЕ':'СБЛИЗЬТЕСЬ ДО '+attackRange+' М'), color:'#8bf3cf'};
   }
   const charge = Math.max(0,Math.min(period,operation.pulseCharge || 0));
   if (charge >= period * .78) {
@@ -39,12 +46,12 @@ export function corridorCue(operation, now, distance) {
         (operation.pulseLocked?'ВНЕ ЗОНЫ УДАРА · ЗАРЯДКА ИДЁТ':'ВНЕ ЗОНЫ УДАРА · ЗАРЯД СНИЖАЕТСЯ'),
       color:'#e6a8ff'};
   }
-  const focusRange = operation.focusRange || 255;
+  const focusRange = attackRange;
   if (distance > focusRange) return {key:'approach', label:'ЦЕЛЬ ВНЕ ДАЛЬНОСТИ',
-    hint:'ДО ЦЕЛИ '+Math.round(distance)+' М · ЛУЧ ДО '+focusRange+' М', color:'#9de7f5'};
+    hint:'ДО ЦЕЛИ '+Math.round(distance)+' М · АВТООРУДИЯ ДО '+focusRange+' М', color:'#9de7f5'};
   // Distance permits an attack; an asteroid may still obstruct the actual shot.
   return {key:'ready', label:'АТАКА ДОСТУПНА',
-    hint:'ЛУЧ ДО '+focusRange+' М · ПРОВЕРЬТЕ ПРЕГРАДЫ', color:'#9de7f5'};
+    hint:'АВТООРУДИЯ ДО '+focusRange+' М · ПРОВЕРЬТЕ ПРЕГРАДЫ', color:'#9de7f5'};
 }
 
 // Only the issuing friendly station defines an active defense contract perimeter.
@@ -67,7 +74,7 @@ export function missionHudText(game) {
     const homeDistance=base?Math.round(Math.hypot(base.x-p.x,base.y-p.y)):d;
     return '✓ ГЛУШИТЕЛЬ ОТКЛЮЧЁН · ВЕРНИТЕСЬ В ДОК · '+homeDistance+' М';
    }
-   const phase=corridorCue(op,game.time,d)?.label||'СИГНАЛ ПОТЕРЯН';
+   const phase=corridorCue(op,game.time,d,automaticRange(game))?.label||'СИГНАЛ ПОТЕРЯН';
    return '◈ ГЛУШИТЕЛЬ · '+Math.ceil(op.hp/op.maxHp*100)+'% · '+phase;
   }
   if(op.id==='last-signal')

@@ -1,3 +1,4 @@
+import {RuntimeHarness} from './runtime-game.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {activationCost,transitCost,baseOffer,renderBasePanel,contractFor,contractOffer,eligibleContractProgress} from '../base-panel.js';
@@ -150,8 +151,7 @@ test('accepting and claiming a station assignment immediately refreshes its menu
  const end=source.indexOf('\n callStrike(){',start);
  assert.ok(start>=0&&end>start,'baseAction must remain available');
  const method=source.slice(start,end);
- const Actions=new Function('baseOffer','transitCost','baseNames',
-  'return class TestActions {'+method+'}')(baseOffer,transitCost,baseNames);
+ const Actions=RuntimeHarness;
  const dock=base('dock',{active:true});
  const fake={
   dead:false,docked:dock,contract:null,time:20,renders:0,
@@ -201,8 +201,7 @@ test('dock emergency shield can be bought once, without double-spending',()=>{
  const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  const start=source.indexOf(' baseAction(act,role){');
  const end=source.indexOf('\n callStrike(){',start);
- const Actions=new Function('baseOffer','transitCost','baseNames','markDockEvent',
-  'return class TestActions {'+source.slice(start,end)+'}')(baseOffer,transitCost,baseNames,markDockEvent);
+ const Actions=RuntimeHarness;
  const dock=base('dock',{active:true});
  const fake={
   dead:false,docked:dock,time:20,contract:null,

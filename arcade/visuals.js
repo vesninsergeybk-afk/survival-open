@@ -1,4 +1,4 @@
-import {drawInstalledModules} from './ship-weapons.js?v=hangar-3';
+import {drawInstalledModules} from './ship-weapons.js?v=weapons-cycle-2';
 /**
  * Arcade presentation uses the artwork and animation systems already approved
  * for Survivor. Visual variants never consume gameplay randomness.

@@ -9,7 +9,7 @@ import {shipTargets,updateAuxiliaryWeapons,planHowitzer,updateHowitzer} from '..
 import {CORRIDOR_OPERATION} from '../operations.js';
 import {drawEvolvedHero} from '../../src/hero-evolution.js';
 
-const context=(extra={})=>({baseActive:true,level:14,ore:400,ranks:{rocket:1},ionLoan:null,...extra});
+const context=(extra={})=>({baseActive:true,level:14,ore:400,ranks:{rocket:1},fieldLoan:null,...extra});
 const full=()=>({...createLoadout(),frame:4});
 const enemy=(x,y=0)=>({x,y,hp:300,r:15,converted:false});
 const combat=(enemies=[])=>({player:{x:0,y:0,level:7,angle:0},skillRanks:{},
@@ -70,7 +70,7 @@ test('technology, level and finite trial restrictions are enforced at confirmati
  assert.equal(quoteLoadout(current,draft,context({ranks:{}})).ok,false);
  draft.slots[1]='rail';assert.equal(quoteLoadout(current,draft,context({level:2})).ok,false);
  draft.slots[1]='ion';assert.equal(quoteLoadout(current,draft,context()).ok,false);
- const loan=context({ionLoan:{charges:3}});assert.equal(quoteLoadout(current,draft,loan).ok,true);
+ const loan=context({fieldLoan:{charges:3}});assert.equal(quoteLoadout(current,draft,loan).ok,true);
  draft.slots[2]='ion';assert.equal(quoteLoadout(current,draft,loan).ok,false);
  draft.slots[2]=null;draft.slots[0]='rail';
  assert.equal(quoteLoadout(current,draft,loan).ok,false,'ion needs plasma marks');
@@ -248,11 +248,11 @@ test('wide flak branch hits four enemies instead of three at lower per-target da
  game.shipLoadout.slots=['flak',null,null,null,null,null];
  game.shipLoadout.specializations={flak:{path:'sweep',rank:1}};
  updateAuxiliaryWeapons(game,1,true);
- assert.deepEqual(game.hits,[8,8,8,8]);
+ assert.deepEqual(game.hits,[11,11,11,11]);
 });
 test('duplicate auxiliary modules emit visible shots from both mounted positions',()=>{
  const e=enemy(300),game=combat([e]);game.shipLoadout.slots[1]='rail';game.weaponProfile.rail=2;
- updateAuxiliaryWeapons(game,1,true);assert.deepEqual(game.hits,[76]);
+ updateAuxiliaryWeapons(game,1,true);assert.deepEqual(game.hits,[38,38]);
  assert.equal(game.flashes.length,2);assert.notEqual(game.flashes[0][0],game.flashes[1][0]);
 });
 test('howitzer requires H and a real target, telegraphs a fixed point and waits before damage',()=>{
@@ -282,11 +282,10 @@ test('the station adapter, heat gates and both manual inputs are wired into the 
  const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(source,/KeyF'\)this.callHowitzer\(\)/);
  assert.match(source,/heavyButton.onclick=\(\)=>this.callHowitzer\(\)/);
- assert.match(source,/weaponProfile.rocket&&!this.weaponThermal.locked/);
- assert.match(source,/plasmaPower&&!this.weaponThermal.locked/);
+ assert.match(source,/updateAutomaticWeapons\(this,dt,!this.heavyCharge&&automaticFireAllowed/);
  assert.match(source,/if\(SHIP_UPGRADES.has\(id\)&&\(!this.docked\?\.active/);
- assert.match(source,/weaponProfile.ion\)markIonCluster/);
+ assert.match(source,/markIonCluster\(targets,item.target/);
  assert.match(source,/this.shipLoadout=result.loadout;this.player.ore=result.ore/);
  const profile=loadoutProfile(full());assert.equal(profile.plasma,1);
- assert.equal(moduleStats('plasma').damage,14);assert.equal(MODULES.plasma.heat,6);
+ assert.equal(moduleStats('plasma').damage,18);assert.equal(MODULES.plasma.heat,6);
 });

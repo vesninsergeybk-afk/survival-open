@@ -685,3 +685,7 @@ button{font:inherit;cursor:pointer}canvas#game{position:absolute;inset:0;z-index
 @media(pointer:coarse) and (max-width:390px){
  .mobile-abilities button{width:74px}
 }
+
+/* One shared manual field action; touch uses the existing fixed button. */
+#fieldWeaponStatus{position:fixed;left:50%;bottom:48px;transform:translateX(-50%);z-index:3;max-width:80vw;padding:5px 12px;border:1px solid #d5a1f077;border-radius:8px;background:#101c30e8;color:#efdfff;font-size:12px;pointer-events:none}
+@media(pointer:coarse){#fieldWeaponStatus{display:none}}

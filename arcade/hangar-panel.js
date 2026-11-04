@@ -1,7 +1,7 @@
-import {WEAPON_SPECIALIZATIONS,specializationState,quoteSpecialization} from './weapon-specializations.js?v=weapon-branches-1';
-import {loadoutAnalysis} from './loadout-analysis.js?v=gameplay-audit-1';
+import {WEAPON_SPECIALIZATIONS,specializationState,quoteSpecialization} from './weapon-specializations.js?v=weapons-cycle-2';
+import {loadoutAnalysis} from './loadout-analysis.js?v=weapons-cycle-2';
 import {MODULES,FRAME_STEPS,BLUEPRINT_NAMES,SHIP_ART,HangarSession,createLoadout,
- frameSpec,slotOpen,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=hangar-2';
+ frameSpec,slotOpen,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=weapons-cycle-2';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>typeof n==='number'?Number(n.toFixed(2)).toLocaleString('ru-RU'):n;
@@ -12,6 +12,7 @@ const icon=id=>{
   rail:'M12 12h8v15h-8z M13 1v15 M19 1v15 M9 24h14',
   flak:'M10 12h12v14H10z M10 3l3 11 M16 1v13 M22 3l-3 11 M7 22h18',
   rocket:'M8 7l4-6 4 6v18H8z M18 13l4-6 4 6v14h-8z M10 29h4 M20 30h4',
+  resonator:'M5 8a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M19 24a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M11 11l10 10 M23 8L9 24',
   ion:'M10 12l6-10 6 10-6 16z M5 17h22 M16 10v12',
   howitzer:'M10 16h12v12H10z M12 2h8v16h-8z M6 23h20 M6 28h20'};
  return '<svg class="hg-module-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="'+paths[id]+'"/></svg>';
@@ -65,7 +66,7 @@ function shipScene(context,session){
   '<svg class="hg-wiring" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke-width=".22">'+lines+'</g>'+guns+'</svg>'+nodes+'</div>';
 }
 export function renderShipHangar(state,session=state.hangarSession){
- const context={...state,level:state.level||1,ore:state.ore||0,baseActive:state.baseActive!==false,
+ const context={...state,fieldLoan:state.fieldLoan||state.ionLoan,level:state.level||1,ore:state.ore||0,baseActive:state.baseActive!==false,
   loadout:state.loadout||createLoadout(),ranks:state.skillRanks||state.ranks||{}};
  session=session||new HangarSession();if(!session.draft)session.begin(context.loadout);
  const current=context.loadout,draft=session.draft,frame=frameSpec(current),slot=session.slot,
@@ -108,13 +109,13 @@ export function renderShipHangar(state,session=state.hangarSession){
   (open?'<h3 style="color:'+m.color+'">'+m.name+'</h3><p>'+m.desc+'</p>'+statTable(id,context.ranks,old,current)+specializationPanel(id,context)+
    '<p class="hg-fit-note">'+(lock?esc(lock):wrongNode?'Для этого оружия нужен другой узел.':
     (current.owned[id]||0)>0?'Имеющиеся модули используются первыми. Недостающие будут изготовлены при применении.':
-    id==='ion'?'Прокатный модуль · осталось зарядов: '+context.ionLoan.charges:
+    m.kind==='manual'?'Прокатный модуль · осталось зарядов: '+context.fieldLoan.charges:
     'Изготовление одного модуля: '+m.cost+' сплава. Стоимость всей сборки показана внизу.')+'</p>'+
    button('hgInstall',old===id?'Выбрано для узла':'Установить в узел '+labelFor(slot),'',!!lock||wrongNode||old===id,'hg-primary')+
    button('hgRemove','Снять модуль','',!old,'hg-remove'):
    '<h3>Узел ещё закрыт</h3><p>'+(slot===5?'Узел H открывается отдельно после пяти обычных. В него устанавливается осадная гаубица.':
     'Дополнительные узлы открываются по очереди. Графическая стадия корабля не ограничивает число доступных узлов.')+'</p>')+
-  '<div class="hg-control-note"><span>Автооружие · <kbd>C</kbd> вкл/выкл</span><span>Ионный разряд · <kbd>Space</kbd></span><span>Гаубица · <kbd>F</kbd></span></div></aside>';
+  '<div class="hg-control-note"><span>Автооружие · <kbd>C</kbd> вкл/выкл</span><span>Полевой модуль · <kbd>Space</kbd></span><span>Гаубица · <kbd>F</kbd></span></div></aside>';
  const frameLock=!next?'':context.level<next.level?'Нужен уровень '+next.level:context.ore<next.cost?'Не хватает '+(next.cost-context.ore)+' ед. сплава':'';
  const progression='<section class="hg-progression"><div><span class="hg-eyebrow">РАЗВИТИЕ КОРПУСА</span><strong>'+frame.nodes+(frame.nodes===5?' обычных узлов':' обычных узла')+(frame.heavy?' + H':'')+'</strong></div>'+
   '<ol>'+FRAME_STEPS.map((step,i)=>'<li class="'+(i<=current.frame?'unlocked':'')+'"><b>'+step.nodes+(step.heavy?' + H':'')+'</b><small>ур. '+step.level+'</small></li>').join('')+'</ol>'+
@@ -128,7 +129,7 @@ export function renderShipHangar(state,session=state.hangarSession){
  const compareNow=report.ranges.map((range,i)=>'<span><small>'+range+' м</small><b>'+fmt(report.dps[i])+'</b></span>').join('');
  const draftCount=draft.slots.filter((item,i)=>item&&slotOpen(current,i)).length;
  return '<section class="ship-hangar'+(session.catalog?' hg-catalog-open':'')+(session.inspect?' hg-inspect-open':'')+'" aria-label="Конструктор корабля">'+
-  '<header class="hg-title"><div><span class="hg-eyebrow">АНГАР · ОСНАЩЕНИЕ КОРАБЛЯ</span><h2>Соберите свой корабль</h2></div><span class="hg-live-pill">В ПОЛЁТЕ: '+loadoutProfile(current).automatic+' АВТО'+(loadoutProfile(current).ion?' + ИОН':'')+(loadoutProfile(current).howitzer?' + H':'')+'</span></header>'+
+  '<header class="hg-title"><div><span class="hg-eyebrow">АНГАР · ОСНАЩЕНИЕ КОРАБЛЯ</span><h2>Соберите свой корабль</h2></div><span class="hg-live-pill">В ПОЛЁТЕ: '+loadoutProfile(current).automatic+' АВТО'+(loadoutProfile(current).ion?' + ИОН':loadoutProfile(current).resonator?' + РЕЗОНАНС':'')+(loadoutProfile(current).howitzer?' + H':'')+'</span></header>'+
   '<div class="hg-apply-bar'+(dirty?' has-changes':'')+'" role="region" aria-label="Подтверждение оснащения"><div><strong>'+(dirty?'● Предварительная сборка · '+draftCount+' узл.':'✓ Текущая конфигурация · '+draftCount+' узл.')+'</strong><span>'+
    (quote.cost?'Изготовление: '+quote.cost+' сплава · останется '+Math.max(0,context.ore-quote.cost):'Модули в наличии · замена бесплатна')+'</span>'+(!quote.ok?'<small class="hg-error">'+esc(quote.reason)+'</small>':'')+'</div><div>'+
    button('hgReset','Отменить','',!dirty)+button('hgApply',quote.cost?'Изготовить и применить':'Применить','',!dirty||!quote.ok,'hg-primary')+'</div></div>'+

@@ -1,3 +1,4 @@
+import {RuntimeHarness} from './runtime-game.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -58,12 +59,7 @@ const end=gameSource.indexOf(' // After a successful intercept',start);
 const damageStart=gameSource.indexOf(" damageEnemy(e,damage,source='other',contact=null){");
 const damageEnd=gameSource.indexOf(' flash(x,y,x2,y2,color=',damageStart);
 assert.ok(start>0&&end>start&&damageStart>0&&damageEnd>damageStart);
-const CarrierHarness=new Function(
- 'CARRIER_INTERCEPTION','carrierInFlight','carrierDistanceRemaining','moveCarrierCargo',
- 'RULES','ENEMY_TYPES','TAU','dist','advanceCarrierSystems','hitCarrierCargo',
- 'return class CarrierHarness {'+gameSource.slice(start,end)+gameSource.slice(damageStart,damageEnd)+'}'
-)(CARRIER_INTERCEPTION,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,
- {maxEnemies:65},ENEMY_TYPES,Math.PI*2,distance,advanceCarrierSystems,hitCarrierCargo);
+const CarrierHarness=RuntimeHarness;
 
 function scenario(){
  const base={...carrier,supplyIntercepted:false,carrierRetryAt:0,carrierMission:null};
@@ -184,9 +180,7 @@ test('docking at the issuing carrier actually delivers telemetry once',()=>{
  const dockStart=gameSource.indexOf('  dock(selected=null){');
  const dockEnd=gameSource.indexOf('\n baseAction(act,role){',dockStart);
  assert.ok(dockStart>0&&dockEnd>dockStart);
- const Dock=new Function('dist','RULES','CORRIDOR_OPERATION','CARRIER_INTERCEPTION',
-  'return class CarrierDockHarness {'+gameSource.slice(dockStart,dockEnd)+'}')(
-   distance,{baseInteract:180},{id:'silent-corridor'},CARRIER_INTERCEPTION);
+ const Dock=RuntimeHarness;
  Object.assign(game,{overlay:{hidden:true,dataset:{}},endInteraction(){},renderDock(){}});
  game.heritage.pause=()=>{};game.heritage.ui=()=>{};
  game.player.x=base.x;game.player.y=base.y;
@@ -209,11 +203,7 @@ test('postponed telemetry stays at the carrier and can be claimed on return',()=
  const abandonStart=gameSource.indexOf(' abandonOperation(){');
  const abandonEnd=gameSource.indexOf('\n  abandonContract(){',abandonStart);
  assert.ok(abandonStart>0&&abandonEnd>abandonStart);
- const Abandon=new Function('CARRIER_INTERCEPTION','RELAY_DEFENSE','PROBE_OPERATION',
-  'CORRIDOR_OPERATION','renderWorldMap',
-  'return class CarrierAbandonHarness {'+gameSource.slice(abandonStart,abandonEnd)+'}')(
-   CARRIER_INTERCEPTION,{id:'relay-defense'},{id:'last-signal'},
-   {id:'silent-corridor'},()=>'<div></div>');
+ const Abandon=RuntimeHarness;
  Object.assign(game,{overlay:{hidden:false,dataset:{mode:'base'}},renderDock(){}});
  game.heritage.ui=()=>{};
  Abandon.prototype.abandonOperation.call(game);
@@ -227,11 +217,8 @@ test('postponed telemetry stays at the carrier and can be claimed on return',()=
  const actionStart=gameSource.indexOf(' baseAction(act,role){');
  const actionEnd=gameSource.indexOf('\n callStrike(){',actionStart);
  assert.ok(actionStart>0&&actionEnd>actionStart);
- const Accept=new Function('baseOffer','isCorridorDock','isProbeLab','isRelayArsenal',
-  'isCarrierBase','createCarrierInterception','CARRIER_INTERCEPTION',
-  'return class CarrierAcceptHarness {'+gameSource.slice(actionStart,actionEnd)+'}')(
-   ()=>({}),()=>false,()=>false,()=>false,isCarrierBase,createCarrierInterception,CARRIER_INTERCEPTION);
- game.docked=base;game.baseState=()=>({});
+ const Accept=RuntimeHarness;
+ game.docked=base;game.baseState=()=>({ore:game.player.ore,network:{},allies:0,droneRoles:[],connectedBases:1});
  Accept.prototype.baseAction.call(game,'acceptOperation','');
  assert.equal(base.supplyIntercepted,true);
  assert.equal(game.operation,null);

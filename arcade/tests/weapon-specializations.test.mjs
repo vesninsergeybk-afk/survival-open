@@ -51,9 +51,9 @@ test('near and far plasma paths have distinct distance profiles',()=>{
 });
 
 test('flak chooses between wider weaker bursts and extra anti-scout damage',()=>{
- assert.deepEqual([moduleStats('flak').damage,moduleStats('flak').targets],[10,3]);
+ assert.deepEqual([moduleStats('flak').damage,moduleStats('flak').targets],[14,3]);
  assert.deepEqual([moduleStats('flak',{}, {path:'sweep',rank:1}).damage,
-  moduleStats('flak',{}, {path:'sweep',rank:1}).targets],[8,4]);
+  moduleStats('flak',{}, {path:'sweep',rank:1}).targets],[11,4]);
  assert.equal(moduleStats('flak',{}, {path:'sweep',rank:2}).targets,5);
  const interceptor={specializations:{flak:{path:'interceptor',rank:2}}};
  assert.equal(weaponDamageFactor(interceptor,'flak',{type:'flanker'}),1.5);
