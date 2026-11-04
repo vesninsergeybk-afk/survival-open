@@ -1,5 +1,5 @@
 import {World} from './world.js?v=arcade-base-network-40';
-import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=weapons-cycle-2';
+import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=weapons-cycle-2';
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -8,7 +8,7 @@ export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
 const FORBIDDEN=new Set(['__proto__','prototype','constructor']);
 const DERIVED=new Set(['capitalPaintCache']);
-const FIELDS=('player skillRanks shipLoadout weaponThermal moduleClocks heavyCharge heavyCooldown '+
+const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal moduleClocks heavyCharge heavyCooldown '+
  'doctrine lastDamageAt network enemies allies drops shots missiles flashes support zones time '+
  'spawnClock miningNoise lastNoiseSource noiseAlert miningNoiseWarned miningIntroShown coverWearWarned '+
  'contract operation geoScanUntil overchargeUntil fieldLoan fieldTrialTaken fieldReturnAt ionMasteryAwarded '+
@@ -117,6 +117,10 @@ export function validateCheckpoint(data){
   Object.keys(s).some(k=>!FIELDS.includes(k)))return false;
  if(s.sortieReports!==undefined&&!validSortieReports(s.sortieReports))return false;
  if(s.economyExpenses!==undefined&&!validEconomyExpenses(s.economyExpenses))return false;
+ if(s.firstHardwareReward!==undefined&&s.firstHardwareReward!==null&&
+  !['pending','rail','flak','plasma'].includes(s.firstHardwareReward))return false;
+ if(['rail','flak','plasma'].includes(s.firstHardwareReward)&&
+  !(s.shipLoadout.owned?.[s.firstHardwareReward]>0))return false;
  for(const k of ['enemies','allies','drops','shots','missiles','flashes','zones','hacks'])
   if(!Array.isArray(s[k])||s[k].length>2000)return false;
  if(s.enemies.length>512||s.allies.length>64||!Array.isArray(s.support.missions))return false;
@@ -152,7 +156,8 @@ export function validateCheckpoint(data){
   !finite(e.until,0,1e9)||!Array.isArray(e.targets)||e.targets.length>3||
   e.targets.some(t=>!object(t)||!object(t.target)||!['enemy','jammer','turret','base'].includes(t.kind)))))return false;
  try{return quoteLoadout(s.shipLoadout,s.shipLoadout,{baseActive:true,level:p.level,ore:0,
-  ranks:s.skillRanks,fieldLoan:s.fieldLoan,earlyRail:w.stations.find(([id])=>id==='0:0')?.[1].corridorSecured}).ok;}catch{return false;}
+  ranks:s.skillRanks,fieldLoan:s.fieldLoan,firstHardwareReward:s.firstHardwareReward,
+  loadout:s.shipLoadout,earlyRail:w.stations.find(([id])=>id==='0:0')?.[1].corridorSecured}).ok;}catch{return false;}
 }
 export function restoreCheckpoint(game,data){
  data=migrateCheckpoint(data);
