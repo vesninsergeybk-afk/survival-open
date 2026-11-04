@@ -2,8 +2,9 @@ import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamer
 import {World} from './world.js?v=arcade-base-network-40';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1';
+import {EnemyComms} from './enemy-comms.js?v=enemy-comms-1';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1';
 import {createSignalIntel,alertSignalIntel} from './signal-perception.js?v=arcade-perception-61';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
@@ -138,6 +139,7 @@ export class ArcadeGame {
   let hangarStorage=null;try{hangarStorage=window.localStorage;}catch{}
   this.hangarSession=new HangarSession(hangarStorage);
   this.enemyLearning=this.visuals.capitalDamageQA?null:new EnemyLearning(hangarStorage);
+  this.enemyComms=new EnemyComms();
   window.addEventListener?.('pagehide',()=>this.enemyLearning?.flush(this.time));
   this.weaponThermal=createThermal();this.moduleClocks={rail:0,flak:0};
   this.heavyCharge=null;this.heavyCooldown=0;this.syncShipLoadout();
@@ -1893,6 +1895,7 @@ export class ArcadeGame {
   const hpBefore=e.hp;
   e.hp-=damage;e.hit=.12;
   this.enemyLearning?.damaged(e,Math.min(hpBefore,Math.max(0,damage)));
+  this.enemyComms?.reportHit(e,Math.min(hpBefore,Math.max(0,damage)),this.time);
   if(this.visuals?.capitalDamageQA&&e.type==='gunship'&&e.serial%2===0)
    recordCapitalHit(e,contact,this.time);
   if(this.time>(e.nextVfxHit||0)){
@@ -2276,6 +2279,7 @@ export class ArcadeGame {
   if(this.probeRepairing)this.repairProbe(dt);
   this.grid.clear();
   for(const e of this.enemies)if(e.hp>0)this.grid.insert(e);
+  this.enemyComms?.update(this);
   this.shotGrid.clear();
   for(const s of this.shots)if(s.alive)this.shotGrid.insert(s);
   this.miningNoise=Math.max(0,Math.min(110,this.miningNoise-dt*MINING_NOISE.decay));
@@ -2932,6 +2936,8 @@ export class ArcadeGame {
    }
   }
   drawFieldEffects(c,this);
+  // Actual radio-message receipts, drawn in world space behind ship sprites.
+  this.enemyComms?.render(c,cam,this.time,this.visuals.reducedMotion,this.fps);
   for(const m of this.missiles){
    if(outsideCamera(m.x,m.y,cam,80))continue;
    drawSeekingMissile(c,m,this.fps);
