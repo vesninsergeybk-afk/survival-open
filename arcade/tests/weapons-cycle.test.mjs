@@ -186,7 +186,7 @@ test('v2 checkpoint preserves live resonance references and finite ammunition',(
 test('all four authored operations finish with three builds at 30 and 60 simulation steps per second',async()=>{
  const {runScenarioMatrix}=await import('../tools/weapons-cycle-scenarios.mjs');
  const {results}=runScenarioMatrix();assert.equal(results.length,24);
- for(const r of results){assert.ok(r.completed,r.job+' '+r.kit+' '+r.hz);assert.ok(r.returned);assert.ok(!r.dead);assert.ok(r.hull>0);}
+ for(const r of results){assert.ok(r.completed,r.job+' '+r.kit+' '+r.hz);assert.ok(r.returned);assert.ok(r.checkpointSaved);assert.ok(!r.dead);assert.ok(r.hull>0);}
  for(const a of results.filter(r=>r.hz===60)){
   const b=results.find(r=>r.hz===30&&r.job===a.job&&r.kit===a.kit);
   assert.ok(Math.abs(a.seconds-b.seconds)<10,a.job+' '+a.kit+' should remain playable at both timesteps');

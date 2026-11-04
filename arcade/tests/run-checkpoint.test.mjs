@@ -1,3 +1,6 @@
+import {EnemyComms} from '../enemy-comms.js';
+import {SpatialGrid} from '../balance.js';
+import {createFieldLoan} from '../field-weapons.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -381,4 +384,30 @@ test('saving unseen damage cannot silently rebuild a regional garrison on restor
  const snapshot=captureCheckpoint(g,g.docked),fresh=scene();restoreCheckpoint(fresh,snapshot);
  assert.equal(fresh.world.stations.get(SUPPLY.mineId).turrets[0].hp,9);
  assert.equal(fresh.world.stations.get(SUPPLY.mineId).hp,150);
+});
+
+test('a real enemy radio cell cannot break a station checkpoint or lose the active field weapon',async()=>{
+ const {SUPPLY,advanceRegionalSupply}=await import('../regional-supply.js');
+ const g=scene(),b=g.docked;
+ const a={serial:1,type:'scout',x:b.x+80,y:b.y,hp:40,maxHp:70,r:14,target:g.player};
+ const c={serial:2,type:'fighter',x:b.x+140,y:b.y,hp:60,maxHp:70,r:14,target:g.player};
+ g.enemies=[a,c];g.grid=new SpatialGrid(110);g.grid.insert(a);g.grid.insert(c);
+ g.enemyComms=new EnemyComms();g.enemyComms.update(g);
+ advanceRegionalSupply(g.world,g.time);const freight=g.world.regionalSupply.convoys[0];assert.ok(freight);a.protect=freight;
+ const radioCell=a._commsCell;assert.equal(c._commsCell,radioCell);assert.ok(radioCell.proposals instanceof Map);
+ g.fieldLoan=createFieldLoan('resonator',b.id,g.time);g.fieldLoan.charges=2;g.fieldLoan.used=1;g.fieldTrialTaken=true;
+ g.shipLoadout.slots[1]='resonator';g.fieldEffects=[{until:g.time+4,targets:[{kind:'enemy',target:a},{kind:'enemy',target:c}]}];
+ const {storage}=save(g),loaded=new RunCheckpointStore(storage).load(),fresh=scene();restoreCheckpoint(fresh,loaded);
+ assert.equal(a._commsCell,radioCell,'serializing must not dismantle the live radio cell');
+ assert.ok(radioCell.proposals instanceof Map);
+ assert.equal(fresh.player.hp,73);assert.equal(fresh.fieldLoan.moduleId,'resonator');assert.equal(fresh.fieldLoan.charges,2);
+ assert.equal(fresh.fieldLoan.used,1);assert.equal(fresh.shipLoadout.slots[1],'resonator');
+ assert.equal(fresh.fieldEffects[0].targets[0].target,fresh.enemies[0]);assert.equal(fresh.enemies[0].target,fresh.player);
+ assert.equal(fresh.enemies[0].protect,fresh.world.regionalSupply.convoys[0]);
+ assert.equal(fresh.enemies[0]._commsCell,undefined,'the radio cache is rebuilt after continuing');
+ fresh.grid=new SpatialGrid(110);for(const e of fresh.enemies)fresh.grid.insert(e);
+ fresh.enemyComms=new EnemyComms();fresh.enemyComms.update(fresh);
+ assert.equal(fresh.enemies[0]._commsCell,fresh.enemies[1]._commsCell);
+ assert.ok(fresh.enemies[0]._commsCell.proposals instanceof Map);
+ const next=new RunCheckpointStore(storage);next.load();assert.ok(next.save(captureCheckpoint(fresh,fresh.docked)).ok);
 });
