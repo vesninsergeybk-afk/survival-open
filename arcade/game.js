@@ -6,12 +6,12 @@ import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamer
 import {World} from './world.js?v=regions-1';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1';
-import {EnemyComms} from './enemy-comms.js?v=enemy-comms-1';
-import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2';
+import {EnemyComms} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1';
+import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-1';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1';
-import {createSignalIntel,alertSignalIntel} from './signal-perception.js?v=arcade-perception-61';
+import {createSignalIntel,alertSignalIntel} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-1';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
 import {ArcadeVisuals} from './visuals.js?v=regions-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
@@ -25,7 +25,7 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -35,8 +35,9 @@ import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADE
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
-import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=iris-swarm-hunter-1-regions-1';
-import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=regions-1';
+import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=iris-swarm-hunter-1-regions-1-enemy-world-response-1';
+import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=regions-1-enemy-world-response-1';
+import {pickDesignatedTarget,activeDesignatedTarget} from './target-designation.js?v=enemy-world-response-1';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=weapons-cycle-2-regions-1';
 import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
@@ -145,6 +146,7 @@ export class ArcadeGame {
   this.hangarSession=new HangarSession(hangarStorage);
   this.enemyLearning=this.visuals.capitalDamageQA?null:new EnemyLearning(hangarStorage);
   this.enemyComms=new EnemyComms();
+  this.designatedTarget=null;
   window.addEventListener?.('pagehide',()=>this.enemyLearning?.flush(this.time));
   this.weaponThermal=createThermal();this.moduleClocks={rail:0,flak:0};
   this.heavyCharge=null;this.heavyCooldown=0;this.syncShipLoadout();
@@ -399,6 +401,33 @@ export class ArcadeGame {
   pad.addEventListener('pointermove',e=>{if(e.pointerId===active)pointer(e);});
   const release=e=>{if(e.pointerId!==active)return;active=null;this.touch.x=0;this.touch.y=0;$('knob').style.transform='';};
   pad.addEventListener('pointerup',release);pad.addEventListener('pointercancel',release);
+  // An ordinary click/tap selects the next auto-aim priority. No extra
+  // mobile button, no weapon-stat boost and no manual firing mode.
+  let aimStart=null;
+  this.canvas?.addEventListener('pointerdown',e=>{
+   if(e.button!==0||this.paused||this.dead)return;
+   aimStart={id:e.pointerId,x:e.clientX,y:e.clientY};
+  });
+  this.canvas?.addEventListener('pointerup',e=>{
+   if(!aimStart||e.pointerId!==aimStart.id)return;
+   const moved=Math.hypot(e.clientX-aimStart.x,e.clientY-aimStart.y);
+   aimStart=null;if(moved>14||this.paused||this.dead)return;
+   const rect=this.canvas.getBoundingClientRect(),cam=this.camera();
+   if(!rect.width||!rect.height)return;
+   const worldPoint={x:cam.x+(e.clientX-rect.left)/rect.width*cam.w,
+     y:cam.y+(e.clientY-rect.top)/rect.height*cam.h};
+   const item=pickDesignatedTarget(this,worldPoint,
+     Math.max(34,28*cam.w/rect.width));
+   if(!item){this.designatedTarget=null;return;}
+   if(this.designatedTarget?.target===item.target){
+    this.designatedTarget=null;this.notice('Приоритет цели отменён',1.7);
+   }else{
+    this.designatedTarget={target:item.target,expiresAt:this.time+14};
+    this.notice('Приоритет: '+(item.target.type?ENEMY_TYPES[item.target.type]?.name||'цель':
+     item.kind==='turret'?'турель':'вражеская база'),2.2);
+   }
+  });
+  this.canvas?.addEventListener('pointercancel',()=>{aimStart=null;});
  }
  notice(text,seconds=3){this.message.textContent=text;this.messageUntil=this.time+seconds;}
  toggleAudio(){
@@ -1909,6 +1938,8 @@ export class ArcadeGame {
   e.hp-=damage;e.hit=.12;
   this.enemyLearning?.damaged(e,Math.min(hpBefore,Math.max(0,damage)));
   this.enemyComms?.reportHit(e,Math.min(hpBefore,Math.max(0,damage)),this.time);
+  if(aggressor===this.player&&e.hp>0)
+   this.enemyComms?.reportAttack(e,source,dist(e,this.player),this.time);
   if(this.visuals?.capitalDamageQA&&e.type==='gunship'&&e.serial%2===0)
    recordCapitalHit(e,contact,this.time);
   if(this.time>(e.nextVfxHit||0)){
@@ -2072,7 +2103,7 @@ export class ArcadeGame {
   if(!plan.members.length)return 0;
   if(!noiseSignal)this.lastEncounter=plan.pattern;
   const group=++this.groupSerial,cam=this.camera(),created=[];
-  const intel=noiseSignal?createSignalIntel(noiseSignal.x,noiseSignal.y,this.time):null;
+  const intelSource=noiseSignal;
   for(let i=0;i<plan.members.length;i++){
    const member=plan.members[i];
    const xy=spawnOutside(cam,member.side,member.position,170+i*12);
@@ -2083,11 +2114,14 @@ export class ArcadeGame {
     think:Math.random()*.32,fire:1+Math.random(),state:'hunt',
     commitUntil:0,target:this.player,angle:0,hit:0,expAwarded:false,
     scenario:plan.pattern,protect:null,
+    _awarenessDispatch:noiseSignal?null:
+      {x:this.player.x,y:this.player.y,at:this.time},
     stormAdapted:regionAt(xy.x,xy.y).id==='azure'&&type==='flanker',
     entryPortalPending:type==='gunship'&&!this.heavyPortalShown};
-   if(intel)Object.assign(enemy,{signalIntel:intel,signalLeader:i===0,
+   if(intelSource)Object.assign(enemy,{signalIntel:createSignalIntel(
+      intelSource.x,intelSource.y,this.time),signalLeader:i===0,
      signalSlot:i,signalExitX:xy.x,signalExitY:xy.y});
-   if(!intel&&i===0&&plan.label&&this.time-this.lastEncounterLabelAt>=14){
+   if(!intelSource&&i===0&&plan.label&&this.time-this.lastEncounterLabelAt>=14){
     enemy.encounterLabel=plan.label;this.lastEncounterLabelAt=this.time;
    }
    created.push(enemy);
@@ -2898,6 +2932,16 @@ export class ArcadeGame {
   this.drawRelayDefense(c,cam);
   this.drawProbe(c,cam);
   this.heritage.vfx.beginSurfaceLights();
+  const chosenTarget=activeDesignatedTarget(this);
+  if(chosenTarget&&!outsideCamera(chosenTarget.x,chosenTarget.y,cam,60)){
+   const radius=(chosenTarget.r||24)+14;
+   c.save();c.strokeStyle='#b7f9e0';c.lineWidth=1.8;
+   c.setLineDash([7,5]);c.beginPath();
+   c.arc(chosenTarget.x,chosenTarget.y,radius,0,TAU);c.stroke();
+   c.setLineDash([]);c.textAlign='center';c.font='bold 10px system-ui';
+   c.fillStyle='#c9fff1';c.fillText('ПРИОРИТЕТ',chosenTarget.x,chosenTarget.y-radius-12);
+   c.restore();
+  }
   // Heading previews belong to the tactical world, not to the cockpit HUD.
   drawEnemyIntentions(c,cam,this,this.visuals.reducedMotion,this.fps);
   const signaledGroups=new Set();

@@ -1,9 +1,10 @@
 import {stormSeek} from './regional-storms.js?v=regions-1';
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20';
-import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
+import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-1';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1';
+import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
@@ -187,20 +188,14 @@ export function updateEnemy(e,game,dt){
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;
   const signalOrder=updateSignalIntent(e,game,dt);
-  const irisTactic=e.type==='scout'?
+  updateEnemyAwareness(e,game);
+  const localContact=e._enemyLearningSaw||
+    (e.type==='scout'&&e._irisHasSight&&
+     game.time-(e._irisLastSeenAt??-Infinity)<.58);
+  const irisTactic=e.type==='scout'&&localContact?
     updateIrisSwarm(e,game,game.player):null;
-  const packTactic=e.type==='scout'?irisPackDirective(e,game):null;
-  // Reuse a short-lived sight sample instead of tracing rocks for every
-  // member of a 200-drone swarm on every rendered frame.
-  if(game.enemyLearning&&e._enemyLearningSightAt==null)
-    e._enemyLearningSightAt=game.time+(Math.abs(e.serial||0)%7)*.035;
-  if(game.enemyLearning&&game.time>=e._enemyLearningSightAt){
-    e._enemyLearningSightAt=game.time+.36+(Math.abs(e.serial||0)%5)*.042;
-    e._enemyLearningSaw=dist(e,game.player)<290&&
-      !!game.enemyCanSee?.(e,game.player);
-  }
-  if(e._enemyLearningSaw)game.enemyComms?.reportSight(e,game.player,game.time);
-  if(e._enemyLearningSaw)game.enemyLearning?.observePlayer(game.player,game.time);
+  const packTactic=e.type==='scout'&&localContact?
+    irisPackDirective(e,game):null;
   if(updateIrisPerception(e,game,dt)){
     if(e.type==='scout')scoutAttack(e,game,
       e.signalIntel?.combatFocus||game.player,true);
@@ -258,7 +253,9 @@ export function updateEnemy(e,game,dt){
       else e.commitUntil=Math.max(e.commitUntil||0,t+.5);
     }
   }
-  const p=e.target?.hp>0?e.target:game.player;
+  const selected=e.target?.hp>0?e.target:game.player;
+  const targetingPlayer=selected===game.player;
+  const p=targetingPlayer?enemyPursuitTarget(e,game):selected;
   let goalX=p.x,goalY=p.y;
   let speed=ENEMY_TYPES[e.type].speed*(1+Math.min(.42,game.time/1300))*
     (e.type==='scout'?irisBurstThrust(e,game.time):1);
@@ -324,7 +321,7 @@ export function updateEnemy(e,game,dt){
       }
     }else{goalX=p.x+260;goalY=p.y+240;}
   }
-  if(p===game.player&&e.state==='hunt'){
+  if(targetingPlayer&&e.state==='hunt'){
     if(e.type==='fighter'&&learningStyle==='intercept'){
       goalX+=clamp((p.vx||0)*.24,-48,48);
       goalY+=clamp((p.vy||0)*.24,-48,48);
@@ -345,14 +342,14 @@ export function updateEnemy(e,game,dt){
   if(orbit){goalX=orbit.x;goalY=orbit.y;}
   const tactical=(irisTactic&&(irisTactic.mode==='cover'||irisTactic.mode==='break'))?
     irisTactic:(packTactic||irisTactic);
-  if(tactical&&e.state==='hunt'&&p===game.player){
+  if(tactical&&e.state==='hunt'&&targetingPlayer){
     goalX=tactical.x;goalY=tactical.y;
     speed*=tactical.speed;
   }
   // A received order adjusts destinations but cannot override an escort's
   // guard, a medic's treatment or IRIS's authored pack choreography.
   const radio=game.enemyComms?.directiveFor(e,game.time);
-  if(radio&&p===game.player&&!e.protect&&!e.boss&&
+  if(radio&&targetingPlayer&&!e.protect&&!e.boss&&
     !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&
     e.type!=='healer'&&!(e.type==='scout'&&tactical)&&
     (e.state==='hunt'||e.state==='flank'||e.state==='standoff')){
@@ -372,6 +369,16 @@ export function updateEnemy(e,game,dt){
     }else if(radio.mode==='press'){
       goalX+=heading.x*34-heading.y*radio.side*22;
       goalY+=heading.y*34+heading.x*radio.side*22;
+    }else if(radio.mode==='close'){
+      // Real short-distance advance; the existing speed limit still applies.
+      const margin=e.type==='gunship'?210:145;
+      goalX=reported.x-heading.x*margin-heading.y*radio.side*25;
+      goalY=reported.y-heading.y*margin+heading.x*radio.side*25;
+    }else if(radio.mode==='scatter'){
+      // Opposite lateral exits against an observed area weapon.
+      const away=norm(e.x-reported.x,e.y-reported.y);
+      goalX=e.x+away.x*110-away.y*radio.side*185;
+      goalY=e.y+away.y*110+away.x*radio.side*185;
     }else if(radio.mode==='screen'&&radio.medic&&radio.medic!==e){
       const toward=norm(reported.x-radio.medic.x,reported.y-radio.medic.y);
       goalX=radio.medic.x+toward.x*105-toward.y*radio.side*35;
@@ -406,15 +413,16 @@ export function updateEnemy(e,game,dt){
   }
   steer(e,goalX,goalY,speed,dt,{x:extraX,y:extraY});
   e.healFlash=Math.max(0,(e.healFlash||0)-dt);
-  if(e.type==='scout'&&!search)scoutAttack(e,game,p,
+  if(e.type==='scout'&&!search&&localContact)scoutAttack(e,game,game.player,
     e._irisScanMode==='acquire'&&game.time<(e._irisScanUntil||0));
-  if(e.type==='gunship'&&!e.relayAssault&&e.fire<=0&&dist(e,p)<535){
+  if(e.type==='gunship'&&!e.relayAssault&&e.fire<=0&&
+     (!targetingPlayer||e._enemyLearningSaw)&&dist(e,p)<535){
     e.fire=1.65;
     if(game.enemyShot(e.x,e.y,p.x,p.y,15,
       {learnToken:game.enemyLearning?.shotToken(e)})!==false)
       game.enemyLearning?.fired(e);
   }
-  if(p!==game.player&&p.hp>0&&dist(e,p)<e.r+p.r){
+  if(!targetingPlayer&&p.hp>0&&dist(e,p)<e.r+p.r){
     p.hp-=e.damage*dt*1.4;
     if(p.hp<=0)game.heritage.vfx.shipExplosion(p.x,p.y,24,'#9aefff');
   }

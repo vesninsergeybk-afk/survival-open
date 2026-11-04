@@ -6,10 +6,12 @@ export const ENEMY_INTENT_VIEW=Object.freeze({
 });
 
 const colors=Object.freeze({
-  press:'#fa907d',pincer:'#f3c17a',intercept:'#d7a2f4',screen:'#80d9c4'
+  press:'#fa907d',pincer:'#f3c17a',intercept:'#d7a2f4',screen:'#80d9c4',
+  close:'#ff9c7b',scatter:'#e2c477'
 });
 const labels=Object.freeze({
-  press:'нажим',pincer:'обход',intercept:'перехват',screen:'прикрытие'
+  press:'нажим',pincer:'обход',intercept:'перехват',screen:'прикрытие',
+  close:'сближение',scatter:'рассредоточение'
 });
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const finitePoint=p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y);

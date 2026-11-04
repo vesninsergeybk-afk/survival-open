@@ -150,6 +150,8 @@ test('200 scouts remain finite and their vectors are sampled, not recomputed eac
 
 test('real steering spreads a group and keeps flight speed bounded',()=>{
  const {game,drones}=scene(14);game.time=1;
+ game.enemyCanSee=()=>true;
+ for(const e of drones){e.x*=.91;e.y*=.91;}
  for(let frame=0;frame<210;frame++){
   game.time+=1/60;
   drones.forEach(e=>updateEnemy(e,game,1/60));

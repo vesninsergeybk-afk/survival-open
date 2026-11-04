@@ -6,10 +6,12 @@ function simulation(type='scout',serial=1){
   const player={x:0,y:0,r:19,hp:1000,invul:100};
   const game={time:0,player,allies:[],missiles:[],shots:[],
     grid:{query:()=>[]},support:{missions:[]},
+    enemyCanSee:()=>true,
     avoidance:()=>({x:0,y:0}),heritage:{play(){},vfx:{shipExplosion(){}}},
     hurt(){throw Error('unexpected player collision');}};
   const e={type,serial,x:420,y:0,vx:0,vy:0,r:14,hp:100,maxHp:100,
-    damage:9,think:10,fire:10,state:'hunt',target:player};
+    damage:9,think:10,fire:10,state:'hunt',target:player,
+    _awarenessDispatch:{x:0,y:0,at:0}};
   return {game,e};
 }
 function advance(game,e,seconds,dt=1/60){

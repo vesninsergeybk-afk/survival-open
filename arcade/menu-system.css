@@ -441,3 +441,8 @@
 .region-atlas svg{width:100%;max-height:240px;display:block}
 .region-directions{display:grid;gap:7px}.region-directions button{text-align:left}
 .region-status>small{display:block;line-height:1.5;color:#bbd3df}
+.map-radio-log{border-color:#b69aff83;background:#211b3be0}
+.map-radio-log summary{color:#d8bfff;font-size:12px;font-weight:700;cursor:pointer}
+.map-radio-log ul{margin:8px 0 0;padding-left:18px;display:grid;gap:7px}
+.map-radio-log li{color:#e5dfef;font-size:11px;line-height:1.35}
+.map-radio-log li span{color:#ffcf9f;font-weight:700}

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {EnemyComms,ENEMY_COMMS,collectiveDecision} from '../enemy-comms.js';
+import {EnemyComms,ENEMY_COMMS,collectiveDecision,enemyOrderMessage,
+ classifyEnemyAttack,assessEnemyThreat} from '../enemy-comms.js';
 import {updateEnemy} from '../ai.js';
 
 const ship=(serial,type='scout',x=serial*34,y=60)=>({
@@ -105,6 +106,114 @@ test('a wounded squad with a working medic can collectively choose a screen',()=
  assert.equal(decision.mode,'screen');
  const without=collectiveDecision([a,b],{vx:80,vy:0});
  assert.notEqual(without.mode,'screen');
+});
+
+test('real weapon hits are classified without reading private player equipment',()=>{
+ assert.equal(classifyEnemyAttack('rail',345),'long');
+ assert.equal(classifyEnemyAttack('beam',290),'long');
+ assert.equal(classifyEnemyAttack('howitzer',450),'area');
+ assert.equal(classifyEnemyAttack('ion',90),'area');
+ assert.equal(classifyEnemyAttack('beam',130),'close');
+ assert.equal(classifyEnemyAttack('storm',380),null);
+ assert.equal(classifyEnemyAttack('rocket',NaN),null);
+ assert.equal(assessEnemyThreat([{kind:'long',at:1}],2),null);
+ assert.equal(assessEnemyThreat([{kind:'long',at:1},{kind:'long',at:1.2}],2),null);
+ assert.equal(assessEnemyThreat([{kind:'long',at:1},{kind:'long',at:2.3}],3).kind,'long');
+ assert.equal(assessEnemyThreat([{kind:'long',at:1},{kind:'long',at:2.3}],10),null);
+});
+
+test('two communicated long-range hits change a real collective order to closing',()=>{
+ const scout=ship(1,'scout',90),fighter=ship(2,'fighter',150);
+ const game=scene([scout,fighter]),net=game.enemyComms;
+ net.update(game);net.reportSight(scout,game.player,.1);
+ game.time=.7;net.update(game);
+ const original=net.directiveFor(scout,.7).mode;
+ net.reportAttack(scout,'rail',340,1.5);
+ game.time=1.6;net.update(game);
+ assert.notEqual(net.cells[0].mode,'close');
+ assert.ok(net.events.some(event=>event.kind==='weapon'&&event.from===scout),
+  'a subordinate must transmit its observation');
+ net.reportAttack(fighter,'beam',330,2.8);
+ net.reportSight(scout,game.player,2.8);
+ game.time=2.9;net.update(game);
+ assert.equal(net.cells[0].attackReports.length,2);
+ game.time=3.7;net.update(game);
+ assert.notEqual(original,'close');
+ assert.equal(net.directiveFor(scout,3.7)?.mode,'close');
+ assert.equal(net.cells[0].threat.kind,'long');
+});
+
+test('confirmed area attacks trigger dispersal, but isolated hits do not',()=>{
+ const members=[ship(1,'fighter'),ship(2,'fighter'),ship(3,'flanker')];
+ assert.notEqual(collectiveDecision(members,{vx:0,vy:0}).mode,'scatter');
+ const long=collectiveDecision(members,{vx:0,vy:0},{kind:'long'});
+ const area=collectiveDecision(members,{vx:0,vy:0},{kind:'area'});
+ assert.equal(long.mode,'close');
+ assert.equal(area.mode,'scatter');
+});
+
+test('a quoted change of strategy has the same cause as the real tactical vote',()=>{
+ assert.equal(enemyOrderMessage('close',{kind:'long'}),
+  'Он бьёт издалека. Всем на сближение!');
+ assert.equal(enemyOrderMessage('scatter',{kind:'area'}),
+  'У него площадное оружие. Рассредоточиться!');
+ assert.notEqual(enemyOrderMessage('close'),enemyOrderMessage('close',{kind:'long'}),
+  'a generic advance must never claim it observed a long-range weapon');
+ const fighter=ship(2,'fighter',220,60),positions=[];
+ for(const mode of ['close','scatter']){
+  const e={...fighter},game=scene([e]);game.time=1;
+  game.enemyComms.directiveFor=()=>({mode,side:1,leader:e,
+    intel:{x:0,y:0,vx:0,vy:0,at:1}});
+  updateEnemy(e,game,.25);
+  positions.push([e.x,e.y]);
+ }
+ assert.notDeepEqual(positions[0],positions[1],
+  'the subtitles refer to distinct physical maneuvers');
+});
+
+test('only an acknowledged, visible radio order enters the intercepted log',()=>{
+ const scout=ship(1,'scout',90),fighter=ship(2,'fighter',150);
+ const game=scene([scout,fighter]),net=game.enemyComms;
+ game.playerCanInspectEnemyIntent=()=>false;
+ net.update(game);net.reportSight(scout,game.player,.1);
+ game.time=.7;net.update(game);
+ assert.equal(net.intercepted(game.time).length,0,
+  'a hidden enemy cannot be eavesdropped from the map');
+ const visible=scene([ship(1,'scout',90),ship(2,'fighter',150)]);
+ visible.playerCanInspectEnemyIntent=()=>true;
+ const radio=visible.enemyComms;
+ radio.update(visible);radio.reportSight(visible.enemies[0],visible.player,.1);
+ visible.time=.7;radio.update(visible);
+ const capture=radio.intercepted(.7);
+ assert.equal(capture.length,1);
+ assert.equal(capture[0].mode,radio.cells[0].mode);
+ assert.equal(capture[0].message,enemyOrderMessage(capture[0].mode));
+ const labels=[];
+ const ctx={save(){},restore(){},setLineDash(){},beginPath(){},
+  moveTo(){},lineTo(){},stroke(){},arc(){},fill(){},
+  fillRect(){},strokeRect(){},fillText(s){labels.push(s);}};
+ radio.render(ctx,{x:0,y:0,w:400,h:260},.9);
+ assert.ok(labels.some(line=>line.includes('ПЕРЕХВАЧЕН ПРИКАЗ')));
+ assert.ok(labels.some(line=>capture[0].message.includes(line)),
+  'world-space subtitle must be derived from the captured message');
+ assert.equal(radio.intercepted(31).length,0,'old intercepts leave the map');
+});
+
+test('a long-distance counter-order is visible only after two real transmitted hits',()=>{
+ const scout=ship(1,'scout',90),fighter=ship(2,'fighter',160);
+ const game=scene([scout,fighter]),net=game.enemyComms;
+ game.playerCanInspectEnemyIntent=()=>true;
+ net.update(game);net.reportSight(scout,game.player,.1);
+ game.time=.7;net.update(game);
+ net.reportAttack(scout,'rail',345,1.5);
+ game.time=1.6;net.update(game);
+ assert.equal(net.intercepted(1.6).length,1);
+ net.reportAttack(fighter,'beam',330,2.8);
+ net.reportSight(scout,game.player,2.8);
+ game.time=2.9;net.update(game);
+ game.time=3.7;net.update(game);
+ assert.equal(net.intercepted(3.7)[0].mode,'close');
+ assert.match(net.intercepted(3.7)[0].message,/бьёт издалека/);
 });
 
 test('destroying a caller breaks the net before a survivor can be elected',()=>{

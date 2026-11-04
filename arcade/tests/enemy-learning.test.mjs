@@ -21,8 +21,9 @@ function flight(type,style,options={}){
  const others=options.others||[];
  const game={time:1,player:p,allies:[],missiles:[],operation:null,
    enemyLearning:learner,grid:{query:()=>others},rockGrid:{query:()=>[]},
-   avoidance:()=>({x:0,y:0}),enemyCanSee:()=>false,
+   avoidance:()=>({x:0,y:0}),enemyCanSee:()=>!!options.canSee,
    heritage:{play(){},vfx:{shipExplosion(){}}},enemyShot:()=>true,hurt(){}};
+ if(options.canSee)e._awarenessNextAt=game.time;
  updateEnemy(e,game,.2);
  return {e,p,game};
 }
@@ -152,7 +153,8 @@ test('each mobile enemy actually executes different flight or support decisions'
    ['berserker','hunt','direct','offset'],
    ['gunship','standoff','standoff','sideslip']
  ]){
-  const a=flight(type,left,{state}).e,b=flight(type,right,{state}).e;
+  const a=flight(type,left,{state,canSee:true}).e,
+    b=flight(type,right,{state,canSee:true}).e;
   assert.notDeepEqual([a.x,a.y,a.vx,a.vy],[b.x,b.y,b.vx,b.vy],
    `${type}: two learned styles must produce different real steering`);
  }
@@ -164,8 +166,8 @@ test('each mobile enemy actually executes different flight or support decisions'
  const first=actor('healer');first.x=210;first.y=105;
  const second=actor('fighter');second.x=130;second.y=110;
  first.hp=70;first.maxHp=100;second.hp=10;second.maxHp=100;
- const near=flight('healer','nearest',{state:'heal',others:[first,second]}).e;
- const urgent=flight('healer','critical',{state:'heal',others:[first,second]}).e;
+ const near=flight('healer','nearest',{state:'heal',others:[first,second],canSee:true}).e;
+ const urgent=flight('healer','critical',{state:'heal',others:[first,second],canSee:true}).e;
  assert.equal(near.healTarget,first);
  assert.equal(urgent.healTarget,second);
 });
