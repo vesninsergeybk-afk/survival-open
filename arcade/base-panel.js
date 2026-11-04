@@ -1,4 +1,4 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-2-frontier-2';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-2';
@@ -695,6 +695,14 @@ export function renderBasePanel(base,state){
   'Корпус '+Math.ceil(state.hp)+'/'+state.maxHp+'. Быстрый ремонт восстановит до '+
   Math.ceil(o.repairAmount)+' ед. за '+o.repairCost+' сплава.':
   'Корпус '+Math.ceil(state.hp)+'/'+state.maxHp+' — ремонт не требуется.';
+ const quickTrial=state.fieldTrialPickerOpen&&base.id==='0:0'&&!state.fieldTrialTaken&&!state.fieldLoan?
+  '<section class="base-trial-picker" aria-label="Бесплатное пробное оружие">'+
+  '<strong>Выберите одно пробное оружие</strong><p>На выбор один бесплатный модуль с тремя зарядами. После выбора он попадёт в ангар: там останется применить сборку.</p>'+
+  '<div class="base-trial-options">'+
+  '<div><b>Ионный проводник</b><small>Цепной разряд по целям с плазменными метками · Space</small>'+
+  action('loanField','Выбрать ионный','','ion')+'</div>'+
+  '<div><b>Резонатор</b><small>Связывает несколько целей и передаёт между ними часть урона · Space</small>'+
+  action('loanField','Выбрать резонатор','','resonator')+'</div></div></section>':'';
  const dashboard=stationNextStep(base,state,o)+
   '<div class="base-quick-services">'+
   '<section class="base-quick-service"><span class="base-kicker">КОРАБЛЬ</span><h3>Ремонт и оснащение</h3>'+
@@ -702,8 +710,9 @@ export function renderBasePanel(base,state){
   '<div class="base-quick-buttons">'+
   (state.hp<state.maxHp?action('repair','Починить · '+o.repairCost+' сплава',o.reasons.repair):'')+
   (base.id==='0:0'&&!state.fieldTrialTaken&&!state.fieldLoan?
-   action('showFieldTrial','Испытать оружие бесплатно'):'')+
+   action('showFieldTrial',state.fieldTrialPickerOpen?'Скрыть пробное оружие':'Выбрать пробное оружие'):'')+
   action('baseTab','Открыть корабль','','hangar')+'</div>'+
+  quickTrial+
   (state.hp<state.maxHp&&o.reasons.repair?'<small class="base-quick-reason">'+o.reasons.repair+'</small>':'')+'</section>'+
   '<section class="base-quick-service"><span class="base-kicker">ПОДДЕРЖКА</span><h3>Боевые дроны</h3>'+
   '<p>В строю '+state.allies+' из '+o.cap+'. '+o.drone.name+' — '+o.hireCost+
@@ -782,14 +791,25 @@ export function renderBasePanel(base,state){
   ' · орбитальные удары: '+(protection.meteorEnabled?'перехват':'пропуск');
  const meteorChoice=action('toggleMeteorDefense',protection.meteorEnabled?
   'Пропускать орбитальные удары':'Перехватывать орбитальные удары');
- const network='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">УПРАВЛЕНИЕ СЕТЬЮ</span><strong>Связь, технологии и территория</strong>'+
-  '<p class="base-defense-status">'+protectionText+'.</p>'+
-  '<p class="base-defense-summary">ПВО прикрывает корабль в бирюзовом круге. Стазис остановит группу, если возле станции и вашего корабля соберутся хотя бы два обычных врага. Пропуск орбитальных ударов позволяет использовать их против врагов и астероидов, но опасен и для вас.</p>'+
+ const instantUpgrades=(!o.reasons.upgrade?upgrade:'')+
+  (!base.relayBoost&&!o.reasons.antenna?antenna:'');
+ const futureUpgrades=(o.reasons.upgrade?upgrade:'')+
+  (base.relayBoost||o.reasons.antenna?antenna:'');
+ const network='<div class="base-operations"><section class="base-network-simple">'+
+  '<span class="base-kicker">ОБОРОНА СТАНЦИИ</span><h3>ПВО · '+protection.charges+'/'+protection.capacity+' зарядов</h3>'+
+  '<p class="base-defense-summary">ПВО прикрывает корабль в бирюзовом круге. Орбитальные удары сейчас '+
+  (protection.meteorEnabled?'перехватываются':'пропускаются')+'. '+
+  (protection.stasis?'Стазис остановит группу обычных врагов при выполнении условий.':
+   'Стазис станет доступен после соединения двух станций.')+'</p>'+
+  '<div class="base-defense-choice">'+meteorChoice+'</div>'+
   '<details class="base-secondary-info base-defense-rules"><summary>Точные условия ПВО и стазиса</summary><div class="base-secondary-body">'+
+  '<p class="base-defense-status">'+protectionText+'.</p>'+
   '<p>ПВО отражает одну угрозу за заряд. Между перехватами проходит не меньше 0,7 с; снаряды остаются под защитой и при пропуске орбитальных ударов.</p>'+
-  '<p>Стазис действует только в сети с домашним доком. Два обычных врага должны одновременно находиться не дальше 235 м от станции и 185 м от вас. Импульс останавливает до трёх на 2,6 с, затем восстанавливается 26 с. На боссов и цели операций не действует.</p></div></details>'+
-  '<div class="base-defense-choice">'+meteorChoice+'</div></div></div>'+
-  networkPreview(base,state)+'<div class="base-grid">'+upgrade+antenna+'</div>'+
+  '<p>Стазис действует только в сети с домашним доком. Два обычных врага должны одновременно находиться не дальше 235 м от станции и 185 м от вас. Импульс останавливает до трёх на 2,6 с, затем восстанавливается 26 с. На боссов и цели операций не действует.</p>'+
+  '<p>Пропуск орбитальных ударов позволяет использовать их против врагов и астероидов, но опасен и для вас.</p></div></details></section>'+
+  (instantUpgrades?'<h3 class="base-section-title">Доступно сейчас</h3><div class="base-grid">'+instantUpgrades+'</div>':'')+
+  (futureUpgrades?'<details class="base-secondary-info base-network-future"><summary>Следующие улучшения · стоимость и условия</summary><div class="base-grid">'+futureUpgrades+'</div></details>':'')+
+  '<details class="base-secondary-info base-network-advanced"><summary>Карта связи между станциями</summary>'+networkPreview(base,state)+'</details>'+
   (modules?'<details class="base-secondary-info base-network-advanced"><summary>'+
    (base.module?'Оснащение станции · установлено':'Оснащение станции · необратимый выбор')+
    '</summary>'+modules+'</details>':'')+

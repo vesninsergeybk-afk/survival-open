@@ -79,7 +79,7 @@ test('the loadout summary and costs precede large artwork and carry real range e
  session.draft.slots[1]='rail';
  const html=renderShipHangar({...stationState,loadout:current,hangarSession:session},session);
  const apply=html.indexOf('class="hg-apply-bar');
- const layout=html.indexOf('class="hg-layout"');
+ const layout=html.indexOf('class="hg-layout');
  assert.ok(apply>=0&&layout>apply,'apply/reset must be available before a long ship view');
  assert.match(html,/Предварительная сборка/);
  assert.match(html,/hg-range-brief/);

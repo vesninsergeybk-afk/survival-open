@@ -113,8 +113,8 @@ test('desktop and touch input share one manual action; repair and mining remain 
  assert.match(html,/id="ionBtn"/);
  assert.match(panel,/action\('loanField'/);
  assert.match(panel,/action\('returnField'/);
- assert.match(panel,/action\('showFieldTrial','Испытать оружие бесплатно'/);
- assert.match(game,/Ангар: бесплатная проба полевого оружия/);
+ assert.match(panel,/action\('showFieldTrial',state\.fieldTrialPickerOpen\?'Скрыть пробное оружие':'Выбрать пробное оружие'/);
+ assert.match(game,/В доке можно выбрать пробное оружие/);
 });
 
 test('the first real multi-target chain awards tactical data once per run, not per rental',()=>{
