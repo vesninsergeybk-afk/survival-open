@@ -1,16 +1,20 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
 import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-1';
-import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-1';
+import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-2';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralWorkerPosition,centralEvent} from './central-industry.js?v=living-world-1';
+import {FRONTIERS,FRONTIER_STORM_FIELD,frontierWorkerPosition,frontierEvent} from './frontier-industry.js?v=living-world-2';
+import {stormPhase} from './regional-storms.js?v=regions-1';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-function makeEnemy(game,type,x,y,scenario,protect=null){
+function makeEnemy(game,type,x,y,scenario,protect=null,frontierRole=null){
  const def=ENEMY_TYPES[type];
  return {serial:++game.enemySerial,group:game.groupSerial,type,x,y,vx:0,vy:0,
   r:type==='gunship'?22:14,hp:def.hp,maxHp:def.hp,damage:def.dmg,
   think:.1,fire:1.8,state:'hunt',commitUntil:0,target:game.player,
-  angle:0,hit:0,expAwarded:false,scenario,protect,entryPortalPending:false};
+  angle:0,hit:0,expAwarded:false,scenario,protect,entryPortalPending:false,
+  frontierRole,stormAdapted:frontierRole==='azure'&&type==='flanker',
+  healReserve:frontierRole==='teal'&&type==='healer'?90:undefined};
 }
 export function updateRegionalWorld(game,dt){
  const world=game.world,s=world.regionalSupply;if(!s)return;
@@ -19,8 +23,10 @@ export function updateRegionalWorld(game,dt){
   s.visited.push(region.id);game.notice(region.name+'. '+region.cue,7);
  }
  const events=advanceRegionalSupply(world,game.time);
- if(game.waypoint?.id?.startsWith('regional-cargo-')||game.waypoint?.id?.startsWith('central-cargo-')){
-  const cargo=[...s.convoys,...(s.central?.convoys||[])].find(c=>c.id===game.waypoint.id);
+ if(game.waypoint?.id?.startsWith('regional-cargo-')||game.waypoint?.id?.startsWith('central-cargo-')||
+    game.waypoint?.id?.startsWith('frontier-cargo-')){
+  const cargo=[...s.convoys,...(s.central?.convoys||[]),
+   ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[])].find(c=>c.id===game.waypoint.id);
   if(cargo)Object.assign(game.waypoint,{x:cargo.x,y:cargo.y});else game.waypoint=null;
  }
  const mine=world.stations.get(SUPPLY.mineId);
@@ -34,19 +40,30 @@ export function updateRegionalWorld(game,dt){
    game.notice('Малая шахта отправила груз к сборочному посту. Транспорт можно перехватить.',5);
   if(e.kind==='central-delivery'&&(local?.discovered||world.stations.get(CENTRAL_INDUSTRY.depotId)?.discovered))
    game.notice('Груз прибыл. Сборочный пост готовит местное подкрепление.',5);
+  if(e.network&&world.stations.get(FRONTIERS[e.network].sourceId)?.discovered){
+   if(e.kind==='dispatch')game.notice(e.network==='azure'?
+    'Индукционная вышка отправила батареи в электроангар. Перехватите транспорт до его прибытия.':
+    'Комбинат отправил обломки на ремонтную верфь. Перехват оборвёт этот ремонтный рейс.',6);
+   if(e.kind==='delivery')game.notice(e.network==='azure'?
+    'Заряды доставлены: электроангар готовит ионных перехватчиков.':
+    'Запчасти доставлены: верфь собирает отряд с ремонтником.',5);
+  }
  }
  // A finite local defense. Leaving the screen does not create a fresh garrison.
  if(mine?.enemy&&distance(mine,game.player)<800&&!mine.regionalGuard&&game.enemies.length<=RULES.maxEnemies-2){
   mine.regionalGuard=true;++game.groupSerial;
   for(let i=0;i<2;i++)game.enemies.push(makeEnemy(game,i?'fighter':'scout',mine.x-180+i*280,mine.y-220,'mine-guard'));
  }
- for(const cargo of [...s.convoys,...(s.central?.convoys||[])]){
+ for(const cargo of [...s.convoys,...(s.central?.convoys||[]),
+   ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[])]){
   cargo.hit=Math.max(0,(cargo.hit||0)-dt);
   if(distance(cargo,game.player)<1000){
    cargo.seen=true;
    if(!cargo.escorted&&game.enemies.length<=RULES.maxEnemies-2){
     cargo.escorted=true;++game.groupSerial;
-    for(let i=0;i<2;i++)game.enemies.push(makeEnemy(game,'fighter',cargo.x+(i?95:-95),cargo.y+85,'regional-escort',cargo));
+    const roster=cargo.frontierCargo?FRONTIERS[cargo.frontierNetwork].escort:['fighter','fighter'];
+    for(let i=0;i<2;i++)game.enemies.push(makeEnemy(game,roster[i],cargo.x+(i?95:-95),cargo.y+85,
+     cargo.frontierCargo?'frontier-escort':'regional-escort',cargo,cargo.frontierNetwork||null));
    }
   }
  }
@@ -62,6 +79,39 @@ export function updateRegionalWorld(game,dt){
   localPending.readyAt=Math.max(localPending.readyAt,game.time+CENTRAL_INDUSTRY.warning);
   game.notice('Перехвачена передача: сборочный пост выпустил патруль. Его снабжает местная шахта — перехватывайте грузы.',7);
  }
+ for(const id of ['azure','teal']){
+  const raid=s.frontier?.[id]?.pendingRaid,config=FRONTIERS[id];
+  if(!raid||raid.announced||region.id!==id||
+     distance(game.player,config.depot)>13500)continue;
+  raid.announced=true;raid.readyAt=Math.max(raid.readyAt,game.time+config.warning);
+  game.notice(id==='azure'?
+   'Перехват радиосвязи: электроангар готовит вылет перехватчиков. Их питают батареи индукционной вышки.':
+   'Перехват радиосвязи: ремонтная верфь готовит охраняемый отряд. Ей нужны запчасти утилизационного комбината.',7);
+ }
+}
+// Region-specific paid reinforcement, replacing a normal director encounter.
+// Storm pilots retain the ordinary flanker hitbox but seek storm energy;
+// teal medics have a finite healing reservoir and can be prioritized.
+export function spawnFrontierRaid(game,director){
+ const region=regionAt(game.player.x,game.player.y).id;
+ const cfg=FRONTIERS[region],s=game.world.regionalSupply?.frontier?.[region];
+ if(!cfg||!s?.pendingRaid?.announced||game.time<s.pendingRaid.readyAt||
+   !game.world.stations.get(cfg.depotId)?.enemy||
+   distance(game.player,cfg.depot)>13500||
+   game.enemies.length+cfg.raid.length>Math.min(RULES.maxEnemies,director.cap))return false;
+ const cam=game.camera(),dx=cfg.depot.x-game.player.x,dy=cfg.depot.y-game.player.y;
+ const side=Math.abs(dx)>Math.abs(dy)?(dx>0?1:0):(dy>0?3:2);
+ ++game.groupSerial;
+ for(let i=0;i<cfg.raid.length;i++){
+  const pos=spawnOutside(cam,side,.5+(i-(cfg.raid.length-1)/2)*.12,150+i*18);
+  game.enemies.push(makeEnemy(game,cfg.raid[i],pos.x,pos.y,region+'-funded',null,region));
+ }
+ s.pendingRaid=null;s.raids++;s.nextRaid=game.time+cfg.raidInterval;
+ frontierEvent(s,region,'raid',game.time);
+ game.notice(region==='azure'?
+  'Электроангар отправил перехватчиков. Вывод из строя вышки лишит их будущих зарядов.':
+  'С верфи прибыл ремонтный караул. Уничтожение грузов оставит верфь без запчастей.',6);
+ return true;
 }
 // A delivered shipment finances one *additional* escort in a regular wave.
 // The director's cap and group size still bound the encounter. Preventing
@@ -116,9 +166,14 @@ export function hitRegionalCargo(game,cargo,damage,contact=null){
  if(cargo.hp>0||!interceptSupply(game.world,cargo,game.time))return;
  game.heritage.vfx.shipExplosion(cargo.x,cargo.y,55,'#ffc47d',true);
  game.heritage.play('largeExplosion',.22,cargo);
- game.addDrop('ore',cargo.x,cargo.y,cargo.centralCargo?CENTRAL_INDUSTRY.oreReward:SUPPLY.oreReward,{source:'salvage',life:60});
- game.addDrop('data',cargo.x+14,cargo.y,cargo.centralCargo?CENTRAL_INDUSTRY.dataReward:SUPPLY.dataReward,{source:'combat',life:60});
- game.notice(cargo.centralCargo?
+ const frontier=cargo.frontierCargo?FRONTIERS[cargo.frontierNetwork]:null;
+ game.addDrop('ore',cargo.x,cargo.y,frontier?.rewardOre??(cargo.centralCargo?CENTRAL_INDUSTRY.oreReward:SUPPLY.oreReward),{source:'salvage',life:60});
+ game.addDrop('data',cargo.x+14,cargo.y,frontier?.rewardData??(cargo.centralCargo?CENTRAL_INDUSTRY.dataReward:SUPPLY.dataReward),{source:'combat',life:60});
+ game.notice(frontier?
+  (cargo.frontierNetwork==='azure'?
+   'Батареи перехвачены. Электроангар не получит этот заряд; уже собранные отряды остаются опасны.':
+   'Партия запчастей уничтожена. Верфь не сможет собрать отряд из этой поставки.'):
+  cargo.centralCargo?
   'Местный груз уничтожен: сборочный пост не получит эту партию. Запас уже доставленной руды пока остаётся.':
   'Груз перехвачен. Военный узел не получит эту руду — одного тяжёлого отряда не будет. Трофеи рядом.',7);
 }
@@ -174,5 +229,63 @@ export function drawRegionalWorld(game,c,cam){
   c.fillText('МЕСТНЫЙ ГРУЗ',cargo.x,cargo.y-45);
   c.fillStyle='#23383b';c.fillRect(cargo.x-32,cargo.y-38,64,4);
   c.fillStyle='#82f0cc';c.fillRect(cargo.x-32,cargo.y-38,64*cargo.hp/cargo.maxHp,4);c.restore();
+ }
+ for(const id of ['azure','teal']){
+  const cfg=FRONTIERS[id],net=s.frontier?.[id];
+  if(!net)continue;
+  const source=game.world.stations.get(cfg.sourceId);
+  if(source?.discovered&&source.enemy){
+   c.save();c.lineWidth=2;c.strokeStyle=id==='azure'?'#8bdafc71':'#7ad8bd70';
+   c.setLineDash(id==='azure'?[10,8]:[19,11]);c.beginPath();
+   cfg.route.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.stroke();c.restore();
+  }
+  if(id==='azure'&&source?.enemy&&FRONTIER_STORM_FIELD&&
+    distance(source,p)<1900){
+   const phase=stormPhase(FRONTIER_STORM_FIELD,game.time);
+   const emitting=phase.state==='discharge';
+   c.save();c.strokeStyle=emitting?'#b5f7ffb0':'#72dbff4d';
+   c.lineWidth=emitting?3:1;c.setLineDash(emitting?[]:[8,15]);
+   c.beginPath();c.moveTo(source.x,source.y);c.lineTo(FRONTIER_STORM_FIELD.x,FRONTIER_STORM_FIELD.y);
+   c.stroke();c.restore();
+  }
+  if(id==='teal'){
+   for(const wreck of net.wrecks){
+    if(wreck.hp<=0||wreck.x<cam.x-65||wreck.x>cam.x+cam.w+65||
+      wreck.y<cam.y-65||wreck.y>cam.y+cam.h+65)continue;
+    c.save();c.translate(wreck.x,wreck.y);c.rotate(wreck.id.length*.4);
+    c.fillStyle='#294444';c.strokeStyle='#76cbbf';c.lineWidth=3;
+    c.beginPath();c.moveTo(-39,-13);c.lineTo(16,-30);c.lineTo(35,5);
+    c.lineTo(4,28);c.lineTo(-29,17);c.closePath();c.fill();c.stroke();c.restore();
+    c.save();c.font='11px system-ui';c.textAlign='center';c.fillStyle='#b6f5db';
+    c.fillText('ОБЛОМКИ · ВЫБЕРИТЕ ЦЕЛЬ',wreck.x,wreck.y-47);
+    c.fillText('МАТЕРИАЛ '+Math.ceil(wreck.stock),wreck.x,wreck.y+51);c.restore();
+   }
+   const worker=net.worker;
+   if(worker?.hp>0&&source?.enemy){
+    const pos=frontierWorkerPosition(worker,game.time);
+    if(pos.x>cam.x-45&&pos.x<cam.x+cam.w+45&&pos.y>cam.y-45&&pos.y<cam.y+cam.h+45){
+     c.save();c.translate(pos.x,pos.y);c.rotate(game.time*.5);
+     c.fillStyle='#153c35';c.strokeStyle='#c6ffe5';c.lineWidth=3;
+     c.fillRect(-14,-14,28,28);c.strokeRect(-14,-14,28,28);
+     for(const x of [-22,22]){c.fillStyle='#71cf9e';c.fillRect(x-4,-5,8,10);}
+     c.restore();c.save();c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle='#b8ffe8';
+     c.fillText('СБОРЩИК · ВЫБЕРИТЕ ЦЕЛЬ',pos.x,pos.y-31);c.restore();
+    }
+   }
+  }
+  for(const cargo of net.convoys){
+   if(cargo.x<cam.x-85||cargo.x>cam.x+cam.w+85||
+      cargo.y<cam.y-85||cargo.y>cam.y+cam.h+85)continue;
+   const electric=id==='azure',color=electric?'#92dcff':'#a6e5b7';
+   c.save();c.translate(cargo.x,cargo.y);c.rotate(cargo.angle);
+   c.fillStyle=electric?'#18354c':'#263c32';c.strokeStyle=cargo.hit?'#fff':color;c.lineWidth=3;
+   c.beginPath();c.moveTo(0,-32);c.lineTo(28,-5);c.lineTo(25,23);
+   c.lineTo(-25,23);c.lineTo(-28,-5);c.closePath();c.fill();c.stroke();
+   c.fillStyle=electric?'#c1f9ff':'#cfb38a';c.fillRect(-12,-8,24,25);c.restore();
+   c.save();c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle=color;
+   c.fillText(electric?'ЭНЕРГОТРАНСПОРТ':'РЕМОНТНЫЙ ГРУЗ',cargo.x,cargo.y-49);
+   c.fillStyle='#22313e';c.fillRect(cargo.x-33,cargo.y-42,66,4);
+   c.fillStyle=color;c.fillRect(cargo.x-33,cargo.y-42,66*cargo.hp/cargo.maxHp,4);c.restore();
+  }
  }
 }

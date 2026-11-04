@@ -1,6 +1,7 @@
 import {amberRegion} from './regions.js?v=regions-1';
-import {STRATEGIC_STATIONS,createRegionalSupply} from './regional-supply.js?v=living-world-1';
+import {STRATEGIC_STATIONS,createRegionalSupply} from './regional-supply.js?v=living-world-2';
 import {CENTRAL_STATIONS} from './central-industry.js?v=living-world-1';
+import {FRONTIER_STATIONS} from './frontier-industry.js?v=living-world-2';
 import {RULES, hash, dist, baseNames} from './balance.js?v=arcade-network-20';
 import {amberBeltDensity,nearAmberBelt,inAmberCorridor} from './terrain.js?v=arcade-belt-26';
 const BASE_CELL = 1250;
@@ -25,7 +26,7 @@ export class World {
     this.regionalSupply=createRegionalSupply();
   }
   ensureRegionalStations(){
-    for(const spec of [...STRATEGIC_STATIONS,...CENTRAL_STATIONS]){
+    for(const spec of [...STRATEGIC_STATIONS,...CENTRAL_STATIONS,...FRONTIER_STATIONS]){
       const old=this.stations.get(spec.id);
       // Existing explored saves retain ownership, damage and installed equipment.
       if(old&&(old.strategicRole||old.discovered||old.active||old.captured||old.hp<old.maxHp||
@@ -103,7 +104,7 @@ export class World {
       if(!b || (b.enemy&&!allowEnemy)) return;
       if(dist({x,y},b)<r) found.push(b);
     });
-    for(const spec of CENTRAL_STATIONS){
+    for(const spec of [...CENTRAL_STATIONS,...FRONTIER_STATIONS]){
       const b=this.stations.get(spec.id);
       if(b&&(!b.enemy||allowEnemy)&&dist({x,y},b)<r)found.push(b);
     }

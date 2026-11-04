@@ -5,6 +5,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {World} from '../world.js';
+import {advanceRegionalSupply} from '../regional-supply.js';
+import {FRONTIERS} from '../frontier-industry.js';
 import {createLoadout,createThermal} from '../ship-loadout.js';
 import {createCorridorOperation} from '../operations.js';
 import {createCarrierInterception} from '../carrier-interception.js';
@@ -41,6 +43,25 @@ function save(g,storage=memory()){
  const store=new RunCheckpointStore(storage,()=>1234);store.load();assert.ok(store.startNew().ok);
  assert.ok(store.save(captureCheckpoint(g,g.docked)).ok);return {storage,store};
 }
+test('frontier economy, finite wrecks and new station IDs survive a real checkpoint roundtrip',()=>{
+ const g=scene();advanceRegionalSupply(g.world,g.time);
+ const source=g.world.stations.get(FRONTIERS.teal.sourceId);
+ source.discovered=true;g.world.discovered.add(source.id);
+ const state=g.world.regionalSupply.frontier;
+ assert.ok(state.azure.delivered>0);
+ assert.ok(state.teal.wrecks.some(c=>c.stock<c.maxStock));
+ const checkpoint=captureCheckpoint(g,g.docked);
+ assert.ok(validateCheckpoint(checkpoint),'frontier state remains valid when saved mid-harvest');
+ const decoded=unpackRun(packRun(checkpoint));
+ const restored=scene();restoreCheckpoint(restored,decoded);
+ assert.deepEqual(restored.world.regionalSupply.frontier,state);
+ assert.ok(restored.world.stations.get(source.id).discovered);
+ assert.equal(restored.world.stations.get(source.id).strategicRole,source.strategicRole);
+ assert.equal(restored.world.stations.get(FRONTIERS.azure.depotId).enemy,true);
+ const forbidden=unpackRun(packRun(checkpoint));
+ forbidden.world.regionalSupply.frontier.teal.wrecks[0].stock=999;
+ assert.equal(validateCheckpoint(forbidden),false,'wrecks cannot be refilled through a save');
+});
 test('checkpoint restores hull, inventory, progression, changed rocks and network together',()=>{
  const g=scene(),base=g.world.nearbyStations(1600,0,2100,false).find(b=>b!==g.docked);
  base.active=true;base.relayBoost=true;base.usedUpgrade=true;base.module='armor';

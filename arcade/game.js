@@ -1,10 +1,11 @@
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid} from './region-runtime.js?v=living-world-2';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-2-frontier-2';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
-import {strategicCapture} from './regional-supply.js?v=living-world-1';
+import {strategicCapture} from './regional-supply.js?v=living-world-2';
 import {disableCentralWorker} from './central-industry.js?v=living-world-1';
+import {damageFrontierAsset} from './frontier-industry.js?v=living-world-2';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30';
-import {World} from './world.js?v=living-world-1';
+import {World} from './world.js?v=living-world-2';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
@@ -26,9 +27,9 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-2';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-4-living-world-2';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-4-living-world-2-frontier-2';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -38,11 +39,11 @@ import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADE
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
-import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=living-world-1';
-import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-1';
-import {pickDesignatedTarget,activeDesignatedTarget} from './target-designation.js?v=living-world-1';
-import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1';
+import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=living-world-2';
+import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
+import {pickDesignatedTarget,activeDesignatedTarget} from './target-designation.js?v=living-world-2';
+import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-2';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -611,10 +612,14 @@ export class ArcadeGame {
    const base=this.world.stations.get(data.id);
    const region=REGIONS.find(r=>'region-'+r.id===data.id);
    const cargo=[...(this.world.regionalSupply?.convoys||[]),
-    ...(this.world.regionalSupply?.central?.convoys||[])].find(c=>c.id===data.id&&c.seen);
+    ...(this.world.regionalSupply?.central?.convoys||[]),
+    ...(this.world.regionalSupply?.frontier?.azure?.convoys||[]),
+    ...(this.world.regionalSupply?.frontier?.teal?.convoys||[])].find(c=>c.id===data.id&&c.seen);
    if(!region&&!cargo&&(!base||(!base.discovered&&!data.signal)))return;
    const waypoint=region?{id:data.id,...region.entry,label:region.name}:
-    cargo?{id:cargo.id,x:cargo.x,y:cargo.y,label:cargo.centralCargo?'Местный груз':'Рудный транспорт'}:
+    cargo?{id:cargo.id,x:cargo.x,y:cargo.y,label:cargo.frontierCargo?
+     (cargo.frontierNetwork==='azure'?'Энерготранспорт':'Ремонтный груз'):
+     cargo.centralCargo?'Местный груз':'Рудный транспорт'}:
     {id:data.id,x,y,label:data.label||'Сигнал станции'};
    this.requestWaypointDeparture(waypoint,'Маршрут: '+waypoint.label+' · '+Math.round(dist(this.player,waypoint))+' м');
   }
@@ -1947,6 +1952,21 @@ export class ArcadeGame {
    }
    return;
   }
+  if(e.frontierWorker||e.frontierSalvage){
+   const result=damageFrontierAsset(this.world,e,damage,this.time);
+   if(result){
+    e.hit=.16;
+    this.heritage.vfx.hullImpact(contact?.x??e.x,contact?.y??e.y,damage>30,contact);
+    if(result==='worker'||result==='wreck'){
+     this.heritage.vfx.shipExplosion(e.x,e.y,34,'#8bdfbe',false);
+     if(result==='wreck')this.addDrop('ore',e.x,e.y,3,{source:'salvage',life:60});
+     this.notice(result==='worker'?
+      'Сборщик выведен из строя. Утилизационный комбинат больше не получает новые материалы.':
+      'Одна залежь обломков уничтожена. У комбината стало меньше материала для будущих рейсов.',6);
+    }
+   }
+   return;
+  }
   if(e.interceptCargo){
    const origin=contact?.directed?contact:
     source&&typeof source==='object'?source:this.player;
@@ -2037,7 +2057,11 @@ export class ArcadeGame {
     const notice={mine:'Добывающий комплекс захвачен. Новые грузы не выйдут; транспорт в пути ещё нужно перехватить.',
      military:'Военный узел захвачен. Подготовка тяжёлых подкреплений остановлена.',
      'central-source':'Местная шахта захвачена. Добыча остановлена, но уже отправленные грузы ещё в пути.',
-     'central-depot':'Сборочный пост захвачен. Новые местные патрули не появятся, транспорт теперь идёт впустую.'};
+     'central-depot':'Сборочный пост захвачен. Новые местные патрули не появятся, транспорт теперь идёт впустую.',
+     'frontier-azure-source':'Индукционная вышка захвачена. Электроангар перестанет получать новые батареи.',
+     'frontier-azure-depot':'Электроангар захвачен. Организованные рейсы ионных перехватчиков остановлены.',
+     'frontier-teal-source':'Комбинат захвачен. Разбор обломков и отправка запчастей остановлены.',
+     'frontier-teal-depot':'Ремонтная верфь захвачена. Подготовка новых ремонтных караулов прекращена.'};
     this.notice(notice[base.strategicRole]||'Промышленный узел захвачен.',7);
    }else this.notice('Вражеская база захвачена! Заряд кода: Q',6);
   }
@@ -2421,8 +2445,9 @@ export class ArcadeGame {
     this.spawnClock=4.5;
    }else{
    const director=this.sectorDirector(openingThreat(this.time,this.player.level));
-   const central=spawnCentralRaid(this,director);
-   const recovery=central?central:spawnRegionalRaid(this,director)?6:this.spawnGroup(director);
+   const frontier=spawnFrontierRaid(this,director);
+   const central=frontier?0:spawnCentralRaid(this,director);
+   const recovery=frontier?6:central?central:spawnRegionalRaid(this,director)?6:this.spawnGroup(director);
    // Give the player room to clear an overwhelming formation, without
    // suppressing the large waves when a strong build is mowing them down.
    const pressure=this.enemies.length/Math.max(1,director.cap);
@@ -3020,6 +3045,13 @@ export class ArcadeGame {
    }
    this.heritage.vfx.renderSurfaceLight(c,e.x,e.y,e.r);
    drawStormCharge(c,e,this.time);
+   if(e.frontierRole){
+    const specialist=e.stormAdapted?'ЭНЕРГО':e.type==='healer'?'РЕМОНТ':'ОХРАНА';
+    c.save();c.strokeStyle=e.frontierRole==='azure'?'#8de4ff':'#94e8b7';
+    c.lineWidth=2;c.setLineDash([5,4]);c.beginPath();c.arc(e.x,e.y,e.r+12,0,TAU);c.stroke();
+    c.setLineDash([]);c.font='bold 10px system-ui';c.fillStyle=c.strokeStyle;c.textAlign='center';
+    c.fillText(specialist,e.x,e.y-e.r-21);c.restore();
+   }
    if(this.time<(e.stasisUntil||0)){
     c.save();c.strokeStyle='#d5a6ff';c.lineWidth=2.5;
     c.beginPath();c.arc(e.x,e.y,e.r+10,0,TAU);c.stroke();

@@ -1,5 +1,5 @@
 import {combatTargets,targetDistance,targetRadius,clearLine}
-  from './combat-targets.js?v=living-world-1';
+  from './combat-targets.js?v=living-world-2';
 
 export const TARGET_DESIGNATION=Object.freeze({duration:14,tapRadius:34,maxDistance:900});
 
@@ -9,8 +9,14 @@ export function pickDesignatedTarget(game,worldPoint,tapRadius=TARGET_DESIGNATIO
   if(!game?.player||!worldPoint)return null;
  const targets=combatTargets(game,Math.max(70,tapRadius+50),worldPoint);
  const worker=game.world?.regionalSupply?.central?.worker;
- if(worker?.hp>0&&game.world?.stations.get('industry:source')?.enemy)
+ if(worker?.hp>0&&game.world?.stations?.get('industry:source')?.enemy)
   targets.push({kind:'enemy',target:worker,goal:true});
+ const salvage=game.world?.regionalSupply?.frontier?.teal;
+ if(game.world?.stations?.get('frontier:teal:source')?.enemy){
+  if(salvage?.worker?.hp>0)targets.push({kind:'enemy',target:salvage.worker,goal:true});
+  for(const wreck of salvage?.wrecks||[])
+   if(wreck.hp>0)targets.push({kind:'enemy',target:wreck,goal:true});
+ }
  return targets
     .filter(item=>targetDistance(game.player,item.target)<=TARGET_DESIGNATION.maxDistance&&
       targetDistance(worldPoint,item.target)<=
