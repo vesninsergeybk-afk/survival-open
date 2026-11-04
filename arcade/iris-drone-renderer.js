@@ -281,6 +281,16 @@ export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
     }
   }else ctx.drawImage(body,(frame%3)*CELL,Math.floor(frame/3)*CELL,
     CELL,CELL,-side/2,-side/2,side,side);
+  const chargeAge=now-(enemy._irisChargeStarted??-Infinity);
+  if(!scanning&&!reducedMotion&&enemy.fire<=0&&
+     chargeAge>=0&&chargeAge<1.1){
+    // The contracting ring warns of the next shot without a costly particle.
+    const progress=clamp(chargeAge/.36,0,1);
+    ctx.save();ctx.strokeStyle=`rgba(207,153,255,${.45+.48*progress})`;
+    ctx.lineWidth=1.2+progress*.7;
+    ctx.beginPath();ctx.arc(0,0,side*(.27-.16*progress),0,Math.PI*2);
+    ctx.stroke();ctx.restore();
+  }
   ctx.restore();
   if(scanning&&!enemy.signalIntel){
     // Signal patrols already render their shared !/? indicator in game.js.

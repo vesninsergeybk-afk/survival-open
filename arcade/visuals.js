@@ -6,7 +6,7 @@ import {drawInstalledModules} from './ship-weapons.js?v=weapons-cycle-2';
  */
 import {drawEvolvedHero, heroMotionPose} from '../src/hero-evolution.js?v=hangar-2';
 import {drawAnimatedEnemyShip} from '../src/disruptor-ship-sprites.js';
-import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js?v=scout-evasion-1-iris-scan-1-inertial-2';
+import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js?v=iris-hunter-1';
 import {drawStationPart, STATION_PARTS} from '../src/station-art.js?v=base-86';
 import {drawTurretMount,drawTurretHead} from '../src/turret-visuals.js?v=turret-visuals-1';
 import {drawEnemyBolt} from '../src/combat-art.js?v=art-888';
@@ -429,6 +429,14 @@ export class ArcadeVisuals {
  drawHostileShot(ctx,s){
   ctx.save();ctx.translate(s.x,s.y);
   ctx.rotate(Math.atan2(s.vy,s.vx));
+  if(s.kind==='iris'){
+   // A narrow violet bolt visually distinguishes the scout's dodgeable pulse.
+   ctx.strokeStyle='#bb8dff';ctx.lineWidth=3.2;ctx.lineCap='round';
+   ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(5,0);ctx.stroke();
+   ctx.strokeStyle='#f2dfff';ctx.lineWidth=1.1;
+   ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(4,0);ctx.stroke();
+   ctx.restore();return true;
+  }
   const ok=drawEnemyBolt(ctx,'laser');
   ctx.restore();return ok;
  }

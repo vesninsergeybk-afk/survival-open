@@ -52,6 +52,70 @@ export function scoutSteering(e,game,target,speed){
   // or instantaneous direction flip when a new leg starts.
   return {x:-dy/distance*lateral,y:dx/distance*lateral};
 }
+// Small scouts threaten through readable, dodgeable pulses. Their first shot
+// follows the visible purple scan, while later shots need a short charge.
+// A shared volley gate prevents a large swarm from producing an unavoidable
+// projectile wall. Neither health nor projectile collision rules change.
+export const IRIS_COMBAT=Object.freeze({
+  range:290,scanShotAt:.59,charge:.36,volleySpacing:.43,
+  projectileSpeed:275,damage:6
+});
+export function scoutAttack(e,game,target,scanning=false){
+  if(e.type!=='scout'||e.converted||e.boss||e.missionStructure||
+     e.interceptCargo||!game.enemyShot)return false;
+  const now=game.time;
+  const engaged=!e.signalIntel||e.signalIntel.mode==='engaged';
+  const distance=target?.hp>0?dist(e,target):Infinity;
+  const seen=engaged&&distance<=IRIS_COMBAT.range&&
+    (game.enemyCanSee?.(e,target)??true);
+  if(!seen){e._irisChargeStarted=null;return false;}
+  if(scanning){
+    e._irisChargeStarted=null;
+    if(e._irisScanMode!=='acquire'||
+       now-e._irisScanStarted<IRIS_COMBAT.scanShotAt)return false;
+  }else{
+    // Ordinary scouts cannot shoot at a remembered, currently unseen player.
+    if(!e.signalIntel&&!e._irisHasSight&&
+       Number.isFinite(e._irisLastSeenAt))return false;
+    if(e.fire<=0&&e._irisChargeStarted==null)
+      e._irisChargeStarted=now;
+    if(now-e._irisChargeStarted>1.05){
+      // A queued scout must warn again instead of shooting after its visible
+      // charge has expired while other members of the swarm used the slot.
+      e._irisChargeStarted=now;return false;
+    }
+    if(now-(e._irisChargeStarted??now)<IRIS_COMBAT.charge)return false;
+  }
+  if(e.fire>0){e._irisChargeStarted=null;return false;}
+  if(now<(game._irisNextVolleyAt??0))return false;
+  // Partial lead rewards evasive flying without perfectly tracking the player.
+  const flight=distance/IRIS_COMBAT.projectileSpeed;
+  const lead=clamp(flight*.38,0,.3);
+  const tx=target.x+clamp((target.vx||0)*lead,-45,45);
+  const ty=target.y+clamp((target.vy||0)*lead,-45,45);
+  const accepted=game.enemyShot(e.x,e.y,tx,ty,IRIS_COMBAT.damage,
+    {kind:'iris',speed:IRIS_COMBAT.projectileSpeed,r:4.5});
+  if(accepted===false)return false;
+  e.fire=2.0+(Math.abs(Math.trunc(e.serial||0))%4)*.23;
+  e._irisChargeStarted=null;
+  game._irisNextVolleyAt=now+IRIS_COMBAT.volleySpacing;
+  return true;
+}
+/** At close range scouts circle the player instead of continuously missing
+ * contact on wide zigzags. They remain vulnerable to the player's beam. */
+export function scoutAttackGoal(e,target){
+  const dx=e.x-target.x,dy=e.y-target.y;
+  const distance=Math.hypot(dx,dy);
+  if(distance>=315)return null;
+  const serial=Math.abs(Math.trunc(e.serial||0));
+  const rx=distance>1?dx/distance:Math.cos(serial*2.39);
+  const ry=distance>1?dy/distance:Math.sin(serial*2.39);
+  const side=serial%2?1:-1;
+  const radius=178+(serial%3)*20;
+  const correction=clamp((radius-distance)*1.25,-140,140);
+  return {x:e.x-ry*side*140+rx*correction,
+    y:e.y+rx*side*140+ry*correction};
+}
 export const ENEMY_TYPES = Object.freeze({
   scout:{name:'Разведчик',hp:28,speed:158,dmg:9,score:7},
   fighter:{name:'Штурмовик',hp:58,speed:120,dmg:12,score:10},
@@ -108,7 +172,11 @@ export function updateEnemy(e,game,dt){
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;
   const signalOrder=updateSignalIntent(e,game,dt);
-  if(updateIrisPerception(e,game,dt))return;
+  if(updateIrisPerception(e,game,dt)){
+    if(e.type==='scout')scoutAttack(e,game,
+      e.signalIntel?.combatFocus||game.player,true);
+    return;
+  }
   if(signalOrder){
     const avoid=game.avoidance(e.x,e.y,38);
     const speed=ENEMY_TYPES[e.type].speed*signalOrder.speed*
@@ -213,6 +281,9 @@ export function updateEnemy(e,game,dt){
   }
   const search=e.type==='scout'&&e.state==='hunt'?irisSearchGoal(e,game):null;
   if(search){goalX=search.x;goalY=search.y;speed*=.78;}
+  const orbit=e.type==='scout'&&e.state==='hunt'&&!search?
+    scoutAttackGoal(e,p):null;
+  if(orbit){goalX=orbit.x;goalY=orbit.y;}
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   let extraX=avoid.x*speed*1.3,extraY=avoid.y*speed*1.3;
   if(e.type==='scout'){
@@ -223,7 +294,7 @@ export function updateEnemy(e,game,dt){
   if(e.state==='hunt'&&!e.boss&&!e.missionStructure&&!search){
     if(e.type==='scout'){
       const jink=scoutSteering(e,game,p,speed);
-      extraX+=jink.x;extraY+=jink.y;
+      extraX+=jink.x*(orbit?.42:1);extraY+=jink.y*(orbit?.42:1);
     }else if(e.type==='fighter'){
       // Heavier fighters make long, slow sweeps, unlike nervous scouts.
       const heading=norm(p.x-e.x,p.y-e.y);
@@ -234,6 +305,7 @@ export function updateEnemy(e,game,dt){
   }
   steer(e,goalX,goalY,speed,dt,{x:extraX,y:extraY});
   e.healFlash=Math.max(0,(e.healFlash||0)-dt);
+  if(e.type==='scout'&&!search)scoutAttack(e,game,p);
   if(e.type==='gunship'&&!e.relayAssault&&e.fire<=0&&dist(e,p)<535){
     e.fire=1.65;
     game.enemyShot(e.x,e.y,p.x,p.y,15);
