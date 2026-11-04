@@ -16,7 +16,7 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=economy-integrity-3-copy-1-menu-exit-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=economy-integrity-3-copy-1-menu-exit-1-econ-audit-2';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
@@ -31,7 +31,7 @@ import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=weapons-cycle-2';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=weapons-cycle-2';
 import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=economy-integrity-1';
-import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1';
+import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 
@@ -1580,6 +1580,12 @@ export class ArcadeGame {
    }
    const price=transitCost(b,target);
    if(p.ore<price){this.notice('Для перелёта нужно ещё '+(price-p.ore)+' сплава',2.5);return;}
+   // Teleporting is a departure too: never discard a pending hangar draft
+   // without the same explicit decision required for an ordinary launch.
+   if(this.hangarSession?.dirty?.(this.shipLoadout)){
+    this.baseTab='hangar';this.renderDock();
+    this.notice('Сначала примените или отмените изменения в ангаре',3.5);return;
+   }
    p.ore-=price;
    recordEconomyExpense(this,'travel',price);
    this.heritage.vfx.nova(b.x,b.y,110,'cyan');
@@ -1590,6 +1596,9 @@ export class ArcadeGame {
    }
    this.mining.target=null;this.mining.active=false;
    this.heritage.vfx.nova(p.x,p.y,100,'cyan');
+   // The fare is a station expense, not earnings lost during the new flight.
+   // Capture the post-payment baseline BEFORE dismiss() loses the dock.
+   this.sortieStart=startSortie(this);
    this.docked=null;this.dismiss();
    this.notice('Сетевой перелёт: '+(baseNames[target.type]||'станция')+' · −'+price+' сплава',3.2);
    this.heritage.station('transfer',target.type);

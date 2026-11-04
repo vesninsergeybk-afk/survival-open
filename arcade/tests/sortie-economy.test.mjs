@@ -50,27 +50,48 @@ test('bounded flight history is safe for checkpoints and rejects malformed recor
  assert.equal(validSortieReports([{...report,ore:NaN}]),false);
 });
 
-test('the first return presents real alternatives without bypassing budget limits',()=>{
- const s=state(),offer=baseOffer(home,s);
+test('the first return offers two affordable protection plans, network saving and a free experiment',()=>{
+ const s=state({ore:20}),offer=baseOffer(home,s);
  const choices=nextEconomyChoices(home,s,offer);
  assert.deepEqual(choices.map(c=>[c.title,c.cost,c.act]),[
-  ['Дрон сопровождения',20,'hire'],['Аварийный щит',24,'service'],
-  ['Испытать полевое оружие',0,'showFieldTrial'],['Следующий узел сети',24,'baseMap']]);
+  ['Дрон сопровождения',20,'hire'],['Аварийный щит',16,'service'],
+  ['Расширить сеть',24,'baseMap'],['Испытать полевое оружие',0,'showFieldTrial']]);
+ assert.equal(choices.filter(c=>c.cost>0&&c.cost<=s.ore&&!c.reason).length,2);
+ const unharmed=state({ore:20,hp:110});
+ assert.ok(nextEconomyChoices(home,unharmed,baseOffer(home,unharmed))
+  .some(c=>c.act==='service'&&c.cost===16),
+  'a shield is preparation for risk, not a reward for already taking damage');
  const poor=state({ore:16}),limited=nextEconomyChoices(home,poor,baseOffer(home,poor));
- assert.match(limited.find(c=>c.act==='hire').reason,/Не хватает 4/);
- assert.match(limited.find(c=>c.act==='service').reason,/Не хватает 8/);
+ assert.ok(limited.some(c=>c.act==='service'&&c.cost===16));
+ assert.ok(limited.some(c=>c.act==='baseMap'&&c.cost===24));
+ assert.ok(limited.some(c=>c.act==='baseTab'&&c.role==='operations'),
+  'if the player cannot afford a durable upgrade, show an actionable income route');
 });
 
 test('the offer adapts to a full drone slot, borrowed ion weapon and charged shield',()=>{
  const loadout=createLoadout();loadout.slots[1]='ion';
  const s=state({loadout,ore:50,shield:30,allies:1,droneRoles:['scout'],fieldTrialTaken:true});
  const choices=nextEconomyChoices(home,s,baseOffer(home,s));
- assert.deepEqual(choices.map(c=>c.act),['baseMap','baseTab']);
- assert.equal(choices[1].role,'network');
+ assert.ok(choices.some(c=>c.act==='baseMap'));
+ assert.ok(choices.some(c=>c.act==='baseTab'&&c.role==='network'));
+ assert.ok(choices.some(c=>c.act==='baseTab'&&c.role==='operations'));
+});
+
+test('a cash-poor pilot on contract cooldown can still depart to mine without a false job promise',()=>{
+ const cooling={...home,contractRuns:1,contractCooldownUntil:210};
+ const s=state({ore:0,time:100,sortieReports:[{seconds:50,ore:0,data:5,hull:0,
+  drones:0,levels:0,baseId:home.id}]});
+ const offer=baseOffer(cooling,s),choices=nextEconomyChoices(cooling,s,offer);
+ assert.equal(offer.contract.status,'cooldown');
+ assert.ok(choices.some(c=>c.act==='close'&&c.cost===null));
+ assert.equal(choices.some(c=>c.act==='baseTab'&&c.role==='operations'),false);
+ const panel=renderBasePanel(cooling,s);
+ assert.match(panel,/Вылететь за рудой/);
+ assert.match(panel,/Повторные заказы станут доступны здесь через 110 с/);
 });
 
 test('the dock shows the last completed result and honest, labelled purchase routes',()=>{
- const s=state({sortieReports:[{seconds:133,ore:31,data:28,hull:-15,drones:0,levels:0,baseId:'0:0'}]});
+ const s=state({xp:20,nextXp:75,sortieReports:[{seconds:133,ore:31,data:28,hull:-15,drones:0,levels:0,baseId:'0:0'}]});
  const html=renderBasePanel(home,s);
  assert.match(html,/ПОСЛЕ ВЫЛЕТА/);
  assert.match(html,/2 мин 13 с/);
@@ -81,6 +102,7 @@ test('the dock shows the last completed result and honest, labelled purchase rou
  assert.match(html,/data-act="showFieldTrial"/);
  assert.match(html,/История: 1 вылет и расходы/);
  assert.match(html,/Бесплатно · сплав не расходуется/);
+ assert.match(html,/Данные дают опыт пилоту: до уровня 2 осталось 55/);
  assert.match(html,/data-act="baseTab" data-role="hangar"/);
  assert.match(html,/data-act="baseMap"/);
  assert.doesNotMatch(renderBasePanel(home,state()),/ПОСЛЕ ВЫЛЕТА/);
@@ -105,7 +127,7 @@ test('the first-operation reward offers a distinct range choice and never propos
  assert.ok(choices.some(c=>c.title==='Дополнительный плазменный луч'));
  loadout.slots=['plasma','rail','flak','rocket','plasma',null];
  assert.deepEqual(nextEconomyChoices({active:true},{loadout,civilianBases:2,
-  maxHp:110,hp:110},offer).map(c=>c.act),['baseMap']);
+  maxHp:110,hp:110},offer).map(c=>c.act),['baseMap','close']);
 });
 
 test('income and combat risk remain visible even when repairs hide net hull loss',()=>{

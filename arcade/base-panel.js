@@ -6,7 +6,7 @@ import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './ope
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2';
-import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1';
+import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -46,7 +46,7 @@ export const stationModule=(type,key)=>(STATION_MODULES[type]||[]).find(item=>it
 
 const shortfall=(price,ore)=>ore<price?'Не хватает '+(price-ore)+' ед. сплава':'';
 const LOCAL_SERVICES=Object.freeze({
- dock:{key:'shield',name:'Аварийный конденсатор',cost:24,
+ dock:{key:'shield',name:'Аварийный конденсатор',cost:16,
   desc:'Одноразовый запас щита до 30 ед. Доступен даже без изучения навыка «Энергощит».'},
  lab:{key:'scan',name:'Спектральный поиск руды',cost:12,duration:90,
   desc:'На 90 с выделяет богатые астероиды янтарным контуром. Помогает выбирать добычу под огнём.'},
@@ -116,7 +116,10 @@ export function baseOffer(base,state){
   .map(t=>({...t,cost:transitCost(base,t),distance:Math.round(Math.hypot(base.x-t.x,base.y-t.y))}))
   .sort((a,b)=>a.distance-b.distance);
  const missing=Math.max(0,state.maxHp-state.hp);
- const repairCost=Math.max(9,Math.ceil(Math.min(missing,state.maxHp*.45)*.36));
+ // An instant repair is a convenience purchase. A fixed 9-alloy minimum once
+ // charged players nine alloy even for a single missing hull point.
+ const repairAmount=Math.min(missing,Math.round(state.maxHp*.45));
+ const repairCost=Math.max(1,Math.ceil(repairAmount*.36));
  const droneDamage=Math.max(0,state.droneDamage||0);
  const droneRepairCost=droneDamage>0?Math.max(8,Math.ceil(droneDamage*.32)):0;
  const chargeCost=strikeCost(state.network.strikePower||0),contract=contractOffer(base,state);
@@ -160,7 +163,7 @@ export function baseOffer(base,state){
     'Действует ещё '+Math.ceil(serviceRemaining)+' с'):
    shortfall(localService.cost,ore)
  };
- return {ore,drone,tech,level,cap,connected,relayCost,antennaCost,transfers,upgradeCost,repairCost,droneRepairCost,chargeCost,hireCost,replacementIndex,replacing,contract,contractOptions,repeatReward:(base.contractRuns||0)>0,
+ return {ore,drone,tech,level,cap,connected,relayCost,antennaCost,transfers,upgradeCost,repairAmount,repairCost,droneRepairCost,chargeCost,hireCost,replacementIndex,replacing,contract,contractOptions,repeatReward:(base.contractRuns||0)>0,
   localService,moduleOptions,rewardAlloy:state.activeBases===0?20:0,
   rewardRepair:Math.round(state.maxHp*.1),reasons};
 }
@@ -466,8 +469,9 @@ export function renderBasePanel(base,state){
   o.reasons.upgrade);
  const repair=card('base-service'+(!active?' inactive':''),
   '04 · ТЕХОБСЛУЖИВАНИЕ','Ремонт корабля и дронов',
-  base.type==='dock'?'Вблизи дока корабль постепенно восстанавливается бесплатно.':
-   'Быстрый ремонт корпуса и восстановление повреждённых дронов.',
+  base.type==='dock'?
+   'Бесплатно: если вокруг безопасно, отстыкуйтесь и держитесь в 165 м от дока. Через 4 с без попаданий корпус будет восстанавливаться примерно на 3 ед./с. Платный ремонт возвращает до '+Math.ceil(o.repairAmount)+' ед. сразу; при небольших повреждениях обычно выгоднее подождать.':
+   'Платный ремонт восстанавливает до '+Math.ceil(o.repairAmount)+' ед. корпуса сразу. Повреждённых дронов можно починить отдельно.',
   action('repair','Корпус · '+o.repairCost+' сплава',o.reasons.repair)+
   action('repairDrones','Дроны · '+o.droneRepairCost+' сплава',o.reasons.drones),
   o.reasons.repair&&o.reasons.drones?'':undefined);
@@ -541,6 +545,24 @@ export function renderBasePanel(base,state){
   '<p><b>Повреждения корпуса:</b> '+details.damageTaken+
   ' · поглощено щитом '+details.shieldDamage+' · восстановлено в полёте '+details.hullRepaired+
   ' · уничтожено дронов '+details.dronesLost+'.</p></div></details>':'';
+ const experienceNote=Number.isFinite(state.xp)&&Number.isFinite(state.nextXp)&&
+  Number.isInteger(state.level)?'<p>Данные дают опыт пилоту: до уровня '+(state.level+1)+
+  ' осталось '+Math.max(0,Math.ceil(state.nextXp-state.xp))+
+  '. Новый уровень даёт очко развития; навыки доступны по U и в ангаре.</p>':'';
+ const shortage=o.relayCost>o.ore?o.relayCost-o.ore:0;
+ const reserveRoute=state.contract?
+  (state.contract.progress>=state.contract.goal?
+   'Принятый заказ выполнен: сдайте его на станции, где получили.':
+   'Завершите уже принятый заказ и сдайте его на исходной станции.'):
+  o.contract?.status==='cooldown'?
+   'Повторные заказы станут доступны здесь через '+o.contract.remaining+' с.':
+  o.contract?.status==='available'?
+   'Здесь можно выбрать полевой заказ с наградой от '+
+    Math.min(...o.contractOptions.map(c=>c.ore))+' до '+
+    Math.max(...o.contractOptions.map(c=>c.ore))+' ед. сплава.':
+   'Ищите месторождения и доступные задания на карте.';
+ const reserveNote=shortage&&o.contractOptions?.length?'<p>Можно пока ничего не покупать: до следующей станции не хватает '+shortage+
+  ' ед. сплава. '+reserveRoute+'</p>':'';
  const report=active&&lastSortie?'<section class="base-economy" aria-label="Итоги последнего вылета">'+
   '<div class="base-economy-head"><div><span class="base-kicker">ПОСЛЕ ВЫЛЕТА</span>'+
   '<h3>Итоги последнего вылета</h3></div><small>'+Math.floor(lastSortie.seconds/60)+' мин '+
@@ -552,7 +574,7 @@ export function renderBasePanel(base,state){
   (details?'<span>Получено повреждений <b>'+details.damageTaken+'</b></span>':'')+
   (details?.dronesLost?'<span>Потеряно дронов <b>'+details.dronesLost+'</b></span>':'')+
   (lastSortie.levels?'<span>Уровни <b>+'+lastSortie.levels+'</b></span>':'')+'</div>'+
-  '<p>Ресурсы за вылет и награды за сданные заказы. Изменение корпуса показано после восстановления. Покупки на станции в доход не включены.</p>'+
+  '<p>Ресурсы за вылет и награды за сданные заказы. Изменение корпуса показано после восстановления. Покупки на станции в доход не включены.</p>'+experienceNote+
   claimNote+breakdown+history+
   (choices.length?'<div class="base-economy-head"><div><span class="base-kicker">СЛЕДУЮЩЕЕ РЕШЕНИЕ</span>'+
    '<h3>Как распорядиться '+o.ore+' ед. сплава?</h3></div></div>'+
@@ -565,11 +587,12 @@ export function renderBasePanel(base,state){
       o.ore>=choice.cost?'после покупки останется '+(o.ore-choice.cost):
       'нужно ещё '+(choice.cost-o.ore)))+'</span>'+
     action(choice.act,choice.act==='baseMap'?'Открыть карту':
+     choice.act==='close'?'Вылететь за рудой':
      choice.act==='showFieldTrial'?'Испытать бесплатно':
      choice.act==='baseTab'?({hangar:'Перейти в ангар',network:'Открыть сеть',
       operations:'Открыть задания'}[choice.role]||'Открыть раздел'):
      choice.act==='hire'?'Нанять дрона':choice.act==='repair'?'Ремонтировать':'Зарядить щит',choice.reason,choice.role)+
-    '</article>').join('')+'</div>':'')+'</section>':'';
+    '</article>').join('')+'</div>'+reserveNote:'')+'</section>':'';
  const dashboard='<div class="base-dashboard">'+
   '<div class="base-dashboard-main"><span class="base-kicker">'+brief[0]+'</span>'+
   '<strong>'+brief[1]+'</strong><p>'+brief[2]+'</p>'+

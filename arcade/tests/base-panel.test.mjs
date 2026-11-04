@@ -81,6 +81,19 @@ test('repair only spends alloy when there is real damage',()=>{
  assert.equal(damaged.reasons.repair,'');
  assert.equal(damaged.reasons.drones,'');
 });
+test('instant repair price follows actual missing hull and explains free dock healing',()=>{
+ const dock=base('dock',{active:true});
+ const tiny=baseOffer(dock,state({ore:20,hp:109,maxHp:110}));
+ const scratched=baseOffer(dock,state({ore:20,hp:101,maxHp:110}));
+ const heavilyDamaged=baseOffer(dock,state({ore:20,hp:60,maxHp:110}));
+ assert.deepEqual([tiny.repairCost,scratched.repairCost,heavilyDamaged.repairCost],[1,4,18]);
+ assert.deepEqual([tiny.repairAmount,scratched.repairAmount,heavilyDamaged.repairAmount],[1,9,50]);
+ const panel=renderBasePanel(dock,state({ore:20,hp:101,maxHp:110,baseTab:'hangar'}));
+ assert.match(panel,/Через 4 с без попаданий/);
+ assert.match(panel,/Бесплатно:/);
+ assert.match(panel,/Платный ремонт возвращает до 9 ед. сразу/);
+ assert.match(panel,/Корпус · 4 сплава/);
+});
 
 test('airstrike supply is a finite consumable locked to connected carrier',()=>{
  const carrier=base('carrier',{active:true});
@@ -212,11 +225,11 @@ test('dock emergency shield can be bought once, without double-spending',()=>{
  };
  Actions.prototype.baseAction.call(fake,'service');
  assert.equal(fake.player.shield,30);
- assert.equal(fake.player.ore,26);
+ assert.equal(fake.player.ore,34);
  assert.equal(fake.renders,1);
  Actions.prototype.baseAction.call(fake,'service');
  assert.equal(fake.player.shield,30);
- assert.equal(fake.player.ore,26);
+ assert.equal(fake.player.ore,34);
  assert.equal(fake.renders,1);
 });
 
