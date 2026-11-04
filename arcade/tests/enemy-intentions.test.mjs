@@ -93,6 +93,8 @@ test('world and map use the same actual heading and the map draws no remote netw
   game.playerCanInspectEnemyIntent=()=>false;
   assert.equal(enemyIntentMapPaths(game,(x,y)=>({x,y}),()=>true),'',
     'the map must not reveal a group hidden behind solid cover');
+  assert.equal(drawEnemyIntentions(ctx,{x:0,y:0,w:600,h:400},game),0,
+    'the world must not draw its intended course through solid cover either');
   game.playerCanInspectEnemyIntent=()=>true;
   disconnect();
   assert.equal(enemyIntentMapPaths(game,(x,y)=>({x,y}),()=>true),'');

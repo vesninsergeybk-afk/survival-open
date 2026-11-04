@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createSignalIntel,alertSignalIntel,updateSignalIntent,SIGNAL_AI,canAutoTarget} from '../signal-perception.js';
+import {createSignalIntel,alertSignalIntel,alertSignalThreat,
+ updateSignalIntent,SIGNAL_AI,canAutoTarget} from '../signal-perception.js';
 import {updateEnemy,updateAlly} from '../ai.js';
 import {EnemyComms} from '../enemy-comms.js';
+import {enemyPursuitTarget} from '../enemy-awareness.js';
+import {RuntimeHarness} from './runtime-game.mjs';
+import {contactOnCircle} from '../impact-geometry.js';
 
 const actor=(intel=null)=>({
   serial:3,group:7,type:'scout',x:500,y:0,vx:0,vy:0,r:14,hp:28,maxHp:28,
@@ -153,6 +157,43 @@ test('a drone shot reveals the drone position, not the hidden player',()=>{
  e.x=50;e.y=0;e.sensorTimer=1;
  updateEnemy(e,game,.1);
  assert.equal(e.target,ally,'investigating group responds to its actual attacker');
+});
+test('a hidden long-range hit alerts a patrol without granting exact coordinates',()=>{
+ const player={x:820,y:40,hp:110,r:19},intel=createSignalIntel(120,90,0);
+ const enemy=actor(intel);enemy.x=100;enemy.y=100;enemy.hp=70;enemy.maxHp=70;
+ const g=new RuntimeHarness();Object.assign(g,{player,time:1,
+  enemyCanSee:()=>false,visuals:{},heritage:{play(){},vfx:{hullImpact(){}}}});
+ const contact=contactOnCircle(enemy.x,enemy.y,enemy.r,player.x,player.y);
+ g.damageEnemy(enemy,5,'rail',contact);
+ const pursuit=enemyPursuitTarget(enemy,{time:1.1,player});
+ assert.equal(intel.mode,'engaged','being attacked must not prevent return fire');
+ assert.equal(canAutoTarget(enemy),true);
+ assert.equal(intel.lastSeenEstimated,true);
+ assert.equal(intel.combatFocus,null);
+ assert.notDeepEqual([pursuit.x,pursuit.y],[player.x,player.y]);
+ assert.ok(Math.hypot(pursuit.x-player.x,pursuit.y-player.y)>100,
+  'the victim must not track an unseen gunner at a measured world coordinate');
+ const visible=createSignalIntel(120,90,0);
+ const sighted=actor(visible);sighted.x=100;sighted.y=100;
+ Object.assign(g,{enemyCanSee:()=>true,time:2});
+ g.damageEnemy(sighted,5,'rail',contact);
+ assert.equal(visible.lastSeenX,player.x,
+  'actual line of sight may legitimately reveal an attacker');
+});
+
+test('an estimated radio contact never becomes a magically precise target lock',()=>{
+ const p={x:1100,y:500,hp:100,r:19},intel=createSignalIntel(0,0,0);
+ const e=actor(intel),g=world(p);g.time=1;
+ g.enemyComms={directiveFor:()=>({intel:{x:360,y:120,vx:0,vy:0,
+   at:1,estimated:true}})};
+ updateSignalIntent(e,g,.05);
+ assert.equal(intel.mode,'engaged');
+ assert.equal(intel.combatFocus,null);
+ assert.equal(intel.lastSeenEstimated,true);
+ assert.deepEqual([enemyPursuitTarget(e,g).x,enemyPursuitTarget(e,g).y],
+  [360,120]);
+ assert.equal(alertSignalThreat(intel,{x:240,y:0,estimated:true},1.1),true);
+ assert.equal(intel.combatFocus,null);
 });
 test('an identified allied attacker can be reacquired without revealing the player',()=>{
  const intel=createSignalIntel(300,0,30);

@@ -1,11 +1,11 @@
 import {stormSeek} from './regional-storms.js?v=regions-1';
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20';
-import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-1';
+import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
-import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-2';
-import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-2';
-import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-2';
+import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
+import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-3';
+import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-3';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
@@ -366,13 +366,27 @@ export function updateEnemy(e,game,dt){
     const intel=radio.intel;
     const reported={x:intel.x+clamp(intel.vx*.12,-26,26),
       y:intel.y+clamp(intel.vy*.12,-26,26)};
-    if(e.state==='hunt'&&!e._enemyLearningSaw){
+    if(intel.estimated&&!e._enemyLearningSaw){
+      // When radio traffic contains only a damaged facility or an impact
+      // sector, even flankers and gunships investigate that reported place.
+      // They cannot silently switch back to the player's real coordinates.
+      goalX=reported.x;goalY=reported.y;
+    }else if(e.state==='hunt'&&!e._enemyLearningSaw){
       goalX=reported.x;goalY=reported.y;
     }
     const heading=norm(reported.x-e.x,reported.y-e.y);
     if(radio.mode==='pincer'){
-      goalX-=heading.y*radio.side*76;
-      goalY+=heading.x*radio.side*76;
+      if(radio.threat?.kind==='close'){
+        // Plasma is strongest close up. Circling outside its high-damage
+        // zone is a fallible counter: the player can pursue or change guns.
+        const away=norm(e.x-reported.x,e.y-reported.y);
+        const ring=e.type==='gunship'?340:300;
+        goalX=reported.x+away.x*ring-away.y*radio.side*105;
+        goalY=reported.y+away.y*ring+away.x*radio.side*105;
+      }else{
+        goalX-=heading.y*radio.side*76;
+        goalY+=heading.x*radio.side*76;
+      }
     }else if(radio.mode==='intercept'){
       goalX+=clamp(intel.vx*.22,-52,52);
       goalY+=clamp(intel.vy*.22,-52,52);

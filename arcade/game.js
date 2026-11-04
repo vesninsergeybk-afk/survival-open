@@ -10,12 +10,12 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-2';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-3';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
-import {EnemyComms,ENEMY_COMMS} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-2';
-import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-1';
+import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-3';
+import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1';
-import {createSignalIntel,alertSignalIntel} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-1';
+import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
 import {ArcadeVisuals} from './visuals.js?v=regions-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
@@ -29,7 +29,7 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -2005,6 +2005,7 @@ export class ArcadeGame {
    e.hp=Math.max(0,e.hp-damage);e.hit=.15;
    this.heritage.vfx.hullImpact(contact?.x??e.x,contact?.y??e.y,damage>30,contact);
    if(disableCentralWorker(this.world,e,this.time)){
+    this.enemyComms?.reportIncident(e,this,'mining');
     this.heritage.vfx.shipExplosion(e.x,e.y,35,'#90f7d7',false);
     this.notice('Рудный рабочий уничтожен: местная добыча остановилась. Уже отправленные грузы ещё опасны.',7);
    }
@@ -2016,6 +2017,8 @@ export class ArcadeGame {
     e.hit=.16;
     this.heritage.vfx.hullImpact(contact?.x??e.x,contact?.y??e.y,damage>30,contact);
     if(result==='worker'||result==='wreck'){
+     this.enemyComms?.reportIncident(e,this,
+      result==='worker'?'recycling':'salvage');
      this.heritage.vfx.shipExplosion(e.x,e.y,34,'#8bdfbe',false);
      if(result==='wreck')this.addDrop('ore',e.x,e.y,3,{source:'salvage',life:60});
      this.notice(result==='worker'?
@@ -2043,15 +2046,27 @@ export class ArcadeGame {
   const aggressor=(['beam','rocket','ion','rail','flak','howitzer'].includes(source))?this.player:
     (source&&typeof source==='object'&&Number.isFinite(source.x)&&
      Number.isFinite(source.y)&&source.hp>0)?source:null;
-  if(e.signalIntel&&aggressor)alertSignalIntel(e.signalIntel,aggressor,this.time);
+  // A damaged patrol does not obtain a live target coordinate through a wall.
+  // Actual optical contact is allowed to identify an attacker; otherwise it
+  // can only investigate a coarse direction inferred from the impact.
+  const sawAttacker=!!aggressor&&this.enemyCanSee(e,aggressor);
+  const attackRange=aggressor===this.player&&!sawAttacker?
+    estimatedWeaponRange(source):aggressor?dist(e,aggressor):0;
+  const impactEstimate=aggressor===this.player&&!sawAttacker?
+    incomingFireEstimate(e,attackRange,contact):null;
+  if(e.signalIntel&&aggressor){
+    if(sawAttacker)alertSignalIntel(e.signalIntel,aggressor,this.time);
+    else alertSignalThreat(e.signalIntel,impactEstimate,this.time);
+  }
   const hpBefore=e.hp;
   damage=stormWeaponDamage(e,damage,source,this.time);
   e.hp-=damage;e.hit=.12;
   this.enemyLearning?.damaged(e,Math.min(hpBefore,Math.max(0,damage)));
   this.enemyComms?.reportHit(e,Math.min(hpBefore,Math.max(0,damage)),this.time);
   if(aggressor===this.player&&e.hp>0)
-   this.enemyComms?.reportAttack(e,source,dist(e,this.player),this.time,contact);
-  if(e.hp<=0)this.enemyComms?.reportLoss(e,this);
+   this.enemyComms?.reportAttack(e,source,attackRange,this.time,contact);
+  if(e.hp<=0)this.enemyComms?.reportLoss(e,this,
+    aggressor===this.player?{weapon:source,range:attackRange,contact}:null);
   if(this.visuals?.capitalDamageQA&&e.type==='gunship'&&e.serial%2===0)
    recordCapitalHit(e,contact,this.time);
   if(this.time>(e.nextVfxHit||0)){
