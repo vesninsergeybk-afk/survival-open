@@ -89,8 +89,10 @@ test('the optional art loads only when a scout requests it',()=>{
  globalThis.Image=class {
   constructor(){constructed++;this.naturalWidth=0;this.naturalHeight=0;}
   set src(url){
-   this.naturalWidth=url.includes('iris-body')?480:960;
-   this.naturalHeight=url.includes('iris-body')?480:320;
+   this.naturalWidth=url.includes('iris-body')?480:
+    url.includes('iris-scan-core')?160:960;
+   this.naturalHeight=url.includes('iris-body')?480:
+    url.includes('iris-scan-core')?160:320;
    this.onload?.();
   }
  };
@@ -101,7 +103,7 @@ test('the optional art loads only when a scout requests it',()=>{
   assert.equal(constructed,0);
   const e={type:'scout',serial:1,x:10,y:20,r:14,vx:110,vy:0,visualAngle:0};
   assert.equal(drawIrisDrone(ctx,e,2),true);
-  assert.equal(constructed,2);
+  assert.equal(constructed,3);
   assert.equal(draws.length,2,'engines run even when the armor is closed');
   assert.deepEqual(draws[1].slice(1,5),[0,0,160,160]);
   assert.ok(draws[1][7]<34,'rendered hull has been reduced to scout scale');
@@ -131,7 +133,27 @@ test('the optional art loads only when a scout requests it',()=>{
     'a side-dash uses the strongest existing exhaust art');
   assert.deepEqual(draws[1].slice(1,5),[320,0,160,160],
     'the shell briefly half-closes during the side-dash');
-  assert.equal(constructed,2);
+  assert.equal(constructed,3);
  }finally{globalThis.Image=originalImage;}
+});
+
+test('actual scan state opens painted petals and purple scanner without new assets',()=>{
+ const calls=[],texts=[];
+ const ctx={save(){},restore(){},translate(){},rotate(){},scale(){},
+  beginPath(){},closePath(){},clip(){},moveTo(){},lineTo(){},arc(){},
+  fill(){},stroke(){},fillText(...a){texts.push(a);},
+  drawImage(...a){calls.push(a);},set globalAlpha(v){},
+  set imageSmoothingEnabled(v){},set strokeStyle(v){},set fillStyle(v){},
+  set lineWidth(v){},set lineCap(v){},set textAlign(v){},
+  set textBaseline(v){},set font(v){}
+ };
+ const e={type:'scout',serial:5,x:10,y:15,r:14,vx:0,vy:0,
+  _irisScanMode:'acquire',_irisScanStarted:10,visualAngle:0};
+ assert.equal(drawIrisDrone(ctx,e,10.77),true);
+ assert.ok(calls.length>=4,'core plus three physically transformed original petals');
+ assert.ok(texts.some(x=>x[0]==='!'),'acquisition indicator');
+ calls.length=0;texts.length=0;e._irisScanMode='lost';e._irisScanStarted=12;
+ assert.equal(drawIrisDrone(ctx,e,12.77),true);
+ assert.ok(texts.some(x=>x[0]==='?'),'search indicator');
 });
 
