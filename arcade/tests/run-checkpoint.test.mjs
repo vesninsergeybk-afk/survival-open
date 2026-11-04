@@ -65,7 +65,8 @@ test('checkpoint restores hull, inventory, progression, changed rocks and networ
 test('station point defense does not regain spent charges when the run is resumed',()=>{
  const g=scene(),base=g.docked;
  base.defense={charges:0,rechargeAt:260.5,interceptAt:244.2,
-  stasisAt:270.1,visualAt:242,visualKind:'meteor'};
+  stasisAt:270.1,visualAt:242,visualKind:'meteor',
+  lastLinked:false,meteorEnabled:false};
  g.enemies=[{type:'fighter',x:base.x+100,y:base.y,vx:0,vy:0,r:14,hp:50,maxHp:50,
   stasisUntil:245,stasisImmuneUntil:261}];
  const {storage}=save(g),fresh=scene();
