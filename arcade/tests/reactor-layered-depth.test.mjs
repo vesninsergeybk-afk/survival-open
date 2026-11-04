@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ReactorLandmark, REACTOR_LANDMARK_ANCHOR, REACTOR_LANDMARK_SIZE, REACTOR_DEPTH_RATES, reactorParallaxAnchor} from '../reactor-landmark.js';
+import {ReactorLandmark, REACTOR_LANDMARK_ANCHOR, REACTOR_LANDMARK_SIZE, REACTOR_DEPTH_RATES, reactorParallaxAnchor, reactorSceneScale} from '../reactor-landmark.js';
 
 function makeContext() {
  const events = [];
@@ -96,16 +96,45 @@ test('workshop can use four energy tiles without changing gameplay contracts', (
 });
 
 
-test('only detached infrastructure and haze have parallax; hull stays locked to the core', () => {
+test('whole rigid reactor uses an intermediate parallax depth', () => {
  const cam={x:1080,y:690};
- assert.deepEqual(reactorParallaxAnchor({x:80,y:-310},REACTOR_DEPTH_RATES.distant),
-  REACTOR_LANDMARK_ANCHOR);
  const distant=reactorParallaxAnchor(cam,REACTOR_DEPTH_RATES.distant);
  const haze=reactorParallaxAnchor(cam,REACTOR_DEPTH_RATES.haze);
  const hull=reactorParallaxAnchor(cam,REACTOR_DEPTH_RATES.hull);
- assert.ok(distant.x>haze.x&&haze.x>hull.x);
- assert.ok(distant.y>haze.y&&haze.y>hull.y);
- assert.deepEqual(hull,REACTOR_LANDMARK_ANCHOR);
+ const nearDust=reactorParallaxAnchor(cam,REACTOR_DEPTH_RATES.foregroundDust);
+ assert.ok(distant.x>haze.x&&haze.x>hull.x&&hull.x>nearDust.x);
+ assert.ok(distant.y>haze.y&&haze.y>hull.y&&hull.y>nearDust.y);
+ assert.ok(REACTOR_DEPTH_RATES.hull>REACTOR_DEPTH_RATES.distant);
+ assert.ok(REACTOR_DEPTH_RATES.hull<1,'the reactor must move slower than ships');
+ const cam2={x:cam.x+400,y:cam.y};
+ const screen1=hull.x-cam.x;
+ const screen2=reactorParallaxAnchor(cam2,REACTOR_DEPTH_RATES.hull).x-cam2.x;
+ assert.ok(Math.abs((screen2-screen1)+400*REACTOR_DEPTH_RATES.hull)<1e-6);
+});
+
+test('visual reactor fits inside 80 percent of both desktop and mobile view width', () => {
+ for(const width of [620,1100,1200]){
+  const scale=reactorSceneScale({w:width,h:800});
+  assert.ok(scale>0&&scale<=.58);
+  assert.ok(scale*REACTOR_LANDMARK_SIZE.width<=width*.80+.0001);
+ }
+ assert.ok(reactorSceneScale({w:620})<reactorSceneScale({w:1200}));
+ assert.equal(reactorSceneScale({w:1200},.6),.6,'workshop can inspect alternative scales');
+});
+
+test('particles occupy two passes without allocating canvases during motion', () => {
+ withCanvasMocks(({canvasCreations}) => {
+  const reactor=new ReactorLandmark(),cam={x:-470,y:-650,w:1100,h:650};
+  assert.equal(reactor.particles.length,64);
+  const frame=makeContext(),pre=canvasCreations();
+  reactor.draw(frame,cam,10,60,false);
+  const withDust=frame.events.filter(x=>x==='fillRect').length;
+  reactor.layers.particles=false;
+  const noDust=makeContext();
+  reactor.draw(noDust,cam,10,60,false);
+  assert.ok(withDust>noDust.events.filter(x=>x==='fillRect').length);
+  assert.equal(canvasCreations(),pre);
+ });
 });
 
 test('depth planes can be disabled independently without hiding the reactor core', () => {

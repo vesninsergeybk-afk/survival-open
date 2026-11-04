@@ -1,6 +1,6 @@
-// The reactor is an enormous distant landmark, not a collision object.
-// All rigid metalwork and the core stay at one fixed world anchor.
-// Only the existing sky/independent dust may use camera parallax.
+// The reactor is scenic background: no colliders or interactive core yet.
+// Connected metal and the glow use the same parallax anchor and scale;
+// detached structures, suspended fog and motes occupy other depth planes.
 const ANCHOR = Object.freeze({x: 80, y: -310});
 const WORLD_WIDTH = 1900;
 const WORLD_HEIGHT = 1190;
@@ -15,9 +15,18 @@ const PROJECTION = Object.freeze({a: 1.02, b: -.04, c: .075, d: .73});
 const ENERGY_ASSET = './studio/assets/reactor-energy-milestones-v1.png';
 
 
-// Only detached background structures and suspended haze move at different
-// apparent depths. The connected hull, inner ring, and energy core stay 1:1.
-export const REACTOR_DEPTH_RATES = Object.freeze({distant: .66, haze: .84, hull: 1});
+// At 0 the image barely follows the camera (distant stars), at 1 it moves
+// like ships. The connected station is between the starfield and gameplay.
+export const REACTOR_DEPTH_RATES = Object.freeze({
+ distant:.52, haze:.68, hull:.80, foregroundDust:.95
+});
+const VIEWPORT_FRACTION = .80;
+const MAX_SCENE_SCALE = .58;
+export function reactorSceneScale(cam, override = null) {
+ if(Number.isFinite(override))return Math.max(.18,Math.min(.8,override));
+ const w=Number.isFinite(cam?.w)&&cam.w>0?cam.w:1200;
+ return Math.max(.18,Math.min(MAX_SCENE_SCALE,w*VIEWPORT_FRACTION/WORLD_WIDTH));
+}
 const SCENIC_WIDTH = 2900;
 const SCENIC_HEIGHT = 1600;
 export function reactorParallaxAnchor(cam, rate) {
@@ -45,7 +54,19 @@ export class ReactorLandmark {
   this.distant = this.makeDistant();
   this.mist = this.makeMist();
   this.nearHull = null;
-  this.layers = {distant:true,mist:true,near:true};
+  this.layers = {distant:true,mist:true,near:true,particles:true};
+  this.hullRate = Number.isFinite(options.hullRate)?
+   Math.max(.5,Math.min(1,options.hullRate)):REACTOR_DEPTH_RATES.hull;
+  this.scaleOverride = Number.isFinite(options.scale)?options.scale:null;
+  // Fixed particle seeds: no random placement and no array allocations per frame.
+  this.particles=Array.from({length:64},(_,i)=>({
+   x:((i*397+113)%1880)-940,
+   y:((i*227+41)%940)-470,
+   speed:.8+(i%5)*.43,
+   size:i%9===0?2.2:i%3===0?1.5:1,
+   near:i%3===0,
+   phase:i*.73
+  }));
   this.failed = false;
   this.energyAtlas = null;
   this.energyFailed = false;
@@ -181,7 +202,7 @@ export class ReactorLandmark {
    const r=42+(i*37)%105,stretch=1.4+(i%5)*.44;
    c.save();c.translate(x,y);c.scale(stretch,.42+(i%4)*.1);
    const grad=c.createRadialGradient(0,0,3,0,0,r);
-   const a=.065+(i%4)*.015;
+   const a=.09+(i%4)*.021;
    grad.addColorStop(0,'rgba(80,156,187,'+a.toFixed(3)+')');
    grad.addColorStop(.46,'rgba(48,98,143,'+(a*.62).toFixed(3)+')');
    grad.addColorStop(1,'rgba(22,62,111,0)');
@@ -217,22 +238,52 @@ export class ReactorLandmark {
   c.restore();
   return canvas;
  }
- drawDistant(ctx,cam) {
+ drawDistant(ctx,cam,scale) {
   if(!this.distant || !this.layers.distant)return;
   const pos=reactorParallaxAnchor(cam,REACTOR_DEPTH_RATES.distant);
-  ctx.save();ctx.globalAlpha=.42;
-  ctx.drawImage(this.distant,pos.x-1440,pos.y-730,2880,1390);
+  ctx.save();ctx.translate(pos.x,pos.y);ctx.scale(scale*.93,scale*.93);
+  ctx.globalAlpha=.36;
+  ctx.drawImage(this.distant,-1440,-730,2880,1390);
   ctx.restore();
  }
- drawMist(ctx,cam,time,fps,reducedMotion,inFront=false) {
+ drawMist(ctx,cam,time,fps,reducedMotion,inFront=false,scale=1) {
   if(!this.mist || !this.layers.mist)return;
-  const pos=reactorParallaxAnchor(cam,REACTOR_DEPTH_RATES.haze);
-  const drift=(!reducedMotion&&fps>=34)?Math.sin(time*.12)*11:0;
+  const rate=inFront?.87:REACTOR_DEPTH_RATES.haze;
+  const pos=reactorParallaxAnchor(cam,rate);
+  const drift=(!reducedMotion&&fps>=34)?Math.sin(time*(inFront?.17:.12))*20:0;
+  ctx.save();ctx.translate(pos.x,pos.y);ctx.scale(scale,scale);
+  ctx.globalAlpha=inFront?.65:.42;
+  ctx.drawImage(this.mist,
+   (inFront?-565:-790)+drift,inFront?-55:-290,
+   inFront?1140:1570,inFront?430:650);
+  ctx.restore();
+ }
+ drawParticles(ctx,cam,time,fps,reducedMotion,front,scale) {
+  if(!this.layers.particles)return;
+  const rate=front?REACTOR_DEPTH_RATES.foregroundDust:.61;
+  const pos=reactorParallaxAnchor(cam,rate);
+  const count=fps<34?22:fps<50?40:this.particles.length;
+  const elapsed=(!reducedMotion&&fps>=34)?time:0;
   ctx.save();
-  ctx.globalAlpha=inFront?.52:.28;
-  const x=pos.x+(inFront?-535:-790)+drift;
-  const y=pos.y+(inFront?-60:-290);
-  ctx.drawImage(this.mist,x,y,inFront?1120:1530,inFront?410:650);
+  ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<count;i++){
+   const p=this.particles[i];
+   if(p.near!==front)continue;
+   const drift=elapsed*p.speed*7;
+   const x=((p.x+drift+940)%1880)-940;
+   const y=p.y+Math.sin(elapsed*.19+p.phase)*(reducedMotion?0:8);
+   const fade=Math.max(0,1-Math.abs(x)/940)*Math.max(0,1-Math.abs(y)/470);
+   if(fade<.07)continue;
+   const px=pos.x+x*scale,py=pos.y+y*scale;
+   ctx.globalAlpha=fade*(front?.37:.24);
+   ctx.fillStyle=front?'#92dce8':'#668eaf';
+   const dot=p.size*(scale<.35?1.65:1);
+   ctx.fillRect(px,py,dot,dot);
+   if(front&&p.size>2&&fps>=50&&!reducedMotion){
+    ctx.strokeStyle='#78b8c9';ctx.lineWidth=.7;
+    ctx.beginPath();ctx.moveTo(px-4,py+1);ctx.lineTo(px+2,py);ctx.stroke();
+   }
+  }
   ctx.restore();
  }
 
@@ -286,31 +337,34 @@ export class ReactorLandmark {
   }
  }
  draw(ctx, cam, time = 0, fps = 60, reducedMotion = false, stage = 0, activationAge = Infinity) {
-  if (!this.hull) return;
-  const x=ANCHOR.x,y=ANCHOR.y;
-  if(x+SCENIC_WIDTH/2<cam.x||x-SCENIC_WIDTH/2>cam.x+cam.w||
-     y+SCENIC_HEIGHT/2<cam.y||y-SCENIC_HEIGHT/2>cam.y+cam.h)return;
+  if(!this.hull)return;
+  const scale=reactorSceneScale(cam,this.scaleOverride);
+  const center=reactorParallaxAnchor(cam,this.hullRate);
+  const reachX=SCENIC_WIDTH*scale*.7,reachY=SCENIC_HEIGHT*scale*.7;
+  if(center.x+reachX<cam.x||center.x-reachX>cam.x+cam.w||
+     center.y+reachY<cam.y||center.y-reachY>cam.y+cam.h)return;
 
-  // Detached silhouettes respond to the camera; real structure never does.
-  this.drawDistant(ctx,cam);
-  this.drawMist(ctx,cam,time,fps,reducedMotion,false);
-  ctx.save();ctx.translate(x,y);
+  // Depth order: detached trusses, far motes, haze, full connected hull,
+  // interstitial fog, near metal, core, and foreground drifting motes.
+  this.drawDistant(ctx,cam,scale);
+  this.drawParticles(ctx,cam,time,fps,reducedMotion,false,scale);
+  this.drawMist(ctx,cam,time,fps,reducedMotion,false,scale);
+  ctx.save();ctx.translate(center.x,center.y);ctx.scale(scale,scale);
   if(this.glow){
-   ctx.globalAlpha=.15;
-   ctx.drawImage(this.glow,-330,-330,660,660);
+   ctx.globalAlpha=.15;ctx.drawImage(this.glow,-330,-330,660,660);
   }
   ctx.globalAlpha=.88;
   ctx.drawImage(this.hull,-WORLD_WIDTH/2,-WORLD_HEIGHT/2,WORLD_WIDTH,WORLD_HEIGHT);
   ctx.restore();
-  // Suspended atmospheric material lies between depth planes.
-  this.drawMist(ctx,cam,time,fps,reducedMotion,true);
-  ctx.save();ctx.translate(x,y);
+  this.drawMist(ctx,cam,time,fps,reducedMotion,true,scale);
+  ctx.save();ctx.translate(center.x,center.y);ctx.scale(scale,scale);
   if(this.nearHull&&this.layers.near){
    ctx.globalAlpha=.32;
    ctx.drawImage(this.nearHull,-WORLD_WIDTH/2,-WORLD_HEIGHT/2,WORLD_WIDTH,WORLD_HEIGHT);
   }
   this.drawCore(ctx,time,fps,reducedMotion,stage,activationAge);
   ctx.restore();
+  this.drawParticles(ctx,cam,time,fps,reducedMotion,true,scale);
  }
 }
 
