@@ -102,6 +102,8 @@
      coexist, the optional radar yields its space; Map remains available. */
   body:has(#ionBtn:not([hidden])):has(#hackBtn:not([hidden])):has(#strikeBtn:not([hidden]))
     #hud.cockpit-hud .radar-unit { display:none }
+  body:has(#precisionBtn:not([hidden])):has(#ionBtn:not([hidden])):has(#hackBtn:not([hidden]))
+    #hud.cockpit-hud .radar-unit { display:none }
 
   /* A notice is a brief lower-edge caption, never a panel across the pilot.
      Center it in the free corridor *between* joystick and right buttons. */
@@ -169,8 +171,9 @@
   #actionBtn::before { width:22px;height:22px;left:8px }
   #burstBtn,#quietBtn { min-height:44px;font-size:10px;padding-left:25px }
   #burstBtn::before,#quietBtn::before { left:5px;width:18px;height:18px }
-  .mobile-abilities { bottom:99px;gap:4px }
+  .mobile-abilities { bottom:99px;gap:4px;flex-wrap:wrap;max-width:calc(100vw - 300px) }
   .mobile-abilities button { min-height:44px;width:75px;font-size:9px;padding-left:27px }
+  #precisionBtn[aria-pressed="true"] { filter:brightness(1.25) drop-shadow(0 0 4px #82dfff88) }
 }
 
 /* A narrow landscape viewport cannot fit an always-on radar alongside the
