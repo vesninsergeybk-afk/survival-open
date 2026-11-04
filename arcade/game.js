@@ -2,11 +2,11 @@ import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamer
 import {World} from './world.js?v=arcade-base-network-40';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=relay-def-1-scout-evasion-1-iris-scan-1-inertial-2';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=iris-hunter-1';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1';
 import {createSignalIntel,alertSignalIntel} from './signal-perception.js?v=arcade-perception-61';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
-import {ArcadeVisuals} from './visuals.js?v=weapons-cycle-2';
+import {ArcadeVisuals} from './visuals.js?v=iris-hunter-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
@@ -1815,12 +1815,13 @@ export class ArcadeGame {
  enemyBasesUnlocked(){return this.player.level>=RULES.enemyBaseUnlockLevel&&
   this.activeBases>=RULES.enemyBaseUnlockStations;}
  assaulting(b){return dist(this.player,b)<430 && !b.captured;}
- enemyShot(x,y,tx,ty,damage){
-  if(this.shots.length>=RULES.maxShots)return;
-  const d=length(tx-x,ty-y)||1,speed=230;
+ enemyShot(x,y,tx,ty,damage,options=null){
+  if(this.shots.length>=RULES.maxShots)return false;
+  const d=length(tx-x,ty-y)||1,speed=options?.speed||230;
   this.shots.push({x,y,vx:(tx-x)/d*speed,vy:(ty-y)/d*speed,
-   damage,r:6,life:3.3,alive:true});
+   damage,r:options?.r||6,life:3.3,alive:true,kind:options?.kind||'laser'});
   this.heritage.play('enemyShot',.28,{x,y});
+  return true;
  }
  shotsNear(x,y,r){return this.shotGrid.query(x,y,r);}
  avoidance(x,y,r){
@@ -2778,7 +2779,8 @@ export class ArcadeGame {
    if(outsideCamera(s.x,s.y,cam,15))continue;
    if(this.fps>=28&&this.visuals.drawHostileShot(c,s))continue;
    const d=Math.hypot(s.vx,s.vy)||1,ux=s.vx/d,uy=s.vy/d;
-   c.save();c.strokeStyle='#ff7186';c.lineWidth=4;c.lineCap='round';
+   c.save();c.strokeStyle=s.kind==='iris'?'#c49aff':'#ff7186';
+   c.lineWidth=s.kind==='iris'?3.2:4;c.lineCap='round';
    c.beginPath();c.moveTo(s.x-ux*12,s.y-uy*12);
    c.lineTo(s.x+ux*5,s.y+uy*5);c.stroke();c.restore();
   }
