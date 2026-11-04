@@ -55,7 +55,7 @@ test('the full map previews a mission without accepting it and offers return to 
 test('station operations expose risk, consequences, route and preparation without spoiling waves',()=>{
  const b=home(),w=world([b]);
  const h=renderBasePanel(b,stationState(w,{baseTab:'operations'}));
- assert.match(h,/Отключить глушитель и вернуться в док/);
+ assert.match(h,/Отключить глушитель и доставить телеметрию в док/);
  assert.match(h,/Подробности и опасности/);
  assert.match(h,/После выполнения:/);
  assert.match(h,/Посмотреть район/);
