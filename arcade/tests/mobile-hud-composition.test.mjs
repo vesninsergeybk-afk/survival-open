@@ -7,7 +7,7 @@ const touch=readFileSync(new URL('../mobile-hud.css',import.meta.url),'utf8');
 
 test('landscape touch HUD stylesheet loads after the authored HUD',()=>{
  const artwork=page.indexOf('hud-art.css?v=');
- const responsive=page.indexOf('mobile-hud.css?v=landscape-rail-02');
+ const responsive=page.indexOf('mobile-hud.css?v=landscape-rail-03');
  assert.ok(artwork>=0&&responsive>artwork,'touch rules must override the artwork rules');
  assert.match(touch,/@media \(pointer:coarse\) and \(orientation:landscape\)/);
  assert.doesNotMatch(touch,/@media \(pointer:fine\)/,'desktop controls must remain untouched');

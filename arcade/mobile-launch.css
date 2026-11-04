@@ -1,0 +1,79 @@
+/* Browser-first mobile entry; never displayed on a desktop or installed PWA. */
+#mobileLaunch{display:none}
+@media (pointer:coarse){
+  #mobileLaunch:not([hidden]){
+    position:fixed;inset:0;z-index:250;display:grid;place-items:center;
+    padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right))
+      max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
+    background:linear-gradient(150deg,#020a18f5,#061729ef 60%,#062332ed);
+    backdrop-filter:blur(10px);overflow-y:auto;
+  }
+  .mobile-launch-card{
+    display:flex;flex-direction:column;align-items:center;
+    width:min(370px,100%);max-height:calc(100dvh - 24px);overflow-y:auto;
+    padding:19px 22px 16px;text-align:center;
+    background:linear-gradient(150deg,#14324a,#081928);
+    border:1px solid #75dce09c;border-radius:18px;
+    box-shadow:0 16px 65px #000b,0 0 36px #2bbfc11b;
+    color:#e9fcff;font-family:system-ui,sans-serif;
+  }
+  .mobile-launch-mark{
+    display:grid;place-items:center;flex:none;margin:0 0 12px;
+    width:65px;height:56px;color:#b9f6ff;
+  }
+  .mobile-launch-phone{
+    position:relative;width:30px;height:48px;
+    border:3px solid #9af2ec;border-radius:7px;
+    background:linear-gradient(145deg,#22617c,#061725);
+    box-shadow:0 0 17px #55deeb4e;transform:rotate(-90deg);
+  }
+  .mobile-launch-phone::after{
+    content:"";position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
+    width:5px;height:2px;border-radius:2px;background:#b9f8f3;
+  }
+  .mobile-launch-label{font-size:10px;font-weight:750;letter-spacing:.18em;color:#8ed7e3}
+  #mobileLaunchTitle{font-size:clamp(17px,4.8vw,23px);line-height:1.13;margin:5px 0 6px}
+  #mobileLaunchHint{font-size:12px;line-height:1.4;color:#bfd8e4;margin:0 0 14px}
+  .mobile-launch-actions{display:flex;flex-wrap:wrap;gap:8px;width:100%;justify-content:center}
+  .mobile-launch-actions button{
+    min-height:44px;border-radius:11px;padding:9px 12px;
+    touch-action:manipulation;color:#e8fdff;font:700 12px system-ui;
+    border:1px solid #6cd1de80;background:#16354a;
+  }
+  #mobileFullscreenBtn{
+    flex:1 1 180px;color:#052431;border-color:#adfff6;
+    background:linear-gradient(120deg,#9df5e2,#6fd2e9);
+  }
+  #mobileContinueBtn{flex:1 1 150px}
+  .mobile-launch-actions button:focus-visible{outline:3px solid #fff4b8;outline-offset:2px}
+  .mobile-launch-actions button:disabled{opacity:.65}
+  #mobileLaunchError{color:#ffe3ab;font-size:11px;line-height:1.3;margin:9px 0 0}
+  body.mobile-launch-open #audioControls{visibility:hidden}
+  .mobile-menu #exitFullscreenBtn{
+    width:38px;min-width:38px;min-height:42px;padding:0;
+    font-size:19px;line-height:1;color:#b6f7f4;
+  }
+}
+@media (pointer:coarse) and (orientation:landscape){
+  .mobile-launch-card{
+    width:min(525px,100%);padding:12px 16px;
+    flex-direction:row;gap:16px;text-align:left;
+  }
+  .mobile-launch-mark{width:70px;height:80px;margin:0}
+  .mobile-launch-phone{width:34px;height:53px}
+  .mobile-launch-copy{flex:1;min-width:0}
+  #mobileLaunchTitle{font-size:18px;margin:3px 0 3px}
+  #mobileLaunchHint{font-size:11px;margin:0 0 9px}
+  .mobile-launch-actions{justify-content:flex-start}
+  .mobile-launch-actions button{flex:0 1 auto;min-height:42px;font-size:11px}
+}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:250px){
+  .mobile-launch-card{padding:8px 13px;gap:12px}
+  .mobile-launch-mark{height:60px;width:53px}
+  #mobileLaunchTitle{font-size:16px}
+  #mobileLaunchHint{font-size:10px;margin-bottom:6px}
+  .mobile-launch-actions button{min-height:38px;padding:6px 10px}
+}
+@media(prefers-reduced-motion:reduce){
+  #mobileLaunch{backdrop-filter:none}
+}
