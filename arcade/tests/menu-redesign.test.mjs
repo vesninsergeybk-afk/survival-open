@@ -155,7 +155,7 @@ test('published entry points invalidate the entire changed ES-module import chai
  const source=relative=>readFileSync(new URL('../'+relative,import.meta.url),'utf8');
  const game=source('game.js'),base=source('base-panel.js');
  const preview=source('hangar-preview.js');
- assert.match(source('index.html'),/game\.js\?v=iris-pack-1-first-contract-reward-1/);
+ assert.match(source('index.html'),/game\.js\?v=iris-pack-1-first-contract-reward-1-enemy-learning-1/);
  assert.match(game,/base-panel\.js\?v=first-contract-reward-1/);
  assert.match(game,/first-contract-reward\.js\?v=first-contract-reward-1/);
  assert.match(game,/ship-loadout\.js\?v=first-contract-reward-1/);
