@@ -15,7 +15,7 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=weapons-cycle-2';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=weapons-cycle-2-menu-permanence-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=weapons-cycle-2';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
@@ -203,7 +203,13 @@ export class ArcadeGame {
   document.addEventListener('keydown',e=>{
    if(!this.overlay.hidden&&this.overlay.dataset.mode==='run-start')return;
    // A menu owns Tab for focus navigation; during flight Tab opens the map.
-   if(e.code==='Escape'&&!this.overlay.hidden){e.preventDefault();this.dismiss();return;}
+   if(e.code==='Escape'&&!this.overlay.hidden){
+    e.preventDefault();
+    if(this.pendingStationModule&&this.overlay.dataset.mode==='base'){
+     this.cancelStationModule(this.pendingStationModule.role);return;
+    }
+    this.dismiss();return;
+   }
    if(e.code==='Tab'&&!this.overlay.hidden)return;
    // Let focused mixer sliders and buttons handle their own keys.
    if(e.ctrlKey||e.metaKey||e.altKey)return;
@@ -253,11 +259,8 @@ export class ArcadeGame {
     this.overlay.querySelector('.map-view-switch [aria-pressed="true"]')?.focus({preventScroll:true});return;
    }
    if(act==='installModule'){this.askStationModule(b.dataset.role);return;}
-   if(act==='confirmModule'){this.baseAction('installModule',b.dataset.role||'');return;}
-   if(act==='cancelModule'){
-    this.overlay.querySelector('.base-module-confirm')?.remove();
-    this.overlay.querySelector('[data-act="installModule"][data-role="'+b.dataset.role+'"]')?.focus({preventScroll:true});return;
-   }
+   if(act==='confirmModule'){this.confirmStationModule(b.dataset.role||'');return;}
+   if(act==='cancelModule'){this.cancelStationModule(b.dataset.role||'');return;}
    if(act==='close')this.dismiss();
     if(act==='baseTab'&&['summary','operations','hangar','network'].includes(b.dataset.role)){
      this.baseTab=b.dataset.role;this.heritage.ui('tab');this.renderDock();
@@ -385,6 +388,7 @@ export class ArcadeGame {
   }
   dismiss(){
    if(!this.overlay.hidden&&this.overlay.dataset.mode==='run-start')return;
+   this.pendingStationModule=null;
    // A player can depart directly, through the map or through another panel.
    // The station arms one departure until the overlay actually closes; maps
    // opened later during a flight must not reset that flight's baseline.
@@ -470,7 +474,7 @@ export class ArcadeGame {
   let content='<header class="skill-head"><h2>Развитие пилота · '+p.points+' '+pointsWord(p.points)+
    '</h2><p>Уровень '+p.level+' · опыт '+Math.floor(p.xp)+' / '+expForNext(p.level)+
    '. Данные с врагов дают опыт и очки развития; сплав из метеоритов нужен для флота и баз.</p></header>'+
-   '<p class="skill-hangar-note">Оружие, двигатель, корпус и щиты улучшайте в ангаре активной станции. Потраченные очки и изученные ранги сохраняются до конца вылета.</p>'+
+   '<p class="skill-hangar-note">Оружие, двигатель, корпус и щиты улучшайте в ангаре активной станции. Изученные навыки сохраняются и после следующей стыковки.</p>'+
    '<section class="doctrine-strip"><div class="doctrine-header"><strong>БОЕВАЯ ДОКТРИНА</strong><small>'+(
     this.doctrine?'Выбрано направление. Сменить его можно на активной базе за 12 сплава.':
     'Один мощный стиль на выбор с 4-го уровня · стоит 1 очко · смена на базе.'
@@ -1041,6 +1045,7 @@ export class ArcadeGame {
  }
  renderDock(){
   if(!this.docked)return;
+  this.pendingStationModule=null;
   if(this.fieldLoan?.returnDue)this.returnBorrowedWeapon();
   this.syncShipLoadout();
   const view=captureHangarView(this.overlay);
@@ -1216,22 +1221,46 @@ export class ArcadeGame {
   this.renderDock();
  }
  askStationModule(role){
+  this.pendingStationModule=null;
+  this.overlay.querySelector('.base-module-confirm')?.remove();
   const base=this.docked,spec=base?stationModule(base.type,role):null;
-  if(!base?.active||!spec||base.module||this.player.ore<spec.cost){
+  if(this.overlay.dataset.mode!=='base'||!base?.active||!spec||base.module||this.player.ore<spec.cost){
    this.heritage.ui('deny');this.notice('Недостаточно сплава или модуль уже выбран',2.5);return;
   }
   const container=this.overlay.querySelector('.base-modules');if(!container)return;
-  container.querySelector('.base-module-confirm')?.remove();
   const panel=document.createElement('aside');panel.className='base-module-confirm';
   panel.setAttribute('role','group');panel.setAttribute('aria-label','Подтверждение необратимой специализации');
   const heading=document.createElement('strong');heading.textContent='Подтвердить выбор: '+spec.name;
   const explanation=document.createElement('p');explanation.textContent=spec.desc+' Стоимость: '+spec.cost+
-   ' сплава. Второй модуль будет недоступен до конца этого вылета.';
+   ' сплава. После установки изменить специализацию этой станции в этом прохождении нельзя.';
+  explanation.id='base-module-confirm-desc';
   const buttons=document.createElement('div');
   const cancel=document.createElement('button');cancel.type='button';cancel.dataset.act='cancelModule';cancel.dataset.role=role;cancel.textContent='Вернуться к выбору';
   const confirm=document.createElement('button');confirm.type='button';confirm.dataset.act='confirmModule';confirm.dataset.role=role;confirm.className='base-decision-primary';confirm.textContent='Установить за '+spec.cost+' сплава';
+  confirm.setAttribute('aria-describedby','base-module-confirm-desc');
   buttons.append(cancel,confirm);panel.append(heading,explanation,buttons);container.append(panel);
-  panel.scrollIntoView({block:'nearest'});confirm.focus({preventScroll:true});
+  this.pendingStationModule={baseId:base.id,role,cost:spec.cost};
+  panel.scrollIntoView({block:'nearest'});
+  // Keep focus on the safe choice: holding Enter on the first purchase button
+  // must not accidentally accept the newly created, irreversible decision.
+  cancel.focus({preventScroll:true});
+ }
+ confirmStationModule(role){
+  const pending=this.pendingStationModule,base=this.docked;
+  const panel=this.overlay.querySelector('.base-module-confirm');
+  const spec=base?stationModule(base.type,role):null;
+  if(this.overlay.dataset.mode!=='base'||!panel||!pending||!base||
+   pending.baseId!==base.id||pending.role!==role||pending.cost!==spec?.cost){
+   this.heritage.ui('deny');return false;
+  }
+  this.pendingStationModule=null;
+  this.baseAction('installModule',role);
+  return true;
+ }
+ cancelStationModule(role){
+  this.pendingStationModule=null;
+  this.overlay.querySelector('.base-module-confirm')?.remove();
+  this.overlay.querySelector('[data-act="installModule"][data-role="'+role+'"]')?.focus({preventScroll:true});
  }
  baseAction(act,role){
   const b=this.docked,p=this.player;if(!b||this.dead)return;

@@ -486,7 +486,8 @@ export function renderBasePanel(base,state){
   '</div></section>':'';
  const modules=active?'<section class="base-modules"><div class="base-modules-heading"><span class="base-kicker">СПЕЦИАЛИЗАЦИЯ СТАНЦИИ</span><strong>'+
   (base.module?'Модуль установлен':'Выберите одно оснащение')+'</strong><small>'+
-  (base.module?'Выбор сохраняется на этой станции до конца вылета.':'Можно установить только один модуль. Второй станет недоступен до конца вылета; перед покупкой потребуется подтверждение.')+
+  (base.module?'Модуль закреплён за этой станцией: при следующей стыковке заменить его нельзя.':
+   'Можно установить только один модуль. После установки заменить его в этом прохождении нельзя; перед покупкой потребуется подтверждение.')+
   '</small></div><div class="base-module-options">'+o.moduleOptions.map(m=>
   '<div class="base-module-option'+(base.module===m.key?' selected':'')+'"><strong>'+m.name+'</strong><small>'+m.desc+'</small>'+
   (base.module===m.key?'<span class="base-module-installed">✓ УСТАНОВЛЕНО</span>':

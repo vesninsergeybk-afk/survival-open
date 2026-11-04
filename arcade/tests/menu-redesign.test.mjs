@@ -5,6 +5,7 @@ import {renderBasePanel} from '../base-panel.js';
 import {renderShipHangar} from '../hangar-panel.js';
 import {renderWorldMap} from '../map-panel.js';
 import {createLoadout,HangarSession} from '../ship-loadout.js';
+import {RuntimeHarness} from './runtime-game.mjs';
 
 const base={id:'0:0',x:0,y:0,type:'dock',active:true,discovered:true};
 const stationState={ore:84,data:12,hp:110,maxHp:110,shield:30,allies:0,
@@ -16,9 +17,59 @@ test('station menus retain real action handlers and make module consequences exp
  const html=renderBasePanel(base,{...stationState,baseTab:'network'});
  assert.match(html,/ВЫЖИВШИЙ \/ ТЕРМИНАЛ СТАНЦИИ/);
  assert.match(html,/station-dock/);
- assert.match(html,/Второй станет недоступен до конца вылета/);
+ assert.match(html,/После установки заменить его в этом прохождении нельзя/);
  assert.match(html,/data-act="installModule"/);
  assert.match(html,/aria-selected="true"/);
+});
+
+test('irreversible module confirmation requires the matching pending choice, with safe initial focus',()=>{
+ const prevDocument=globalThis.document;
+ let focused='',alerts=0,removed=0;
+ const container={panel:null,querySelector(){return this.panel;},append(panel){this.panel=panel;}};
+ const makeElement=tag=>({tag,dataset:{},children:[],attributes:{},textContent:'',
+  append(...children){this.children.push(...children);},
+  setAttribute(key,value){this.attributes[key]=value;},
+  scrollIntoView(){},focus(){focused=this.textContent;},
+  remove(){removed++;container.panel=null;}});
+ globalThis.document={createElement:makeElement};
+ try{
+  const game={
+   docked:{id:'dock-home',type:'dock',active:true},player:{ore:80},
+   overlay:{dataset:{mode:'base'},querySelector(selector){
+    if(selector==='.base-modules')return container;
+    if(selector==='.base-module-confirm')return container.panel;
+    if(selector.includes('data-act="installModule"'))return {focus(){focused='original';}};
+    return null;
+   }},
+   pendingStationModule:null,heritage:{ui(){alerts++;}},notice(){},purchases:[],
+   baseAction(act,role){this.purchases.push({act,role});container.panel=null;}
+  };
+  const runtime=RuntimeHarness.prototype;
+  runtime.confirmStationModule.call(game,'workshop');
+  assert.equal(alerts,1,'unconfirmed direct action must be rejected');
+  runtime.askStationModule.call(game,'workshop');
+  assert.equal(focused,'Вернуться к выбору','focus must not jump to irreversible purchase');
+  assert.equal(game.player.ore,80,'preview cannot spend resources');
+  assert.deepEqual(game.pendingStationModule,{baseId:'dock-home',role:'workshop',cost:38});
+  assert.equal(container.panel.children[2].children[1].attributes['aria-describedby'],'base-module-confirm-desc');
+  assert.equal(runtime.confirmStationModule.call(game,'bulwark'),false,'different role is not authorized');
+  assert.equal(game.purchases.length,0);
+  assert.equal(runtime.confirmStationModule.call(game,'workshop'),true);
+  assert.deepEqual(game.purchases,[{act:'installModule',role:'workshop'}]);
+  assert.equal(runtime.confirmStationModule.call(game,'workshop'),false,'stale confirmation cannot repeat purchase');
+  runtime.askStationModule.call(game,'workshop');
+  runtime.cancelStationModule.call(game,'workshop');
+  assert.equal(removed,1);
+  assert.equal(focused,'original');
+  assert.equal(runtime.confirmStationModule.call(game,'workshop'),false,'cancelled choice cannot be committed');
+  assert.equal(game.purchases.length,1);
+  game.player.ore=20;
+  runtime.askStationModule.call(game,'workshop');
+  assert.equal(game.pendingStationModule,null,'unaffordable choice cannot start confirmation');
+ }finally{
+  if(prevDocument===undefined)delete globalThis.document;
+  else globalThis.document=prevDocument;
+ }
 });
 
 test('the loadout summary and costs precede large artwork and carry real range estimates',()=>{
@@ -74,6 +125,7 @@ test('new artwork is lightweight and every path is present in the actual Pages g
  }
  assert.match(game,/askStationModule\(role\)/);
  assert.match(game,/act==='confirmModule'/);
+ assert.match(game,/this\.cancelStationModule\(this\.pendingStationModule\.role\)/);
  assert.match(game,/act==='skillBranch'/);
  assert.match(game,/act==='mapView'/);
  assert.match(css,/prefers-reduced-motion/);
@@ -102,4 +154,20 @@ test('active menu controls never override positioning transforms used by ship ha
  assert.doesNotMatch(reducedRule,/transform\s*:/,'reduced motion must not displace ship hardpoints');
  assert.match(css,/\.base-foot\s*\{position:sticky;bottom:0/,'station return action must stay visible while panels scroll');
  assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/menu-system\.css\?v=menus-gameplay-first-4/);
+});
+
+test('landscape phone layout reserves notches and exposes navigation without three desktop columns',()=>{
+ const css=readFileSync(new URL('../menu-system.css',import.meta.url),'utf8');
+ const compact=css.slice(css.indexOf('@media(max-height:580px) and (max-width:980px)'),
+  css.indexOf('@media(max-width:480px) and (min-height:581px)'));
+ assert.match(compact,/env\(safe-area-inset-left\)/);
+ assert.match(compact,/env\(safe-area-inset-right\)/);
+ assert.match(compact,/#overlay \.base-dialog,#overlay \.map-dialog,#overlay \.skill-dialog\s*\{[^}]*width:100%;min-width:0;max-width:100%/);
+ assert.match(compact,/\.map-view-switch\{display:grid/);
+ assert.match(compact,/\.skill-branch-tabs\{display:grid/);
+ const coarse=css.slice(css.indexOf('@media(pointer:coarse) and (max-height:580px)'));
+ assert.match(coarse,/\.hg-layout\{display:block/);
+ assert.match(coarse,/\.hg-mobile-only\{display:inline-block!important/);
+ assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),
+  /menu-system\.css\?v=menus-gameplay-first-4-economy-1-mobile-safe-1/);
 });

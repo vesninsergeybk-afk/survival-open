@@ -264,8 +264,12 @@
  .skill-columns{grid-template-columns:1fr}
 }
 @media(max-height:580px) and (max-width:980px){
- #overlay{padding:4px;align-items:stretch}
- #overlay .base-dialog,#overlay .map-dialog,#overlay .skill-dialog{max-height:calc(100dvh - 8px);padding:7px 9px;width:99vw}
+ /* Landscape phones may reserve screen edges for a camera cutout or gestures.
+    Make the dialog fit inside the usable area, not inside 99% of the viewport. */
+ #overlay{padding:max(4px,env(safe-area-inset-top)) max(4px,env(safe-area-inset-right))
+  max(4px,env(safe-area-inset-bottom)) max(4px,env(safe-area-inset-left));align-items:stretch}
+ #overlay .base-dialog,#overlay .map-dialog,#overlay .skill-dialog{
+  width:100%;min-width:0;max-width:100%;max-height:100%;padding:7px 9px;overflow-x:hidden}
  .base-head{padding-bottom:5px;margin-bottom:4px}
  .base-system-label{font-size:8px;margin-bottom:1px}
  .base-head h2{font-size:17px;margin-bottom:2px}
