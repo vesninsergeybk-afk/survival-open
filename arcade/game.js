@@ -236,6 +236,20 @@ export class ArcadeGame {
     this.notice('Новый вылет. На активных станциях прогресс сохраняется.',5);return;
    }
    if(act.startsWith('hg')){this.hangarAction(b.dataset);return;}
+   if(act==='skillBranch'&&['Корабль','Технологии','Добыча'].includes(b.dataset.id)){
+    this.skillBranch=b.dataset.id;this.renderSkills();
+    this.overlay.querySelector('.skill-branch-tabs [aria-pressed="true"]')?.focus({preventScroll:true});return;
+   }
+   if(act==='mapView'&&['map','targets'].includes(b.dataset.id)){
+    this.mapView=b.dataset.id;this.overlay.innerHTML=renderWorldMap(this);
+    this.overlay.querySelector('.map-view-switch [aria-pressed="true"]')?.focus({preventScroll:true});return;
+   }
+   if(act==='installModule'){this.askStationModule(b.dataset.role);return;}
+   if(act==='confirmModule'){this.baseAction('installModule',b.dataset.role||'');return;}
+   if(act==='cancelModule'){
+    this.overlay.querySelector('.base-module-confirm')?.remove();
+    this.overlay.querySelector('[data-act="installModule"][data-role="'+b.dataset.role+'"]')?.focus({preventScroll:true});return;
+   }
    if(act==='close')this.dismiss();
     if(act==='baseTab'&&['summary','operations','hangar','network'].includes(b.dataset.role)){
      this.baseTab=b.dataset.role;this.heritage.ui('tab');this.renderDock();
@@ -453,14 +467,18 @@ export class ArcadeGame {
     return '<button class="doctrine-choice'+(chosen?' selected':enabled?' ready':'')+
       '" data-act="doctrine" data-id="'+d.id+'"'+(enabled?'':' disabled')+
       '><strong>'+d.title+'</strong><small>'+d.desc+'</small><em>'+reason+'</em></button>';
-   }).join('')+'</div></section><div class="skill-columns">';
+   }).join('')+'</div></section>'+
+   '<nav class="skill-branch-tabs" aria-label="Выберите ветвь развития">'+
+   [['Корабль','Пилотирование'],['Технологии','Технологии'],['Добыча','Добыча']].map(([key,label])=>
+    '<button type="button" data-act="skillBranch" data-id="'+key+'" aria-pressed="'+((this.skillBranch||'Корабль')===key)+'">'+label+'</button>').join('')+
+   '</nav><div class="skill-columns">';
   const branches=[
    ['Корабль','Пилотирование и аварийный отход'],
    ['Технологии','Поиск станций и тактика ведомых'],
    ['Добыча','Раскалывание породы, электрический разряд и магнитный сбор']
   ];
   for(const [branch,subtitle] of branches){
-   content+='<section><h3>'+(branch==='Корабль'?'Пилотирование':branch)+'</h3><p class="branch-subtitle">'+subtitle+'</p>';
+   content+='<section class="skill-branch'+((this.skillBranch||'Корабль')===branch?' active':'')+'"><h3>'+(branch==='Корабль'?'Пилотирование':branch)+'</h3><p class="branch-subtitle">'+subtitle+'</p>';
    for(const skill of SKILLS.filter(s=>s.branch===branch&&!SHIP_UPGRADES.has(s.id))){
     const rank=this.skillRanks[skill.id],mastered=rank>=skill.max;
     const prereq=skill.requires?SKILLS.find(x=>x.id===skill.requires):null;
@@ -474,8 +492,8 @@ export class ArcadeGame {
     const cls=mastered?'mastered':canBuy?'ready':'locked';
     content+='<button class="skill-node '+cls+'" data-act="skill" data-id="'+skill.id+'" '+
       (!canBuy?'disabled':'')+'><span class="skill-node-head"><strong>'+skill.title+
-      '</strong><em>'+rank+' / '+skill.max+'</em></span><small>'+skill.desc+'</small>'+
-      '<small class="skill-effect">'+(mastered?'Изучено полностью':nextSkillEffect(skill.id,rank,this.skillRanks))+
+      '</strong><em>'+rank+' / '+skill.max+'</em></span><small class="skill-effect">'+(mastered?'Изучено полностью':nextSkillEffect(skill.id,rank,this.skillRanks))+
+      '</small><small>'+skill.desc+
       '</small><span class="skill-state">'+(prereq?'↳ '+prereq.title+' · ':'')+reason+
       '</span></button>';
    }
@@ -1280,6 +1298,24 @@ export class ArcadeGame {
   this.overlay.dataset.mode='base';this.overlay.hidden=false;
   this.heritage.ui('dock');
   this.renderDock();
+ }
+ askStationModule(role){
+  const base=this.docked,spec=base?stationModule(base.type,role):null;
+  if(!base?.active||!spec||base.module||this.player.ore<spec.cost){
+   this.heritage.ui('deny');this.notice('Недостаточно сплава или модуль уже выбран',2.5);return;
+  }
+  const container=this.overlay.querySelector('.base-modules');if(!container)return;
+  container.querySelector('.base-module-confirm')?.remove();
+  const panel=document.createElement('aside');panel.className='base-module-confirm';
+  panel.setAttribute('role','group');panel.setAttribute('aria-label','Подтверждение необратимой специализации');
+  const heading=document.createElement('strong');heading.textContent='Подтвердить выбор: '+spec.name;
+  const explanation=document.createElement('p');explanation.textContent=spec.desc+' Стоимость: '+spec.cost+
+   ' сплава. Второй модуль будет недоступен до конца этого вылета.';
+  const buttons=document.createElement('div');
+  const cancel=document.createElement('button');cancel.type='button';cancel.dataset.act='cancelModule';cancel.dataset.role=role;cancel.textContent='Вернуться к выбору';
+  const confirm=document.createElement('button');confirm.type='button';confirm.dataset.act='confirmModule';confirm.dataset.role=role;confirm.className='base-decision-primary';confirm.textContent='Установить за '+spec.cost+' сплава';
+  buttons.append(cancel,confirm);panel.append(heading,explanation,buttons);container.append(panel);
+  panel.scrollIntoView({block:'nearest'});confirm.focus({preventScroll:true});
  }
  baseAction(act,role){
   const b=this.docked,p=this.player;if(!b||this.dead)return;
