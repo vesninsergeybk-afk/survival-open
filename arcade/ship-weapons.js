@@ -5,7 +5,9 @@ import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impa
 import {canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export function shipTargets(game,range,limit=1,nearest=false){
+// Precision guns favor armored and high-value ships. Missions retain priority.
+const precisionRank=type=>({gunship:0,healer:1,berserker:2,fighter:3,flanker:3,scout:4})[type]??3;
+export function shipTargets(game,range,limit=1,nearest=false,focus='default'){
  const p=game.player,base=game.nearbyEnemyBase(range+150),op=game.operation;
  const objectives=[];
  if(op?.id===CORRIDOR_OPERATION.id&&op.hp>0&&op.phase!=='return'&&distance(p,op)<=Math.min(range,CORRIDOR_OPERATION.focusRange))
@@ -18,7 +20,8 @@ export function shipTargets(game,range,limit=1,nearest=false){
  }
  objectives.sort((a,b)=>distance(p,a.target)-distance(p,b.target));
  const enemies=game.grid.query(p.x,p.y,range).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e)&&distance(p,e)<=range)
-  .sort((a,b)=>distance(p,a)-distance(p,b)).map(target=>({kind:'enemy',target}));
+  .sort((a,b)=>(!nearest&&focus==='precision'?precisionRank(a.type)-precisionRank(b.type):0)||
+   distance(p,a)-distance(p,b)).map(target=>({kind:'enemy',target}));
  const candidates=[...objectives,...enemies];
  if(nearest)candidates.sort((a,b)=>distance(p,a.target)-distance(p,b.target));
  return candidates.slice(0,limit);
@@ -37,7 +40,8 @@ export function updateAuxiliaryWeapons(game,dt,allowed){
   game.moduleClocks[id]=Math.max(0,(game.moduleClocks[id]||0)-dt);
   const count=game.weaponProfile[id];
   if(!allowed||!count||game.weaponThermal.locked||game.moduleClocks[id]>0)continue;
-  const stats=moduleStats(id,game.skillRanks),targets=shipTargets(game,stats.range,stats.targets,id==='flak');
+  const stats=moduleStats(id,game.skillRanks),targets=shipTargets(game,stats.range,stats.targets,id==='flak',
+   id==='rail'?'precision':'default');
   if(!targets.length)continue; // No target means no ammunition, heat or effect.
   game.moduleClocks[id]=stats.interval;
   heatWeapons(game.weaponThermal,MODULES[id].heat*count);

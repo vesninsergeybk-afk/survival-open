@@ -935,7 +935,6 @@ export class ArcadeGame {
   this.beamClock-=dt;
   const plasmaPower=this.weaponProfile.plasma;
   if(plasmaPower&&!this.weaponThermal.locked&&!this.heavyCharge&&this.beamClock<=0&&automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing)){
-   this.beamClock=.63/(1+this.skillRanks.beam*.12);
    const range=RULES.beamRange+this.skillRanks.range*56;
    const hostile=this.nearbyEnemyBase(range+150);
    this.plasmaFired=false;
@@ -1021,15 +1020,18 @@ export class ArcadeGame {
       this.plasmaFlash(hostile.x,hostile.y);}
     }
    }
-   if(this.plasmaFired)heatWeapons(this.weaponThermal,6*plasmaPower);
+   if(this.plasmaFired){
+    this.beamClock=.63/(1+this.skillRanks.beam*.12);
+    heatWeapons(this.weaponThermal,6*plasmaPower);
+   }
   }
   this.rocketClock-=dt;
   if(this.weaponProfile.rocket&&!this.weaponThermal.locked&&!this.heavyCharge&&this.rocketClock<=0&&
    automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing)){
-   this.rocketClock=3.5/(1+this.skillRanks.rocket*.28);
    const target=this.grid.query(p.x,p.y,720).filter(e=>e.hp>0&&!e.converted&&canAutoTarget(e)&&dist(e,p)<=720)
     .sort((a,b)=>dist(a,p)-dist(b,p))[0];
    if(target){
+    this.rocketClock=3.5/(1+this.skillRanks.rocket*.28);
     heatWeapons(this.weaponThermal,16*this.weaponProfile.rocket);
     if(this.missiles.length>=14)this.missiles.shift();
     this.missiles.push({x:p.x,y:p.y,prevX:p.x,prevY:p.y,trail:[{x:p.x,y:p.y}],
@@ -1221,6 +1223,7 @@ export class ArcadeGame {
    if(act==='returnIon'){
     if(!this.ionLoan)return;
     this.ionLoan=null;this.ionReturnAt=this.time;
+    this.syncShipLoadout();
     this.notice('Ионный проводник возвращён в ангар',3.2);
     this.heritage.ui('dock');this.renderDock();return;
    }

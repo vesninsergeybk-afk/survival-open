@@ -59,7 +59,7 @@ test('Space discharge chains to nearby marks, not enemies across the sector',()=
  const plan=planIonDischarge([d,c,b,a],p,5,loan);
  assert.equal(plan.ok,true);
  assert.deepEqual(plan.targets,[a,b,c]);
- assert.deepEqual(plan.damage,[24,18,14]);
+ assert.deepEqual(plan.damage,[38,30,22]);
  assert.equal(plan.chargesAfter,2);
  assert.equal(plan.cooldownUntil,9.5);
  assert.equal(loan.charges,3,'planning alone does not consume ammo');
@@ -84,7 +84,7 @@ test('discharge is predictable with one mark and never wastes a charge on no tar
  const r=planIonDischarge([solo],p,4,loan);
  assert.equal(r.ok,true);
  assert.deepEqual(r.targets,[solo]);
- assert.deepEqual(r.damage,[24]);
+ assert.deepEqual(r.damage,[38]);
  assert.equal(r.chargesAfter,2);
  assert.equal(planIonDischarge([solo],p,9,loan).ok,false,'expired mark');
  loan.charges=0;
@@ -93,6 +93,15 @@ test('discharge is predictable with one mark and never wastes a charge on no tar
  assert.match(planIonDischarge([solo],p,5,loan).reason,/заряжается/i);
 });
 
+test('temporary chain reliably destroys two full-health scouts with one use',()=>{
+ const player={x:0,y:0},loan=createIonLoan('0:0');
+ const scoutA={...enemy(120,0,28),ionMarkUntil:6};
+ const scoutB={...enemy(210,0,28),ionMarkUntil:6};
+ const plan=planIonDischarge([scoutA,scoutB],player,2,loan);
+ assert.equal(plan.ok,true);assert.deepEqual(plan.damage,[38,30]);
+ assert.ok(plan.damage.every((d,i)=>d>=[scoutA.hp,scoutB.hp][i]));
+ assert.equal(plan.chargesAfter,2,'the heightened power is offset by limited charges');
+});
 test('desktop and touch input share one manual action; repair and mining remain separate',()=>{
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');

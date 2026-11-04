@@ -77,9 +77,19 @@ test('getting a new module never erases an unfinished weapon replacement',()=>{
 });
 test('rental return and repeated docking clean live and staged ion modules without consuming another trial',()=>{
  const g=game();g.baseAction('loanIon','');g.hangarAction({act:'hgApply'});
- assert.ok(g.weaponProfile.ion);g.baseAction('returnIon','');g.syncShipLoadout();
- assert.equal(g.weaponProfile.ion,false);assert.ok(!g.hangarSession.draft.slots.includes('ion'));
+ assert.ok(g.weaponProfile.ion);g.baseAction('returnIon','');
+ assert.equal(g.weaponProfile.ion,false);
+ assert.ok(!g.player.weaponSlots.includes('ion'),'the rendered ship must update immediately');assert.ok(!g.hangarSession.draft.slots.includes('ion'));
  g.baseAction('loanIon','');assert.equal(g.ionLoan,null,'the home trial cannot be farmed');
+});
+test('returning an ion loan preserves unrelated unfinished edits in the hangar',()=>{
+ const g=game();g.baseAction('loanIon','');g.hangarAction({act:'hgApply'});
+ g.hangarSession.draft.slots[0]='rail';
+ g.baseAction('returnIon','');
+ assert.equal(g.weaponProfile.ion,false);
+ assert.equal(g.hangarSession.draft.slots[0],'rail','unapplied plan is still available');
+ assert.equal(g.hangarSession.draft.slots[1],null);
+ assert.equal(g.shipLoadout.slots[0],'plasma','live loadout is unchanged');
 });
 test('an invalid draft cannot spend alloy or replace live weapons through the actual game adapter',()=>{
  const g=game();g.hangarSession.draft.slots[5]='howitzer';
@@ -111,6 +121,21 @@ test('a long mixed battle exercises every installed automatic family and remains
  for(const kind of ['beam','rail','flak','rocket'])assert.ok(kinds.has(kind),kind+' must actually fire');
  assert.ok(g.weaponThermal.current>=0&&g.weaponThermal.current<=100);
  assert.ok(g.flashes.length<=90);assert.ok(g.missiles.length<=14);
+});
+test('idle guns hold their first shot until a target arrives, then fire without a phantom reload',()=>{
+ const beam=game();battle(beam,6);
+ assert.equal(beam.hits.length,0);assert.ok(beam.beamClock<=0);
+ assert.equal(beam.weaponThermal.current,0);
+ beam.grid.insert(target(100));battle(beam,1/60);
+ assert.equal(beam.hits.length,1,'a nearby scout should be hit on its first frame');
+
+ const missiles=game();missiles.skillRanks.rocket=1;
+ equip(missiles,['rocket',null,null,null,null,null]);battle(missiles,6);
+ assert.equal(missiles.missiles.length,0);assert.ok(missiles.rocketClock<=0);
+ assert.equal(missiles.weaponThermal.current,0);
+ missiles.grid.insert(target(350));battle(missiles,1/60);
+ assert.equal(missiles.missiles.length,1,'an equipped rocket should launch immediately');
+ assert.ok(missiles.rocketClock>0);
 });
 test('switching to rail removes plasma and rockets from actual combat even with learned rocket ranks',()=>{
  const g=game();g.skillRanks.rocket=3;equip(g,['rail',null,null,null,null,null]);g.grid.insert(target(500));

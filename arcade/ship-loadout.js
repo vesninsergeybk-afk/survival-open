@@ -43,7 +43,7 @@ export function moduleStats(id,ranks={}){
   rail:{damage:38,range:700,interval:1.65,targets:1},
   flak:{damage:10,range:245,interval:1.15,targets:3},
   rocket:{damage:48+rocket*19,range:720,interval:3.5/(1+rocket*.28),targets:1},
-  ion:{damage:'24 / 18 / 14',range:485,interval:4.5,targets:3},
+  ion:{damage:'38 / 30 / 22',range:485,interval:4.5,targets:3},
   howitzer:{damage:180,range:900,interval:12,targets:'радиус 110 м'}
  })[id];
 }
