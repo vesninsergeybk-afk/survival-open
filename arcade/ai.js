@@ -1,6 +1,7 @@
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20';
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
+import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
@@ -57,7 +58,7 @@ export function scoutSteering(e,game,target,speed){
 // A shared volley gate prevents a large swarm from producing an unavoidable
 // projectile wall. Neither health nor projectile collision rules change.
 export const IRIS_COMBAT=Object.freeze({
-  range:290,scanShotAt:.59,charge:.36,volleySpacing:.43,
+  range:IRIS_SWARM.fireRange,scanShotAt:.59,charge:.36,volleySpacing:.43,
   projectileSpeed:275,damage:6
 });
 export function scoutAttack(e,game,target,scanning=false){
@@ -67,7 +68,7 @@ export function scoutAttack(e,game,target,scanning=false){
   const engaged=!e.signalIntel||e.signalIntel.mode==='engaged';
   const distance=target?.hp>0?dist(e,target):Infinity;
   const seen=engaged&&distance<=IRIS_COMBAT.range&&
-    (game.enemyCanSee?.(e,target)??true);
+    irisCanSense(e,game,target,IRIS_COMBAT.range);
   if(!seen){e._irisChargeStarted=null;return false;}
   if(scanning){
     e._irisChargeStarted=null;
@@ -96,6 +97,7 @@ export function scoutAttack(e,game,target,scanning=false){
   const accepted=game.enemyShot(e.x,e.y,tx,ty,IRIS_COMBAT.damage,
     {kind:'iris',speed:IRIS_COMBAT.projectileSpeed,r:4.5});
   if(accepted===false)return false;
+  e._irisHasFired=true;
   e.fire=2.0+(Math.abs(Math.trunc(e.serial||0))%4)*.23;
   e._irisChargeStarted=null;
   game._irisNextVolleyAt=now+IRIS_COMBAT.volleySpacing;
@@ -172,6 +174,8 @@ export function updateEnemy(e,game,dt){
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;
   const signalOrder=updateSignalIntent(e,game,dt);
+  const irisTactic=e.type==='scout'?
+    updateIrisSwarm(e,game,game.player):null;
   if(updateIrisPerception(e,game,dt)){
     if(e.type==='scout')scoutAttack(e,game,
       e.signalIntel?.combatFocus||game.player,true);
@@ -284,6 +288,10 @@ export function updateEnemy(e,game,dt){
   const orbit=e.type==='scout'&&e.state==='hunt'&&!search?
     scoutAttackGoal(e,p):null;
   if(orbit){goalX=orbit.x;goalY=orbit.y;}
+  if(irisTactic&&e.state==='hunt'&&p===game.player){
+    goalX=irisTactic.x;goalY=irisTactic.y;
+    speed*=irisTactic.speed;
+  }
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   let extraX=avoid.x*speed*1.3,extraY=avoid.y*speed*1.3;
   if(e.type==='scout'){
@@ -305,7 +313,8 @@ export function updateEnemy(e,game,dt){
   }
   steer(e,goalX,goalY,speed,dt,{x:extraX,y:extraY});
   e.healFlash=Math.max(0,(e.healFlash||0)-dt);
-  if(e.type==='scout'&&!search)scoutAttack(e,game,p);
+  if(e.type==='scout'&&!search)scoutAttack(e,game,p,
+    e._irisScanMode==='acquire'&&game.time<(e._irisScanUntil||0));
   if(e.type==='gunship'&&!e.relayAssault&&e.fire<=0&&dist(e,p)<535){
     e.fire=1.65;
     game.enemyShot(e.x,e.y,p.x,p.y,15);

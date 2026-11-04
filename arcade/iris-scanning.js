@@ -2,6 +2,7 @@
  * During the scan the drone follows an inertial, evasive arc around its last
  * contact, then accelerates out of the scan with a brief sideways burst.
  * Existing extraction patrols keep their own shared signal-intelligence AI. */
+import {irisCanSense,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-1';
 export const IRIS_SCAN=Object.freeze({
   sweep:1.08,open:.48,hold:.61,close:.46,
   cruise:94,maxScanSpeed:190,acceleration:265,evadeAcceleration:345,
@@ -140,8 +141,8 @@ export function updateIrisPerception(e,game,dt){
     const player=game.player;
     const distance=Math.hypot(e.x-player.x,e.y-player.y);
     // In real gameplay enemyCanSee tests forward angle and asteroid cover.
-    const visible=distance<=290&&
-      (game.enemyCanSee?.(e,player)??true);
+    const visible=distance<=IRIS_SWARM.sensorRange&&
+      irisCanSense(e,game,player);
     e._irisNextSenseAt=now+.24+(Math.abs(e.serial||0)%4)*.035;
     if(visible){
       e._irisLastSeenX=player.x;e._irisLastSeenY=player.y;
@@ -162,6 +163,9 @@ export function updateIrisPerception(e,game,dt){
     beginScan(e,game,next);
   }
   if(now<(e._irisScanUntil??0)){
+    // Actual damage interrupts the scouting arc; the open shell keeps its
+    // warning animation while the ordinary flight solver handles escape.
+    if(now<(e._irisRetreatUntil||0))return false;
     flyScanningArc(e,game,dt);
     return true;
   }

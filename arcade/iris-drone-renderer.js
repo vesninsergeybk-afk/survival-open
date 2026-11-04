@@ -257,6 +257,22 @@ export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
     }
     ctx.restore();
   }
+  const escaping=now<(enemy._irisRetreatUntil||0);
+  const winging=!escaping&&now<(enemy._irisWingUntil||0);
+  if(!reducedMotion&&(escaping||winging)){
+    // A twin, low-cost thruster wake makes the bait/wing handoff legible.
+    // Cyan = breaking contact, violet = answering the pack's call.
+    const flicker=.72+.28*Math.sin(now*19+(enemy.serial||0));
+    ctx.save();ctx.strokeStyle=escaping?
+      `rgba(100,241,237,${.82*flicker})`:
+      `rgba(182,122,255,${.65*flicker})`;
+    ctx.lineWidth=Math.max(1.2,side*.055);ctx.lineCap='round';
+    for(const x of [-side*.25,side*.25]){
+      ctx.beginPath();ctx.moveTo(x,side*.39);
+      ctx.lineTo(x,side*(escaping?1.45:1.0));ctx.stroke();
+    }
+    ctx.restore();
+  }
   // Engine power is inferred from actual velocity and acceleration.
   if(ion){
     const seed=Number.isFinite(enemy.serial)?enemy.serial:0;
