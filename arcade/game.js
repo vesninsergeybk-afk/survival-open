@@ -1144,6 +1144,9 @@ export class ArcadeGame {
   if(!this.pendingCheckpoint)return;
   try{restoreCheckpoint(this,this.pendingCheckpoint);}
   catch{this.notice('Сохранённый вылет не удалось восстановить. Запись оставлена без изменений.',6);return;}
+  this.visuals.updateSky(this.player.x,this.player.y);
+  this.nearRocks=this.world.nearbyRocks(this.player.x,this.player.y,Math.max(this.vw,this.vh)*.85+450);
+  this.localStations=this.world.nearbyStations(this.player.x,this.player.y,1000,false);
   this.pendingCheckpoint=null;this.syncShipLoadout();this.hangarSession.begin(this.shipLoadout);
   this.baseTab='summary';this.overlay.dataset.mode='base';this.overlay.hidden=false;
   this.heritage.pause('base');this.renderDock();
