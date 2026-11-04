@@ -64,10 +64,16 @@ test('reactor geometry keeps its world anchor and a single source sprite', () =>
   assert.ok(reactor.distant);
   assert.ok(reactor.mist);
   assert.ok(reactor.mote, 'mote glow must be pre-rendered before gameplay');
-  assert.ok(reactor.vapour, 'transparent texture should load in workshop and game');
-  assert.equal(sources.length, 2);
+  assert.ok(reactor.vapour, 'first fog source should load');
+  assert.ok(reactor.vapourSecondary, 'front fog source should load');
+  assert.ok(reactor.vapourBackAlternate, 'back fog alternate should load');
+  assert.ok(reactor.vapourFrontAlternate, 'front fog alternate should load');
+  assert.equal(sources.length, 5);
   assert.match(sources[0], /reactor-ring-03\.png$/);
   assert.match(sources[1], /reactor-vapour-v6\.webp$/);
+  assert.match(sources[2], /reactor-vapour-secondary-v7\.webp$/);
+  assert.match(sources[3], /reactor-vapour-variant-c-v7\.webp$/);
+  assert.match(sources[4], /reactor-vapour-variant-d-v7\.webp$/);
   assert.equal(reactor.energyAtlas, null, 'live game must not load stage atlas before a real stage exists');
  });
 });
@@ -89,8 +95,8 @@ test('reactor culls off-screen drawings and makes no frame-time canvases', () =>
 test('workshop can use four energy tiles without changing gameplay contracts', () => {
  withCanvasMocks(({sources}) => {
   const reactor = new ReactorLandmark({loadEnergyAtlas: true});
-  assert.equal(sources.length, 3);
-  assert.match(sources[2], /reactor-energy-milestones-v1\.png$/);
+  assert.equal(sources.length, 6);
+  assert.match(sources[5], /reactor-energy-milestones-v1\.png$/);
   const ctx = makeContext(), cam = {x: -470, y: -650, w: 1100, h: 650};
   for (let stage = 0; stage <= 4; stage++) reactor.draw(ctx, cam, stage, 60, false, stage, stage === 4 ? .25 : Infinity);
   assert.ok(ctx.events.filter(v => v === 'drawImage').length >= 15);
@@ -108,6 +114,11 @@ test('whole rigid reactor uses an intermediate parallax depth', () => {
  assert.ok(distant.x>haze.x&&haze.x>hull.x&&hull.x>nearDust.x);
  assert.ok(distant.y>haze.y&&haze.y>hull.y&&hull.y>nearDust.y);
  assert.ok(REACTOR_DEPTH_RATES.hull>REACTOR_DEPTH_RATES.distant);
+ assert.ok(REACTOR_DEPTH_RATES.haze<REACTOR_DEPTH_RATES.hazeSecondary);
+ assert.ok(REACTOR_DEPTH_RATES.hazeSecondary<REACTOR_DEPTH_RATES.hull);
+ assert.ok(REACTOR_DEPTH_RATES.hull<REACTOR_DEPTH_RATES.hazeFront);
+ assert.ok(REACTOR_DEPTH_RATES.hazeFront<REACTOR_DEPTH_RATES.hazeFrontSecondary);
+ assert.ok(REACTOR_DEPTH_RATES.hazeFrontSecondary<1);
  assert.ok(REACTOR_DEPTH_RATES.hull<1,'the reactor must move slower than ships');
  const cam2={x:cam.x+400,y:cam.y};
  const screen1=hull.x-cam.x;
@@ -140,18 +151,37 @@ test('particles occupy two passes without allocating canvases during motion', ()
  });
 });
 
-test('vapour draws at two intermediate depth planes and does not allocate per frame', () => {
+test('four fog textures form two independent animated depth planes without frame allocations', () => {
  withCanvasMocks(({canvasCreations}) => {
   const reactor=new ReactorLandmark(),cam={x:-470,y:-650,w:1100,h:650};
-  const ready=canvasCreations();
-  const context=makeContext();
-  reactor.draw(context,cam,3,60,false);
-  const wisps=context.drawCalls.filter(v=>v.source===reactor.vapour);
-  assert.equal(wisps.length,2,'one real vapour sheet before and after metal');
-  assert.ok(wisps[0].alpha>0&&wisps[1].alpha>0);
-  assert.ok(wisps[0].rect[2]!==wisps[1].rect[2],'vapour layers need different extent');
-  reactor.draw(context,cam,4,25,false);
-  assert.equal(canvasCreations(),ready,'vapour should not create runtime textures');
+  const prepared=canvasCreations();
+  const fogSources=[reactor.vapour,reactor.vapourBackAlternate,
+   reactor.vapourSecondary,reactor.vapourFrontAlternate];
+  const render=(time,fps,reducedMotion)=>{
+   const ctx=makeContext();
+   reactor.drawMist(ctx,cam,time,fps,reducedMotion,false,.45);
+   reactor.drawMist(ctx,cam,time,fps,reducedMotion,true,.45);
+   return ctx.drawCalls.filter(v=>fogSources.includes(v.source));
+  };
+  const first=render(0,25,false),moving=render(18,25,false);
+  assert.equal(first.length,4);
+  assert.equal(moving.length,4,'all variants remain active even at low FPS');
+  assert.ok(first.every(v=>v.alpha>0));
+  assert.ok(first.some((v,i)=>Math.abs(v.rect[0]-moving[i].rect[0])>20),
+   'fog needs to move with a stationary camera');
+  assert.ok(first.some((v,i)=>Math.abs(v.alpha-moving[i].alpha)>.10),
+   'cloud silhouettes should crossfade rather than remain unchanged');
+  const frozen=render(18,25,true);
+  for(let i=0;i<4;i++){
+   assert.equal(frozen[i].rect[0],first[i].rect[0]);
+   assert.equal(frozen[i].alpha,first[i].alpha);
+  }
+  assert.equal(canvasCreations(),prepared,'fog must use cached images every frame');
+  reactor.layers.mist=false;
+  const disabled=makeContext();
+  reactor.drawMist(disabled,cam,2,60,false,false,.45);
+  reactor.drawMist(disabled,cam,2,60,false,true,.45);
+  assert.equal(disabled.drawCalls.filter(v=>fogSources.includes(v.source)).length,0);
  });
 });
 

@@ -18,7 +18,8 @@ const ENERGY_ASSET = './studio/assets/reactor-energy-milestones-v1.png';
 // At 0 the image barely follows the camera (distant stars), at 1 it moves
 // like ships. The connected station is between the starfield and gameplay.
 export const REACTOR_DEPTH_RATES = Object.freeze({
- distant:.52, haze:.68, hull:.80, foregroundDust:.95
+ distant:.52, haze:.68, hazeSecondary:.73, hull:.80,
+ hazeFront:.87, hazeFrontSecondary:.91, foregroundDust:.95
 });
 const VIEWPORT_FRACTION = .80;
 const MAX_SCENE_SCALE = .58;
@@ -54,6 +55,9 @@ export class ReactorLandmark {
   this.distant = this.makeDistant();
   this.mist = this.makeMist();
   this.vapour = null;
+  this.vapourSecondary = null;
+  this.vapourBackAlternate = null;
+  this.vapourFrontAlternate = null;
   this.mote = this.makeMote();
   this.nearHull = null;
   this.layers = {distant:true,mist:true,near:true,particles:true,farParticles:true,frontParticles:true};
@@ -89,6 +93,21 @@ export class ReactorLandmark {
   vapour.onload=()=>{if(vapour.naturalWidth)this.vapour=vapour;};
   vapour.onerror=()=>{this.vapour=null;};
   vapour.src=new URL('./studio/assets/reactor-vapour-v6.webp',import.meta.url).href;
+  const secondary=new Image();
+  secondary.decoding='async';
+  secondary.onload=()=>{if(secondary.naturalWidth)this.vapourSecondary=secondary;};
+  secondary.onerror=()=>{this.vapourSecondary=null;};
+  secondary.src=new URL('./studio/assets/reactor-vapour-secondary-v7.webp',import.meta.url).href;
+  const backAlternate=new Image();
+  backAlternate.decoding='async';
+  backAlternate.onload=()=>{if(backAlternate.naturalWidth)this.vapourBackAlternate=backAlternate;};
+  backAlternate.onerror=()=>{this.vapourBackAlternate=null;};
+  backAlternate.src=new URL('./studio/assets/reactor-vapour-variant-c-v7.webp',import.meta.url).href;
+  const frontAlternate=new Image();
+  frontAlternate.decoding='async';
+  frontAlternate.onload=()=>{if(frontAlternate.naturalWidth)this.vapourFrontAlternate=frontAlternate;};
+  frontAlternate.onerror=()=>{this.vapourFrontAlternate=null;};
+  frontAlternate.src=new URL('./studio/assets/reactor-vapour-variant-d-v7.webp',import.meta.url).href;
 
   // The larger energy atlas is opt-in for the visual workshop only.
   // Current gameplay has no three-jammer reactor state to drive it.
@@ -276,27 +295,51 @@ export class ReactorLandmark {
   ctx.restore();
  }
  drawMist(ctx,cam,time,fps,reducedMotion,inFront=false,scale=1) {
-  if(!this.layers.mist || (!this.mist&&!this.vapour))return;
-  const rate=inFront?.87:REACTOR_DEPTH_RATES.haze;
+  const primary=inFront?(this.vapourSecondary||this.vapour):this.vapour;
+  const alternate=inFront?this.vapourFrontAlternate:this.vapourBackAlternate;
+  if(!this.layers.mist || (!this.mist&&!primary&&!alternate))return;
+  // Autonomous motion uses elapsed game time. Changing the camera adds
+  // parallax, but a stationary camera still sees distinct fog currents.
+  const elapsed=reducedMotion?0:Math.max(0,Number(time)||0);
+  const blend=.5+.5*Math.sin(elapsed*(inFront?.18:.13)-.65);
+  const rate=inFront?REACTOR_DEPTH_RATES.hazeFront:REACTOR_DEPTH_RATES.haze;
   const pos=reactorParallaxAnchor(cam,rate);
-  const drift=(!reducedMotion&&fps>=34)?Math.sin(time*(inFront?.17:.12))*20:0;
   ctx.save();ctx.translate(pos.x,pos.y);ctx.scale(scale,scale);
-  // Gentle procedural coverage remains behind the more detailed RGBA
-  // vapour. A missing WebP never removes the original atmospheric layer.
-  if(this.mist) {
-   ctx.globalAlpha=inFront?.38:.48;
+  if(this.mist){
+   ctx.globalAlpha=inFront?.19:.26;
    ctx.drawImage(this.mist,
-    (inFront?-565:-790)+drift,inFront?-55:-290,
+    inFront?-565:-790,inFront?-55:-290,
     inFront?1140:1570,inFront?430:650);
   }
-  if(this.vapour) {
-   ctx.globalAlpha=inFront?.48:.86;
-   const x=(inFront?-560:-865)+drift*(inFront?-1:1);
-   const y=inFront?-145:-390;
-   const w=inFront?1180:1810,h=inFront?520:775;
-   ctx.drawImage(this.vapour,x,y,w,h);
+  if(primary){
+   const x=(inFront?-560:-865)+
+    Math.sin(elapsed*(inFront?.11:.065)+.4)*(inFront?93:125);
+   const y=(inFront?-145:-390)+
+    Math.cos(elapsed*(inFront?.071:.051))*(inFront?26:35);
+   ctx.globalCompositeOperation=inFront?'screen':'source-over';
+   ctx.globalAlpha=alternate?
+    (inFront?.28+.20*(1-blend):.46+.34*(1-blend)):
+    (inFront?.45:.78);
+   ctx.drawImage(primary,x,y,inFront?1200:1810,inFront?510:775);
   }
   ctx.restore();
+  if(alternate){
+   // Another organic silhouette emerges gradually, moving in a slightly
+   // different depth plane and at a different velocity.
+   const alternateRate=inFront?REACTOR_DEPTH_RATES.hazeFrontSecondary:
+    REACTOR_DEPTH_RATES.hazeSecondary;
+   const alternatePos=reactorParallaxAnchor(cam,alternateRate);
+   const x=(inFront?-690:-810)+
+    Math.sin(elapsed*(inFront?.09:.083)+2.0)*(inFront?128:145);
+   const y=(inFront?-130:-250)+
+    Math.cos(elapsed*(inFront?.057:.044)+1.2)*(inFront?48:39);
+   ctx.save();ctx.translate(alternatePos.x,alternatePos.y);
+   ctx.scale(scale,scale);
+   ctx.globalCompositeOperation=inFront?'screen':'source-over';
+   ctx.globalAlpha=inFront?.05+.30*blend:.04+.42*blend;
+   ctx.drawImage(alternate,x,y,inFront?1420:1650,inFront?510:690);
+   ctx.restore();
+  }
  }
 
  drawParticles(ctx,cam,time,fps,reducedMotion,front,scale) {
