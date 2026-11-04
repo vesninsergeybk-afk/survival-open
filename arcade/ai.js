@@ -179,6 +179,8 @@ const pickTarget=(e,game)=>{
 };
 export function updateEnemy(e,game,dt){
   if(e.hp<=0)return;
+  // Every visible intent must be renewed by real steering this frame.
+  e._commsIntent=null;
   if(e.converted){updateConverted(e,game,dt);return;}
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;
@@ -373,6 +375,8 @@ export function updateEnemy(e,game,dt){
       goalX=radio.medic.x+toward.x*105-toward.y*radio.side*35;
       goalY=radio.medic.y+toward.y*105+toward.x*radio.side*35;
     }
+    e._commsIntent={x:goalX,y:goalY,mode:radio.mode,
+      leader:radio.leader,at:game.time};
   }
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   let extraX=avoid.x*speed*1.3,extraY=avoid.y*speed*1.3;
