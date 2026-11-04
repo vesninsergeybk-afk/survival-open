@@ -297,6 +297,20 @@ export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
     }
   }else ctx.drawImage(body,(frame%3)*CELL,Math.floor(frame/3)*CELL,
     CELL,CELL,-side/2,-side/2,side,side);
+  const activePackStrike=now<(enemy._irisPackCueUntil||0)&&
+    enemy._irisPackPhase==='strike'&&enemy._irisPackRole&&
+    enemy._irisPackRole!=='reserve'&&
+    !enemy._irisPackRole.startsWith('sentry');
+  if(activePackStrike){
+    // Only the 2–4 committed attackers show a world-space warning chevron.
+    // The rest of a large flock stays visually quiet and is not a projectile.
+    const pulse=reducedMotion?1:.77+.23*Math.sin(now*12+(enemy.serial||0));
+    ctx.save();ctx.strokeStyle=`rgba(233,171,255,${pulse})`;
+    ctx.lineWidth=1.65;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(-side*.19,-side*.63);
+    ctx.lineTo(0,-side*.82);ctx.lineTo(side*.19,-side*.63);ctx.stroke();
+    ctx.restore();
+  }
   const chargeAge=now-(enemy._irisChargeStarted??-Infinity);
   if(!scanning&&!reducedMotion&&enemy.fire<=0&&
      chargeAge>=0&&chargeAge<1.1){

@@ -1,7 +1,8 @@
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20';
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
-import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-1';
+import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
+import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
@@ -64,6 +65,9 @@ export const IRIS_COMBAT=Object.freeze({
 export function scoutAttack(e,game,target,scanning=false){
   if(e.type!=='scout'||e.converted||e.boss||e.missionStructure||
      e.interceptCargo||!game.enemyShot)return false;
+  if(!irisPackMayFire(e,game)){
+    e._irisChargeStarted=null;return false;
+  }
   const now=game.time;
   const engaged=!e.signalIntel||e.signalIntel.mode==='engaged';
   const distance=target?.hp>0?dist(e,target):Infinity;
@@ -176,6 +180,7 @@ export function updateEnemy(e,game,dt){
   const signalOrder=updateSignalIntent(e,game,dt);
   const irisTactic=e.type==='scout'?
     updateIrisSwarm(e,game,game.player):null;
+  const packTactic=e.type==='scout'?irisPackDirective(e,game):null;
   if(updateIrisPerception(e,game,dt)){
     if(e.type==='scout')scoutAttack(e,game,
       e.signalIntel?.combatFocus||game.player,true);
@@ -288,9 +293,11 @@ export function updateEnemy(e,game,dt){
   const orbit=e.type==='scout'&&e.state==='hunt'&&!search?
     scoutAttackGoal(e,p):null;
   if(orbit){goalX=orbit.x;goalY=orbit.y;}
-  if(irisTactic&&e.state==='hunt'&&p===game.player){
-    goalX=irisTactic.x;goalY=irisTactic.y;
-    speed*=irisTactic.speed;
+  const tactical=(irisTactic&&(irisTactic.mode==='cover'||irisTactic.mode==='break'))?
+    irisTactic:(packTactic||irisTactic);
+  if(tactical&&e.state==='hunt'&&p===game.player){
+    goalX=tactical.x;goalY=tactical.y;
+    speed*=tactical.speed;
   }
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   let extraX=avoid.x*speed*1.3,extraY=avoid.y*speed*1.3;
@@ -298,11 +305,16 @@ export function updateEnemy(e,game,dt){
     const burst=irisBurstJink(e,game.time),heading=norm(goalX-e.x,goalY-e.y);
     extraX-=heading.y*speed*burst;
     extraY+=heading.x*speed*burst;
+    if(packTactic){
+      const separate=irisPackSeparation(e,game);
+      extraX+=separate.x*speed*.56;extraY+=separate.y*speed*.56;
+    }
   }
   if(e.state==='hunt'&&!e.boss&&!e.missionStructure&&!search){
     if(e.type==='scout'){
       const jink=scoutSteering(e,game,p,speed);
-      extraX+=jink.x*(orbit?.42:1);extraY+=jink.y*(orbit?.42:1);
+      const sway=packTactic?.26:(orbit?.42:1);
+      extraX+=jink.x*sway;extraY+=jink.y*sway;
     }else if(e.type==='fighter'){
       // Heavier fighters make long, slow sweeps, unlike nervous scouts.
       const heading=norm(p.x-e.x,p.y-e.y);

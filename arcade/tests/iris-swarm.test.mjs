@@ -142,3 +142,28 @@ test('200 scouts use bounded, finite flight with nearby wings and scanning',()=>
  assert.ok(enemies.every(e=>Number.isFinite(e.x)&&Number.isFinite(e.y)&&
    Math.hypot(e.vx,e.vy)<600));
 });
+
+test('a twelve-drone fight against genuine starter plasma still generates pressure',()=>{
+ const squad=()=>Array.from({length:12},(_,i)=>
+  drone(i+1,330+(i%4)*22,(i-5.5)*45,1+Math.floor(i/4)));
+ const pack=scene(squad());
+ const uncoordinated=scene(squad());
+ uncoordinated.game._irisPackRetryAt=Infinity;
+ advance(pack,10);advance(uncoordinated,10);
+ const metrics={
+  packShots:pack.shots.length,oldShots:uncoordinated.shots.length,
+  packSurvivors:pack.enemies.filter(e=>e.hp>0).length,
+  oldSurvivors:uncoordinated.enemies.filter(e=>e.hp>0).length,
+  packHits:pack.beamHits.length,oldHits:uncoordinated.beamHits.length,
+  firingSectors:new Set(pack.shots.map(s=>
+   Math.floor((Math.atan2(s.y,s.x)+Math.PI)*4/Math.PI))).size
+ };
+ assert.ok(pack.shots.length>=3,'an organized group must keep threatening the player');
+ assert.ok(pack.shots.length>=Math.floor(uncoordinated.shots.length*.8),
+  'formation cannot quietly halve combat pressure: '+JSON.stringify(metrics));
+ assert.ok(pack.shots.length<=uncoordinated.shots.length*1.35+1,
+  'grouping cannot silently create an inescapable rate of fire');
+ assert.ok(metrics.firingSectors>=3,
+  'the crossfire should actually emerge from distinct world directions');
+ assert.ok(pack.enemies.every(e=>e.hp<=28));
+});
