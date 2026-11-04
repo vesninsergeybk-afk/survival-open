@@ -47,6 +47,7 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 <label>Вертикальный сдвиг камеры: <output id="cam-y-value">0</output>
 <input id="cam-y" type="range" min="-450" max="450" step="20" value="0">
 </label>
+<button id="focus-reactor">Показать станцию крупным планом</button>
 <label>Скорость параллакса всей станции: <output id="depth-value">0,80</output>
 <input id="depth" type="range" min="0.55" max="1" step="0.01" value="0.80">
 </label>
@@ -69,7 +70,7 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 </div>
 </main>
 <script type="module">
-import {ReactorLandmark,REACTOR_LANDMARK_ANCHOR} from '../reactor-landmark.js?v=reactor-depth-v5';
+import {ReactorLandmark,REACTOR_LANDMARK_ANCHOR} from '../reactor-landmark.js?v=reactor-vapour-v6';
 const $=id=>document.getElementById(id);
 const canvas=$('stage'),g=canvas.getContext('2d',{alpha:false});
 const vw=1100,vh=650,ship={x:360,y:-25},dock={x:360,y:-85};
@@ -107,6 +108,10 @@ source.onload=()=>{
 source.onerror=()=>{$('status').textContent='Нет исходного PNG'};
 const stars=Array.from({length:95},(_,i)=>({x:(i*269.73+31)%1100,y:(i*159.43+103)%650,r:i%13===0?1.4:.65}));
 const camera=()=>({x:ship.x+Number($('cam-x').value)-vw/2,y:ship.y+Number($('cam-y').value)-vh/2,w:vw,h:vh});
+$('focus-reactor').addEventListener('click',()=>{
+ $('cam-x').value='-250';$('cam-y').value='-260';
+ $('cam-x-value').textContent='-250';$('cam-y-value').textContent='-260';
+});
 const labels=['Подавлено','Отключена 1','Отключены 2','Готово к запуску','Запущено'];
 function sky(cam){
  g.fillStyle='#060e1c';g.fillRect(0,0,vw,vh);
@@ -153,7 +158,7 @@ function frame(ts){
  drawMarker(cam);
  $('name').textContent=mode==='old'?'Прежняя проекция':'Многослойная сцена';
  $('status').textContent=(mode==='old'?!!oldHull:!!reactor.hull)?
-  (labels[stage]+' · исходник загружен'):
+  (labels[stage]+' · '+(mode==='old'?'прежняя геометрия':reactor.vapour?'облака загружены':'дымка загружается…')):
   (reactor.failed?'Не удалось загрузить корпус':'Загрузка корпуса…');
 }
 $('mode').addEventListener('change',e=>{mode=e.target.value});

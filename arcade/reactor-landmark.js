@@ -53,6 +53,7 @@ export class ReactorLandmark {
   this.glow = this.makeGlow();
   this.distant = this.makeDistant();
   this.mist = this.makeMist();
+  this.vapour = null;
   this.mote = this.makeMote();
   this.nearHull = null;
   this.layers = {distant:true,mist:true,near:true,particles:true,farParticles:true,frontParticles:true};
@@ -83,6 +84,11 @@ export class ReactorLandmark {
   image.onerror = () => { this.failed = true; };
   image.src = new URL('./studio/assets/reactor-ring-03.png', import.meta.url).href;
   this.source = image;
+  const vapour=new Image();
+  vapour.decoding='async';
+  vapour.onload=()=>{if(vapour.naturalWidth)this.vapour=vapour;};
+  vapour.onerror=()=>{this.vapour=null;};
+  vapour.src=new URL('./studio/assets/reactor-vapour-v6.webp',import.meta.url).href;
 
   // The larger energy atlas is opt-in for the visual workshop only.
   // Current gameplay has no three-jammer reactor state to drive it.
@@ -270,17 +276,29 @@ export class ReactorLandmark {
   ctx.restore();
  }
  drawMist(ctx,cam,time,fps,reducedMotion,inFront=false,scale=1) {
-  if(!this.mist || !this.layers.mist)return;
+  if(!this.layers.mist || (!this.mist&&!this.vapour))return;
   const rate=inFront?.87:REACTOR_DEPTH_RATES.haze;
   const pos=reactorParallaxAnchor(cam,rate);
   const drift=(!reducedMotion&&fps>=34)?Math.sin(time*(inFront?.17:.12))*20:0;
   ctx.save();ctx.translate(pos.x,pos.y);ctx.scale(scale,scale);
-  ctx.globalAlpha=inFront?.78:.7;
-  ctx.drawImage(this.mist,
-   (inFront?-565:-790)+drift,inFront?-55:-290,
-   inFront?1140:1570,inFront?430:650);
+  // Gentle procedural coverage remains behind the more detailed RGBA
+  // vapour. A missing WebP never removes the original atmospheric layer.
+  if(this.mist) {
+   ctx.globalAlpha=inFront?.38:.48;
+   ctx.drawImage(this.mist,
+    (inFront?-565:-790)+drift,inFront?-55:-290,
+    inFront?1140:1570,inFront?430:650);
+  }
+  if(this.vapour) {
+   ctx.globalAlpha=inFront?.48:.86;
+   const x=(inFront?-560:-865)+drift*(inFront?-1:1);
+   const y=inFront?-145:-390;
+   const w=inFront?1180:1810,h=inFront?520:775;
+   ctx.drawImage(this.vapour,x,y,w,h);
+  }
   ctx.restore();
  }
+
  drawParticles(ctx,cam,time,fps,reducedMotion,front,scale) {
   if(!this.layers.particles || (front?this.layers.frontParticles===false:this.layers.farParticles===false))return;
   // Dust behind the hull stays ahead of distant stars; the foreground
