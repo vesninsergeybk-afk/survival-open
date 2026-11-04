@@ -140,7 +140,7 @@ export class ArcadeGame {
   this.lastNoiseSource=null;this.noiseAlert=null;
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';this.mapReturnToBase=false;
-  this.sortieStart=null;this.sortieReports=[];
+  this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
    this.geoScanUntil=0;this.overchargeUntil=0;
    this.fieldLoan=null;this.fieldTrialTaken=false;this.fieldReturnAt=-Infinity;this.fieldEffects=[];
    this.ionMasteryAwarded=false;
@@ -385,10 +385,13 @@ export class ArcadeGame {
   }
   dismiss(){
    if(!this.overlay.hidden&&this.overlay.dataset.mode==='run-start')return;
-   // Only leaving the station starts a sortie. Closing a map, skills panel or
-   // an in-station transfer must never reset its economic baseline.
-   if(!this.overlay.hidden&&this.overlay.dataset.mode==='base'&&this.docked)
+   // A player can depart directly, through the map or through another panel.
+   // The station arms one departure until the overlay actually closes; maps
+   // opened later during a flight must not reset that flight's baseline.
+   if(!this.overlay.hidden&&this.docked&&
+    (this.stationExitArmed||this.overlay.dataset.mode==='base'))
     this.sortieStart=startSortie(this);
+   this.stationExitArmed=false;
    this.saveAtStation();
    this.endInteraction();
    if(!this.overlay.hidden)this.heritage.ui('close');
@@ -1073,6 +1076,7 @@ export class ArcadeGame {
   this.localStations=this.world.nearbyStations(this.player.x,this.player.y,1000,false);
   this.pendingCheckpoint=null;this.syncShipLoadout();this.hangarSession.begin(this.shipLoadout);
   this.baseTab='summary';this.overlay.dataset.mode='base';this.overlay.hidden=false;
+  this.stationExitArmed=true;
   this.heritage.pause('base');this.renderDock();
   this.notice('Вылет продолжен с последней стыковки.',4);
  }
@@ -1205,6 +1209,7 @@ export class ArcadeGame {
   this.endInteraction();
   this.hangarSession?.begin(this.shipLoadout);
   this.docked=b;this.baseTab='summary';this.paused=true;this.pausedRenderPending=true;
+  this.stationExitArmed=true;
   this.heritage.pause('base');
   this.overlay.dataset.mode='base';this.overlay.hidden=false;
   this.heritage.ui('dock');

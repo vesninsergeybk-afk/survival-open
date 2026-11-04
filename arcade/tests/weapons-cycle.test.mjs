@@ -206,3 +206,11 @@ test('overheat never invites an attack from outside the equipped range',()=>{
  assert.doesNotMatch(corridorCue(op,10,500,245).hint,/АТАКУЙТЕ/);
  assert.match(corridorCue(op,10,500,700).hint,/АТАКУЙТЕ/);
 });
+
+test('an already-completed ordinary contract cannot waste a newly borrowed trial on its reward screen',()=>{
+ const g=game(),ready={baseId:g.docked.id,choiceId:'standard',kind:'kill',goal:4,progress:4};
+ g.contract=ready;g.paused=true;g.overlay.hidden=false;g.baseTab='hangar';g.baseAction('loanField','resonator');
+ assert.equal(g.fieldLoan.assignment,null);assert.equal(g.fieldLoan.charges,3);
+ finishFieldAssignment(g.fieldLoan,'contract',ready);assert.equal(g.fieldLoan.returnDue,false);
+ const next={...ready,progress:0};bindFieldLoan(g.fieldLoan,missionAssignment(null,next));assert.equal(g.fieldLoan.assignment.kind,'contract');
+});

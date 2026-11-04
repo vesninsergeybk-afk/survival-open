@@ -14,7 +14,8 @@ export function createFieldLoan(moduleId,sourceId,now=0,assignment=null){
 }
 export function missionAssignment(operation,contract){
  return operation?{kind:'operation',id:operation.id,baseId:operation.baseId}:
-  contract?{kind:'contract',id:contract.choiceId||contract.kind,baseId:contract.baseId}:null;
+  contract&&!(Number.isFinite(contract.goal)&&contract.progress>=contract.goal)?
+   {kind:'contract',id:contract.choiceId||contract.kind,baseId:contract.baseId}:null;
 }
 export function bindFieldLoan(loan,assignment){
  if(loan&&!loan.assignment&&!loan.returnDue&&assignment){loan.assignment=assignment;loan.missionStarted=true;}

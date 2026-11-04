@@ -84,6 +84,24 @@ test('the real leave-and-dock lifecycle records one flight and ignores instant r
  g.dismiss();g.time+=2;g.dock(g.world.home);
  assert.equal(g.sortieReports.length,1);
 });
+test('departing via the station map arms one sortie, but an in-flight map does not restart it',()=>{
+ const g=scene();g.sortieReports=[];g.sortieStart=null;g.stationExitArmed=true;
+ g.heritage={ui:noop,pause:noop,resume:noop};
+ g.hangarSession={begin:noop};g.endInteraction=noop;g.renderDock=noop;g.saveAtStation=noop;
+ g.overlay.dataset.mode='map';g.mapReturnToBase=true;
+ g.dismiss();
+ assert.equal(g.sortieStart.ore,20);
+ assert.equal(g.stationExitArmed,false);
+ g.time+=35;g.player.ore+=12;
+ const firstStart=g.sortieStart;
+ g.overlay.hidden=false;g.overlay.dataset.mode='map';g.mapReturnToBase=false;
+ g.dismiss();
+ assert.equal(g.sortieStart,firstStart,'opening the map in space keeps the original start');
+ g.time+=50;g.player.ore+=14;g.dock(g.world.home);
+ assert.equal(g.sortieReports.length,1);
+ assert.equal(g.sortieReports[0].seconds,85);
+ assert.equal(g.sortieReports[0].ore,26);
+});
 test('cargo, station mission, escort targets, missiles and strike bases retain shared identities',()=>{
  const g=scene(),carrier=g.world.nearbyStations(1500,0,2300).find(b=>b!==g.docked);
  carrier.type='carrier';carrier.enemy=false;
