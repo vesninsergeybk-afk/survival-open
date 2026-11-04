@@ -118,12 +118,56 @@ test('whole rigid reactor uses an intermediate parallax depth', () => {
  assert.ok(REACTOR_DEPTH_RATES.hazeSecondary<REACTOR_DEPTH_RATES.hull);
  assert.ok(REACTOR_DEPTH_RATES.hull<REACTOR_DEPTH_RATES.hazeFront);
  assert.ok(REACTOR_DEPTH_RATES.hazeFront<REACTOR_DEPTH_RATES.hazeFrontSecondary);
- assert.ok(REACTOR_DEPTH_RATES.hazeFrontSecondary<1);
+ assert.ok(REACTOR_DEPTH_RATES.hazeFrontSecondary<REACTOR_DEPTH_RATES.foregroundDust);
+ assert.ok(REACTOR_DEPTH_RATES.foregroundDust<1);
+ assert.ok(REACTOR_DEPTH_RATES.hazeFront-REACTOR_DEPTH_RATES.hull>=.12,
+  'foreground cloud parallax must be visible relative to station');
  assert.ok(REACTOR_DEPTH_RATES.hull<1,'the reactor must move slower than ships');
  const cam2={x:cam.x+400,y:cam.y};
  const screen1=hull.x-cam.x;
  const screen2=reactorParallaxAnchor(cam2,REACTOR_DEPTH_RATES.hull).x-cam2.x;
  assert.ok(Math.abs((screen2-screen1)+400*REACTOR_DEPTH_RATES.hull)<1e-6);
+});
+
+test('front fog stays in world space, moves faster than the hull, and never acts as a HUD veil', () => {
+ withCanvasMocks(() => {
+  const reactor=new ReactorLandmark();
+  const original={x:-250,y:-260,w:1100,h:650};
+  const changed={...original,x:original.x+400};
+  const record=cam=>{
+   const positions=[];
+   const ctx=makeContext();
+   ctx.translate=(x,y)=>{positions.push({x,y});};
+   reactor.drawMist(ctx,cam,0,60,false,true,.46);
+   assert.equal(ctx.drawCalls.filter(call=>call.source===reactor.mist).length,0,
+    'broad static mist cannot cover foreground as a HUD-like veil');
+   return {positions,calls:ctx.drawCalls};
+  };
+  const before=record(original),after=record(changed);
+  assert.equal(before.positions.length,2);
+  assert.equal(after.positions.length,2);
+  const depths=[REACTOR_DEPTH_RATES.hazeFront,REACTOR_DEPTH_RATES.hazeFrontSecondary];
+  for(let i=0;i<2;i++){
+   const screenBefore=before.positions[i].x-original.x;
+   const screenAfter=after.positions[i].x-changed.x;
+   const travel=screenAfter-screenBefore;
+   assert.ok(Math.abs(travel+400*depths[i])<1e-6,
+    'foreground cloud world-space travel must track camera parallax');
+   assert.ok(Math.abs(travel)>400*REACTOR_DEPTH_RATES.hull+40,
+    'cloud must visibly outrun the station when panning');
+   assert.ok(Math.abs(travel)<400,
+    'cloud should move more slowly than player and gameplay objects');
+  }
+  assert.equal(before.calls.filter(call=>call.source===reactor.vapourSecondary||
+   call.source===reactor.vapourFrontAlternate).length,2);
+  reactor.layers.frontMist=false;
+  const hidden=makeContext();
+  reactor.drawMist(hidden,original,0,60,false,true,.46);
+  assert.equal(hidden.drawCalls.length,0,'front fog must be switchable independently');
+  const background=makeContext();
+  reactor.drawMist(background,original,0,60,false,false,.46);
+  assert.ok(background.drawCalls.length>=3,'back fog must still be rendered');
+ });
 });
 
 test('visual reactor fits inside 80 percent of both desktop and mobile view width', () => {

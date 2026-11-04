@@ -26,7 +26,7 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 <main>
 <a href="./#reactor">← Мастерская</a>
 <h1>Реактор: геометрия и масштаб на настоящей камере</h1>
-<p>Это испытание непосредственно использует <code>ReactorLandmark</code> из аркады. Корабль и док обозначены условно, но их координаты и размер заданы в игровых единицах. Сравните прежний единый рисунок с новой сценой: далёкие фермы, уменьшенный основной корпус с самостоятельным параллаксом, дымка и частицы на разных планах. Двигайте камеру и по очереди отключайте заднюю и переднюю пыль: задняя перемещается медленнее станции, передняя — быстрее. Четыре текстуры дымки медленно сменяют друг друга даже при неподвижной камере; проёмы, корабль и ядро должны быть различимыми. Глушилки и стадии запуска здесь — только проверка графики, не реализованная миссия.</p>
+<p>Это испытание непосредственно использует <code>ReactorLandmark</code> из аркады. Корабль и док обозначены условно, но их координаты и размер заданы в игровых единицах. Сравните прежний единый рисунок с новой сценой: далёкие фермы, уменьшенный основной корпус с самостоятельным параллаксом, дымка и частицы на разных планах. Двигайте камеру и по очереди отключайте заднюю и переднюю пыль: задняя перемещается медленнее станции, передняя — быстрее. Четыре текстуры дымки медленно сменяют друг друга даже при неподвижной камере; передние облака смещаются быстрее корпуса и больше не образуют сплошную экранную пелену. Отдельные переключатели позволяют сравнить дальний и передний слои. Проёмы, корабль и ядро должны быть различимыми. Глушилки и стадии запуска здесь — только проверка графики, не реализованная миссия.</p>
 <div class="layout">
 <section class="panel">
 <canvas id="stage" width="1100" height="650" role="img" aria-label="Сцена с корпусом реактора в игровом масштабе"></canvas>
@@ -56,10 +56,11 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 </label>
 <label><span><input id="size-auto" type="checkbox" checked> Размер автоматически подстраивается под экран</span></label>
 <label><span><input id="layer-distant" type="checkbox" checked> Дальние фермы · параллакс 0,52</span></label>
-<label><span><input id="layer-mist" type="checkbox" checked> Дымка · параллакс 0,68–0,87</span></label>
+<label><span><input id="layer-mist" type="checkbox" checked> Дальняя дымка · параллакс 0,68–0,73</span></label>
+<label><span><input id="layer-front-mist" type="checkbox" checked> Передние облака · параллакс 0,93–0,965</span></label>
 <label><span><input id="layer-near" type="checkbox" checked> Ближний металл · вместе с корпусом</span></label>
 <label><span><input id="layer-far-dust" type="checkbox" checked> Задняя пыль · параллакс 0,61</span></label>
-<label><span><input id="layer-near-dust" type="checkbox" checked> Передняя пыль · параллакс 0,95</span></label>
+<label><span><input id="layer-near-dust" type="checkbox" checked> Передняя пыль · параллакс 0,985</span></label>
 <label><span><input id="fog-fast" type="checkbox"> Ускорить течение облаков ×4 для проверки</span></label>
 <label>Условная производительность
 <select id="fps"><option value="60">60 FPS</option><option value="25">25 FPS</option></select>
@@ -71,12 +72,12 @@ small{color:#a5bbcd}strong{color:#dcfaff}
 </div>
 </main>
 <script type="module">
-import {ReactorLandmark,REACTOR_LANDMARK_ANCHOR} from '../reactor-landmark.js?v=reactor-fog-motion-v7';
+import {ReactorLandmark,REACTOR_LANDMARK_ANCHOR} from '../reactor-landmark.js?v=reactor-fog-motion-v8';
 const $=id=>document.getElementById(id);
 const canvas=$('stage'),g=canvas.getContext('2d',{alpha:false});
 const vw=1100,vh=650,ship={x:360,y:-25},dock={x:360,y:-85};
 const reactor=new ReactorLandmark({loadEnergyAtlas:true});
-for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near'],['layer-far-dust','farParticles'],['layer-near-dust','frontParticles']]){
+for(const [id,key] of [['layer-distant','distant'],['layer-mist','backMist'],['layer-front-mist','frontMist'],['layer-near','near'],['layer-far-dust','farParticles'],['layer-near-dust','frontParticles']]){
  $(id).addEventListener('change',event=>{reactor.layers[key]=event.target.checked;});
 }
 
@@ -181,7 +182,7 @@ $('reset').addEventListener('click',()=>{
  depth.value='0.80';reactor.hullRate=.80;$('depth-value').textContent='0,80';
  sizeAuto.checked=true;size.value='0.46';updateSize();
  $('fog-fast').checked=false;fogClock=0;
- for(const [id,key] of [['layer-distant','distant'],['layer-mist','mist'],['layer-near','near'],['layer-far-dust','farParticles'],['layer-near-dust','frontParticles']]){
+ for(const [id,key] of [['layer-distant','distant'],['layer-mist','backMist'],['layer-front-mist','frontMist'],['layer-near','near'],['layer-far-dust','farParticles'],['layer-near-dust','frontParticles']]){
   $(id).checked=true;reactor.layers[key]=true;
  }
 });
