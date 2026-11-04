@@ -129,6 +129,12 @@
  box-shadow:0 -9px 18px #04111d80;backdrop-filter:blur(3px)}
 .base-foot small{font-size:11px;line-height:1.45}
 .base-foot button[data-act="close"]{background:#213f4c;border-color:#8eb9c0a3;min-height:42px;font-weight:700}
+.base-unapplied-note{display:inline-flex;align-items:center;gap:6px;padding:7px 9px;
+ border:1px solid #dfa95b8c;border-left:3px solid #f3c778;border-radius:3px;
+ background:#3c3121;color:#ffe0a0;font-size:12px;font-weight:700;line-height:1.25}
+.base-foot:has(.base-unapplied-note){display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.base-foot:has(.base-unapplied-note)>small{flex:1 1 100%}
+.base-foot:has(.base-unapplied-note) .base-footer-actions{flex:0 1 auto}
 .base-module-options{gap:10px}
 .base-module-option{border-left:3px solid #739aaf80}
 .base-module-option.selected{border-left-color:var(--menu-ok)}
@@ -214,6 +220,8 @@
 .map-contact.selected{border-color:#f0c477;box-shadow:inset 3px 0 0 #f0c477}
 .map-contact button{min-height:40px}
 .map-view-switch{display:none}
+.map-unapplied-note{margin:9px 0!important;padding:8px 11px;border-left:3px solid var(--menu-amber);
+ background:#3a3025;color:#ffe7b8!important;font-size:12px!important;text-align:left}
 
 /* Pilot development: real branches, next effect first, no fictitious ranks. */
 #overlay .skill-dialog{width:min(96vw,1030px);padding:20px 21px 12px}
@@ -228,6 +236,25 @@
 .skill-columns{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .skill-columns section{border:1px solid #6890a172;border-radius:5px;
  background:linear-gradient(165deg,#153244,#081f31)}
+
+/* A pending hangar edit is a real decision, even if the pilot left the hangar
+   tab or opened the map. Never silently discard the staged loadout. */
+#overlay .dialog[inert]{filter:brightness(.46);pointer-events:none}
+#overlay .departure-confirm{position:fixed;z-index:40;top:50%;left:50%;transform:translate(-50%,-50%);
+ width:min(92vw,580px);max-height:calc(100dvh - 24px);overflow-y:auto;min-width:0;
+ padding:clamp(17px,3vw,26px);border:1px solid #edc27d;border-left:5px solid var(--menu-amber);
+ border-radius:7px;text-align:left;color:var(--menu-ink);
+ background:radial-gradient(ellipse at 100% 0%,#5f4b3373,transparent 60%),linear-gradient(130deg,#203949,#0a1c2d 65%,#0e2333);
+ box-shadow:0 0 0 100vmax #000a,0 26px 90px #000e,0 0 34px #ffc77716}
+.departure-kicker{display:block;color:var(--menu-amber);font-size:11px;font-weight:800;letter-spacing:.12em}
+#overlay .departure-confirm h2{font-size:clamp(20px,3vw,25px);line-height:1.2;margin:9px 0 12px;color:#fff2d3}
+#overlay .departure-confirm p{font-size:14px;line-height:1.6;color:#d4e6ef;margin:0 0 18px}
+.departure-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+#overlay .departure-actions button{margin:0;min-height:44px;padding:9px 13px;border-radius:4px;
+ border:1px solid #6394a9;color:#e8f9ff;background:#163b4d;font-size:13px;cursor:pointer}
+#overlay .departure-actions .departure-primary{background:#e9c17d;color:#142735;border-color:#ffe4ae;font-weight:800}
+#overlay .departure-actions .departure-discard{background:#3d2d32;color:#ffe1db;border-color:#cc8d85}
+#overlay .departure-actions button:focus-visible{outline:3px solid #fff1ae;outline-offset:3px}
 .skill-columns section:last-child{background:linear-gradient(165deg,#253240,#102638)}
 .skill-columns h3{font-size:15px;color:#e4f6f9}
 .skill-columns .skill-node{border-radius:4px!important;border-left:3px solid #496d89}
@@ -285,8 +312,9 @@
  .base-head h2{font-size:17px;margin-bottom:2px}
  .base-head p{font-size:10px}
  .base-pill{font-size:9px;padding:4px 6px}
- #overlay .base-tabs{margin:3px 0 6px;gap:4px}
- #overlay .base-tabs button{min-height:39px;padding:7px 3px!important;font-size:12px!important}
+ #overlay .base-tabs{position:sticky;top:0;z-index:12;margin:3px 0 6px;gap:4px;
+  padding:3px 0;background:#0b2030f7;box-shadow:0 5px 12px #01071490}
+ #overlay .base-tabs button{min-height:44px;padding:7px 3px!important;font-size:12px!important}
  .base-dashboard-main>strong{font-size:21px}
  .base-dashboard-main>p{font-size:12px}
  .base-route-graphic svg{max-height:155px}
@@ -297,16 +325,18 @@
  .base-featured-op{padding:11px}
  .base-featured-foot button{min-height:43px}
  .base-foot small{display:none}
- .base-foot button{min-height:42px}
+ .base-foot button{min-height:44px}
+ .base-foot:has(.base-unapplied-note)>small{display:none}
+ .base-unapplied-note{font-size:10px;padding:6px 8px}
  .base-module-options{grid-template-columns:1fr}
  .hg-title{padding:4px 2px 6px}
  .hg-title h2{font-size:18px!important}
  .hg-live-pill{font-size:9px;padding:5px}
- .hg-apply-bar{position:sticky;top:0;padding:7px 8px;gap:6px}
+ .hg-apply-bar{position:sticky;top:51px;padding:7px 8px;gap:6px}
  .hg-apply-bar strong{font-size:12px}
  .hg-apply-bar span{font-size:10px}
  .hg-apply-bar>div:last-child{display:flex;gap:4px}
- .hg-apply-bar button{min-height:42px;min-width:0;font-size:11px;padding:6px!important}
+ .hg-apply-bar button{min-height:44px;min-width:0;font-size:11px;padding:6px!important}
  .hg-decision-brief{padding:6px 8px;gap:4px}
  .hg-decision-brief>p{font-size:11px}
  .hg-range-brief small{font-size:9px}
@@ -320,9 +350,9 @@
  .map-heading h2{font-size:18px;margin:1px 0 2px}
  .map-heading p{display:none}
  .map-heading-actions{flex-direction:row;align-items:center;gap:6px}
- .map-heading-actions button{min-height:39px}
+ .map-heading-actions button{min-height:44px}
  .map-view-switch{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:7px 0}
- #overlay .map-view-switch button{margin:0!important;min-height:43px;background:#102b3b}
+ #overlay .map-view-switch button{margin:0!important;min-height:44px;background:#102b3b}
  #overlay .map-view-switch button[aria-pressed="true"]{border-color:#f1c879;background:#53462f;color:#fff0d1}
  .map-shell{display:block;margin-top:5px}
  .map-mode-map .map-side{display:none}
@@ -331,7 +361,7 @@
  .map-legend{margin:4px 0;font-size:9px}
  .map-active-route{padding:6px;font-size:11px}
  .map-mode-targets .map-side{max-height:none;padding:2px 4px}
- .map-contact button{min-height:43px}
+ .map-contact button{min-height:44px}
  .map-foot{font-size:10px;margin-top:8px}
  .skill-head{padding-bottom:4px;margin-bottom:7px}
  .skill-head h2{font-size:18px;margin:0 0 4px}
@@ -343,12 +373,19 @@
  .doctrine-choice strong{font-size:12px}
  .doctrine-choice small{font-size:10px}
  .skill-branch-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
- #overlay .skill-branch-tabs button{margin:0!important;min-height:43px;padding:6px 7px!important;font-size:12px}
+ #overlay .skill-branch-tabs button{margin:0!important;min-height:44px;padding:6px 7px!important;font-size:12px}
  #overlay .skill-branch-tabs button[aria-pressed="true"]{background:#4b3e2c;border-color:#edc578;color:#fdf0d1}
  .skill-columns{display:block}
  .skill-columns .skill-branch:not(.active){display:none}
  .skill-columns .skill-branch{padding:10px}
- .skill-columns button{font-size:12px;min-height:43px}
+ .skill-columns button{font-size:12px;min-height:44px}
+ #overlay .departure-confirm{left:max(5px,env(safe-area-inset-left));right:max(5px,env(safe-area-inset-right));
+  width:auto;max-width:none;transform:translateY(-50%);max-height:calc(100dvh - 12px);padding:13px 16px}
+ #overlay .departure-confirm h2{font-size:18px;margin:5px 0 7px}
+ #overlay .departure-confirm p{font-size:12px;line-height:1.42;margin-bottom:11px}
+ .departure-kicker{font-size:9px}
+ .departure-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+ #overlay .departure-actions button{font-size:11px;padding:7px 6px;white-space:normal}
 }
 @media(max-width:480px) and (min-height:581px){
  .base-head p{font-size:10px}

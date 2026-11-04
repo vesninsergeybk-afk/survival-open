@@ -43,6 +43,7 @@ test('touch entry offers a browser fallback and exits without trapping the playe
     if(!nodes.has(id))nodes.set(id,{
       id,hidden:true,disabled:false,textContent:'',listeners:{},
       addEventListener(type,callback){this.listeners[type]=callback},
+      focus(){doc.activeElement=this;},
       click(){return this.listeners.click?.()}
     });
     return nodes.get(id);
@@ -52,9 +53,10 @@ test('touch entry offers a browser fallback and exits without trapping the playe
   const doc={
     body:{classList:{add:key=>classes.add(key),remove:key=>classes.delete(key)}},
     documentElement:{requestFullscreen:async()=>{doc.fullscreenElement=doc.documentElement}},
-    fullscreenElement:null,
+    fullscreenElement:null,events:[],activeElement:null,
     listeners:{},getElementById:node,
     addEventListener(type,callback){this.listeners[type]=callback},
+    dispatchEvent(event){this.events.push(event.type)},
     exitFullscreen:async()=>{doc.fullscreenElement=null}
   };
   const win={
@@ -66,12 +68,18 @@ test('touch entry offers a browser fallback and exits without trapping the playe
   };
   mountMobileLaunch(doc,win);
   assert.equal(node('mobileLaunch').hidden,false);
+  assert.equal(doc.activeElement,node('mobileFullscreenBtn'));
+  node('mobileLaunch').listeners.keydown({key:'Tab',shiftKey:false,preventDefault(){}});
+  assert.equal(doc.activeElement,node('mobileContinueBtn'));
+  node('mobileLaunch').listeners.keydown({key:'Tab',shiftKey:false,preventDefault(){}});
+  assert.equal(doc.activeElement,node('mobileFullscreenBtn'));
   assert.equal(classes.has('mobile-launch-open'),true);
   assert.match(node('mobileLaunchTitle').textContent,/Поверните телефон/);
   landscape=true;win.listeners.resize();
   assert.equal(node('mobileLaunchTitle').textContent,'Играть на весь экран');
   await node('mobileFullscreenBtn').click();
   assert.equal(node('mobileLaunch').hidden,true);
+  assert.ok(doc.events.includes('survivor:mobile-launch-closed'));
   assert.equal(node('exitFullscreenBtn').hidden,false);
   await node('exitFullscreenBtn').click();
   doc.listeners.fullscreenchange();

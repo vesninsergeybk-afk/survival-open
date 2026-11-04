@@ -49,6 +49,8 @@ test('irreversible module confirmation requires the matching pending choice, wit
   assert.equal(alerts,1,'unconfirmed direct action must be rejected');
   runtime.askStationModule.call(game,'workshop');
   assert.equal(focused,'Вернуться к выбору','focus must not jump to irreversible purchase');
+  assert.equal(container.panel.attributes.role,'alertdialog');
+  assert.equal(container.panel.attributes['aria-modal'],'true');
   assert.equal(game.player.ore,80,'preview cannot spend resources');
   assert.deepEqual(game.pendingStationModule,{baseId:'dock-home',role:'workshop',cost:38});
   assert.equal(container.panel.children[2].children[1].attributes['aria-describedby'],'base-module-confirm-desc');
@@ -89,6 +91,19 @@ test('the loadout summary and costs precede large artwork and carry real range e
  assert.match(html,/data-act="hgApply"/);
 });
 
+test('unfinished hangar changes are shown on every station tab and never described as saved',()=>{
+ const session=new HangarSession(),current=createLoadout();session.begin(current);
+ session.draft.slots[0]=null;
+ for(const tab of ['summary','operations','hangar','network']){
+  const html=renderBasePanel(base,{...stationState,baseTab:tab,loadout:current,hangarSession:session});
+  assert.match(html,/В ангаре есть неприменённая сборка/,tab);
+  assert.match(html,/В полёт · сборка не применена/,tab);
+ }
+ const draft=renderShipHangar({...stationState,loadout:current,hangarSession:session},session);
+ assert.match(draft,/Схемы оснащения · сохранено 0 из 3/);
+ assert.match(draft,/Пустая ячейка/);
+});
+
 test('real mission preview uses labeled illustrative art without embedding invented game data',()=>{
  const html=renderBasePanel(base,{...stationState,baseTab:'operations'});
  assert.match(html,/mission-corridor/);
@@ -105,11 +120,16 @@ test('map supports a deliberate short-screen switch while preserving imprecise s
  const game={world,player:{x:0,y:0},waypoint:null,operation:null,contract:null,
   docked:null,mapReturnToBase:false,enemyBasesUnlocked:()=>false};
  const first=renderWorldMap(game);
+ assert.match(first,/role="dialog" aria-modal="true" aria-labelledby="map-menu-title"/);
  assert.match(first,/map-mode-map/);
  assert.match(first,/data-act="mapView" data-id="targets"/);
  assert.match(first,/координаты приблизительные/);
  game.mapView='targets';
  assert.match(renderWorldMap(game),/map-mode-targets/);
+ const loadout=createLoadout(),session=new HangarSession();session.begin(loadout);
+ session.draft.slots[0]=null;
+ Object.assign(game,{docked:home,mapReturnToBase:true,shipLoadout:loadout,hangarSession:session});
+ assert.match(renderWorldMap(game),/Сборка ангара не применена/);
 });
 
 test('new artwork is lightweight and every path is present in the actual Pages game',()=>{
@@ -135,16 +155,16 @@ test('published entry points invalidate the entire changed ES-module import chai
  const source=relative=>readFileSync(new URL('../'+relative,import.meta.url),'utf8');
  const game=source('game.js'),base=source('base-panel.js');
  const preview=source('hangar-preview.js');
- assert.match(source('index.html'),/game\.js\?v=economy-integrity-3-copy-1/);
- assert.match(game,/base-panel\.js\?v=economy-integrity-3-copy-1/);
+ assert.match(source('index.html'),/game\.js\?v=economy-integrity-3-copy-1-iris-hunter-1-menu-exit-1/);
+ assert.match(game,/base-panel\.js\?v=economy-integrity-3-copy-1-menu-exit-1/);
  assert.match(game,/sortie-economy\.js\?v=economy-integrity-1/);
  assert.match(game,/sortie-ledger\.js\?v=economy-ledger-1/);
  assert.match(base,/sortie-economy\.js\?v=economy-integrity-1/);
- assert.match(game,/map-panel\.js\?v=weapons-cycle-2/);
- assert.match(base,/hangar-panel\.js\?v=weapons-cycle-2/);
- assert.match(base,/map-panel\.js\?v=weapons-cycle-2/);
- assert.match(source('hangar-preview.html'),/hangar-preview\.js\?v=weapons-cycle-2/);
- assert.match(preview,/hangar-panel\.js\?v=weapons-cycle-2/);
+ assert.match(game,/map-panel\.js\?v=menu-exit-1/);
+ assert.match(base,/hangar-panel\.js\?v=menu-exit-1/);
+ assert.match(base,/map-panel\.js\?v=menu-exit-1/);
+ assert.match(source('hangar-preview.html'),/hangar-preview\.js\?v=menu-exit-1/);
+ assert.match(preview,/hangar-panel\.js\?v=menu-exit-1/);
 });
 
 test('active menu controls never override positioning transforms used by ship hardpoints',()=>{
@@ -156,7 +176,7 @@ test('active menu controls never override positioning transforms used by ship ha
  assert.ok(reducedRule,'reduced-motion settings are missing');
  assert.doesNotMatch(reducedRule,/transform\s*:/,'reduced motion must not displace ship hardpoints');
  assert.match(css,/\.base-foot\s*\{position:sticky;bottom:0/,'station return action must stay visible while panels scroll');
- assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/menu-system\.css\?v=menus-gameplay-first-4/);
+ assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),/menu-system\.css\?v=menus-gameplay-first-5-menu-exit-1/);
 });
 
 test('landscape phone layout reserves notches and exposes navigation without three desktop columns',()=>{
@@ -172,5 +192,7 @@ test('landscape phone layout reserves notches and exposes navigation without thr
  assert.match(coarse,/\.hg-layout\{display:block/);
  assert.match(coarse,/\.hg-mobile-only\{display:inline-block!important/);
  assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),
-  /menu-system\.css\?v=menus-gameplay-first-4-economy-integrity-2-mobile-safe-1/);
+  /menu-system\.css\?v=menus-gameplay-first-5-menu-exit-1/);
+ assert.match(compact, /\.base-tabs\{position:sticky/);
+ assert.match(compact, /\.hg-apply-bar\{position:sticky;top:51px/);
 });
