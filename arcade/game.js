@@ -16,7 +16,7 @@ import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=arcade-ion-31';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=station-choices-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=station-choices-first-reward-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
@@ -24,13 +24,14 @@ import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from '.
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
 import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2';
 
-import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=weapons-cycle-2';
+import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1';
+import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
 import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=iris-swarm-hunter-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=weapons-cycle-2';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=weapons-cycle-2';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=economy-integrity-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -132,6 +133,7 @@ export class ArcadeGame {
      burstRemaining:0,burstCooldown:0,burstX:0,burstY:-1};
   this.skillRanks=Object.fromEntries(SKILLS.map(s=>[s.id,0]));
   this.shipLoadout=createLoadout();
+  this.firstHardwareReward=null;
   let hangarStorage=null;try{hangarStorage=window.localStorage;}catch{}
   this.hangarSession=new HangarSession(hangarStorage);
   this.weaponThermal=createThermal();this.moduleClocks={rail:0,flak:0};
@@ -303,7 +305,7 @@ export class ArcadeGame {
     if(act==='waypoint')this.selectWaypoint(b.dataset);
     if(act==='abandonContract')this.abandonContract();
     if(act==='loanIon'||act==='returnIon')this.baseAction(act,'');
-   if(act==='acceptOperation'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimContract'||act==='installModule'||act==='antenna'||act==='loanField'||act==='returnField'||act==='fieldCharge')
+   if(act==='acceptOperation'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimContract'||act==='installModule'||act==='antenna'||act==='claimFirstModule'||act==='loanField'||act==='returnField'||act==='fieldCharge')
     this.baseAction(act,b.dataset.role||'');
    if(act==='restart')location.reload();
   });
@@ -1093,7 +1095,8 @@ export class ArcadeGame {
  }
  suggestShipModule(id){
   return stageOwnedModule(this.shipLoadout,this.hangarSession,id,{baseActive:!!this.docked?.active,
-   level:this.player.level,ore:this.player.ore,ranks:this.skillRanks,fieldLoan:this.fieldLoan,earlyRail:!!this.world.home?.corridorSecured});
+   level:this.player.level,ore:this.player.ore,ranks:this.skillRanks,fieldLoan:this.fieldLoan,
+   loadout:this.shipLoadout,firstHardwareReward:this.firstHardwareReward,earlyRail:!!this.world.home?.corridorSecured});
  }
  revealLoadoutApply(){
   this.overlay.querySelector('.hg-apply-bar')?.scrollIntoView({block:'center'});
@@ -1115,7 +1118,8 @@ export class ArcadeGame {
   if(data.act==='hgUpgrade'){this.buySkill(data.id);return;}
   const result=this.hangarSession.dispatch(data,{loadout:this.shipLoadout,level:this.player.level,
    ore:this.player.ore,points:this.player.points,activeBases:this.activeBases,
-   ranks:this.skillRanks,fieldLoan:this.fieldLoan,baseActive:this.docked.active,earlyRail:!!this.world.home?.corridorSecured});
+   ranks:this.skillRanks,fieldLoan:this.fieldLoan,baseActive:this.docked.active,
+   firstHardwareReward:this.firstHardwareReward,earlyRail:!!this.world.home?.corridorSecured});
   if(result?.ok){
    recordEconomyExpense(this,'weapons',Math.max(0,this.player.ore-result.ore));
    this.shipLoadout=result.loadout;this.player.ore=result.ore;
@@ -1144,6 +1148,7 @@ export class ArcadeGame {
  baseState(){
   const topology=this.world.networkTopology();
   return {loadout:this.shipLoadout,hangarSession:this.hangarSession,skillRanks:this.skillRanks,points:this.player.points,hangarUpgrades:this.hangarUpgrades(),ore:this.player.ore,data:this.player.data,xp:this.player.xp,level:this.player.level,
+   firstHardwareReward:this.firstHardwareReward,
    nextXp:expForNext(this.player.level),world:this.world,hp:this.player.hp,maxHp:this.player.maxHp,time:this.time,
    civilianBases:[...this.world.stations.values()].filter(b=>b.active&&!b.captured).length,
    relayGain:this.docked&&!this.docked.relayBoost?
@@ -1201,6 +1206,10 @@ export class ArcadeGame {
   if(!this.pendingCheckpoint)return;
   try{restoreCheckpoint(this,this.pendingCheckpoint);}
   catch{this.notice('Сохранённый вылет не удалось восстановить. Запись оставлена без изменений.',6);return;}
+  // Existing saves predate the reward: preserve their contract progress and
+  // offer the choice once instead of requiring another completed contract.
+  if(this.firstHardwareReward==null&&[...this.world.stations.values()].some(b=>
+   (b.contractRuns||0)>0||b.contractClaimed||b.completedContract))this.firstHardwareReward='pending';
   this.visuals.updateSky(this.player.x,this.player.y);
   this.nearRocks=this.world.nearbyRocks(this.player.x,this.player.y,Math.max(this.vw,this.vh)*.85+450);
   this.localStations=this.world.nearbyStations(this.player.x,this.player.y,1000,false);
@@ -1496,8 +1505,24 @@ export class ArcadeGame {
    this.lastContractReceipt={ore:c.ore,data:c.data,
     credited:this.sortieReports.some(r=>r.id===c.completedSortieId&&r.details?.oreContracts>=c.ore)||
      (c.completedSortieId==null&&this.sortieReports.some(r=>r.baseId===b.id))};
-   this.notice('Поручение выполнено: +'+c.ore+' сплава · +'+c.data+' данных',4);
+   if(this.firstHardwareReward==null)this.firstHardwareReward='pending';
+   this.baseTab='summary';
+   this.notice('Поручение выполнено: +'+c.ore+' сплава · +'+c.data+
+    ' данных. Выберите бесплатное оружие!',5);
    this.heritage.station(act,b.type);
+   this.pausedRenderPending=true;this.renderDock();return;
+  }else if(act==='claimFirstModule'){
+   if(!b.active||!this.paused||this.overlay?.hidden||this.overlay?.dataset?.mode!=='base')return;
+   const preserveDraft=!!this.hangarSession?.dirty?.(this.shipLoadout);
+   const reward=claimFirstContractModule(this.shipLoadout,this.firstHardwareReward,role,{preserveDraft});
+   if(!reward.ok){this.heritage.ui('deny');this.notice(reward.reason,3);return;}
+   this.shipLoadout=reward.loadout;this.firstHardwareReward=reward.status;
+   if(this.lastContractReceipt)this.lastContractReceipt.firstHardwareReward=role;
+   if(!preserveDraft)this.hangarSession?.begin(this.shipLoadout);
+   this.syncShipLoadout();
+   this.notice(MODULES[role].name+(reward.installed?' установлен на корабль!':
+    ' получен на склад; освободите узел в ангаре.'),5);
+   this.heritage.ui('upgrade');
    this.pausedRenderPending=true;this.renderDock();return;
   }else if(act==='respec'){
    if(!b.active||!this.doctrine||p.ore<12){this.notice('Нужны активная база и 12 сплава',2);return;}
