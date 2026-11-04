@@ -13,6 +13,7 @@ function scene(enemies){
   const player={x:0,y:0,vx:140,vy:0,hp:100,maxHp:100,r:20,invul:99};
   const game={time:1,player,enemies,allies:[],missiles:[],shots:[],
     avoidance:()=>({x:0,y:0}),enemyCanSee:()=>true,
+    playerCanInspectEnemyIntent:()=>true,
     grid:{query:()=>enemies},
     heritage:{play(){},vfx:{shipExplosion(){}}},hurt(){},enemyShot(){return true;}};
   const leader=enemies[0],intel={x:0,y:0,vx:140,vy:0,at:game.time};
@@ -89,10 +90,10 @@ test('world and map use the same actual heading and the map draws no remote netw
   const map=enemyIntentMapPaths(game,(x,y)=>({x,y}),()=>true);
   assert.match(map,/Радиоприказ: обход/);
   assert.match(map,/enemy-map-intent/);
-  game.enemyCanSee=()=>false;
+  game.playerCanInspectEnemyIntent=()=>false;
   assert.equal(enemyIntentMapPaths(game,(x,y)=>({x,y}),()=>true),'',
     'the map must not reveal a group hidden behind solid cover');
-  game.enemyCanSee=()=>true;
+  game.playerCanInspectEnemyIntent=()=>true;
   disconnect();
   assert.equal(enemyIntentMapPaths(game,(x,y)=>({x,y}),()=>true),'');
   assert.equal(drawEnemyIntentions(ctx,{x:0,y:0,w:600,h:400},game),0);
@@ -100,9 +101,9 @@ test('world and map use the same actual heading and the map draws no remote netw
 
 test('game asset chain makes both map and tactical preview accessible to players',()=>{
   const read=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
-  assert.match(read('index.html'),/game\.js\?v=[^"']*enemy-intents-1/);
-  assert.match(read('game.js'),/enemy-intentions\.js\?v=enemy-intents-1/);
-  assert.match(read('game.js'),/map-panel\.js\?v=menu-exit-1-enemy-intents-1/);
+  assert.match(read('index.html'),/game\.js\?v=[^"']*enemy-intents-2/);
+  assert.match(read('game.js'),/enemy-intentions\.js\?v=enemy-intents-2/);
+  assert.match(read('game.js'),/map-panel\.js\?v=menu-exit-1-enemy-intents-2/);
   assert.match(read('map-panel.js'),/enemyIntentMapPaths\(game/);
   assert.match(read('ai.js'),/e\._commsIntent=\{x:goalX,y:goalY/);
 });
