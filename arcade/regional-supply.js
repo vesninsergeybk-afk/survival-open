@@ -1,4 +1,5 @@
 import {REGIONS} from './regions.js?v=regions-1';
+import {createCentralIndustry,advanceCentralIndustry,interceptCentralCargo,centralIndustryValid,CENTRAL_INDUSTRY,centralEvent} from './central-industry.js?v=living-world-1';
 export const SUPPLY=Object.freeze({mineId:'28:5',militaryId:'4:-32',
  production:.2,capacity:24,cargoCost:12,dispatchPeriod:90,speed:220,
  assembly:28,raidPeriod:95,warning:10,oreReward:12,dataReward:15});
@@ -25,7 +26,7 @@ export function supplyPosition(distance){
 export function createRegionalSupply(time=0){return {
  version:1,clock:Math.floor(time),ore:0,nextDispatch:Math.floor(time)+60,
  serial:0,convoys:[],reserves:0,assemblyUntil:0,nextRaid:0,pendingRaid:null,
- delivered:0,intercepted:0,raids:0,history:[],visited:['amethyst']
+ delivered:0,intercepted:0,raids:0,history:[],visited:['amethyst'],central:createCentralIndustry(time)
 };}
 export function supplyEvent(state,kind,time){
  const e={kind,time};state.history.push(e);state.history=state.history.slice(-6);return e;
@@ -35,6 +36,9 @@ export function supplyEvent(state,kind,time){
 export function advanceRegionalSupply(world,time){
  const s=world.regionalSupply,events=[];
  if(!s)return events;
+ // Legacy checkpoints have no small industrial loop. Start it from the saved
+ // simulation clock, never simulate unseen production retrospectively.
+ if(!s.central)s.central=createCentralIndustry(s.clock);
  const mine=world.stations.get(SUPPLY.mineId),military=world.stations.get(SUPPLY.militaryId);
  const emit=(kind,t)=>events.push(supplyEvent(s,kind,t));
  while(s.clock<Math.floor(time)){
@@ -65,9 +69,10 @@ export function advanceRegionalSupply(world,time){
  for(const c of s.convoys){
   c.distance=(time-c.launchedAt)*SUPPLY.speed;Object.assign(c,supplyPosition(c.distance));
  }
- return events;
+ return events.concat(advanceCentralIndustry(world,time));
 }
 export function interceptSupply(world,cargo,time){
+ if(cargo.centralCargo)return interceptCentralCargo(world,cargo,time);
  const s=world.regionalSupply;
  if(!s?.convoys.includes(cargo)||cargo.rewarded||cargo.hp>0)return false;
  cargo.rewarded=true;s.intercepted++;s.convoys=s.convoys.filter(c=>c!==cargo);
@@ -75,6 +80,19 @@ export function interceptSupply(world,cargo,time){
 }
 export function strategicCapture(world,base,time){
  if(!base.strategicRole)return false;
+ if(base.strategicRole.startsWith('central-')&&!world.regionalSupply.central)
+  world.regionalSupply.central=createCentralIndustry(world.regionalSupply.clock);
+ if(base.strategicRole==='central-source'){
+  const worker=world.regionalSupply.central?.worker;
+  if(worker){worker.phase='evacuated';worker.carry=0;}
+  centralEvent(world.regionalSupply.central,'central-source-captured',time);
+  return true;
+ }
+ if(base.strategicRole==='central-depot'){
+  const s=world.regionalSupply.central;
+  if(s){s.reserves=0;s.pendingRaid=null;centralEvent(s,'central-depot-captured',time);}
+  return true;
+ }
  if(base.strategicRole==='military'){
   world.regionalSupply.reserves=0;world.regionalSupply.pendingRaid=null;
  }
@@ -84,6 +102,7 @@ export function strategicCapture(world,base,time){
 export function regionalSupplyValid(s,time){
  const num=(n,min,max)=>Number.isFinite(n)&&n>=min&&n<=max;
  return !!s&&s.version===1&&Number.isInteger(s.clock)&&num(s.clock,0,time)&&
+  (s.central===undefined||centralIndustryValid(s.central,time))&&
   num(s.ore,0,SUPPLY.capacity)&&num(s.nextDispatch,0,1e9)&&
   Number.isSafeInteger(s.serial)&&num(s.serial,0,1e9)&&num(s.reserves,0,2)&&Number.isInteger(s.reserves)&&
   num(s.assemblyUntil,0,1e9)&&num(s.nextRaid,0,1e9)&&

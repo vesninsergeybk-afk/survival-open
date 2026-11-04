@@ -1,9 +1,10 @@
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid} from './region-runtime.js?v=regions-1';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid} from './region-runtime.js?v=living-world-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
-import {strategicCapture} from './regional-supply.js?v=regions-1';
+import {strategicCapture} from './regional-supply.js?v=living-world-1';
+import {disableCentralWorker} from './central-industry.js?v=living-world-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30';
-import {World} from './world.js?v=regions-1';
+import {World} from './world.js?v=living-world-1';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense} from './network-defense.js?v=network-defense-3';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
@@ -26,7 +27,7 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-3';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-2';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-1-network-defense-3-living-world-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -36,11 +37,11 @@ import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADE
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
-import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=iris-swarm-hunter-1-regions-1-enemy-world-response-1';
-import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=regions-1-enemy-world-response-1';
-import {pickDesignatedTarget,activeDesignatedTarget} from './target-designation.js?v=enemy-world-response-1';
-import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=weapons-cycle-2-regions-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3';
+import {updateAutomaticWeapons,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=living-world-1';
+import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-1';
+import {pickDesignatedTarget,activeDesignatedTarget} from './target-designation.js?v=living-world-1';
+import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -608,10 +609,11 @@ export class ArcadeGame {
    if(!Number.isFinite(x)||!Number.isFinite(y))return;
    const base=this.world.stations.get(data.id);
    const region=REGIONS.find(r=>'region-'+r.id===data.id);
-   const cargo=this.world.regionalSupply?.convoys.find(c=>c.id===data.id&&c.seen);
+   const cargo=[...(this.world.regionalSupply?.convoys||[]),
+    ...(this.world.regionalSupply?.central?.convoys||[])].find(c=>c.id===data.id&&c.seen);
    if(!region&&!cargo&&(!base||(!base.discovered&&!data.signal)))return;
    const waypoint=region?{id:data.id,...region.entry,label:region.name}:
-    cargo?{id:cargo.id,x:cargo.x,y:cargo.y,label:'Рудный транспорт'}:
+    cargo?{id:cargo.id,x:cargo.x,y:cargo.y,label:cargo.centralCargo?'Местный груз':'Рудный транспорт'}:
     {id:data.id,x,y,label:data.label||'Сигнал станции'};
    this.requestWaypointDeparture(waypoint,'Маршрут: '+waypoint.label+' · '+Math.round(dist(this.player,waypoint))+' м');
   }
@@ -1929,6 +1931,15 @@ export class ArcadeGame {
  damageEnemy(e,damage,source='other',contact=null){
   if(e.hp<=0)return;
   if(e.regionalCargo){hitRegionalCargo(this,e,damage,contact);return;}
+  if(e.centralWorker){
+   e.hp=Math.max(0,e.hp-damage);e.hit=.15;
+   this.heritage.vfx.hullImpact(contact?.x??e.x,contact?.y??e.y,damage>30,contact);
+   if(disableCentralWorker(this.world,e,this.time)){
+    this.heritage.vfx.shipExplosion(e.x,e.y,35,'#90f7d7',false);
+    this.notice('Рудный рабочий уничтожен: местная добыча остановилась. Уже отправленные грузы ещё опасны.',7);
+   }
+   return;
+  }
   if(e.interceptCargo){
    const origin=contact?.directed?contact:
     source&&typeof source==='object'?source:this.player;
@@ -2014,9 +2025,11 @@ export class ArcadeGame {
    this.heritage.play('capturedBase',.2,{x:base.x,y:base.y});
    if(strategicCapture(this.world,base,this.time)){
     this.addDrop('ore',base.x,base.y,25,{source:'salvage',life:60});
-    this.notice(base.strategicRole==='mine'?
-     'Добывающий комплекс захвачен. Новые грузы не выйдут; транспорт в пути ещё нужно перехватить.':
-     'Военный узел захвачен. Подготовка тяжёлых подкреплений остановлена.',7);
+    const notice={mine:'Добывающий комплекс захвачен. Новые грузы не выйдут; транспорт в пути ещё нужно перехватить.',
+     military:'Военный узел захвачен. Подготовка тяжёлых подкреплений остановлена.',
+     'central-source':'Местная шахта захвачена. Добыча остановлена, но уже отправленные грузы ещё в пути.',
+     'central-depot':'Сборочный пост захвачен. Новые местные патрули не появятся, транспорт теперь идёт впустую.'};
+    this.notice(notice[base.strategicRole]||'Промышленный узел захвачен.',7);
    }else this.notice('Вражеская база захвачена! Заряд кода: Q',6);
   }
  }
@@ -2395,7 +2408,7 @@ export class ArcadeGame {
     this.spawnClock=4.5;
    }else{
    const director=this.sectorDirector(openingThreat(this.time,this.player.level));
-   const recovery=spawnRegionalRaid(this,director)?6:this.spawnGroup(director);
+   const recovery=spawnCentralRaid(this,director)||spawnRegionalRaid(this,director)?6:this.spawnGroup(director);
    // Give the player room to clear an overwhelming formation, without
    // suppressing the large waves when a strong build is mowing them down.
    const pressure=this.enemies.length/Math.max(1,director.cap);

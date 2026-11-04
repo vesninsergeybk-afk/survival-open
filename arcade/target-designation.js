@@ -1,5 +1,5 @@
 import {combatTargets,targetDistance,targetRadius,clearLine}
-  from './combat-targets.js?v=regions-1-enemy-world-response-1';
+  from './combat-targets.js?v=living-world-1';
 
 export const TARGET_DESIGNATION=Object.freeze({duration:14,tapRadius:34,maxDistance:900});
 
@@ -7,7 +7,11 @@ export const TARGET_DESIGNATION=Object.freeze({duration:14,tapRadius:34,maxDista
  * It can only point at an already targetable, unoccluded visible enemy. */
 export function pickDesignatedTarget(game,worldPoint,tapRadius=TARGET_DESIGNATION.tapRadius){
   if(!game?.player||!worldPoint)return null;
-  return combatTargets(game,Math.max(70,tapRadius+50),worldPoint)
+ const targets=combatTargets(game,Math.max(70,tapRadius+50),worldPoint);
+ const worker=game.world?.regionalSupply?.central?.worker;
+ if(worker?.hp>0&&game.world?.stations.get('industry:source')?.enemy)
+  targets.push({kind:'enemy',target:worker,goal:true});
+ return targets
     .filter(item=>targetDistance(game.player,item.target)<=TARGET_DESIGNATION.maxDistance&&
       targetDistance(worldPoint,item.target)<=
         Math.max(tapRadius,targetRadius(item)+9)&&
