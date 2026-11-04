@@ -412,7 +412,7 @@ const missionChoice=(base,state)=>{
   op.id==='relay-defense'?'Прервать · волны начнутся заново':
   'Прервать · погоня начнётся заново';
  const primary=active?action('baseMap',returning?'Маршрут назад':'Показать цель'):
-  available&&!state.operation?action('acceptOperation',op.resumable?'Продолжить':'Начать операцию'):
+  available&&!state.operation?action('acceptOperation',op.resumable?'Возобновить операцию':'Принять операцию'):
   '';
  return '<section class="base-mission-feature mission-'+
   (op.id==='silent-corridor'?'corridor':op.id==='last-signal'?'probe':
@@ -420,7 +420,7 @@ const missionChoice=(base,state)=>{
   '<div class="base-mission-main"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · '+current+'</span>'+
   '<strong>'+op.name+'</strong><p>'+(returning?'Вернитесь на исходную станцию. Награда и разведка откроются после возвращения.':objective)+
   '</p><span class="base-mission-risk">Риск: '+warning+'</span>'+
-  '<div class="base-mission-reward">+'+op.rewardOre+' сплава · +'+op.rewardData+' опыта</div>'+
+  '<div class="base-mission-reward">'+(done?'Получено: ':'Награда: ')+'+'+op.rewardOre+' сплава · +'+op.rewardData+' опыта</div>'+
   progress+'</div><div class="base-mission-actions">'+primary+
   '<details class="base-mission-more"><summary>Подробности и опасности</summary>'+
   '<p><b>Опасность:</b> '+warning+'.</p><p>'+op.desc+'</p>'+
