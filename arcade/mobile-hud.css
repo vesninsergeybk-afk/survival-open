@@ -24,7 +24,7 @@
   #hud.cockpit-hud .hud-stat-head img { width:9px;height:9px }
   #hud.cockpit-hud .hud-stat-head span { font-size:9px }
   #hud.cockpit-hud .hud-stat-head b { font-size:10px }
-  #hud.cockpit-hud .hud-level-strip { font-size:8px }
+  #hud.cockpit-hud .hud-level-strip { font-size:8px;bottom:8% }
   /* The art-frame is 3.17:1; on a phone it has room for three lines,
      not six competing labels. Keep all live numbers in fixed slots. */
   #hud.cockpit-hud .wing-right .hud-combat-heading {
@@ -68,9 +68,9 @@
     gap:2px;flex:0 1 auto;min-width:0;
   }
   #hud.cockpit-hud .wing-right .hud-resource-strip .resource small {
-    font-size:7px;letter-spacing:0;
+    font-size:8px;letter-spacing:0;
   }
-  #hud.cockpit-hud .wing-right .hud-resource-strip .resource b { font-size:9px }
+  #hud.cockpit-hud .wing-right .hud-resource-strip .resource b { font-size:10px }
   #hud.cockpit-hud .wing-right .hud-thermal {
     top:60%;height:7%;left:26%;right:12%;
   }
@@ -148,7 +148,8 @@
   #audioBtn { font-size:9px;padding:4px 8px;line-height:1.25 }
   #audioMixer[open] { position:relative;z-index:8 }
   #audioMixer summary { padding:3px 8px;font-size:9px }
-  #audioCredits { font-size:9px;padding:1px 3px }
+  #audioCredits { font-size:0;padding:3px 6px;min-height:24px;text-decoration:none }
+  #audioCredits::before { content:"ⓘ";font-size:14px;font-weight:750 }
 
   /* Keep at least 44px-high thumb targets, but reclaim vertical space. */
   .mobile {
@@ -182,12 +183,12 @@
   }
   #hud.cockpit-hud .hud-stat-head span { font-size:8px }
   #hud.cockpit-hud .hud-stat-head b { font-size:9px }
-  #hud.cockpit-hud .hud-combat-heading strong { font-size:9px }
+  #hud.cockpit-hud .hud-combat-heading strong { font-size:0 }
   #hud.cockpit-hud .radar-unit { display:none }
   #audioControls { flex-direction:column;align-items:flex-end;gap:0;top:50px }
   #audioBtn { padding:2px 7px }
   #audioMixer summary { padding:2px 7px }
-  #audioCredits { font-size:8px;padding:0 2px }
+  #audioCredits { font-size:0;padding:2px 6px }
   .mobile-buttons { width:154px }
   #hud.cockpit-hud #message {
     left:calc(50% - 22px);
