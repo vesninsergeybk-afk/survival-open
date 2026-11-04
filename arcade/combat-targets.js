@@ -24,8 +24,15 @@ export function combatTargets(game,range,origin=game.player){
  };
  if(op?.id==='silent-corridor')add({kind:'jammer',target:op,goal:true});
  if(op?.interceptCargo)add({kind:'enemy',target:op,goal:true});
- for(const target of game.world?.regionalSupply?.convoys||[])
+ for(const target of [...(game.world?.regionalSupply?.convoys||[]),
+  ...(game.world?.regionalSupply?.central?.convoys||[])])
   add({kind:'enemy',target,goal:true});
+ // A mining worker is not an automatic target. The player must first
+ // explicitly designate this industrial unit on the canvas.
+ const worker=game.world?.regionalSupply?.central?.worker;
+ if(worker?.hp>0&&game.world?.stations.get('industry:source')?.enemy&&
+  game.designatedTarget?.target===worker&&game.time<=game.designatedTarget.expiresAt)
+  add({kind:'enemy',target:worker,goal:true});
  const bases=game.world?.nearbyStations?game.world.nearbyStations(origin.x,origin.y,range+150,true)
   .filter(b=>b.enemy&&!b.captured&&(b.strategicRole||game.enemyBasesUnlocked?.()!==false)):
    [game.nearbyEnemyBase?.(range+150)].filter(Boolean);

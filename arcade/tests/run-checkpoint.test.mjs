@@ -393,6 +393,33 @@ test('regional production, live cargo identity and captured sources survive stat
  assert.equal(validateCheckpoint(broken),false);
 });
 
+test('local worker, industrial resources and mined rocks survive loading; old checkpoints start without retroactive income',async()=>{
+ const {advanceRegionalSupply}=await import('../regional-supply.js');
+ const g=scene();advanceRegionalSupply(g.world,g.time);
+ const local=g.world.regionalSupply.central;
+ assert.ok(local.produced>0);
+ const source=g.world.stations.get('industry:source');
+ source.discovered=true;g.world.discovered.add(source.id);
+ const mined=[...g.world.rocks.values()].flat().find(rock=>rock.hp<rock.maxHp);
+ assert.ok(mined);
+ const original=captureCheckpoint(g,g.docked),fresh=scene();
+ assert.ok(validateCheckpoint(original));
+ restoreCheckpoint(fresh,unpackRun(packRun(original)));
+ assert.equal(fresh.world.regionalSupply.central.produced,local.produced);
+ assert.equal(fresh.world.regionalSupply.central.worker.phase,local.worker.phase);
+ assert.equal([...fresh.world.rocks.values()].flat().find(r=>r.id===mined.id).hp,mined.hp);
+ assert.ok(fresh.world.stations.get(source.id).discovered);
+ const legacy=unpackRun(packRun(original));delete legacy.world.regionalSupply.central;
+ assert.ok(validateCheckpoint(legacy));
+ const migrated=scene();restoreCheckpoint(migrated,legacy);
+ const oldTime=migrated.world.regionalSupply.clock;
+ advanceRegionalSupply(migrated.world,oldTime+1);
+ assert.equal(migrated.world.regionalSupply.central.clock,oldTime+1);
+ assert.equal(migrated.world.regionalSupply.central.produced,0);
+ const bad=unpackRun(packRun(original));bad.world.regionalSupply.central.worker.carry=999;
+ assert.equal(validateCheckpoint(bad),false);
+});
+
 
 test('saving unseen damage cannot silently rebuild a regional garrison on restore',async()=>{
  const {SUPPLY}=await import('../regional-supply.js');
