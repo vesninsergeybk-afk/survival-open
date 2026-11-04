@@ -132,7 +132,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   '<div class="hg-apply-bar'+(dirty?' has-changes':'')+'" role="region" aria-label="Подтверждение оснащения"><div><strong>'+(dirty?'● Предварительная сборка · '+draftCount+' узл.':'✓ Текущая конфигурация · '+draftCount+' узл.')+'</strong><span>'+
    (quote.cost?'Изготовление: '+quote.cost+' сплава · останется '+Math.max(0,context.ore-quote.cost):'Модули в наличии · замена бесплатна')+'</span>'+(!quote.ok?'<small class="hg-error">'+esc(quote.reason)+'</small>':'')+'</div><div>'+
    button('hgReset','Отменить','',!dirty)+button('hgApply',quote.cost?'Изготовить и применить':'Применить','',!dirty||!quote.ok,'hg-primary')+'</div></div>'+
-  '<div class="hg-decision-brief"><p>'+esc(combatCue)+'</p><div class="hg-range-brief" aria-label="Урон выбранной сборки по дистанциям">'+compareNow+'</div></div>'+
+  '<div class="hg-decision-brief"><p>'+esc(combatCue)+'</p><div class="hg-range-brief" aria-label="Урон автоматического оружия в секунду, без брони и перегрева"><small class="hg-range-title">АВТОУРОН / С</small>'+compareNow+'</div></div>'+
   comparison+'<div class="hg-layout">'+catalog+assembly+inspector+'</div>'+
   '<p class="hg-message" role="status" aria-live="polite">'+esc(session.message||'Изменения вступят в силу после применения. В ангаре игра приостановлена.')+'</p>'+
   progression+upgrades+blueprints+'</section>';
