@@ -161,7 +161,7 @@ test('visual revision reports implementation separately from artistic approval',
   assert.ok(exists('../../'+entry.source),entry.id+': source not found '+entry.source);
  }
  assert.equal(VISUAL_AUDIT.find(e=>e.id==='capital-wear').status,'trial');
- assert.equal(VISUAL_AUDIT.find(e=>e.id==='scene-light').status,'gap');
+ assert.equal(VISUAL_AUDIT.find(e=>e.id==='scene-light').status,'partial');
  const html=read('../studio/index.html'),js=read('../studio/app.js');
  for(const id of ['audit-title','audit-summary','audit-filters','audit-list'])
   assert.match(html,new RegExp('id="'+id+'"'));

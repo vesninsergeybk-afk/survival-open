@@ -1,4 +1,4 @@
-import {SYSTEMS, ISSUE_REFS, REF_TITLES, PARTIAL_REFS, WORKSTREAMS, EMP_CUE_FRAMES} from './systems-data.js?v=gameplay-audit-2';
+import {SYSTEMS, ISSUE_REFS, REF_TITLES, PARTIAL_REFS, WORKSTREAMS, EMP_CUE_FRAMES} from './systems-data.js?v=whole-scope-1';
 
 const $ = id => document.getElementById(id);
 const make = (tag, klass, value) => {
