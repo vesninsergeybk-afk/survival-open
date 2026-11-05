@@ -2,7 +2,7 @@
    The local radar is deliberately bounded to 1.1km and redraws <=5 times/sec. */
 import {miningSignal} from './mining.js?v=arcade-extraction-risk-34';
 import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2';
-import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-2';
+import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-3';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 export const hullCondition = (hp,maxHp) => {
@@ -90,12 +90,14 @@ export class CockpitDisplay {
   }
   const op=game.operation,c=game.contract,tracker=n.contractObjective;
   const opening=openingArcObjective(game.openingArc,game.time);
+  const unclaimedWeapon=game.firstHardwareReward==='pending'&&
+   game.openingArc?.status==='complete'?'БЕСПЛАТНОЕ ОРУЖИЕ · выберите модуль на станции':'';
   if(tracker){
-   tracker.hidden=!(op||c||opening);
-   this.root.classList.toggle('has-objective',!!(op||c||opening));
+   tracker.hidden=!(op||c||opening||unclaimedWeapon);
+   this.root.classList.toggle('has-objective',!!(op||c||opening||unclaimedWeapon));
    tracker.classList.toggle('ready',!op&&!!c&&c.progress>=c.goal);
    display(tracker,op?missionHudText(game):openingArcActive(game.openingArc)?opening:
-    c?missionHudText(game):opening);
+    c?missionHudText(game):opening||unclaimedWeapon);
   }
   const extracting=!!game.mining?.active,repairing=!!game.probeRepairing;
   const noise=miningSignal(game.miningNoise||0);

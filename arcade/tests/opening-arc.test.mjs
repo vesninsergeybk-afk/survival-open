@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
- openingArcActive,openingArcObjective,openingArcPressure,validateOpeningArc,runClock} from '../opening-arc.js';
+ openingArcActive,openingArcObjective,openingArcPressure,openingWaypointCue,recordOpeningCommanderDefeat,
+ validateOpeningArc,runClock} from '../opening-arc.js';
 import {RuntimeHarness} from './runtime-game.mjs';
 import {createLoadout} from '../ship-loadout.js';
 
@@ -35,14 +36,38 @@ test('rescue requires actual held interaction in range and persists partial effo
 
 test('interception only succeeds on actual destroyed commander, and missing deadline is failure',()=>{
  const a=arc();beginOpeningArc(a,'intercept',18);
- assert.equal(advanceOpeningArc(a,19,.1,{commanderAlive:true}),'active');
- assert.equal(advanceOpeningArc(a,24,.1,{commanderAlive:false}),'intercept-complete');
- assert.equal(a.reliefUntil,24+OPENING_ARC.interceptRelief);
- assert.equal(advanceOpeningArc(a,25,.1,{commanderAlive:false}),'idle');
+ a.commanderSerial=7;
+ assert.equal(advanceOpeningArc(a,19,.1,{commanderDefeated:false}),'active');
+ assert.equal(advanceOpeningArc(a,20,.1,{commanderDefeated:true}),'intercept-complete');
+ assert.equal(a.reliefUntil,20+OPENING_ARC.interceptRelief);
+ assert.equal(advanceOpeningArc(a,25,.1,{commanderDefeated:true}),'idle');
  const b=arc();beginOpeningArc(b,'intercept',18);
- assert.equal(advanceOpeningArc(b,b.expiresAt,.1,{commanderAlive:false}),'failed',
+ b.commanderSerial=8;
+ assert.equal(advanceOpeningArc(b,b.expiresAt,.1,{commanderDefeated:true}),'failed',
   'an enemy destroyed after the deadline cannot award success');
  assert.equal(b.reliefUntil,0);
+ const c=arc();beginOpeningArc(c,'intercept',18);c.commanderSerial=9;
+ assert.equal(recordOpeningCommanderDefeat(c,{serial:9,openingCommander:true,hp:0},
+  c.expiresAt-.001),true);
+ assert.equal(advanceOpeningArc(c,c.expiresAt+.02,.02,
+  {commanderDefeated:true}),'intercept-complete',
+  'a kill on the final frame is credited even when the next update is past the timer');
+});
+
+test('missing or unrelated commanders never turn an intercept into a free reward',()=>{
+ const a=arc();beginOpeningArc(a,'intercept',18);a.commanderSerial=7;
+ assert.equal(advanceOpeningArc(a,25,.1,{commanderDefeated:false}),'active');
+ assert.equal(recordOpeningCommanderDefeat(a,{serial:7,openingCommander:true,hp:100},25),false);
+ assert.equal(recordOpeningCommanderDefeat(a,{serial:8,openingCommander:true,hp:0},25),false);
+ assert.equal(recordOpeningCommanderDefeat(a,{serial:7,openingCommander:false,hp:0},25),false);
+ assert.equal(recordOpeningCommanderDefeat(a,{serial:7,openingCommander:true,hp:0,expAwarded:true},25),false,
+  'an offscreen retreat is not a player victory');
+ assert.equal(recordOpeningCommanderDefeat(a,{serial:7,openingCommander:true,hp:0},25),true);
+ assert.equal(advanceOpeningArc(a,26,.1,{commanderDefeated:a.commanderDefeated}),'intercept-complete');
+ assert.equal(recordOpeningCommanderDefeat(a,{serial:7,openingCommander:true,hp:0},27),false);
+ const oldSave=arc();delete oldSave.commanderDefeated;
+ assert.ok(validateOpeningArc(oldSave),'old saves are accepted without a phantom kill');
+ assert.equal(validateOpeningArc({...a,commanderDefeated:'yes'}),false);
 });
 
 test('real ship selection spawns one marked pilot and two escorts, with one priority goal',()=>{
@@ -59,6 +84,19 @@ test('real ship selection spawns one marked pilot and two escorts, with one prio
  assert.equal(g.waypoint.id,'opening-intercept');
  assert.deepEqual(a.returnWaypoint,{id:'0:0',x:360,y:-85,label:'Док'});
  assert.equal(events.length,1);
+});
+
+test('the opening choice does not obscure an already accepted station contract',()=>{
+ const a=arc(),g=Object.create(RuntimeHarness.prototype);
+ Object.assign(g,{openingArc:a,time:26,visuals:{capitalDamageQA:false},
+  player:{x:home.x,y:home.y},world:{home},operation:null,
+  contract:{kind:'kill',goal:2,progress:0},showOpeningChoice(){this.offers=(this.offers||0)+1;}});
+ g.updateOpeningArc(.02);
+ assert.equal(g.offers,undefined);
+ assert.equal(a.status,'offer');
+ g.contract=null;
+ g.updateOpeningArc(.02);
+ assert.equal(g.offers,1,'the choice can appear after finishing the contract');
 });
 
 test('pressure differs visibly by player action but never affects distant regions',()=>{
@@ -105,6 +143,9 @@ test('short recovery windows punctuate the first ten minutes without disabling d
 test('timers, labels and invalid checkpoint data are bounded',()=>{
  const a=arc();beginOpeningArc(a,'rescue',20);
  assert.match(openingArcObjective(a,50),/ЭВАКУАЦИЯ/);
+ assert.equal(openingWaypointCue({id:'opening-intercept'},1026.3),'НАВОДЧИК · 1026 М');
+ assert.equal(openingWaypointCue({id:'opening-rescue'},150),'КАПСУЛА · 150 М');
+ assert.equal(openingWaypointCue({id:'0:0'},150),'');
  assert.equal(runClock(63.9),'01:03');assert.equal(runClock(-100),'00:00');
  assert.equal(validateOpeningArc({...a,repair:1000}),false);
  assert.equal(validateOpeningArc({...a,commanderSerial:-2}),false);
@@ -120,6 +161,10 @@ test('game grants interceptor payout and relief once, then offers an actual modu
   enemies:[],player:{x:0,y:0,hp:110,ore:0,data:0},firstHardwareReward:null,
   cockpit:{resourceGain:v=>gain.push(v)},collect:v=>{g.player.data+=v.value;},
   notice:t=>notes.push(t),endInteraction:()=>{},showOpeningReward:()=>{g.rewardShown=true;}});
+ assert.equal(g.updateOpeningArc(.05),undefined);
+ assert.equal(a.status,'active','a missing commander is not an observed kill');
+ assert.equal(g.player.ore,0);
+ a.commanderDefeated=true;a.commanderDefeatedAt=42;
  g.updateOpeningArc(.05);
  assert.equal(a.status,'complete');assert.equal(a.reliefUntil,163);
  assert.equal(g.player.ore,OPENING_ARC.interceptRewardOre);
