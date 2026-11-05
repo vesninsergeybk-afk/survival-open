@@ -2,6 +2,7 @@ import {
   CONTOURS,LAB_NODES,createLabWorld,harvesterPosition,forceLaunch,
   startIntercept,stepLab,
 } from './siphon3-runtime-core.js';
+import {drawSiphon3} from '../siphon3-art.js?v=siphon3-live-1';
 
 const byId=id=>document.getElementById(id);
 const canvas=byId('scene');
@@ -17,7 +18,7 @@ const stars=Array.from({length:125},(_,i)=>({
 }));
 let lab=createLabWorld();
 let running=true,lastFrame=0,assetReady=false;
-let speed=2,workerSize=window.matchMedia('(max-width:560px)').matches?110:64,backdrop='dark',labels=true;
+let speed=2,workerSize=window.matchMedia('(max-width:560px)').matches?110:96,backdrop='dark',labels=true;
 let lastLaunchClock=-1;
 byId('sprite-size').value=String(workerSize);
 
@@ -157,18 +158,17 @@ function drawWorker(worker,index){
     ctx.fillStyle='#ffcc7b9a';ctx.shadowColor='#ff9e44';ctx.shadowBlur=10;
     ctx.beginPath();ctx.arc(x+18,y-18,5+Math.sin(lab.clock*8)*1.5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
   }
-  ctx.save();ctx.translate(x,y+2*Math.sin(lab.clock*3+index));ctx.rotate(angle);
   const size=workerSize*(gathering?pulse:1);
-  if(assetReady){
-    const t=lab.clock*(gathering?20:12),frame=Math.floor(t+index*13)%80;
-    ctx.drawImage(atlas,(frame%ATLAS_COLUMNS)*ATLAS_SIZE,
-      Math.floor(frame/ATLAS_COLUMNS)*ATLAS_SIZE,ATLAS_SIZE,ATLAS_SIZE,
-      -size/2,-size/2,size,size);
-  }else{
-    ctx.strokeStyle='#ec8595';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,workerSize*.32,0,Math.PI*2);ctx.stroke();
-    ctx.fillStyle='#f4e0d2';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('?',0,5);
+  const rendered=drawSiphon3(ctx,{x,y:y+2*Math.sin(lab.clock*3+index),
+    angle,phase:worker.phase,progress:worker.progress,time:lab.clock,
+    seed:index,size,reducedMotion:window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    sheet:assetReady?atlas:null});
+  if(!rendered){
+    ctx.save();ctx.translate(x,y);ctx.rotate(angle);
+    ctx.strokeStyle='#ec8595';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(0,0,workerSize*.32,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
   }
-  ctx.restore();
 
   // Damage shown only after actual proximity damage from the live module.
   if(worker.hp<1.99){
