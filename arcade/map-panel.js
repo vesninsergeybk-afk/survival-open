@@ -6,7 +6,7 @@ import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './rela
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
 import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-4';
-import {precisionRailUnlocked} from './station-progression.js?v=rpg-precision-1';
+import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -72,6 +72,7 @@ export function renderWorldMap(game){
  const p=game.player,world=game.world,enemyVisible=game.enemyBasesUnlocked();
  const topology=world.networkTopology();
  const precisionUnlocked=precisionRailUnlocked(world);
+ const intel=labLogisticsIntel(world,p);
  const localControl=world.sectorControl?.(p.x,p.y)||{kind:'neutral',base:null};
  const control=enemyVisible||localControl.base?.strategicRole?localControl:{kind:'neutral',base:null};
  const territory=control.kind==='hostile'?'Вражеский сектор: патрули прибывают примерно на 18% чаще. Захватите базу, чтобы снизить угрозу.':
@@ -138,6 +139,13 @@ export function renderWorldMap(game){
    '" r="14" fill="none" stroke="#f8dc8a" stroke-dasharray="3 5"/>'+
    '<text x="'+q.x.toFixed(1)+'" y="'+(q.y+4).toFixed(1)+
    '" text-anchor="middle" fill="#f8dc8a" font-size="15">?</text></g>';
+ }).join('');
+ const intelMarks=intel.contacts.map(c=>{
+  const q=point(c.x,c.y,p,scale);if(!visible(q))return '';
+  const moving=c.kind==='cargo',color=moving?'#ffcb77':'#9df1e3';
+  return '<g><circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+   '" r="12" fill="none" stroke="'+color+'" stroke-width="2" stroke-dasharray="3 3"/>'+
+   dot(q.x,q.y,color,4,moving?'square':'circle')+'</g>';
  }).join('');
  const operation=game.operation;
  const previewBase=game.mapReturnToBase?game.docked:null;
@@ -220,7 +228,10 @@ export function renderWorldMap(game){
    b.enemy?'вражеская база':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети · ПВО'+(topology.count>=2?' и стазис':'')+(b.relayBoost?' · усиленная связь':''):'автономный узел · ПВО'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
   const value=isSignal?'Приблизиться и исследовать':'Построить маршрут';
   const discovery=!isSignal&&!b.enemy&&b.type==='arsenal'&&!precisionUnlocked?
-   ' · ОТКРЫТИЕ: ручной прицел для рельсового орудия':'';
+   ' · ОТКРЫТИЕ: ручной прицел для рельсового орудия':
+   !isSignal&&!b.enemy&&b.type==='lab'&&!b.active?
+    (intel.unlocked?' · РАЗВЕДКА: ещё 4300 м радионаблюдения':
+     ' · ОТКРЫТИЕ: перехват вражеского снабжения'):'';
   return '<article class="map-contact'+(same?' selected':'')+'">'+
    '<div><strong>'+enc(label)+'</strong><small>'+Math.round(d)+' м · '+status+discovery+'</small></div>'+
    '<button type="button" data-act="waypoint" data-id="'+enc(b.id)+
@@ -241,6 +252,18 @@ export function renderWorldMap(game){
    '<li><span>'+enc(({press:'Нажим',pincer:'Обход',intercept:'Перехват',
     screen:'Прикрытие',close:'Сближение',scatter:'Рассредоточение'})[order.mode]||'Манёвр')+
    '</span> '+enc(order.message)+'</li>').join('')+'</ul></details>':'';
+ const intelContacts=intel.contacts.map(c=>'<article class="map-contact">'+
+  '<div><strong>'+enc(c.label)+'</strong><small>'+enc(c.detail)+'</small></div>'+
+  '<button type="button" data-act="waypoint" data-id="'+enc(c.id)+'" data-x="'+
+  Number(c.x).toFixed(2)+'" data-y="'+Number(c.y).toFixed(2)+'" data-label="'+
+  enc(c.label)+'">'+(game.waypoint?.id===c.id?'✓ Маршрут выбран':'Построить маршрут')+'</button></article>').join('');
+ const discoveryCues=[!precisionUnlocked?'найдите и включите либо захватите арсенал — получите ручной прицел рельса.':'',
+  !intel.unlocked?'найдите и включите либо захватите лабораторию — получите радиоперехват снабжения.':''].filter(Boolean);
+ const discoveryLead=discoveryCues.length?'<b>Открытия станций:</b> '+discoveryCues.join(' ')+
+  ' Ищите их среди неопознанных сигналов.':'';
+ const intelLead=intel.unlocked?' <b>Радиоперехват:</b> '+(intelContacts?
+  'найдены промышленные сигналы.':'новых целей пока нет.')+
+  ' Откройте «Регионы и цели», чтобы выбрать маршрут.':'';
  const view=game.mapView==='targets'?'targets':'map';
  const unapplied=game.mapReturnToBase&&game.hangarSession?.dirty(game.shipLoadout);
  return '<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
@@ -252,20 +275,26 @@ export function renderWorldMap(game){
   (unapplied?'<p class="map-unapplied-note" role="status">Сборка ангара не применена. Перед вылетом потребуется подтверждение.</p>':'')+
   '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">Схема сектора</button>'+
   '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">Регионы и цели · '+(known.length+signals.length)+'</button></nav>'+
-  (!precisionUnlocked?'<div class="map-discovery-lead"><b>Новое умение:</b> найдите и включите либо захватите арсенал. Откроется ручной прицел рельса; само орудие устанавливается в ангаре. Ищите арсенал среди неопознанных сигналов.</div>':'')+
+  (discoveryLead||intelLead?'<div class="map-discovery-lead">'+discoveryLead+intelLead+'</div>':'')+
   '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
   '<circle cx="340" cy="240" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
-  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,p,scale),visible)+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+marks+operationMark+enemyOrders+
+  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,p,scale),visible)+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+intelMarks+marks+operationMark+enemyOrders+
   '<g><circle cx="340" cy="240" r="13" fill="none" stroke="#8affff"/>'+
   dot(340,240,'#9bf9ff',5)+'</g>'+
   '<text x="351" y="266" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
   '<div class="map-legend"><span>● вы</span><span>● активна</span><span>● выключена</span>'+
   '<span>◈ противник</span><span>⇢ согласованный манёвр</span><span>? сигнал</span><span>◎ операция</span>'+
+  (intel.unlocked?'<span>Бирюзовый круг — промышленный сигнал · янтарный квадрат — радиометка груза</span>':'')+
   (known.some(b=>b.active&&!b.enemy)?'<span>бирюзовый круг — ПВО корабля · фиолетовый — радиус станции для стазиса (нужны 2 врага рядом с вами)</span>':'')+'</div>'+
   '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
     ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
-  '<aside class="map-side">'+renderRegionAtlas(game)+radioHistory+
+  '<aside class="map-side">'+
+  (intel.unlocked?'<section class="map-objective map-intel"><span>'+enc(LAB_LOGISTICS_TECH.name.toUpperCase())+'</span><p>'+enc(intel.status)+'</p>'+
+   (intelContacts?'<div class="map-contact-list">'+intelContacts+'</div>':
+    (intel.localSecured?'<p>Местная цепочка снабжения подавлена. Другие действующие лаборатории могут обнаружить грузы в дальних регионах.</p>':
+     '<p>Сейчас нет новых радиометок. Подключите лабораторию ближе к маршрутам грузов.</p>'))+'</section>':'')+
+  renderRegionAtlas(game)+radioHistory+
   '<div class="map-objective"><span>ОБСТАНОВКА В СЕКТОРЕ</span><p>'+enc(territory)+'</p>'+
   (securedSupply.length?'<p>Зелёным отмечены перехваченные маршруты снабжения. В пределах 740 м от них вражеские патрули появляются реже.</p>':'')+'</div>'+
   (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
