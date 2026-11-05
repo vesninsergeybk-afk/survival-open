@@ -1,6 +1,6 @@
 import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=weapons-cycle-2-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
-import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1';
+import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1-tactical-field-1';
 
 let context,session;
 function setup(advanced){

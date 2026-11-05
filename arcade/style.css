@@ -713,3 +713,28 @@ canvas#game.rail-manual{cursor:crosshair}
 /* One shared manual field action; touch uses the existing fixed button. */
 #fieldWeaponStatus{position:fixed;left:50%;bottom:48px;transform:translateX(-50%);z-index:3;max-width:80vw;padding:5px 12px;border:1px solid #d5a1f077;border-radius:8px;background:#101c30e8;color:#efdfff;font-size:12px;pointer-events:none}
 @media(pointer:coarse){#fieldWeaponStatus{display:none}}
+
+/* One tactical slot, deliberately compact in the crowded station hangar. */
+.hg-tactical{margin:10px 0;border:1px solid #72d8dd68;border-radius:15px;
+ background:linear-gradient(110deg,#123449c9,#0a2039c5);padding:12px 15px}
+.hg-tactical-current{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.hg-tactical-current h3{font-size:16px;margin:2px 0 4px;color:#b5ffed}
+.hg-tactical-current p{margin:0;max-width:67ch;font-size:12px;color:#b8cfde;line-height:1.5}
+.hg-tactical-current small{display:block;color:#e8c995;margin-top:5px}
+.hg-tactical-details{flex:1 1 215px;max-width:100%}
+.hg-tactical-details>summary{display:block;list-style:none;padding:9px 13px;border:1px solid #79d5d989;
+ border-radius:9px;background:#21495dbd;color:#defaff;font-size:12px;cursor:pointer;text-align:center}
+.hg-tactical-details>summary::-webkit-details-marker{display:none}
+.hg-tactical-details[open]{flex-basis:100%}
+.hg-tactical-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,225px),1fr));gap:8px;margin-top:12px}
+.hg-tactic-option{border:1px solid #7c9cb354;border-radius:11px;padding:10px;background:#07192a94}
+.hg-tactic-option.selected{border-color:#82e6c0}
+.hg-tactic-option>div:first-child{display:flex;flex-direction:column;gap:2px}
+.hg-tactic-option>div:first-child small{color:#a7bfca;font-size:11px}
+.hg-tactic-option p{margin:7px 0;font-size:11px;line-height:1.5;color:#c2d7df}
+.hg-tactic-option button{padding:6px 9px;border-radius:7px;border:1px solid #7ccad17a;
+ background:#21485f;color:#e6fbff;font-size:11px;margin:3px 0;max-width:100%}
+.hg-tactic-option button:disabled{opacity:.56;cursor:default}
+.hg-tactic-branches{border-top:1px solid #a1c9d12d;margin-top:10px;padding-top:8px}
+.hg-tactic-branches>div{margin:8px 0 4px;border-left:2px solid #91b7c68a;padding-left:8px}
+.hg-tactic-branches strong{display:block;font-size:11px}
