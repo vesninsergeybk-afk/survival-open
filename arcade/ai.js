@@ -5,8 +5,8 @@ import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
-import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-3';
-import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2';
+import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2';
+import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-world-feedback-1';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
 import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-2';
@@ -501,6 +501,15 @@ export function updateEnemy(e,game,dt){
       e._theaterIntent={at:game.time,assetId:strategic.assetId,
         mode:strategic.role,x:goalX,y:goalY};
     }
+  }
+  // Unalerted traffic must actually traverse the map. In particular, a
+  // gunship's standoff orbit and a healer's offset formation otherwise keep
+  // it circling an imaginary enemy forever and exhaust the global ship cap.
+  const transit=targetingPlayer&&!decoy&&
+    unalertedPatrolRoute(e,game,radio,strategic);
+  if(transit){
+    goalX=transit.x;goalY=transit.y;
+    speed=ENEMY_TYPES[e.type].speed;
   }
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   let extraX=avoid.x*speed*1.3,extraY=avoid.y*speed*1.3;

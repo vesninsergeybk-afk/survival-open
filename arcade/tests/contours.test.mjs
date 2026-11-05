@@ -108,6 +108,8 @@ test('collectors physically travel and deliver bounded flux; a nearby raid can d
   loss.push(...advanceContours(w,t,.5,[enemy],player));
  }
  assert.ok(loss.some(e=>e.kind==='lost'));
+ assert.ok(loss.filter(e=>e.kind==='lost').every(e=>Number.isFinite(e.x)&&Number.isFinite(e.y)),
+  'a witnessed collector loss must preserve its exact physical location for feedback');
  assert.ok(w.contours.lost>=1);
 });
 

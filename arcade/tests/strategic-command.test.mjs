@@ -9,7 +9,8 @@ import {renderBasePanel} from '../base-panel.js';
 import {captureCheckpoint,restoreCheckpoint,packRun,unpackRun,validateCheckpoint} from '../run-checkpoint.js';
 import {spawnCentralRaid} from '../region-runtime.js';
 import {createCommandState,updateStrategicCommand,assignStationInterdiction,
- updateStationInterdiction,stationRaidValid,commandStateValid,STATION_INTERDICTION} from '../strategic-command.js';
+ updateStationInterdiction,followUpInterdiction,stationRaidValid,commandStateValid,
+ STATION_INTERDICTION} from '../strategic-command.js';
 
 const noop=()=>{};
 const lab=(x=5800,y=1400)=>({id:'4:1',type:'lab',active:true,enemy:false,discovered:true,
@@ -94,6 +95,46 @@ test('jamming a bridge really disconnects its downstream stations, then restores
  g.time=214;updateStrategicCommand(g);
  assert.ok(g.world.networkTopology().linked.has(next.id));
  assert.ok(b.active&&next.active,'ownership and installed stations are preserved');
+});
+test('a surviving paid jammer can receive one follow-up target only from delivered, nearby reports',()=>{
+ const {g,b}=scene(),s=g.world.regionalSupply.command;
+ const relay={...lab(6060,1510),id:'5:1',type:'arsenal',relayBoost:true};
+ g.world.stations.set(relay.id,relay);g.world.discovered.add(relay.id);
+ const ship={serial:3,type:'gunship',scenario:'central-funded',x:5800,y:1450,
+  hp:260,maxHp:260,vx:0,vy:0,stationRaid:{id:1,front:'home',stationId:b.id,
+   x:b.x,y:b.y,issuedAt:200,expiresAt:325,chargeAt:null,nextPulse:0,
+   interruptUntil:0,announced:true,redirected:false}};
+ g.enemies=[ship];
+ s.reports=[{front:'home',stationId:b.id,x:b.x,y:b.y,seenAt:200,receivedAt:205},
+  {front:'home',stationId:relay.id,x:relay.x,y:relay.y,seenAt:201,receivedAt:206}];
+ g.time=205;assert.equal(followUpInterdiction(g,ship),false,'the report has not arrived');
+ g.time=210;assert.equal(followUpInterdiction(g,ship),true);
+ assert.equal(ship.stationRaid.stationId,relay.id);
+ assert.equal(ship.stationRaid.expiresAt,325,'the original sortie deadline remains');
+ assert.equal(ship.stationRaid.nextPulse,221,'re-targeting requires another visible approach');
+ assert.equal(followUpInterdiction(g,ship),false,'the same fighter cannot chain indefinitely');
+ assert.match(g.lastNotice,/второй приказ/);
+ assert.ok(stationRaidValid(ship.stationRaid,g.time));
+ g.paused=true;g.player.x=g.docked.x+15;g.player.y=g.docked.y+20;
+ const saved=captureCheckpoint(g,g.docked);
+ assert.ok(validateCheckpoint(saved));
+ const restored=game();restoreCheckpoint(restored,unpackRun(packRun(saved)));
+ assert.equal(restored.enemies[0].stationRaid.stationId,relay.id);
+ assert.equal(restored.enemies[0].stationRaid.redirected,true);
+});
+
+test('headquarters cannot redirect a paid jammer outside its radio network',()=>{
+ const {g,b}=scene(),s=g.world.regionalSupply.command;
+ const next={...lab(20350,20100),id:'8:8',relayBoost:true};
+ g.world.stations.set(next.id,next);
+ const ship={x:20150,y:20100,hp:200,stationRaid:{id:1,front:'home',stationId:b.id,
+  x:b.x,y:b.y,issuedAt:190,expiresAt:310,chargeAt:null,nextPulse:0,
+  interruptUntil:0,announced:true,redirected:false}};
+ g.time=210;s.reports=[{front:'home',stationId:next.id,x:next.x,y:next.y,
+  seenAt:205,receivedAt:209}];
+ assert.equal(followUpInterdiction(g,ship),false);
+ assert.equal(ship.stationRaid.stationId,b.id);
+ assert.equal(stationRaidValid({...ship.stationRaid,redirected:4},g.time),false);
 });
 test('the same windup has different real solutions for plasma, aimed rail and ion',()=>{
  const ranged=armed();ranged.g.shipLoadout.slots[0]='rail';ranged.g.syncShipLoadout();ranged.g.manualRailMode=true;
