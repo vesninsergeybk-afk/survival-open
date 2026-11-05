@@ -1,4 +1,4 @@
-import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-3';
+import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-4';
 
 // Salvage is deliberately less lucrative than focused extraction, but it makes
 // short combat-only sorties able to contribute toward a small purchase.

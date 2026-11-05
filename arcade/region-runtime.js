@@ -1,5 +1,5 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
-import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-3';
+import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-4';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
 import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralWorkerPosition,centralEvent} from './central-industry.js?v=living-world-1';
@@ -206,6 +206,13 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  if(cargo.frontierCargo)recordFrontierCargoAttack(game.world,cargo,source,
   distance(game.player,cargo),game.time);
  cargo.hp=Math.max(0,cargo.hp-damage);cargo.hit=.18;
+ // Local escorts can witness an attack and call nearby pilots to the
+ // convoy's last reported position. The industrial network separately
+ // accounts for destroyed cargo and paid strategic responses.
+ if(game.time>=(cargo._nextWitnessAlarmAt??0)){
+  const witnesses=game.enemyComms?.reportIncident(cargo,game,'convoy')||0;
+  if(witnesses)cargo._nextWitnessAlarmAt=game.time+10;
+ }
  game.heritage.vfx.hullImpact(contact?.x??cargo.x,contact?.y??cargo.y,damage>30,contact);
  if(cargo.hp>0||!interceptSupply(game.world,cargo,game.time))return;
  game.heritage.vfx.shipExplosion(cargo.x,cargo.y,55,'#ffc47d',true);
