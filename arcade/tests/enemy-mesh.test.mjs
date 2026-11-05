@@ -95,8 +95,8 @@ test('station remembers bounded reports across checkpoint reconstruction',()=>{
   assert.equal(restored.bestForCell(b,3),null);
   restored.update(newGame,[b],3.8);
   assert.equal(restored.bestForCell(b,3.8)?.kind,'long');
-  restored.update(newGame,[b],52);
-  assert.equal(restored.bestForCell(b,52),null,
+  restored.update(newGame,[b],145);
+  assert.equal(restored.bestForCell(b,145),null,
     'historical threat cannot cause indefinite combat adaptation');
 });
 

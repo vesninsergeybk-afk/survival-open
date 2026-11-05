@@ -159,11 +159,17 @@ export function planTheater(cells,world,now,mesh=null){
         (c.contact?'repel':'screen');
     else
       role=c.alarm?(n>0&&c.contact?'repel':'reinforce'):'defend';
+    // Archive summaries can alter a formation, never weapons, hulls or
+    // production. A delivered warning is required; remote station state
+    // is not read as global knowledge by a disconnected squad.
+    const wide=c.warning?.kind==='area';
     const entry={asset:c.item.asset,assetId:c.item.id,
-      role,kind:c.item.kind,at:now,
+      role,kind:c.item.kind,at:now,spread:wide?1.25:1,
       ...(c.contact?{
         contact:{x:c.contact.x,y:c.contact.y,at:c.contact.at}}:{}),
       reason:c.networkAlarm?'Сеть сообщает о нападении на объект. Усилить охрану!':
+        c.warning?.archived&&role==='screen'?
+          'Архив машин: повторные атаки. Перестроить охрану по данным сети!':
         role==='screen'&&c.warning?.kind==='long'?
           'Сеть предупреждает о дальнобойном оружии. Занять заслон!':
         role==='screen'&&c.warning?.kind==='area'?
@@ -194,7 +200,7 @@ export function theaterDestination(e,order){
     const heading=a.angle-Math.PI/2;
     const ux=Math.cos(heading),uy=Math.sin(heading);
     const lead=order.role==='screen'?165:82;
-    const offset=order.role==='screen'?120:83;
+    const offset=(order.role==='screen'?120:83)*(order.spread||1);
     return {x:a.x+ux*lead-uy*side*offset,
       y:a.y+uy*lead+ux*side*offset,
       mode:order.role,asset:a};
@@ -204,7 +210,7 @@ export function theaterDestination(e,order){
     if(order.role==='reinforce'&&order.contact){
       angle=Math.atan2(order.contact.y-a.y,order.contact.x-a.x)+side*.29;
     }
-    const radius=order.role==='reinforce'?145:180;
+    const radius=(order.role==='reinforce'?145:180)*(order.spread||1);
     return {x:a.x+Math.cos(angle)*radius,y:a.y+Math.sin(angle)*radius,
       mode:order.role,asset:a};
   }
