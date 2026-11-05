@@ -484,8 +484,8 @@ export class EnemyComms {
         const sight=e._commsSight;
         if(sight&&sight.at>(e._commsDeliveredSightAt??-Infinity)&&
           now-sight.at<ENEMY_COMMS.sightAge){
-          e._commsDeliveredSightAt=sight.at;
           if(e===leader||this.send(e,leader,'contact',now)){
+            e._commsDeliveredSightAt=sight.at;
             if(!cell.intel||sight.at>=cell.intel.at)cell.intel={...sight};
             cell.motionReports.push({at:sight.at,motion:sight.motion,
               hullRatio:sight.hullRatio});
@@ -497,27 +497,30 @@ export class EnemyComms {
         }
         const hit=e._commsHit;
         if(hit&&hit.at>(e._commsDeliveredHitAt??-Infinity)&&now-hit.at<1.4){
-          e._commsDeliveredHitAt=hit.at;
-          if(e===leader||this.send(e,leader,'distress',now))distress=true;
+          if(e===leader||this.send(e,leader,'distress',now)){
+            e._commsDeliveredHitAt=hit.at;
+            distress=true;
+          }
         }
         const loss=e._commsLoss;
         if(loss&&loss.at>(e._commsDeliveredLossAt??-Infinity)&&
           now-loss.at<1.8){
-          e._commsDeliveredLossAt=loss.at;
-          if((e===leader||this.send(e,leader,'distress',now))&&
-            !cell.lossReports.some(report=>report.victim===loss.victim)){
-            cell.lossReports.push({...loss});
-            if(cell.lossReports.length>ENEMY_COMMS.maxLossReports)
-              cell.lossReports.shift();
-            observedCue(e,'loss',now);
+          if(e===leader||this.send(e,leader,'distress',now)){
+            e._commsDeliveredLossAt=loss.at;
+            if(!cell.lossReports.some(report=>report.victim===loss.victim)){
+              cell.lossReports.push({...loss});
+              if(cell.lossReports.length>ENEMY_COMMS.maxLossReports)
+                cell.lossReports.shift();
+              observedCue(e,'loss',now);
+            }
             distress=true;
           }
         }
         const attack=e._commsAttack;
         if(attack&&attack.at>(e._commsDeliveredAttackAt??-Infinity)&&
           now-attack.at<2.2){
-          e._commsDeliveredAttackAt=attack.at;
           if(e===leader||this.send(e,leader,'weapon',now)){
+            e._commsDeliveredAttackAt=attack.at;
             cell.attackReports.push({...attack,reporter:e.serial});
             if(cell.attackReports.length>ENEMY_COMMS.maxAttackReports)
               cell.attackReports.shift();
@@ -527,8 +530,8 @@ export class EnemyComms {
         const incident=e._commsIncident;
         if(incident&&incident.at>(e._commsDeliveredIncidentAt??-Infinity)&&
           now-incident.at<1.8){
-          e._commsDeliveredIncidentAt=incident.at;
           if(e===leader||this.send(e,leader,'distress',now)){
+            e._commsDeliveredIncidentAt=incident.at;
             if(!cell.incident||incident.at>=cell.incident.at)
               cell.incident={...incident};
             observedCue(e,'incident',now);
