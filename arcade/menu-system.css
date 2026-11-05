@@ -607,6 +607,36 @@
  #overlay .base-dialog:has(.base-tabs){max-height:calc(100dvh - 12px)}
 }
 
+/* Open strategic atlas: its core controls stay visible on desktop and mobile. */
+.map-view-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:9px 0}
+#overlay .map-view-switch button{margin:0;min-height:42px;font-size:12px;background:#102b3b}
+#overlay .map-view-switch button[aria-pressed="true"]{border-color:#f1c879;background:#53462f;color:#fff0d1}
+.contour-region-switch{display:flex;overflow-x:auto;gap:5px;padding:2px 0 10px}
+#overlay .contour-region-switch button{flex:0 0 auto;min-height:40px;margin:0;padding:5px 11px;font-size:11px;background:#132d3e}
+#overlay .contour-region-switch button[aria-pressed="true"]{background:#38565b;border-color:#84f0d6;color:#f1fff7}
+.contour-chart{width:100%;max-height:min(60vh,580px)}
+.contour-node[role="button"]{cursor:pointer;outline:none}
+.contour-node[role="button"]:focus circle:last-of-type,.contour-node[role="button"]:hover circle:last-of-type{stroke:#fff4c0;stroke-width:3}
+.contour-selection{border:1px solid #588f9e9c;border-radius:5px;background:#102b3b;padding:12px}
+.contour-selection b{font-size:14px;color:#dcfff3}
+.contour-selection p{font-size:12px;color:#d8e6ee;line-height:1.45;margin:6px 0}
+.contour-selection small{display:block;color:#a5cfd0;margin:5px 0}
+#overlay .contour-selection button{min-height:44px;margin-top:6px;width:100%}
+.contour-error{border-left:3px solid #f6a67e;background:#5d2e3455;padding:9px 12px;color:#ffe4c7}
+.contour-links{margin-top:12px;border-top:1px solid #50788c;padding-top:7px;color:#d5eef2}
+.contour-links summary{cursor:pointer;font-size:12px}
+.contour-links>div{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-top:6px;font-size:11px}
+#overlay .contour-links button{min-height:38px;margin:0;background:#422b35;color:#ffdfd4}
+.contour-side .map-objective{background:#102a39;border-left-color:#83dfcb}
+@media(max-width:700px){
+ #overlay .contour-dialog{padding:8px 10px}
+ .contour-region-switch{padding-bottom:5px}
+ #overlay .contour-region-switch button{min-height:40px}
+ .contour-shell .map-side{display:block;max-height:none;padding:0}
+ .contour-chart{max-height:44vh}
+ .contour-shell .map-canvas{display:block}
+}
+
 /* Active contracts report progress; abandoning is a secondary, deliberate
    two-step action instead of the only enabled button on the entire card. */
 .base-contract-actions{flex:0 0 208px;min-width:0;display:grid;gap:7px;justify-items:stretch}
