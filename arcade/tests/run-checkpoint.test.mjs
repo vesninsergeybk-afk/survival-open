@@ -17,6 +17,8 @@ import {emptyEconomyExpenses,recordEconomyExpense} from '../sortie-ledger.js';
 import {transitCost} from '../base-panel.js';
 import {createOpeningArc,beginOpeningArc} from '../opening-arc.js';
 import {advanceEnemyExpansion,enemyTerritoryFields} from '../enemy-expansion.js';
+import {createStrategicExperience,claimStationActivation,claimStationCapture,
+ claimExploration,claimStrategicSabotage} from '../strategic-experience.js';
 
 const entry=new URL('../game.js',import.meta.url);
 const source=readFileSync(entry,'utf8').replace(/\nnew ArcadeGame\(\);\s*$/,'\n')
@@ -45,6 +47,36 @@ function save(g,storage=memory()){
  const store=new RunCheckpointStore(storage,()=>1234);store.load();assert.ok(store.startNew().ok);
  assert.ok(store.save(captureCheckpoint(g,g.docked)).ok);return {storage,store};
 }
+test('strategic XP claims survive a checkpoint and older saves backfill visible past achievements',()=>{
+ const g=scene(),site=g.world.stations.get('industry:source');
+ site.enemy=false;site.active=true;site.captured=true;site.discovered=true;
+ site.supplyIntercepted=true;g.world.discovered.add(site.id);
+ g.player.strategicXp=createStrategicExperience();
+ assert.ok(claimStationActivation(g.player,site)>0);
+ assert.ok(claimStationCapture(g.player,site)>0);
+ assert.ok(claimExploration(g.player,site)>0);
+ assert.ok(claimStrategicSabotage(g.player,'carrier',site.id)>0);
+ const checkpoint=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.ok(validateCheckpoint(checkpoint));
+ const restored=scene();restoreCheckpoint(restored,checkpoint);
+ assert.deepEqual(restored.player.strategicXp,g.player.strategicXp);
+ assert.equal(claimStationActivation(restored.player,restored.world.stations.get(site.id)),0);
+ assert.equal(claimStationCapture(restored.player,restored.world.stations.get(site.id)),0);
+ assert.equal(claimExploration(restored.player,restored.world.stations.get(site.id)),0);
+ assert.equal(claimStrategicSabotage(restored.player,'carrier',site.id),0);
+
+ const legacy=unpackRun(packRun(checkpoint));delete legacy.state.player.strategicXp;
+ assert.ok(validateCheckpoint(legacy),'old saves without a milestone ledger remain readable');
+ const migrated=scene();restoreCheckpoint(migrated,legacy);
+ assert.equal(migrated.player.level,legacy.state.player.level);
+ assert.equal(migrated.player.xp,legacy.state.player.xp);
+ assert.equal(claimStationActivation(migrated.player,migrated.world.stations.get(site.id)),0);
+ assert.equal(claimStationCapture(migrated.player,migrated.world.stations.get(site.id)),0);
+ assert.equal(claimExploration(migrated.player,migrated.world.stations.get(site.id)),0);
+ assert.equal(claimStrategicSabotage(migrated.player,'carrier',site.id),0);
+ const tampered=unpackRun(packRun(checkpoint));tampered.state.player.strategicXp.captures.push('fake');
+ assert.equal(validateCheckpoint(tampered),false);
+});
 test('enemy territorial investments survive docking without spending twice, and old checkpoints load',()=>{
  const g=scene(),w=g.world;
  w.regionalSupply.central.ore=14;
@@ -439,13 +471,17 @@ test('cargo, station mission, escort targets, missiles and strike bases retain s
 });
 test('delivering restored telemetry twice cannot duplicate ore, experience or the world consequence',()=>{
  const g=scene(),op=createCorridorOperation(g.docked);op.phase='return';op.hp=0;
+ g.player.strategicXp=createStrategicExperience();
  g.operation=op;g.docked.corridorMission=op;
  const {storage}=save(g),fresh=scene();restoreCheckpoint(fresh,new RunCheckpointStore(storage).load());
  fresh.deliverCorridor();assert.equal(fresh.player.ore,50);assert.equal(fresh.player.data,52);
+ assert.deepEqual({level:fresh.player.level,xp:fresh.player.xp},{level:2,xp:24},
+  'operation data plus the one-time sabotage bonus must be credited once');
  assert.ok(fresh.world.home.corridorSecured);assert.equal(fresh.operation,null);
  const store=new RunCheckpointStore(storage);store.load();assert.ok(store.save(captureCheckpoint(fresh,fresh.docked)).ok);
  const again=scene();restoreCheckpoint(again,new RunCheckpointStore(storage).load());again.deliverCorridor();
  assert.equal(again.player.ore,50);assert.equal(again.player.data,52);assert.ok(again.world.home.corridorSecured);
+ assert.deepEqual({level:again.player.level,xp:again.player.xp},{level:2,xp:24});
 });
 test('loan charges, cooldown, spent trial and owned hardware survive without a free refill',()=>{
  const g=scene();g.fieldLoan=createIonLoan(g.docked.id,200);g.fieldLoan.charges=1;

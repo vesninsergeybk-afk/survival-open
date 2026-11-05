@@ -4,15 +4,17 @@ import {readFileSync} from 'node:fs';
 import {impactRock,rockYield,MINING_NOISE,extractionNoiseDelta} from '../mining.js';
 import {contactOnCircle} from '../impact-geometry.js';
 import {firstRichAsteroidExperience} from '../experience.js';
+import {claimGeologicalSurvey} from '../strategic-experience.js';
 
 const gameSource=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 const start=gameSource.indexOf(' damageRock(');
 const end=gameSource.indexOf('\n addDrop(',start);
 assert.ok(start>0&&end>start,'asteroid damage method must remain available');
 const Harness=new Function('impactRock','rockYield','MINING_NOISE','extractionNoiseDelta',
- 'contactOnCircle','firstRichAsteroidExperience',
+ 'contactOnCircle','firstRichAsteroidExperience','claimGeologicalSurvey',
  'return class CoverHarness {'+gameSource.slice(start,end)+'}')(
- impactRock,rockYield,MINING_NOISE,extractionNoiseDelta,contactOnCircle,firstRichAsteroidExperience);
+ impactRock,rockYield,MINING_NOISE,extractionNoiseDelta,contactOnCircle,firstRichAsteroidExperience,
+ claimGeologicalSurvey);
 
 test('repeated enemy impacts destroy finite asteroid cover without giving free ore',()=>{
  const broken=[],drops=[],sounds=[];

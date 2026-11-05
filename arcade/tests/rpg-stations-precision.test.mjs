@@ -7,6 +7,7 @@ import {precisionRailUnlocked,arsenalDiscoveryPromise} from '../station-progress
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
 import {captureCheckpoint,restoreCheckpoint} from '../run-checkpoint.js';
+import {createStrategicExperience,STRATEGIC_XP} from '../strategic-experience.js';
 
 const enemy=(x,y=0)=>({x,y,r:18,hp:300,maxHp:300,type:'fighter',converted:false});
 const rock=(x,y=0)=>({x,y,r:42,hp:250,maxHp:250,alive:true});
@@ -72,11 +73,15 @@ test('R explains both conditions when the rail is missing, then explains only th
 
 test('capturing the first enemy arsenal is a real unlock and survives checkpoint restoration',()=>{
  const g=game(['rail',null,null,null,null,null]),b=arsenal(false);
+ g.player.strategicXp=createStrategicExperience();
  Object.assign(b,{enemy:true,hp:14,rank:1});g.world.stations.set(b.id,b);
  assert.equal(precisionRailUnlocked(g.world),false);
  g.hitEnemyBase(b,30);
  assert.equal(b.captured,true);assert.equal(b.active,true);
  assert.equal(b.enemy,false);assert.equal(precisionRailUnlocked(g.world),true);
+ assert.equal(g.player.xp,STRATEGIC_XP.capture,'the live capture path must pay the strategic XP');
+ g.hitEnemyBase(b,30);
+ assert.equal(g.player.xp,STRATEGIC_XP.capture,'a captured base cannot pay a second time');
  assert.equal(g.precisionRailAvailable,true);
  assert.match(g.lastNotice,/Ручной прицел рельса открыт/);
  assert.equal(g.toggleManualRail(),true);
@@ -89,6 +94,7 @@ test('capturing the first enemy arsenal is a real unlock and survives checkpoint
  assert.equal(precisionRailUnlocked(restored.world),true);
  const held=restored.world.stations.get(b.id);
  assert.equal(held.captured,true);
+ assert.deepEqual(restored.player.strategicXp,g.player.strategicXp);
  assert.match(arsenalDiscoveryPromise(held,restored.world),/режим рельса открыт/);
 });
 
@@ -104,19 +110,25 @@ test('capturing a second arsenal does not repeat the one-time unlock announcemen
 
 test('a real activation awards the technique once, and the unlock survives a checkpoint',()=>{
  const g=game(['rail',null,null,null,null,null]),b=arsenal(false);
+ g.player.strategicXp=createStrategicExperience();
  g.world.stations.set(b.id,b);g.world.discovered.add(b.id);g.docked=b;g.paused=true;
  g.player.x=b.x;g.player.y=b.y;
  const oreBefore=g.player.ore;
  g.baseAction('activate');
  assert.equal(b.active,true);
  assert.equal(g.player.ore,oreBefore-24);
- assert.equal(g.precisionRailAvailable,true);
+ assert.equal(g.player.xp,STRATEGIC_XP.activation);
+ assert.match(g.lastNotice,/\+12 опыта/);
  assert.match(g.lastNotice,/ОТКРЫТО: Прицельный режим рельса/);
+ g.baseAction('activate');
+ assert.equal(g.player.xp,STRATEGIC_XP.activation,'a second activation request earns no XP');
+ assert.equal(g.precisionRailAvailable,true);
  const checkpoint=captureCheckpoint(g,b);
  assert.ok(checkpoint,'the normal station checkpoint must still work');
  const restored=game(['rail',null,null,null,null,null]);
  restoreCheckpoint(restored,checkpoint);
  assert.equal(precisionRailUnlocked(restored.world),true);
+ assert.equal(restored.player.xp,g.player.xp);
  assert.equal(restored.manualRailMode,undefined,'the temporary input mode is not persisted as a new run currency');
 });
 
