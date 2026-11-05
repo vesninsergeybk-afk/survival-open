@@ -166,7 +166,7 @@ test('existing missions and the source entrypoint remain independently wired',()
  assert.match(gameSource,/this\.updateCorridor\(dt\)/);
  assert.match(gameSource,/this\.updateRelayDefense\(dt\)/);
  assert.match(gameSource,/carrierInFlight\(this\.operation\)/);
- assert.match(gameSource,/if\(!e\.interceptCargo\)updateEnemy/);
+ assert.match(gameSource,/if\(!e\.interceptCargo&&!updateStationInterdiction\(this,e,dt\)\)updateEnemy/);
  assert.match(gameSource,/if\(e\.interceptCargo\)\{this\.drawCarrierCargo/);
  const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(index,/game\.js\?v=[a-z0-9-]+/);

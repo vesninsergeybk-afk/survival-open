@@ -1,17 +1,19 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
-import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1';
+import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
-import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
-import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1';
-import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
-import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1';
-import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1';
-import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1';
-import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1';
+import {CARRIER_INTERCEPTION,carrierOffer,autonomousStrikeCarrier} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
+import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1';
+import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
+import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
+import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
+import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1';
+import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1';
+import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1';
+import {renderStationThreats} from './strategic-command.js?v=campaign-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -158,9 +160,9 @@ export function baseOffer(base,state){
   drones:!base.active?'Сначала включите станцию':
    droneDamage<=0?'Дроны исправны':shortfall(droneRepairCost,ore),
   supply:!base.active?'Сначала включите станцию':
-   !connected?'Нужна связь с сетью':
+   !connected&&!autonomousStrikeCarrier(base)?'Нужна связь с сетью':
    base.type!=='carrier'?'Снаряжение доступно на авианосце':
-   (state.network.strikePower||0)<1?'Сначала улучшите авиационную связь':
+   (state.network.strikePower||0)<1&&!autonomousStrikeCarrier(base)?'Сначала улучшите авиационную связь':
    state.charges>=2?'Два вылета уже снаряжены':shortfall(chargeCost,ore),
   service:!base.active?'Сначала включите станцию':
    !localService?'Нет местной услуги':
@@ -550,7 +552,7 @@ function stationNextStep(base,state,o,regionalGoal=false){
 
 export function renderBasePanel(base,state){
  const o=baseOffer(base,state),active=!!base.active;
- const status=active?(o.connected?'СЕТЬ ПОДКЛЮЧЕНА':'АВТОНОМНЫЙ УЗЕЛ'):'СТАНЦИЯ ВЫКЛЮЧЕНА';
+ const status=base.suppressed?'СВЯЗЬ ПОДАВЛЕНА':active?(o.connected?'СЕТЬ ПОДКЛЮЧЕНА':'АВТОНОМНЫЙ УЗЕЛ'):'СТАНЦИЯ ВЫКЛЮЧЕНА';
  const activation=card('base-power'+(active?' connected':''),
   '01 · УЗЕЛ СЕТИ',active?'Станция активна':'Включить станцию',
   active?(o.connected?'Связь с домашним доком. Услуги сети доступны.':
@@ -711,7 +713,13 @@ export function renderBasePanel(base,state){
   action('loanField','Выбрать резонатор','','resonator')+'</div></div></section>':'';
  const regionalGoal=state.world&&state.position?renderHomeConflict({world:state.world,player:state.position,
   time:state.time,openingArc:state.openingArc},{compact:true}):'';
- const dashboard=stationNextStep(base,state,o,!!regionalGoal)+regionalGoal+
+ const campaign=state.world&&state.position?renderCampaignProgress({world:state.world,player:state.position,
+  time:state.time},{compact:true}):'';
+ const capturedWing=autonomousStrikeCarrier(base)?'<section class="home-conflict"><strong>Открыта трофейная авиагруппа</strong><p>Этот сборочный узел может снаряжать бомбардировщики без связи с домашним доком. Они поддержат штурм вражеской базы в пределах 9800 м отсюда. Один вылет стоит '+o.chargeCost+' сплава; запас — до двух.</p>'+
+  action('supply','Снарядить авиаудар · '+o.chargeCost+' сплава',o.reasons.supply)+'</section>':'';
+ const suppression=base.suppressed?'<section class="home-conflict"><strong>Связь станции подавлена</strong><p>Радиоперехват, перелёты и услуги сети временно недоступны. Местный ремонт работает. Отстыкуйтесь и уничтожьте носитель помех или дождитесь восстановления в полёте. Меню останавливает игровое время.</p></section>':'';
+ const threats=state.world?renderStationThreats({world:state.world,enemies:state.enemies||[],time:state.time,player:state.position}):'';
+ const dashboard=stationNextStep(base,state,o,!!(regionalGoal||campaign))+threats+suppression+regionalGoal+campaign+capturedWing+
   '<div class="base-quick-services">'+
   '<section class="base-quick-service"><span class="base-kicker">КОРАБЛЬ</span><h3>Ремонт и оснащение</h3>'+
   '<p>'+repairHint+(base.type==='dock'?' Вблизи дока корпус также восстанавливается бесплатно, если не получать урон.':'')+'</p>'+
@@ -740,8 +748,9 @@ export function renderBasePanel(base,state){
  const hasAcceptedWork=localOperation||o.contract.status==='active'||o.contract.status==='ready';
  const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ВАШИ ЗАДАНИЯ</span><strong>'+
   (hasAcceptedWork?'Текущие задания':'Куда отправимся?')+'</strong>'+
-  '<p>'+(hasAcceptedWork?'Нажмите на особую операцию, чтобы увидеть подробности. Выполненные задания сдавайте на станции, где их приняли.':
-   'Можно выполнить одну особую операцию и один полевой заказ одновременно. Награды выдаются после возвращения.')+'</p></div></div>'+
+  '<p>'+(localOperation?'Нажмите на особую операцию, чтобы увидеть подробности. ':hasAcceptedWork?'':
+   'Можно выполнить одну особую операцию и один полевой заказ одновременно. ')+
+  'Условия завершения и получения награды указаны у каждого задания.</p></div></div>'+
   firstReward+
   (o.contract.status==='ready'?'<h3 class="base-section-title">Готовая награда</h3>'+contractPanel(o,state):'')+
   (specialOffer(base,state)?'<details class="base-mission-details"><summary>Особая операция · '+
@@ -856,7 +865,7 @@ export function renderBasePanel(base,state){
   (baseNames[base.type]||'Станция')+'</h2><p>Сплав <b>'+o.ore+'</b> · Данные <b>'+(state.data||0)+'</b> (опыт) · Корпус <b>'+Math.ceil(state.hp)+'/'+state.maxHp+'</b> · В сети '+
   state.connectedBases+' · Дроны '+state.allies+'/'+o.cap+(base.type==='carrier'?' · Вылеты '+state.charges:'')+'</p></div>'+
   '<span class="base-pill '+(o.connected?'online':'offline')+'">'+status+'</span></header>'+
-  (active&&!o.connected?'<p class="base-network-warning">Работает локально. Для сетевых услуг подключите промежуточные станции.</p>':'')+
+  (active&&!o.connected&&!base.suppressed?'<p class="base-network-warning">Работает локально. Для сетевых услуг подключите промежуточные станции.</p>':'')+
   opening+'<footer class="base-foot">'+
   (!active||state.checkpointNote?'<small>'+(!active?'После подключения откроются услуги станции.':'')+
   (state.checkpointNote?'<span role="status">'+state.checkpointNote+'</span>':'')+'</small>':'')+

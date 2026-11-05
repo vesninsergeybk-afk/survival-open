@@ -1,5 +1,5 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1';
+import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1';
 import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -18,7 +18,7 @@ const REGION_BRIEF=Object.freeze({
  azure:{goal:'Остановить перевозку батарей и ослабить вражеские перехватчики.',
   danger:'Электрические бури усиливают перехватчики и угрожают кораблю.',
   preparation:'Полезны ионное вооружение и скорость для выхода из кольца бури.',
-  result:'Перехват батарей предотвращает усиление одного будущего патруля.'},
+  result:'Перехват батарей предотвращает усиление одного патруля; подавление сети надолго ослабляет регион.'},
  lilac:{goal:'Найти военный узел и остановить тяжёлые подкрепления.',
   danger:'Тяжёлые корабли и защищённая военная инфраструктура.',
   preparation:'Рекомендуются улучшенный корпус, щит и дальнобойное оружие.',
@@ -26,7 +26,7 @@ const REGION_BRIEF=Object.freeze({
  teal:{goal:'Нарушить сбор обломков и снабжение ремонтной верфи.',
   danger:'Группы с ремонтниками; залежи и рабочие требуют выбора цели.',
   preparation:'Полезны прицельный огонь по ремонтникам и прочный корпус.',
-  result:'Перехват запчастей предотвращает появление одного ремонтника в патруле.'}
+  result:'Перехват запчастей предотвращает появление одного ремонтника; подавление сети надолго ослабляет регион.'}
 });
 export function renderRegionAtlas(game){
  const world=game.world,s=world.regionalSupply;if(!s)return '';
@@ -94,7 +94,7 @@ export function renderRegionAtlas(game){
   '<rect width="300" height="240" rx="12" fill="#08182b"/><path d="M 150 120 L 300 0 V 240 Z" fill="#ffbb7015"/>'+
   '<path d="M 150 120 L 0 0 H 300 Z" fill="#dfa1e315"/><path d="M 150 120 L 0 240 H 300 Z" fill="#82e8ff15"/>'+
   '<path d="M 150 120 L 0 0 V 240 Z" fill="#88e6c815"/><circle cx="150" cy="120" r="53" fill="#24233c" stroke="#caa0ff"/>'+labels+
-  '<circle cx="'+Math.max(5,Math.min(295,player.x))+'" cy="'+Math.max(5,Math.min(235,player.y))+'" r="4" fill="#ffffff"/></svg><p>Контуры условны. Точка разведки ведёт внутрь региона, но не раскрывает расположение неизвестных станций. Сначала изучите описание и подготовьте корабль.</p><p><b>Маршевый перелёт:</b> удерживайте курс к выбранному региону или разведанной дружественной станции. Через 2,2 с в спокойном пространстве корабль ускорится. Вблизи врагов, станций и бурь скорость станет обычной. Время полёта продолжается. В домашней области фоновая опасность ограничена; в дальних регионах она по-прежнему растёт.</p><div class="region-directions">'+buttons+'</div></details>'+
+  '<circle cx="'+Math.max(5,Math.min(295,player.x))+'" cy="'+Math.max(5,Math.min(235,player.y))+'" r="4" fill="#ffffff"/></svg><p>Контуры условны. Точка разведки ведёт внутрь региона, но не раскрывает расположение неизвестных станций. Сначала изучите описание и подготовьте корабль.</p><p><b>Маршевый перелёт:</b> удерживайте курс к выбранному региону или разведанной дружественной станции. Через 2,2 с в спокойном пространстве корабль ускорится. Вблизи врагов, станций и бурь скорость станет обычной. Время полёта продолжается. В разведанных регионах фоновая опасность ограничена. Остановка снабжения или захват сборки уменьшает местный натиск; готовые отряды остаются опасными.</p><div class="region-directions">'+buttons+'</div></details>'+
   (mine?.discovered?'<p>'+enc(supplyStatus(world))+'</p><p>Рудных грузов перехвачено: '+s.intercepted+'. '+
    (world.stations.get(SUPPLY.militaryId)?.discovered?'Тяжёлых подкреплений вышло: '+s.raids+'. Резервов в узле: '+s.reserves+'.':
     'Оставшийся запас военного узла неизвестен.')+'</p>'+history:

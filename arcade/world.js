@@ -1,5 +1,5 @@
 import {amberRegion} from './regions.js?v=regions-1';
-import {STRATEGIC_STATIONS,createRegionalSupply} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1';
+import {STRATEGIC_STATIONS,createRegionalSupply} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
 import {CENTRAL_STATIONS} from './central-industry.js?v=living-world-1-home-conflict-1';
 import {FRONTIER_STATIONS} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
 import {RULES, hash, dist, baseNames} from './balance.js?v=arcade-network-20';
@@ -148,9 +148,9 @@ export class World {
   networkTopology(previewBoost=null){
     // Only actual powered radio links count. A newly activated relay may
     // bridge an isolated station back into the home network.
-    const nodes=[...this.stations.values()].filter(b=>b.active&&!b.enemy);
+    const nodes=[...this.stations.values()].filter(b=>b.active&&!b.enemy&&!b.suppressed);
     const linked=new Set(),links=[];
-    if(!this.home.active)return {count:0,linked,links};
+    if(!this.home.active||this.home.suppressed)return {count:0,linked,links};
     linked.add(this.home.id);
     const frontier=[this.home];
     while(frontier.length){

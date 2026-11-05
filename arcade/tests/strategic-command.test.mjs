@@ -1,0 +1,155 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {game} from './weapons-scene.mjs';
+import {createFieldLoan} from '../field-weapons.js';
+import {fireAimedRail,updateAutomaticWeapons} from '../ship-weapons.js';
+import {damageTarget} from '../combat-targets.js';
+import {labLogisticsIntel} from '../station-progression.js';
+import {renderBasePanel} from '../base-panel.js';
+import {captureCheckpoint,restoreCheckpoint,packRun,unpackRun,validateCheckpoint} from '../run-checkpoint.js';
+import {spawnCentralRaid} from '../region-runtime.js';
+import {createCommandState,updateStrategicCommand,assignStationInterdiction,
+ updateStationInterdiction,stationRaidValid,commandStateValid,STATION_INTERDICTION} from '../strategic-command.js';
+
+const noop=()=>{};
+const lab=(x=5800,y=1400)=>({id:'4:1',type:'lab',active:true,enemy:false,discovered:true,
+ x,y,turrets:[],hp:800,maxHp:800});
+function scene(){
+ const g=game();g.time=200;g.world.nearbyRocks=()=>[];
+ g.world.regionalSupply.command=createCommandState();
+ const b=lab();g.world.stations.set(b.id,b);g.world.discovered.add(b.id);
+ const witness={serial:1,type:'fighter',hp:58,maxHp:58,x:b.x+100,y:b.y,vx:0,vy:0,r:14};
+ g.enemies=[witness];g.enemySerial=1;g.world.regionalSupply.central.intercepted=1;
+ g.camera=()=>({x:g.player.x-600,y:g.player.y-400,w:1200,h:800});
+ return {g,b,witness};
+}
+function armed(){
+ const {g,b}=scene();b.x=420;b.y=0;
+ const ship={serial:2,type:'gunship',scenario:'central-funded',x:220,y:0,hp:400,maxHp:400,r:22,vx:0,vy:0};
+ ship.stationRaid={id:1,front:'home',stationId:b.id,x:b.x,y:b.y,issuedAt:190,
+  expiresAt:315,chargeAt:196,nextPulse:0,interruptUntil:0,announced:true};
+ g.world.regionalSupply.command.serial=1;g.enemies=[ship];g.grid.clear();g.grid.insert(ship);
+ return {g,b,ship};
+}
+test('passive listening cannot reveal a laboratory to headquarters; optical contact and radio arrival are required',()=>{
+ const {g,b,witness}=scene(),s=g.world.regionalSupply.command;
+ g.enemies=[];updateStrategicCommand(g);assert.equal(s.reports.length,0);
+ g.enemies=[witness];g.time=201;updateStrategicCommand(g);
+ assert.equal(s.reports.length,1);assert.equal(s.reports[0].stationId,b.id);
+ assert.ok(s.reports[0].receivedAt>g.time);
+ const ship={...witness,type:'gunship',scenario:'central-funded'};g.enemies.push(ship);
+ assert.equal(assignStationInterdiction(g,ship,'home'),false,'reports cannot arrive instantly');
+ g.time=210;assert.equal(assignStationInterdiction(g,ship,'home'),true);
+ assert.equal(g.enemies.length,2,'an order does not conjure ships');
+ assert.equal(ship.stationRaid.stationId,b.id);assert.ok(commandStateValid(s,g.time));
+ assert.ok(stationRaidValid(ship.stationRaid,g.time));
+});
+test('cover, facing, lack of transmitters and stale sightings prevent omniscient counter-orders',()=>{
+ for(const reason of ['cover','facing','radio','stale']){
+  const {g,b,witness}=scene(),s=g.world.regionalSupply.command;
+  if(reason==='cover')g.world.nearbyRocks=()=>[{x:b.x+50,y:b.y,r:40,alive:true}];
+  if(reason==='facing'){witness.vx=100;witness.vy=0;}
+  if(reason==='radio'){b.x=-9000;witness.x=-8900;}
+  updateStrategicCommand(g);
+  if(reason!=='stale')assert.equal(s.reports.length,0,reason);
+  else {
+   assert.equal(s.reports.length,1);g.time+=181;
+   const ship={...witness,scenario:'central-funded'};g.enemies.push(ship);
+   assert.equal(assignStationInterdiction(g,ship,'home'),false);
+  }
+ }
+});
+test('a real paid sortie receives the regional order without additional free reinforcements',()=>{
+ const {g,b}=scene(),pool=g.world.regionalSupply.central;
+ updateStrategicCommand(g);g.time=210;g.player.x=b.x;g.player.y=b.y;
+ pool.pendingRaid={announced:true,readyAt:209};
+ g.spawnGroup=d=>{for(let i=0;i<d.groupSize;i++)g.enemies.push({hp:28,scenario:'ambient'});return 0;};
+ const before=g.enemies.length;
+ assert.ok(spawnCentralRaid(g,{cap:20,groupSize:2,types:['fighter']}));
+ assert.equal(g.enemies.length,before+5);assert.equal(pool.raids,1);
+ const leader=g.enemies.find(e=>e.stationRaid);assert.ok(leader);
+ assert.equal(leader.type,'gunship');assert.equal(leader.stationRaid.stationId,b.id);
+ assert.match(g.lastNotice,/подавить связь/);
+ assert.equal(assignStationInterdiction(g,{...leader,stationRaid:null,scenario:'ambient'},'home'),false);
+});
+test('station PVO spends a real charge; an unopposed subsequent pulse disables actual radio coverage',()=>{
+ const {g,b,ship}=armed();
+ g.time=204;updateStationInterdiction(g,ship,.02);
+ assert.equal(b.defense.charges,0);assert.ok(!b.suppressed);
+ assert.ok(labLogisticsIntel(g.world,g.player).contacts.length>0);
+ g.time=209;updateStationInterdiction(g,ship,.02);
+ g.time=216;updateStationInterdiction(g,ship,.02);
+ assert.equal(b.suppressed,true);assert.equal(b.suppressedUntil,230);
+ assert.equal(labLogisticsIntel(g.world,g.player).contacts.length,0);
+ g.time=230;ship.hp=0;updateStrategicCommand(g);
+ assert.equal(b.suppressed,false);assert.ok(labLogisticsIntel(g.world,g.player).contacts.length>0);
+});
+test('jamming a bridge really disconnects its downstream stations, then restores the same network',()=>{
+ const {g,b}=scene(),home=g.world.home;
+ b.x=home.x+1100;b.y=home.y;
+ const next={...lab(),id:'5:1',x:home.x+2200,y:home.y,type:'carrier'};g.world.stations.set(next.id,next);
+ assert.ok(g.world.networkTopology().linked.has(next.id));
+ b.suppressed=true;b.suppressedUntil=214;
+ assert.ok(!g.world.networkTopology().linked.has(next.id));
+ g.time=214;updateStrategicCommand(g);
+ assert.ok(g.world.networkTopology().linked.has(next.id));
+ assert.ok(b.active&&next.active,'ownership and installed stations are preserved');
+});
+test('the same windup has different real solutions for plasma, aimed rail and ion',()=>{
+ const ranged=armed();ranged.g.shipLoadout.slots[0]='rail';ranged.g.syncShipLoadout();ranged.g.manualRailMode=true;
+ assert.ok(fireAimedRail(ranged.g,{x:ranged.ship.x,y:ranged.ship.y}).ok);
+ assert.ok(ranged.ship.hp>0);assert.equal(ranged.ship.stationRaid.chargeAt,null);
+ const automatic=armed();automatic.g.shipLoadout.slots[0]='rail';automatic.g.syncShipLoadout();
+ updateAutomaticWeapons(automatic.g,.01,true);
+ assert.equal(automatic.ship.stationRaid.chargeAt,196,'automatic rail damage alone is not a manual disruption');
+ const ion=armed();ion.g.fieldLoan=createFieldLoan('ion',ion.g.docked.id,ion.g.time);
+ ion.g.shipLoadout.slots[1]='ion';ion.g.syncShipLoadout();ion.ship.ionMarkUntil=220;
+ assert.ok(ion.g.callIonDischarge());assert.equal(ion.ship.stationRaid.chargeAt,null);
+ assert.equal(ion.g.fieldLoan.charges,2);
+ assert.match(ion.g.lastNotice,/подготовка импульса сорвана/i);
+ const chain=armed();chain.g.fieldLoan=createFieldLoan('ion',chain.g.docked.id,chain.g.time);
+ chain.g.shipLoadout.slots[1]='ion';chain.g.syncShipLoadout();
+ chain.g.enemies.push({...chain.ship,serial:3,x:250,stationRaid:null},{...chain.ship,serial:4,x:280,stationRaid:null});
+ chain.g.enemies.forEach(e=>{e.ionMarkUntil=220;chain.g.grid.insert(e);});
+ assert.ok(chain.g.callIonDischarge());assert.ok(chain.g.ionMasteryAwarded);
+ assert.match(chain.g.lastNotice,/освоен.*подготовка импульса сорвана/i);
+ const plasma=armed();plasma.ship.hp=8;plasma.g.player.x=plasma.ship.x-90;
+ updateAutomaticWeapons(plasma.g,.01,true);
+ assert.ok(plasma.ship.hp<=0,'close plasma stops the attack by destroying the carrier');
+ assert.equal(updateStationInterdiction(plasma.g,plasma.ship,.02),false);
+});
+test('a suppressed laboratory terminal explains the outage without promising active radio or missing links',()=>{
+ const {g,b}=scene();b.suppressed=true;b.suppressedUntil=214;
+ const html=renderBasePanel(b,g.baseState());
+ assert.match(html,/Связь этой лаборатории подавлена/);
+ assert.doesNotMatch(html,/Радиоперехват работает|Для сетевых услуг подключите промежуточные/);
+});
+test('cover or stasis breaks the windup; leaving the mission alive does not grant an endless jammer',()=>{
+ const {g,b,ship}=armed();
+ g.world.nearbyRocks=()=>[{x:320,y:0,r:40,alive:true}];
+ updateStationInterdiction(g,ship,.02);assert.equal(ship.stationRaid.chargeAt,null);assert.ok(!b.suppressed);
+ g.world.nearbyRocks=()=>[];ship.stationRaid.chargeAt=198;ship.stasisUntil=205;
+ updateStationInterdiction(g,ship,.02);assert.equal(ship.stationRaid.chargeAt,null);
+ g.time=316;assert.equal(updateStationInterdiction(g,ship,.02),false);
+ assert.equal(ship.stationRaid,null);assert.ok(ship.hp>0);
+});
+test('a checkpoint restores reports, paid orders and remaining disruption without renewing them',()=>{
+ const {g,b,ship}=armed();b.suppressed=true;b.suppressedUntil=210;
+ g.player.x=g.docked.x;g.player.y=g.docked.y;g.paused=true;
+ const data=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.ok(validateCheckpoint(data));
+ const restored=game();restoreCheckpoint(restored,data);
+ assert.equal(restored.world.stations.get(b.id).suppressedUntil,210);
+ assert.equal(restored.enemies[0].stationRaid.expiresAt,315);
+ const corrupt=unpackRun(packRun(data));corrupt.state.enemies[0].stationRaid.stationId='missing';
+ assert.equal(validateCheckpoint(corrupt),false);
+ const newer=unpackRun(packRun(data));newer.world.regionalSupply.command.serial=-1;
+ assert.equal(validateCheckpoint(newer),false);
+});
+test('the defense action navigates to the real threatened station and rejects a forged or expired alert',()=>{
+ const {g,b,ship}=armed();g.overlay.dataset.mode='map';let route=null;
+ g.requestWaypointDeparture=wp=>{route=wp;};
+ assert.ok(g.chooseStationDefense(b.id));assert.equal(route.id,b.id);assert.equal(route.x,b.x);
+ route=null;assert.equal(g.chooseStationDefense('0:0'),false);assert.equal(route,null);
+ g.time=ship.stationRaid.expiresAt;assert.equal(g.chooseStationDefense(b.id),false);
+});
