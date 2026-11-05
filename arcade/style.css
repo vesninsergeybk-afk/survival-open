@@ -108,6 +108,14 @@ canvas#game.rail-manual{cursor:crosshair}
  border-radius:30px;padding:6px 9px;border:1px solid #78939d88}
 .base-pill.online{color:#8dffda;background:#154c4288;border-color:#65e8b788}
 .base-pill.offline{color:#cbd5e1;background:#36414d88}
+.base-pilot-progress{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+ gap:7px;padding:7px 10px;margin:0 0 8px;border-radius:10px;
+ border:1px solid #e7c47788;background:linear-gradient(100deg,#65451e61,#19394eae);
+ color:#ffe5aa;font-size:12px;line-height:1.25}
+.base-pilot-progress b{color:#fff2c7}
+.base-pilot-progress button{margin:0;padding:6px 11px;font-size:12px;white-space:nowrap}
+@media(max-width:540px){.base-pilot-progress{padding:6px 8px;gap:5px;font-size:11px}
+ .base-pilot-progress button{padding:6px 9px;font-size:11px}}
 .base-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .base-card{display:flex;flex-direction:column;gap:4px;min-width:0;
  background:#11314be3;border:1px solid #74bfe673;border-radius:12px;padding:10px}

@@ -278,7 +278,7 @@ const corridorPanel=(base,state,compact=false)=>{
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
   CORRIDOR_OPERATION.rewardOre+' сплава · +'+CORRIDOR_OPERATION.rewardData+
-  ' данных (опыт)</span><div>'+actions+'</div></div></article>';
+  ' данных и столько же опыта</span><div>'+actions+'</div></div></article>';
 };
 const probePanel=(base,state,compact=false)=>{
  const op=probeOffer(base,state.operation);
@@ -308,7 +308,7 @@ const probePanel=(base,state,compact=false)=>{
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
   PROBE_OPERATION.rewardOre+' сплава · +'+PROBE_OPERATION.rewardData+
-  ' данных (опыт)</span><div>'+actions+'</div></div></article>';
+  ' данных и столько же опыта</span><div>'+actions+'</div></div></article>';
 };
 const relayPanel=(base,state,compact=false)=>{
  const op=relayOffer(base,state.operation,state.time);
@@ -668,9 +668,11 @@ export function renderBasePanel(base,state){
   ' · поглощено щитом '+details.shieldDamage+' · восстановлено в полёте '+details.hullRepaired+
   ' · уничтожено дронов '+details.dronesLost+'.</p></div></details>':'';
  const experienceNote=Number.isFinite(state.xp)&&Number.isFinite(state.nextXp)&&
-  Number.isInteger(state.level)?'<p>Данные дают опыт пилоту: до уровня '+(state.level+1)+
+  Number.isInteger(state.level)?'<p><b>Опыт пилота:</b> до уровня '+(state.level+1)+
   ' осталось '+Math.max(0,Math.ceil(state.nextXp-state.xp))+
-  '. Новый уровень даёт очко развития; навыки доступны по U и в ангаре.</p>':'';
+  '. Данные и опыт учитываются отдельно: за участие в бою опыт начисляется сразу, '+
+  'за поручения — при сдаче, за первое исследование богатого астероида — при добыче. '+
+  'Подбор боевых данных не дублирует уже начисленный опыт. Новый уровень даёт очко развития.</p>':'';
  const shortage=o.relayCost>o.ore?o.relayCost-o.ore:0;
  const reserveRoute=state.contract?
   (state.contract.progress>=state.contract.goal?
@@ -866,6 +868,12 @@ export function renderBasePanel(base,state){
    '<summary>Сменить доктрину пилота</summary><section class="base-doctrine-service">'+
    '<p>Возврат очка доктрины стоит 12 сплава.</p>'+
    action('respec','Сменить доктрину · 12 сплава',o.ore<12?'Нужно 12 сплава':'')+'</section></details>':'')+'</div>';
+ const pilotProgress=state.points>0?'<div class="base-pilot-progress" role="status">'+
+  '<span><b>ПИЛОТ · УР. '+state.level+'</b> · '+
+  (state.lastContractReceipt?.levelsGained?'Новый уровень! · ':'')+
+  state.points+' '+(state.points%10===1&&state.points%100!==11?'очко':
+   state.points%10>=2&&state.points%10<=4&&(state.points%100<12||state.points%100>14)?'очка':'очков')+
+  ' развития</span>'+action('pilotSkills','Выбрать навык')+'</div>':'';
  const opening=active?
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
   tabButton('summary','Главная',selected)+tabButton('operations','Задания',selected,o.contract.status==='ready'?'Награда':state.firstHardwareReward==='pending'?'Оружие':'')+
@@ -885,14 +893,14 @@ export function renderBasePanel(base,state){
  return '<div class="dialog base-dialog station-'+base.type+'" role="dialog" aria-modal="true" aria-label="Станция"><header class="base-head">'+
   '<div class="base-identity"><span class="base-emblem" aria-hidden="true">'+stationEmblem(base.type)+'</span><div>'+
   '<span class="base-system-label">ВЫЖИВШИЙ / ТЕРМИНАЛ СТАНЦИИ</span><h2>'+(baseNames[base.type]||'Станция')+'</h2>'+
-  '<p class="base-credits"><span>Сплав <b>'+o.ore+'</b></span><span>Данные <b>'+(state.data||0)+'</b> (опыт)</span>'+
+  '<p class="base-credits"><span>Сплав <b>'+o.ore+'</b></span><span>Данные <b>'+(state.data||0)+'</b></span>'+
   '<span>Корпус <b>'+Math.ceil(state.hp)+'/'+state.maxHp+'</b></span>'+
   '<span class="base-aux-stat">В сети <b>'+state.connectedBases+'</b></span>'+
   '<span class="base-aux-stat">Дроны <b>'+state.allies+'/'+o.cap+'</b></span>'+
   (base.type==='carrier'?'<span>Вылеты <b>'+state.charges+'</b></span>':'')+'</p></div></div>'+
   '<span class="base-pill '+(o.connected?'online':'offline')+'">'+status+'</span></header>'+
   (active&&!o.connected&&!base.suppressed?'<p class="base-network-warning">Работает локально. Для сетевых услуг подключите промежуточные станции.</p>':'')+
-  opening+'<footer class="base-foot">'+
+  pilotProgress+opening+'<footer class="base-foot">'+
   (!active||state.checkpointNote?'<small>'+(!active?'После подключения откроются услуги станции.':'')+
   (state.checkpointNote?'<span role="status">'+state.checkpointNote+'</span>':'')+'</small>':'')+
   (state.hangarSession?.dirty(state.loadout)?

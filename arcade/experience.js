@@ -1,4 +1,4 @@
-import {expForNext, legacyExpForNext} from './balance.js?v=early-experience-1';
+import {expForNext, legacyExpForNext} from './balance.js?v=xp-feedback-pass1-1';
 
 // Legacy station saves store the current level and progress within that level.
 export const XP_CURVE_VERSION = 2;

@@ -106,3 +106,15 @@ test('an active special mission from another station points back to the map',()=
  assert.match(summary,/data-act="baseMap">Показать цель на карте/);
  assert.doesNotMatch(summary,/data-act="acceptOperation"/);
 });
+
+test('unspent pilot points are actionable inside a dock, even after a level-up at claim',()=>{
+ const html=renderBasePanel(home,state({level:2,points:1,xp:0,nextXp:68,
+  lastContractReceipt:{ore:16,data:15,levelsGained:1}}));
+ assert.match(html,/class="base-pilot-progress" role="status"/);
+ assert.match(html,/ПИЛОТ · УР. 2/);
+ assert.match(html,/Новый уровень! · 1 очко развития/);
+ assert.match(html,/data-act="pilotSkills">Выбрать навык/);
+ assert.doesNotMatch(html,/Данные <b>0<\/b> \(опыт\)/);
+ const spent=renderBasePanel(home,state({level:2,points:0,xp:0,nextXp:68}));
+ assert.doesNotMatch(spent,/class="base-pilot-progress"/);
+});

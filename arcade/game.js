@@ -10,8 +10,9 @@ import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expeditio
 import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1';
 import {disableCentralWorker} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1';
 import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1';
-import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifiesForDirectCombatXp,XP_CURVE_VERSION} from './experience.js?v=early-experience-1';
-import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30-early-xp-1';
+import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifiesForDirectCombatXp,XP_CURVE_VERSION} from './experience.js?v=early-experience-1-xp-feedback-pass1-1';
+import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
+import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=xp-feedback-pass1-1';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1-supply-stronghold-1';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
@@ -29,7 +30,7 @@ import {ArcadeVisuals} from './visuals.js?v=regions-1-campaign-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed} from './control-layout.js?v=unified-controls-1';
 import {manualWeapons,selectedManual,cycleManual,manualClick} from './manual-weapon-controls.js?v=unified-controls-1';
@@ -38,7 +39,7 @@ import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
@@ -400,6 +401,7 @@ export class ArcadeGame {
    if(act==='pilotStation'){this.returnToStation();return;}
    if(act==='pilotHangar'){this.baseTab='hangar';this.returnToStation();return;}
    if(act==='pilotMap'){this.openMap();return;}
+   if(act==='pilotSkills'){this.skills();return;}
    if(act==='runContinue'){this.continueRun();return;}
    if(act==='conflictPlan'){this.chooseConflictPlan(b.dataset.role);return;}
    if(act==='campaignFront'){
@@ -2169,15 +2171,18 @@ export class ArcadeGame {
    this.contract=null;
    finishFieldAssignment(this.fieldLoan,'contract',c);
    p.ore+=c.ore;this.cockpit.resourceGain(c.ore,this.time);
+   const previousLevel=p.level;
    this.collect({type:'data',value:c.data});
+   const levelsGained=p.level-previousLevel;
    this.sortieReports=creditContractReward(this.sortieReports||[],c,b);
-   this.lastContractReceipt={ore:c.ore,data:c.data,
+   this.lastContractReceipt={ore:c.ore,data:c.data,levelsGained,
     credited:this.sortieReports.some(r=>r.id===c.completedSortieId&&r.details?.oreContracts>=c.ore)||
      (c.completedSortieId==null&&this.sortieReports.some(r=>r.baseId===b.id))};
    if(this.firstHardwareReward==null)this.firstHardwareReward='pending';
    this.baseTab='summary';
    this.notice('Поручение выполнено: +'+c.ore+' сплава · +'+c.data+
-    ' данных. Выберите бесплатное оружие!',5);
+    ' данных и опыта.'+(levelsGained?' Новый уровень: '+p.level+'! Откройте развитие пилота.':'')+
+    (this.firstHardwareReward==='pending'?' Выберите бесплатное оружие!':''),5);
    this.heritage.station(act,b.type);
    this.pausedRenderPending=true;this.renderDock();return;
   }else if(act==='claimFirstModule'){
@@ -2928,10 +2933,9 @@ export class ArcadeGame {
   }
  }
  addDrop(type,x,y,value,options={}){
-  if(this.drops.length>=RULES.maxDrops){
-   // When the cap is reached, award pickups directly rather than lose progress.
-   return this.collect({type,value,source:options.source,xpGranted:options.xpGranted})!==false;
-  }
+  // A distant kill or a crowded field cannot silently credit uncollected loot.
+  // Prefer replacing a fading ordinary drop; preserve special field charges.
+  if(!makeRoomForDrop(this.drops,RULES.maxDrops))return false;
   this.drops.push({type,x,y,value,source:options.source||null,
    vx:options.vx??(Math.random()-.5)*55,
    vy:options.vy??(Math.random()-.5)*55,
@@ -2950,7 +2954,8 @@ export class ArcadeGame {
   if(gained){
    this.heritage.play('levelUp',.4);
    this.notice((gained>1?'Получено уровней: '+gained+'. ':'Новый уровень! ')+
-    'Навыки пилота — U, оружие и системы — в ангаре.',3);
+    (this.isTouchLayout?'Откройте «Развитие» в меню.':'Навыки пилота — '+this.controlLabel('skills')+'.')+
+    ' Оружие и системы — в ангаре.',4.2);
   }
   return gained;
  }

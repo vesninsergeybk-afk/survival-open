@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {expForNext,legacyExpForNext} from '../balance.js';
+import {experienceDifference} from '../hud.js';
 import {enemyDataReward} from '../combat-rewards.js';
 import {contractChoices} from '../base-panel.js';
 import {OPENING_ARC} from '../opening-arc.js';
@@ -93,4 +94,11 @@ test('late-level progress cannot be increased by repeating early discoveries',()
   assert.equal(firstRichAsteroidExperience(p,{rich:true},'extract'),0);
  assert.equal(grantExperience(p,reward),0);
  assert.equal(p.level,7);
+});
+
+test('HUD reports actual XP over the new early-level thresholds',()=>{
+ assert.equal(experienceDifference({level:1,xp:35},{level:2,xp:0}),7);
+ assert.equal(experienceDifference({level:1,xp:35},{level:3,xp:25}),100);
+ assert.equal(experienceDifference({level:2,xp:40},{level:2,xp:65}),25);
+ assert.equal(experienceDifference({level:2,xp:40},{level:1,xp:0}),null);
 });
