@@ -294,7 +294,7 @@ test('howitzer cancels cleanly on repair, removal or moving beyond its advertise
 });
 test('the station adapter, heat gates and both manual inputs are wired into the actual game',()=>{
  const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
- assert.match(source,/KeyF'\)this.callHowitzer\(\)/);
+ assert.match(source,/e\.code===this\.controls\.howitzer\)this\.callHowitzer\(\)/);
  assert.match(source,/heavyButton.onclick=\(\)=>this.callHowitzer\(\)/);
  assert.match(source,/updateAutomaticWeapons\(this,dt,!this.heavyCharge&&automaticFireAllowed/);
  assert.match(source,/if\(SHIP_UPGRADES.has\(id\)&&\(!this.docked\?\.active/);

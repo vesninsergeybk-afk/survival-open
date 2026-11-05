@@ -106,7 +106,7 @@ test('desktop and touch input share one manual action; repair and mining remain 
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const panel=readFileSync(new URL('../base-panel.js',import.meta.url),'utf8');
- assert.match(game,/if\(e\.code==='Space'\)this\.callFieldWeapon\(\)/);
+ assert.match(game,/if\(e\.code===this\.controls\.field\)this\.callFieldWeapon\(\)/);
  assert.match(game,/ionButton\.onclick=\(\)=>this\.callFieldWeapon\(\)/);
  assert.match(game,/this\.mining\.active\|\|this\.probeRepairing/);
  assert.match(game,/this\.fieldLoan\?\.missionStarted/);

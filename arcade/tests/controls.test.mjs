@@ -52,8 +52,8 @@ test('keyboard, touch and autonomous units share the cease-fire contract',()=>{
  const script=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  const ai=readFileSync(new URL('../ai.js',import.meta.url),'utf8');
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.match(script,/KeyE.*beginInteraction/);
- assert.match(script,/KeyC.*toggleHoldFire/);
+ assert.match(script,/e\.code===this\.controls\.interact\)this\.beginInteraction/);
+ assert.match(script,/e\.code===this\.controls\.cease\)this\.toggleHoldFire/);
  assert.match(script,/automaticFireAllowed\(this\.holdFire/);
  assert.match(script,/activeInteraction\(this\.actionHeld,'mine'/);
  assert.match(ai,/const holdingFire=!!game\.holdFire/);
