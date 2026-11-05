@@ -78,7 +78,7 @@ test('visual contact is a last observed point, never remote live tracking',()=>{
 
 test('depleted rocks and stores really starve the home network without disabling a healthy miner',()=>{
  const world=new World(),s=world.regionalSupply.central;
- for(const rock of world.nearbyRocks(4400,2800,850)){rock.hp=0;rock.alive=false;}
+ for(const rock of world.nearbyRocks(4400,2800,2400)){rock.hp=0;rock.alive=false;}
  s.ore=0;s.worker.phase='seek';s.worker.carry=0;
  advanceRegionalSupply(world,1);
  assert.equal(s.worker.rockDepleted,true);

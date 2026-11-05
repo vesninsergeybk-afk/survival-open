@@ -89,9 +89,9 @@ export function centralEvent(s,kind,time){
  return {kind,time,central:true};
 }
 
-function nearbyOre(world){
+function nearbyOre(world,radius=850){
  const site=CENTRAL_ROUTE[0];
- return world.nearbyRocks(site.x,site.y,850)
+ return world.nearbyRocks(site.x,site.y,radius)
   .filter(r=>r.alive&&r.hp>0&&distance(r,site)>190)
   .sort((a,b)=>distance(a,site)-distance(b,site)||a.id.localeCompare(b.id));
 }
@@ -101,7 +101,10 @@ function workerTick(world,s,t){
  if(!world.stations.get(CENTRAL_INDUSTRY.sourceId)?.enemy||w.hp<=0)return;
  if(w.phase==='seek'){
   if(s.ore>=CENTRAL_INDUSTRY.oreCapacity)return;
-  const rock=nearbyOre(world)[0];
+  // The local belt is finite. Workers prospect farther out before declaring
+  // an enemy industrial network exhausted; every asteroid is still real.
+  const rock=nearbyOre(world,850)[0]||nearbyOre(world,1500)[0]||
+   nearbyOre(world,2400)[0];
   w.rockDepleted=!rock;
   if(!rock)return;
   w.phase='outbound';w.rockId=rock.id;w.from={...w.to};
@@ -110,7 +113,9 @@ function workerTick(world,s,t){
  }else if(w.phase==='outbound'){
   if(t>=w.until){w.phase='mining';w.at=t;w.until=t;}
  }else if(w.phase==='mining'){
-  const rock=nearbyOre(world).find(r=>r.id===w.rockId);
+  // Check only the target's vicinity while mining; the extended search ring
+  // is used solely when a worker needs a new deposit.
+  const rock=world.nearbyRocks(w.to.x,w.to.y,100).find(r=>r.id===w.rockId);
   if(rock&&distance(rock,w.to)<85&&w.carry<CENTRAL_INDUSTRY.workerCapacity){
    const mined=Math.min(rock.hp,CENTRAL_INDUSTRY.miningRate);
    rock.hp=Math.max(0,rock.hp-mined);

@@ -1,7 +1,7 @@
 // First-of-type discoveries teach a new action without adding another currency,
 // another station tab, or a second copy of run progression in the save file.
 // Station activation is already checkpointed, so restored runs keep the unlock.
-import {CENTRAL_INDUSTRY} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2';
+import {CENTRAL_INDUSTRY,centralExtractionAvailable} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-renewal-1';
 import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {FRONTIERS} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2';
@@ -69,11 +69,10 @@ export function labLogisticsIntel(world,player={x:0,y:0}){
  const contacts=[],network=world?.regionalSupply;
  const mine=world.stations.get(CENTRAL_INDUSTRY.sourceId);
  const depot=world.stations.get(CENTRAL_INDUSTRY.depotId);
- const worker=network?.central?.worker;
  // A stationary industrial emitter is detectable from farther away than a
  // moving cargo tag, but a distant lab cannot know the whole sector for free.
  const localReach=!!mine&&labs.some(lab=>distance(lab,mine)<=9800);
- if(localReach&&depot?.enemy&&mine?.enemy&&worker?.hp>0){
+ if(localReach&&depot?.enemy&&mine?.enemy&&centralExtractionAvailable(network?.central)){
   const discovered=!!mine.discovered;
   contacts.push({id:'intel:central-source',kind:'source',
    x:mine.x+(discovered?0:190),y:mine.y+(discovered?0:-140),
@@ -115,7 +114,7 @@ export function labLogisticsIntel(world,player={x:0,y:0}){
     'Радиометка движется вместе с транспортом. Уничтожение груза лишит вражескую сеть этой поставки.'});
  }
  const counters=network?.central;
- const sourceWorking=!!mine?.enemy&&worker?.hp>0;
+ const sourceWorking=!!mine?.enemy&&centralExtractionAvailable(network?.central);
  const situation=!depot?.enemy?'Сборочный пост захвачен: местная сеть больше не создаёт подкрепления.':
   !sourceWorking?'Добыча остановлена. Оставшиеся в пути грузы и прежние запасы ещё могут помочь противнику.':
    'Шахта продолжает снабжать сборочный пост. Можно захватить источник или перехватить уже вышедший груз.';

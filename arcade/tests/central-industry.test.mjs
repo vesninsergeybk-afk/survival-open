@@ -39,7 +39,8 @@ test('one worker depletes actual rocks and earns bounded ore; without rocks ther
  const position=centralWorkerPosition(s.worker,300.5);
  assert.ok(Number.isFinite(position.x)&&Number.isFinite(position.y));
  const empty=new World();
- for(const r of empty.nearbyRocks(CENTRAL_INDUSTRY.sourceX,CENTRAL_INDUSTRY.sourceY,850)){
+ // Deplete the entire reachable mining field, including the newly accessible belts.
+ for(const r of empty.nearbyRocks(CENTRAL_INDUSTRY.sourceX,CENTRAL_INDUSTRY.sourceY,2400)){
   r.alive=false;r.hp=0;
  }
  advanceRegionalSupply(empty,500);

@@ -1,13 +1,13 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
 import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
-import {SUPPLY,supplyRoute,advanceRegionalSupply,interceptSupply,supplyEvent,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2';
-import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1-enemy-balance-2';
-import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
+import {SUPPLY,supplyRoute,advanceRegionalSupply,interceptSupply,supplyEvent,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2-supply-stronghold-1';
+import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-renewal-1';
+import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-renewal-1';
 import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {updateStrategicCommand,assignStationInterdiction,drawStationInterdiction} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
 import {stormPhase} from './regional-storms.js?v=regions-1';
-import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1';
+import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1-supply-stronghold-1';
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 import {advanceEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 const outline=centralOutline();
@@ -191,6 +191,8 @@ export function updateRegionalWorld(game,dt){
    game.notice('После повторного перехвата враг потратил руду на обходной путь. Новый маршрут виден на карте; уже вышедший груз сохраняет прежний курс.',7);
   if(e.network&&(world.stations.get(FRONTIERS[e.network].sourceId)?.discovered||
     world.stations.get(FRONTIERS[e.network].depotId)?.discovered)){
+   if(e.kind==='wreck-drift'&&e.network==='teal'&&distance(game.player,world.stations.get(FRONTIERS.teal.sourceId))<5200)
+    game.notice('В поле обломков пришёл новый поток металла. Сборщик может его вывезти; разрушение обломков перекроет этот источник.',5);
    if(e.kind==='dispatch')game.notice(e.network==='azure'?
     'Индукционная вышка отправила батареи в электроангар. Перехватите транспорт до его прибытия.':
     'Комбинат отправил обломки на ремонтную верфь. Перехват оборвёт этот ремонтный рейс.',6);
@@ -531,6 +533,14 @@ export function drawRegionalWorld(game,c,cam){
     c.save();c.font='11px system-ui';c.textAlign='center';c.fillStyle='#b6f5db';
     c.fillText('ОБЛОМКИ · ВЫБЕРИТЕ ЦЕЛЬ',wreck.x,wreck.y-47);
     c.fillText('МАТЕРИАЛ '+Math.ceil(wreck.stock),wreck.x,wreck.y+51);c.restore();
+    const driftAge=game.time-(wreck.driftAt??-1e9);
+    if(driftAge>=0&&driftAge<12){
+     c.save();c.strokeStyle='#a3ffe1';c.lineWidth=2;
+     c.globalAlpha=Math.max(0,1-driftAge/12);
+     c.beginPath();c.arc(wreck.x,wreck.y,48+driftAge*5,0,Math.PI*2);c.stroke();
+     c.font='bold 12px system-ui';c.textAlign='center';c.fillStyle='#cbfff0';
+     c.fillText('НОВЫЕ ОБЛОМКИ +5',wreck.x,wreck.y-66);c.restore();
+    }
    }
    const worker=net.worker;
    if(worker?.hp>0&&source?.enemy){
