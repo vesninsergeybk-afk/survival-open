@@ -63,8 +63,7 @@ export function regionalCampaignPressure(director,world,player){
  const baseline=director.types.filter(type=>type!=='healer'&&type!=='gunship');
  const types=remaining?director.types.filter(type=>remaining.includes(type)):
   [...new Set([...baseline,...supplement])];
- const tierBonus=Math.max(0,threat.tier-2);
- return {...director,cap:Math.min(director.cap+Math.min(4,tierBonus*2),effect.cap+tierBonus*2),
+ return {...director,cap:Math.min(director.cap,effect.cap),
   interval:Math.max(director.interval,effect.interval),
   groupSize:Math.min(front.outcome?2:threat.tier>=4?4:3,
    director.groupSize+(threat.tier>=4?1:0)),

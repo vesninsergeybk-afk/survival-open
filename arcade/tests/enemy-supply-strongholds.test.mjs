@@ -24,6 +24,7 @@ test('deep hostile strongholds are dangerous independently of player level',()=>
  assert.ok(!promoted.types.includes('gunship'),
   'even a fortress cannot build ambient heavy ships without deliveries');
  assert.ok(promoted.groupSize>=3);
+ assert.ok(promoted.cap<=28,'strongholds may be tougher but must respect regional density caps');
  const depot=w.stations.get(FRONTIERS.teal.depotId);
  depot.enemy=false;depot.captured=true;
  const suppressed=regionalCampaignPressure(director,w,FRONTIERS.teal.depot);

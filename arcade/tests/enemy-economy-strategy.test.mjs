@@ -137,6 +137,7 @@ test('known map tracks show a changed route but do not reveal unknown industrial
 
 test('liberation changes not only enemy quantity but also the composition of patrols',()=>{
  const world=new World(),p={x:35000,y:7000},late=openingThreat(1400,12);
+ world.regionalSupply.delivered=5; // Five actual arrivals would fund the heavy-ship tier.
  const before=regionalCampaignPressure(late,world,p);
  assert.ok(before.types.includes('gunship'));
  const depot=world.stations.get(SUPPLY.militaryId);
