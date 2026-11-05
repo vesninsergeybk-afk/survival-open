@@ -43,6 +43,39 @@ test('a fighter commits to a warning point; a dodge does not retarget its shot',
     'no burst can bypass the individual reload');
 });
 
+test('fighter can shoot a visible allied drone without pretending to see the player',()=>{
+  const e=ship('fighter',11,190),game=scene([e]);
+  const ally={x:0,y:25,vx:50,vy:0,r:15,hp:78};
+  game.allies=[ally];e._enemyLearningSaw=false;e._gunNextAt=0;
+  game.enemyCanSee=(_pilot,target)=>target===ally;
+  assert.equal(updateEnemyGunnery(e,game,ally),false);
+  assert.equal(e._gunAiming?.target,ally);
+  game.time=1.8;
+  assert.equal(updateEnemyGunnery(e,game,ally),true);
+  assert.equal(game.shots.length,1);
+  assert.equal(game.shots[0].damage,ENEMY_GUNNERY.fighter.damage);
+  e._gunNextAt=0;game.time=4;
+  updateEnemyGunnery(e,game,ally);
+  assert.ok(e._gunAiming);
+  game.enemyCanSee=()=>false;game.time=4.2;
+  updateEnemyGunnery(e,game,ally);
+  assert.equal(e._gunAiming,null,'cover stops the ally shot as well');
+});
+
+test('switching to a new target cancels the old charge instead of firing at stale coordinates',()=>{
+  const e=ship('flanker',12,190),game=scene([e]);
+  const first={x:20,y:0,r:14,hp:50},second={x:30,y:95,r:14,hp:50};
+  game.allies=[first,second];e._gunNextAt=0;
+  updateEnemyGunnery(e,game,first);
+  assert.ok(e._gunAiming);
+  game.time=1.6;
+  assert.equal(updateEnemyGunnery(e,game,second),false);
+  assert.equal(game.shots.length,0);
+  assert.equal(e._gunAiming,null);
+  game.time=1.7;updateEnemyGunnery(e,game,second);
+  assert.equal(e._gunAiming?.target,second);
+});
+
 test('opening commander uses the same visible charging shot; other mission structures still cannot fire',()=>{
  const commander=ship('fighter',9,210),game=scene([commander]);
  commander.missionStructure=true;commander.openingCommander=true;

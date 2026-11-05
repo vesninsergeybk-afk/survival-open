@@ -6,9 +6,10 @@ import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from 
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
 import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2';
-import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1';
-import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
-import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1';
+import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1';
+import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1';
+import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1';
+import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-2';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
@@ -92,14 +93,17 @@ export function scoutAttack(e,game,target,scanning=false){
   const distance=target?.hp>0?dist(e,target):Infinity;
   const seen=engaged&&distance<=IRIS_COMBAT.range&&
     irisCanSense(e,game,target,IRIS_COMBAT.range);
-  if(!seen){e._irisChargeStarted=null;return false;}
+  if(!seen){e._irisChargeStarted=null;e._irisChargeTarget=null;return false;}
+  if(e._irisChargeTarget!==target){
+    e._irisChargeStarted=null;e._irisChargeTarget=target;
+  }
   if(scanning){
     e._irisChargeStarted=null;
     if(e._irisScanMode!=='acquire'||
        now-e._irisScanStarted<IRIS_COMBAT.scanShotAt)return false;
   }else{
     // Ordinary scouts cannot shoot at a remembered, currently unseen player.
-    if(!e.signalIntel&&!e._irisHasSight&&
+    if(target===game.player&&!e.signalIntel&&!e._irisHasSight&&
        Number.isFinite(e._irisLastSeenAt))return false;
     if(e.fire<=0&&e._irisChargeStarted==null)
       e._irisChargeStarted=now;
@@ -236,9 +240,10 @@ export function updateEnemy(e,game,dt){
       (e.type==='scout'?irisBurstThrust(e,game.time):1);
     const burst=e.type==='scout'?irisBurstJink(e,game.time):0;
     const heading=norm(signalOrder.x-e.x,signalOrder.y-e.y);
+    const detour=enemyRockDetour(e,game,signalOrder.x,signalOrder.y);
     steer(e,signalOrder.x,signalOrder.y,speed,dt,
-      {x:avoid.x*speed*1.25-heading.y*speed*burst,
-       y:avoid.y*speed*1.25+heading.x*speed*burst});
+      {x:avoid.x*speed*1.25-heading.y*speed*burst+detour.x*speed,
+       y:avoid.y*speed*1.25+heading.x*speed*burst+detour.y*speed});
     if(signalOrder.retreat&&game.camera&&
        outsideCamera(e.x,e.y,game.camera(),e.r+30)){
       // A patrol that found nobody leaves without yielding combat experience.
@@ -512,7 +517,9 @@ export function updateEnemy(e,game,dt){
     speed=ENEMY_TYPES[e.type].speed;
   }
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
-  let extraX=avoid.x*speed*1.3,extraY=avoid.y*speed*1.3;
+  const detour=enemyRockDetour(e,game,goalX,goalY);
+  let extraX=(avoid.x*1.3+detour.x)*speed,
+    extraY=(avoid.y*1.3+detour.y)*speed;
   if(e.type==='scout'){
     const burst=irisBurstJink(e,game.time),heading=norm(goalX-e.x,goalY-e.y);
     extraX-=heading.y*speed*burst;
@@ -538,7 +545,9 @@ export function updateEnemy(e,game,dt){
   steer(e,goalX,goalY,speed,dt,{x:extraX,y:extraY});
   e.healFlash=Math.max(0,(e.healFlash||0)-dt);
   updateEnemyGunnery(e,game,selected);
-  if(e.type==='scout'&&!search&&localContact)scoutAttack(e,game,game.player,
+  if(e.type==='scout'&&!search&&
+     (localContact||(selected!==game.player&&game.enemyCanSee?.(e,selected))))
+    scoutAttack(e,game,selected,
     e._irisScanMode==='acquire'&&game.time<(e._irisScanUntil||0));
   if(e.type==='gunship'&&!e.relayAssault&&e.fire<=0&&
      (!targetingPlayer||e._enemyLearningSaw)&&dist(e,p)<535){

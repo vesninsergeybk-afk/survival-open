@@ -116,6 +116,23 @@ test('a phase cannot advance on a timer without actual coordinated flight',()=>{
     'an unexecuted subsequent phase must eventually be abandoned');
 });
 
+test('a distant pincer cannot report success after moving only 60 of 1,000 units',()=>{
+  const a=ship(1,'flanker',0,0),b=ship(2,'fighter',10,0);
+  const cell={members:[a,b],intel:{x:1000,y:0,at:0}};
+  const plan=createEnemySquadPlan(cell,'pincer',null,0);
+  plan.confirmed=true;
+  for(const e of cell.members){
+    const goalX=e.x+1000;
+    e.x+=60;
+    e._commsIntent={x:goalX,y:0,mode:'pincer',role:squadRoleFor(plan,e),
+      planId:plan.id,planPhase:0,at:4.1};
+  }
+  assert.equal(advanceEnemySquadPlan(plan,cell,4.1),false);
+  assert.equal(squadPlanMode(plan),'pincer');
+  for(const e of cell.members){e.x+=430;e._commsIntent.at=5.1;}
+  assert.equal(advanceEnemySquadPlan(plan,cell,5.1),true);
+});
+
 test('the loss of a designated wing invalidates the old trap immediately',()=>{
   const a=ship(1,'flanker',140,-80),b=ship(2,'fighter',210,20),
     c=ship(3,'scout',180,80),members=[a,b,c];
