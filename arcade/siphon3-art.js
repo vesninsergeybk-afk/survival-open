@@ -48,7 +48,9 @@ export function siphon3Pose(phase,progress,time,seed=0,reducedMotion=false){
   const q=p/.24;
   spread=.85-.75*Math.sin(Math.PI*2*clamp(q))**2;
  }else if(phase==='back'){
-  spread=.85-.63*smooth(0,.22,p)+.24*smooth(.82,1,p);
+  // Carry folded, open briefly to unload, then close before the next takeoff.
+  // Ending at .20 matches the next 'out' phase and prevents a visible snap.
+  spread=.85-.65*smooth(0,.22,p)+.24*(smooth(.78,.90,p)-smooth(.90,1,p));
  }else{
   spread=.20+.65*smooth(.68,1,p);
  }
