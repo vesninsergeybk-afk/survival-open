@@ -9,7 +9,7 @@ import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=car
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1';
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1';
-import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-1';
+import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1';
 import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are

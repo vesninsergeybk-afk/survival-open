@@ -6,7 +6,7 @@ import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './rela
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
 import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-4';
-import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-1';
+import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -263,7 +263,8 @@ export function renderWorldMap(game){
   ' Ищите их среди неопознанных сигналов.':'';
  const intelLead=intel.unlocked?' <b>Радиоперехват:</b> '+(intelContacts?
   'найдены промышленные сигналы.':'новых целей пока нет.')+
-  ' Откройте «Регионы и цели», чтобы выбрать маршрут.':'';
+  ' <span class="map-intel-wide">Выберите маршрут в списке справа.</span>'+
+  '<span class="map-intel-compact">Нажмите «Регионы и цели», чтобы выбрать маршрут.</span>':'';
  const view=game.mapView==='targets'?'targets':'map';
  const unapplied=game.mapReturnToBase&&game.hangarSession?.dirty(game.shipLoadout);
  return '<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
