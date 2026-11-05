@@ -30,8 +30,15 @@ export function regionalCampaignPressure(director,world,player){
  const effect=front.outcome==='captured'?{cap:Math.ceil(base.cap*.5),interval:base.interval*1.8}:
   front.outcome==='starved'?{cap:Math.ceil(base.cap*.65),interval:base.interval*1.5}:
   !front.working?{cap:base.cap-3,interval:base.interval*1.15}:base;
+ // Residual patrols still exist after liberation, but an empty industrial
+ // network cannot keep replacing heavy hulls and specialist ships for free.
+ const remaining=front.outcome==='captured'?['scout','fighter']:
+  front.outcome==='starved'?['scout','fighter','flanker']:null;
+ const types=remaining?director.types.filter(type=>remaining.includes(type)):director.types;
  return {...director,cap:Math.min(director.cap,effect.cap),
-  interval:Math.max(director.interval,effect.interval),groupSize:Math.min(3,director.groupSize)};
+  interval:Math.max(director.interval,effect.interval),
+  groupSize:Math.min(front.outcome?2:3,director.groupSize),
+  types:types.length?types:director.types.slice(0,1)};
 }
 
 export function campaignVisible(game){
