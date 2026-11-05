@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {EnemyComms,ENEMY_COMMS,collectiveDecision,enemyOrderMessage,
- classifyEnemyAttack,assessEnemyThreat,incomingFireEstimate,
+ classifyEnemyAttack,assessEnemyThreat,assessEnemyMotion,incomingFireEstimate,
  estimatedWeaponRange} from '../enemy-comms.js';
 import {updateEnemy} from '../ai.js';
 import {RuntimeHarness} from './runtime-game.mjs';
 import {contactOnCircle} from '../impact-geometry.js';
+import {hitRegionalCargo} from '../region-runtime.js';
 
 const ship=(serial,type='scout',x=serial*34,y=60)=>({
  serial,type,group:1,x,y,vx:0,vy:0,r:14,hp:70,maxHp:70,
@@ -44,6 +45,115 @@ test('a verified scout report travels to a caller and the shared order travels b
  assert.equal(net.directiveFor(scout,game.time).mode,'intercept');
 });
 
+test('two time-separated sightings justify a maneuver counter, one sight never does',()=>{
+ assert.equal(assessEnemyMotion([{at:1,motion:'straight'}],1.4),null);
+ assert.equal(assessEnemyMotion([{at:1,motion:'straight'},
+  {at:1,motion:'straight'}],1.4),null);
+ assert.equal(assessEnemyMotion([{at:1,motion:'straight'},
+  {at:2.2,motion:'straight'}],2.4)?.motion,'straight');
+ assert.equal(assessEnemyMotion([{at:1,motion:'straight'},
+  {at:2.2,motion:'straight'},{at:2.4,motion:'turning'}],2.5),null,
+  'a new turn invalidates an outdated prediction of straight flight');
+ assert.equal(assessEnemyMotion([{at:1,motion:'straight'},
+  {at:2,motion:'turning'},{at:3,motion:'straight'}],3.1),null,
+  'a single resumed straight sighting cannot reuse the earlier straight report');
+ assert.equal(assessEnemyMotion([{at:1,motion:'turning'},
+  {at:2.2,motion:'turning'},{at:2.4,motion:'slow'}],2.5),null);
+ assert.equal(assessEnemyMotion([{at:1,motion:'turning'},
+  {at:2.2,motion:'turning'}],5.6),null,'observations expire');
+});
+
+test('a real radio majority counters observed straight and turning flight differently',()=>{
+ const a=ship(1,'fighter',100,70),b=ship(2,'fighter',150,70);
+ const game=scene([a,b]),net=game.enemyComms;
+ game.player.x=50;game.player.y=30;
+ net.update(game);
+ a._learningObservation={context:'straight'};
+ net.reportSight(a,game.player,.1);
+ game.time=.7;net.update(game);
+ assert.notEqual(net.cells[0].threat?.kind,'maneuver',
+  'one delivered sighting cannot establish a movement pattern');
+ const original=net.cells[0].mode;
+ a._learningObservation={context:'straight'};
+ net.reportSight(a,game.player,1.4);
+ game.time=1.5;net.update(game);
+ assert.equal(net.cells[0].threat?.motion,'straight');
+ game.time=3.7;net.update(game);
+ assert.equal(net.cells[0].mode,'intercept');
+ assert.match(enemyOrderMessage('intercept',net.cells[0].threat),/наперерез/);
+ const heard=[];game.notice=message=>heard.push(message);
+ game.playerCanInterceptEnemyRadio=()=>true;
+ game.time=3.75;execute(game);
+ assert.ok(net.intercepts.some(item=>item.message.includes('наперерез')),
+  'the player hears the instruction only after an actual steering change');
+ assert.ok(heard.some(message=>message.includes('Радиоперехват')),
+  'the maneuver is legible without opening the tactical map');
+ assert.notEqual(original,null);
+ // No hard-coded omniscient observation: only the stored sightings vote.
+ assert.ok(net.cells[0].motionReports.length>=2);
+ const fighters=[a,b],intel={x:50,y:30,vx:160,vy:0,at:3.7};
+ assert.equal(collectiveDecision(fighters,intel,
+  {kind:'maneuver',motion:'turning'}).mode,'pincer');
+ assert.equal(collectiveDecision(fighters,intel,
+  {kind:'maneuver',motion:'straight'}).mode,'intercept');
+ assert.equal(collectiveDecision(fighters,intel,
+  {kind:'area'}).mode,'scatter','a verified weapon threat takes precedence');
+ assert.match(enemyOrderMessage('pincer',
+  {kind:'maneuver',motion:'turning'}),/двух сторон/);
+});
+
+test('a new confirmed tactic is announced even if its maneuver name stays the same',()=>{
+ const a=ship(11,'fighter',100,70),b=ship(12,'fighter',160,70);
+ for(const e of [a,b])e._enemyLearning={style:'intercept'};
+ const game=scene([a,b]),net=game.enemyComms;
+ game.playerCanInterceptEnemyRadio=()=>true;
+ const heard=[];game.notice=message=>heard.push(message);
+ net.update(game);
+ a._learningObservation={context:'straight'};
+ net.reportSight(a,game.player,.1);
+ game.time=.7;net.update(game);
+ assert.equal(net.cells[0].mode,'intercept');
+ game.time=.75;execute(game);
+ assert.equal(net.cells[0].lastReportedTactic,null);
+ assert.equal(net.reportSight(a,game.player,1.65),true);
+ game.time=1.95;net.update(game);
+ assert.equal(net.cells[0].threat?.motion,'straight');
+ game.time=3.7;net.update(game);
+ assert.equal(net.cells[0].mode,'intercept');
+ assert.ok(net.cells[0].pendingDecision,
+  'a newly learned lead angle must be eligible for a fresh announcement');
+ game.time=3.75;execute(game);
+ assert.equal(net.cells[0].lastReportedTactic,'straight');
+ assert.ok(net.intercepts.some(item=>item.message.includes('наперерез')));
+ assert.ok(heard.some(message=>message.includes('наперерез')));
+});
+
+test('a witnessed course changes actual intercept and flanking destinations',()=>{
+ const fighter=ship(1,'fighter',230,70),flanker=ship(2,'flanker',260,70);
+ const game=scene([fighter,flanker]);game.time=1;
+ game.player.x=0;game.player.y=0;
+ const intel={x:0,y:0,vx:170,vy:0,at:1};
+ game.enemyComms.directiveFor=()=>({mode:'intercept',side:1,
+  leader:flanker,intel,threat:{kind:'maneuver',motion:'straight'}});
+ updateEnemy(fighter,game,.016);
+ const straight=fighter._commsIntent;
+ game.enemyComms.directiveFor=()=>({mode:'intercept',side:1,
+  leader:flanker,intel,threat:null});
+ updateEnemy(fighter,game,.016);
+ assert.ok(straight.x>fighter._commsIntent.x+20,
+  'the pilot really aims farther ahead of a repeatedly observed straight course');
+ game.enemyComms.directiveFor=()=>({mode:'pincer',side:1,
+  leader:flanker,intel,threat:{kind:'maneuver',motion:'turning'}});
+ updateEnemy(fighter,game,.016);
+ const turning=fighter._commsIntent;
+ game.enemyComms.directiveFor=()=>({mode:'pincer',side:1,
+  leader:flanker,intel,threat:null});
+ updateEnemy(fighter,game,.016);
+ assert.ok(Math.hypot(turning.x-fighter._commsIntent.x,
+  turning.y-fighter._commsIntent.y)>30,
+  'the actual flanking destination widens against an evasive course');
+});
+
 test('witnessed industrial sabotage creates a real local response without a player coordinate',()=>{
  const scout=ship(1,'scout',115,75),fighter=ship(2,'fighter',180,75);
  const game=scene([scout,fighter]),net=game.enemyComms;
@@ -77,6 +187,36 @@ test('unwitnessed infrastructure damage never broadcasts an omniscient alarm',()
  game.time=.75;net.update(game);
  assert.equal(net.directiveFor(scout,game.time),null);
  assert.ok(!net.events.some(event=>event.kind==='distress'));
+});
+
+test('actual convoy damage alerts only witnessing patrols and cannot spawn reinforcements',()=>{
+ const a=ship(1,'scout',100,80),b=ship(2,'fighter',175,80);
+ const game=scene([a,b]),net=game.enemyComms;
+ game.world={};game.heritage.vfx.hullImpact=()=>{};
+ const cargo={x:130,y:100,hp:160,maxHp:160,regionalCargo:true};
+ net.update(game);game.time=.2;
+ hitRegionalCargo(game,cargo,16);
+ assert.ok(a._commsIncident&&b._commsIncident);
+ assert.equal(cargo.hp,144);
+ assert.equal(game.enemies.length,2);
+ game.time=.8;net.update(game);
+ assert.equal(net.directiveFor(a,game.time)?.mode,'intercept');
+ assert.equal(net.cells[0].threat.site,'convoy');
+ assert.equal(net.directiveFor(a,game.time).intel.estimated,true);
+ assert.match(enemyOrderMessage('intercept',net.cells[0].threat),
+  /Транспорт под огнём/);
+ const first=a._commsIncident.at;
+ game.time=1.1;hitRegionalCargo(game,cargo,12);
+ assert.equal(a._commsIncident.at,first,
+  'automatic fire must not renew a convoy alarm every frame');
+ assert.equal(game.enemies.length,2,
+  'a distress report does not create unfinanced defenders');
+ const hidden=scene([ship(3,'scout',100,80),ship(4,'fighter',175,80)]);
+ hidden.world={};hidden.heritage.vfx.hullImpact=()=>{};
+ hidden.enemyCanSee=()=>false;hidden.time=.2;
+ hitRegionalCargo(hidden,{...cargo,hp:100,_nextWitnessAlarmAt:0},10);
+ assert.equal(hidden.enemies.some(e=>e._commsIncident),false,
+  'concealed transport damage cannot broadcast magically');
 });
 
 test('a fresh visual contact supersedes an older industrial alarm',()=>{

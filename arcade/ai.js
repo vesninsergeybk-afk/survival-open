@@ -5,7 +5,7 @@ import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from 
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
 import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-3';
-import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-3';
+import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-4';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
@@ -384,12 +384,18 @@ export function updateEnemy(e,game,dt){
         goalX=reported.x+away.x*ring-away.y*radio.side*105;
         goalY=reported.y+away.y*ring+away.x*radio.side*105;
       }else{
-        goalX-=heading.y*radio.side*76;
-        goalY+=heading.x*radio.side*76;
+        const flank=radio.threat?.kind==='maneuver'&&
+          radio.threat.motion==='turning'?112:76;
+        goalX-=heading.y*radio.side*flank;
+        goalY+=heading.x*radio.side*flank;
       }
     }else if(radio.mode==='intercept'){
-      goalX+=clamp(intel.vx*.22,-52,52);
-      goalY+=clamp(intel.vy*.22,-52,52);
+      // A straight-moving player can be intercepted ahead of the last
+      // witnessed course. Turning away defeats this fallible extrapolation.
+      const straight=radio.threat?.kind==='maneuver'&&
+        radio.threat.motion==='straight';
+      goalX+=clamp(intel.vx*(straight?.43:.22),straight?-82:-52,straight?82:52);
+      goalY+=clamp(intel.vy*(straight?.43:.22),straight?-82:-52,straight?82:52);
     }else if(radio.mode==='press'){
       goalX+=heading.x*34-heading.y*radio.side*22;
       goalY+=heading.y*34+heading.x*radio.side*22;

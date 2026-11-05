@@ -8,7 +8,7 @@ export const ENEMY_COMMS=Object.freeze({
   attackMemory:13,attackFresh:7,maxAttackReports:12,
   interceptRange:560,estimatedIntelAge:6.4,
   witnessRange:190,lossMemory:8,maxLossReports:8,
-  incidentMemory:6.2
+  incidentMemory:6.2,motionMemory:6,maxMotionReports:10
 });
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -37,7 +37,12 @@ export function enemyOrderMessage(mode,threat=null){
   if(mode==='scatter'&&threat?.kind==='loss')
     return 'Звено несёт потери. Разомкнуть строй!';
   if(mode==='intercept'&&threat?.kind==='sabotage')
-    return 'Наш промышленный узел атакован. Проверить район!';
+    return threat.site==='convoy'?'Транспорт под огнём. К месту атаки!':
+      'Наш промышленный узел атакован. Проверить район!';
+  if(mode==='intercept'&&threat?.kind==='maneuver'&&threat.motion==='straight')
+    return 'Он держит прямой курс. Зайти наперерез!';
+  if(mode==='pincer'&&threat?.kind==='maneuver'&&threat.motion==='turning')
+    return 'Он постоянно меняет курс. Охватить с двух сторон!';
   return ({press:'Контакт подтверждён. Держать давление!',
     pincer:'Два звена — обойти цель с флангов.',
     intercept:'Цель маневрирует. Перехватить курс!',
@@ -83,6 +88,28 @@ export function assessEnemyThreat(reports,now){
     if(!best||candidate.lastAt>best.lastAt)best=candidate;
   }
   return best;
+}
+
+/** Counter-manoeuvres need two *delivered* sightings separated in time.
+ * A fresh contrary observation cancels the old inference immediately. */
+export function assessEnemyMotion(reports,now){
+  const recent=(reports||[]).filter(r=>r&&Number.isFinite(r.at)&&
+    now-r.at>=0&&now-r.at<=ENEMY_COMMS.motionMemory&&
+    ['slow','straight','turning'].includes(r.motion))
+    .sort((a,b)=>a.at-b.at);
+  const latest=recent.at(-1);
+  if(!latest||latest.motion==='slow'||now-latest.at>3.2)return null;
+  // Earlier sightings cannot corroborate a resumed course if a more recent
+  // report saw the player change tactics in between.
+  let supported=false;
+  for(let i=recent.length-2;i>=0;i--){
+    const r=recent[i];
+    if(r.motion!==latest.motion)break;
+    if(latest.at-r.at>4.2)break;
+    if(latest.at-r.at>=1.05){supported=true;break;}
+  }
+  return supported?{kind:'maneuver',motion:latest.motion,
+    lastAt:latest.at}:null;
 }
 
 /** A hit can reveal the direction of incoming fire but cannot give its victim
@@ -154,6 +181,10 @@ function tallyVotes(proposals,intel,hasMedic,threat=null){
   if(threat?.kind==='loss')votes.scatter+=12;
   if(threat?.kind==='close')votes.pincer+=13;
   if(threat?.kind==='sabotage')votes.intercept+=13;
+  if(threat?.kind==='maneuver'&&threat.motion==='straight')
+    votes.intercept+=Math.min(12,5+proposals.length*2);
+  if(threat?.kind==='maneuver'&&threat.motion==='turning')
+    votes.pincer+=Math.min(12,5+proposals.length*2);
   // A wounded flight changes its priorities only when there is somebody to
   // protect; it cannot obtain free repairs by voting for the screen maneuver.
   const mode=Object.keys(votes).reduce((best,key)=>
@@ -259,7 +290,8 @@ export class EnemyComms {
           cell.brokenUntil=now+ENEMY_COMMS.breakSeconds;
           cell.mode=null;cell.intel=null;cell.proposals=new Map();
           cell.attackReports=[];cell.lossReports=[];cell.threat=null;
-          cell.incident=null;
+          cell.incident=null;cell.motionReports=[];
+          cell.pendingDecision=null;cell.lastReportedTactic=null;
           for(const e of cell.members)e._commsOrder=null;
         }
         if(now>=cell.brokenUntil){
@@ -302,7 +334,7 @@ export class EnemyComms {
       next.push({id:++this.serial,leader,members,mode:null,intel:null,
         holdUntil:0,brokenUntil:0,nextBroadcast:0,lastDecisionAt:-Infinity,
         votes:null,proposals:new Map(),attackReports:[],lossReports:[],
-        threat:null,incident:null});
+        threat:null,incident:null,motionReports:[],lastReportedTactic:null});
     }
     this.cells=next;
     this.intercepts=this.intercepts.filter(e=>now-e.at<=30);
@@ -320,6 +352,9 @@ export class EnemyComms {
       cell.lossReports??=[];
       cell.lossReports=cell.lossReports.filter(report=>
         now-report.at<=ENEMY_COMMS.lossMemory);
+      cell.motionReports??=[];
+      cell.motionReports=cell.motionReports.filter(report=>
+        now-report.at<=ENEMY_COMMS.motionMemory);
       if(cell.incident&&now-cell.incident.at>ENEMY_COMMS.incidentMemory)
         cell.incident=null;
       for(const e of cell.proposals.keys())
@@ -341,6 +376,9 @@ export class EnemyComms {
           e._commsDeliveredSightAt=sight.at;
           if(e===leader||this.send(e,leader,'contact',now)){
             if(!cell.intel||sight.at>=cell.intel.at)cell.intel={...sight};
+            cell.motionReports.push({at:sight.at,motion:sight.motion});
+            if(cell.motionReports.length>ENEMY_COMMS.maxMotionReports)
+              cell.motionReports.shift();
             contact=true;
           }
         }
@@ -389,7 +427,11 @@ export class EnemyComms {
           lastAt:cell.lossReports[cell.lossReports.length-1].at};
       if(!cell.threat&&cell.incident&&
         !(cell.intel&&!cell.intel.estimated&&intelFresh(cell.intel,now)))
-        cell.threat={kind:'sabotage',lastAt:cell.incident.at};
+        cell.threat={kind:'sabotage',site:cell.incident.kind,
+          lastAt:cell.incident.at};
+      if(!cell.threat&&cell.intel&&!cell.intel.estimated&&
+        intelFresh(cell.intel,now))
+        cell.threat=assessEnemyMotion(cell.motionReports,now);
       if(!cell.intel||cell.intel.estimated||!intelFresh(cell.intel,now)){
         // Two coherent impacts can locate a rough firing *sector* beyond
         // optical range. It is never promoted to an exact target track.
@@ -417,6 +459,12 @@ export class EnemyComms {
          (cell.threat?.kind==='loss'&&outcome.mode==='scatter')));
       const canChange=now>=cell.holdUntil||urgent;
       const changed=canChange&&cell.mode!==outcome.mode;
+      // A pilot may already be intercepting when the group learns that the
+      // player holds a straight course. The stronger lead is still a *new*
+      // tactical decision worth explaining once it is really flown.
+      const newTactic=canChange&&cell.mode===outcome.mode&&
+        cell.threat?.kind==='maneuver'&&
+        cell.lastReportedTactic!==cell.threat.motion;
       if(canChange){
         cell.votes=outcome.votes;
         cell.mode=outcome.mode;
@@ -434,7 +482,9 @@ export class EnemyComms {
         }
         // A sent order is only a *proposal* for a subtitle. We confirm actual
         // steering after the AI loop before declaring it a tactical reaction.
-        if(changed&&delivered)cell.pendingDecision={at:now,mode:cell.mode};
+        if((changed||newTactic)&&delivered)
+          cell.pendingDecision={at:now,mode:cell.mode,
+            threat:cell.threat?{...cell.threat}:null};
       }
     }
   }
@@ -449,17 +499,24 @@ export class EnemyComms {
         e._commsIntent?.mode===pending.mode&&e._commsIntent.at===now);
       if(!executed)continue;
       cell.pendingDecision=null;
+      if(pending.threat?.kind==='maneuver')
+        cell.lastReportedTactic=pending.threat.motion;
       if(!game.playerCanInterceptEnemyRadio?.(cell.leader)&&
         !game.playerCanInspectEnemyIntent?.(cell.leader))continue;
-      const message=enemyOrderMessage(cell.mode,cell.threat);
+      const message=enemyOrderMessage(cell.mode,pending.threat??cell.threat);
       if(!message)continue;
       const item={at:now,until:now+3.4,mode:cell.mode,message,
         leader:cell.leader,cellId:cell.id};
       cell.lastIntercept=item;this.intercepts.push(item);
       if(this.intercepts.length>8)this.intercepts.shift();
-      if(now>=(this.nextNoticeAt||0)){
+      // A newly understood course is more useful than the generic first
+      // contact notice. Give it a separate, still bounded notification slot.
+      const maneuverNotice=pending.threat?.kind==='maneuver';
+      if(now>=(this.nextNoticeAt||0)||
+        (maneuverNotice&&now>=(this.nextManeuverNoticeAt||0))){
         game.notice?.('Радиоперехват: '+message,3.8);
         this.nextNoticeAt=now+5;
+        if(maneuverNotice)this.nextManeuverNoticeAt=now+5;
       }
     }
   }
