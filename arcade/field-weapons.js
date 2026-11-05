@@ -1,4 +1,4 @@
-import {combatTargets,targetAlive,targetDistance,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
+import {combatTargets,targetAlive,targetDistance,clearLine,damageTarget} from './combat-targets.js?v=living-world-2-expedition-1';
 import {contactOnCircle} from './impact-geometry.js?v=arcade-impact-51';
 import {emitWeaponFx} from './weapon-fx.js';
 

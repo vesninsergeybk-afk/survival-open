@@ -29,7 +29,9 @@ export function combatTargets(game,range,origin=game.player,manual=false){
  for(const target of [...(game.world?.regionalSupply?.convoys||[]),
   ...(game.world?.regionalSupply?.central?.convoys||[]),
   ...(game.world?.regionalSupply?.frontier?.azure?.convoys||[]),
-  ...(game.world?.regionalSupply?.frontier?.teal?.convoys||[])])
+  ...(game.world?.regionalSupply?.frontier?.teal?.convoys||[]),
+  game.world?.regionalSupply?.frontier?.azure?.repairExpedition,
+  game.world?.regionalSupply?.frontier?.teal?.repairExpedition].filter(Boolean))
   add({kind:'enemy',target,goal:true});
  // A mining worker is not an automatic target. The player must first
  // explicitly designate this industrial unit on the canvas.

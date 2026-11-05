@@ -103,6 +103,30 @@ test('an announced, funded industrial response survives a save without a duplica
  assert.ok(restored.world.regionalSupply.frontier.azure.resource>=0);
  assert.equal(resources,s.resource,'saving must not spend funds again');
 });
+test('a funded maintenance expedition keeps its route and budget across a station save',()=>{
+ const g=scene(),cfg=FRONTIERS.azure,s=g.world.regionalSupply.frontier.azure;
+ s.nextDispatch=1e8;s.resource=4;
+ const depot=g.world.stations.get(cfg.depotId);
+ depot.hp=depot.maxHp*.5;
+ advanceRegionalSupply(g.world,140);
+ const craft=s.repairExpedition;
+ assert.ok(craft);
+ const paid=s.resource,launched=s.repairsLaunched;
+ const saved=captureCheckpoint(g,g.docked);
+ assert.ok(validateCheckpoint(saved));
+ const restored=scene();restoreCheckpoint(restored,unpackRun(packRun(saved)));
+ const state=restored.world.regionalSupply.frontier.azure;
+ assert.deepEqual(state.repairExpedition,craft);
+ assert.equal(state.resource,paid);
+ assert.equal(state.repairsLaunched,launched);
+ advanceRegionalSupply(restored.world,240);
+ assert.equal(state.repairsCompleted,1);
+ assert.equal(state.repairExpedition,null);
+ assert.ok(restored.world.stations.get(cfg.depotId).hp>depot.maxHp*.5);
+ const tampered=unpackRun(packRun(saved));
+ tampered.world.regionalSupply.frontier.azure.repairExpedition.hp=100000;
+ assert.equal(validateCheckpoint(tampered),false);
+});
 test('a missing freight report survives a checkpoint and arrives only at its overdue time',()=>{
  const g=scene();advanceRegionalSupply(g.world,g.time);
  const s=g.world.regionalSupply.frontier.teal;
