@@ -6,8 +6,9 @@
 <meta name="theme-color" content="#081320">
 <meta name="robots" content="noindex,nofollow">
 <title>Сифон‑3 · испытание добытчика · Выживший</title>
-<link rel="stylesheet" href="./siphon3-runtime-lab.css?v=1">
-<script type="module" src="./siphon3-runtime-lab.js?v=1"></script>
+<link rel="stylesheet" href="./siphon3-runtime-lab.css?v=2">
+<script type="module" src="./siphon3-runtime-lab.js?v=2"></script>
+<script type="module" src="./siphon3-pose-preview.js?v=2"></script>
 </head>
 <body>
  <header class="topbar">
@@ -19,7 +20,7 @@
    <span class="eyebrow">ИСПЫТАНИЕ 02 · ПРАВИЛА ИГРЫ</span>
    <h1>Сифон‑3 <span>в живой территории</span></h1>
    <p>Проверяем нового сборщика энергии на поле, похожем на игровое: он вылетает от станции к огненной воронке внутри захваченного треугольника, добывает ресурс и возвращается. Маршрут, время рейса, доставка и возможность уничтожения рассчитываются модулем действующей игры.</p>
-   <div class="notice"><strong>Что здесь настоящее:</strong> кадры Сифона‑3 и расчёт территориальных добытчиков из <code>territory-system.js</code>. <strong>Что пока условно:</strong> карта, оформление воронки, противник и размещение объектов. Цифры этого стенда не меняют баланс игры.</div>
+   <div class="notice"><strong>Что здесь настоящее:</strong> шарнирная модель из одного исходного рисунка и расчёт территориальных добытчиков из <code>territory-system.js</code>. <strong>Что пока условно:</strong> карта, оформление воронки, противник и размещение объектов. Цифры этого стенда не меняют баланс игры.</div>
   </section>
   <section class="workbench" aria-label="Интерактивный стенд">
    <div class="scene-pane">
@@ -59,6 +60,31 @@
     <div class="log-box"><h3>События рейса</h3><ol id="event-log" aria-live="polite"><li>Ожидаем загрузки сцены.</li></ol></div>
     <p class="micro">В механике игры вылеты происходят примерно раз в 45 игровых секунд, одновременно допускаются два сборщика на область. Кнопка выпуска запускает дополнительный рейс для испытания.</p>
    </aside>
+  </section>
+  <section class="rig-preview" aria-labelledby="pose-title">
+   <div class="rig-intro">
+    <span class="eyebrow">КОНСТРУКЦИЯ · КРУПНЫЙ ПЛАН</span>
+    <h2 id="pose-title">Как двигаются клешни</h2>
+    <p>Тело и его рисунок неизменны. Двигаются только части, закреплённые на трёх настоящих шарнирах. Выберите действие, чтобы рассмотреть его отдельно от полёта по карте.</p>
+   </div>
+   <div class="rig-workbench">
+    <div class="rig-stage">
+     <canvas id="pose-scene" width="900" height="340" role="img" aria-label="Крупный план Сифона‑3 с анимированными шарнирными клешнями"></canvas>
+     <div id="pose-rig-status" class="rig-status" aria-live="polite">Загрузка модели…</div>
+    </div>
+    <div class="rig-controls">
+     <div class="rig-buttons" role="group" aria-label="Выбрать движение клешней">
+      <button type="button" data-pose="cycle" aria-pressed="true">Весь цикл</button>
+      <button type="button" data-pose="fly" aria-pressed="false">Полёт</button>
+      <button type="button" data-pose="approach" aria-pressed="false">Раскрытие</button>
+      <button type="button" data-pose="gather" aria-pressed="false">Добыча</button>
+      <button type="button" data-pose="back" aria-pressed="false">С грузом</button>
+     </div>
+     <p id="pose-description">Полёт → раскрытие → две фазы всасывания → возвращение с грузом.</p>
+     <button id="pose-pause" type="button">Пауза</button>
+     <p class="rig-note">Это увеличенный вид той же модели, которую рисует игровая сцена. Размер в настоящем бою меньше.</p>
+    </div>
+   </div>
   </section>
   <section class="conclusions" aria-label="Критерии приёмки">
    <div><span class="eyebrow">ЧТО МЫ ПРОВЕРЯЕМ</span><h2>Три вопроса к игровому виду</h2></div>
