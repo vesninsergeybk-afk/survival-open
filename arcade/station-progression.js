@@ -2,9 +2,9 @@
 // another station tab, or a second copy of run progression in the save file.
 // Station activation is already checkpointed, so restored runs keep the unlock.
 import {CENTRAL_INDUSTRY} from './central-industry.js?v=living-world-1-home-conflict-1';
-import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
-import {FRONTIERS} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
-import {warFronts} from './war-fronts.js?v=campaign-1';
+import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
+import {FRONTIERS} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
+import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1';
 
 export const PRECISION_RAIL_TECH=Object.freeze({
  name:'Прицельный режим рельса',
@@ -52,7 +52,9 @@ export function labDiscoveryPromise(station,world){
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export function cargoStrengthensEnemy(world,item){
  if(!item||!(item.hp>0))return false;
- const destinationId=item.centralCargo?CENTRAL_INDUSTRY.depotId:
+ const destinationId=item.frontierRepair?
+  FRONTIERS[item.frontierNetwork]?.[item.targetKind==='source'?'sourceId':'depotId']:
+  item.centralCargo?CENTRAL_INDUSTRY.depotId:
   item.frontierCargo?FRONTIERS[item.frontierNetwork]?.depotId:SUPPLY.militaryId;
  return !!destinationId&&!!world?.stations?.get(destinationId)?.enemy;
 }
@@ -97,16 +99,20 @@ export function labLogisticsIntel(world,player={x:0,y:0}){
     'Нового снабжения нет. Сборочный узел ещё может расходовать прежние запасы.'});
  }
  const cargo=[...(network?.convoys||[]),...(network?.central?.convoys||[]),
-  ...(network?.frontier?.azure?.convoys||[]),...(network?.frontier?.teal?.convoys||[])];
+  ...(network?.frontier?.azure?.convoys||[]),...(network?.frontier?.teal?.convoys||[]),
+  network?.frontier?.azure?.repairExpedition,network?.frontier?.teal?.repairExpedition].filter(Boolean);
  for(const item of cargo){
   // A shipment heading to a captured destination no longer funds enemies.
   // Do not tempt the player to chase a worthless, already diverted cargo.
   if(!cargoStrengthensEnemy(world,item)||!Number.isFinite(item.x)||!Number.isFinite(item.y)||
     !labs.some(lab=>distance(lab,item)<=LAB_LOGISTICS_TECH.range))continue;
-  const label=item.centralCargo?'Местный рудный груз':item.frontierCargo?
+  const label=item.frontierRepair?'Вражеская ремонтная экспедиция':
+   item.centralCargo?'Местный рудный груз':item.frontierCargo?
    (item.frontierNetwork==='azure'?'Транспорт батарей':'Транспорт запчастей'):'Рудный транспорт';
   contacts.push({id:item.id,kind:'cargo',x:item.x,y:item.y,label,
-   detail:'Радиометка движется вместе с транспортом. Уничтожение груза лишит вражескую сеть этой поставки.'});
+   detail:item.frontierRepair?
+    'Ремонтный корабль идёт к повреждённой станции. Перехватите его до прибытия, чтобы не допустить ремонта.':
+    'Радиометка движется вместе с транспортом. Уничтожение груза лишит вражескую сеть этой поставки.'});
  }
  const counters=network?.central;
  const sourceWorking=!!mine?.enemy&&worker?.hp>0;

@@ -1,7 +1,7 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
+import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1';
-import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
+import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
@@ -83,7 +83,7 @@ export function renderRegionAtlas(game){
     tactics+(source?.discovered||depot?.discovered?
      ' Ремонтные экспедиции: отправлено '+(net.repairsLaunched||0)+
      ', доставлено '+(net.repairsCompleted||0)+', перехвачено '+(net.repairsIntercepted||0)+
-     (net.repairExpedition?'. Сейчас ремонтный корабль направляется к '+
+     (net.repairExpedition?.seen?'. Замечен ремонтный корабль, направляющийся к '+
       (net.repairExpedition.targetKind==='source'?'источнику':'сборочной станции')+'.':'.'):'')+
     '</p><p>Перехвачено поставок: '+net.intercepted+'. Каждая доставленная партия позволяет добавить '+
     (id==='azure'?'заряженного перехватчика':'ремонтника')+' к обычному патрулю. '+

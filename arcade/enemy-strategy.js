@@ -22,18 +22,24 @@ const active=a=>a&&Number.isFinite(a.x)&&Number.isFinite(a.y)&&
 const cargoes=s=>[
   ...(s?.convoys||[]),...(s?.central?.convoys||[]),
   ...(s?.frontier?.azure?.convoys||[]),
-  ...(s?.frontier?.teal?.convoys||[])
-];
+  ...(s?.frontier?.teal?.convoys||[]),
+  s?.frontier?.azure?.repairExpedition,s?.frontier?.teal?.repairExpedition
+].filter(Boolean);
 const label=role=>({
   escort:'СОПРОВОЖДЕНИЕ',screen:'ЗАСЛОН У ТРАНСПОРТА',
   defend:'ОХРАНА УЗЛА',reinforce:'УСИЛИТЬ ОБОРОНУ',
   repel:'ОТТЕСНИТЬ НАПАДАВШЕГО'
 })[role]||'ОХРАНА';
 function reason(role,item){
-  if(role==='escort')return 'Сопровождать груз. Сохранить доставку!';
+  const repair=!!item.asset?.frontierRepair;
+  if(role==='escort')return repair?
+    'Сопровождать ремонтный корабль. Обеспечить его прибытие!':
+    'Сопровождать груз. Сохранить доставку!';
   if(role==='screen')return item.fundedScreen?
-    'Защитный конвой подготовлен. Прикрыть груз с флангов!':
-    'Транспорт под угрозой. Выставить передний заслон!';
+    (repair?'Ремонтному кораблю выделено прикрытие. Защитить маршрут!':
+     'Защитный конвой подготовлен. Прикрыть груз с флангов!'):
+    (repair?'Ремонтный корабль под угрозой. Выставить передний заслон!':
+     'Транспорт под угрозой. Выставить передний заслон!');
   if(role==='repel')return 'Контакт подтверждён. Оттеснить от объекта!';
   if(role==='reinforce')return 'Промышленный узел под угрозой. Усилить оборону!';
   return item.reserves>0?
@@ -41,6 +47,8 @@ function reason(role,item){
     'Приоритет — сохранить производственный узел. Держать периметр!';
 }
 const destinationId=c=>c.centralCargo?'industry:depot':
+  c.frontierRepair&&['azure','teal'].includes(c.frontierNetwork)?
+    'frontier:'+c.frontierNetwork+':'+(c.targetKind==='source'?'source':'depot'):
   c.frontierCargo&&['azure','teal'].includes(c.frontierNetwork)?
     'frontier:'+c.frontierNetwork+':depot':
     c.regionalCargo?'4:-32':null;
@@ -54,6 +62,7 @@ function cargoUseful(world,c){
 }
 function paidScreen(world,c,now){
   const s=world.regionalSupply;
+  if(c.frontierRepair)return c.screened===true;
   if(c.centralCargo)return s?.central?.strategy?.screened===true;
   if(c.frontierCargo){
     const node=s?.frontier?.[c.frontierNetwork];
@@ -77,7 +86,8 @@ export function theaterAssets(world,now=0){
   for(const a of cargoes(state))if(active(a)&&a.id&&cargoUseful(world,a)){
     const fundedScreen=paidScreen(world,a,now);
     items.push({asset:a,id:String(a.id),kind:'cargo',
-      fundedScreen,importance:80+(fundedScreen?9:0),max:THEATER.maxCargoCells});
+      fundedScreen,importance:(a.frontierRepair?92:80)+(fundedScreen?9:0),
+      max:THEATER.maxCargoCells});
   }
   for(const a of world.stations?.values?.()||[]){
     // Generic high-level stations have no explicit logistics dependency:

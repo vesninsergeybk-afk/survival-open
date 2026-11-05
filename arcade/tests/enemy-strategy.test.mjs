@@ -48,6 +48,39 @@ test('real industrial stock chooses a limited escort, screen and guard',()=>{
     'theater stops defending a destroyed shipment');
 });
 
+test('regional squads recognize a repair expedition as an industrial protection objective',()=>{
+ const w=world(),repair={...cargo('frontier-repair-teal-3',135,0),frontierRepair:true};
+ w.regionalSupply.frontier.teal.repairExpedition=repair;
+ const assets=theaterAssets(w);
+ assert.equal(assets.length,1);
+ assert.equal(assets[0].asset,repair);
+ assert.ok(assets[0].importance>80,'repair has strategic value');
+ const orders=planTheater([cell(1,ship(1,50),ship(2,65))],w,1);
+ assert.equal(orders.size,1);
+ assert.match([...orders.values()][0].reason,/ремонтный корабль/);
+ repair.hp=0;
+ assert.equal(planTheater([cell(1,ship(3,50),ship(4,65))],w,3).size,0,
+  'theater cannot keep assigning escorts to destroyed maintenance ships');
+});
+
+test('theater guards the actual paid repair destination and does not defend a captured one',()=>{
+ const repair={...cargo('frontier-repair-teal-4',135,0),frontierRepair:true,
+  frontierNetwork:'teal',targetKind:'source',screened:true};
+ const source={id:'frontier:teal:source',enemy:true,captured:false,hp:90,x:180,y:0};
+ const depot={id:'frontier:teal:depot',enemy:false,captured:true,hp:0,x:250,y:0};
+ const w=world([], [source,depot]);w.regionalSupply.frontier.teal.repairExpedition=repair;
+ assert.equal(theaterAssets(w,5).length,1,
+  'a captured depot must not invalidate a reverse repair traveling to the enemy source');
+ assert.equal(theaterAssets(w,5)[0].fundedScreen,true,
+  'a ship with a paid escort should carry that decision into strategic planning');
+ const orders=planTheater([cell(7,ship(1,60),ship(2,78))],w,5);
+ assert.equal([...orders.values()][0]?.role,'screen');
+ assert.match([...orders.values()][0]?.reason||'',/ремонтному кораблю/i);
+ source.enemy=false;source.captured=true;
+ assert.equal(theaterAssets(w,6).length,0,
+  'theater must stop protecting a repair expedition whose real target was captured');
+});
+
 test('no omniscient remote orders and no stolen scripted missions',()=>{
   const w=world([cargo('c',10000,0)]);
   const remote=cell(1,ship(1,0),ship(2,30));
