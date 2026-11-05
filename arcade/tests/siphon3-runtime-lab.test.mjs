@@ -62,7 +62,9 @@ test('workshop loads the authored sprite atlas and is linked from concept studio
  const header=readFileSync(asset).subarray(0,12);
  assert.equal(header.toString('ascii',0,4),'RIFF');
  assert.equal(header.toString('ascii',8,12),'WEBP');
- assert.match(html,/siphon3-runtime-lab\.js\?v=1/);
+ assert.match(html,/siphon3-runtime-lab\.js\?v=\d+/);
+ assert.match(html,/siphon3-pose-preview\.js\?v=\d+/);
+ assert.match(html,/id="pose-scene"/);
  assert.match(script,/siphon3-runtime-core\.js/);
  assert.match(script,/siphon3-atlas\.webp/);
  assert.match(studio,/href="\.\/siphon3-runtime-lab\.html"/);

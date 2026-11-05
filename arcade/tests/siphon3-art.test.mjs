@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {
- drawSiphon3,siphon3Frame,siphon3AtlasUrl,SIPHON3_FRAME_COUNT,
+ drawSiphon3,siphon3Frame,siphon3AtlasUrl,siphon3RigUrl,siphon3Pose,SIPHON3_FRAME_COUNT,
  SIPHON3_FRAME_RATE,SIPHON3_TILE,SIPHON3_WORLD_SIZE,
 } from '../siphon3-art.js';
 
@@ -58,16 +58,51 @@ test('returning and extracting harvester have different readable cues',()=>{
  assert.equal(drawSiphon3(fakeContext(),{x:0,y:0,sheet:{complete:false}}),false);
 });
 
+test('hinged claws have phase-specific, deterministic poses with smooth boundaries',()=>{
+ const out=siphon3Pose('out',1,0,0,true),gather=siphon3Pose('gather',0,0,0,true);
+ const gatherEnd=siphon3Pose('gather',.24,0,0,true),back=siphon3Pose('back',0,0,0,true);
+ assert.ok(Math.abs(out.spread-gather.spread)<1e-9);
+ assert.ok(Math.abs(gatherEnd.spread-back.spread)<1e-9);
+ const clamp=siphon3Pose('gather',.24*.25,0,0,true);
+ assert.ok(clamp.spread<.15,'claws must close visibly during suction');
+ assert.ok(out.angles.dorsal-clamp.angles.dorsal>25,'dorsal limb should sweep over 25 degrees');
+ const returnCruise=siphon3Pose('back',.40,1,1,true);
+ assert.ok(returnCruise.spread<.25,'cargo is carried with folded limbs');
+ assert.deepEqual(siphon3Pose('gather',.14,3,2,true),siphon3Pose('gather',.14,9,2,true));
+ for(const phase of ['out','gather','back']){
+  for(const progress of [0,.15,.5,1]){
+   for(const angle of Object.values(siphon3Pose(phase,progress,4,1).angles)){
+    assert.ok(Number.isFinite(angle));assert.ok(Math.abs(angle)<25);
+   }
+  }
+ }
+});
+
 test('playable drawing and laboratory share a real shipped texture',()=>{
  const path=relative('../studio/assets/siphon3/siphon3-atlas.webp');
  assert.ok(existsSync(path));
  assert.equal(readFileSync(path).toString('ascii',0,4),'RIFF');
  assert.equal(readFileSync(path).toString('ascii',8,12),'WEBP');
  assert.match(siphon3AtlasUrl(),/studio\/assets\/siphon3\/siphon3-atlas\.webp$/);
+ assert.match(siphon3RigUrl(),/studio\/assets\/siphon3\/siphon3-rig-master\.webp$/);
+ const rig=relative('../studio/assets/siphon3/siphon3-rig-master.webp');
+ assert.ok(existsSync(rig));
+ assert.equal(readFileSync(rig).toString('ascii',0,4),'RIFF');
  const visualPath=relative('../contour-visuals.js');
  if(existsSync(visualPath)){
   const visual=readFileSync(visualPath,'utf8');
   assert.match(visual,/import \{drawSiphon3/);
   assert.match(visual,/if\(!drawSiphon3\(/);
  }
+});
+
+test('the large-scale pose inspector calls the same game renderer',()=>{
+ const preview=relative('../studio/siphon3-pose-preview.js');
+ assert.ok(existsSync(preview));
+ const source=readFileSync(preview,'utf8');
+ assert.match(source,/import \{drawSiphon3,siphon3RigReady\} from '\.\.\/siphon3-art\.js/);
+ for(const mode of ['cycle','fly','approach','gather','back']){
+  assert.match(source,new RegExp(mode+':\\{label:'));
+ }
+ assert.match(source,/requestAnimationFrame\(frame\)/);
 });
