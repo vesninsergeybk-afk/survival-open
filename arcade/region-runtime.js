@@ -1,9 +1,9 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
 import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1';
+import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1';
-import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1';
+import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
 import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1';
 import {stormPhase} from './regional-storms.js?v=regions-1';
 import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1';
@@ -27,9 +27,12 @@ export function updateRegionalWorld(game,dt){
  const events=advanceRegionalSupply(world,game.time);
  if(Math.floor(game.time)>Math.floor(game.time-dt))updateHomeConflict(game);
  if(game.waypoint?.id?.startsWith('regional-cargo-')||game.waypoint?.id?.startsWith('central-cargo-')||
-    game.waypoint?.id?.startsWith('frontier-cargo-')){
+    game.waypoint?.id?.startsWith('frontier-cargo-')||
+    game.waypoint?.id?.startsWith('frontier-repair-')){
   const cargo=[...s.convoys,...(s.central?.convoys||[]),
-   ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[])].find(c=>c.id===game.waypoint.id);
+   ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[]),
+   s.frontier?.azure?.repairExpedition,s.frontier?.teal?.repairExpedition]
+   .find(c=>c?.id===game.waypoint.id);
   if(!cargo||game.waypoint.radioContact&&!cargoStrengthensEnemy(world,cargo))game.waypoint=null;
   else if(!game.waypoint.radioContact)Object.assign(game.waypoint,{x:cargo.x,y:cargo.y});
   else {
@@ -68,7 +71,8 @@ export function updateRegionalWorld(game,dt){
    game.notice('После потери груза шахта оплатила подготовку тяжёлого охранения. Каждый новый усиленный рейс тоже расходует дополнительную руду.',7);
   if(e.kind==='central-route-changed'&&local?.discovered)
    game.notice('После повторного перехвата враг потратил руду на обходной путь. Новый маршрут виден на карте; уже вышедший груз сохраняет прежний курс.',7);
-  if(e.network&&world.stations.get(FRONTIERS[e.network].sourceId)?.discovered){
+  if(e.network&&(world.stations.get(FRONTIERS[e.network].sourceId)?.discovered||
+    world.stations.get(FRONTIERS[e.network].depotId)?.discovered)){
    if(e.kind==='dispatch')game.notice(e.network==='azure'?
     'Индукционная вышка отправила батареи в электроангар. Перехватите транспорт до его прибытия.':
     'Комбинат отправил обломки на ремонтную верфь. Перехват оборвёт этот ремонтный рейс.',6);
@@ -83,6 +87,16 @@ export function updateRegionalWorld(game,dt){
    if(e.kind==='shipment-overdue')game.notice(e.network==='azure'?
     'Электроангар не дождался груза. Донесение о пропаже теперь поступает в командную сеть.':
     'Ремонтная верфь не дождалась груза. Донесение о пропаже теперь поступает в командную сеть.',7);
+   if(e.kind==='repair-depot-dispatch')game.notice(e.network==='azure'?
+    'Индукционная вышка потратила батареи на ремонтный рейс к электроангару. Перехватите корабль до прибытия.':
+    'Комбинат отправил запчасти для ремонта верфи. Ремонтный корабль можно перехватить в пути.',8);
+   if(e.kind==='repair-source-dispatch')game.notice(e.network==='azure'?
+    'Электроангар потратил готовый резерв на ремонт индукционной вышки. Корабль идёт обратно по грузовой дороге.':
+    'Верфь потратила готовый резерв на ремонт комбината. Ремонтный корабль возвращается к источнику.',8);
+   if(e.kind==='repair-depot-complete'||e.kind==='repair-source-complete')game.notice(
+    'Ремонтный корабль достиг цели. Корпус и уцелевшие турели станции частично восстановлены.',7);
+   if(e.kind==='repair-intercept')game.notice('Ремонтный рейс противника сорван. Потраченные материалы враг не вернёт.',6);
+   if(e.kind==='repair-aborted')game.notice('Ремонтный корабль прибыл слишком поздно: станция уже захвачена.',6);
   }
  }
  // A finite local defense. Leaving the screen does not create a fresh garrison.
@@ -92,18 +106,21 @@ export function updateRegionalWorld(game,dt){
    mine.x-180+i*280,mine.y-220,'mine-guard',mine));
  }
  for(const cargo of [...s.convoys,...(s.central?.convoys||[]),
-   ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[])]){
+   ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[]),
+   s.frontier?.azure?.repairExpedition,s.frontier?.teal?.repairExpedition].filter(Boolean)){
   cargo.hit=Math.max(0,(cargo.hit||0)-dt);
   if(distance(cargo,game.player)<1000){
    cargo.seen=true;
    if(!cargo.escorted&&game.enemies.length<=RULES.maxEnemies-2){
     cargo.escorted=true;++game.groupSerial;
-    const roster=cargo.frontierCargo?
+    const roster=cargo.frontierRepair?
+     (cargo.frontierNetwork==='azure'?['fighter','flanker']:['fighter','healer']):cargo.frontierCargo?
      (cargo.screened?(cargo.frontierNetwork==='azure'?['flanker','gunship']:['gunship','healer']):
       FRONTIERS[cargo.frontierNetwork].escort):
      cargo.centralCargo&&cargo.screened?['gunship','fighter']:['fighter','fighter'];
     for(let i=0;i<2;i++)game.enemies.push(makeEnemy(game,roster[i],cargo.x+(i?95:-95),cargo.y+85,
-     cargo.frontierCargo?'frontier-escort':'regional-escort',cargo,cargo.frontierNetwork||null));
+     cargo.frontierRepair?'frontier-repair-escort':cargo.frontierCargo?'frontier-escort':'regional-escort',
+     cargo,cargo.frontierNetwork||null));
    }
   }
  }
@@ -256,9 +273,10 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  game.heritage.vfx.shipExplosion(cargo.x,cargo.y,55,'#ffc47d',true);
  game.heritage.play('largeExplosion',.22,cargo);
  const frontier=cargo.frontierCargo?FRONTIERS[cargo.frontierNetwork]:null;
- game.addDrop('ore',cargo.x,cargo.y,frontier?.rewardOre??(cargo.centralCargo?CENTRAL_INDUSTRY.oreReward:SUPPLY.oreReward),{source:'salvage',life:60});
- game.addDrop('data',cargo.x+14,cargo.y,frontier?.rewardData??(cargo.centralCargo?CENTRAL_INDUSTRY.dataReward:SUPPLY.dataReward),{source:'combat',life:60});
- game.notice(frontier?
+ game.addDrop('ore',cargo.x,cargo.y,cargo.frontierRepair?4:frontier?.rewardOre??(cargo.centralCargo?CENTRAL_INDUSTRY.oreReward:SUPPLY.oreReward),{source:'salvage',life:60});
+ game.addDrop('data',cargo.x+14,cargo.y,cargo.frontierRepair?5:frontier?.rewardData??(cargo.centralCargo?CENTRAL_INDUSTRY.dataReward:SUPPLY.dataReward),{source:'combat',life:60});
+ game.notice(cargo.frontierRepair?
+  'Вражеский ремонтный корабль уничтожен. Запас на этот рейс потрачен, повреждённая станция останется без ремонта.':frontier?
   (cargo.frontierNetwork==='azure'?
    'Батареи уничтожены: электроангар не получит усиление для одного будущего патруля. Готовые резервы сохраняются.':
    'Запчасти уничтожены: верфь не усилит патруль ремонтником из этой поставки. Готовые резервы сохраняются.')+
@@ -400,6 +418,20 @@ export function drawRegionalWorld(game,c,cam){
    }
    c.fillStyle='#22313e';c.fillRect(cargo.x-33,cargo.y-42,66,4);
    c.fillStyle=color;c.fillRect(cargo.x-33,cargo.y-42,66*cargo.hp/cargo.maxHp,4);c.restore();
+  }
+  const repair=net.repairExpedition;
+  if(repair&&repair.x>cam.x-80&&repair.x<cam.x+cam.w+80&&
+     repair.y>cam.y-80&&repair.y<cam.y+cam.h+80){
+   c.save();c.translate(repair.x,repair.y);c.rotate(repair.angle);
+   c.fillStyle='#303b4f';c.strokeStyle=repair.hit?'#fff9c4':'#ffc78b';c.lineWidth=3;
+   c.beginPath();c.moveTo(0,-33);c.lineTo(27,-9);c.lineTo(22,20);
+   c.lineTo(-22,20);c.lineTo(-27,-9);c.closePath();c.fill();c.stroke();
+   c.fillStyle='#f1bb7e';c.fillRect(-14,-3,28,15);c.restore();
+   c.save();c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle='#ffe0ad';
+   c.fillText('РЕМОНТНАЯ ЭКСПЕДИЦИЯ',repair.x,repair.y-49);
+   c.fillStyle='#493a36';c.fillRect(repair.x-34,repair.y-41,68,4);
+   c.fillStyle='#ffc78b';c.fillRect(repair.x-34,repair.y-41,68*repair.hp/repair.maxHp,4);
+   c.restore();
   }
  }
 }

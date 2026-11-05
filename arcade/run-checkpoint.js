@@ -1,5 +1,5 @@
-import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1';
-import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1';
+import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1';
+import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1';
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2';
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1';
