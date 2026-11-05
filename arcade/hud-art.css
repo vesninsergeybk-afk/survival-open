@@ -315,6 +315,107 @@
  #hud.cockpit-hud.is-hit .wing-left{animation:none}
 }
 
+/* Economy instruments: the old experience gauge was only two pixels high.
+   The new readout stays visible, while changes appear briefly in the free
+   space between the consoles. Alloy/data have no arbitrary 100% cap. */
+.cockpit-hud .wing-left .hud-level-strip{
+ box-sizing:border-box;left:3%;right:3%;bottom:calc(100% + 7px);height:43px;
+ display:block;padding:7px 10px 8px;border:1px solid #69d6e5a1;
+ border-radius:5px;background:linear-gradient(135deg,#092d40ed,#041824ed);
+ box-shadow:0 5px 14px #0008, inset 0 1px 0 #8becf530;
+ color:#d0e7ee;text-shadow:0 1px 3px #000d;
+}
+.cockpit-hud .hud-xp-readout{display:flex;align-items:baseline;justify-content:space-between;gap:5px;min-width:0}
+.cockpit-hud .hud-xp-readout>span{white-space:nowrap;color:#b6dfe9;font-weight:750;font-size:11px}
+.cockpit-hud .hud-xp-readout>span b{font-size:14px;color:#eafbff}
+.cockpit-hud .hud-xp-readout small{font-size:9px;color:#ffda9b}
+.cockpit-hud .hud-xp-readout strong{font-size:10px;font-weight:700;letter-spacing:.04em;color:#aad9e5;white-space:nowrap}
+.cockpit-hud .hud-xp-readout strong b{font-size:13px;color:#eafcff;letter-spacing:0}
+.cockpit-hud .wing-left .hud-level-strip #xpmeter{
+ left:10px;right:10px;bottom:7px;width:calc(100% - 20px);height:8px;
+ background:#123d50;border:1px solid #76cfe27d;border-radius:3px;
+ box-shadow:inset 0 1px 4px #00101a;
+}
+.cockpit-hud .wing-left .hud-level-strip #xpbar{
+ height:100%;background:linear-gradient(90deg,#2f9bb5,#8cebf7);
+ box-shadow:0 0 8px #6fe5efa8;
+}
+.cockpit-hud .hud-resource-strip .resource b,
+.cockpit-hud .hud-resource-strip .resource.priority b{font-size:17px}
+.cockpit-hud .wing-right .hud-resource-strip{
+ box-sizing:border-box;left:3%;right:3%;bottom:calc(100% + 7px);min-height:43px;
+ display:flex;align-items:center;justify-content:space-around;gap:10px;
+ padding:6px 12px;border:1px solid #69d6e5a1;border-radius:5px;
+ background:linear-gradient(135deg,#092d40ed,#041824ed);
+ box-shadow:0 5px 14px #0008, inset 0 1px 0 #8becf530;
+}
+.cockpit-hud .wing-right .hud-resource-strip .resource,
+.cockpit-hud .wing-right .hud-resource-strip .resource.priority{
+ flex:1 1 50%;justify-content:center;gap:8px;
+}
+.cockpit-hud .wing-right .hud-resource-strip .resource small{font-size:11px}
+.cockpit-hud .wing-right .hud-resource-strip .resource b,
+.cockpit-hud .wing-right .hud-resource-strip .resource.priority b{font-size:19px}
+.cockpit-hud #dataGain{position:absolute;top:-18px;right:0;color:#adf9f0;
+ font-style:normal;font-size:13px;font-weight:800;opacity:0;text-shadow:0 0 9px #56f4e0}
+.cockpit-hud .data-resource.is-gaining #dataGain,
+.cockpit-hud .ore-resource.is-gaining #oreGain{
+ animation:hud-economy-gain 2.35s ease-out both;
+}
+.cockpit-hud .data-resource.is-gaining,
+.cockpit-hud .ore-resource.is-gaining{animation:hud-economy-light 2.35s ease-out both}
+@keyframes hud-economy-gain{0%,65%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-7px)}}
+@keyframes hud-economy-light{0%,50%{filter:brightness(1.45)}100%{filter:brightness(1)}}
+.cockpit-hud .hud-reward-feed{
+ position:absolute;left:50%;bottom:195px;transform:translateX(-50%);
+ box-sizing:border-box;display:flex;justify-content:center;flex-wrap:wrap;gap:5px;
+ max-width:min(540px,calc(100vw - 440px));padding:0;
+ font-size:11px;line-height:1.25;font-weight:750;font-variant-numeric:tabular-nums;
+}
+.cockpit-hud .hud-reward-entry{display:inline-block;padding:5px 7px;
+ border:1px solid #5bc6c9ad;border-radius:4px;background:#061f2eea;
+ color:#ccf9f6;box-shadow:0 3px 12px #0009;white-space:nowrap}
+.cockpit-hud .hud-reward-entry.alloy{color:#ffe0a1;border-color:#e1ac6899}
+.cockpit-hud .hud-reward-entry.experience{color:#b2eaff;border-color:#66b9e29c}
+.cockpit-hud .hud-reward-entry.level-up{color:#0c2c38;background:#9decca;border-color:#e4fff2}
+.cockpit-hud .hud-reward-entry.spent{color:#f6c8b5;border-color:#d9877b9a}
+@media(pointer:fine) and (max-width:1100px){
+ .cockpit-hud .hud-reward-feed{max-width:300px}
+ .cockpit-hud .wing-right .hud-resource-strip .resource small{font-size:9px}
+ .cockpit-hud .wing-right .hud-resource-strip .resource b,
+ .cockpit-hud .wing-right .hud-resource-strip .resource.priority b{font-size:15px}
+}
+@media(pointer:coarse) and (orientation:portrait){
+ .cockpit-hud .wing-left .hud-level-strip{
+  left:27%;right:6%;bottom:4%;height:29px;padding:3px 5px 5px;
+  background:#061d2bd9;border-radius:3px;
+ }
+ .cockpit-hud .hud-xp-readout>span,.cockpit-hud .hud-xp-readout strong{font-size:9px}
+ .cockpit-hud .hud-xp-readout>span b,.cockpit-hud .hud-xp-readout strong b{font-size:10px}
+ .cockpit-hud .wing-left .hud-level-strip #xpmeter{
+  left:5px;right:5px;bottom:4px;width:calc(100% - 10px);height:5px;
+ }
+ .cockpit-hud .wing-right .hud-resource-strip{
+  left:26%;right:6%;bottom:8%;min-height:0;padding:0;border:0;
+  background:none;box-shadow:none;
+ }
+ .cockpit-hud .wing-right .hud-resource-strip .resource,
+ .cockpit-hud .wing-right .hud-resource-strip .resource.priority{gap:4px}
+ .cockpit-hud .wing-right .hud-resource-strip .resource small{font-size:8px}
+ .cockpit-hud .wing-right .hud-resource-strip .resource b,
+ .cockpit-hud .wing-right .hud-resource-strip .resource.priority b{font-size:11px}
+ .cockpit-hud .hud-reward-feed{bottom:calc(270px + env(safe-area-inset-bottom));
+  max-width:calc(100vw - 16px);font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){
+ .cockpit-hud .data-resource.is-gaining,.cockpit-hud .ore-resource.is-gaining,
+ .cockpit-hud .data-resource.is-gaining #dataGain,
+ .cockpit-hud .ore-resource.is-gaining #oreGain{animation:none}
+ .cockpit-hud .data-resource.is-gaining #dataGain,
+ .cockpit-hud .ore-resource.is-gaining #oreGain{opacity:1}
+ .cockpit-hud .wing-left .hud-level-strip #xpbar{transition:none}
+}
+
 
 /* Art Pass 04 — route ribbon and authored touch-control artwork.
    The SVGs carry chrome, bevels and instrument recesses. CSS only lays

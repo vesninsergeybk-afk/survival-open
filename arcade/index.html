@@ -7,8 +7,8 @@
 <title>Выживший · Бой за живой сектор</title>
 <link rel="stylesheet" href="./style.css?v=weapons-cycle-2-rpg-precision-1-opening-arc-1-tactical-field-1-unified-controls-2">
 <link rel="stylesheet" href="./hud.css?v=hud-responsive-v16">
-<link rel="stylesheet" href="./hud-art.css?v=hud-impact-art-pass-06-rpg-precision-1-opening-arc-1">
-<link rel="stylesheet" href="./mobile-hud.css?v=landscape-rail-03-rpg-precision-1-opening-arc-1">
+<link rel="stylesheet" href="./hud-art.css?v=hud-impact-art-pass-06-rpg-precision-1-opening-arc-1-economy-hud-1">
+<link rel="stylesheet" href="./mobile-hud.css?v=landscape-rail-03-rpg-precision-1-opening-arc-1-economy-hud-1">
 <link rel="stylesheet" href="./hangar.css?v=hangar-3">
 <link rel="stylesheet" href="./menu-system.css?v=first-contract-reward-1-regions-1-enemy-world-response-1-station-flow-1-defense-rules-1-station-layout-1-station-audit-2-logistics-audit-1-lab-logistics-qa-1-home-conflict-1-campaign-1-station-clear-2-contours-1-living-atlas-3-enemy-radio-2-world-feedback-1-direct-fit-2-contour-dynamics-1">
 <link rel="stylesheet" href="./station-art.css?v=orbital-terminal-1">
@@ -56,8 +56,9 @@
       <div id="leftBurstMeter" class="hud-segment-meter" role="progressbar" aria-label="Восстановление рывка" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
      </div>
     </div>
-    <div class="hud-level-strip"><span>УРОВЕНЬ <b id="level">1</b></span><span id="points">до ур. 2</span>
-     <div id="xpmeter" class="ship-meter experience-meter" role="progressbar" aria-label="Опыт до следующего уровня" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="xpbar"></span></div>
+    <div class="hud-level-strip" aria-label="Опыт пилота">
+     <div class="hud-xp-readout"><span>УР. <b id="level">1</b><small id="points"></small></span><strong>ОПЫТ <b id="xpValue">0 / 75</b></strong></div>
+     <div id="xpmeter" class="ship-meter experience-meter" role="progressbar" aria-label="Опыт до следующего уровня" aria-valuemin="0" aria-valuemax="75" aria-valuenow="0"><span id="xpbar"></span></div>
     </div>
    </section>
    <section class="cockpit-flight" aria-label="Навигация, радар и способности">
@@ -103,7 +104,7 @@
      <b id="wingStatus">0/2</b>
     </div>
     <div class="hud-resource-strip">
-     <span class="resource priority"><small>ДАННЫЕ</small><b id="data">0</b></span>
+     <span class="resource priority data-resource" id="dataResource"><small>ДАННЫЕ</small><b id="data">0</b><em id="dataGain" aria-hidden="true"></em></span>
      <span class="resource priority ore-resource" id="oreResource"><small>СПЛАВ</small><b id="ore">0</b><em id="oreGain" aria-hidden="true"></em></span>
      <span class="hud-auxiliary-resource">БАЗЫ <b id="bases">0</b></span>
      <span class="hud-auxiliary-resource">ВЕДОМЫЕ <b id="wing">0</b></span>
@@ -115,6 +116,12 @@
  </div>
  <div id="interactionCue" class="interaction-cue" hidden></div>
  <div id="contractObjective" class="contract-objective" aria-live="off" hidden></div>
+ <div id="rewardFeed" class="hud-reward-feed" aria-label="Изменение ресурсов и опыта" aria-live="off" hidden>
+  <span id="rewardOre" class="hud-reward-entry alloy" hidden></span>
+  <span id="rewardData" class="hud-reward-entry intel" hidden></span>
+  <span id="rewardXp" class="hud-reward-entry experience" hidden></span>
+  <span id="rewardLevel" class="hud-reward-entry level-up" hidden></span>
+ </div>
  <div id="message" role="status" aria-live="polite"></div>
 </div>
 <div id="audioControls">
@@ -209,6 +216,6 @@
  <p class="credits-legal">Упоминание авторов не означает, что они одобряют игру или участвуют в её разработке.</p>
 </dialog>
 <script type="module" src="./mobile-launch.js?v=mobile-gate-menu-focus-02"></script>
-<script type="module" src="./game.js?v=iris-pack-1-first-contract-reward-1-enemy-learning-1-enemy-comms-1-field-menu-1-enemy-intents-2-radio-checkpoint-1-regions-1-enemy-world-response-2-network-defense-4-living-world-4-station-flow-1-enemy-audit-5-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-1-weapon-feel-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-opening-balance-1-enemy-objectives-1-enemy-plans-1-opening-audit-1-radio-shadow-1-home-conflict-1-opening-audit-2-theater-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-opening-tactics-1-opening-touch-1-theater-audit-1-repair-qa-1-weapon-mechanics-2-mesh-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-2-backbone-2-contours-1-contour-visual-3-tactical-vfx-1-enemy-radio-2-world-feedback-1-direct-fit-2-living-atlas-3-orbital-terminal-1-contour-dynamics-1-enemy-economy-1"></script>
+<script type="module" src="./game.js?v=iris-pack-1-first-contract-reward-1-enemy-learning-1-enemy-comms-1-field-menu-1-enemy-intents-2-radio-checkpoint-1-regions-1-enemy-world-response-2-network-defense-4-living-world-4-station-flow-1-enemy-audit-5-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-1-weapon-feel-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-opening-balance-1-enemy-objectives-1-enemy-plans-1-opening-audit-1-radio-shadow-1-home-conflict-1-opening-audit-2-theater-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-opening-tactics-1-opening-touch-1-theater-audit-1-repair-qa-1-weapon-mechanics-2-mesh-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-2-backbone-2-contours-1-contour-visual-3-tactical-vfx-1-enemy-radio-2-world-feedback-1-direct-fit-2-living-atlas-3-orbital-terminal-1-contour-dynamics-1-enemy-economy-1-economy-hud-1"></script>
 </body>
 </html>
