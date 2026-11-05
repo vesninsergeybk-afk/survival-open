@@ -49,6 +49,26 @@ export function campaignCue(game){
  return 'ЦЕЛЬ ПРОХОЖДЕНИЯ · подавить промышленные сети · '+p.secured+'/4';
 }
 
+/** Show only events the pilot caused or stations they have already surveyed.
+ * Internal enemy production and unknown cargo locations are not telemetry. */
+export function campaignConsequences(world){
+ return warFronts(world).filter(f=>f.known).map(f=>{
+  const actions=[];
+  if((f.pool?.intercepted||0)>0)
+   actions.push('перехвачено грузов: '+f.pool.intercepted);
+  if((f.pool?.repairsIntercepted||0)>0)
+   actions.push('сорвано ремонтных рейсов: '+f.pool.repairsIntercepted);
+  if(f.outcome==='captured')
+   actions.push('сборочный узел захвачен; выпуск новых промышленных отрядов остановлен');
+  else if(f.outcome==='starved')
+   actions.push('сырьё и готовые резервы исчерпаны; новые отряды не выпускаются');
+  else if(f.source?.captured)
+   actions.push('добыча остановлена, но ранее доставленные материалы ещё опасны');
+  if(!actions.length)return null;
+  return {key:f.key,name:f.name,actions};
+ }).filter(Boolean);
+}
+
 export function renderCampaignProgress(game,{compact=false}={}){
  if(!campaignVisible(game))return '';
  const p=campaignProgress(game.world),current=regionAt(game.player.x,game.player.y).id;
@@ -67,13 +87,17 @@ export function renderCampaignProgress(game,{compact=false}={}){
   (local.depot?.discovered?'Оставшихся партий: '+local.pool.reserves+'. ':'')+
   'Перехват отменяет усиление из одной поставки; захват сборочного узла прекращает все его будущие вылеты.</p>':'';
  const title=p.complete?'Промышленный натиск подавлен':'Подавить четыре промышленные сети';
+ const consequences=campaignConsequences(game.world);
+ const evidence=consequences.length?'<details class="campaign-consequences"><summary>Что изменили Ваши действия · '+
+  consequences.length+'</summary><ul>'+consequences.map(c=>'<li><strong>'+enc(c.name)+
+  '</strong>: '+enc(c.actions.join('; '))+'.</li>').join('')+'</ul></details>':'';
  const text='<p>'+(p.complete?'Все четыре сети лишились возможности создавать новые отряды. Уже выпущенные корабли и фоновые патрули остаются в мире. Можно продолжать исследование.':
    'Лишите четыре промышленные сети возможности выпускать отряды. Подавленный регион станет спокойнее и даст опору для следующей вылазки.')+'</p>'+localStatus;
  const tip='<p>Вы сами выбираете порядок. В новом регионе лаборатория поможет найти производство, арсенал даст прицельный огонь, авианосец — ударную поддержку. Стыковка закрепляет результат.</p>';
- if(compact)return '<details class="campaign-progress" aria-label="Цель прохождения"><summary>'+enc(title)+' · '+p.secured+'/4</summary>'+text+rows+tip+'</details>';
+ if(compact)return '<details class="campaign-progress" aria-label="Цель прохождения"><summary>'+enc(title)+' · '+p.secured+'/4</summary>'+text+evidence+rows+tip+'</details>';
  return '<section class="campaign-progress" aria-label="Цель прохождения"><div class="campaign-heading"><span class="base-kicker">'+
   (p.complete?'ПРОМЫШЛЕННЫЙ НАТИСК ПОДАВЛЕН':'ЦЕЛЬ ПРОХОЖДЕНИЯ')+'</span><strong>'+p.secured+'/4</strong></div>'+
-  text+
+  text+evidence+
   '<details'+(!compact&&local?.outcome?' open':'')+'><summary>Выбрать следующую цель</summary>'+rows+
   tip+'</details></section>';
 }

@@ -2,11 +2,13 @@ import {warFronts,warFront,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {ensureStationDefense,defenseLinked} from './network-defense.js?v=network-defense-4';
 import {baseNames} from './balance.js?v=arcade-balanced-bases-30';
-import {contourFields} from './territory-system.js?v=contours-1';
+import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1';
+import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 
 export const STATION_INTERDICTION=Object.freeze({memory:180,radioSpeed:900,reportDelay:3,
  observationPeriod:1,observersPerTick:12,orderCooldown:95,missionDuration:125,
- range:330,charge:7,cooldown:5,suppression:14,interruptDelay:3});
+ range:330,charge:7,cooldown:5,suppression:14,interruptDelay:3,
+ followUpRange:1250,followUpCooldown:11,followUpMinTime:27});
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const num=(v,a=0,b=1e9)=>Number.isFinite(v)&&v>=a&&v<=b;
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -31,7 +33,42 @@ export function stationRaidValid(o,time){
   Number.isSafeInteger(o.id)&&num(o.id,1)&&num(o.issuedAt,0,time)&&
   num(o.expiresAt,o.issuedAt,o.issuedAt+STATION_INTERDICTION.missionDuration)&&
   num(o.nextPulse)&&num(o.interruptUntil)&&
-  (o.chargeAt===null||num(o.chargeAt,0,time))&&typeof o.announced==='boolean';
+  (o.chargeAt===null||num(o.chargeAt,0,time))&&typeof o.announced==='boolean'&&
+  (o.redirected===undefined||typeof o.redirected==='boolean');
+}
+
+const stationValue=b=>b?.relayBoost?3:b?.type==='lab'?2:
+ b?.type==='carrier'?1:0;
+const validCommandReport=(world,r,front,now)=>r.front===front&&
+ r.receivedAt<=now&&now-r.seenAt<=STATION_INTERDICTION.memory&&
+ world.stations.get(r.stationId)?.active&&
+ !world.stations.get(r.stationId)?.enemy;
+/** When one paid ship has jammed a node, it may attack one more *reported*
+ * relay on its existing sortie. The station must still reach the ship by
+ * radio, and the original mission deadline never extends. */
+export function followUpInterdiction(game,ship){
+ const o=ship?.stationRaid,s=game.world.regionalSupply?.command;
+ const front=o&&warFront(game.world,o.front),now=game.time;
+ if(!o||o.redirected||!s||!front?.depot?.enemy||
+    o.expiresAt-now<STATION_INTERDICTION.followUpMinTime)return false;
+ const radio=[front.source,front.depot].filter(b=>b?.enemy)
+  .some(b=>distance(b,ship)<=front.radio);
+ if(!radio)return false;
+ const reports=s.reports.filter(r=>r.stationId!==o.stationId&&
+  validCommandReport(game.world,r,o.front,now)&&
+  distance(r,ship)<=STATION_INTERDICTION.followUpRange&&
+  !game.world.stations.get(r.stationId).suppressed)
+  .sort((a,b)=>stationValue(game.world.stations.get(b.stationId))-
+    stationValue(game.world.stations.get(a.stationId))||b.seenAt-a.seenAt);
+ const next=reports[0];if(!next)return false;
+ o.stationId=next.stationId;o.x=next.x;o.y=next.y;o.redirected=true;
+ o.chargeAt=null;o.announced=false;
+ o.nextPulse=now+STATION_INTERDICTION.followUpCooldown;
+ o.interruptUntil=Math.max(o.interruptUntil,now+STATION_INTERDICTION.followUpCooldown);
+ const base=game.world.stations.get(next.stationId);
+ game.notice?.('Носитель помех получил второй приказ: следовать к станции «'+
+  (base?.title||baseNames[base?.type]||'Узел')+'». Это тот же корабль и прежний срок операции.',7);
+ return true;
 }
 
 function lineClear(world,a,b){
@@ -51,10 +88,20 @@ export function updateStrategicCommand(game){
  for(const b of world.stations.values()){
   if(b.suppressed&&now>=b.suppressedUntil){
    b.suppressed=false;changed=true;
-   if(b.discovered)game.notice?.((b.title||'Станция')+': связь восстановлена. Радиоперехват и маршруты снова доступны.',5);
+   if(b.discovered){
+    game.notice?.((b.title||'Станция')+': связь восстановлена. Радиоперехват и маршруты снова доступны.',5);
+    const fieldRecovered=contourFields(world).some(f=>f.vertices.includes(b.id));
+    recordWorldFeedback(game,{key:'station-link-restored:'+b.id+':'+Math.floor(now),
+     label:'СВЯЗЬ ВОССТАНОВЛЕНА',
+     cause:'Передатчик станции снова работает',
+     effect:fieldRecovered?'Зависевший от неё контур снова приносит флюкс':
+      'Радиоперехват и связи доступны; контуры требуют активных опор',
+     x:b.x,y:b.y});
+   }
   }
  }
- if(changed){game.defenseTopology=null;game.worldVisualLast=-Infinity;}
+ if(changed){game.defenseTopology=null;game.worldVisualLast=-Infinity;
+  game.contourVisualAt=-Infinity;}
  const fronts=warFronts(world);
  const fresh=fronts.filter(f=>f.outcome&&f.known&&!s.completed.includes(f.key));
  for(const f of fresh)s.completed.push(f.key);
@@ -66,7 +113,8 @@ export function updateStrategicCommand(game){
  s.nextObservation=now+STATION_INTERDICTION.observationPeriod;
  s.reports=s.reports.filter(r=>now-r.seenAt<=STATION_INTERDICTION.memory);
  const receivers=fronts.filter(f=>f.depot?.enemy);
- const stations=[...world.stations.values()].filter(b=>b.active&&!b.enemy&&['lab','carrier'].includes(b.type));
+ const stations=[...world.stations.values()].filter(b=>b.active&&!b.enemy&&
+  (['lab','carrier'].includes(b.type)||b.relayBoost));
  const critical=new Map();
  for(const field of contourFields(world))for(const id of field.vertices)
   critical.set(id,(critical.get(id)||0)+field.area);
@@ -104,12 +152,13 @@ export function assignStationInterdiction(game,ship,key){
    !scenarios[key]?.includes(ship.scenario)||!game.enemies.includes(ship)||
    (s.nextOrders[key]||0)>now||
    !(front.pool?.intercepted>0||front.source?.captured))return false;
- const report=s.reports.filter(r=>r.front===key&&r.receivedAt<=now&&now-r.seenAt<=STATION_INTERDICTION.memory)
-  .sort((a,b)=>b.seenAt-a.seenAt)[0];
+ const report=s.reports.filter(r=>validCommandReport(game.world,r,key,now))
+  .sort((a,b)=>stationValue(game.world.stations.get(b.stationId))-
+   stationValue(game.world.stations.get(a.stationId))||b.seenAt-a.seenAt)[0];
  if(!report)return false;
  ship.stationRaid={id:++s.serial,front:key,stationId:report.stationId,x:report.x,y:report.y,
   issuedAt:now,expiresAt:now+STATION_INTERDICTION.missionDuration,
-  chargeAt:null,nextPulse:now,interruptUntil:now+7,announced:false};
+  chargeAt:null,nextPulse:now,interruptUntil:now+7,announced:false,redirected:false};
  ship._commsOrder=null;ship._commsIntent=null;ship._theaterOrder=null;ship._theaterIntent=null;
  s.nextOrders[key]=now+STATION_INTERDICTION.orderCooldown;
  const base=game.world.stations.get(report.stationId);
@@ -118,6 +167,11 @@ export function assignStationInterdiction(game,ship,key){
   (base?.title||baseNames[base?.type]||'Узел')+'».'+
   (threatensContour?' Под угрозой и захваченная территория.':'')+
   ' Маршрут для защиты доступен на карте; прицельный рельс / ион сорвут подготовку.',8);
+ if(threatensContour)recordWorldFeedback(game,{key:'contour-station-raid:'+ship.stationRaid.id,
+  kind:'loss',label:'ОПОРНАЯ СТАНЦИЯ ПОД УГРОЗОЙ',
+  cause:'Вражеская разведка передала координаты опорной станции',
+  effect:'Оплаченный снабжением носитель идёт подавить связь и поле',
+  x:base?.discovered?base.x:undefined,y:base?.discovered?base.y:undefined});
  return true;
 }
 
@@ -173,9 +227,17 @@ export function updateStationInterdiction(game,e,dt){
   game.notice?.('ПВО станции отбила подавляющий импульс. Запас защитных зарядов уменьшился.',4);
  }else{
   const first=!base.suppressed;
+  const poweredContour=first&&contourFields(game.world).some(f=>f.vertices.includes(base.id));
   base.suppressed=true;base.suppressedUntil=game.time+STATION_INTERDICTION.suppression;
-  game.defenseTopology=null;game.worldVisualLast=-Infinity;
+  game.defenseTopology=null;game.worldVisualLast=-Infinity;game.contourVisualAt=-Infinity;
   if(first)game.notice?.('Связь станции подавлена на 14 секунд: радиоперехват и связь сети прерваны. Местный ремонт работает. Уничтожьте носитель, чтобы он не повторил импульс.',7);
+  if(first)recordWorldFeedback(game,{key:'jam:'+base.id+':'+Math.floor(game.time),
+   kind:'loss',label:'СВЯЗЬ ПОДАВЛЕНА',
+   cause:'Носитель помех поразил станцию',
+   effect:poweredContour?'Сеть прервана на 14 с; зависимый контур временно не добывает флюкс':
+    'Сетевая связь и радиоперехват прерваны на 14 секунд',
+   x:base.discovered?base.x:undefined,y:base.discovered?base.y:undefined});
+  if(first)followUpInterdiction(game,e);
  }
  game.flash?.(e.x,e.y,base.x,base.y,'#eb9dff');
  game.heritage?.vfx?.nova?.(base.x,base.y,95,'violet');

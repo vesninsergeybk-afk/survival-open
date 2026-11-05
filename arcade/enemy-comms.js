@@ -4,6 +4,7 @@ import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1-t
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
   squadRoleFor,squadRoleLabel} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
+import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 
 /** Bounded enemy radio. Messages carry actual local observations, and
  * decisions use votes from several pilots. Visual pulses are message receipts,
@@ -41,6 +42,17 @@ function observedCue(e,kind,now){
 const modeLabel=Object.freeze({press:'НАЖИМ',pincer:'ОБХОД',
   intercept:'ПЕРЕХВАТ',screen:'ПРИКРЫТИЕ',
   close:'СБЛИЖЕНИЕ',scatter:'РАССЕЯТЬСЯ'});
+function threatCause(threat){
+ if(!threat)return null;
+ const origin=threat.mesh?'Общая сеть передала: ':'Звено заметило: ';
+ const observation=({long:'дальний огонь',close:'ближний огонь',area:'площадной удар',
+   loss:'потери кораблей',sabotage:'атаку на объект',weak:'повреждения вашего корпуса'})[threat.kind];
+ if(observation)return origin+observation;
+ if(threat.kind==='maneuver')return origin+
+  (threat.motion==='straight'?'прямой курс игрока':
+    threat.motion==='turning'?'частые повороты игрока':'изменение движения');
+ return null;
+}
 
 /** These are orders produced by the selected maneuver. Explanations about
  * observed weapons only appear after delivered, repeated evidence. */
@@ -643,6 +655,15 @@ export class EnemyComms {
         leader:cell.leader,cellId:cell.id};
       cell.lastIntercept=item;this.intercepts.push(item);
       if(this.intercepts.length>8)this.intercepts.shift();
+      const cause=threatCause(pending.threat);
+      if(cause&&now>=(this.nextFeedbackAt??0)){
+        recordWorldFeedback(game,{key:'enemy-order:'+cell.id+':'+pending.mode+':'+Math.floor(now),
+         label:'ТАКТИКА ПЕРЕСТРОЕНА',kind:'tactic',cause,
+         // The existing radio bubble is already anchored to the caller.
+         // A second world tag here would overlap it in a dense fight.
+         effect:'Приказ выполняется: '+message});
+        this.nextFeedbackAt=now+5;
+      }
       // A newly understood course is more useful than the generic first
       // contact notice. Give it a separate, still bounded notification slot.
       const maneuverNotice=['maneuver','weak'].includes(pending.threat?.kind);

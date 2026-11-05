@@ -63,6 +63,21 @@ test('frontier economy, finite wrecks and new station IDs survive a real checkpo
  forbidden.world.regionalSupply.frontier.teal.wrecks[0].stock=999;
  assert.equal(validateCheckpoint(forbidden),false,'wrecks cannot be refilled through a save');
 });
+test('returning to a captured industrial depot records a valid sortie and saves the run',()=>{
+ const g=scene(),depot=g.world.stations.get('industry:depot');
+ depot.enemy=false;depot.captured=true;depot.active=true;
+ g.docked=depot;g.player.x=depot.x+40;g.player.y=depot.y+35;
+ g.sortieStart=startSortie(g);g.time+=90;g.player.ore+=12;
+ g.sortieReports=appendSortieReport([],finishSortie(g.sortieStart,g,depot));
+ const checkpoint=captureCheckpoint(g,depot);
+ assert.ok(validateCheckpoint(checkpoint));
+ const storage=memory(),store=new RunCheckpointStore(storage,()=>1234);
+ store.load();assert.ok(store.startNew().ok);
+ assert.ok(store.save(checkpoint).ok);
+ const reloaded=store.load();
+ assert.equal(reloaded?.baseId,depot.id);
+ assert.equal(reloaded?.state.sortieReports[0].baseId,depot.id);
+});
 test('the optional opening crisis and its objective survive a station checkpoint once',()=>{
  const g=scene();g.openingArc=createOpeningArc(g.world.home);
  beginOpeningArc(g.openingArc,'intercept',42);

@@ -9,8 +9,9 @@ import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?
 import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1';
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
-import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1';
-import {renderContourMap} from './contour-atlas.js?v=contour-visual-3';
+import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
+import {renderContourMap} from './contour-atlas.js?v=contour-visual-3-world-feedback-1';
+import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -297,6 +298,7 @@ export function renderWorldMap(game){
   '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
     ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
   '<aside class="map-side">'+
+  renderWorldFeedbackMap(game)+
   renderStationThreats(game)+
   renderHomeConflict(game)+
   renderCampaignProgress(game)+

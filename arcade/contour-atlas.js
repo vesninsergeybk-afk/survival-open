@@ -2,6 +2,7 @@ import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {baseNames} from './balance.js?v=arcade-network-20';
 import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt} from './territory-system.js?v=contours-1';
 import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1';
+import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -79,6 +80,30 @@ function fieldArtwork(fields,world,center,scale){
   return `<g class="contour-courier"><circle cx="${digits(p.x)}" cy="${digits(p.y)}" r="4" fill="${h.phase==='back'?'#ffd17f':'#91f8df'}" stroke="#112c3a" stroke-width="1.5"/><title>${h.phase==='back'?'Флюкс возвращается на станцию':'Сборщик летит к воронке'}</title></g>`;
  }).join('');
  return filled+vortices+harvesters;
+}
+
+// Only events with a confirmed world position get a map symbol. The feed
+// intentionally omits locations for unseen factories and untraced radio calls.
+function incidentArtwork(game,region,center,scale){
+ if(!region)return '';
+ const events=(game.worldFeedback?.history||[]).filter(event=>{
+  const p=event.position,age=game.time-event.at;
+  if(!p||age<0||age>180)return false;
+  const q=at(p,center,scale);
+  return q.x>=28&&q.x<=652&&q.y>=28&&q.y<=452;
+ });
+ const used=[];
+ return events.map(event=>{
+  const q=at(event.position,center,scale);
+  if(used.length>=3||used.some(other=>Math.hypot(other.x-q.x,other.y-q.y)<37))return '';
+  used.push(q);
+  const label=esc(event.label.slice(0,22));
+  const full=esc(event.cause+' → '+event.effect);
+  return `<g class="contour-incident-pin ${event.kind==='loss'?'loss':'change'}" role="img"
+   aria-label="${full}" transform="translate(${digits(q.x)} ${digits(q.y)})">
+   <circle r="14" class="contour-incident-halo"/><path d="M0 -7L7 0L0 7L-7 0Z"/>
+   <text x="12" y="-13">${label}</text><title>${full}</title></g>`;
+ }).join('');
 }
 
 function selectedPanel(game,selected,source,choices,region){
@@ -180,21 +205,25 @@ export function renderContourMap(game){
   <rect width="680" height="480" rx="12" fill="#081a2a"/><circle cx="340" cy="240" r="300" fill="url(#contourAtlasGlow)"/>
   <path d="M0 120H680M0 240H680M0 360H680M170 0V480M340 0V480M510 0V480" stroke="#5b9cb21a" stroke-dasharray="3 8"/>
   ${region?fieldArtwork(fields,world,center,scale)+ghost+paths+prospects+
-   stationMarks(nodes,center,scale,selected?.id,source?.id,readyIds,goalIds):regionOverview(world,center,scale)}
+   stationMarks(nodes,center,scale,selected?.id,source?.id,readyIds,goalIds)+
+   incidentArtwork(game,region,center,scale):regionOverview(world,center,scale)}
   ${visiblePlayer?`<g class="contour-player-pin" transform="translate(${digits(player.x)} ${digits(player.y)})"><circle r="12" fill="#9dd9ff12" stroke="#d7faff" stroke-dasharray="3 3"/><path d="M0 -7L-5 5L0 2L5 5Z" fill="#fff"/><title>Ваш корабль</title></g>`:''}</svg>
   <div class="contour-legend"><span><i class="contour-key mine"></i> Своя</span><span><i class="contour-key dormant"></i> Не включена</span>
-  <span><i class="contour-key hostile"></i> Враг</span><span><i class="contour-key available"></i> Возможная связь</span><span><i class="contour-key vortex"></i> Воронка</span></div>
+  <span><i class="contour-key hostile"></i> Враг</span><span><i class="contour-key available"></i> Возможная связь</span><span><i class="contour-key vortex"></i> Воронка</span>
+  ${region?'<span><i class="contour-key incident"></i> Замеченное событие</span>':''}</div>
   <div class="contour-context">${esc(current.name)} · ${esc(stage)}${source?'<button data-act="contourCancel">Снять выбор</button>':''}</div>
   </div><aside class="map-side contour-side"><div class="contour-summary" aria-label="Итоги сети">
   <div><small>ТЕРРИТОРИИ</small><strong>${fields.length}</strong></div><div><small>ДОБЫЧА / 3 МИН</small><strong>${digits(production)}</strong></div>
   <div><small>СБОРЩИКИ В ПУТИ</small><strong>${world.contours.harvesters.length}</strong></div></div>
   ${flash}${game.contourError?`<p class="contour-error" role="status">${esc(game.contourError)}</p>`:''}
+  ${!flash&&game.contourInfo?`<p class="contour-info" role="status">${esc(game.contourInfo)}</p>`:''}
   ${selectedPanel(game,selected,source,choices,region)}
   ${fields.length?`<div class="contour-economy"><b>Воронки работают</b><p>Флюкс доставлен: ${digits(world.contours.delivered)} · потери сборщиков: ${world.contours.lost}. Желтые точки возвращаются с грузом, бирюзовые летят к воронке.</p>
    <button data-act="contourPulse"${pulseReady?'':' disabled'}>${(world.contours.pulseReadyAt||0)>game.time?'Импульс через '+Math.ceil(world.contours.pulseReadyAt-game.time)+' с':
    'Защитный импульс · 5 флюкса · +22 щита'}</button><small>Доступен, когда корабль находится внутри поля и щит ниже 42.</small></div>`:''}
   ${broken?`<p class="contour-warning">⚠ Нарушено связей: ${broken}. Красный пунктир показывает линии без питания.</p>`:''}
   ${activeSource?extra:''}
+  ${renderWorldFeedbackMap(game)}
   <details class="contour-rules"><summary>Как устроена сеть</summary><p>Соединяйте только работающие станции. Линия не длиннее ${CONTOURS.maxLength} м; на один узел приходится не более ${CONTOURS.maxDegree} связей. Замкните три или более узлов — область станет вашей, а внутри появится воронка. Линии не должны пересекаться.</p><p>Если станция подавлена или захвачена, связанные с ней линии перестают питать поле. Восстановите узел, чтобы вернуть территорию.</p></details>
   </aside></section></div>`;
 }

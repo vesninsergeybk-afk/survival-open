@@ -48,6 +48,13 @@ test('bounded flight history is safe for checkpoints and rejects malformed recor
  assert.equal(validSortieReports([{...report,seconds:-1}]),false);
  assert.equal(validSortieReports([{...report,extra:'unexpected'}]),false);
  assert.equal(validSortieReports([{...report,ore:NaN}]),false);
+ for(const baseId of ['industry:source','industry:depot',
+  'frontier:azure:source','frontier:azure:depot',
+  'frontier:teal:source','frontier:teal:depot'])
+  assert.equal(validSortieReports([{...report,baseId}]),true,baseId);
+ for(const baseId of ['industry:unknown','frontier:amber:depot',
+  'frontier:azure:unknown','../../../run'])
+  assert.equal(validSortieReports([{...report,baseId}]),false,baseId);
 });
 
 test('the first return offers two affordable protection plans, network saving and a free experiment',()=>{

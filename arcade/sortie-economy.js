@@ -1,5 +1,6 @@
 import {MODULES,slotOpen} from './ship-loadout.js?v=weapons-cycle-2-campaign-1';
 import {emptySortieDetails,detailsForSave,validDetails} from './sortie-ledger.js?v=economy-ledger-1';
+import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
 
 // A sortie begins when the player actually leaves a station. Checkpoints are
 // station-only: the baseline never needs to be saved halfway through a flight.
@@ -128,7 +129,7 @@ export function validSortieReports(reports){
    ...(legacy?[]:['id','outcome','details'])].every(k=>Object.hasOwn(r,k)))return false;
   if(!['seconds','ore','data','hull','drones','levels'].every(k=>
    Number.isInteger(r[k])&&Math.abs(r[k])<=1e9)||r.seconds<0||r.levels<0||r.levels>1000||
-   typeof r.baseId!=='string'||!/^(-?\d+):(-?\d+)$/.test(r.baseId))return false;
+   !validStationId(r.baseId))return false;
   return legacy||(Number.isSafeInteger(r.id)&&r.id>=0&&r.id<=1e12&&
    ['returned','lost'].includes(r.outcome)&&validDetails(r.details));
  });
