@@ -2,6 +2,7 @@
    The local radar is deliberately bounded to 1.1km and redraws <=5 times/sec. */
 import {miningSignal} from './mining.js?v=arcade-extraction-risk-34';
 import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2';
+import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-1';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 export const hullCondition = (hp,maxHp) => {
@@ -21,6 +22,7 @@ export class CockpitDisplay {
   this.radar=el('radar');this.ctx=this.radar.getContext('2d',{alpha:true});
   this.lastRadar=-Infinity;this.lastCondition='';this.oreGained=0;this.oreGainTime=-Infinity;
   this.n={hp:el('hp'),hpbar:el('hpbar'),hpmeter:el('hpmeter'),
+   survivalClock:el('survivalClock'),
    xpbar:el('xpbar'),xpmeter:el('xpmeter'),level:el('level'),
    shield:el('shield'),shieldmeter:el('shieldmeter'),shieldbar:el('shieldbar'),
    leftBurstMeter:el('leftBurstMeter'),leftBurstText:el('leftBurstText'),
@@ -44,6 +46,8 @@ export class CockpitDisplay {
  }
  update(game,nextXp,boostCooldown) {
   const p=game.player,n=this.n;
+  if(n.survivalClock)display(n.survivalClock,'ВЫЛЕТ '+runClock(game.time)+
+   ' · РЕКОРД '+runClock(Math.max(game.bestFlight||0,game.time)));
   const health=clamp01(p.hp/Math.max(1,p.maxHp));
   display(n.hp,Math.ceil(p.hp)+' / '+p.maxHp);
   n.hpbar.style.width=(health*100)+'%';
@@ -80,15 +84,18 @@ export class CockpitDisplay {
   n.interactionCue.hidden=!focus||game.paused||game.dead||!game.overlay.hidden;
   if(!n.interactionCue.hidden) {
    const label=focus.kind==='station'?'Открыть станцию':
-    focus.kind==='repair'?'Ремонт зонда':'Добыча породы';
+    focus.kind==='repair'?'Ремонт зонда':
+    focus.kind==='opening-repair'?'Эвакуация капсулы':'Добыча породы';
    display(n.interactionCue,'E · '+label+(focus.kind==='station'?'':' · удерживать'));
   }
   const op=game.operation,c=game.contract,tracker=n.contractObjective;
+  const opening=openingArcObjective(game.openingArc,game.time);
   if(tracker){
-   tracker.hidden=!(op||c);
-   this.root.classList.toggle('has-objective',!!(op||c));
+   tracker.hidden=!(op||c||opening);
+   this.root.classList.toggle('has-objective',!!(op||c||opening));
    tracker.classList.toggle('ready',!op&&!!c&&c.progress>=c.goal);
-   display(tracker,missionHudText(game));
+   display(tracker,op?missionHudText(game):openingArcActive(game.openingArc)?opening:
+    c?missionHudText(game):opening);
   }
   const extracting=!!game.mining?.active,repairing=!!game.probeRepairing;
   const noise=miningSignal(game.miningNoise||0);

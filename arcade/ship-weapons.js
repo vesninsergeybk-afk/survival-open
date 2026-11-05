@@ -115,7 +115,8 @@ const onRay=(from,to,t)=>({x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t});
 export function fireAimedRail(game,point){
  if(!game.manualRailMode||!game.weaponProfile?.rail)return {ok:false,reason:'Включите ручной режим установленного рельсового орудия'};
  if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))return {ok:false,reason:'Укажите точку выстрела'};
- if(game.holdFire||game.mining?.active||game.probeRepairing||game.heavyCharge)
+ if(game.holdFire||game.mining?.active||game.probeRepairing||game.openingRepairing||
+    game.actionHeld?.kind==='opening-repair'||game.heavyCharge)
   return {ok:false,reason:'Ручной выстрел недоступен во время тишины, добычи, ремонта или подготовки гаубицы'};
  if(game.weaponThermal.locked)return {ok:false,reason:'Оружие перегрето'};
  if((game.moduleClocks?.rail||0)>0)return {ok:false,reason:'Рельс перезаряжается: '+Math.ceil(game.moduleClocks.rail*10)/10+' с'};
@@ -192,7 +193,8 @@ export function planHowitzer(game){
 export function updateHowitzer(game,dt){
  game.heavyCooldown=Math.max(0,(game.heavyCooldown||0)-dt);
  if(!game.heavyCharge)return;
- if(!game.weaponProfile.howitzer||game.mining?.active||game.probeRepairing){game.heavyCharge=null;return;}
+ if(!game.weaponProfile.howitzer||game.mining?.active||game.probeRepairing||game.openingRepairing||
+    game.actionHeld?.kind==='opening-repair'){game.heavyCharge=null;return;}
  game.heavyCharge.remaining-=dt;if(game.heavyCharge.remaining>0)return;
  const aim=game.heavyCharge;game.heavyCharge=null;
  if(targetDistance(game.player,aim)>900){game.notice?.('Подготовка гаубицы отменена: точка удара дальше 900 м',2.8);return;}

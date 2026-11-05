@@ -6,7 +6,7 @@ import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-sw
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
 import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-3';
 import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-4-enemy-gunnery-1';
-import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1';
+import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
@@ -248,7 +248,8 @@ export function updateEnemy(e,game,dt){
     if(t >= (e.commitUntil||0) || e.hp<e.maxHp*.28 ||
       (e.state==='windup'&&t>=e.chargeReadyAt)){
       let state='hunt';
-      if(e.type==='healer')state='heal';
+      if(e.openingCommander)state='standoff';
+      else if(e.type==='healer')state='heal';
       else if(e.type==='berserker'&&e.hp/e.maxHp<.31){
         // A visible wind-up gives the player time to respond to the ram.
         if(!e.chargeReadyAt)e.chargeReadyAt=t+.65;
@@ -295,7 +296,7 @@ export function updateEnemy(e,game,dt){
   }else if(e.state==='standoff'){
     const d=dist(e,p),v=norm(e.x-p.x,e.y-p.y);
     // Continuous orbital steering avoids the old 260-unit approach/retreat flip.
-    const ideal=learningStyle==='sideslip'?340:
+    const ideal=e.openingCommander?495:learningStyle==='sideslip'?340:
       learningStyle==='intercept'?255:290;
     const correction=clamp((d-ideal)/90,-1,1);
     const direction=e.serial%2===0?1:-1;
