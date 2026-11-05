@@ -8,7 +8,7 @@ const visible=element=>!!element&&!element.disabled&&
  (typeof element.getClientRects!=='function'||element.getClientRects().length>0);
 
 export function activeMenuDialog(overlay){
- return overlay?.querySelector?.('.departure-confirm')||
+ return overlay?.querySelector?.('.run-confirm')||overlay?.querySelector?.('.departure-confirm')||
   overlay?.querySelector?.('.base-module-confirm')||overlay?.querySelector?.('.dialog')||null;
 }
 
@@ -65,7 +65,7 @@ export function setMenuBackgroundInert(overlay,on){
   for(const child of body.children){
    // The orientation/fullscreen prompt and native credits dialog have their
    // own modality and can appear independently of the game panel.
-   if(child===overlay||child.id==='mobileLaunch'||child.id==='creditsDialog'||child.inert)continue;
+   if(child===overlay||child.id==='mobileLaunch'||child.id==='creditsDialog'||child.id==='gameMenuDialog'||child.inert)continue;
    child.inert=true;marked.push(child);
   }
   inertBackground.set(overlay,marked);

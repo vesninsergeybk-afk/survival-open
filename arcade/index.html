@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="./menu-system.css?v=first-contract-reward-1-regions-1-enemy-world-response-1-station-flow-1-defense-rules-1-station-layout-1-station-audit-2-logistics-audit-1-lab-logistics-qa-1-home-conflict-1-campaign-1-station-clear-2-contours-1-living-atlas-3-enemy-radio-2-world-feedback-1-direct-fit-2-contour-dynamics-1">
 <link rel="stylesheet" href="./station-art.css?v=orbital-terminal-1">
 <link rel="stylesheet" href="./mobile-launch.css?v=mobile-gate-01">
+<link rel="stylesheet" href="./all-menus.css?v=all-menus-1">
 </head>
 <body>
 <div id="mobileLaunch" role="dialog" aria-modal="true" aria-labelledby="mobileLaunchTitle" aria-describedby="mobileLaunchHint" hidden>
@@ -124,10 +125,19 @@
  </div>
  <div id="message" role="status" aria-live="polite"></div>
 </div>
-<div id="audioControls">
- <button id="audioBtn" type="button" aria-pressed="false"
+<div id="quickMenu"><button id="quickAudio" type="button" aria-label="Включить звук" aria-pressed="false">♫</button><button id="menuBtn" type="button" aria-haspopup="dialog" aria-controls="gameMenuDialog">Меню <kbd>Esc</kbd></button></div>
+<dialog id="gameMenuDialog" class="system-dialog" aria-labelledby="systemMenuTitle">
+ <header class="system-head"><div><span class="screen-kicker">ВЫЖИВШИЙ · ПАУЗА</span><h2 id="systemMenuTitle">Меню игры</h2></div><button id="systemClose" type="button" aria-label="Закрыть меню">×</button></header>
+ <nav class="system-shortcuts" aria-label="Экраны игры"><button id="systemMap" type="button">Карта</button><button id="systemSkills" type="button">Развитие</button></nav>
+ <nav class="settings-tabs" role="tablist" aria-label="Настройки и помощь">
+  <button id="settings-tab-audio" type="button" role="tab" data-settings-tab="audio" aria-controls="settings-pane-audio" aria-selected="true">Звук</button>
+  <button id="settings-tab-keys" type="button" role="tab" data-settings-tab="keys" aria-controls="settings-pane-keys" aria-selected="false">Клавиши</button>
+  <button id="settings-tab-help" type="button" role="tab" data-settings-tab="help" aria-controls="settings-pane-help" aria-selected="false">Справка</button>
+ </nav>
+ <div id="audioControls">
+  <section id="settings-pane-audio" class="settings-pane" data-settings-pane="audio" role="tabpanel" aria-labelledby="settings-tab-audio"><button id="audioBtn" type="button" aria-pressed="false"
   title="Включить музыку и звуковые эффекты">♫ Начать со звуком</button>
- <details id="audioMixer">
+ <details id="audioMixer" open>
   <summary>Настроить громкость</summary>
   <div class="audio-mixer-body">
    <label>Общая <output data-audio-value="masterVolume">50%</output>
@@ -141,8 +151,8 @@
    </label>
    <small>Звук включается только кнопкой выше</small>
   </div>
- </details>
- <details id="controlSettings">
+ </details></section>
+  <section id="settings-pane-keys" class="settings-pane" data-settings-pane="keys" role="tabpanel" aria-labelledby="settings-tab-keys" hidden><details id="controlSettings">
   <summary>Клавиши</summary>
   <div class="control-settings-body">
    <strong>Управление кораблём</strong>
@@ -151,9 +161,15 @@
    <div id="controlsBindingList" aria-label="Назначения клавиш"></div>
    <button id="controlsReset" type="button">Стандартные клавиши</button>
   </div>
- </details>
- <button id="audioCredits" type="button" aria-label="Авторы и лицензии" aria-haspopup="dialog" aria-controls="creditsDialog">Авторы и лицензии</button>
-</div>
+ </details></section>
+  <section id="settings-pane-help" class="settings-pane" data-settings-pane="help" role="tabpanel" aria-labelledby="settings-tab-help" hidden>
+   <dl class="system-help"><div><dt>Полёт</dt><dd data-control-help="flight">W / A / S / D</dd></div><div><dt>Рывок</dt><dd data-control-help="dash">Shift</dd></div><div><dt>Полевое устройство</dt><dd data-control-help="field">Пробел</dd></div><div><dt>Действие и добыча</dt><dd data-control-help="interact">E</dd></div><div><dt>Прицел и огонь</dt><dd>ЛКМ</dd></div><div><dt>Цель автооружия</dt><dd>ПКМ</dd></div><div><dt>Карта</dt><dd data-control-help="map">Tab</dd></div><div><dt>Развитие</dt><dd data-control-help="skills">U</dd></div></dl>
+   <details class="menu-explanation"><summary>Сохранение и возврат после гибели</summary><p>Стыковка с активной станцией сохраняет корабль, ресурсы и состояние мира. Возврат к стыковке отменяет более поздние события.</p></details>
+   <button id="audioCredits" type="button" aria-label="Авторы и лицензии" aria-haspopup="dialog" aria-controls="creditsDialog">Авторы и лицензии</button>
+  </section>
+ </div>
+ <footer class="system-footer"><span>Игра приостановлена</span><button id="systemResume" class="screen-button primary" type="button">Продолжить полёт</button></footer>
+</dialog>
 <div id="fieldWeaponStatus" role="status" hidden></div>
 <div id="tips">WASD — полёт · Shift — рывок · E — действие · ЛКМ — оружие · ПКМ — приоритет · Space — поле</div>
 <div class="mobile">
@@ -216,6 +232,6 @@
  <p class="credits-legal">Упоминание авторов не означает, что они одобряют игру или участвуют в её разработке.</p>
 </dialog>
 <script type="module" src="./mobile-launch.js?v=mobile-gate-menu-focus-02"></script>
-<script type="module" src="./game.js?v=iris-pack-1-first-contract-reward-1-enemy-learning-1-enemy-comms-1-field-menu-1-enemy-intents-2-radio-checkpoint-1-regions-1-enemy-world-response-2-network-defense-4-living-world-4-station-flow-1-enemy-audit-5-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-1-weapon-feel-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-opening-balance-1-enemy-objectives-1-enemy-plans-1-opening-audit-1-radio-shadow-1-home-conflict-1-opening-audit-2-theater-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-opening-tactics-1-opening-touch-1-theater-audit-1-repair-qa-1-weapon-mechanics-2-mesh-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-2-backbone-2-contours-1-contour-visual-3-tactical-vfx-1-enemy-radio-2-world-feedback-1-direct-fit-2-living-atlas-3-orbital-terminal-1-contour-dynamics-1-enemy-economy-1-economy-hud-1"></script>
+<script type="module" src="./game.js?v=iris-pack-1-first-contract-reward-1-enemy-learning-1-enemy-comms-1-field-menu-1-enemy-intents-2-radio-checkpoint-1-regions-1-enemy-world-response-2-network-defense-4-living-world-4-station-flow-1-enemy-audit-5-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-1-weapon-feel-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-opening-balance-1-enemy-objectives-1-enemy-plans-1-opening-audit-1-radio-shadow-1-home-conflict-1-opening-audit-2-theater-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-opening-tactics-1-opening-touch-1-theater-audit-1-repair-qa-1-weapon-mechanics-2-mesh-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-2-backbone-2-contours-1-contour-visual-3-tactical-vfx-1-enemy-radio-2-world-feedback-1-direct-fit-2-living-atlas-3-orbital-terminal-1-contour-dynamics-1-enemy-economy-1-economy-hud-1-all-menus-1"></script>
 </body>
 </html>

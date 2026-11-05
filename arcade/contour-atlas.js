@@ -1,3 +1,4 @@
+import {menuInfo} from './menu-screens.js?v=all-menus-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {baseNames} from './balance.js?v=arcade-network-20';
 import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt} from './territory-system.js?v=contours-1';
@@ -251,11 +252,11 @@ export function renderContourMap(game){
  const activeSource=selected&&selected.active&&!selected.enemy&&!selected.suppressed;
  return `<div class="dialog map-dialog contour-dialog" role="dialog" aria-modal="true" aria-labelledby="map-menu-title">
   <header class="map-heading"><div><span class="map-kicker">СТРАТЕГИЧЕСКАЯ СЕТЬ</span><h2 id="map-menu-title">Контуры территорий</h2>
-  <p>Это уменьшенный мир: станции, опасные области, замеченные корабли и ваши линии находятся там же, где в полёте.</p></div>
+  ${menuInfo('Как пользоваться контурами','Это уменьшенный мир: станции, опасные области, замеченные корабли и ваши линии находятся там же, где в полёте. Выберите регион, затем станцию. Для строительства связи выберите свою работающую станцию и второй узел. Подробные правила — под картой.')}</div>
   <div class="map-heading-actions"><span class="contour-wallet">Флюкс <b>${digits(world.contours.flux)}</b> / ${CONTOURS.fluxCap}</span>
-  ${game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':''}<button data-act="close">В полёт · Esc</button></div></header>
-  <nav class="map-view-switch"><button data-act="mapView" data-id="map">Ближняя карта</button>
-  <button data-act="mapView" data-id="territory" aria-pressed="true">Контуры</button><button data-act="mapView" data-id="targets">Регионы и цели</button></nav>
+  ${game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':''}<button data-act="close">Продолжить полёт</button></div></header>
+  <nav class="map-view-switch" aria-label="Режим карты"><button data-act="mapView" data-id="map">Рядом</button>
+  <button data-act="mapView" data-id="territory" aria-pressed="true">Контуры</button><button data-act="mapView" data-id="targets">Цели</button></nav>
   <div class="contour-region-switch">${regions}</div>
   <section class="map-shell contour-shell"><div class="map-canvas contour-map-canvas">
   <div class="contour-map-caption"><span>${region?esc(region.name):'КАРТА ПЯТИ РЕГИОНОВ'}</span><small>${esc(stage)}</small></div>
