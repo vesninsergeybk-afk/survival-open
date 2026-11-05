@@ -11,6 +11,7 @@ const base=(id,extra={})=>({id,active:true,enemy:false,discovered:true,captured:
 
 test('station XP is paid once, with an extra strategic-capture premium and fixed caps',()=>{
  const p=pilot(),station=base('1:0');
+ assert.equal(claimStationActivation(p,base('0:0')),0,'the free home dock is not an activation milestone');
  assert.equal(claimStationActivation(p,station),STRATEGIC_XP.activation);
  assert.equal(claimStationActivation(p,station),0);
  station.active=false;assert.equal(claimStationActivation(p,station),0);
@@ -97,6 +98,15 @@ test('geological surveys need rare rocks and different distant sites; automatic 
  assert.equal(claimGeologicalSurvey(p,rock('100:0/0',30000),'extract'),0);
 });
 
+test('a legacy pilot who already found the first rich rock earns XP for the next new survey',()=>{
+ const p={...pilot(),firstRichRockStudied:true},rock={id:'4:0/1',rich:true,
+  originX:4000,originY:0,x:4000,y:0};
+ assert.equal(claimGeologicalSurvey(p,rock,'extract',2),
+  STRATEGIC_XP.survey+2*STRATEGIC_XP.miningBonus);
+ assert.equal(claimGeologicalSurvey(p,rock,'extract',2),0);
+ assert.equal(claimGeologicalSurvey(p,{...rock,id:'4:0/2',originX:4200},'extract',2),0);
+});
+
 test('strategic sabotage counts completed distinct routes, not repeated operations',()=>{
  const p=pilot();
  assert.equal(claimStrategicSabotage(p,'hack','0:0'),0);
@@ -122,6 +132,43 @@ test('old-save backfill protects already owned stations, old contours and past d
  assert.equal(p.strategicXp.firstContour,true);
  assert.equal(validStrategicExperience(p.strategicXp,[...world.stations]),true);
  assert.strictEqual(inheritStrategicExperience(p,world),p.strategicXp);
+});
+
+test('legacy home station never consumes the finite exploration and activation XP budgets',()=>{
+ const home=base('0:0'),sites=Array.from({length:19},(_,i)=>
+  base((i+1)+':0',{active:i<15,discovered:i<17}));
+ const world={stations:new Map([home,...sites].map(site=>[site.id,site])),
+  discovered:new Set([home.id,...sites.slice(0,17).map(site=>site.id)]),
+  contours:createContours()};
+ const p={level:3,xp:17,points:2};
+ inheritStrategicExperience(p,world);
+ assert.equal(p.strategicXp.activations.length,15);
+ assert.equal(p.strategicXp.exploration.length,17);
+ assert.equal(p.strategicXp.activations.includes(home.id),false);
+ assert.equal(p.strategicXp.exploration.includes(home.id),false);
+ sites[17].active=true;sites[17].discovered=true;
+ assert.equal(claimStationActivation(p,sites[17]),STRATEGIC_XP.activation);
+ assert.equal(claimExploration(p,sites[17]),STRATEGIC_XP.exploration);
+ sites[18].active=true;sites[18].discovered=true;
+ assert.equal(claimStationActivation(p,sites[18]),0);
+ assert.equal(claimExploration(p,sites[18]),0);
+ assert.equal(validStrategicExperience(p.strategicXp,[...world.stations]),true);
+ assert.equal(p.level,3);assert.equal(p.xp,17);assert.equal(p.points,2);
+});
+
+test('already migrated saves with a home dock in the paid arrays recover one slot',()=>{
+ const p=pilot(),home=base('0:0'),next=base('19:0');
+ p.level=4;p.xp=33;
+ p.strategicXp.activations=[home.id,...Array.from({length:15},(_,i)=>(i+1)+':0')];
+ p.strategicXp.exploration=[home.id,...Array.from({length:17},(_,i)=>(i+1)+':0')];
+ const ledger=inheritStrategicExperience(p,{stations:new Map(),discovered:new Set(),contours:createContours()});
+ assert.equal(ledger.activations.length,15);
+ assert.equal(ledger.exploration.length,17);
+ assert.equal(claimStationActivation(p,base('16:0')),STRATEGIC_XP.activation);
+ assert.equal(claimExploration(p,base('18:0')),STRATEGIC_XP.exploration);
+ assert.equal(claimStationActivation(p,next),0);
+ assert.equal(claimExploration(p,next),0);
+ assert.equal(p.level,4);assert.equal(p.xp,33);
 });
 
 test('tampered, duplicate or oversized strategic XP ledgers are invalid',()=>{

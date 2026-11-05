@@ -19,12 +19,22 @@ export const createStrategicExperience=()=>({version:1,activations:[],captures:[
 // achievements through other mechanisms. Preserve its level and mark every
 // observable past milestone as spent; never grant historical XP on load.
 export function inheritStrategicExperience(player,world){
- if(player.strategicXp!==undefined)return player.strategicXp;
+ if(player.strategicXp!==undefined){
+  // The first published ledger could contain the free starting dock when
+  // importing an old run. Repair those saves without changing earned XP.
+  const ledger=player.strategicXp;
+  ledger.activations=ledger.activations.filter(id=>id!=='0:0');
+  ledger.exploration=ledger.exploration.filter(id=>id!=='0:0');
+  return ledger;
+ }
  const ledger=createStrategicExperience();
  const bases=[...world.stations.values()];
- ledger.activations=distinct(bases.filter(b=>b.active&&!b.enemy).map(b=>b.id),STRATEGIC_XP.maxActivations);
+ // Home is active from the start and never earns activation or discovery XP.
+ // Counting it here would silently consume a paid slot in legacy saves.
+ ledger.activations=distinct(bases.filter(b=>b.id!=='0:0'&&b.active&&!b.enemy)
+  .map(b=>b.id),STRATEGIC_XP.maxActivations);
  ledger.captures=distinct(bases.filter(b=>b.captured).map(b=>b.id),STRATEGIC_XP.maxCaptures);
- ledger.exploration=distinct(world.discovered,STRATEGIC_XP.maxExploration);
+ ledger.exploration=distinct([...world.discovered].filter(id=>id!=='0:0'),STRATEGIC_XP.maxExploration);
  const fields=contourFields(world);
  ledger.contourStations=distinct(fields.flatMap(f=>f.vertices),STRATEGIC_XP.maxContourStations);
  ledger.firstContour=fields.length>0||world.contours.delivered>0||
@@ -45,7 +55,7 @@ const claimId=(ledger,field,id,cap,value)=>{
 
 export function claimStationActivation(player,base){
  const ledger=player?.strategicXp;
- if(!ledger||!base?.active||base.enemy)return 0;
+ if(!ledger||!base?.active||base.enemy||base.id==='0:0')return 0;
  return claimId(ledger,'activations',base.id,STRATEGIC_XP.maxActivations,STRATEGIC_XP.activation);
 }
 export function claimStationCapture(player,base){
@@ -84,8 +94,10 @@ export function claimGeologicalSurvey(player,rock,kind,miningRank=0){
   ledger.surveys.some(s=>s.id===rock.id||Math.hypot(s.x-x,s.y-y)<STRATEGIC_XP.minSurveyDistance))return 0;
  const first=ledger.surveys.length===0;
  ledger.surveys.push({id:rock.id,x,y});
- // The existing first-rich-rock bonus already pays for the first sample.
- return first?0:STRATEGIC_XP.survey+
+ // A fresh pilot receives the separate first-rich-rock bonus for this sample.
+ // For a migrated pilot who already received it before this ledger existed,
+ // the first *new* survey is eligible for the ordinary geological bonus.
+ return first&&!player.firstRichRockStudied?0:STRATEGIC_XP.survey+
   STRATEGIC_XP.miningBonus*Math.min(4,Math.max(0,miningRank|0));
 }
 export function claimStrategicSabotage(player,kind,baseId){
