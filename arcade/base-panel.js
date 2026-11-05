@@ -806,7 +806,7 @@ export function renderBasePanel(base,state){
   (base.relayBoost||o.reasons.antenna?antenna:'');
  const network='<div class="base-operations"><section class="base-network-simple">'+
   '<span class="base-kicker">ОБОРОНА СТАНЦИИ</span><h3>Защитные заряды · '+protection.charges+'/'+protection.capacity+'</h3>'+
-  '<p class="base-defense-summary">ПВО автоматически расходует заряды на опасные снаряды рядом со станцией. Орбитальные удары сейчас '+
+  '<p class="base-defense-summary">ПВО действует автоматически: станция тратит заряды на опасные снаряды поблизости. Орбитальные удары сейчас '+
   (protection.meteorEnabled?'перехватываются':'пропускаются')+'. '+
   (protection.stasis?'Стазис срабатывает автоматически, когда рядом собирается группа врагов.':
    'Стазис откроется после соединения двух станций.')+'</p>'+

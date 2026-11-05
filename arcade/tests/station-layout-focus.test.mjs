@@ -135,5 +135,5 @@ test('advanced station risk decisions are behind an explicit disclosure',()=>{
  const network=renderBasePanel(home,state({baseTab:'network'})).split('id="base-panel-network"')[1];
  assert.match(network,/<details class="base-secondary-info base-defense-choice-details"><summary>Изменить перехват орбитальных ударов/);
  assert.match(network,/data-act="toggleMeteorDefense"/);
- assert.match(network,/ПВО автоматически расходует заряды/);
+ assert.match(network,/ПВО действует автоматически/);
 });
