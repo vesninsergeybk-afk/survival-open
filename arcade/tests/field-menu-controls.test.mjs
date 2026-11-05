@@ -26,13 +26,13 @@ function docked(){
  const g=game();g.shipLoadout.frame=0;g.shipLoadout.owned={plasma:1};
  g.paused=true;g.overlay.hidden=false;g.baseTab='hangar';return g;
 }
-for(const id of ['ion','resonator'])test(id+': visible station buttons borrow, apply, refill and return the actual module',()=>{
+for(const id of ['ion','resonator'])test(id+': visible station buttons borrow, equip, refill and return the actual module',()=>{
  const g=docked(),before=g.player.ore;
  withControls(g,click=>{
   click('loanField',id);
   assert.equal(g.fieldLoan?.moduleId,id,'the real click must reach rental logic');
   assert.ok(g.fieldTrialTaken);assert.equal(g.player.ore,before);
-  assert.equal(g.weaponProfile[id],false,'borrowing still requires Apply');
+  assert.equal(g.weaponProfile[id],true,'a free node is equipped without a second confirmation');
   click('hgApply');assert.equal(g.weaponProfile[id],true);
   g.fieldLoan.charges=1;g.fieldLoan.cooldownUntil=22;
   click('fieldCharge');assert.equal(g.fieldLoan.charges,2);assert.equal(g.player.ore,before-8);

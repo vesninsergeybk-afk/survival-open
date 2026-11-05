@@ -67,7 +67,7 @@ export function moduleLock(id,context){
  const rewarded=id===context.firstHardwareReward&&(context.loadout?.owned?.[id]||0)>0;
  if((context.level||1)<m.level&&!(id==='rail'&&context.earlyRail)&&!rewarded)return 'Нужен уровень '+m.level;
  if(id==='rocket'&&!(context.ranks?.rocket>0))return 'Изучите «Авторакеты» в ангаре';
- if(m.kind==='manual'&&!matchingFieldLoan(context,id))return 'Возьмите этот модуль в прокат ниже';
+ if(m.kind==='manual'&&!matchingFieldLoan(context,id))return 'Прокат: домашний док или арсенал';
  return '';
 }
 export function quoteLoadout(current,draft,context){
@@ -103,6 +103,13 @@ export function applyLoadout(current,draft,context){
  const loadout=cloneLoadout(current);loadout.slots=[...draft.slots];
  for(const [id,n] of Object.entries(quote.missing))loadout.owned[id]=(loadout.owned[id]||0)+n;
  return {...quote,loadout,ore:context.ore-quote.cost};
+}
+// A normal slot change commits one validated choice; saved designs still use a draft.
+export function equipModule(current,slot,id,context){
+ if(!Number.isInteger(slot)||!slotOpen(current,slot))return {ok:false,reason:'Узел ещё закрыт'};
+ if(id!==null&&!Object.hasOwn(MODULES,id))return {ok:false,reason:'Неизвестный модуль'};
+ const draft=cloneLoadout(current);draft.slots[slot]=id;
+ return applyLoadout(current,draft,context);
 }
 // Recording a design does not manufacture it, so its budget is not a gate.
 export const quoteBlueprint=(current,draft,context)=>
@@ -176,6 +183,16 @@ export class HangarSession {
   if(act==='hgCatalog'){this.catalog=true;this.inspect=false;}
   if(act==='hgFilter'&&['all','auto','manual','heavy'].includes(data.id))this.filter=data.id;
   if(act==='hgSelect'&&Object.hasOwn(MODULES,data.id)){this.selected=data.id;this.inspect=true;}
+  if(act==='hgEquip'||act==='hgUnequip'){
+   if(this.dirty(current)){this.message='Сначала примените или отмените загруженную схему';return;}
+   const id=act==='hgUnequip'?null:data.id;
+   const result=equipModule(current,this.slot,id,context);
+   if(!result.ok){this.message=result.reason;return;}
+   this.begin(result.loadout);this.selected=id||'plasma';
+   this.message=id?MODULES[id].short+' · установлено'+(result.cost?' · −'+result.cost+' сплава':''):
+    'Оружие снято и осталось на складе';
+   return {type:'apply',...result};
+  }
   if(act==='hgInstall'){
    const id=this.selected,lock=moduleLock(id,context);
    if(!slotOpen(current,this.slot)||lock){this.message=lock||'Этот узел ещё закрыт';return;}

@@ -828,3 +828,74 @@
  #overlay .base-tabs{top:-11px}
  #overlay .base-tabs button[data-notice]::after{display:inline-block;margin:0 0 0 4px}
 }
+
+/* Compact equipment picker: actions stay next to the selected node. */
+.menu-hint-popup{position:fixed;z-index:10000;width:min(340px,calc(100vw - 24px));box-sizing:border-box;
+ max-height:calc(100dvh - 24px);overflow:auto;padding:14px 16px;background:#09202cf5;color:#e4f3f5;
+ border:1px solid #83c6d5;border-radius:7px;box-shadow:0 8px 30px #0009;font-size:13px;line-height:1.5;
+ white-space:pre-line;text-align:left;pointer-events:auto}
+#overlay button.menu-info{flex:0 0 36px;width:36px;min-height:36px;padding:4px!important;margin:0!important;
+ border:1px solid #6b9ca8;border-radius:50%;background:#143444;color:#baf2ee;font:italic 700 16px Georgia,serif}
+#overlay .hg-weapon-row{display:flex;align-items:center;gap:8px;min-width:0}
+#overlay .hg-weapon-row .hg-weapon{flex:1;min-width:0;min-height:64px;margin:0;padding:8px 10px}
+#overlay .hg-weapon-row .hg-weapon strong{font-size:14px}
+#overlay .hg-weapon-row .hg-weapon em{color:#f2db9c;font-size:12px}
+#overlay .hg-layout-editing{grid-template-columns:minmax(250px,.85fr) minmax(320px,1.4fr)}
+.hg-one-click{display:block;margin-top:12px;color:#aac6d1;line-height:1.5}
+.hg-stock-help,.hg-mission-help,.hg-weapon-branches{margin:8px 0;color:#a8c4cf}
+.hg-stock-help>summary,.hg-mission-help>summary,.hg-weapon-branches>summary,
+.hg-thermal-details>summary{cursor:pointer;padding:8px 0;font-size:12px}
+#overlay .hg-mission-help{padding:0 10px;margin:6px 0;border-left:0}
+#overlay .hg-thermal-details{display:block;padding:0 10px}
+.hg-thermal-details:not([open])>strong,.hg-thermal-details:not([open])>span,
+.hg-thermal-details:not([open])>small{display:none}
+#overlay .hg-tactical-current{align-items:center;padding:10px 12px;gap:12px}
+#overlay .hg-tactical-current h3{display:inline;font-size:15px;margin:0 8px 0 0}
+#overlay .hg-tactical-current .hg-eyebrow{font-size:9px;margin-bottom:3px}
+#overlay .hg-tactical-current>div:first-child{flex:1;min-width:0}
+#overlay .hg-tactical-current .menu-info{display:inline-block}
+.hg-tactic-upgrade-details>summary{cursor:pointer;min-height:32px;line-height:32px}
+@media(max-width:700px),(pointer:coarse) and (max-height:580px){
+ #overlay .hg-layout-editing{display:block}
+ #overlay .hg-layout-editing>.hg-ship{display:none}
+ #overlay .hg-weapon-row .hg-weapon{min-height:56px}
+ #overlay .hg-catalog-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #overlay .hg-tactical-current{flex-wrap:wrap}
+}
+
+/* Stable pictograms supplement the short written action labels. */
+#overlay .base-tabs button,#overlay .base-quick-buttons button,#overlay .base-footer-actions button{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+#overlay .base-tabs [data-role="summary"]::before{content:"";display:inline-block;flex:0 0 18px;width:18px;height:18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M3%2011%2012%203l9%208M5%2010v11h5v-7h4v7h5V10%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+#overlay .base-tabs [data-role="operations"]::before{content:"";display:inline-block;flex:0 0 18px;width:18px;height:18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M6%204h12v17H6zM9%208h6M9%2012h6M9%2016h4%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+#overlay .base-tabs [data-role="hangar"]::before{content:"";display:inline-block;flex:0 0 18px;width:18px;height:18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M12%202%205%2020l7-4%207%204zM12%207v9%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+#overlay .base-tabs [data-role="network"]::before{content:"";display:inline-block;flex:0 0 18px;width:18px;height:18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M3%204h6v6H3zM15%2014h6v6h-6zM6%2010v7h9M15%203h6v6h-6zM9%207h6%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+#overlay .base-dialog [data-act="repair"]::before{content:"";display:inline-block;flex:0 0 18px;width:18px;height:18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m14%205%204%204%203-3a7%207%200%200%201-8%209L6%2022%202%2018l7-7a7%207%200%200%201%205-9z%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+#overlay .base-dialog [data-act="hire"]::before{content:"";display:inline-block;flex:0 0 18px;width:18px;height:18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22M7%209h10v8H7zM12%205v4M10%205h4M3%207l4%204M21%207l-4%204M3%2019l4-4M21%2019l-4-4%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+#overlay .base-dialog [data-act="baseMap"]::before{content:"";display:inline-block;flex:0 0 18px;width:18px;height:18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m3%205%206-2%206%202%206-2v16l-6%202-6-2-6%202zM9%203v16M15%205v16%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+#overlay .base-dialog [data-act="close"]::before{content:"";display:inline-block;flex:0 0 18px;width:18px;height:18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m3%204%2018%208-18%208%204-8zM7%2012h14%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+#overlay .base-dialog [data-act="showFieldTrial"]::before{content:"";display:inline-block;flex:0 0 18px;width:18px;height:18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.7%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m12%202%203%206%206%201-4%205%201%207-6-3-6%203%201-7-4-5%206-1z%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+.base-quick-service{position:relative}
+#overlay .base-quick-service>.menu-info{position:absolute;right:12px;top:12px}
+.base-quick-service h3{padding-right:32px}
+@media(max-height:580px){#overlay .hg-title{display:none}#overlay .hg-tactical{margin:4px 0}#overlay .hg-current-bar{padding:6px 9px}}
+#overlay .hg-title{padding:5px 2px 8px}
+#overlay .hg-title h2{font-size:21px}
+#overlay .hg-title .hg-eyebrow{display:none}
+#overlay .hg-current-bar{padding:8px 11px;font-size:12px}
+#overlay .hg-layout-centered .hg-blueprint{max-width:min(100%,420px)}
+#overlay .hg-layout-editing .hg-blueprint{max-width:480px;margin-inline:auto}
+.dialog button.menu-info{flex:none;min-width:36px;min-height:36px;border-radius:50%;color:#baf2ee}
+/* A short landscape screen uses the whole pane for the choice, without a duplicate ship view. */
+@media(max-height:580px){
+ #overlay .hg-layout-editing{display:block}
+ #overlay .hg-layout-editing>.hg-ship{display:none}
+ #overlay .hg-catalog-open>.hg-current-bar,#overlay .hg-catalog-open>.hg-mission-help{display:none}
+ #overlay .base-dialog:has(.hg-catalog-open)>.base-head{display:none}
+ #overlay .hg-arsenal{padding:8px 10px}
+ #overlay .hg-arsenal .hg-eyebrow{display:none}
+ #overlay .hg-arsenal h3{font-size:15px;margin:0}
+ #overlay .hg-arsenal .hg-section-head{margin-bottom:7px}
+ #overlay .hg-catalog-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #overlay .hg-weapon-row .hg-weapon{min-height:54px}
+ #overlay .hg-one-click{margin-top:6px}
+}

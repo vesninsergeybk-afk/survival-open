@@ -1,6 +1,7 @@
-import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=weapons-cycle-2-campaign-1';
+import {menuHints} from './menu-hints.js?v=direct-fit-1';
+import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-direct-fit-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
-import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1-tactical-field-1';
+import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1-tactical-field-1-direct-fit-1';
 
 let context,session;
 function setup(advanced){
@@ -17,7 +18,7 @@ function setup(advanced){
 }
 function render(){
  const root=document.getElementById('hangar'),view=captureHangarView(root);
- root.innerHTML=renderShipHangar(context,session);restoreHangarView(root,view);
+ root.innerHTML=renderShipHangar(context,session);restoreHangarView(root,view);menuHints(root);
 }
 document.addEventListener('click',e=>{
  const mode=e.target.closest('[data-preview]');if(mode){setup(mode.dataset.preview==='advanced');return;}
