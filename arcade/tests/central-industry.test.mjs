@@ -95,16 +95,17 @@ test('funded patrol waits for a visible warning, respects the cap and spends one
  g.time=10;updateRegionalWorld(g,1);
  assert.ok(s.pendingRaid?.announced);
  assert.equal(spawnCentralRaid(g,director),false);
- g.time=21;assert.equal(spawnCentralRaid(g,{...director,cap:1}),false);
+ g.time=31;assert.equal(spawnCentralRaid(g,{...director,cap:1}),false);
  assert.ok(spawnCentralRaid(g,director)>0);
- assert.equal(g.enemies.length,3,'a paid shipment adds one ship on top of the ambient pair');
+ assert.equal(g.enemies.length,5,'a paid shipment adds three ships on top of the ambient pair');
  assert.equal(g.enemies.filter(e=>e.scenario==='ambient').length,2);
- assert.equal(g.enemies.filter(e=>e.scenario==='central-funded').length,1);
+ assert.equal(g.enemies.filter(e=>e.scenario==='central-funded').length,3);
+ assert.equal(g.enemies.filter(e=>e.scenario==='central-funded'&&e.type==='gunship').length,1);
  assert.equal(s.raids,1);
  assert.equal(spawnCentralRaid(g,director),false);
- assert.ok(g.notices.some(text=>text.includes('патруль')));
+ assert.ok(g.notices.some(text=>text.includes('налёт')));
 });
-test('preventing a funded patrol measurably removes one fighter, without deleting ambient pressure',()=>{
+test('preventing a funded sortie removes three ships, without deleting ambient pressure',()=>{
  const director={cap:10,groupSize:3,types:['scout','fighter']};
  const create=paid=>{
   const g=game(),s=g.world.regionalSupply.central;
@@ -117,7 +118,7 @@ test('preventing a funded patrol measurably removes one fighter, without deletin
   if(!funded)g.spawnGroup(director);
   return {count:g.enemies.length,bonus:g.enemies.filter(e=>e.scenario==='central-funded').length};
  };
- assert.deepEqual(create(true),{count:4,bonus:1});
+ assert.deepEqual(create(true),{count:6,bonus:3});
  assert.deepEqual(create(false),{count:3,bonus:0});
 });
 test('the worker stays out of automatic fire until explicitly designated; destroying it halts mining',()=>{

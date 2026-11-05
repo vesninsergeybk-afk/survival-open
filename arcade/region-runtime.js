@@ -1,11 +1,12 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
 import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3-radio-shadow-1';
-import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralWorkerPosition,centralEvent} from './central-industry.js?v=living-world-1';
+import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1';
+import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1';
 import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1';
+import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1';
 import {stormPhase} from './regional-storms.js?v=regions-1';
-import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1';
+import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function makeEnemy(game,type,x,y,scenario,protect=null,frontierRole=null){
@@ -24,6 +25,7 @@ export function updateRegionalWorld(game,dt){
   s.visited.push(region.id);game.notice(region.name+'. '+region.cue,7);
  }
  const events=advanceRegionalSupply(world,game.time);
+ if(Math.floor(game.time)>Math.floor(game.time-dt))updateHomeConflict(game);
  if(game.waypoint?.id?.startsWith('regional-cargo-')||game.waypoint?.id?.startsWith('central-cargo-')||
     game.waypoint?.id?.startsWith('frontier-cargo-')){
   const cargo=[...s.convoys,...(s.central?.convoys||[]),
@@ -61,7 +63,11 @@ export function updateRegionalWorld(game,dt){
   if(e.kind==='central-dispatch'&&local?.discovered)
    game.notice('Малая шахта отправила груз к сборочному посту. Транспорт можно перехватить.',5);
   if(e.kind==='central-delivery'&&(local?.discovered||world.stations.get(CENTRAL_INDUSTRY.depotId)?.discovered))
-   game.notice('Груз прибыл. Сборочный пост готовит местное подкрепление.',5);
+   game.notice('Груз разгружен. Сборочный пост собирает тяжёлый корабль и два истребителя; затем предупредит об их выходе.',6);
+  if(e.kind==='central-screen-ready'&&local?.discovered)
+   game.notice('После потери груза шахта оплатила подготовку тяжёлого охранения. Каждый новый усиленный рейс тоже расходует дополнительную руду.',7);
+  if(e.kind==='central-route-changed'&&local?.discovered)
+   game.notice('После повторного перехвата враг потратил руду на обходной путь. Новый маршрут виден на карте; уже вышедший груз сохраняет прежний курс.',7);
   if(e.network&&world.stations.get(FRONTIERS[e.network].sourceId)?.discovered){
    if(e.kind==='dispatch')game.notice(e.network==='azure'?
     'Индукционная вышка отправила батареи в электроангар. Перехватите транспорт до его прибытия.':
@@ -94,7 +100,8 @@ export function updateRegionalWorld(game,dt){
     cargo.escorted=true;++game.groupSerial;
     const roster=cargo.frontierCargo?
      (cargo.screened?(cargo.frontierNetwork==='azure'?['flanker','gunship']:['gunship','healer']):
-      FRONTIERS[cargo.frontierNetwork].escort):['fighter','fighter'];
+      FRONTIERS[cargo.frontierNetwork].escort):
+     cargo.centralCargo&&cargo.screened?['gunship','fighter']:['fighter','fighter'];
     for(let i=0;i<2;i++)game.enemies.push(makeEnemy(game,roster[i],cargo.x+(i?95:-95),cargo.y+85,
      cargo.frontierCargo?'frontier-escort':'regional-escort',cargo,cargo.frontierNetwork||null));
    }
@@ -110,7 +117,7 @@ export function updateRegionalWorld(game,dt){
   distance(game.player,world.stations.get(CENTRAL_INDUSTRY.depotId))<11000){
   localPending.announced=true;
   localPending.readyAt=Math.max(localPending.readyAt,game.time+CENTRAL_INDUSTRY.warning);
-  game.notice('Перехвачена передача: сборочный пост выпустил патруль. Его снабжает местная шахта — перехватывайте грузы.',7);
+  game.notice('Перехвачена передача: сборочный пост готовит налёт — тяжёлый корабль и два истребителя. До готовности не менее '+CENTRAL_INDUSTRY.warning+' с. Захват поста отменит выход.',8);
  }
  for(const id of ['azure','teal']){
   const raid=s.frontier?.[id]?.pendingRaid,config=FRONTIERS[id];
@@ -175,31 +182,34 @@ export function spawnFrontierRaid(game,director){
  }
  return Math.max(.001,pause||0);
 }
-// A delivered shipment finances one *additional* escort in a regular wave.
-// The director's cap and group size still bound the encounter. Preventing
-// delivery therefore removes measurable combat pressure rather than merely
-// replacing a weak pair with a potentially stronger ambient formation.
+// A delivered local shipment finances one additional three-ship sortie. The
+// bounded background wave stays separate; three reserved slots prevent the
+// ambient population from indefinitely suppressing an already paid assault.
 export function spawnCentralRaid(game,director){
  const s=game.world.regionalSupply?.central,raid=s?.pendingRaid;
  const origin=game.world.stations.get(CENTRAL_INDUSTRY.depotId);
- const limit=Math.min(RULES.maxEnemies,director.cap);
+ const limit=Math.min(RULES.maxEnemies,director.cap+HOME_CONFLICT.raidShips);
+ const ambientRoom=Math.max(0,Math.min(director.groupSize||0,director.cap-game.enemies.length));
  if(!raid?.announced||!origin?.enemy||game.time<raid.readyAt||
   distance(game.player,origin)>11000||
-  !director.types?.length||!game.spawnGroup||
-  game.enemies.length+Math.max(1,director.groupSize||0)+1>limit)return false;
- const before=game.enemies.length;
- const ambientRecovery=game.spawnGroup(director);
- if(game.enemies.length<=before||game.enemies.length>=limit)return false;
+  director.cap<4||!director.types?.length||!game.spawnGroup||
+  game.enemies.length+ambientRoom+HOME_CONFLICT.raidShips>limit)return false;
+ const ambientRecovery=ambientRoom>0?game.spawnGroup(director):0;
+ if(game.enemies.length+HOME_CONFLICT.raidShips>limit)return false;
  const cam=game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
  const side=Math.abs(dx)>Math.abs(dy)?(dx>0?1:0):(dy>0?3:2);
  ++game.groupSerial;
- const pos=spawnOutside(cam,side,.5,170);
- const escort=makeEnemy(game,'fighter',pos.x,pos.y,'central-funded');
- escort.hp*=1+Math.min(2.5,game.time/550);escort.maxHp=escort.hp;
- game.enemies.push(escort);
+ let lead=null;
+ for(const [i,type] of ['gunship','fighter','fighter'].entries()){
+  const pos=spawnOutside(cam,side,.38+i*.12,180+i*20);
+  const ship=makeEnemy(game,type,pos.x,pos.y,'central-funded',lead);
+  ship.hp*=1+Math.min(2.5,game.time/550);ship.maxHp=ship.hp;
+  game.enemies.push(ship);
+  if(!lead)lead=ship;
+ }
  s.pendingRaid=null;s.raids++;s.nextRaid=game.time+90;
  centralEvent(s,'central-raid',game.time);
- game.notice('Сборочный пост усилил патруль сопровождающим истребителем. Перехват грузов лишит врага таких подкреплений.',5);
+ game.notice('Из сборочного поста прибыл оплаченный грузом налёт: тяжёлый корабль и два истребителя. Они идут со стороны поста. Перехват следующей поставки предотвратит следующий такой отряд.',7);
  return Math.max(.001,ambientRecovery);
 }
 // Add one funded heavy ship to an ambient encounter, respect its pressure cap,
@@ -255,7 +265,7 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
    (silentLoss?' Радиотень: сигнал бедствия не ушёл. Пропажу заметят позже.':
     ' Сигнал бедствия ушёл на ближайшую вражескую станцию.'):
   cargo.centralCargo?
-  'Местный груз уничтожен: сборочный пост не усилит один будущий патруль. Ранее доставленные резервы сохраняются.':
+  'Местный груз уничтожен: один будущий налёт из трёх кораблей лишился материалов. Прежние резервы сохраняются. Враг готовит защиту следующих рейсов — ей тоже нужна руда.':
   'Рудный груз перехвачен: военный узел не усилит один будущий патруль тяжёлым кораблём. Резервы сохраняются.',7);
 }
 export function drawRegionalWorld(game,c,cam){
@@ -274,7 +284,24 @@ export function drawRegionalWorld(game,c,cam){
  const local=game.world.stations.get(CENTRAL_INDUSTRY.sourceId);
  if(local?.discovered&&local.enemy){
   c.save();c.strokeStyle='#7ceac37a';c.lineWidth=2;c.setLineDash([11,14]);c.beginPath();
-  CENTRAL_ROUTE.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.stroke();c.restore();
+  centralRoute(s.central?.strategy?.rerouted?'diversion':'direct').forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.stroke();c.restore();
+ }
+ const depot=game.world.stations.get(CENTRAL_INDUSTRY.depotId),central=s.central;
+ if(depot?.discovered&&depot.enemy&&central&&
+   depot.x>cam.x-150&&depot.x<cam.x+cam.w+150&&depot.y>cam.y-150&&depot.y<cam.y+cam.h+150){
+  const unloading=central.history.some(e=>e.kind==='central-delivery'&&game.time-e.time<2);
+  const assembling=central.reserves>0&&game.time<central.assemblyUntil;
+  const pending=central.pendingRaid;
+  c.save();c.strokeStyle=unloading?'#8df5d4':'#ffb679';c.lineWidth=3;
+  if(unloading||assembling||pending){
+   c.beginPath();c.arc(depot.x,depot.y,136,-Math.PI/2,-Math.PI/2+Math.PI*2*
+    (assembling?Math.max(0,1-(central.assemblyUntil-game.time)/CENTRAL_INDUSTRY.assembly):1));c.stroke();
+  }
+  c.fillStyle='#ffe3b8';c.font='13px sans-serif';c.textAlign='center';
+  c.fillText(unloading?'РАЗГРУЗКА МАТЕРИАЛОВ':pending?
+   'ОТРЯД ОПЛАЧЕН · '+(pending.readyAt>game.time?Math.ceil(pending.readyAt-game.time)+' с':'ГОТОВ'):
+   assembling?'СБОРКА ОТРЯДА · '+Math.ceil(central.assemblyUntil-game.time)+' с':
+   'ОЖИДАНИЕ МАТЕРИАЛОВ',depot.x,depot.y+160);c.restore();
  }
  const w=s.central?.worker;
  if(w&&w.hp>0&&local?.enemy){

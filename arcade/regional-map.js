@@ -1,16 +1,16 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1';
-import {CENTRAL_INDUSTRY,CENTRAL_ROUTE} from './central-industry.js?v=living-world-1';
+import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1';
+import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1';
 import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
  'mine-captured':'Источник руды захвачен','military-captured':'Военный узел захвачен',diverted:'Груз лишился военной базы назначения'};
 const REGION_BRIEF=Object.freeze({
- amethyst:{goal:'Найти первые станции, получить оружие и подготовить корабль.',
+  amethyst:{goal:'Остановить налёты в домашнем секторе: перехватить снабжение, остановить шахту или захватить сборочный пост.',
   danger:'Стартовые патрули и местная промышленная сеть.',
   preparation:'Можно начинать без дополнительного оснащения.',
-  result:'Станции открывают ремонт, задания и улучшения.'},
+  result:'Без снабжения прекращаются новые местные налёты; захват сборочного поста также уменьшает фоновые патрули.'},
  amber:{goal:'Добывать сплав и нарушить доставку руды на военный рубеж.',
   danger:'Патрули среди крупных астероидов, которые могут служить укрытием.',
   preparation:'Полезны улучшенный экстрактор и запас прочности.',
@@ -55,7 +55,7 @@ export function renderRegionAtlas(game){
  const known=(station)=>station?.discovered?(station.enemy?'под контролем противника':'захвачена'):'не разведана';
  const localStatus=localIntel&&local?'<p>Местная промышленность: шахта — '+known(localMine)+', сборочный пост — '+known(localDepot)+'. Обнаружено грузов в пути: '+local.convoys.filter(c=>c.seen).length+'. Готовых резервов: '+(localDepot?.discovered?local.reserves:'неизвестно')+'.</p>':
   '<p>Недалеко от центра перехватываются сигналы промышленной сети. Разведайте источник на востоке, чтобы открыть её грузовой маршрут.</p>';
- const localResults=localIntel&&local?'<p>Перехвачено местных грузов: '+local.intercepted+'. Доставка добавляет истребитель к обычному патрулю; '+
+ const localResults=localIntel&&local?'<p>Перехвачено местных грузов: '+local.intercepted+'. Доставка оплачивает налёт: тяжёлый корабль и два истребителя; '+
   (localDepot?.discovered?'выпущено подкреплений: '+local.raids+'.':'о резерве сборочного поста пока нет сведений.')+'</p>':'';
  const frontierStatus=['azure','teal'].filter(id=>current.id===id||
   world.stations.get(FRONTIERS[id].sourceId)?.discovered||
@@ -86,7 +86,7 @@ export function renderRegionAtlas(game){
   '<rect width="300" height="240" rx="12" fill="#08182b"/><path d="M 150 120 L 300 0 V 240 Z" fill="#ffbb7015"/>'+
   '<path d="M 150 120 L 0 0 H 300 Z" fill="#dfa1e315"/><path d="M 150 120 L 0 240 H 300 Z" fill="#82e8ff15"/>'+
   '<path d="M 150 120 L 0 0 V 240 Z" fill="#88e6c815"/><circle cx="150" cy="120" r="53" fill="#24233c" stroke="#caa0ff"/>'+labels+
-  '<circle cx="'+Math.max(5,Math.min(295,player.x))+'" cy="'+Math.max(5,Math.min(235,player.y))+'" r="4" fill="#ffffff"/></svg><p>Контуры условны. Точка разведки ведёт внутрь региона, но не раскрывает расположение неизвестных станций. Сначала изучите описание и подготовьте корабль.</p><p><b>Маршевый перелёт:</b> удерживайте курс к выбранному региону или разведанной дружественной станции. Через 2,2 с в спокойном пространстве корабль ускорится. Вблизи врагов, станций и бурь скорость станет обычной. Время выживания и натиск продолжают расти.</p><div class="region-directions">'+buttons+'</div></details>'+
+  '<circle cx="'+Math.max(5,Math.min(295,player.x))+'" cy="'+Math.max(5,Math.min(235,player.y))+'" r="4" fill="#ffffff"/></svg><p>Контуры условны. Точка разведки ведёт внутрь региона, но не раскрывает расположение неизвестных станций. Сначала изучите описание и подготовьте корабль.</p><p><b>Маршевый перелёт:</b> удерживайте курс к выбранному региону или разведанной дружественной станции. Через 2,2 с в спокойном пространстве корабль ускорится. Вблизи врагов, станций и бурь скорость станет обычной. Время полёта продолжается. В домашней области фоновая опасность ограничена; в дальних регионах она по-прежнему растёт.</p><div class="region-directions">'+buttons+'</div></details>'+
   (mine?.discovered?'<p>'+enc(supplyStatus(world))+'</p><p>Рудных грузов перехвачено: '+s.intercepted+'. '+
    (world.stations.get(SUPPLY.militaryId)?.discovered?'Тяжёлых подкреплений вышло: '+s.raids+'. Резервов в узле: '+s.reserves+'.':
     'Оставшийся запас военного узла неизвестен.')+'</p>'+history:
@@ -101,7 +101,12 @@ export function regionalMapOverlay(game,point,visible){
   out+='<path d="M '+SUPPLY_ROUTE.map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+'" stroke="'+(mine.enemy?'#ffbc78':'#a4d8b1')+'" opacity=".7" stroke-width="2" stroke-dasharray="9 6" fill="none"/>';
  }
  if(game.world.stations.get(CENTRAL_INDUSTRY.sourceId)?.discovered){
-  out+='<path d="M '+CENTRAL_ROUTE.map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+'" stroke="#83efcd" opacity=".7" stroke-width="2" stroke-dasharray="7 9" fill="none"/>';
+  out+='<path d="M '+centralRoute(s.central?.strategy?.rerouted?'diversion':'direct').map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+'" stroke="#83efcd" opacity=".7" stroke-width="2" stroke-dasharray="7 9" fill="none"/>';
+  // A diversion affects future launches. Keep a departing cargo's old course
+  // visible while it is still in flight, instead of moving its route under it.
+  for(const cargo of s.central?.convoys||[])if(cargo.seen&&cargo.route!==
+    (s.central?.strategy?.rerouted?'diversion':'direct'))
+   out+='<path d="M '+centralRoute(cargo.route).map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+'" stroke="#83efcd" opacity=".35" stroke-width="1" stroke-dasharray="3 7" fill="none"/>';
  }
  for(const id of ['azure','teal']){
   const cfg=FRONTIERS[id];
