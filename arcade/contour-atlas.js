@@ -37,6 +37,9 @@ function regionOverview(world,center,scale,fields=[]){
   // The southern label belongs below its region; above it would sit in the
   // home-region halo and become almost indistinguishable from its title.
   const labelY=r.id==='azure'?70:-61;
+  // The northern badge would collide with the home-region name if placed
+  // below its cluster. Shift only this one to the free eastern side.
+  const badgeX=r.id==='lilac'?27:-29,badgeY=r.id==='lilac'?-12:33;
   const sites=world.nearbyStations(r.survey.x,r.survey.y,5100,true);
   const count=new Set(sites.map(b=>b.id)).size;
   const owned=sites.filter(b=>b.active&&!b.enemy&&!b.suppressed).length;
@@ -44,8 +47,8 @@ function regionOverview(world,center,scale,fields=[]){
   return `<g class="contour-region" role="button" tabindex="0" data-act="contourRegion" data-id="${r.id}" aria-label="${esc(r.name)}. Работает ${owned} из ${count} узлов" transform="translate(${digits(p.x)} ${digits(p.y)})">
    <circle class="contour-region-halo" r="49" fill="${r.color}06" stroke="${r.color}70" stroke-width="1.5"/>
    <circle r="26" fill="none" stroke="${r.color}50" stroke-dasharray="3 6" stroke-width="1.2"/>
-   <rect x="-29" y="33" width="58" height="22" rx="10" fill="#071a2be8" stroke="${r.color}aa" stroke-width="1"/>
-   <text y="48" text-anchor="middle" fill="#f1faff" font-size="12" font-weight="800">${owned} / ${count}</text>
+   <rect x="${badgeX}" y="${badgeY}" width="58" height="22" rx="10" fill="#071a2be8" stroke="${r.color}aa" stroke-width="1"/>
+   <text x="${badgeX+29}" y="${badgeY+15}" text-anchor="middle" fill="#f1faff" font-size="12" font-weight="800">${owned} / ${count}</text>
    <text y="${labelY}" text-anchor="middle" fill="${r.color}" font-size="12" font-weight="700">${esc(r.name)}</text>
    ${occupied?`<text y="${labelY===70?-57:72}" text-anchor="middle" class="contour-region-claims">Контуров: ${occupied}</text>`:''}
    <circle r="53" fill="transparent"/></g>`;

@@ -25,6 +25,8 @@ test('the strategic map starts with five accessible regions and no hidden naviga
  assert.ok((html.match(/class="contour-global-station unknown"/g)||[]).length>80,
   'the global atlas should display surveyed station positions from all regions');
  assert.match(html,/Не разведана/,'the grey stations need a visible legend');
+ assert.match(html,/<rect x="27" y="-12" width="58" height="22"/,
+  'the northern count must sit beside its node cluster, away from the home label');
  assert.doesNotMatch(html,/contour-region[^>]*>[\s\S]*?<circle r="30" fill="#0b2333"/,
   'opaque counters must not cover the live station constellations');
  game.contourRegion='amethyst';
