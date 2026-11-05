@@ -1,3 +1,4 @@
+import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1';
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
   squadRoleFor,squadRoleLabel} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
@@ -245,6 +246,7 @@ export class EnemyComms {
     this.cells=[];this.events=[];this.nextTick=0;
     this.serial=0;this.messages=0;this.decisions=0;
     this.intercepts=[];
+    this.theater=new EnemyTheaterStrategy();
   }
 
   reportSight(e,player,now){
@@ -572,9 +574,11 @@ export class EnemyComms {
             planId:cell.plan?.id??null,planPhase:cell.plan?.phase??null};
       }
     }
+    this.theater.update(game,this);
   }
 
   confirmExecution(game){
+    this.theater.confirmExecution(game,this);
     const now=game.time;
     for(const cell of this.cells){
       if(cell.plan&&!cell.brokenUntil&&cell.members.some(e=>
@@ -615,6 +619,8 @@ export class EnemyComms {
       }
     }
   }
+
+  strategicDirectiveFor(e,now){return this.theater.directiveFor(e,now);}
 
   directiveFor(e,now){
     const cell=e?._commsCell;
@@ -772,6 +778,7 @@ export class EnemyComms {
       }
       labelCenters.push(e);cues++;
     }
+    this.theater.render(ctx,cam,now,game,fps);
     ctx.restore();return drawn;
   }
 }
