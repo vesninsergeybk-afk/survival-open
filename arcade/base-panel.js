@@ -488,7 +488,7 @@ const networkPreview=(base,state)=>{
   '<div class="base-network-preview-actions">'+
   '<button type="button" data-act="baseMap">Открыть полную карту</button></div></section>';
 };
-const tabButton=(id,name,selected)=>'<button type="button" role="tab" id="base-tab-'+id+'" aria-controls="base-panel-'+id+'" tabindex="'+(id===selected?'0':'-1')+'" data-act="baseTab" data-role="'+id+
+const tabButton=(id,name,selected,notice='')=>'<button type="button" role="tab" id="base-tab-'+id+'" aria-controls="base-panel-'+id+'"'+(notice?' data-notice="'+notice+'" aria-label="'+name+' · '+notice+'"':'')+' tabindex="'+(id===selected?'0':'-1')+'" data-act="baseTab" data-role="'+id+
  '" aria-selected="'+(id===selected)+'" class="'+(id===selected?'selected':'')+'">'+name+'</button>';
 const tabPanel=(id,selected,body)=>'<section class="base-tab-panel" id="base-panel-'+id+'" aria-labelledby="base-tab-'+id+'" role="tabpanel" data-tab="'+id+'"'+
  (id===selected?'':' hidden')+'>'+body+'</section>';
@@ -524,7 +524,7 @@ function stationNextStep(base,state,o,regionalGoal=false){
   buttons=action('baseTab','Выбрать оружие','','operations');
  }else if(c){
   kind='active';title='Заказ в работе: '+c.progress+' из '+c.goal;
-  description='«'+c.name+'». '+(local?'Здесь Вы сможете сдать его после выполнения.':
+  description='«'+c.name+'». '+(local?o.contract.desc+' Здесь Вы сможете сдать заказ после выполнения.':
    'Для получения награды вернитесь на '+destination+'.');
   buttons=action('baseTab','Посмотреть задание','','operations');
  }else if(state.lastContractReceipt?.firstHardwareReward===state.firstHardwareReward&&
@@ -544,7 +544,10 @@ function stationNextStep(base,state,o,regionalGoal=false){
   buttons=op.baseId===base.id?action('baseTab','Посмотреть операцию','','operations'):
    action('baseMap','Показать цель на карте');
  }
- if(kind==='standard'&&regionalGoal)return '';
+ if(kind==='standard'&&regionalGoal){
+  title='Выберите цель следующего вылета';
+  description='В заданиях доступны заказы с наградой и планы действий против вражеских станций.';
+ }
  return '<section class="base-next-step '+kind+'" aria-label="Что делать сейчас">'+
   '<div><span class="base-kicker">ЧТО СЕЙЧАС ВАЖНО</span><h3>'+title+'</h3><p>'+description+'</p></div>'+
   '<div class="base-next-actions">'+buttons+'</div></section>';
@@ -719,7 +722,9 @@ export function renderBasePanel(base,state){
   action('supply','Снарядить авиаудар · '+o.chargeCost+' сплава',o.reasons.supply)+'</section>':'';
  const suppression=base.suppressed?'<section class="home-conflict"><strong>Связь станции подавлена</strong><p>Радиоперехват, перелёты и услуги сети временно недоступны. Местный ремонт работает. Отстыкуйтесь и уничтожьте носитель помех или дождитесь восстановления в полёте. Меню останавливает игровое время.</p></section>':'';
  const threats=state.world?renderStationThreats({world:state.world,enemies:state.enemies||[],time:state.time,player:state.position}):'';
- const dashboard=stationNextStep(base,state,o,!!(regionalGoal||campaign))+threats+suppression+regionalGoal+campaign+capturedWing+
+ const dashboard=stationNextStep(base,state,o,!!(regionalGoal||campaign))+suppression+
+  (threats?'<aside class="base-alert" role="status"><span>Противник угрожает связи станций.</span>'+
+   action('baseTab','Посмотреть угрозы','','network')+'</aside>':'')+
   '<div class="base-quick-services">'+
   '<section class="base-quick-service"><span class="base-kicker">КОРАБЛЬ</span><h3>Ремонт и оснащение</h3>'+
   '<p>'+repairHint+(base.type==='dock'?' Вблизи дока корпус также восстанавливается бесплатно, если не получать урон.':'')+'</p>'+
@@ -757,7 +762,9 @@ export function renderBasePanel(base,state){
    (specialOffer(base,state)?.name||(baseNames[base.type]||'Станция'))+
    (localOperation?' · '+(state.operation.phase==='return'?'Вернуться за наградой':'В работе'):'')+
    '</summary>'+specialPanel(base,state)+'</details>':'')+
-  (o.contract.status==='ready'?'':'<h3 class="base-section-title">Полевые заказы</h3>'+contractPanel(o,state))+'</div>';
+  (o.contract.status==='ready'?'':'<h3 class="base-section-title">Полевые заказы</h3>'+contractPanel(o,state))+
+  (regionalGoal||campaign?'<details class="base-secondary-info base-region-plans" data-hangar-section="region-plans">'+
+   '<summary>Цели в регионах · ослабить противника и открыть станции</summary>'+regionalGoal+campaign+'</details>':'')+'</div>';
  const localMission=specialOffer(base,state),hullPercent=Math.round(state.hp/state.maxHp*100);
  const missionForPreparation=state.operation||localMission;
  const missionContext=missionForPreparation&&missionForPreparation.status!=='complete'?
@@ -818,7 +825,7 @@ export function renderBasePanel(base,state){
   (!base.relayBoost&&!o.reasons.antenna?antenna:'');
  const futureUpgrades=(o.reasons.upgrade?upgrade:'')+
   (base.relayBoost||o.reasons.antenna?antenna:'');
- const network='<div class="base-operations"><section class="base-network-simple">'+
+ const network='<div class="base-operations">'+threats+capturedWing+'<section class="base-network-simple">'+
   '<span class="base-kicker">ОБОРОНА СТАНЦИИ</span><h3>Защитные заряды · '+protection.charges+'/'+protection.capacity+'</h3>'+
   '<p class="base-defense-summary">ПВО действует автоматически: станция тратит заряды на опасные снаряды поблизости. Орбитальные удары сейчас '+
   (protection.meteorEnabled?'перехватываются':'пропускаются')+'. '+
@@ -840,15 +847,19 @@ export function renderBasePanel(base,state){
   (modules?'<details class="base-secondary-info base-network-advanced"><summary>'+
    (base.module?'Оснащение станции · установлено':'Оснащение станции · необратимый выбор')+
    '</summary>'+modules+'</details>':'')+
-  (transit?'<details class="base-secondary-info base-network-advanced"><summary>Перелёты между станциями</summary>'+transit+'</details>':'')+
+  (transit?'<details class="base-secondary-info base-network-advanced" data-hangar-section="transit"><summary>Перелёты между станциями</summary>'+transit+'</details>':'')+
   (state.doctrine?'<details class="base-secondary-info base-network-advanced">'+
    '<summary>Сменить доктрину пилота</summary><section class="base-doctrine-service">'+
    '<p>Возврат очка доктрины стоит 12 сплава.</p>'+
    action('respec','Сменить доктрину · 12 сплава',o.ore<12?'Нужно 12 сплава':'')+'</section></details>':'')+'</div>';
  const opening=active?
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
-  tabButton('summary','Главная',selected)+tabButton('operations','Задания',selected)+
-  tabButton('hangar','Корабль',selected)+tabButton('network','Станция',selected)+'</nav>'+
+  tabButton('summary','Главная',selected)+tabButton('operations','Задания',selected,o.contract.status==='ready'?'Награда':state.firstHardwareReward==='pending'?'Оружие':'')+
+  tabButton('hangar','Корабль',selected)+tabButton('network','Станция',selected,threats?'Угроза':'')+'</nav>'+
+  '<p class="base-section-help">'+({summary:'Здесь можно получить награду и подготовиться к вылету.',
+   operations:'Заказы, особые операции и цели в регионах. Награду за заказ забирайте на станции, где его приняли.',
+   hangar:'Оружие и развитие корабля. Нажмите на узел корабля, чтобы изменить его оснащение.',
+   network:'Защита станции, улучшения связи и перелёты между станциями.'})[selected]+'</p>'+
   tabPanel('summary',selected,dashboard+(report?'<details class="base-secondary-info base-report-details">'+
     '<summary>Итоги последнего вылета</summary>'+report+'</details>':''))+
   tabPanel('operations',selected,operations)+
@@ -872,5 +883,6 @@ export function renderBasePanel(base,state){
   (state.hangarSession?.dirty(state.loadout)?
    '<span class="base-unapplied-note" role="status">В ангаре есть неприменённая сборка</span>':'')+
   '<div class="base-footer-actions">'+
+  (active?action('baseMap','Карта сектора'):'')+
   action('close',state.hangarSession?.dirty(state.loadout)?'В полёт · сборка не применена':'В полёт')+'</div></footer></div>';
 }

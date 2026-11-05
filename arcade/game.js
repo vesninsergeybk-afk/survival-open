@@ -30,7 +30,7 @@ import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
@@ -40,7 +40,7 @@ import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMar
 
 import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2';
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
-import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
+import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
 import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1-expedition-1-campaign-1-opening-tactics-1-weapon-mechanics-2';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';

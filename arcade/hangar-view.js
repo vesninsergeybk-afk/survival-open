@@ -2,6 +2,7 @@
 // the station. Restore disclosure state before scroll to avoid height clamping.
 export function captureHangarView(root){
  return {
+  tab:root.querySelector('.base-tabs [aria-selected="true"]')?.dataset.role,
   scroll:root.querySelector('.base-dialog')?.scrollTop||0,
   expanded:[...root.querySelectorAll('details[data-hangar-section][open]')]
    .map(node=>node.dataset.hangarSection)
@@ -10,5 +11,7 @@ export function captureHangarView(root){
 export function restoreHangarView(root,view){
  for(const node of root.querySelectorAll('details[data-hangar-section]'))
   node.open=view.expanded.includes(node.dataset.hangarSection);
- const dialog=root.querySelector('.base-dialog');if(dialog)dialog.scrollTop=view.scroll;
+ const currentTab=root.querySelector('.base-tabs [aria-selected="true"]')?.dataset.role;
+ const dialog=root.querySelector('.base-dialog');
+ if(dialog)dialog.scrollTop=view.tab===currentTab?view.scroll:0;
 }
