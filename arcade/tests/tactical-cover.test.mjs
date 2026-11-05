@@ -3,14 +3,16 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {impactRock,rockYield,MINING_NOISE,extractionNoiseDelta} from '../mining.js';
 import {contactOnCircle} from '../impact-geometry.js';
+import {firstRichAsteroidExperience} from '../experience.js';
 
 const gameSource=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 const start=gameSource.indexOf(' damageRock(');
 const end=gameSource.indexOf('\n addDrop(',start);
 assert.ok(start>0&&end>start,'asteroid damage method must remain available');
 const Harness=new Function('impactRock','rockYield','MINING_NOISE','extractionNoiseDelta',
- 'contactOnCircle','return class CoverHarness {'+gameSource.slice(start,end)+'}')(
- impactRock,rockYield,MINING_NOISE,extractionNoiseDelta,contactOnCircle);
+ 'contactOnCircle','firstRichAsteroidExperience',
+ 'return class CoverHarness {'+gameSource.slice(start,end)+'}')(
+ impactRock,rockYield,MINING_NOISE,extractionNoiseDelta,contactOnCircle,firstRichAsteroidExperience);
 
 test('repeated enemy impacts destroy finite asteroid cover without giving free ore',()=>{
  const broken=[],drops=[],sounds=[];
@@ -39,9 +41,10 @@ test('hostile projectiles really drive cover wear, but only at their collision p
 });
 
 test('partial extraction creates live noise without premature ore or duplicated rewards',()=>{
- const drops=[],contract=[];const game=new Harness();
+ const drops=[],contract=[],experience=[];const game=new Harness();
  Object.assign(game,{time:30,miningNoise:0,skillRanks:{mining:0},nearQuietLab:false,
   doctrine:null,advanceContract:(...args)=>contract.push(args),
+  player:{firstRichRockStudied:false},awardExperience:xp=>experience.push(xp),notice:()=>{},
   heritage:{vfx:{asteroidBreak:()=>{},asteroidImpact:()=>{}},play:()=>{}},
   addDrop:(...args)=>drops.push(args)});
  const rock={x:120,y:0,r:30,rich:true,hp:100,maxHp:100,alive:true,vx:0,vy:0};
@@ -54,8 +57,10 @@ test('partial extraction creates live noise without premature ore or duplicated 
  assert.ok(Math.abs(game.miningNoise-42)<1e-9);
  assert.equal(rock.alive,false);
  assert.equal(contract.length,1);
+ assert.deepEqual(experience,[18],'first rich extraction awards XP exactly once');
  assert.equal(drops.reduce((sum,drop)=>sum+drop[3],0),rockYield(rock,'extract'));
  game.damageRock(rock,50,0,0,'extract',false);
+ assert.deepEqual(experience,[18],'broken rock cannot award more XP');
  assert.equal(game.miningNoise,42,'dead rock cannot emit noise twice');
 });
 test('previous beam damage cannot turn full-yield extraction into near-silent farming',()=>{
