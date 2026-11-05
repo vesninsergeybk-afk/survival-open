@@ -5,6 +5,7 @@ import {FRONTIER_STATIONS} from './frontier-industry.js?v=living-world-3-radio-s
 import {RULES, hash, dist, baseNames} from './balance.js?v=arcade-network-20';
 import {amberBeltDensity,nearAmberBelt,inAmberCorridor} from './terrain.js?v=arcade-belt-26';
 import {createContours,fieldAt} from './territory-system.js?v=contours-1-world-feedback-1';
+import {createEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1';
 const BASE_CELL = 1250;
 export const RELAY_RANGE = 1450;
 export const RELAY_EXTENSION = 500;
@@ -26,6 +27,7 @@ export class World {
     this.ensureRegionalStations();
     this.regionalSupply=createRegionalSupply();
     this.contours=createContours();
+    this.enemyExpansion=createEnemyExpansion();
   }
   ensureRegionalStations(){
     for(const spec of [...STRATEGIC_STATIONS,...CENTRAL_STATIONS,...FRONTIER_STATIONS]){

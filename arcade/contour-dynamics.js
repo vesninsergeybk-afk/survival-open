@@ -1,4 +1,4 @@
-import {contourFields,contourArea,insidePolygon} from './territory-system.js?v=contours-1-world-feedback-1';
+import {contourFields,contourArea} from './territory-system.js?v=contours-1-world-feedback-1';
 
 // A presentation-only timeline. Ownership, production and raids continue to
 // come exclusively from the world simulation. Frozen geometry prevents a
@@ -41,7 +41,12 @@ export function activeContourTransition(game){
  return t&&Number.isFinite(game.time)&&game.time-t.at<6&&realTime()-t.realAt<6500? t:null;
 }
 
-export const fieldWasOwned=(point,oldFields)=>oldFields.some(f=>insidePolygon(point,f.polygon));
+// A face can grow around an old field while keeping its centre inside it.
+// Identity is suitable for deciding whether a vortex is new; *land* must be
+// drawn with an exact old-polygon subtraction in each renderer.
+export const fieldIsNew=(field,oldFields)=>!oldFields.some(f=>f.id===field.id&&
+ f.polygon.length===field.polygon.length&&f.polygon.every((p,i)=>
+  Math.abs(p.x-field.polygon[i].x)<.01&&Math.abs(p.y-field.polygon[i].y)<.01));
 
 /** Only orders issued to a real, still-alive ship are shown as plans. A
  * jammer can deny a face; it does not acquire ownership of that face. */

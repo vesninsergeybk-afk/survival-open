@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createContours,connectContour,disconnectContour,contourFields,contourArea} from '../territory-system.js';
-import {syncContourDynamics,activeContourTransition,enemyContourThreats} from '../contour-dynamics.js';
+import {createContours,connectContour,disconnectContour,contourFields,contourArea,insidePolygon} from '../territory-system.js';
+import {syncContourDynamics,activeContourTransition,fieldIsNew,enemyContourThreats} from '../contour-dynamics.js';
 import {renderWorldMap} from '../map-panel.js';
+import {drawContourWorld} from '../contour-visuals.js';
 import {World} from '../world.js';
 
 const gameWithNodes=()=>{
@@ -127,4 +128,47 @@ test('the reduced-motion version remains readable and old saves have no phantom 
  assert.match(css,/@keyframes contourVortexBorn/);
  assert.match(css,/\.contour-retreat\{display:none\}/);
  assert.match(css,/\.contour-vortex-map\.contour-vortex-forming\{opacity:1;transform:none\}/);
+});
+
+test('outer capture still fills genuinely new land when its vortex centre sits in old land',()=>{
+ const positions={A:[0,0],B:[900,0],C:[450,900],D:[-900,-600],E:[1900,-600],F:[500,1750]};
+ const game=gameWithNodes(),world=game.world;
+ world.stations=new Map(Object.entries(positions).map(([id,[x,y]])=>
+  [id,{id,x,y,active:true,enemy:false,discovered:true,type:'dock'}]));
+ link(game,'A','B');link(game,'B','C');link(game,'C','A');
+ syncContourDynamics(game);
+ const small=contourFields(world)[0];
+ link(game,'D','E');link(game,'E','F');link(game,'F','D');
+ const claim=syncContourDynamics(game),outer=contourFields(world)[0];
+ assert.equal(claim.kind,'claim');
+ assert.equal(claim.area,2885000);
+ assert.equal(insidePolygon(outer.center,small.polygon),true,
+  'this is precisely the case the former centroid heuristic missed');
+ assert.equal(fieldIsNew(outer,claim.previous),true);
+ const local=renderWorldMap(game);
+ assert.match(local,/contourAddedLand/);
+ assert.match(local,/contourOldLand/);
+ assert.match(local,/contour-owned-field contour-forming/);
+ assert.match(local,/contour-vortex-forming/);
+ assert.match(local,/contour-claim-surges/);
+ const clips=[];
+ const ctx={save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},
+  stroke(){},fill(){},arc(){},clip(rule){clips.push(rule||'nonzero')},setLineDash(){}};
+ game.fps=30;game.visuals={reducedMotion:false};game.contourVisualAt=-Infinity;
+ drawContourWorld(game,ctx,{x:-1700,y:-1100,w:4300,h:3600});
+ assert.ok(clips.includes('evenodd'),'world renderer must subtract the existing land');
+});
+
+test('five-region atlas displays the real polygons, links and vortex at global scale',()=>{
+ const game=gameWithNodes();
+ link(game,'0:0','B');link(game,'B','C');link(game,'C','0:0');
+ syncContourDynamics(game);
+ game.contourRegion='all';
+ const html=renderWorldMap(game);
+ assert.match(html,/contour-global-ownership/);
+ assert.match(html,/class="contour-owned-field"/);
+ assert.match(html,/contour-vortex-map/);
+ assert.match(html,/contour-live-link/);
+ assert.match(html,/contour-region-claims/);
+ assert.match(html,/contour-global-station owned/);
 });

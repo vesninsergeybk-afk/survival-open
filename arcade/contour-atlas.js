@@ -7,7 +7,8 @@ import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
 import {labLogisticsUnlocked} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from './contour-cartography.js?v=living-atlas-3';
-import {syncContourDynamics,activeContourTransition,fieldWasOwned,enemyContourThreats} from './contour-dynamics.js?v=contour-dynamics-1';
+import {syncContourDynamics,activeContourTransition,fieldIsNew,enemyContourThreats} from './contour-dynamics.js?v=contour-dynamics-2';
+import {knownEnemyFields,enemyExpansionPlan} from './enemy-expansion.js?v=enemy-expansion-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -30,7 +31,7 @@ const route=b=>'<button class="contour-route" data-act="waypoint" data-id="'+esc
 
 // The whole-atlas view is a geographic overview. Detailed station points only
 // appear at regional scale, where they are large enough to choose accurately.
-function regionOverview(world,center,scale){
+function regionOverview(world,center,scale,fields=[]){
  return REGIONS.map(r=>{
   const p=at(r.survey,center,scale);
   // The southern label belongs below its region; above it would sit in the
@@ -39,6 +40,7 @@ function regionOverview(world,center,scale){
   const sites=world.nearbyStations(r.survey.x,r.survey.y,5100,true);
   const count=new Set(sites.map(b=>b.id)).size;
   const owned=sites.filter(b=>b.active&&!b.enemy&&!b.suppressed).length;
+  const occupied=fields.filter(f=>regionAt(f.center.x,f.center.y).id===r.id).length;
   return `<g class="contour-region" role="button" tabindex="0" data-act="contourRegion" data-id="${r.id}" aria-label="${esc(r.name)}. Работает ${owned} из ${count} узлов" transform="translate(${digits(p.x)} ${digits(p.y)})">
    <circle class="contour-region-halo" r="49" fill="${r.color}12" stroke="${r.color}70" stroke-width="1.5"/>
    <circle r="30" fill="#0b2333" stroke="${r.color}" stroke-width="1.5"/>
@@ -46,7 +48,15 @@ function regionOverview(world,center,scale){
    <text y="-3" text-anchor="middle" fill="#f1faff" font-size="18" font-weight="800">${owned}</text>
    <text y="13" text-anchor="middle" fill="${r.color}" font-size="9">из ${count}</text>
    <text y="${labelY}" text-anchor="middle" fill="${r.color}" font-size="12" font-weight="700">${esc(r.name)}</text>
+   ${occupied?`<text y="${labelY===70?-57:65}" text-anchor="middle" class="contour-region-claims">Контуров: ${occupied}</text>`:''}
    <circle r="53" fill="transparent"/></g>`;
+ }).join('');
+}
+function overviewStations(world,center,scale){
+ return [...world.stations.values()].filter(b=>b.discovered||b.active).map(b=>{
+  const p=at(b,center,scale);
+  if(p.x<6||p.x>674||p.y<6||p.y>474)return '';
+  return `<circle class="contour-global-station ${b.enemy?'hostile':b.active?'owned':'known'}" cx="${digits(p.x)}" cy="${digits(p.y)}" r="${b.active?'3.1':'2.3'}"><title>${esc(name(b))}</title></circle>`;
  }).join('');
 }
 
@@ -73,23 +83,39 @@ function stationMarks(nodes,center,scale,selectedId,sourceId,readyIds,goalIds,wa
  }).join('');
 }
 
-function fieldArtwork(fields,world,center,scale,transition){
+function fieldArtwork(fields,world,center,scale,transition,overview=false){
  const claiming=transition?.kind==='claim';
- const fresh=f=>claiming&&!fieldWasOwned(f.center,transition.previous);
- const filled=fields.map(f=>`<path d="${svgPath(f.polygon,center,scale)}" class="contour-owned-field${fresh(f)?' contour-forming':''}"/>`).join('');
+ const fresh=f=>claiming&&fieldIsNew(f,transition.previous);
+ const paths=fields.map(f=>`<path d="${svgPath(f.polygon,center,scale)}" class="contour-owned-field"/>`).join('');
+ // Draw the already owned intersection immediately, but animate *all* new
+ // area even when its polygon surrounds the old land. Centre tests fail here.
+ const filled=claiming?`<defs><mask id="contourOldLand" maskUnits="userSpaceOnUse" x="0" y="0" width="680" height="480"><rect width="680" height="480" fill="black"/>${transition.previous.map(f=>`<path d="${svgPath(f.polygon,center,scale)}" fill="white"/>`).join('')}</mask>
+  <mask id="contourAddedLand" maskUnits="userSpaceOnUse" x="0" y="0" width="680" height="480"><rect width="680" height="480" fill="white"/>${transition.previous.map(f=>`<path d="${svgPath(f.polygon,center,scale)}" fill="black"/>`).join('')}</mask></defs>
+  <g mask="url(#contourOldLand)">${paths}</g><g mask="url(#contourAddedLand)">${fields.map(f=>`<path d="${svgPath(f.polygon,center,scale)}" class="contour-owned-field contour-forming"/>`).join('')}</g>`:paths;
  // The old boundary is a temporary afterimage only where land was actually
  // lost. Mask surviving polygons, otherwise a redraw would look like a loss.
  const loss=transition?.kind==='loss'?`<defs><mask id="contourRetreatMask" maskUnits="userSpaceOnUse" x="0" y="0" width="680" height="480"><rect width="680" height="480" fill="white"/>${fields.map(f=>`<path d="${svgPath(f.polygon,center,scale)}" fill="black"/>`).join('')}</mask></defs>
   <g class="contour-retreat" mask="url(#contourRetreatMask)">${transition.previous.map(f=>`<path d="${svgPath(f.polygon,center,scale)}"/>`).join('')}</g>`:'';
- const surge=claiming?`<g class="contour-claim-surges">${fields.filter(fresh).map(f=>`<path d="${svgPath(f.polygon,center,scale)}" pathLength="100"/>`).join('')}</g>`:'';
+ const changed=claiming?[...new Map(transition.current.filter(f=>fresh(f)).flatMap(f=>
+  f.vertices.map((id,i)=>{
+   const other=f.vertices[(i+1)%f.vertices.length];
+   return [[id,other].sort().join('|'),[id,other]];
+  }))).values()]:[];
+ // Energy runs along real physical links before the land fills.
+ const surge=claiming?`<g class="contour-claim-surges">${changed.map(([a,b])=>{
+  const x=world.stations.get(a),y=world.stations.get(b);
+  return x&&y?`<path d="${pathLine(x,y,center,scale)}" pathLength="100"/>`:'';
+ }).join('')}</g>`:'';
  const vortices=fields.map(f=>{
   const p=at(f.center,center,scale),a=at(f.anchor,center,scale);
-  return `<g class="contour-vortex-map${fresh(f)?' contour-vortex-forming':''}"><path d="M${digits(a.x)} ${digits(a.y)}L${digits(p.x)} ${digits(p.y)}" class="contour-harvest-route"/>
-   <circle cx="${digits(p.x)}" cy="${digits(p.y)}" r="17" fill="#ff923010" stroke="#ee8e4666"/>
-   <circle cx="${digits(p.x)}" cy="${digits(p.y)}" r="10" fill="#f7793155" stroke="#ffc074"/>
-   <circle cx="${digits(p.x)}" cy="${digits(p.y)}" r="4" fill="#241323" stroke="#ffe2a1"/>
+ const size=overview ? .45 : 1;
+  return `<g class="contour-vortex-map${fresh(f)?' contour-vortex-forming':''}">${overview?'':`<path d="M${digits(a.x)} ${digits(a.y)}L${digits(p.x)} ${digits(p.y)}" class="contour-harvest-route"/>`}
+   <circle cx="${digits(p.x)}" cy="${digits(p.y)}" r="${digits(17*size)}" fill="#ff923010" stroke="#ee8e4666"/>
+   <circle cx="${digits(p.x)}" cy="${digits(p.y)}" r="${digits(10*size)}" fill="#f7793155" stroke="#ffc074"/>
+   <circle cx="${digits(p.x)}" cy="${digits(p.y)}" r="${digits(4*size)}" fill="#241323" stroke="#ffe2a1"/>
    <title>Огненная воронка · сбор флюкса</title></g>`;
  }).join('');
+ if(overview)return `<g class="contour-global-ownership">${loss+filled+surge+vortices}</g>`;
  const byId=new Map(fields.map(f=>[f.id,f]));
  const harvesters=world.contours.harvesters.map(h=>{
   const f=byId.get(h.fieldId);if(!f)return '';
@@ -112,6 +138,37 @@ function enemyThreatArtwork(threats,center,scale){
    <g transform="translate(${digits(p.x)} ${digits(p.y)})" class="contour-threat-target" role="img" aria-label="Под угрозой: ${esc(name(plan.target))}">
    <circle r="19"/><path d="M-6 0H6M0-6V6"/><title>Носитель помех направлен на ${esc(name(plan.target))}. При подавлении связь контура оборвётся.</title></g>`;
  }).join('')}</g>`;
+}
+
+function enemyDomainArtwork(world,enemyFields,plan,center,scale,region,now){
+ const born=world.enemyExpansion?.events?.find(e=>e.kind==='claim'&&now>=e.at&&now-e.at<6);
+ const owned=enemyFields.map(f=>{
+  const p=at(f.center,center,scale);
+  const forming=born&&f.vertices.includes(born.a)&&f.vertices.includes(born.b);
+  return `<path class="contour-enemy-land${forming?' contour-enemy-forming':''}" d="${svgPath(f.polygon,center,scale)}"><title>Территория машин · захват опорной станции разорвёт её сеть</title></path>
+   <circle class="contour-enemy-reactor" cx="${digits(p.x)}" cy="${digits(p.y)}" r="${region?6:3}"><title>Вражеский источник сырья</title></circle>`;
+ }).join('');
+ const projected=plan&&(!region||plan.region===region.id)&&plan.seen.length?(
+  plan.seen.length===3?`<g class="contour-enemy-projection">
+   <path class="contour-enemy-proposed-field" d="${svgPath(plan.polygon,center,scale)}"/>
+   ${plan.missing.map(([a,b])=>`<path class="contour-enemy-proposed-link" d="${pathLine(a,b,center,scale)}"/>`).join('')}</g>`:''
+  )+plan.seen.map(s=>{
+   const p=at(s,center,scale);
+   return `<circle class="contour-enemy-objective" cx="${digits(p.x)}" cy="${digits(p.y)}" r="${region?13:7}"><title>Противник собирается соединить эту станцию</title></circle>`;
+  }).join(''):'';
+ return `<g class="contour-enemy-domains">${owned}${projected}</g>`;
+}
+
+function enemyExpansionPanel(plan){
+ if(!plan?.seen.length)return '';
+ const known=plan.seen.length;
+ const visible=plan.seen.slice(0,3).map(s=>esc(name(s))).join(', ');
+ return `<section class="contour-expansion-panel" aria-label="Территориальные планы противника">
+  <b>РАСШИРЕНИЕ ВРАЖЕСКОЙ СЕТИ</b>
+  <p>${known===3?'Три узла известны. Красный пунктир показывает возможное новое поле.':
+   'Из трёх опор разведано '+known+'. Два вида предупреждений не раскрывают координат неизвестных узлов.'}</p>
+  <small>Известные опоры: ${visible}. Противник расходует запасы промышленной сети на новые линии. Захват опоры или перехват снабжения мешает расширению.</small>
+  ${route(plan.seen[0])}</section>`;
 }
 
 function enemyThreatPanel(threats){
@@ -200,6 +257,7 @@ export function renderContourMap(game){
  const nodes=[...map.values()].filter(s=>{const p=at(s,center,scale);
   return p.x>18&&p.x<662&&p.y>18&&p.y<462;});
  const fields=contourFields(world),area=contourArea(fields),production=contourProduction(fields);
+ const enemyFields=knownEnemyFields(world),enemyPlan=enemyExpansionPlan(world);
  // Enemy trunks are a separate, opt-in layer. Discovery of both ends and a
  // player's laboratory are prerequisites; no unseen map data can leak here.
  const enemyTrunks=labLogisticsUnlocked(world)?visibleBackbone(game):[];
@@ -266,12 +324,17 @@ export function renderContourMap(game){
   ${geography}${nebulae}${stars}
   <path d="M0 120H680M0 240H680M0 360H680M170 0V480M340 0V480M510 0V480" stroke="#5b9cb21a" stroke-dasharray="3 8"/>
   ${physical.backdrop}${physical.signals}${navigation}
-  ${region?fieldArtwork(fields,world,center,scale,transition)+enemyThreatArtwork(threats.filter(t=>{
+  ${region?enemyDomainArtwork(world,enemyFields,enemyPlan,center,scale,region,game.time)+
+   fieldArtwork(fields,world,center,scale,transition)+enemyThreatArtwork(threats.filter(t=>{
     const p=at(t.target,center,scale);return p.x>=20&&p.x<=660&&p.y>=20&&p.y<=460;
    }),center,scale)+ghost+paths+prospects+
    stationMarks(nodes,center,scale,selected?.id,source?.id,readyIds,goalIds,
     game.waypoint&&at(game.waypoint,center,scale))+
-   incidentArtwork(game,region,center,scale):trunkLines+regionOverview(world,center,scale)+enemyThreatArtwork(threats,center,scale)+incidentArtwork(game,null,center,scale)}
+   incidentArtwork(game,region,center,scale):regionOverview(world,center,scale,fields)+
+   enemyDomainArtwork(world,enemyFields,enemyPlan,center,scale,null,game.time)+
+   fieldArtwork(fields,world,center,scale,transition,true)+paths+
+   overviewStations(world,center,scale)+trunkLines+
+   enemyThreatArtwork(threats,center,scale)+incidentArtwork(game,null,center,scale)}
   ${visiblePlayer?`<g class="contour-player-pin" transform="translate(${digits(player.x)} ${digits(player.y)})"><circle r="12" fill="#9dd9ff12" stroke="#d7faff" stroke-dasharray="3 3"/><path d="M0 -7L-5 5L0 2L5 5Z" fill="#fff"/><title>Ваш корабль</title></g>`:''}</svg>
   <div class="contour-legend"><span><i class="contour-key mine"></i> Своя</span><span><i class="contour-key dormant"></i> Не включена</span>
   <span><i class="contour-key hostile"></i> Враг</span><span><i class="contour-key available"></i> Возможная связь</span><span><i class="contour-key vortex"></i> Воронка</span>
@@ -279,6 +342,8 @@ export function renderContourMap(game){
   ${physical.visibleStorms?'<span><i class="contour-key storm"></i> Буря</span>':''}
   ${physical.visibleCargo?'<span><i class="contour-key cargo"></i> Замеченный груз</span>':''}
   ${threats.length?'<span><i class="contour-key enemy-threat"></i> Угроза узлу</span>':''}
+  ${enemyFields.length?'<span><i class="contour-key enemy-land"></i> Поле машин</span>':''}
+  ${enemyPlan?.seen.length?'<span><i class="contour-key enemy-plan"></i> Намеченный контур</span>':''}
   ${region?'<span><i class="contour-key incident"></i> Замеченное событие</span>':''}</div>
   <div class="contour-context">${esc(current.name)} · ${esc(stage)}${source?'<button data-act="contourCancel">Снять выбор</button>':''}</div>
   </div><aside class="map-side contour-side"><div class="contour-summary" aria-label="Итоги сети">
@@ -287,6 +352,7 @@ export function renderContourMap(game){
   ${flash}${game.contourError?`<p class="contour-error" role="status">${esc(game.contourError)}</p>`:''}
   ${!flash&&game.contourInfo?`<p class="contour-info" role="status">${esc(game.contourInfo)}</p>`:''}
   ${enemyThreatPanel(threats)}
+  ${enemyExpansionPanel(enemyPlan&&(!region||enemyPlan.region===region.id)?enemyPlan:null)}
   ${selectedPanel(game,selected,source,choices,region)}
   ${trunkPanel}
   ${fields.length?`<div class="contour-economy"><b>Воронки работают</b><p>Флюкс доставлен: ${digits(world.contours.delivered)} · потери сборщиков: ${world.contours.lost}. Желтые точки возвращаются с грузом, бирюзовые летят к воронке.</p>

@@ -16,6 +16,7 @@ import {startSortie,finishSortie,appendSortieReport} from '../sortie-economy.js'
 import {emptyEconomyExpenses,recordEconomyExpense} from '../sortie-ledger.js';
 import {transitCost} from '../base-panel.js';
 import {createOpeningArc,beginOpeningArc} from '../opening-arc.js';
+import {advanceEnemyExpansion,enemyTerritoryFields} from '../enemy-expansion.js';
 
 const entry=new URL('../game.js',import.meta.url);
 const source=readFileSync(entry,'utf8').replace(/\nnew ArcadeGame\(\);\s*$/,'\n')
@@ -44,6 +45,27 @@ function save(g,storage=memory()){
  const store=new RunCheckpointStore(storage,()=>1234);store.load();assert.ok(store.startNew().ok);
  assert.ok(store.save(captureCheckpoint(g,g.docked)).ok);return {storage,store};
 }
+test('enemy territorial investments survive docking without spending twice, and old checkpoints load',()=>{
+ const g=scene(),w=g.world;
+ w.regionalSupply.central.ore=14;
+ advanceEnemyExpansion(w,90);
+ assert.equal(w.enemyExpansion.links.length,1);
+ const funds=w.regionalSupply.central.ore;
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.ok(validateCheckpoint(snapshot));
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ assert.deepEqual(restored.world.enemyExpansion,w.enemyExpansion);
+ assert.equal(restored.world.regionalSupply.central.ore,funds);
+ advanceEnemyExpansion(restored.world,90);
+ assert.equal(restored.world.regionalSupply.central.ore,funds);
+ const old=unpackRun(packRun(snapshot));delete old.world.enemyExpansion;
+ assert.ok(validateCheckpoint(old));
+ const legacy=scene();restoreCheckpoint(legacy,old);
+ assert.equal(legacy.world.enemyExpansion.links.length,0);
+ const tampered=unpackRun(packRun(snapshot));
+ tampered.world.enemyExpansion.links[0][1]='fake-unseen-station';
+ assert.equal(validateCheckpoint(tampered),false);
+});
 test('frontier economy, finite wrecks and new station IDs survive a real checkpoint roundtrip',()=>{
  const g=scene();advanceRegionalSupply(g.world,g.time);
  const source=g.world.stations.get(FRONTIERS.teal.sourceId);
