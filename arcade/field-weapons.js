@@ -1,5 +1,6 @@
 import {combatTargets,targetAlive,targetDistance,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
 import {contactOnCircle} from './impact-geometry.js?v=arcade-impact-51';
+import {emitWeaponFx} from './weapon-fx.js';
 
 export const FIELD_WEAPONS=Object.freeze({
  ion:{id:'ion',name:'Ионный проводник',short:'Ион',capacity:3,rentalCost:26,chargeCost:8,cooldown:4.5},
@@ -74,7 +75,7 @@ export function resonanceDamage(game,item,dealt){
     targetDistance(other.target,item.target)>RESONANCE.linkRange||!clearLine(game,item.target,other.target))continue;
    const p=contactOnCircle(other.target.x,other.target.y,other.target.r||22,item.target.x,item.target.y);
    damageTarget(game,other,dealt*RESONANCE.fraction,'resonance',p,true);
-   game.flash(item.target.x,item.target.y,other.target.x,other.target.y,'#d8aaff');
+   emitWeaponFx(game,'resonator',item.target,p);
   }
  }
 }
@@ -88,12 +89,27 @@ export function drawFieldEffects(ctx,game){
  for(const effect of game.fieldEffects||[]){
   if(effect.until<=game.time)continue;
   const targets=effect.targets.filter(t=>targetAlive(game,t));
-  ctx.save();ctx.strokeStyle='#d5a1f0';ctx.lineWidth=1.5;
+  const quality=game.fps>=33;
+  const remaining=Math.min(1,(effect.until-game.time)/.6);
+  ctx.save();ctx.strokeStyle='#bc8ae5';ctx.lineWidth=quality?1.7:1.3;
+  ctx.globalAlpha=.7*remaining;
   for(let i=0;i<targets.length;i++){
    const a=targets[i].target;
    ctx.beginPath();ctx.arc(a.x,a.y,(a.r||25)+7,0,Math.PI*2);ctx.stroke();
+   // A marked target is visibly part of the network, even when no damage is
+   // being transferred. Fixed cardinal notches do not rely on animation.
+   ctx.strokeStyle='#efd4ff';ctx.lineWidth=quality?2.2:1.6;
+   const radius=(a.r||25)+11;
+   for(let j=0;j<4;j++){
+    const angle=j*Math.PI/2;
+    ctx.beginPath();ctx.moveTo(a.x+Math.cos(angle)*(radius-3),a.y+Math.sin(angle)*(radius-3));
+    ctx.lineTo(a.x+Math.cos(angle)*(radius+4),a.y+Math.sin(angle)*(radius+4));ctx.stroke();
+   }
+   ctx.strokeStyle='#bc8ae5';ctx.lineWidth=quality?1.7:1.3;
    for(const item of targets.slice(i+1))if(targetDistance(a,item.target)<=RESONANCE.linkRange&&clearLine(game,a,item.target)){
+    ctx.setLineDash([7,8]);
     ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(item.target.x,item.target.y);ctx.stroke();
+    ctx.setLineDash([]);
    }
   }
   ctx.restore();

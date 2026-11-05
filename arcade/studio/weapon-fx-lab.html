@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex,nofollow">
+<title>Выживший · Стенд вооружения</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#050b17;color:#eaf1ff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 90% 5%,#153a56 0,transparent 40%),linear-gradient(140deg,#060e1f,#060914)}
+.wrap{max-width:1420px;margin:0 auto;padding:clamp(16px,2.8vw,36px)}
+.top{display:flex;align-items:flex-start;gap:16px;justify-content:space-between;flex-wrap:wrap;margin-bottom:25px}
+.eyebrow{font:700 11px/1.5 ui-monospace,monospace;letter-spacing:.21em;color:#79d9ff;text-transform:uppercase}
+h1{font-size:clamp(27px,3vw,42px);line-height:1.1;margin:9px 0}.lead{color:#9fb3cd;max-width:760px;margin:0;line-height:1.6}
+.back{border:1px solid #446079;color:#b5d5e9;text-decoration:none;border-radius:9px;padding:10px 14px;font-size:13px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px}
+.stage{min-width:0;border:1px solid #2e4865;background:#061322;border-radius:14px;overflow:hidden;position:relative;box-shadow:0 20px 55px #01040c88}
+canvas{display:block;width:100%;aspect-ratio:1060/560;touch-action:manipulation}
+.stage-foot{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap;padding:13px 17px;background:#0a1c30;border-top:1px solid #244260}
+.stage-foot strong{font-size:15px}.note{font:12px/1.5 ui-monospace,monospace;color:#90a6c1}
+.side{border:1px solid #2c4863;border-radius:14px;background:#0a1929;padding:17px;display:flex;flex-direction:column;gap:10px}
+.aside-title{font:700 11px/1.4 ui-monospace,monospace;letter-spacing:.15em;color:#8ca2bc;text-transform:uppercase;margin:0 0 5px}
+.family{display:flex;text-align:left;align-items:center;justify-content:space-between;gap:10px;width:100%;background:#10243a;border:1px solid #294461;color:#dae8f9;border-radius:9px;padding:12px;cursor:pointer;font:600 13px system-ui}
+.family:hover,.family:focus-visible{border-color:#8ca6ca}.family[aria-pressed="true"]{border-color:#8be2ff;background:#163950;box-shadow:inset 3px 0 #8be2ff;color:white}
+.family span{font:11px ui-monospace,monospace;color:#8ca2b8}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+button{cursor:pointer}button:focus-visible,a:focus-visible{outline:2px solid #83e5ff;outline-offset:3px}
+.button{background:#125279;color:#f2faff;border:1px solid #3c9dcb;padding:11px 16px;border-radius:9px;font-weight:700}
+.button.secondary{background:#162b41;border-color:#415f79;font-weight:600}
+select{background:#13293f;border:1px solid #45637e;color:#e5f3ff;border-radius:8px;padding:10px;font:14px system-ui}
+label{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#a9c1d9}
+.details{padding:16px 0 0}.details h2{font-size:21px;margin:0 0 6px}.details p{color:#b2c3d9;line-height:1.6;margin:5px 0}.tag{color:#9ee7f0;font:11px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase}
+.caveat{background:#101c2d;border:1px solid #24394f;border-radius:12px;padding:16px 18px;margin-top:20px;color:#aebed1;line-height:1.6;font-size:13px}
+.caveat strong{color:#e1ecf9}
+@media(max-width:980px){.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.aside-title{grid-column:1/-1}.family{font-size:12px}}
+@media(max-width:560px){.side{grid-template-columns:repeat(2,minmax(0,1fr))}.stage-foot{font-size:12px}.controls{align-items:stretch}.button{flex:1}h1{font-size:28px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+ <header class="top">
+  <div><div class="eyebrow">Выживший / Боевая лаборатория / Проход 01</div>
+  <h1>Почерк семи орудий</h1>
+  <p class="lead">Одинаковое попадание больше не означает одинаковую вспышку. Здесь можно сравнить семь подписей выстрела и проверить, насколько они различимы при низкой частоте кадров.</p></div>
+  <a class="back" href="../index.html">← В действующую игру</a>
+ </header>
+ <section class="layout">
+  <div>
+   <div class="stage"><canvas id="battle" width="1060" height="560" aria-label="Стенд сравнительной визуализации выстрелов"></canvas>
+    <div class="stage-foot"><strong id="stageTitle">Плазма / близкий бой</strong><span class="note" id="frameInfo">60 FPS · обычная анимация</span></div>
+   </div>
+   <div class="controls">
+    <button class="button" id="fire">Повторить выстрел</button>
+    <button class="button secondary" id="sequence">Все семь по очереди</button>
+    <label>Проверка частоты <select id="fps"><option value="60">60 FPS</option><option value="24">24 FPS</option><option value="15">15 FPS</option></select></label>
+    <label><input type="checkbox" id="motion"> Без движения эффектов</label>
+    <button class="button secondary" id="sound" aria-pressed="false">Звук выключен</button>
+   </div>
+   <div class="details"><div class="tag" id="role">Силуэт: связный световой импульс</div>
+    <h2 id="name">Плазменный излучатель</h2><p id="desc">Световой импульс со сгустком энергии и читаемым контактом с целью.</p></div>
+  </div>
+  <aside class="side" id="families" aria-label="Выберите оружие">
+   <p class="aside-title">Семь семейств · цифры 1–7</p>
+  </aside>
+ </section>
+ <div class="caveat"><strong>Что здесь проверяется.</strong> Линии и импульсы рисует тот же модуль, что и в настоящем бою; ракета пользуется игровым изображением летящего снаряда, а взрывы — общим игровым пулом эффектов. Корабли и мишени на стенде условные. Система урона здесь не запускается. Стенд специально не изображает у осколочного оружия разлёт снарядов и попадания по соседним целям: текущая боевая логика рассчитывает отдельные прямые выстрелы. Для настоящей оценки силы оружия нужно играть в основную версию.</div>
+</main>
+<script type="module" src="./weapon-fx-lab.js"></script>
+</body>
+</html>
