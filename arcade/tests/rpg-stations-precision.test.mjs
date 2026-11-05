@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {game} from './weapons-scene.mjs';
 import {fireAimedRail} from '../ship-weapons.js';
+import {combatTargets} from '../combat-targets.js';
 import {precisionRailUnlocked,arsenalDiscoveryPromise} from '../station-progression.js';
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
@@ -17,7 +18,7 @@ test('the first active civilian arsenal grants a single save-derived technique',
  const g=game(['rail',null,null,null,null,null]),b=arsenal(false);
  g.world.stations.set(b.id,b);
  assert.equal(precisionRailUnlocked(g.world),false);
- assert.match(arsenalDiscoveryPromise(b,g.world),/первый включённый арсенал/i);
+ assert.match(arsenalDiscoveryPromise(b,g.world),/первый включённый или захваченный арсенал/i);
  assert.equal(g.toggleManualRail(),false);
  assert.match(g.lastNotice,/арсенала/);
  b.active=true;
@@ -35,7 +36,7 @@ test('arsenal discovery reward appears on station summary without a new purchase
  const g=game(),b=arsenal(false);g.world.stations.set(b.id,b);g.docked=b;
  const state={...g.baseState(),baseTab:'summary',firstHardwareReward:'rail'};
  const html=renderBasePanel(b,state);
- assert.match(html,/Первый включённый арсенал откроет прицельный режим/);
+ assert.match(html,/Первый включённый или захваченный арсенал откроет прицельный режим/);
  assert.doesNotMatch(html,/data-act="buyPrecision"/);
  b.active=true;
  assert.match(renderBasePanel(b,{...state,world:g.world}),/Прицельный режим рельса открыт/);
@@ -44,8 +45,61 @@ test('arsenal discovery reward appears on station summary without a new purchase
 test('the actual map promises a discovery before activation, then removes the unearned promise',()=>{
  const g=game(),b=arsenal(false);g.world.stations.set(b.id,b);
  assert.match(renderWorldMap(g),/ОТКРЫТИЕ: ручной прицел/);
+ assert.match(renderWorldMap(g),/найдите и включите либо захватите арсенал/);
  b.active=true;
  assert.doesNotMatch(renderWorldMap(g),/ОТКРЫТИЕ: ручной прицел/);
+ assert.doesNotMatch(renderWorldMap(g),/найдите и включите либо захватите арсенал/);
+});
+
+test('map gives an exploration reason before any arsenal is discovered without disclosing signal identities',()=>{
+ const g=game();
+ const html=renderWorldMap(g);
+ assert.match(html,/найдите и включите либо захватите арсенал/);
+ assert.match(html,/Неопознанный сигнал/);
+ assert.doesNotMatch(html,/data-signal="1"[^>]*>[^<]*Арсенал/);
+});
+
+test('R explains both conditions when the rail is missing, then explains only the missing mount',()=>{
+ const g=game();
+ assert.equal(g.toggleManualRail(),false);
+ assert.match(g.lastNotice,/арсенала/);
+ assert.match(g.lastNotice,/установите рельсовое орудие/);
+ arm(g);
+ assert.equal(g.toggleManualRail(),false);
+ assert.match(g.lastNotice,/Ручной прицел открыт/);
+ assert.match(g.lastNotice,/Установите рельсовое орудие/);
+});
+
+test('capturing the first enemy arsenal is a real unlock and survives checkpoint restoration',()=>{
+ const g=game(['rail',null,null,null,null,null]),b=arsenal(false);
+ Object.assign(b,{enemy:true,hp:14,rank:1});g.world.stations.set(b.id,b);
+ assert.equal(precisionRailUnlocked(g.world),false);
+ g.hitEnemyBase(b,30);
+ assert.equal(b.captured,true);assert.equal(b.active,true);
+ assert.equal(b.enemy,false);assert.equal(precisionRailUnlocked(g.world),true);
+ assert.equal(g.precisionRailAvailable,true);
+ assert.match(g.lastNotice,/Ручной прицел рельса открыт/);
+ assert.equal(g.toggleManualRail(),true);
+ g.docked=b;g.paused=true;g.player.x=b.x;g.player.y=b.y;
+ b.discovered=true;g.world.discovered.add(b.id);
+ const checkpoint=captureCheckpoint(g,b);
+ assert.ok(checkpoint);
+ const restored=game(['rail',null,null,null,null,null]);
+ restoreCheckpoint(restored,checkpoint);
+ assert.equal(precisionRailUnlocked(restored.world),true);
+ const held=restored.world.stations.get(b.id);
+ assert.equal(held.captured,true);
+ assert.match(arsenalDiscoveryPromise(held,restored.world),/режим рельса открыт/);
+});
+
+test('capturing a second arsenal does not repeat the one-time unlock announcement',()=>{
+ const g=game(['rail',null,null,null,null,null]);arm(g);
+ const second={...arsenal(false),id:'2:0',enemy:true,hp:10};
+ g.world.stations.set(second.id,second);
+ g.hitEnemyBase(second,20);
+ assert.equal(second.captured,true);
+ assert.doesNotMatch(g.lastNotice,/Ручной прицел рельса открыт/);
+ assert.equal(precisionRailUnlocked(g.world),true);
 });
 
 test('a real activation awards the technique once, and the unlock survives a checkpoint',()=>{
@@ -87,6 +141,30 @@ test('a precise shot hits the first hostile on the ray, not a friendly ship behi
  const result=fireAimedRail(g,{x:350,y:0});
  assert.equal(result.ok,true);
  assert.equal(front.hp,243);assert.equal(back.hp,300);assert.equal(friend.hp,300);
+});
+
+test('manual fire can hit an investigating patrol that automatic weapons cannot target yet',()=>{
+ const g=game(['rail',null,null,null,null,null]);arm(g);g.manualRailMode=true;
+ const patrol={...enemy(190),signalIntel:{mode:'investigate'}};
+ g.grid.insert(patrol);
+ assert.equal(combatTargets(g,500).some(item=>item.target===patrol),false);
+ assert.equal(combatTargets(g,500,g.player,true).some(item=>item.target===patrol),true);
+ const shot=fireAimedRail(g,{x:190,y:0});
+ assert.equal(shot.ok,true);assert.equal(shot.hits,1);
+ assert.equal(patrol.hp,243);
+ assert.equal(patrol.signalIntel.mode,'engaged','an attacked patrol now has a reason to respond');
+});
+
+test('manual fire can deliberately aim at hostile mining equipment without automatic target designation',()=>{
+ const g=game(['rail',null,null,null,null,null]);arm(g);g.manualRailMode=true;
+ const worker={...enemy(210),centralWorker:true};
+ g.world.stations.set('industry:source',{id:'industry:source',enemy:true});
+ g.world.regionalSupply.central.worker=worker;
+ assert.equal(combatTargets(g,500).some(item=>item.target===worker),false);
+ assert.equal(combatTargets(g,500,g.player,true).some(item=>item.target===worker),true);
+ const result=fireAimedRail(g,{x:worker.x,y:worker.y});
+ assert.equal(result.ok,true);assert.equal(result.hits,1);
+ assert.equal(worker.hp,243);
 });
 
 test('aimed rail respects asteroid cover; penetration still obeys its selected branch',()=>{

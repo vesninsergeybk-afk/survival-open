@@ -307,6 +307,9 @@
 .map-view-switch{display:none}
 .map-unapplied-note{margin:9px 0!important;padding:8px 11px;border-left:3px solid var(--menu-amber);
  background:#3a3025;color:#ffe7b8!important;font-size:12px!important;text-align:left}
+.map-discovery-lead{margin:7px 0;padding:8px 11px;background:#123243;border-left:3px solid #89dfca;
+ border-radius:4px;color:#d9f4ed;font-size:12px;line-height:1.45}
+.map-discovery-lead b{color:#a9f8e8}
 
 /* Pilot development: real branches, next effect first, no fictitious ranks. */
 #overlay .skill-dialog{width:min(96vw,1030px);padding:20px 21px 12px}
