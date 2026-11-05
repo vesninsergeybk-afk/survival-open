@@ -736,13 +736,18 @@ export function renderBasePanel(base,state){
   (firstRewardPromise?'<div class="base-quiet-promise">'+
    'Первый сданный заказ даст бесплатное оружие на выбор.</div>':'')+
   (stationPromise?'<div class="base-quiet-promise">'+stationPromise+'</div>':'');
- const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ВАШИ ЗАДАНИЯ</span><strong>Куда отправимся?</strong>'+
-  '<p>Можно выполнить одну особую операцию и один полевой заказ одновременно. Награды выдаются после возвращения.</p></div></div>'+
+ const localOperation=state.operation?.baseId===base.id;
+ const hasAcceptedWork=localOperation||o.contract.status==='active'||o.contract.status==='ready';
+ const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ВАШИ ЗАДАНИЯ</span><strong>'+
+  (hasAcceptedWork?'Текущие задания':'Куда отправимся?')+'</strong>'+
+  '<p>'+(hasAcceptedWork?'Нажмите на особую операцию, чтобы увидеть подробности. Выполненные задания сдавайте на станции, где их приняли.':
+   'Можно выполнить одну особую операцию и один полевой заказ одновременно. Награды выдаются после возвращения.')+'</p></div></div>'+
   firstReward+
   (o.contract.status==='ready'?'<h3 class="base-section-title">Готовая награда</h3>'+contractPanel(o,state):'')+
-  (specialOffer(base,state)?'<details class="base-mission-details"'+
-   (state.operation?.baseId===base.id&&o.contract.status!=='ready'?' open':'')+'><summary>Особая операция · '+
-   (specialOffer(base,state)?.name||(baseNames[base.type]||'Станция'))+'</summary>'+specialPanel(base,state)+'</details>':'')+
+  (specialOffer(base,state)?'<details class="base-mission-details"><summary>Особая операция · '+
+   (specialOffer(base,state)?.name||(baseNames[base.type]||'Станция'))+
+   (localOperation?' · '+(state.operation.phase==='return'?'Вернуться за наградой':'В работе'):'')+
+   '</summary>'+specialPanel(base,state)+'</details>':'')+
   (o.contract.status==='ready'?'':'<h3 class="base-section-title">Полевые заказы</h3>'+contractPanel(o,state))+'</div>';
  const localMission=specialOffer(base,state),hullPercent=Math.round(state.hp/state.maxHp*100);
  const missionForPreparation=state.operation||localMission;

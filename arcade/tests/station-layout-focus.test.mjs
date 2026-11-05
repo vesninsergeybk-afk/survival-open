@@ -146,3 +146,12 @@ test('published module addresses invalidate the station and hangar caches',()=>{
  assert.match(game,/base-panel\.js\?v=[^']*station-clarity-1/);
  assert.match(base,/hangar-panel\.js\?v=[^']*station-clarity-1/);
 });
+
+test('an accepted special operation stays compact until its details are opened',()=>{
+ const operation={id:'silent-corridor',baseId:home.id,hp:150,phase:'attack'};
+ const operations=panel(renderBasePanel(home,state({operation,baseTab:'operations'})),'operations');
+ assert.match(operations,/Текущие задания/);
+ assert.match(operations,/<details class="base-mission-details"><summary>Особая операция · Глухой коридор · В работе/);
+ assert.doesNotMatch(operations,/<details class="base-mission-details" open/);
+ assert.match(operations,/Нажмите на особую операцию, чтобы увидеть подробности/);
+});
