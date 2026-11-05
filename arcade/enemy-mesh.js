@@ -7,7 +7,7 @@
  * suppressing a relay breaks the route. No neural nets, spawned units or stat
  * modifiers are involved.
  */
-import {tacticalRadioJammed} from './tactical-fields.js?v=tactical-field-1';
+import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-2';
 export const ENEMY_MESH=Object.freeze({
   tick:.72,flight:.66,shipLink:510,stationLink:1050,backboneLink:1450,
   bucket:1550,maxHops:12,maxTransfers:36,maxPending:112,
@@ -86,10 +86,13 @@ export class EnemyMesh{
       if(item.arrives>now){nextPending.push(item);continue;}
       const from=next.get(item.from),to=next.get(item.to);
       if(!from||!to||!nodeAlive(from,now)||!nodeAlive(to,now)||
-         tacticalRadioJammed(game,nodePoint(from))||
-         tacticalRadioJammed(game,nodePoint(to))||
          distance(nodePoint(from),nodePoint(to))>linkLimit(from,to)||
          !valid(item.packet,now)||to.known.has(item.packet.id))continue;
+      if(tacticalRadioJammed(game,nodePoint(from))||
+         tacticalRadioJammed(game,nodePoint(to))){
+        tacticalJammingConfirmed(game,nodePoint(from),nodePoint(to));
+        continue;
+      }
       const received={...item.packet,hops:item.packet.hops+1};
       if(received.hops>ENEMY_MESH.maxHops)continue;
       to.known.set(received.id,received);

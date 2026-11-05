@@ -1,5 +1,5 @@
-import {EnemyMesh} from './enemy-mesh.js?v=enemy-mesh-1-tactical-field-1';
-import {tacticalRadioJammed} from './tactical-fields.js?v=tactical-field-1';
+import {EnemyMesh} from './enemy-mesh.js?v=enemy-mesh-1-tactical-field-2';
+import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-2';
 import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1';
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
@@ -334,9 +334,12 @@ export class EnemyComms {
 
   send(from,to,kind,now){
     if(from===to||!legal(from)||!legal(to)||
-       distance(from,to)>ENEMY_COMMS.range||
-       tacticalRadioJammed(this._tacticalGame,from)||
-       tacticalRadioJammed(this._tacticalGame,to))return false;
+       distance(from,to)>ENEMY_COMMS.range)return false;
+    if(tacticalRadioJammed(this._tacticalGame,from)||
+       tacticalRadioJammed(this._tacticalGame,to)){
+      tacticalJammingConfirmed(this._tacticalGame,from,to);
+      return false;
+    }
     this.events.push({from,to,kind,start:now,until:now+ENEMY_COMMS.pulseSeconds});
     if(this.events.length>ENEMY_COMMS.maxEvents)
       this.events.splice(0,this.events.length-ENEMY_COMMS.maxEvents);

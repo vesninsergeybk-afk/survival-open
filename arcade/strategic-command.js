@@ -137,7 +137,11 @@ export function updateStationInterdiction(game,e,dt){
   const a=Math.atan2(e.y-o.y,e.x-o.x)+.7;
   tx=o.x+Math.cos(a)*270;ty=o.y+Math.sin(a)*270;
  }
- const n=Math.hypot(tx-e.x,ty-e.y)||1,speed=firing?0:155;
+ // Tactical slowing also applies to an approaching station raider. Once it
+ // starts its stationary charge, this field does not interrupt it. Precision
+ // rail and ion shots keep their separate, documented interrupt role.
+ const tacticalSlow=Math.max(.25,Math.min(1,e._tacticalSpeed??1));
+ const n=Math.hypot(tx-e.x,ty-e.y)||1,speed=firing?0:155*tacticalSlow;
  const blend=1-Math.exp(-4*dt);
  e.vx=(e.vx||0)+((tx-e.x)/n*speed-(e.vx||0))*blend;
  e.vy=(e.vy||0)+((ty-e.y)/n*speed-(e.vy||0))*blend;
