@@ -638,11 +638,13 @@
 .contour-map-relays,.contour-radar-contacts,.contour-cargo-layer,.contour-flight-window,
 .contour-navigation-path,.contour-navigation-target,.contour-scale-bar{pointer-events:none}
 .contour-world-stars{fill:#a9c6e3;opacity:.55}
-.contour-rocks{fill:#c3a58a;opacity:.73}
-.contour-storm{fill:#69d9ef0f;stroke:#74dcee;stroke-opacity:.58;stroke-width:1.6;
+.contour-rocks{fill:#c3a58a;opacity:.48}
+.contour-storm{fill:#69d9ef0b;stroke:#74dcee;stroke-opacity:.19;stroke-width:1.2;
  stroke-dasharray:6 5}
-.contour-storm.warning{stroke:#fbd38b;fill:#fbd38b20;animation:contourSignal 2.4s ease-in-out infinite}
-.contour-storm.discharge{stroke:#e4fdff;fill:#b3faff28;stroke-width:2.8;animation:contourSignal 1.2s ease-in-out infinite}
+.contour-storm.warning{stroke:#fbd38b;stroke-opacity:.95;fill:#fbd38b20;stroke-width:2;
+ animation:contourSignal 2.4s ease-in-out infinite}
+.contour-storm.discharge{stroke:#e4fdff;stroke-opacity:1;fill:#b3faff28;stroke-width:2.8;
+ animation:contourSignal 1.2s ease-in-out infinite}
 .contour-storm.recovery{stroke-opacity:.34;stroke-dasharray:2 8}
 .contour-relay-link{fill:none;stroke:#69a6db;stroke-width:1;stroke-opacity:.54;stroke-dasharray:2 7}
 .contour-radar-contact{fill:#ff838a;stroke:#3b2534;stroke-width:1}
