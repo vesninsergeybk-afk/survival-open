@@ -590,7 +590,7 @@ export class EnemyComms {
             planId:cell.plan?.id??null,planPhase:cell.plan?.phase??null};
       }
     }
-    this.mesh.update(game,this.cells,now);
+    this.mesh.update(game,this.cells,now,this);
     this.theater.update(game,this);
   }
 
