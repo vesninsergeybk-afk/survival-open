@@ -264,6 +264,7 @@ export class ArcadeGame {
      this.heritage.pause('controls');}
    }else{
     this.bindingCapture=null;
+    render();status('Нажмите клавишу в списке, чтобы изменить её.');
     if(this._controlsPausedGame){this._controlsPausedGame=false;
      if(this.overlay.hidden&&!this.dead){this.paused=false;this.heritage.resume();}}
    }
@@ -287,13 +288,18 @@ export class ArcadeGame {
     return;
    }
    e.preventDefault();e.stopImmediatePropagation();
-   if(e.code==='Escape'){this.bindingCapture=null;render();status('Изменение отменено.');return;}
+   if(e.code==='Escape'){
+    const action=this.bindingCapture;this.bindingCapture=null;render();
+    status('Изменение отменено.');list.querySelector('[data-bind="'+action+'"]')?.focus();return;
+   }
    if(e.ctrlKey||e.metaKey||e.altKey){status('Назначьте одну клавишу без Ctrl, Alt или Cmd.',true);return;}
    const changed=changeControl(this.controls,this.bindingCapture,e.code);
    if(!changed.ok){status(changed.reason,true);return;}
+   const action=this.bindingCapture;
    this.controls=changed.bindings;this.bindingCapture=null;this.keys.clear();this.endInteraction();
    try{this.recordStorage?.setItem(CONTROL_STORAGE_KEY,JSON.stringify(this.controls));}catch{}
-   render();status('Клавиша сохранена на этом устройстве.');this.hud?.();
+   render();status('Клавиша сохранена на этом устройстве.');
+   list.querySelector('[data-bind="'+action+'"]')?.focus();this.hud?.();
   },true);
  }
  bind(){
