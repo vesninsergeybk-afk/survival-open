@@ -628,3 +628,23 @@ test('a real enemy radio cell cannot break a station checkpoint or lose the acti
  assert.ok(fresh.enemies[0]._commsCell.proposals instanceof Map);
  const next=new RunCheckpointStore(storage);next.load();assert.ok(next.save(captureCheckpoint(fresh,fresh.docked)).ok);
 });
+
+test('region archives survive save and reject forged timeless or oversized threats',()=>{
+ const g=scene(),hub=g.world.stations.get('industry:depot');
+ hub.meshArchive=[{kind:'long',lastAt:210,reports:2,assetId:null}];
+ const copy=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(copy),true);
+ const restored=scene();restoreCheckpoint(restored,copy);
+ assert.deepEqual(restored.world.stations.get('industry:depot').meshArchive,
+  hub.meshArchive);
+ const record=copy.world.stations.find(([id])=>id==='industry:depot')[1];
+ record.meshArchive[0].lastAt=g.time+1;
+ assert.equal(validateCheckpoint(copy),false,'future intel is invalid');
+ record.meshArchive[0].lastAt=210;
+ record.meshArchive[0].reports=999;
+ assert.equal(validateCheckpoint(copy),false,'unsupported confidence is invalid');
+ record.meshArchive=Array(10).fill({kind:'area',lastAt:210,reports:1,assetId:null});
+ assert.equal(validateCheckpoint(copy),false,'archives remain bounded');
+ delete record.meshArchive;
+ assert.equal(validateCheckpoint(copy),true,'legacy saves do not need the new field');
+});

@@ -147,6 +147,15 @@ export function validateCheckpoint(data){
   if(!object(b)||b.id!==pair[0]||!['dock','arsenal','lab','carrier'].includes(b.type)||
    !finite(b.x)||!finite(b.y)||typeof b.active!=='boolean'||typeof b.enemy!=='boolean'||
    !Array.isArray(b.turrets))return false;
+  // Persistent regional machine archives contain only bounded, dated threat
+  // categories. Older checkpoints without this optional field remain valid.
+  if(b.meshArchive!==undefined&&(!Array.isArray(b.meshArchive)||
+    b.meshArchive.length>5||b.meshArchive.some(a=>
+      !object(a)||!['long','area','close','sabotage'].includes(a.kind)||
+      !finite(a.lastAt,0,s.time)||
+      !Number.isInteger(a.reports)||a.reports<1||a.reports>3||
+      !(a.assetId==null||typeof a.assetId==='string'&&a.assetId.length<=100))))
+    return false;
   if((b.suppressed!==undefined&&typeof b.suppressed!=='boolean')||
    (b.suppressedUntil!==undefined&&!finite(b.suppressedUntil,0,s.time+14))||
    (b.suppressed===true&&b.suppressedUntil===undefined))return false;

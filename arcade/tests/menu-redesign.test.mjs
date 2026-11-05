@@ -230,3 +230,28 @@ test('landscape phone layout reserves notches and exposes navigation without thr
  assert.match(compact, /\.base-tabs\{position:sticky/);
  assert.match(compact, /\.hg-apply-bar\{position:sticky;top:51px/);
 });
+
+
+test('published module tree loads current regional backbone and archive paths',()=>{
+ const source=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
+ const entry=source('index.html');
+ const game=source('game.js');
+ const ai=source('ai.js');
+ const comms=source('enemy-comms.js');
+ const mesh=source('enemy-mesh.js');
+ const map=source('map-panel.js');
+ const dock=source('base-panel.js');
+ const checkpoint=source('run-checkpoint.js');
+ assert.match(entry,/game\.js\?v=[^"']*backbone-1/);
+ for(const name of ['enemy-comms','ai','region-runtime',
+   'run-checkpoint','map-panel','base-panel'])
+   assert.ok(game.includes(name+'.js?v=')&&
+     game.match(new RegExp(name+'\\.js\\?v=[^"\\x27]*backbone-1')),
+     'game must refresh '+name);
+ assert.match(ai,/enemy-strategy\.js\?v=[^"']*backbone-1/);
+ assert.match(comms,/enemy-mesh\.js\?v=[^"']*backbone-1/);
+ assert.match(mesh,/enemy-backbone\.js\?v=enemy-backbone-1/);
+ assert.match(map,/enemy-backbone\.js\?v=enemy-backbone-1/);
+ assert.match(dock,/map-panel\.js\?v=[^"']*backbone-1/);
+ assert.match(checkpoint,/meshArchive/);
+});
