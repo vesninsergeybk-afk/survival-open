@@ -5,6 +5,7 @@ import {renderWorldMap} from '../map-panel.js';
 import {connectContour} from '../territory-system.js';
 import {previewContourConnection,contourConnectionChoices} from '../contour-preview.js';
 import {drawContourWorld} from '../contour-visuals.js';
+import {readFileSync} from 'node:fs';
 
 const harness=()=>({world:new World(),player:{x:0,y:0,shield:0},
  mapView:'territory',contourRegion:'all',contourFirst:null,contourSelection:null,
@@ -89,4 +90,13 @@ test('world view renders unfinished links and clearly distinguishes interrupted 
  b.suppressed=true;strokes.length=0;game.contourVisualAt=-Infinity;
  drawContourWorld(game,ctx,camera);
  assert.ok(strokes.some(s=>s?.includes('255,115,129')));
+});
+
+test('station labels and ship marker cannot swallow a station click',()=>{
+ const game=harness();game.world.home.active=true;game.contourRegion='amethyst';
+ const html=renderWorldMap(game);
+ assert.match(html,/<\/g><text[^>]+class="contour-map-label">Ремонтный док<\/text>/);
+ const css=readFileSync(new URL('../menu-system.css',import.meta.url),'utf8');
+ assert.match(css,/\.contour-player-pin\{pointer-events:none\}/);
+ assert.match(css,/\.contour-map-label\{[^}]*pointer-events:none/);
 });

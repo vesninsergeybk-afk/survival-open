@@ -626,6 +626,7 @@
 .contour-chart{display:block;width:100%;max-height:min(60vh,550px);border:1px solid #3b6a7a;border-top:0;
  border-radius:0 0 5px 5px!important}
 .contour-node[role="button"],.contour-region[role="button"]{cursor:pointer;outline:none}
+.contour-player-pin{pointer-events:none}
 .contour-node:hover .contour-ring,.contour-node:focus .contour-ring,
 .contour-region:hover .contour-region-halo,.contour-region:focus .contour-region-halo{
  stroke:#fff1be;stroke-width:3;fill:#3b695a29}

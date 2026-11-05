@@ -31,7 +31,6 @@ function regionOverview(world,center,scale){
   const sites=world.nearbyStations(r.survey.x,r.survey.y,5100,true);
   const count=new Set(sites.map(b=>b.id)).size;
   const owned=sites.filter(b=>b.active&&!b.enemy&&!b.suppressed).length;
-  const active=owned>0;
   return `<g class="contour-region" role="button" tabindex="0" data-act="contourRegion" data-id="${r.id}" aria-label="${esc(r.name)}: ${owned} включено из ${count} узлов" transform="translate(${digits(p.x)} ${digits(p.y)})">
    <circle class="contour-region-halo" r="49" fill="${r.color}12" stroke="${r.color}70" stroke-width="1.5"/>
    <circle r="30" fill="#0b2333" stroke="${r.color}" stroke-width="1.5"/>
@@ -39,7 +38,6 @@ function regionOverview(world,center,scale){
    <text y="-3" text-anchor="middle" fill="#f1faff" font-size="18" font-weight="800">${owned}</text>
    <text y="13" text-anchor="middle" fill="${r.color}" font-size="9">из ${count}</text>
    <text y="-61" text-anchor="middle" fill="${r.color}" font-size="12" font-weight="700">${esc(r.name)}</text>
-   <text y="65" text-anchor="middle" fill="${active?'#adf8e7':'#aac2cf'}" font-size="10">${active?'Есть свои станции':'Изучить узлы'}</text>
    <circle r="53" fill="transparent"/></g>`;
  }).join('');
 }
@@ -55,11 +53,11 @@ function stationMarks(nodes,center,scale,selectedId,sourceId,readyIds,goalIds){
    b.active?'<circle r="7" fill="'+fill+'"/><circle r="3" fill="#113f43"/>':
    '<circle r="5.5" fill="'+fill+'" stroke="#102c3b" stroke-width="1.2"/>';
   const label=(picked||ready||goal||b.active)&&known?
-   '<text x="13" y="-13" class="contour-map-label">'+esc(name(b))+'</text>':'';
+   '<text x="'+digits(p.x+13)+'" y="'+digits(p.y-13)+'" class="contour-map-label">'+esc(name(b))+'</text>':'';
   return `<g class="contour-node${picked?' selected':''}${ready?' connectable':''}${goal?' suggested':''}" transform="translate(${digits(p.x)} ${digits(p.y)})" tabindex="0" role="button" data-act="contourNode" data-id="${esc(b.id)}" aria-label="${esc(name(b)+', '+state(b))}">
    <circle r="19" fill="transparent" class="contour-hit"/>
    ${ring?'<circle class="contour-ring" r="13.5" fill="none" stroke="'+ring+'" stroke-width="2"'+(ready||goal?' stroke-dasharray="4 3"':'')+'/>':''}
-   ${mark}${label}<title>${esc(name(b)+': '+state(b))}</title></g>`;
+   ${mark}<title>${esc(name(b)+': '+state(b))}</title></g>${label}`;
  }).join('');
 }
 
