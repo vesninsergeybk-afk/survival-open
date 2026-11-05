@@ -144,16 +144,19 @@ test('station objectives count only relevant real events',()=>{
  const arsenal={...contractFor('arsenal'),progress:0};
  const carrier={...contractFor('carrier'),progress:0};
  const station={x:100,y:200};
- assert.equal(eligibleContractProgress(dock,'kill',{type:'scout'}),true);
+ assert.equal(eligibleContractProgress(dock,'kill',{type:'scout'}),false,
+  'an enemy kill without pilot participation cannot finish a contract');
+ assert.equal(eligibleContractProgress(dock,'kill',{type:'scout'},null,true),true);
  assert.equal(eligibleContractProgress(lab,'mine',{rich:false}),false);
  assert.equal(eligibleContractProgress(lab,'mine',{rich:true}),true);
  assert.equal(eligibleContractProgress(lab,'kill',{rich:true}),false);
- assert.equal(eligibleContractProgress(arsenal,'kill',{x:750,y:200},station),true);
- assert.equal(eligibleContractProgress(arsenal,'kill',{x:751,y:200},station),false);
+ assert.equal(eligibleContractProgress(arsenal,'kill',{x:750,y:200},station,true),true);
+ assert.equal(eligibleContractProgress(arsenal,'kill',{x:750,y:200},station),false);
+ assert.equal(eligibleContractProgress(arsenal,'kill',{x:751,y:200},station,true),false);
  assert.equal(eligibleContractProgress(arsenal,'mine',{x:200,y:200},station),false);
  assert.equal(eligibleContractProgress(carrier,'kill',{type:'scout'}),false);
  for(const type of ['fighter','flanker','berserker','gunship'])
-  assert.equal(eligibleContractProgress(carrier,'kill',{type}),true);
+  assert.equal(eligibleContractProgress(carrier,'kill',{type},null,true),true);
  assert.equal(eligibleContractProgress({...carrier,progress:5},'kill',{type:'fighter'}),false);
 });
 
@@ -170,7 +173,7 @@ test('accepting and claiming a station assignment immediately refreshes its menu
   dead:false,docked:dock,contract:null,time:20,renders:0,
   player:{ore:0,data:0,hp:110,maxHp:110,shield:0,points:0,x:0,y:0},
   heritage:{station:()=>{},vfx:{nova:()=>{}}},cockpit:{resourceGain:()=>{}},
-  notice:()=>{},renderDock(){this.renders++;},
+  notice:()=>{},rewardNotice:Actions.prototype.rewardNotice,renderDock(){this.renders++;},
   collect(item){this.player.data+=item.value;},
   baseState(){return state({ore:this.player.ore,contract:this.contract});}
  };

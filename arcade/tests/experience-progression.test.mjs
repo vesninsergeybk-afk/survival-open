@@ -4,6 +4,7 @@ import {expForNext,legacyExpForNext} from '../balance.js';
 import {experienceDifference} from '../hud.js';
 import {enemyDataReward} from '../combat-rewards.js';
 import {contractChoices} from '../base-panel.js';
+import {RuntimeHarness} from './runtime-game.mjs';
 import {OPENING_ARC} from '../opening-arc.js';
 import {XP_CURVE_VERSION,FIRST_RICH_ASTEROID_XP,experienceFromPickup,
  grantExperience,firstRichAsteroidExperience,qualifiesForDirectCombatXp,migrateLegacyPlayerExperience} from '../experience.js';
@@ -47,6 +48,37 @@ test('direct XP requires recent player participation, preventing AFK station far
  assert.equal(qualifiesForDirectCombatXp({lastPlayerHitAt:80},100),true);
  assert.equal(qualifiesForDirectCombatXp({lastPlayerHitAt:79},100),false);
  assert.equal(qualifiesForDirectCombatXp({lastPlayerHitAt:101},100),false);
+});
+
+test('field contracts reject enemy crossfire but count a wingmate finish after the pilot hits',()=>{
+ const game=new RuntimeHarness(),station={id:'0:0',type:'dock'};
+ game.time=100;game.world={stations:new Map([[station.id,station]])};
+ game.contract={baseId:station.id,kind:'kill',goal:2,progress:0};
+ const notices=[];game.notice=text=>notices.push(text);
+ game.advanceContract('kill',{type:'scout',lastPlayerHitAt:79});
+ game.advanceContract('kill',{type:'scout'});
+ assert.equal(game.contract.progress,0,'unattended kills must not complete a pilot contract');
+ game.advanceContract('kill',{type:'scout',lastPlayerHitAt:80});
+ assert.equal(game.contract.progress,1,'an assist in the last 20 seconds counts');
+ game.advanceContract('kill',{type:'scout',lastPlayerHitAt:99});
+ assert.equal(game.contract.progress,2);
+ assert.equal(notices.length,1,'completion is announced exactly once');
+ game.advanceContract('kill',{type:'scout',lastPlayerHitAt:100});
+ assert.equal(game.contract.progress,2,'completed contracts cannot grow');
+});
+
+test('operation notices retain earned level and the correct skills shortcut',()=>{
+ const game=new RuntimeHarness(),seen=[];
+ game.player={level:3};game.isTouchLayout=false;
+ game.controlLabel=()=> 'U';game.notice=(message,seconds)=>seen.push({message,seconds});
+ game.rewardNotice('Ретранслятор защищён: +26 данных и опыта.',2,5.5);
+ assert.match(seen[0].message,/Ретранслятор защищён: \+26 данных и опыта/);
+ assert.match(seen[0].message,/Новый уровень: 3! Навыки пилота — U/);
+ assert.equal(seen[0].seconds,5.5);
+ game.isTouchLayout=true;game.rewardNotice('Сигнал восстановлен.',2,6);
+ assert.match(seen[1].message,/Новый уровень: 3! Откройте «Развитие» в меню/);
+ game.rewardNotice('Обычная награда.',3,4);
+ assert.equal(seen[2].message,'Обычная награда.');
 });
 
 test('a first rich asteroid plus the first geology contract grant level two',()=>{
