@@ -3,13 +3,15 @@ import assert from 'node:assert/strict';
 import {RuntimeHarness} from './runtime-game.mjs';
 import {World} from '../world.js';
 import {advanceRegionalSupply,interceptSupply,strategicCapture,regionalSupplyValid} from '../regional-supply.js';
-import {FRONTIERS,FRONTIER_RESPONSE,FRONTIER_ROUTES,frontierRouteLength,
+import {FRONTIERS,FRONTIER_RESPONSE,FRONTIER_REPAIR,FRONTIER_ROUTES,frontierRouteLength,
  frontierCargoPosition,frontierRadioCoverage,
  recordFrontierCargoAttack} from '../frontier-industry.js';
 import {updateRegionalWorld,hitRegionalCargo,spawnFrontierRaid} from '../region-runtime.js';
 import {renderRegionAtlas,regionalMapOverlay} from '../regional-map.js';
 import {regionAt} from '../regions.js';
 import {openingThreat} from '../balance.js';
+import {combatTargets} from '../combat-targets.js';
+import {designationLabel} from '../target-designation.js';
 
 const noop=()=>{};
 function game(id='azure'){
@@ -59,6 +61,153 @@ test('both enemy industries have a discoverable radio shadow along real cargo ro
   assert.equal([...regionalMapOverlay(g,p=>p,()=>true).matchAll(/<circle /g)].length,1,
    'captured transmitters must disappear from hostile coverage');
  }
+});
+
+test('an industrial network pays for a real repair expedition and only repairs on arrival',()=>{
+ for(const id of ['azure','teal']){
+  const g=game(id),s=network(g,id),cfg=FRONTIERS[id];
+  const source=g.world.stations.get(cfg.sourceId),depot=g.world.stations.get(cfg.depotId);
+  source.discovered=true;
+  s.resource=FRONTIER_REPAIR.cost;
+  s.nextDispatch=1e8;
+  depot.hp=depot.maxHp*.49;
+  const turret=depot.turrets[0];turret.hp=turret.maxHp*.28;
+  const destroyed=depot.turrets[1];destroyed.hp=0;
+  let departedAt=0;
+  for(let t=1;t<=280&&!departedAt;t++){
+   const events=advanceRegionalSupply(g.world,t);
+   if(events.some(e=>e.kind==='repair-depot-dispatch'&&e.network===id))departedAt=t;
+  }
+  const craft=s.repairExpedition;
+  assert.ok(craft&&departedAt>=FRONTIER_REPAIR.earliest);
+  assert.equal(craft.targetKind,'depot');
+  assert.ok(Math.hypot(craft.x-cfg.source.x,craft.y-cfg.source.y)<5);
+  assert.equal(craft.frontierRepair,true);
+  assert.equal(s.repairsLaunched,1);
+  assert.equal(depot.hp,depot.maxHp*.49,'repair must not be instant');
+  assert.ok(s.resource>=0);
+  const arrival=departedAt+Math.ceil(frontierRouteLength(id,craft.routeId)/FRONTIER_REPAIR.speed);
+  advanceRegionalSupply(g.world,arrival-1);
+  assert.ok(s.repairExpedition,'repair ship must traverse the route');
+  const events=advanceRegionalSupply(g.world,arrival);
+  assert.ok(events.some(e=>e.kind==='repair-depot-complete'&&e.network===id));
+  assert.equal(s.repairExpedition,null);
+  assert.equal(craft.hp,0,'escorts must not keep defending a vanished live target');
+  assert.ok(depot.hp>depot.maxHp*.49);
+  assert.ok(turret.hp>turret.maxHp*.28);
+  assert.equal(destroyed.hp,0,'a demolished turret cannot be resurrected');
+  assert.ok(regionalSupplyValid(g.world.regionalSupply,arrival));
+ }
+});
+
+test('damaged production sites receive a reserve-funded reverse repair expedition',()=>{
+ const g=game('teal'),s=network(g,'teal'),cfg=FRONTIERS.teal;
+ const source=g.world.stations.get(cfg.sourceId);
+ s.assemblyUntil=1e8;s.reserves=1;s.resource=0;s.nextDispatch=1e8;
+ source.hp=source.maxHp*.43;
+ advanceRegionalSupply(g.world,FRONTIER_REPAIR.earliest);
+ const craft=s.repairExpedition;
+ assert.ok(craft);
+ assert.equal(craft.targetKind,'source');
+ assert.equal(s.reserves,0,'maintenance must consume an actual stored reinforcement');
+ assert.ok(Math.hypot(craft.x-cfg.depot.x,craft.y-cfg.depot.y)<5);
+ assert.ok(regionalSupplyValid(g.world.regionalSupply,FRONTIER_REPAIR.earliest));
+ const arrival=craft.launchedAt+Math.ceil(frontierRouteLength('teal',craft.routeId)/FRONTIER_REPAIR.speed);
+ const events=advanceRegionalSupply(g.world,arrival);
+ assert.ok(events.some(e=>e.kind==='repair-source-complete'));
+ assert.ok(source.hp>source.maxHp*.43);
+ assert.equal(s.repairsCompleted,1);
+});
+
+test('a player can intercept maintenance, and captured destinations cannot be repaired',()=>{
+ for(const capture of [false,true]){
+  const g=game('azure'),s=network(g,'azure'),cfg=FRONTIERS.azure;
+  const depot=g.world.stations.get(cfg.depotId);
+  s.nextDispatch=1e8;s.resource=FRONTIER_REPAIR.cost;
+  depot.hp=depot.maxHp*.5;
+  advanceRegionalSupply(g.world,FRONTIER_REPAIR.earliest);
+  const craft=s.repairExpedition,original=depot.hp;
+  assert.ok(craft);
+  if(capture)depot.enemy=false;
+  else{
+   craft.hp=0;
+   assert.ok(interceptSupply(g.world,craft,FRONTIER_REPAIR.earliest));
+   assert.equal(interceptSupply(g.world,craft,FRONTIER_REPAIR.earliest),false);
+   assert.equal(s.repairsIntercepted,1);
+  }
+  const events=advanceRegionalSupply(g.world,FRONTIER_REPAIR.earliest+90);
+  assert.equal(depot.hp,original);
+  assert.equal(s.repairsCompleted,0);
+  if(capture)assert.ok(events.some(e=>e.kind==='repair-aborted'));
+  assert.ok(regionalSupplyValid(g.world.regionalSupply,FRONTIER_REPAIR.earliest+90));
+ }
+});
+
+test('repair ships are actual combat targets, visible mission markers and nonrepeatable rewards',()=>{
+ const g=game('azure'),s=network(g,'azure'),cfg=FRONTIERS.azure;
+ s.nextDispatch=1e8;s.resource=FRONTIER_REPAIR.cost;
+ g.world.stations.get(cfg.sourceId).discovered=true;
+ g.world.stations.get(cfg.depotId).hp*=.6;
+ advanceRegionalSupply(g.world,140);
+ const craft=s.repairExpedition;
+ assert.ok(craft);
+ craft.seen=true;
+ const target=combatTargets(g,120,{x:craft.x,y:craft.y},false)
+  .find(item=>item.target===craft);
+ assert.ok(target,'the ship must be attackable by ordinary automatic weapons');
+ assert.match(designationLabel(target),/ремонтный корабль/i);
+ assert.match(renderRegionAtlas(g),/Ремонтный корабль/);
+ assert.match(regionalMapOverlay(g,p=>p,()=>true),/РЕМОНТНЫЙ КОРАБЛЬ/);
+ const before=g.drops.length;
+ hitRegionalCargo(g,craft,craft.hp+1);
+ assert.equal(s.repairsIntercepted,1);
+ assert.equal(s.repairExpedition,null);
+ assert.equal(g.drops.length,before+2);
+ hitRegionalCargo(g,craft,30);
+ assert.equal(g.drops.length,before+2,'a destroyed expedition cannot pay a second reward');
+ assert.match(g.notices.at(-1),/ремонтный корабль уничтожен/i);
+});
+
+test('maintenance has finite budget, does not launch for healthy stations or with no stores',()=>{
+ const g=game('teal'),s=network(g,'teal'),cfg=FRONTIERS.teal;
+ s.nextDispatch=1e8;
+ advanceRegionalSupply(g.world,300);
+ assert.equal(s.repairsLaunched,0);
+ const depot=g.world.stations.get(cfg.depotId);
+ depot.hp=depot.maxHp*.2;
+ s.resource=0;
+ // No worker or stored reserves means no material can appear by assertion.
+ s.worker.hp=0;
+ advanceRegionalSupply(g.world,420);
+ assert.equal(s.repairsLaunched,0);
+ s.resource=FRONTIER_REPAIR.cost;
+ advanceRegionalSupply(g.world,900);
+ assert.ok(s.repairsLaunched>0&&s.repairsLaunched<=FRONTIER_REPAIR.maxMissions);
+ assert.ok(s.repairsCompleted<=s.repairsLaunched);
+ assert.ok(s.resource>=0);
+ assert.ok(regionalSupplyValid(g.world.regionalSupply,900));
+});
+
+test('repair operations remain deterministic across frame steps and legacy industrial saves',()=>{
+ const results=[];
+ for(const step of [1/30,1/60]){
+  const g=game('azure'),s=network(g,'azure'),cfg=FRONTIERS.azure;
+  s.nextDispatch=1e8;s.resource=FRONTIER_REPAIR.cost;
+  g.world.stations.get(cfg.depotId).hp*=.4;
+  for(let t=step;t<380;t+=step)advanceRegionalSupply(g.world,t);
+  advanceRegionalSupply(g.world,380);
+  results.push({launched:s.repairsLaunched,completed:s.repairsCompleted,
+   resource:s.resource,health:g.world.stations.get(cfg.depotId).hp,
+   expedition:s.repairExpedition?.id||null});
+ }
+ assert.deepEqual(results[0],results[1]);
+ const legacy=game('teal'),s=network(legacy,'teal');
+ delete s.repairExpedition;delete s.repairsLaunched;
+ delete s.repairsCompleted;delete s.repairsIntercepted;delete s.nextRepairAt;
+ assert.ok(regionalSupplyValid(legacy.world.regionalSupply,0));
+ advanceRegionalSupply(legacy.world,100);
+ assert.equal(s.repairsLaunched,0,'old saves must not receive a free repair ship');
+ assert.ok(s.nextRepairAt>100,'legacy state starts a fresh preparation clock');
 });
 
 test('a freighter destroyed outside coverage cannot instantly report its own death',()=>{

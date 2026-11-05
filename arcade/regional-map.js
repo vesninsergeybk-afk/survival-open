@@ -1,7 +1,7 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1';
+import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1';
-import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1';
+import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
@@ -44,8 +44,11 @@ export function renderRegionAtlas(game){
    (route?'✓ Маршрут выбран · изменить':'Построить маршрут к ориентиру')+'</button></details>';
  }).join('');
  const cargo=[...s.convoys,...(s.central?.convoys||[]),
-  ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[])].filter(c=>c.seen).map(c=>{
-   const label=c.frontierCargo?(c.frontierNetwork==='azure'?'Энерготранспорт':'Ремонтный груз'):
+  ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[]),
+  s.frontier?.azure?.repairExpedition,s.frontier?.teal?.repairExpedition]
+  .filter(c=>c?.seen).map(c=>{
+   const label=c.frontierRepair?'Ремонтный корабль':
+    c.frontierCargo?(c.frontierNetwork==='azure'?'Энерготранспорт':'Ремонтный груз'):
     (c.centralCargo?'Местный груз':'Рудный транспорт');
    return '<button type="button" data-act="waypoint" data-id="'+c.id+'" data-x="'+c.x+'" data-y="'+c.y+'" data-label="'+label+'">Перехватить '+label.toLowerCase()+'</button>';
   }).join('');
@@ -77,7 +80,12 @@ export function renderRegionAtlas(game){
     ', сборка — '+known(depot)+'. Замечено грузов: '+net.convoys.filter(c=>c.seen).length+
     '. Резервов: '+(depot?.discovered?net.reserves:'неизвестно')+'. '+
     (id==='azure'?'Разряды бурь заряжают перехватчиков.':'Сборщики разбирают ограниченные залежи металла.')+
-    tactics+'</p><p>Перехвачено поставок: '+net.intercepted+'. Каждая доставленная партия позволяет добавить '+
+    tactics+(source?.discovered||depot?.discovered?
+     ' Ремонтные экспедиции: отправлено '+(net.repairsLaunched||0)+
+     ', доставлено '+(net.repairsCompleted||0)+', перехвачено '+(net.repairsIntercepted||0)+
+     (net.repairExpedition?'. Сейчас ремонтный корабль направляется к '+
+      (net.repairExpedition.targetKind==='source'?'источнику':'сборочной станции')+'.':'.'):'')+
+    '</p><p>Перехвачено поставок: '+net.intercepted+'. Каждая доставленная партия позволяет добавить '+
     (id==='azure'?'заряженного перехватчика':'ремонтника')+' к обычному патрулю. '+
     (depot?.discovered?'Уже отправлено усиленных патрулей: '+net.raids+'.':'Резервы пока неизвестны.')+'</p>';
   }).join('');
@@ -128,11 +136,12 @@ export function regionalMapOverlay(game,point,visible){
   }
  }
  for(const c of [...s.convoys,...(s.central?.convoys||[]),
-   ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[])].filter(c=>c.seen)){
+   ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[]),
+   s.frontier?.azure?.repairExpedition,s.frontier?.teal?.repairExpedition].filter(c=>c?.seen)){
   const q=point(c);if(!visible(q))continue;
-  const color=c.frontierCargo?(c.frontierNetwork==='azure'?'#90dcff':'#9fe9bb'):
+  const color=c.frontierRepair?'#ffc78b':c.frontierCargo?(c.frontierNetwork==='azure'?'#90dcff':'#9fe9bb'):
    c.centralCargo?'#83efcd':'#ffc481';
-  const label=c.frontierCargo?(c.screened?'УСИЛЕННЫЙ ГРУЗ':
+  const label=c.frontierRepair?'РЕМОНТНЫЙ КОРАБЛЬ':c.frontierCargo?(c.screened?'УСИЛЕННЫЙ ГРУЗ':
    (c.frontierNetwork==='azure'?'ЭНЕРГОТРАНСПОРТ':'РЕМОНТНЫЙ ГРУЗ')):
    c.centralCargo?'МЕСТНЫЙ ГРУЗ':'РУДНЫЙ ТРАНСПОРТ';
   out+='<g><rect x="'+(q.x-5)+'" y="'+(q.y-5)+'" width="10" height="10" fill="'+color+'"/><text x="'+(q.x+9)+'" y="'+(q.y-9)+'" fill="#ffdbad" font-size="11">'+label+'</text></g>';
