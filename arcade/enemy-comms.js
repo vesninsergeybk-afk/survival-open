@@ -1,4 +1,4 @@
-import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1';
+import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1-audit-1';
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
   squadRoleFor,squadRoleLabel} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
