@@ -1,7 +1,7 @@
 import {menuInfo} from './menu-screens.js?v=all-menus-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {baseNames} from './balance.js?v=arcade-network-20';
-import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt} from './territory-system.js?v=contours-1';
+import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt,contourReserveEligible} from './territory-system.js?v=contours-2-operational-reserve-1';
 import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1-menu-focus-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
@@ -370,6 +370,22 @@ export function renderContourMap(game){
  const extra=links.length?`<details class="contour-links"><summary>Связи узла (${links.length})</summary>${links.map(b=>
   `<div><span>${esc(name(b))}</span><button data-act="contourUnlink" data-id="${esc(b.id)}" data-from="${esc(selected.id)}">Разорвать</button></div>`).join('')}</details>`:'';
  const activeSource=selected&&selected.active&&!selected.enemy&&!selected.suppressed;
+ const reserve=world.contours.reserve,reservedNode=reserve&&world.stations.get(reserve.stationId);
+ const reserveEligible=selected&&contourReserveEligible(world,selected.id);
+ const reservePanel=fields.length?`<section class="contour-economy contour-reserve" aria-label="Флюксовый резерв">
+  <b>Опора для вылазки</b>
+  ${reserve?`<p>Ложный маяк: <strong>${esc(reservedNode?name(reservedNode):reserve.stationId)}</strong> · ${reserve.readyAt>game.time?
+    'готов через '+Math.ceil(reserve.readyAt-game.time)+' с':'готов к налёту'}.</p>
+   <small>Один маяк на всю сеть. Если носитель помех преодолеет ПВО выбранной станции, маяк один раз собьёт его с цели. Сам вражеский корабль останется в мире.</small>`:
+   `<p>${reserveEligible?'Выбрана станция «'+esc(name(selected))+'».':'Выберите на карте работающую лабораторию, авианосную станцию или ретранслятор в замкнутом контуре.'}</p>
+   ${reserveEligible?`<button data-act="contourReserve" data-id="${esc(selected.id)}"${world.contours.flux>=CONTOURS.reserveCost?'':' disabled'}>Установить ложный маяк · ${CONTOURS.reserveCost} флюкса</button>`:''}
+   <small>Подготовка — ${CONTOURS.reserveArmSeconds} с. Защищает от одной попытки подавить связь, только если обычная ПВО не справится. Флюкс списывается сразу.</small>`}</section>`:'';
+ const reservePin=reservedNode&&reserve?(()=>{
+  const q=at(reservedNode,center,scale);
+  return q.x>0&&q.x<680&&q.y>0&&q.y<480?
+   `<g class="contour-reserve-pin" transform="translate(${digits(q.x)} ${digits(q.y)})" role="img" aria-label="Ложный маяк: ${esc(name(reservedNode))}">
+   <circle r="18"/><path d="M-5 2L0 -8L5 2L0 8Z"/><title>Ложный маяк: ${esc(name(reservedNode))}</title></g>`:'';
+ })():'';
  return `<div class="dialog map-dialog contour-dialog" role="dialog" aria-modal="true" aria-labelledby="map-menu-title">
   <header class="map-heading"><div><span class="map-kicker">СТРАТЕГИЧЕСКАЯ СЕТЬ</span><h2 id="map-menu-title">Контуры территорий</h2>
   ${menuInfo('Как пользоваться контурами','При открытии региона действующая станция выбирается автоматически для подсказки. Нажмите предложенное соединение или второй работающий узел, чтобы построить линию. Можно выбрать другую исходную станцию. Неизвестный кандидат сначала требует разведки и включения. Подробные правила — под картой.')}</div>
@@ -398,7 +414,7 @@ export function renderContourMap(game){
    fieldArtwork(fields,world,center,scale,transition,true)+paths+
    trunkLines+enemyThreatArtwork(threats,center,scale)+incidentArtwork(game,null,center,scale)+
    overview}
-  ${visiblePlayer?`<g class="contour-player-pin" transform="translate(${digits(player.x)} ${digits(player.y)})"><circle r="12" fill="#9dd9ff12" stroke="#d7faff" stroke-dasharray="3 3"/><path d="M0 -7L-5 5L0 2L5 5Z" fill="#fff"/><title>Ваш корабль</title></g>`:''}</svg>
+  ${reservePin}${visiblePlayer?`<g class="contour-player-pin" transform="translate(${digits(player.x)} ${digits(player.y)})"><circle r="12" fill="#9dd9ff12" stroke="#d7faff" stroke-dasharray="3 3"/><path d="M0 -7L-5 5L0 2L5 5Z" fill="#fff"/><title>Ваш корабль</title></g>`:''}</svg>
   ${mapTools(game)}
   <div class="contour-legend"><span><i class="contour-key mine"></i> Своя</span><span><i class="contour-key unknown"></i> Не разведана</span><span><i class="contour-key dormant"></i> Не включена</span>
   <span><i class="contour-key hostile"></i> Враг</span><span><i class="contour-key available"></i> Возможная связь</span><span><i class="contour-key vortex"></i> Воронка</span>
@@ -406,6 +422,7 @@ export function renderContourMap(game){
   ${physical.visibleStorms?'<span><i class="contour-key storm"></i> Буря</span>':''}
   ${physical.visibleCargo?'<span><i class="contour-key cargo"></i> Замеченный груз</span>':''}
   ${threats.length?'<span><i class="contour-key enemy-threat"></i> Угроза узлу</span>':''}
+  ${reserve?'<span><i class="contour-key reserve"></i> Ложный маяк</span>':''}
   ${enemyFields.length?'<span><i class="contour-key enemy-land"></i> Поле машин</span>':''}
   ${enemyPlan?.seen.length?'<span><i class="contour-key enemy-plan"></i> Намеченный контур</span>':''}
   ${region?'<span><i class="contour-key incident"></i> Замеченное событие</span>':''}</div>
@@ -419,6 +436,7 @@ export function renderContourMap(game){
   ${enemyThreatPanel(threats)}
   ${enemyExpansionPanel(enemyPlan&&(!region||enemyPlan.region===region.id)?enemyPlan:null)}
   ${selectedPanel(game,selected,source,choices,region)}
+  ${reservePanel}
   ${trunkPanel}
   ${fields.length?`<div class="contour-economy"><b>Воронки работают</b><p>Флюкс доставлен: ${digits(world.contours.delivered)} · потери сборщиков: ${world.contours.lost}. Желтые точки возвращаются с грузом, бирюзовые летят к воронке.</p>
    <button data-act="contourPulse"${pulseReady?'':' disabled'}>${(world.contours.pulseReadyAt||0)>game.time?'Импульс через '+Math.ceil(world.contours.pulseReadyAt-game.time)+' с':

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World} from '../world.js';
 import {renderWorldMap} from '../map-panel.js';
-import {connectContour} from '../territory-system.js';
+import {connectContour,armContourReserve,CONTOURS} from '../territory-system.js';
 import {previewContourConnection,contourConnectionChoices} from '../contour-preview.js';
 import {drawContourWorld} from '../contour-visuals.js';
 import {recordWorldFeedback} from '../world-feedback.js';
@@ -107,6 +107,28 @@ test('the atlas shows next actions, selected route, links, income and reversible
  assert.match(html,/contour-map-caption/);
  game.mapReturnToBase=true;game.docked=world.home;
  assert.match(renderWorldMap(game),/data-act="baseBack"/);
+});
+
+test('the territory atlas offers an actual funded reserve on a selected critical node, then shows readiness and location',()=>{
+ const g=harness(),w=g.world,base=w.home;
+ base.type='lab';base.active=true;base.discovered=true;
+ const a={id:'test:west',x:1200,y:-500,active:true,enemy:false,suppressed:false,
+  discovered:true,type:'dock'};
+ const b={...a,id:'test:east',x:1200,y:600};
+ w.stations.set(a.id,a);w.stations.set(b.id,b);
+ w.contours.links=[[base.id,a.id],[a.id,b.id],[b.id,base.id]];
+ w.contours.flux=CONTOURS.reserveCost;
+ g.contourRegion='amethyst';g.contourSelection=base.id;
+ let html=renderWorldMap(g);
+ assert.match(html,/Опора для вылазки/);
+ assert.match(html,/data-act="contourReserve"/);
+ assert.match(html,new RegExp('Установить ложный маяк · '+CONTOURS.reserveCost+' флюкса'));
+ assert.equal(armContourReserve(w,base.id,g.time).ok,true);
+ html=renderWorldMap(g);
+ assert.match(html,/Ложный маяк:/);
+ assert.match(html,/готов через 12 с/);
+ assert.match(html,/contour-reserve-pin/);
+ assert.doesNotMatch(html,/data-act="contourReserve"/,'a purchased one-use order is not duplicated by opening the map');
 });
 
 test('a planned final line previews real area and production without touching live territory',()=>{

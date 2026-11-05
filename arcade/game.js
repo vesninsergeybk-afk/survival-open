@@ -16,7 +16,7 @@ import {createStrategicExperience,claimStationActivation,claimStationCapture,cla
  claimContourExpansion,claimFirstFluxDelivery,claimGeologicalSurvey,claimStrategicSabotage} from './strategic-experience.js?v=strategic-xp-pass2-1';
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=xp-feedback-pass1-1';
-import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1-supply-stronghold-1';
+import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1-supply-stronghold-1-flux-reserve-1';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
@@ -45,7 +45,7 @@ import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
@@ -63,7 +63,7 @@ import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESI
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -71,11 +71,11 @@ import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
  openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-5-early-xp-1';
 import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {ambientPatrolRoute,patrolCanLeave} from './enemy-awareness.js?v=living-world-roaming-patrol-2';
-import {recordWorldFeedback,recordContourFeedback,advanceWorldFeedback,drawWorldFeedback,drawImpactInvestigation} from './world-feedback.js?v=world-feedback-1';
+import {recordWorldFeedback,recordContourFeedback,advanceWorldFeedback,drawWorldFeedback,drawImpactInvestigation} from './world-feedback.js?v=world-feedback-1-flux-reserve-1';
 import {regionalCampaignPressure,campaignDestination,strongholdThreat} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1-stronghold-1';
-import {updateStationInterdiction,interruptStationInterdiction,threatenedStations} from './strategic-command.js?v=campaign-1-repair-qa-1-tactical-balance-1-world-feedback-1';
+import {updateStationInterdiction,interruptStationInterdiction,threatenedStations} from './strategic-command.js?v=campaign-1-repair-qa-1-tactical-balance-1-world-feedback-1-flux-reserve-1';
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
-import {connectContour,disconnectContour,contourFields,contourArea,contourProduction,advanceContours,fieldAt} from './territory-system.js?v=contours-1-world-feedback-1';
+import {connectContour,disconnectContour,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=contours-2-operational-reserve-1';
 import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1';
 import {syncContourDynamics} from './contour-dynamics.js?v=contour-dynamics-2';
 
@@ -523,6 +523,26 @@ export class ArcadeGame {
     }
     this.renderMap();this.pausedRenderPending=true;return;
    }
+  if(act==='contourReserve'){
+   const id=b.dataset.id,base=this.world.stations.get(id);
+   const result=armContourReserve(this.world,id,this.time);
+   if(result.ok){
+    this.contourError='';this.contourInfo='';
+    this.contourFeedback={title:'Ложный маяк установлен',at:this.time,
+     text:'Потрачено '+CONTOURS.reserveCost+' флюкса. Через '+CONTOURS.reserveArmSeconds+
+      ' с маяк сможет один раз сорвать налёт носителя помех на станцию «'+
+      (base?.title||'Узел')+'», если ПВО не справится.'};
+    recordWorldFeedback(this,{key:'contour-reserve-armed:'+id+':'+Math.floor(this.time),
+     kind:'industry',label:'ЛОЖНЫЙ МАЯК УСТАНОВЛЕН',
+     cause:'На опорный узел доставлено '+CONTOURS.reserveCost+' флюкса',
+     effect:'Через '+CONTOURS.reserveArmSeconds+' с будет готова одна защита от приказа на подавление связи',
+     x:base?.x,y:base?.y});
+    this.heritage.ui('upgrade');
+   }else{
+    this.contourError=result.reason;this.heritage.ui('cancel');
+   }
+   this.renderMap();this.pausedRenderPending=true;return;
+  }
    if(act==='contourPlanLink'){
     this.contourSelection=b.dataset.from;
     this.contourFirst=b.dataset.from;
@@ -3219,13 +3239,15 @@ export class ArcadeGame {
    this.awardStrategicExperience(firstDeliveryXp);this.lastContourNoticeAt=this.time;
    this.rewardNotice('Первая доставка флюкса из территориальной воронки: +'+firstDeliveryXp+
     ' опыта. Запас доступен на карте контуров.',previousLevel,5);
+  }else if(contourEvents.some(e=>e.kind==='reserveLost')){
+   this.notice('Опорная станция потеряна. Её ложный маяк уничтожен вместе с запасом флюкса.',5);
   }else if(contourEvents.some(e=>e.kind==='lost')&&this.time-this.lastContourNoticeAt>18){
    this.lastContourNoticeAt=this.time;
    this.notice('Вражеский налёт уничтожил добывающего плазмофага. Следующая экспедиция отправится автоматически.',5);
   }else if(contourEvents.some(e=>e.kind==='delivered'&&e.amount>.05)&&
    this.time-this.lastContourNoticeAt>48&&fieldAt(this.world,this.player.x,this.player.y)){
    this.lastContourNoticeAt=this.time;
-   this.notice('Сборщики доставили флюкс на станцию. Запас и защитный импульс доступны на карте контуров.',4);
+   this.notice('Сборщики доставили флюкс. На карте контуров его можно потратить на щит или ложный маяк для опорной станции.',4);
   }
   let mx=(isPressed(this.keys,this.controls,'right')||this.keys.has('ArrowRight')?1:0)-
     (isPressed(this.keys,this.controls,'left')||this.keys.has('ArrowLeft')?1:0)+this.touch.x;

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {game} from './weapons-scene.mjs';
 import {createFieldLoan} from '../field-weapons.js';
+import {armContourReserve,contourFields,CONTOURS} from '../territory-system.js';
 import {fireAimedRail,updateAutomaticWeapons} from '../ship-weapons.js';
 import {damageTarget} from '../combat-targets.js';
 import {labLogisticsIntel} from '../station-progression.js';
@@ -84,6 +85,43 @@ test('station PVO spends a real charge; an unopposed subsequent pulse disables a
  assert.equal(labLogisticsIntel(g.world,g.player).contacts.length,0);
  g.time=230;ship.hp=0;updateStrategicCommand(g);
  assert.equal(b.suppressed,false);assert.ok(labLogisticsIntel(g.world,g.player).contacts.length>0);
+});
+test('a flux-funded decoy acts only after real PVO fails, aborts one paid order without removing the enemy ship',()=>{
+ const {g,b,ship}=armed();
+ const n1={...lab(1000,-700),id:'support:a',type:'dock'};
+ const n2={...lab(1000,700),id:'support:c',type:'dock'};
+ g.world.stations.set(n1.id,n1);g.world.stations.set(n2.id,n2);
+ g.world.contours.links=[[b.id,n1.id],[n1.id,n2.id],[n2.id,b.id]];
+ assert.equal(contourFields(g.world).length,1);
+ g.world.contours.flux=CONTOURS.reserveCost;
+ assert.equal(armContourReserve(g.world,b.id,200).ok,true);
+ const previousEnemyCount=g.enemies.length;
+ g.time=204;updateStationInterdiction(g,ship,.02);
+ assert.equal(b.defense.charges,0);
+ assert.ok(g.world.contours.reserve,'PVO gets priority; it must not waste a flux decoy');
+ g.time=209;updateStationInterdiction(g,ship,.02);
+ g.time=216;updateStationInterdiction(g,ship,.02);
+ assert.equal(ship.stationRaid,null,'the paid jamming mission has lost its target');
+ assert.equal(g.world.contours.reserve,null,'the prepared reserve cannot trigger again');
+ assert.ok(!b.suppressed,'the contour and radio link survive the decoy');
+ assert.equal(contourFields(g.world).length,1);
+ assert.equal(g.enemies.length,previousEnemyCount,'no ship is erased, created, or funded for free');
+ assert.ok(ship.hp>0);
+ assert.match(g.lastNotice,/Ложный маяк/);
+});
+test('an unarmed flux decoy cannot be purchased during the enemy windup and used instantly',()=>{
+ const {g,b,ship}=armed();
+ const n1={...lab(1000,-700),id:'support:a',type:'dock'};
+ const n2={...lab(1000,700),id:'support:c',type:'dock'};
+ g.world.stations.set(n1.id,n1);g.world.stations.set(n2.id,n2);
+ g.world.contours.links=[[b.id,n1.id],[n1.id,n2.id],[n2.id,b.id]];
+ g.world.contours.flux=CONTOURS.reserveCost;
+ g.time=204;updateStationInterdiction(g,ship,.02);
+ g.time=209;assert.equal(armContourReserve(g.world,b.id,g.time).ok,true);
+ updateStationInterdiction(g,ship,.02);
+ g.time=216;updateStationInterdiction(g,ship,.02);
+ assert.equal(b.suppressed,true,'the decoy is still preparing');
+ assert.ok(g.world.contours.reserve,'unsuccessful protection must not burn the charge');
 });
 test('jamming a bridge really disconnects its downstream stations, then restores the same network',()=>{
  const {g,b}=scene(),home=g.world.home;
@@ -186,6 +224,18 @@ test('a checkpoint restores reports, paid orders and remaining disruption withou
  assert.equal(validateCheckpoint(corrupt),false);
  const newer=unpackRun(packRun(data));newer.world.regionalSupply.command.serial=-1;
  assert.equal(validateCheckpoint(newer),false);
+});
+test('a pending decoy survives a checkpoint with the same arm time; forged stations are rejected',()=>{
+ const {g,b}=armed();g.world.contours.reserve={stationId:b.id,readyAt:229};
+ g.world.contours.flux=3;
+ g.player.x=g.docked.x;g.player.y=g.docked.y;g.paused=true;
+ const data=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(data),true);
+ const restored=game();restoreCheckpoint(restored,data);
+ assert.deepEqual(restored.world.contours.reserve,{stationId:b.id,readyAt:229});
+ assert.equal(restored.world.contours.flux,3);
+ const forged=unpackRun(packRun(data));forged.world.contours.reserve.stationId='unknown:node';
+ assert.equal(validateCheckpoint(forged),false);
 });
 test('the defense action navigates to the real threatened station and rejects a forged or expired alert',()=>{
  const {g,b,ship}=armed();g.overlay.dataset.mode='map';let route=null;
