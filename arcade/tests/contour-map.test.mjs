@@ -6,6 +6,7 @@ import {connectContour} from '../territory-system.js';
 import {previewContourConnection,contourConnectionChoices} from '../contour-preview.js';
 import {drawContourWorld} from '../contour-visuals.js';
 import {recordWorldFeedback} from '../world-feedback.js';
+import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from '../contour-cartography.js';
 import {readFileSync} from 'node:fs';
 
 const harness=()=>({world:new World(),player:{x:0,y:0,shield:0},
@@ -132,7 +133,7 @@ test('the default territory map explains real industrial consequences without fo
  assert.match(html,/Контуры территорий/);
 });
 
-test('regional atlas pins at most three witnessed events at their verified positions',()=>{
+test('regional and world atlases pin only witnessed events at verified positions',()=>{
  const game=harness();game.contourRegion='amethyst';game.time=20;
  recordWorldFeedback(game,{key:'located',cause:'Груз перехвачен',effect:'Поставка сорвана',
   kind:'loss',label:'СНАБЖЕНИЕ ПЕРЕХВАЧЕНО',x:0,y:0});
@@ -147,9 +148,76 @@ test('regional atlas pins at most three witnessed events at their verified posit
   x:(i-2)*1350,y:(i%2?1:-1)*900});
  assert.equal((renderWorldMap(game).match(/class="contour-incident-pin /g)||[]).length,3);
  game.contourRegion='all';
- assert.doesNotMatch(renderWorldMap(game),/class="contour-incident-pin /);
+ const overview=renderWorldMap(game);
+ assert.ok((overview.match(/class="contour-incident-pin /g)||[]).length<=4);
+ assert.match(overview,/Доставка \d → Потери/);
+ assert.doesNotMatch(overview,/Радиоперехват → Враг меняет тактику/,
+  'the world atlas must not invent positions for unlocated news');
  game.contourRegion='amethyst';game.time=201;
  assert.doesNotMatch(renderWorldMap(game),/class="contour-incident-pin /);
+});
+
+test('the new atlas uses one measured projection for every layer and shows the actual regional boundary',()=>{
+ const local=atlasPoint({x:360,y:-85},{x:360,y:-85},.055);
+ const far=atlasPoint({x:1000,y:1000},{x:0,y:0},.0035);
+ assert.deepEqual(local,{x:340,y:240});
+ assert.equal(far.x,343.5);assert.equal(far.y,243.5);
+ const geography=atlasGeography({x:0,y:0},.0035);
+ assert.match(geography,/contour-world-geography/);
+ assert.match(geography,/r="245\.0"/);
+ assert.match(geography,/fill="#ffbd79"/);
+ assert.match(geography,/fill="#caa0ff"/);
+ const world=new World();
+ const stars=atlasStars(world.seed,{x:0,y:0},.0035,true);
+ assert.equal(stars,atlasStars(world.seed,{x:0,y:0},.0035,true));
+ assert.ok((stars.match(/<circle/g)||[]).length<250,'world star map should stay sparse');
+ const nebulae=atlasNebulae(world.seed,{x:0,y:0},.0035,true);
+ assert.equal(nebulae,atlasNebulae(world.seed,{x:0,y:0},.0035,true));
+ assert.match(nebulae,/contour-nebula-amethyst/);
+});
+
+test('physical atlas shows nearby generated rocks and radar contacts but no distant enemy omniscience',()=>{
+ const game=harness(),world=game.world;
+ game.enemies=[{x:200,y:250,hp:8},{x:2500,y:0,hp:9}];
+ world.rocks.set('0:0',[{x:330,y:120,r:44,alive:true},{x:1000,y:0,r:23,alive:false}]);
+ const before=world.rocks.size;
+ const scene=atlasLiveObjects(game,{x:0,y:0},.055,false);
+ assert.equal((scene.signals.match(/class="contour-radar-contact"/g)||[]).length,1);
+ assert.equal((scene.backdrop.match(/<circle/g)||[]).length,1);
+ assert.equal(world.rocks.size,before,'opening a map should not generate new rock cells');
+ assert.match(scene.signals,/contour-flight-window/);
+ const global=atlasLiveObjects(game,{x:0,y:0},.0035,true);
+ assert.doesNotMatch(global.signals,/class="contour-radar-contact"/);
+});
+
+test('a distant once-seen cargo is not magically tracked without a live signal',()=>{
+ const game=harness(),world=game.world;
+ world.regionalSupply.convoys=[{id:'known',x:30000,y:11000,seen:true,hp:3},
+  {id:'secret',x:31000,y:11500,seen:false,hp:3}];
+ let state=atlasLiveObjects(game,{x:31000,y:11500},.049,false);
+ assert.equal(state.visibleCargo,0);
+ game.waypoint={id:'known',x:30000,y:11000,signalLive:true};
+ state=atlasLiveObjects(game,{x:31000,y:11500},.049,false);
+ assert.equal(state.visibleCargo,1);
+ game.waypoint.signalLive=false;
+ game.waypoint.radioContact=true;
+ assert.equal(atlasLiveObjects(game,{x:31000,y:11500},.049,false).visibleCargo,0);
+});
+
+test('regional storms and navigation are spatial overlays rather than decorative map fiction',()=>{
+ const game=harness(),azure={x:7500,y:35700};
+ const scene=atlasLiveObjects(game,azure,.049,false);
+ assert.ok(scene.visibleStorms>0);
+ assert.match(scene.backdrop,/contour-storm/);
+ game.waypoint={x:azure.x+1000,y:azure.y,label:'Цель'};
+ const route=atlasNavigation(game,{x:0,y:0},.0035,true);
+ assert.match(route,/contour-navigation-path/);
+ assert.match(route,/20 км/);
+ const close=atlasNavigation(game,{x:0,y:0},.055,false);
+ assert.match(close,/1 км/);
+ const css=readFileSync(new URL('../menu-system.css',import.meta.url),'utf8');
+ assert.match(css,/\.contour-world-geography,[^}]*pointer-events:none/);
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
 });
 
 test('station labels and ship marker cannot swallow a station click',()=>{

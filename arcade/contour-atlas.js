@@ -5,6 +5,7 @@ import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1'
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
 import {labLogisticsUnlocked} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
+import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from './contour-cartography.js?v=living-atlas-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -12,7 +13,7 @@ const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный
 const state=b=>!b.discovered&&!b.active&&!b.strategicRole?'не исследована':
  b.suppressed?'передатчик подавлен':b.enemy?'вражеская станция':
  b.active?'включена':'не включена';
-const at=(p,center,scale)=>({x:340+(p.x-center.x)*scale,y:240+(p.y-center.y)*scale});
+const at=atlasPoint;
 const digits=n=>Number(n).toFixed(1);
 const svgPath=(polygon,center,scale)=>polygon.map((p,i)=>{
  const q=at(p,center,scale);return (i?'L':'M')+digits(q.x)+' '+digits(q.y);
@@ -87,7 +88,6 @@ function fieldArtwork(fields,world,center,scale){
 // Only events with a confirmed world position get a map symbol. The feed
 // intentionally omits locations for unseen factories and untraced radio calls.
 function incidentArtwork(game,region,center,scale){
- if(!region)return '';
  const events=(game.worldFeedback?.history||[]).filter(event=>{
   const p=event.position,age=game.time-event.at;
   if(!p||age<0||age>180)return false;
@@ -97,7 +97,7 @@ function incidentArtwork(game,region,center,scale){
  const used=[];
  return events.map(event=>{
   const q=at(event.position,center,scale);
-  if(used.length>=3||used.some(other=>Math.hypot(other.x-q.x,other.y-q.y)<37))return '';
+  if(used.length>=(region?3:4)||used.some(other=>Math.hypot(other.x-q.x,other.y-q.y)<(region?37:26)))return '';
   used.push(q);
   const label=esc(event.label.slice(0,22));
   const full=esc(event.cause+' → '+event.effect);
@@ -152,6 +152,10 @@ export function renderContourMap(game){
  const world=game.world,region=REGIONS.find(r=>r.id===game.contourRegion)||null;
  const center=region?region.survey:{x:0,y:0},scale=region?(region.id==='amethyst'?.055:.049):.0035;
  const nearby=region?world.nearbyStations(center.x,center.y,5300,true):[];
+ const geography=atlasGeography(center,scale),nebulae=atlasNebulae(world.seed,center,scale,!region);
+ const stars=atlasStars(world.seed,center,scale,!region);
+ const physical=atlasLiveObjects(game,center,scale,!region);
+ const navigation=atlasNavigation(game,center,scale,!region);
  const map=new Map(nearby.map(s=>[s.id,s]));
  if(region)for(const s of world.stations.values())if(s.active||s.discovered||s.strategicRole)map.set(s.id,s);
  const nodes=[...map.values()].filter(s=>{const p=at(s,center,scale);
@@ -207,7 +211,7 @@ export function renderContourMap(game){
  const activeSource=selected&&selected.active&&!selected.enemy&&!selected.suppressed;
  return `<div class="dialog map-dialog contour-dialog" role="dialog" aria-modal="true" aria-labelledby="map-menu-title">
   <header class="map-heading"><div><span class="map-kicker">СТРАТЕГИЧЕСКАЯ СЕТЬ</span><h2 id="map-menu-title">Контуры территорий</h2>
-  <p>Станции → линии → замкнутая территория → флюкс. Каждая новая связь меняет реальный космос.</p></div>
+  <p>Это уменьшенный мир: станции, опасные области, замеченные корабли и ваши линии находятся там же, где в полёте.</p></div>
   <div class="map-heading-actions"><span class="contour-wallet">Флюкс <b>${digits(world.contours.flux)}</b> / ${CONTOURS.fluxCap}</span>
   ${game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':''}<button data-act="close">В полёт · Esc</button></div></header>
   <nav class="map-view-switch"><button data-act="mapView" data-id="map">Ближняя карта</button>
@@ -218,13 +222,18 @@ export function renderContourMap(game){
   <svg class="contour-chart" viewBox="0 0 680 480" role="group" aria-label="${region?'Выбор станций и линий':'Выбор региона'}">
   <defs><radialGradient id="contourAtlasGlow"><stop offset="0" stop-color="#1a5064" stop-opacity=".45"/><stop offset="1" stop-color="#071a2b" stop-opacity="0"/></radialGradient></defs>
   <rect width="680" height="480" rx="12" fill="#081a2a"/><circle cx="340" cy="240" r="300" fill="url(#contourAtlasGlow)"/>
+  ${geography}${nebulae}${stars}
   <path d="M0 120H680M0 240H680M0 360H680M170 0V480M340 0V480M510 0V480" stroke="#5b9cb21a" stroke-dasharray="3 8"/>
+  ${physical.backdrop}${physical.signals}${navigation}
   ${region?fieldArtwork(fields,world,center,scale)+ghost+paths+prospects+
    stationMarks(nodes,center,scale,selected?.id,source?.id,readyIds,goalIds)+
-   incidentArtwork(game,region,center,scale):trunkLines+regionOverview(world,center,scale)}
+   incidentArtwork(game,region,center,scale):trunkLines+regionOverview(world,center,scale)+incidentArtwork(game,null,center,scale)}
   ${visiblePlayer?`<g class="contour-player-pin" transform="translate(${digits(player.x)} ${digits(player.y)})"><circle r="12" fill="#9dd9ff12" stroke="#d7faff" stroke-dasharray="3 3"/><path d="M0 -7L-5 5L0 2L5 5Z" fill="#fff"/><title>Ваш корабль</title></g>`:''}</svg>
   <div class="contour-legend"><span><i class="contour-key mine"></i> Своя</span><span><i class="contour-key dormant"></i> Не включена</span>
   <span><i class="contour-key hostile"></i> Враг</span><span><i class="contour-key available"></i> Возможная связь</span><span><i class="contour-key vortex"></i> Воронка</span>
+  ${physical.visibleRelays?'<span><i class="contour-key relay"></i> Ретрансляторы</span>':''}
+  ${physical.visibleStorms?'<span><i class="contour-key storm"></i> Буря</span>':''}
+  ${physical.visibleCargo?'<span><i class="contour-key cargo"></i> Замеченный груз</span>':''}
   ${region?'<span><i class="contour-key incident"></i> Замеченное событие</span>':''}</div>
   <div class="contour-context">${esc(current.name)} · ${esc(stage)}${source?'<button data-act="contourCancel">Снять выбор</button>':''}</div>
   </div><aside class="map-side contour-side"><div class="contour-summary" aria-label="Итоги сети">
