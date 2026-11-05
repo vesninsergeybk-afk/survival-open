@@ -135,3 +135,16 @@
 @media(min-width:801px){.pilot-skill-grid:has(>:last-child:nth-child(2)){grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 @media(pointer:coarse){#overlay :is(.screen-dialog,.pilot-dialog,.map-dialog) .menu-info{width:44px;height:44px;min-width:44px;min-height:44px}.pilot-skill-title{padding-right:38px}#overlay .screen-choice h3{margin-right:40px}}
+@media(max-height:580px) and (min-width:600px){
+ .system-dialog button{min-height:36px;padding:7px 12px}
+ .system-dialog .system-head{margin-bottom:6px;padding-bottom:6px}
+ .system-dialog .system-head h2{font-size:23px}
+ .system-dialog .system-shortcuts{margin:6px 0}
+ .system-dialog .system-shortcuts button{min-height:36px}
+ .system-dialog .settings-pane{padding-top:8px}
+ #gameMenuDialog #audioMixer{margin-top:8px}
+ #gameMenuDialog .audio-mixer-body{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 14px}
+ #gameMenuDialog .audio-mixer-body label{font-size:12px;gap:6px}
+ #gameMenuDialog .audio-mixer-body input{min-height:20px}
+ #gameMenuDialog .audio-mixer-body small{grid-column:1/-1;font-size:11px}
+}
