@@ -1,15 +1,15 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
 import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
-import {SUPPLY,supplyRoute,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=enemy-economy-1';
-import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1';
+import {SUPPLY,supplyRoute,advanceRegionalSupply,interceptSupply,supplyEvent,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2';
+import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1-enemy-balance-2';
 import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
-import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1';
+import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {updateStrategicCommand,assignStationInterdiction,drawStationInterdiction} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
 import {stormPhase} from './regional-storms.js?v=regions-1';
 import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1';
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
-import {advanceEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1';
+import {advanceEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 /** Translate *completed simulation events*, never a speculative plan, into a
@@ -98,6 +98,25 @@ function makeEnemy(game,type,x,y,scenario,protect=null,frontierRole=null){
   frontierRole,stormAdapted:frontierRole==='azure'&&type==='flanker',
   healReserve:frontierRole==='teal'&&type==='healer'?90:undefined};
 }
+function cargoEscortTypes(cargo){
+ return cargo.frontierRepair?
+  (cargo.frontierNetwork==='azure'?(cargo.screened?['flanker','gunship']:['fighter','flanker']):
+   cargo.screened?['gunship','healer']:['fighter','healer']):cargo.frontierCargo?
+  (cargo.screened?(cargo.frontierNetwork==='azure'?['flanker','gunship']:['gunship','healer']):
+   FRONTIERS[cargo.frontierNetwork].escort):
+  cargo.screened?['gunship','fighter']:['fighter','fighter'];
+}
+// A ship can leave the active simulation without being destroyed. Retain its
+// actual remaining hull on the paid cargo; destroyed or converted escorts do
+// not regenerate when the pilot revisits the transport after saving.
+export function rememberCargoEscort(enemy){
+ const cargo=enemy?.protect,slot=enemy?.escortSlot;
+ if(!cargo?.regionalCargo||!Number.isInteger(slot)||!Array.isArray(cargo.escortManifest)||
+    !cargo.escortManifest[slot])return false;
+ const stored=cargo.escortManifest[slot];
+ stored.hp=enemy.converted?0:Math.max(0,Math.min(stored.maxHp,enemy.hp));
+ return true;
+}
 export function updateRegionalWorld(game,dt){
  const world=game.world,s=world.regionalSupply;if(!s)return;
  const region=regionAt(game.player.x,game.player.y);
@@ -126,7 +145,13 @@ export function updateRegionalWorld(game,dt){
    s.frontier?.azure?.repairExpedition,s.frontier?.teal?.repairExpedition]
    .find(c=>c?.id===game.waypoint.id);
   if(!cargo||game.waypoint.radioContact&&!cargoStrengthensEnemy(world,cargo))game.waypoint=null;
-  else if(!game.waypoint.radioContact)Object.assign(game.waypoint,{x:cargo.x,y:cargo.y});
+  else if(!game.waypoint.radioContact){
+   const contact=cargoLastContact(cargo,game.time);
+   if(contact)Object.assign(game.waypoint,{x:contact.x,y:contact.y});
+   game.waypoint.signalLive=!!contact?.live;
+   game.waypoint.label=contact?.live?(game.waypoint.signalLabel||game.waypoint.label):
+    'Последнее известное положение транспорта';
+  }
   else {
    // A radio target is live only inside a working laboratory's coverage.
    // Outside that area the pilot keeps the last known location, not a
@@ -206,18 +231,27 @@ export function updateRegionalWorld(game,dt){
   cargo.hit=Math.max(0,(cargo.hit||0)-dt);
   if(distance(cargo,game.player)<1000){
    cargo.seen=true;
-   if(!cargo.escorted&&game.enemies.length<=RULES.maxEnemies-2){
-    cargo.escorted=true;++game.groupSerial;
-    const roster=cargo.frontierRepair?
-     (cargo.frontierNetwork==='azure'?(cargo.screened?['flanker','gunship']:['fighter','flanker']):
-      cargo.screened?['gunship','healer']:['fighter','healer']):cargo.frontierCargo?
-     (cargo.screened?(cargo.frontierNetwork==='azure'?['flanker','gunship']:['gunship','healer']):
-      FRONTIERS[cargo.frontierNetwork].escort):
-     (cargo.centralCargo||!cargo.frontierCargo)&&cargo.screened?
-      ['gunship','fighter']:['fighter','fighter'];
-    for(let i=0;i<2;i++)game.enemies.push(makeEnemy(game,roster[i],cargo.x+(i?95:-95),cargo.y+85,
+   cargo.lastSeenAt=game.time;cargo.lastSeenX=cargo.x;cargo.lastSeenY=cargo.y;
+   if(!cargo.escortManifest){
+    cargo.escortManifest=cargoEscortTypes(cargo).map(type=>({type,hp:ENEMY_TYPES[type].hp,
+     maxHp:ENEMY_TYPES[type].hp}));
+   }
+   cargo.escorted=true;
+   for(const enemy of game.enemies)if(enemy.protect===cargo&&
+     (enemy.hp<=0||enemy.converted))rememberCargoEscort(enemy);
+   const used=new Set();
+   for(let i=0;i<cargo.escortManifest.length;i++){
+    const stored=cargo.escortManifest[i];
+    const existing=game.enemies.find(e=>e.hp>0&&!e.converted&&e.protect===cargo&&
+     !used.has(e)&& (e.escortSlot===i||e.escortSlot===undefined&&e.type===stored.type));
+    if(existing){existing.escortSlot=i;used.add(existing);continue;}
+    if(stored.hp<=0||game.enemies.length>=RULES.maxEnemies)continue;
+    ++game.groupSerial;
+    const enemy=makeEnemy(game,stored.type,cargo.x+(i?95:-95),cargo.y+85,
      cargo.frontierRepair?'frontier-repair-escort':cargo.frontierCargo?'frontier-escort':'regional-escort',
-     cargo,cargo.frontierNetwork||null));
+     cargo,cargo.frontierNetwork||null);
+    enemy.escortSlot=i;enemy.hp=stored.hp;enemy.maxHp=stored.maxHp;
+    game.enemies.push(enemy);
    }
   }
  }

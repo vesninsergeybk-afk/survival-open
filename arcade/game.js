@@ -4,11 +4,11 @@ import {openSystemMenu,mountSystemMenu,attachMenuAccess} from './game-menu.js?v=
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2';
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
 import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expedition-1';
-import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1';
-import {disableCentralWorker} from './central-industry.js?v=living-world-1-home-conflict-1';
+import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2';
+import {disableCentralWorker} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2';
 import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1';
@@ -62,7 +62,7 @@ import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDro
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
  openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-5';
-import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1';
+import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {ambientPatrolRoute,patrolCanLeave} from './enemy-awareness.js?v=living-world-roaming-patrol-2';
 import {recordWorldFeedback,recordContourFeedback,advanceWorldFeedback,drawWorldFeedback,drawImpactInvestigation} from './world-feedback.js?v=world-feedback-1';
 import {regionalCampaignPressure,campaignDestination} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1';
@@ -3217,6 +3217,7 @@ export class ArcadeGame {
   for(const e of this.enemies){
    e.hit=Math.max(0,(e.hit||0)-dt);
    if(e.hp>0)continue;
+   rememberCargoEscort(e);
    recordOpeningCommanderDefeat(this.openingArc,e,this.time);
    if(!e.visualDeath){
     e.visualDeath=true;
@@ -3239,10 +3240,13 @@ export class ArcadeGame {
      this.addDrop('ore',e.x+10,e.y-9,salvage,{source:'salvage',life:24});
    }
   }
-  this.enemies=this.enemies.filter(e=>e.hp>0&&
-   (e.interceptCargo||e.relayAssault||e.stationRaid||
+  this.enemies=this.enemies.filter(e=>{
+   const retained=e.hp>0&&(e.interceptCargo||e.relayAssault||e.stationRaid||
     (e.openingCommander&&openingArcActive(this.openingArc))||
-    dist(e,p)<Math.max(this.vw,this.vh)*1.65+500));
+    dist(e,p)<Math.max(this.vw,this.vh)*1.65+500);
+   if(!retained)rememberCargoEscort(e);
+   return retained;
+  });
   for(const a of this.allies){
    for(const e of this.grid.query(a.x,a.y,a.r+35)){
     if(e.hp<=0||e.converted||dist(a,e)>a.r+e.r)continue;

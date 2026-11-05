@@ -183,7 +183,7 @@ test('intel and routes are learned by exploration; undiscovered convoys do not l
  const overlay=regionalMapOverlay(g,p=>p,()=>true);
  assert.ok(overlay.includes('stroke-dasharray="11 6"'));
  const cargo=g.world.regionalSupply.frontier.azure.convoys[0];
- assert.ok(cargo);cargo.seen=true;
+ assert.ok(cargo);cargo.seen=true;cargo.lastSeenAt=g.time;cargo.lastSeenX=cargo.x;cargo.lastSeenY=cargo.y;
  assert.ok(renderRegionAtlas(g).includes(cargo.id));
  assert.ok(regionalMapOverlay(g,p=>p,()=>true).includes('ЭНЕРГОТРАНСПОРТ'));
 });

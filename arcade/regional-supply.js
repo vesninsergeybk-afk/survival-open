@@ -1,6 +1,6 @@
 import {REGIONS} from './regions.js?v=regions-1';
 import {commandStateValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
-import {createCentralIndustry,advanceCentralIndustry,interceptCentralCargo,centralIndustryValid,CENTRAL_INDUSTRY,centralEvent} from './central-industry.js?v=living-world-1-home-conflict-1';
+import {createCentralIndustry,advanceCentralIndustry,interceptCentralCargo,centralIndustryValid,CENTRAL_INDUSTRY,centralEvent} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2';
 import {createFrontierIndustry,advanceFrontierIndustry,interceptFrontierCargo,interceptFrontierRepair,frontierIndustryValid,captureFrontierStation} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
 export const SUPPLY=Object.freeze({mineId:'28:5',militaryId:'4:-32',
  production:.2,capacity:24,cargoCost:12,dispatchPeriod:90,speed:220,
@@ -25,6 +25,14 @@ export const SUPPLY_DIVERSION=Object.freeze([
 export const supplyRoute=routeId=>routeId==='diversion'?SUPPLY_DIVERSION:SUPPLY_ROUTE;
 export const supplyRouteLength=routeId=>supplyRoute(routeId).slice(1).reduce((n,p,i)=>
  n+Math.hypot(p.x-supplyRoute(routeId)[i].x,p.y-supplyRoute(routeId)[i].y),0);
+// A visual sighting leaves a last-known point, never a perpetual live beacon.
+// Laboratory intercepts use their own verified radio-contact rules.
+export const cargoLastContact=(cargo,time,maxAge=100)=>{
+ if(!cargo?.seen||!Number.isFinite(cargo.lastSeenAt)||
+  !Number.isFinite(cargo.lastSeenX)||!Number.isFinite(cargo.lastSeenY)||
+  time<cargo.lastSeenAt||time-cargo.lastSeenAt>maxAge)return null;
+ return {x:cargo.lastSeenX,y:cargo.lastSeenY,live:time-cargo.lastSeenAt<1.5};
+};
 export function supplyPosition(distance,routeId='direct'){
  const route=supplyRoute(routeId);
  let remaining=Math.max(0,distance);
@@ -186,6 +194,15 @@ export function strategicCapture(world,base,time){
 }
 export function regionalSupplyValid(s,time){
  const num=(n,min,max)=>Number.isFinite(n)&&n>=min&&n<=max;
+ const cargoMetadataValid=c=>{
+  const last=c.lastSeenAt===undefined&&c.lastSeenX===undefined&&c.lastSeenY===undefined||
+   num(c.lastSeenAt,0,time)&&num(c.lastSeenX,-1e9,1e9)&&num(c.lastSeenY,-1e9,1e9);
+  const escorts=c.escortManifest===undefined||c.escorted===true&&
+   Array.isArray(c.escortManifest)&&c.escortManifest.length===2&&
+   c.escortManifest.every(m=>m&&['fighter','flanker','gunship','healer'].includes(m.type)&&
+    num(m.maxHp,1,10000)&&num(m.hp,0,m.maxHp));
+  return last&&escorts&&(c.escorted===undefined||typeof c.escorted==='boolean');
+ };
  const strategyValid=st=>st===undefined||Boolean(st&&
   ['direct','diversion'].includes(st.route)&&typeof st.screened==='boolean'&&
   Number.isInteger(st.knownLosses)&&num(st.knownLosses,0,8)&&
@@ -210,11 +227,14 @@ export function regionalSupplyValid(s,time){
    ['dispatch','delivery','diverted','overflow','raid-warning','raid','intercept','mine-captured','military-captured',
     'route-prep','route-changed','screen-prep','screen-ready','screen-dispatch','shipment-overdue'].includes(e.kind)&&num(e.time,0,time))&&
   Array.isArray(s.convoys)&&s.convoys.length<=2&&new Set(s.convoys.map(c=>c.id)).size===s.convoys.length&&
-  s.convoys.every(c=>c.regionalCargo===true&&/^regional-cargo-\d+$/.test(c.id)&&
+  s.convoys.every(c=>c.regionalCargo===true&&cargoMetadataValid(c)&&/^regional-cargo-\d+$/.test(c.id)&&
    [undefined,'direct','diversion'].includes(c.routeId)&&
    (c.screened===undefined||typeof c.screened==='boolean')&&
    num(c.launchedAt,0,time)&&num(c.distance,0,supplyRouteLength(c.routeId)+SUPPLY.speed)&&
-   num(c.x,-1e9,1e9)&&num(c.y,-1e9,1e9)&&num(c.hp,.001,180)&&c.maxHp===180&&c.r===43);
+   num(c.x,-1e9,1e9)&&num(c.y,-1e9,1e9)&&num(c.hp,.001,180)&&c.maxHp===180&&c.r===43)&&
+  [...(s.central?.convoys||[]),...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[]),
+   s.frontier?.azure?.repairExpedition,s.frontier?.teal?.repairExpedition]
+   .filter(Boolean).every(cargoMetadataValid);
 }
 export const supplyStatus=world=>{
  const s=world.regionalSupply,mine=world.stations.get(SUPPLY.mineId),war=world.stations.get(SUPPLY.militaryId);

@@ -1,4 +1,4 @@
-import {warFronts,warFront,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair-qa-1';
+import {warFronts,warFront,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {ensureStationDefense,defenseLinked} from './network-defense.js?v=network-defense-4';
 import {baseNames} from './balance.js?v=arcade-balanced-bases-30';

@@ -56,6 +56,15 @@ export function centralStrategy(s){
  return s.strategy??= {losses:0,screened:false,rerouted:false,planUntil:0};
 }
 
+// A worker with no reachable ore cannot support new industrial sorties just
+// because its hull is still intact. A return trip with carried ore counts as
+// potential production until it reaches the source.
+export function centralExtractionAvailable(s){
+ const w=s?.worker;
+ return !!w&&w.hp>0&&!['disabled','evacuated'].includes(w.phase)&&
+  (w.carry>0||w.phase!=='seek'||w.rockDepleted!==true);
+}
+
 export function createCentralIndustry(time=0){
  const clock=Math.floor(time);
  const start={x:CENTRAL_INDUSTRY.sourceX+95,y:CENTRAL_INDUSTRY.sourceY-90};
@@ -93,6 +102,7 @@ function workerTick(world,s,t){
  if(w.phase==='seek'){
   if(s.ore>=CENTRAL_INDUSTRY.oreCapacity)return;
   const rock=nearbyOre(world)[0];
+  w.rockDepleted=!rock;
   if(!rock)return;
   w.phase='outbound';w.rockId=rock.id;w.from={...w.to};
   w.to={x:rock.x,y:rock.y};w.at=t;
@@ -217,6 +227,7 @@ export function centralIndustryValid(s,time){
    [null,'survey','intercept','source','depot','lab','arsenal','carrier'].includes(s.conflict.plan)&&
    [null,'starved','captured'].includes(s.conflict.outcome))&&
   w?.centralWorker===true&&valid(w.hp,0,w.maxHp)&&w.maxHp===70&&w.r===16&&
+  (w.rockDepleted===undefined||typeof w.rockDepleted==='boolean')&&
   ['seek','outbound','mining','return','disabled','evacuated'].includes(w.phase)&&
   (w.rockId===null||typeof w.rockId==='string'&&w.rockId.length<100)&&
   valid(w.carry,0,CENTRAL_INDUSTRY.workerCapacity)&&point(w)&&point(w.from)&&point(w.to)&&

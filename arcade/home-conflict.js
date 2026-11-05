@@ -1,4 +1,5 @@
-import {CENTRAL_INDUSTRY,centralCargoRemaining,centralCargoSpeed,centralRoute} from './central-industry.js?v=home-conflict-1';
+import {CENTRAL_INDUSTRY,centralCargoRemaining,centralCargoSpeed,centralRoute,centralExtractionAvailable} from './central-industry.js?v=home-conflict-1-enemy-balance-2';
+import {cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2';
 import {labLogisticsIntel} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1';
 
 export const HOME_CONFLICT=Object.freeze({radius:10500,offerAt:150,backgroundCap:14,raidShips:3});
@@ -10,7 +11,7 @@ export function homeIndustryState(world){
  const s=world?.regionalSupply?.central;
  if(!s)return null;
  const {source,depot}=localStations(world);
- const working=!!source?.enemy&&s.worker?.hp>0&&s.worker.phase!=='evacuated';
+ const working=!!source?.enemy&&centralExtractionAvailable(s);
  const payload=s.convoys.some(c=>c.hp>0)||s.reserves>0||!!s.pendingRaid||
   !!source?.enemy&&s.ore>=CENTRAL_INDUSTRY.cargoCost+(s.strategy?.screened?2:0);
  return {s,source,depot,working,payload,
@@ -52,10 +53,11 @@ export function homeConflictTarget(game,plan){
  if(plan==='depot')return source?.discovered||depot?.discovered||intel.contacts.some(c=>c.kind==='depot')?
   signal(depot,'conflict:depot','Район сигнала сборки'):null;
  if(plan==='intercept'&&depot?.enemy){
-  const cargo=s.convoys.find(c=>c.hp>0&&(c.seen||intel.contacts.some(i=>i.id===c.id)));
+  const cargo=s.convoys.find(c=>c.hp>0&&(cargoLastContact(c,game.time)||
+   intel.contacts.some(i=>i.id===c.id)));
   if(cargo){
-   const radio=!cargo.seen;
-   return {id:cargo.id,x:cargo.x,y:cargo.y,label:'Местный рудный груз',
+   const last=cargoLastContact(cargo,game.time),radio=!last;
+   return {id:cargo.id,x:last?.x??cargo.x,y:last?.y??cargo.y,label:'Местный рудный груз',
     ...(radio?{radioContact:true,signalLabel:'Местный рудный груз',signalLive:true}:{})};
   }
   if(source?.discovered){
@@ -108,7 +110,7 @@ export function homeConflictCue(game){
  if(depot?.discovered&&s.reserves>0&&s.assemblyUntil>game.time)
   return 'СБОРОЧНЫЙ ПОСТ · сборка отряда · '+Math.ceil(s.assemblyUntil-game.time)+' с';
  const intel=labLogisticsIntel(game.world,game.player);
- const cargo=s.convoys.find(c=>c.seen||intel.contacts.some(i=>i.id===c.id));
+ const cargo=s.convoys.find(c=>cargoLastContact(c,game.time)||intel.contacts.some(i=>i.id===c.id));
  if(cargo)return 'ГРУЗ К СБОРОЧНОМУ ПОСТУ · до доставки '+
   Math.ceil(centralCargoRemaining(cargo)/centralCargoSpeed(cargo))+' с';
  return ({survey:'ДОМАШНИЙ СЕКТОР · разведайте источник налётов',

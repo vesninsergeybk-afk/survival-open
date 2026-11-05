@@ -1,8 +1,8 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
-import {SUPPLY,supplyRoute,supplyStatus} from './regional-supply.js?v=enemy-economy-1';
-import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1';
+import {SUPPLY,supplyRoute,supplyStatus,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2';
+import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1-enemy-balance-2';
 import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
-import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1';
+import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
@@ -59,11 +59,13 @@ export function renderRegionAtlas(game){
  const cargo=[...s.convoys,...(s.central?.convoys||[]),
   ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[]),
   s.frontier?.azure?.repairExpedition,s.frontier?.teal?.repairExpedition]
-  .filter(c=>c?.seen).map(c=>{
+  .filter(c=>cargoLastContact(c,game.time)).map(c=>{
+   const contact=cargoLastContact(c,game.time);
    const label=c.frontierRepair?'Ремонтный корабль':
     c.frontierCargo?(c.frontierNetwork==='azure'?'Энерготранспорт':'Ремонтный груз'):
     (c.centralCargo?'Местный груз':'Рудный транспорт');
-   return '<button type="button" data-act="waypoint" data-id="'+c.id+'" data-x="'+c.x+'" data-y="'+c.y+'" data-label="'+label+'">Перехватить '+label.toLowerCase()+'</button>';
+   return '<button type="button" data-act="waypoint" data-id="'+c.id+'" data-x="'+contact.x+'" data-y="'+contact.y+'" data-label="'+label+'">'+
+    (contact.live?'Перехватить ':'Последняя отметка: ')+label.toLowerCase()+'</button>';
   }).join('');
  const history=mine?.discovered?s.history.slice(-2).reverse().map(e=>'<small>'+Math.floor(e.time/60)+':'+String(Math.floor(e.time%60)).padStart(2,'0')+' · '+titles[e.kind]+'</small>').join(''):'';
  const localMine=world.stations.get(CENTRAL_INDUSTRY.sourceId),localDepot=world.stations.get(CENTRAL_INDUSTRY.depotId),local=s.central;
@@ -163,14 +165,15 @@ export function regionalMapOverlay(game,point,visible){
  }
  for(const c of [...s.convoys,...(s.central?.convoys||[]),
    ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[]),
-   s.frontier?.azure?.repairExpedition,s.frontier?.teal?.repairExpedition].filter(c=>c?.seen)){
-  const q=point(c);if(!visible(q))continue;
+   s.frontier?.azure?.repairExpedition,s.frontier?.teal?.repairExpedition].filter(c=>cargoLastContact(c,game.time))){
+  const contact=cargoLastContact(c,game.time),q=point(contact);if(!visible(q))continue;
   const color=c.frontierRepair?'#ffc78b':c.frontierCargo?(c.frontierNetwork==='azure'?'#90dcff':'#9fe9bb'):
    c.centralCargo?'#83efcd':'#ffc481';
   const label=c.frontierRepair?'РЕМОНТНЫЙ КОРАБЛЬ':c.frontierCargo?(c.screened?'УСИЛЕННЫЙ ГРУЗ':
    (c.frontierNetwork==='azure'?'ЭНЕРГОТРАНСПОРТ':'РЕМОНТНЫЙ ГРУЗ')):
    c.centralCargo?'МЕСТНЫЙ ГРУЗ':c.screened?'РУДА ПОД ОХРАНОЙ':'РУДНЫЙ ТРАНСПОРТ';
-  out+='<g><rect x="'+(q.x-5)+'" y="'+(q.y-5)+'" width="10" height="10" fill="'+color+'"/><text x="'+(q.x+9)+'" y="'+(q.y-9)+'" fill="#ffdbad" font-size="11">'+label+'</text></g>';
+  out+='<g opacity="'+(contact.live?1:.5)+'"><rect x="'+(q.x-5)+'" y="'+(q.y-5)+'" width="10" height="10" fill="'+color+'"/><text x="'+(q.x+9)+'" y="'+(q.y-9)+'" fill="#ffdbad" font-size="11">'+
+   (contact.live?label:'ПОСЛЕДНЯЯ ОТМЕТКА · '+label)+'</text></g>';
  }
  return out;
 }
