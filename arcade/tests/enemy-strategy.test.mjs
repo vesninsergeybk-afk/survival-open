@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EnemyComms} from '../enemy-comms.js';
+import {updateEnemy} from '../ai.js';
 import {EnemyTheaterStrategy,THEATER,planTheater,
   theaterAssets,theaterDestination} from '../enemy-strategy.js';
 
@@ -128,4 +129,25 @@ test('theater work is bounded by order age and network range',()=>{
   net.update(g);
   assert.ok(net.strategicDirectiveFor(wing,1));
   assert.equal(net.strategicDirectiveFor(wing,1+THEATER.orderAge+.01),null);
+});
+
+test('a real pilot steers to its economic objective and then transmits a witnessed decision',()=>{
+  const c=cargo('ship-x',0,0),leader=ship(1,180,0),wing=ship(2,212,25);
+  const g=game([leader,wing],world([c])),net=new EnemyComms();
+  g.enemyComms=net;g.allies=[];g.missiles=[];g.shots=[];
+  g.support={missions:[]};g.avoidance=()=>({x:0,y:0});
+  g.enemyCanSee=()=>true;g.enemyShot=()=>true;
+  g.heritage={play(){},vfx:{shipExplosion(){}}};g.hurt=()=>{};
+  g.player.x=450;g.player.y=0;g.player.invul=99;
+  net.update(g);
+  const before=wing.x;
+  updateEnemy(leader,g,.25);updateEnemy(wing,g,.25);
+  assert.ok(wing._theaterIntent,'free wingman must execute an assigned economic course');
+  assert.equal(wing._theaterIntent.assetId,c.id);
+  assert.ok(wing.x<before,'the wingman genuinely flies toward cargo, away from the player');
+  assert.equal(wing._commsIntent,null,'the overridden pursuit is not advertised as still being flown');
+  assert.equal(net.intercepted(g.time).length,0);
+  g.playerCanInspectEnemyIntent=()=>true;
+  net.confirmExecution(g);
+  assert.ok(net.intercepted(g.time).some(x=>x.message.includes('груз')));
 });
