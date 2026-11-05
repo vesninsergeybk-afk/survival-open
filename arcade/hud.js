@@ -6,8 +6,20 @@ import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=
 import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1';
 import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
+import {expForNext} from './balance.js?v=arcade-balanced-bases-30';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
+const count = value => Math.round(value).toLocaleString('ru-RU');
+// XP is stored within the current level, so a rollover cannot be measured by
+// subtracting the two visible XP counters.
+export const experienceDifference = (before,after) => {
+ if(!before||!after||![before.xp,after.xp,before.level,after.level].every(Number.isFinite)||
+  before.level<1||after.level<before.level)return null;
+ if(after.level===before.level)return after.xp-before.xp;
+ let earned=expForNext(before.level)-before.xp+after.xp;
+ for(let level=before.level+1;level<after.level;level++)earned+=expForNext(level);
+ return earned;
+};
 export const hullCondition = (hp,maxHp) => {
  const fraction=clamp01(hp/Math.max(1,maxHp));
  return fraction<=.3?'critical':fraction<=.65?'wounded':'normal';
@@ -24,9 +36,11 @@ export class CockpitDisplay {
   this.root=el('hud');this.frame=el('cockpitFrame');
   this.radar=el('radar');this.ctx=this.radar.getContext('2d',{alpha:true});
   this.lastRadar=-Infinity;this.lastCondition='';this.oreGained=0;this.oreGainTime=-Infinity;
+  this.dataGained=0;this.dataGainTime=-Infinity;
+  this.lastWallet=null;this.rewardBurst=null;this.lastRewardTime=-Infinity;
   this.n={hp:el('hp'),hpbar:el('hpbar'),hpmeter:el('hpmeter'),
    survivalClock:el('survivalClock'),
-   xpbar:el('xpbar'),xpmeter:el('xpmeter'),level:el('level'),
+   xpbar:el('xpbar'),xpmeter:el('xpmeter'),xpValue:el('xpValue'),level:el('level'),
    shield:el('shield'),shieldmeter:el('shieldmeter'),shieldbar:el('shieldbar'),
    leftBurstMeter:el('leftBurstMeter'),leftBurstText:el('leftBurstText'),
    hudSupportRing:el('hudSupportRing'),hudStrikeCount:el('hudStrikeCount'),
@@ -40,6 +54,9 @@ export class CockpitDisplay {
    wingStatus:el('wingStatus'),stateText:el('stateText'),flightStatus:el('flightStatus'),flightDistance:el('flightDistance'),
    radarDistance:el('radarDistance'),burstBtn:el('burstBtn'),message:el('message'),
    oreResource:el('oreResource'),oreGain:el('oreGain'),
+   dataResource:el('dataResource'),dataGain:el('dataGain'),
+   rewardFeed:el('rewardFeed'),rewardOre:el('rewardOre'),rewardData:el('rewardData'),
+   rewardXp:el('rewardXp'),rewardLevel:el('rewardLevel'),
    miningStatus:el('miningStatus'),miningPercent:el('miningPercent'),
    miningLabel:el('miningLabel'),
    contractObjective:el('contractObjective'),interactionCue:el('interactionCue')};
@@ -60,9 +77,11 @@ export class CockpitDisplay {
   const progress=clamp01(p.xp/Math.max(1,nextXp));
   n.xpbar.style.width=(100*progress)+'%';
   n.xpmeter.style.setProperty('--meter-fill',(100*progress)+'%');
-  n.xpmeter.setAttribute('aria-valuenow',String(Math.round(progress*100)));
+  n.xpmeter.setAttribute('aria-valuenow',String(Math.floor(p.xp)));
+  n.xpmeter.setAttribute('aria-valuemax',String(nextXp));
+  display(n.xpValue,count(p.xp)+' / '+count(nextXp));
   display(n.level,p.level);
-  display(n.points,p.points>0?'Очков: '+p.points:'до ур. '+(p.level+1));
+  display(n.points,p.points>0?' · '+p.points+' очк.':'');
   display(n.shield,p.shield>0?Math.ceil(p.shield):'—');
   const shieldCap=Math.max(30,16+(game.skillRanks?.shield||0)*24,p.shield);
   const shieldFill=clamp01(p.shield/shieldCap);
@@ -70,6 +89,7 @@ export class CockpitDisplay {
   n.shieldmeter.setAttribute('aria-valuenow',String(Math.ceil(p.shield)));
   n.shieldmeter.setAttribute('aria-valuemax',String(Math.ceil(shieldCap)));
   display(n.ore,p.ore);display(n.data,p.data);display(n.bases,game.activeBases);
+  this.trackWallet(p,game.time);
   display(n.wing,game.allies.length);display(n.hack,game.hacks.length);
   display(n.fps,Math.round(game.fps));display(n.enemies,game.enemies.length);
   const strikes=game.support?.charges||0;
@@ -135,8 +155,11 @@ export class CockpitDisplay {
     response.mode==='search'?'ПРОВЕРКА КООРДИНАТ':'ПРИБЛИЖЕНИЕ К СИГНАЛУ');
   }else if(intercepted)display(n.miningPercent,'ПАТРУЛЬ НА ПОДХОДЕ');
   else display(n.miningPercent,'СИГНАЛ '+noise+'%');
-  if(game.time-this.oreGainTime>.8){
+  if(game.time-this.oreGainTime>2.4){
    n.oreResource.classList.remove('is-gaining');this.oreGained=0;
+  }
+  if(game.time-this.dataGainTime>2.4){
+   n.dataResource.classList.remove('is-gaining');this.dataGained=0;
   }
   const cd=Math.max(0,p.burstCooldown),maxCd=Math.max(.01,boostCooldown);
   n.burstbar.style.width=(100*(1-clamp01(cd/maxCd)))+'%';
@@ -235,6 +258,62 @@ export class CockpitDisplay {
    this.lastRadar=game.time;
    this.drawRadar(game);
   }
+ }
+ trackWallet(player,time){
+  const current={ore:player.ore,data:player.data,xp:player.xp,level:player.level,time};
+  const before=this.lastWallet;
+  this.lastWallet=current;
+  // Starting a run, restoring a checkpoint or rewinding the simulation must
+  // never be presented as newly earned loot.
+  if(!before||time<before.time||current.level<before.level||
+    ![current.ore,current.data,current.xp,current.level].every(Number.isFinite)){
+   this.rewardBurst=null;this.n.rewardFeed.hidden=true;return;
+  }
+  const ore=current.ore-before.ore,data=current.data-before.data;
+  const xp=experienceDifference(before,current);
+  const changed=ore!==0||data!==0||(xp!==null&&xp>0)||current.level!==before.level;
+  if(changed){
+   if(ore>0&&this.oreGainTime!==time)this.resourceGain(ore,time);
+   if(data>0)this.dataResourceGain(data,time);
+   const continuing=this.rewardBurst&&time-this.lastRewardTime<=.7;
+   this.rewardBurst={start:continuing?this.rewardBurst.start:before,end:current};
+   this.lastRewardTime=time;
+   this.renderRewardBurst();
+  }
+  if(this.rewardBurst&&time-this.lastRewardTime>2.8){
+   this.rewardBurst=null;this.n.rewardFeed.hidden=true;
+  }
+ }
+ renderRewardBurst(){
+  const n=this.n,{start,end}=this.rewardBurst;
+  const show=(node,label,previous,current)=>{
+   const delta=current-previous;
+   node.hidden=delta===0;
+   if(!node.hidden){
+    display(node,label+' '+count(previous)+' → '+count(current)+
+     ' ('+(delta>0?'+':'−')+count(Math.abs(delta))+')');
+    node.classList.toggle('spent',delta<0);
+   }
+  };
+  show(n.rewardOre,'СПЛАВ',start.ore,end.ore);
+  show(n.rewardData,'ДАННЫЕ',start.data,end.data);
+  const earned=experienceDifference(start,end);
+  n.rewardXp.hidden=earned===null||earned<=0;
+  if(!n.rewardXp.hidden)display(n.rewardXp,start.level===end.level?
+   'ОПЫТ '+count(start.xp)+' → '+count(end.xp)+' (+'+count(earned)+')':
+   'ОПЫТ +'+count(earned));
+  n.rewardLevel.hidden=end.level<=start.level;
+  if(!n.rewardLevel.hidden)display(n.rewardLevel,'УРОВЕНЬ '+end.level+'!');
+  n.rewardFeed.hidden=[n.rewardOre,n.rewardData,n.rewardXp,n.rewardLevel]
+   .every(node=>node.hidden);
+ }
+ dataResourceGain(amount,time){
+  if(time-this.dataGainTime>.7)this.dataGained=0;
+  this.dataGained+=amount;this.dataGainTime=time;
+  display(this.n.dataGain,'+'+count(this.dataGained));
+  this.n.dataResource.classList.remove('is-gaining');
+  void this.n.dataResource.offsetWidth;
+  this.n.dataResource.classList.add('is-gaining');
  }
  resourceGain(amount,time) {
   if(time-this.oreGainTime>.7)this.oreGained=0;

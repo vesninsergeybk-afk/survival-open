@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {CockpitDisplay,hullCondition,radarPoint} from '../hud.js';
+import {CockpitDisplay,hullCondition,radarPoint,experienceDifference} from '../hud.js';
 
 const source=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const css=readFileSync(new URL('../hud.css',import.meta.url),'utf8');
@@ -31,6 +31,15 @@ test('HUD status boundaries and local radar contacts',()=>{
  assert.equal(hullCondition(66,100),'normal');
  assert.equal(radarPoint(1101,0,{x:0,y:0}),null);
  assert.deepEqual(radarPoint(0,0,{x:0,y:0}),{x:72,y:72,distance:0});
+});
+
+test('experience gained across one or several level-ups is never lost in a rollover',()=>{
+ assert.equal(experienceDifference({xp:20,level:1},{xp:29,level:1}),9);
+ assert.equal(experienceDifference({xp:70,level:1},{xp:5,level:2}),10);
+ assert.equal(experienceDifference({xp:70,level:1},{xp:8,level:3}),
+  5+102+8);
+ assert.equal(experienceDifference({xp:5,level:3},{xp:0,level:1}),null,
+  'restarting a run must not be reported as newly earned XP');
 });
 
 test('HUD reads game state and changes contextual prompts without changing simulation',()=>{
@@ -77,6 +86,10 @@ test('HUD reads game state and changes contextual prompts without changing simul
   assert.equal(node('hp').textContent,'28 / 100');
   assert.equal(node('data').textContent,'4');
   assert.equal(node('ore').textContent,'12');
+  assert.equal(node('xpValue').textContent,'20 / 100');
+  assert.equal(node('xpmeter')['aria-valuenow'],'20');
+  assert.equal(node('xpmeter')['aria-valuemax'],'100');
+  assert.equal(node('rewardFeed').hidden,true,'initial totals are not loot');
   assert.equal(node('interactionCue').textContent,'E · Открыть станцию');
   assert.equal(node('interactionCue').hidden,false);
   assert.equal(node('hpmeter')['aria-valuenow'],'28');
@@ -86,6 +99,29 @@ test('HUD reads game state and changes contextual prompts without changing simul
    'touch HUD uses a short, complete weapon state');
   assert.equal(node('flightMode')['aria-label'],'АВТООГОНЬ · АКТИВЕН',
    'the original detailed state remains accessible');
+  // HUD compares actual inventory states, including rewards and purchases
+  // which do not call the old ore-only pulse function.
+  game.player.ore=18;game.player.data=9;game.player.xp=25;game.time=2.1;
+  hud.update(game,100,5);
+  assert.equal(node('rewardOre').textContent,'СПЛАВ 12 → 18 (+6)');
+  assert.equal(node('rewardData').textContent,'ДАННЫЕ 4 → 9 (+5)');
+  assert.equal(node('rewardXp').textContent,'ОПЫТ 20 → 25 (+5)');
+  assert.equal(node('dataGain').textContent,'+5');
+  assert.equal(node('rewardFeed').hidden,false);
+  game.player.level=3;game.player.xp=6;game.player.points=2;game.time=2.2;
+  hud.update(game,139,5);
+  assert.equal(node('xpValue').textContent,'6 / 139');
+  assert.equal(node('rewardLevel').textContent,'УРОВЕНЬ 3!');
+  assert.equal(node('rewardXp').textContent,'ОПЫТ +88',
+   'total reflects the level-2 threshold, not the wrapped XP counter');
+  game.time=5.3;hud.update(game,139,5);
+  assert.equal(node('rewardFeed').hidden,true,'feedback should not obscure combat indefinitely');
+  game.player.ore=15;game.time=5.4;hud.update(game,139,5);
+  assert.equal(node('rewardOre').textContent,'СПЛАВ 18 → 15 (−3)');
+  assert.equal(node('rewardOre').classList.contains('spent'),true);
+  game.player.level=1;game.player.ore=0;game.player.xp=0;game.time=0;
+  hud.update(game,75,5);
+  assert.equal(node('rewardFeed').hidden,true,'restored or restarted runs do not invent pickups');
   game.holdFire=true;
   hud.update(game,100,5);
   assert.equal(node('flightMode').textContent,'ТИХИЙ РЕЖИМ');
