@@ -1,7 +1,7 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3';
+import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE} from './central-industry.js?v=living-world-1';
-import {FRONTIERS,frontierRoute} from './frontier-industry.js?v=living-world-3-logistics-audit-1';
+import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
@@ -70,7 +70,8 @@ export function renderRegionAtlas(game){
    const tactics=source?.discovered&&strat?
     ' Текущий грузовой путь: '+(strat.route==='diversion'?'обходной':'прямой')+
     (strat.routePlan?' (готовится изменение)':'')+'. Охранение: '+
-    (strat.screenPlan?'готовится усиленное':strat.screenUntil>game.time?'усиленное, требует дополнительных материалов':'обычное')+'.':
+    (strat.screenPlan?'готовится усиленное':strat.screenUntil>game.time?'усиленное, требует дополнительных материалов':'обычное')+'.'+
+    ' Радиосвязь действует возле вражеских станций (тонкие окружности на карте вокруг разведанных передатчиков). В радиотени пропажу груза заметят только после ожидаемой доставки.':
     '';
    return '<p><strong>'+(id==='azure'?'Энергосеть разлома':'Ремонтная сеть обломков')+'</strong>: источник — '+known(source)+
     ', сборка — '+known(depot)+'. Замечено грузов: '+net.convoys.filter(c=>c.seen).length+
@@ -104,10 +105,22 @@ export function regionalMapOverlay(game,point,visible){
  }
  for(const id of ['azure','teal']){
   const cfg=FRONTIERS[id];
-  if(!game.world.stations.get(cfg.sourceId)?.discovered)continue;
-  const mode=s.frontier?.[id]?.strategy?.route;
-  out+='<path d="M '+frontierRoute(id,mode).map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+
-   '" stroke="'+(id==='azure'?'#90dcff':'#9fe9bb')+'" opacity=".72" stroke-width="2" stroke-dasharray="11 6" fill="none"/>';
+  if(game.world.stations.get(cfg.sourceId)?.discovered){
+   const mode=s.frontier?.[id]?.strategy?.route;
+   out+='<path d="M '+frontierRoute(id,mode).map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+
+    '" stroke="'+(id==='azure'?'#90dcff':'#9fe9bb')+'" opacity=".72" stroke-width="2" stroke-dasharray="11 6" fill="none"/>';
+  }
+  // Display only explored, still-hostile transmitters: no hidden-base leaks.
+  for(const key of [cfg.sourceId,cfg.depotId]){
+   const station=game.world.stations.get(key);
+   if(!station?.discovered||!station.enemy)continue;
+   const center=point(station),edge=point({x:station.x+FRONTIER_RESPONSE.radioRadius,y:station.y});
+   const radius=Math.hypot(center.x-edge.x,center.y-edge.y);
+   if(!(radius>0))continue;
+   out+='<circle cx="'+center.x.toFixed(1)+'" cy="'+center.y.toFixed(1)+
+    '" r="'+radius.toFixed(1)+'" fill="none" stroke="'+(id==='azure'?'#90dcff':'#9fe9bb')+
+    '" stroke-width="1.3" stroke-dasharray="3 5" opacity=".45"/>';
+  }
  }
  for(const c of [...s.convoys,...(s.central?.convoys||[]),
    ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[])].filter(c=>c.seen)){

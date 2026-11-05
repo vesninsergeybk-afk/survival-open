@@ -4,6 +4,7 @@ import {RuntimeHarness} from './runtime-game.mjs';
 import {World} from '../world.js';
 import {advanceRegionalSupply,interceptSupply,strategicCapture,regionalSupplyValid} from '../regional-supply.js';
 import {FRONTIERS,FRONTIER_RESPONSE,FRONTIER_ROUTES,frontierRouteLength,
+ frontierCargoPosition,frontierRadioCoverage,
  recordFrontierCargoAttack} from '../frontier-industry.js';
 import {updateRegionalWorld,hitRegionalCargo,spawnFrontierRaid} from '../region-runtime.js';
 import {renderRegionAtlas,regionalMapOverlay} from '../regional-map.js';
@@ -24,6 +25,145 @@ const network=(g,id)=>g.world.regionalSupply.frontier[id];
 function tick(g,to){for(let t=Math.floor(g.time)+1;t<=to;t++){
  g.time=t;updateRegionalWorld(g,1);
 }}
+function reachShadow(g,id,limit=950){
+ const s=network(g,id);
+ for(let t=Math.floor(g.time)+1;t<=limit;t++){
+  g.time=t;advanceRegionalSupply(g.world,t);
+  const cargo=s.convoys[0];
+  if(cargo&&!frontierRadioCoverage(g.world,id,cargo))return cargo;
+ }
+ throw Error(`${id}: no reachable radio shadow before the shipment arrives`);
+}
+
+test('both enemy industries have a discoverable radio shadow along real cargo routes',()=>{
+ for(const id of ['azure','teal']){
+  const g=game(id);
+  const cfg=FRONTIERS[id];
+  assert.equal(frontierRadioCoverage(g.world,id,cfg.source),true);
+  assert.equal(frontierRadioCoverage(g.world,id,cfg.depot),true);
+  assert.ok(Array.from({length:40},(_,i)=>
+   frontierCargoPosition(id,frontierRouteLength(id)*i/40))
+   .some(p=>!frontierRadioCoverage(g.world,id,p)));
+  const source=g.world.stations.get(cfg.sourceId);
+  assert.ok(!renderRegionAtlas(g).includes('Радиосвязь действует возле вражеских станций'));
+  assert.ok(!regionalMapOverlay(g,p=>p,()=>true).includes('<circle'),
+   'unexplored transmitters must not appear on the map');
+  source.discovered=true;
+  assert.match(renderRegionAtlas(g),/В радиотени пропажу груза заметят/);
+  assert.equal([...regionalMapOverlay(g,p=>p,()=>true).matchAll(/<circle /g)].length,1,
+   'only the explored source transmitter must be shown');
+  const depot=g.world.stations.get(cfg.depotId);
+  depot.discovered=true;
+  assert.equal([...regionalMapOverlay(g,p=>p,()=>true).matchAll(/<circle /g)].length,2);
+  source.enemy=false;
+  assert.equal([...regionalMapOverlay(g,p=>p,()=>true).matchAll(/<circle /g)].length,1,
+   'captured transmitters must disappear from hostile coverage');
+ }
+});
+
+test('a freighter destroyed outside coverage cannot instantly report its own death',()=>{
+ const g=game('teal'),s=network(g,'teal');
+ const cargo=reachShadow(g,'teal');
+ assert.equal(frontierRadioCoverage(g.world,'teal',cargo),false);
+ const t=g.time;
+ cargo.hp=0;assert.ok(interceptSupply(g.world,cargo,t));
+ assert.equal(s.strategy.reports.filter(r=>r.kind==='loss').length,0);
+ assert.equal(s.strategy.pendingLosses.length,1);
+ const due=s.strategy.pendingLosses[0].dueAt;
+ assert.ok(due>t+1);
+ advanceRegionalSupply(g.world,due-1);
+ assert.equal(s.strategy.reports.filter(r=>r.kind==='loss').length,0);
+ const notices=advanceRegionalSupply(g.world,due);
+ assert.ok(notices.some(e=>e.kind==='shipment-overdue'&&e.network==='teal'));
+ const loss=s.strategy.reports.find(r=>r.kind==='loss');
+ assert.equal(loss?.at,due);
+ assert.equal(loss.receivedAt,due+FRONTIER_RESPONSE.reportDelay);
+ assert.equal(s.strategy.pendingLosses.length,0);
+ assert.ok(regionalSupplyValid(g.world.regionalSupply,due));
+});
+
+test('an automatic distress packet is received only when a freighter can reach a station',()=>{
+ const g=game('azure'),s=network(g,'azure');
+ let cargo;
+ for(let t=1;t<=400&&!cargo;t++){
+  g.time=t;advanceRegionalSupply(g.world,t);cargo=s.convoys[0];
+ }
+ assert.ok(cargo);
+ assert.equal(frontierRadioCoverage(g.world,'azure',cargo),true);
+ cargo.hp=0;assert.ok(interceptSupply(g.world,cargo,g.time));
+ assert.equal(s.strategy.pendingLosses.length,0);
+ const report=s.strategy.reports.find(r=>r.kind==='loss');
+ assert.equal(report?.receivedAt,g.time+FRONTIER_RESPONSE.reportDelay);
+});
+
+test('two long-range hits in a radio shadow are stored, then transmitted only by a surviving ship',()=>{
+ const g=game('teal'),s=network(g,'teal');
+ let cargo=reachShadow(g,'teal');
+ const first=g.time;
+ assert.equal(recordFrontierCargoAttack(g.world,cargo,'rail',600,first),true);
+ advanceRegionalSupply(g.world,first+2);
+ g.time=first+2;
+ cargo=s.convoys.find(c=>c.id===cargo.id);
+ assert.ok(cargo&&!frontierRadioCoverage(g.world,'teal',cargo));
+ assert.equal(recordFrontierCargoAttack(g.world,cargo,'rail',600,g.time),true);
+ assert.equal(cargo.radioBuffer.length,2);
+ assert.equal(s.strategy.reports.filter(r=>r.kind==='long').length,0);
+ let reconnectedAt=0;
+ for(let t=g.time+1;t<=first+85;t++){
+  advanceRegionalSupply(g.world,t);
+  if(s.strategy.reports.filter(r=>r.kind==='long').length===2){reconnectedAt=t;break;}
+ }
+ assert.ok(reconnectedAt>g.time);
+ const reports=s.strategy.reports.filter(r=>r.kind==='long');
+ assert.deepEqual(reports.map(r=>r.at),[first,first+2]);
+ assert.ok(reports.every(r=>r.receivedAt===reconnectedAt+FRONTIER_RESPONSE.reportDelay));
+ assert.equal(cargo.radioBuffer.length,0);
+ assert.ok(regionalSupplyValid(g.world.regionalSupply,reconnectedAt));
+});
+
+test('black-box observations perish with a freighter lost outside radio coverage',()=>{
+ const g=game('teal'),s=network(g,'teal');
+ const cargo=reachShadow(g,'teal');
+ recordFrontierCargoAttack(g.world,cargo,'rail',700,g.time);
+ assert.equal(cargo.radioBuffer.length,1);
+ cargo.hp=0;interceptSupply(g.world,cargo,g.time);
+ advanceRegionalSupply(g.world,g.time+100);
+ assert.equal(s.strategy.reports.filter(r=>r.kind==='long').length,0);
+ assert.equal(s.strategy.pendingLosses.length,0);
+});
+
+test('radio-shadow ambush delays the same paid enemy route response without suppressing it',()=>{
+ const prepareAfterTwo=(id,shadow)=>{
+  const g=game(id),s=network(g,id),cfg=FRONTIERS[id];
+  // Both comparisons start with precisely enough stock for two transports.
+  s.resource=cfg.cost*2;
+  s.nextDispatch=1;
+  let interceptions=0;
+  for(let t=1;t<=650;t++){
+   g.time=t;
+   const events=advanceRegionalSupply(g.world,t);
+   if(events.some(e=>e.network===id&&e.kind==='route-prep')){
+    assert.equal(interceptions,2);
+    assert.ok(s.strategy.routePlan);
+    return t;
+   }
+   const cargo=s.convoys[0];
+   if(cargo&&interceptions<2&&
+      frontierRadioCoverage(g.world,id,cargo)!==shadow){
+    cargo.hp=0;
+    assert.ok(interceptSupply(g.world,cargo,t));
+    interceptions++;
+    // The source can afford the same route change in either case.
+    if(interceptions===2)s.resource=Math.max(s.resource,FRONTIER_RESPONSE.routeCost);
+   }
+  }
+  assert.fail(`${id}: enemy did not prepare a route change after two interceptions`);
+ };
+ for(const id of ['azure','teal']){
+  const near=prepareAfterTwo(id,false),hidden=prepareAfterTwo(id,true);
+  assert.ok(hidden>=near+20,`${id}: radio shadow must delay route reaction (${near} vs ${hidden})`);
+ }
+});
 
 test('two confirmed losses trigger a paid, delayed, plotted diversion; earlier cargo retains its route',()=>{
  for(const id of ['azure','teal']){

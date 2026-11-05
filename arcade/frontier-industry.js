@@ -49,7 +49,8 @@ export const FRONTIER_ROUTES=Object.freeze({
 export const FRONTIER_RESPONSE=Object.freeze({reportDelay:12,reportMemory:600,
  routeCost:2,routePrep:34,routeCooldown:200,
  screenCost:1,screenCargoCost:2,screenPrep:28,screenDuration:330,
- emergencyWarning:18,emergencyCost:1,maxReports:12});
+ emergencyWarning:18,emergencyCost:1,maxReports:12,
+ radioRadius:2600,missingGrace:24,maxMissing:4,maxMissingWait:180,maxBufferedHits:4});
 export const frontierRoute=(id,mode='direct')=>
  FRONTIER_ROUTES[id]?.[mode]||FRONTIERS[id].route;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -71,10 +72,20 @@ export function frontierCargoPosition(id,progress,routeId='direct'){
 }
 export const frontierRouteLength=(id,routeId='direct')=>frontierRoute(id,routeId)
  .slice(1).reduce((sum,p,i)=>sum+distance(frontierRoute(id,routeId)[i],p),0);
+// Enemy stations can receive cargo telemetry only inside their radio coverage.
+// This is separate from the player's laboratory listening network.
+export function frontierRadioCoverage(world,id,position){
+ const cfg=FRONTIERS[id];
+ if(!cfg||!position||!Number.isFinite(position.x)||!Number.isFinite(position.y))return false;
+ return [cfg.sourceId,cfg.depotId].some(key=>{
+  const station=world?.stations?.get(key);
+  return station?.enemy&&distance(station,position)<=FRONTIER_RESPONSE.radioRadius;
+ });
+}
 const shipOrigin=()=>({x:FRONTIERS.teal.source.x+92,y:FRONTIERS.teal.source.y-66});
 function createStrategy(time){return {route:'direct',routePlan:null,nextRoutePlanAt:Math.floor(time),
  screenPlan:null,screenUntil:0,nextScreenPlanAt:Math.floor(time),
- reports:[],reportSerial:0,routeEvidenceThrough:0,screenEvidenceThrough:0,
+ reports:[],pendingLosses:[],reportSerial:0,routeEvidenceThrough:0,screenEvidenceThrough:0,
  nextAttackAt:0,emergency:null,emergencyCommitted:false,emergencyRaids:0};}
 function createNetwork(id,time){
  const at=Math.floor(time),start=shipOrigin();
@@ -104,12 +115,14 @@ export function frontierWorkerPosition(worker,time){
 
 function strategyOf(s,time){
  // Older checkpoints are valid. They begin observing only from their load time.
- return s.strategy||(s.strategy=createStrategy(time));
+ if(!s.strategy)s.strategy=createStrategy(time);
+ s.strategy.pendingLosses??=[];
+ return s.strategy;
 }
-function report(s,kind,route,time){
+function report(s,kind,route,time,transmittedAt=time){
  const st=strategyOf(s,time);
  st.reports.push({seq:++st.reportSerial,kind,route,at:Math.floor(time),
-  receivedAt:Math.floor(time)+FRONTIER_RESPONSE.reportDelay});
+  receivedAt:Math.floor(transmittedAt)+FRONTIER_RESPONSE.reportDelay});
  st.reports=st.reports.slice(-FRONTIER_RESPONSE.maxReports);
 }
 export function recordFrontierCargoAttack(world,cargo,weapon,range,time){
@@ -120,7 +133,14 @@ export function recordFrontierCargoAttack(world,cargo,weapon,range,time){
  const st=strategyOf(s,time);
  if(time<st.nextAttackAt)return false;
  st.nextAttackAt=time+1.05;
- report(s,'long',cargo.routeId||'direct',time);
+ if(frontierRadioCoverage(world,id,cargo))report(s,'long',cargo.routeId||'direct',time);
+ else{
+  // A surviving freighter can forward stored observations on reconnecting.
+  // Destroying it while isolated destroys those observations too.
+  cargo.radioBuffer??=[];
+  cargo.radioBuffer.push(Math.floor(time));
+  cargo.radioBuffer=cargo.radioBuffer.slice(-FRONTIER_RESPONSE.maxBufferedHits);
+ }
  return true;
 }
 
@@ -129,9 +149,15 @@ function updateStrategy(s,id,src,depot,t,emit){
  st.reports=st.reports.filter(r=>r.at>=t-policy.reportMemory);
  const active=src?.enemy&&depot?.enemy;
  if(!active){
-  st.routePlan=null;st.screenPlan=null;st.screenUntil=0;
+  st.routePlan=null;st.screenPlan=null;st.screenUntil=0;st.pendingLosses=[];
   return;
  }
+ for(const lost of st.pendingLosses.filter(p=>p.dueAt<=t)){
+  // The depot detects an overdue shipment; it never learns the killer's position.
+  report(s,'loss',lost.route,lost.dueAt);
+  emit('shipment-overdue',t);
+ }
+ st.pendingLosses=st.pendingLosses.filter(p=>p.dueAt>t);
  if(st.routePlan&&t>=st.routePlan.readyAt){
   st.route=st.routePlan.to;st.routePlan=null;emit('route-changed',t);
  }
@@ -227,6 +253,10 @@ export function advanceFrontierIndustry(world,time){
    for(const cargo of s.convoys){
     cargo.distance=(t-cargo.launchedAt)*cfg.speed;
     Object.assign(cargo,frontierCargoPosition(id,cargo.distance,cargo.routeId));
+    if(cargo.radioBuffer?.length&&frontierRadioCoverage(world,id,cargo)){
+     for(const at of cargo.radioBuffer)report(s,'long',cargo.routeId||'direct',at,t);
+     cargo.radioBuffer=[];
+    }
     if(cargo.distance>=frontierRouteLength(id,cargo.routeId)){
      cargo.hp=0;
      if(depot?.enemy&&s.reserves<2){
@@ -256,7 +286,17 @@ export function interceptFrontierCargo(world,cargo,time){
  if(!FRONTIERS[id]||!s?.convoys.includes(cargo)||cargo.rewarded||cargo.hp>0)return false;
  cargo.rewarded=true;s.convoys=s.convoys.filter(c=>c!==cargo);
  s.intercepted++;frontierEvent(s,id,'intercept',time);
- report(s,'loss',cargo.routeId||'direct',time);
+ if(frontierRadioCoverage(world,id,cargo)){
+  // An automated distress packet can be sent immediately before destruction.
+  report(s,'loss',cargo.routeId||'direct',time);
+ }else{
+  const st=strategyOf(s,time);
+  const expected=Math.ceil(cargo.launchedAt+
+   frontierRouteLength(id,cargo.routeId)/FRONTIERS[id].speed);
+  st.pendingLosses.push({route:cargo.routeId||'direct',at:Math.floor(time),
+   dueAt:Math.max(Math.floor(time)+1,expected+FRONTIER_RESPONSE.missingGrace)});
+  st.pendingLosses=st.pendingLosses.slice(-FRONTIER_RESPONSE.maxMissing);
+ }
  return true;
 }
 export function damageFrontierAsset(world,target,damage,time){
@@ -284,7 +324,7 @@ export function captureFrontierStation(world,base,time){
  const [,id,kind]=parts,s=world.regionalSupply.frontier?.[id];
  if(!s)return false;
  const st=strategyOf(s,time);
- st.routePlan=null;st.screenPlan=null;st.screenUntil=0;
+ st.routePlan=null;st.screenPlan=null;st.screenUntil=0;st.pendingLosses=[];
  if(kind==='source'&&s.worker){s.worker.phase='evacuated';s.worker.carry=0;}
  if(kind==='source'){
   // A prepared reserve can mount one final response, but it cannot be created
@@ -325,12 +365,20 @@ export function frontierIndustryValid(root,time){
   (st.emergency===null||plan(st.emergency)&&
     typeof st.emergency.announced==='boolean')&&
   Array.isArray(st.reports)&&st.reports.length<=FRONTIER_RESPONSE.maxReports&&
+  (st.pendingLosses===undefined||Array.isArray(st.pendingLosses)&&
+    st.pendingLosses.length<=FRONTIER_RESPONSE.maxMissing&&
+    st.pendingLosses.every(p=>['direct','diversion'].includes(p.route)&&
+      Number.isInteger(p.at)&&numeric(p.at,0,time)&&
+      Number.isInteger(p.dueAt)&&
+      numeric(p.dueAt,p.at,p.at+FRONTIER_RESPONSE.maxMissingWait)))&&
   st.reports.every((r,i)=>Number.isSafeInteger(r.seq)&&
     numeric(r.seq,1,st.reportSerial)&&
     (i===0||st.reports[i-1].seq<r.seq)&&
     ['loss','long'].includes(r.kind)&&['direct','diversion'].includes(r.route)&&
     Number.isInteger(r.at)&&numeric(r.at,0,time)&&
-    r.receivedAt===r.at+FRONTIER_RESPONSE.reportDelay));
+    Number.isInteger(r.receivedAt)&&
+    numeric(r.receivedAt,r.at+FRONTIER_RESPONSE.reportDelay,
+      r.at+FRONTIER_RESPONSE.reportMemory+FRONTIER_RESPONSE.reportDelay)));
  if(!root||root.version!==1)return false;
  for(const id of ['azure','teal']){
   const cfg=FRONTIERS[id],s=root[id],w=s?.worker;
@@ -350,12 +398,15 @@ export function frontierIndustryValid(root,time){
     !['harvest','dispatch','delivery','diverted','raid-warning','raid',
       'intercept','worker-lost','wreck-emptied','source-captured','depot-captured',
       'route-prep','route-changed','screen-prep','screen-ready','screen-dispatch',
-      'emergency-prep','emergency-raid'].includes(e.kind))||
+      'emergency-prep','emergency-raid','shipment-overdue'].includes(e.kind))||
    !Array.isArray(s.convoys)||s.convoys.length>1||
    s.convoys.some(c=>c.frontierCargo!==true||c.regionalCargo!==true||
     c.frontierNetwork!==id||!new RegExp('^frontier-cargo-'+id+'-\\d+$').test(c.id)||
     (c.routeId!==undefined&&!['direct','diversion'].includes(c.routeId))||
     (c.screened!==undefined&&typeof c.screened!=='boolean')||
+    (c.radioBuffer!==undefined&&(!Array.isArray(c.radioBuffer)||
+     c.radioBuffer.length>FRONTIER_RESPONSE.maxBufferedHits||
+     c.radioBuffer.some(at=>!Number.isInteger(at)||!numeric(at,c.launchedAt,time))))||
     !numeric(c.launchedAt,0,time)||
     !numeric(c.distance,0,frontierRouteLength(id,c.routeId)+cfg.speed)||
     !point(c)||!numeric(c.hp,.001,cfg.hp)||c.maxHp!==cfg.hp||c.r!==32))return false;
