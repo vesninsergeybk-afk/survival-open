@@ -115,16 +115,21 @@ test('stored doctrine can be retransmitted to a newly arrived defender after raw
  const center=station('industry:depot'),mine=station('28:5'),
   source=evidence(squad(1,7250,1600)),m=new EnemyMesh(),
   g=game([center,mine],[source]);
- for(const t of [2,2.75,9,35,60])tick(m,g,[source],t);
- assert.equal(archivedWeapon(mine,60)?.kind,'long');
+ for(const t of [2,2.75,9,24,31])tick(m,g,[source],t);
+ assert.equal(archivedWeapon(mine,31)?.kind,'long');
  const receiver=squad(2,35030,7000);
  g.enemies.push(...receiver.members);
- tick(m,g,[source,receiver],65);
- tick(m,g,[source,receiver],65.8);
- const p=m.bestForCell(receiver,65.8);
+ tick(m,g,[source,receiver],32);
+ tick(m,g,[source,receiver],32.8);
+ const p=m.bestForCell(receiver,32.8);
  assert.equal(p?.kind,'long');
  assert.equal(p?.archived,true);
  assert.equal('x' in p,false);
+ tick(m,g,[source,receiver],52);
+ assert.equal(m.bestForCell(receiver,52),null,
+  'old observations stop controlling live tactics');
+ assert.equal(archivedWeapon(mine,60)?.kind,'long',
+  'historical archive outlives combat-ready doctrine');
  tick(m,g,[source,receiver],183);
  assert.equal(archivedWeapon(mine,183),null);
  assert.equal(m.bestForCell(receiver,183),null);
