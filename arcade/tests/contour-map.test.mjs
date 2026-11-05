@@ -21,12 +21,41 @@ test('the strategic map starts with five accessible regions and no hidden naviga
  assert.equal((html.match(/data-act="contourNode"/g)||[]).length,0);
  assert.match(html,/КАРТА ПЯТИ РЕГИОНОВ/);
  assert.match(html,/Контуры территорий/);
+ assert.match(html,/contour-global-constellations/);
+ assert.ok((html.match(/class="contour-global-station unknown"/g)||[]).length>80,
+  'the global atlas should display surveyed station positions from all regions');
+ assert.match(html,/Не разведана/,'the grey stations need a visible legend');
+ assert.doesNotMatch(html,/contour-region[^>]*>[\s\S]*?<circle r="30" fill="#0b2333"/,
+  'opaque counters must not cover the live station constellations');
  game.contourRegion='amethyst';
  const focused=renderWorldMap(game);
  assert.ok((focused.match(/data-act="contourNode"/g)||[]).length>10);
  assert.match(focused,/data-act="mapView" data-id="targets"/);
  assert.match(html,/text y="70" text-anchor="middle"[^>]+>Лазурный разлом<\/text>/,
   'the southern label must not cover the home-region halo');
+});
+
+test('the global atlas keeps exact positions but does not disclose unknown station factions',()=>{
+ const game=harness(),world=game.world,html=renderWorldMap(game);
+ const marker=[...world.stations.values()].find(s=>s.enemy&&!s.discovered&&!s.strategicRole&&
+  Math.abs(s.x)*.0035<330&&Math.abs(s.y)*.0035<230&&
+  Math.hypot(s.x,s.y)<5500);
+ assert.ok(marker,'an uncharted hostile station is needed for the visibility check');
+ const p=atlasPoint(marker,{x:0,y:0},.0035),num=n=>n.toFixed(1);
+ assert.ok(html.includes(`class="contour-global-station unknown" cx="${num(p.x)}" cy="${num(p.y)}"`),
+  'even hidden hostile sites appear only as anonymous surveyed points');
+ const distant={id:'secret:factory',x:65000,y:50000,enemy:true,active:false,
+  discovered:false,suppressed:false,type:'factory',hp:100};
+ world.stations.set(distant.id,distant);
+ const remote=atlasPoint(distant,{x:0,y:0},.0035);
+ const xy=`cx="${num(remote.x)}" cy="${num(remote.y)}"`;
+ assert.ok(!renderWorldMap(game).includes(`class="contour-global-station unknown" ${xy}`),
+  'a remote machine site outside the surveyed five regions must stay hidden');
+ distant.discovered=true;
+ assert.ok(renderWorldMap(game).includes(`class="contour-global-station hostile" ${xy}`),
+  'the same remote site appears at its true position after discovery');
+ assert.match(html,/contour-region-halo/);
+ assert.match(html,/0 \/ [0-9]+/,'region counters are placed outside the node clusters');
 });
 
 test('machine radio trunks are a separate opt-in map layer with earned knowledge',()=>{

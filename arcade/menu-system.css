@@ -670,10 +670,16 @@
 .contour-global-ownership{pointer-events:none}
 .contour-global-ownership .contour-owned-field{fill:#2aeac552;stroke:#7dffe6;stroke-width:2.8}
 .contour-global-ownership .contour-vortex-map{filter:drop-shadow(0 0 4px #ff9b47)}
+.contour-global-constellations{pointer-events:none}
 .contour-global-station{pointer-events:none;stroke:#082b30;stroke-width:1}
-.contour-global-station.owned{fill:#8efce1}
-.contour-global-station.hostile{fill:#ff8895}
+.contour-global-station.unknown{fill:#c0d5e3;fill-opacity:.68;stroke-width:.4}
+.contour-global-station.owned{fill:#8efce1;filter:drop-shadow(0 0 2px #7cffe7);
+ animation:contourGlobalBeacon 3.2s ease-in-out infinite}
+.contour-global-station.hostile{fill:#ff8895;filter:drop-shadow(0 0 2px #ff8895);
+ animation:contourGlobalBeacon 3.2s ease-in-out infinite}
 .contour-global-station.known{fill:#e6c38c}
+.contour-region>text{paint-order:stroke;stroke:#071a2b;stroke-width:2px;pointer-events:none}
+@keyframes contourGlobalBeacon{50%{opacity:.57}}
 .contour-region-claims{font-size:10px;font-weight:800;fill:#a9ffdf;paint-order:stroke;
  stroke:#08222e;stroke-width:3px}
 .contour-owned-field.contour-forming{animation:contourTerritoryFill 1.55s .95s both}
@@ -753,6 +759,7 @@
 .contour-legend span{display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
 .contour-key{display:inline-block;width:9px;height:9px;background:#99adbd;border-radius:50%}
 .contour-key.mine{background:#8af2d6}.contour-key.dormant{background:#edc783}
+.contour-key.unknown{background:#c0d5e3;border:1px solid #315064}
 .contour-key.hostile{background:#ff7786;border-radius:2px;transform:rotate(45deg)}
 .contour-key.available{background:transparent;border:2px dashed #7effd8;width:10px;height:10px}
 .contour-key.vortex{background:#f58437;border:2px solid #ffda8e}
@@ -843,7 +850,8 @@
  .contour-map-cargo circle,.contour-owned-field.contour-forming,.contour-claim-surges path,
  .contour-vortex-map.contour-vortex-forming,.contour-retreat,.contour-threat-field,
  .contour-threat-target circle,.contour-enemy-proposed-field,
- .contour-enemy-proposed-link,.contour-enemy-objective,.contour-enemy-forming{animation:none}
+ .contour-enemy-proposed-link,.contour-enemy-objective,.contour-enemy-forming,
+ .contour-global-station.owned,.contour-global-station.hostile{animation:none}
  .contour-claim-surges{display:none}
  .contour-owned-field.contour-forming{opacity:1;clip-path:none}
  .contour-vortex-map.contour-vortex-forming{opacity:1;transform:none}
