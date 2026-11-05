@@ -132,7 +132,7 @@ export function renderShipHangar(state,session=state.hangarSession){
    ' · интервал: '+fmt(stats.interval)+' с\nУрон: '+fmt(stats.damage)+' · целей: '+stats.targets+
    '\n'+(reason||equipped?'':borrowing?'Прокат до конца задания. 3 заряда. ':'')+
    (reason||(equipped?'Уже установлено.':'Выбор оружия сразу устанавливает его в узел '+labelFor(slot)+'.'));
-  const price=equipped?'✓ Установлено':borrowing?
+  const price=equipped?'✓ Установлено':moduleLock(item.id,context)&&!borrowing?'Закрыто':borrowing?
    (cost?'Прокат · '+cost+' сплава':'Проба · бесплатно'):cost?'Купить · '+cost+' сплава':'Установить · бесплатно';
   return '<div class="hg-weapon-row" style="--module-color:'+item.color+'"><button type="button" data-act="'+
    (borrowing?'hgBorrow':'hgEquip')+'" data-id="'+item.id+'" class="hg-weapon'+(equipped?' selected':'')+

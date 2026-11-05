@@ -61,3 +61,11 @@ test('the ordinary slot catalog includes free trial weapons beside owned and pur
  assert.doesNotMatch(html,/data-act="hgInstall"|class="hg-inspector"/);
  assert.doesNotMatch(html,/data-act="hgApply"/);
 });
+
+ test('locked future weapons never advertise free installation',()=>{
+ const g=game();g.player.level=1;g.shipLoadout=createLoadout();g.hangarSession.begin(g.shipLoadout);
+ g.hangarSession.dispatch({act:'hgSlot',id:'1'},context({loadout:g.shipLoadout}));
+ const html=renderBasePanel(g.docked,{...g.baseState(),baseTab:'hangar'});
+ const rail=html.split('data-id="rail" class="hg-weapon')[1].split('</button>')[0];
+ assert.match(rail,/<em>Закрыто<\/em>/);assert.doesNotMatch(rail,/Установить · бесплатно/);
+});
