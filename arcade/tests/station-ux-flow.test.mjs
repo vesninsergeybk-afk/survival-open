@@ -23,10 +23,19 @@ test('completed contract at its origin offers a direct, prominent reward action'
  const summary=visiblePanel(html);
  assert.match(summary,/ЧТО СЕЙЧАС ВАЖНО/);
  assert.match(summary,/Заказ выполнен — заберите награду/);
- assert.match(summary,/\+16 сплава и \+15 данных/);
+ assert.match(summary,/\+16 сплава, \+15 данных и \+15 опыта/);
+ assert.match(summary,/\+15 опыта/);
  assert.match(summary,/data-act="claimContract">Забрать награду/);
  assert.ok(summary.indexOf('data-act="claimContract"')<summary.indexOf('base-quick-services'));
  assert.doesNotMatch(summary,/base-featured-op/,'detailed special mission must not obscure the reward');
+});
+
+test('both offered and completed contracts disclose the full experience reward',()=>{
+ const available=renderBasePanel(home,state({baseTab:'operations'}));
+ assert.match(available,/Награда: 16 сплава · 15 данных · 15 опыта/);
+ assert.match(available,/Награда: 10 сплава · 24 данных · 24 опыта/);
+ const ready=renderBasePanel(home,state({baseTab:'operations',contract:mission}));
+ assert.match(ready,/Награда: 16 сплава · 15 данных · 15 опыта/);
 });
 
 test('a different station cannot grant the reward and explains where to return',()=>{

@@ -44,7 +44,8 @@ test('partial extraction creates live noise without premature ore or duplicated 
  const drops=[],contract=[],experience=[];const game=new Harness();
  Object.assign(game,{time:30,miningNoise:0,skillRanks:{mining:0},nearQuietLab:false,
   doctrine:null,advanceContract:(...args)=>contract.push(args),
-  player:{firstRichRockStudied:false},awardExperience:xp=>experience.push(xp),notice:()=>{},
+  player:{level:1,firstRichRockStudied:false},awardExperience:xp=>experience.push(xp),
+  notice:()=>{},rewardNotice:()=>{},
   heritage:{vfx:{asteroidBreak:()=>{},asteroidImpact:()=>{}},play:()=>{}},
   addDrop:(...args)=>drops.push(args)});
  const rock={x:120,y:0,r:30,rich:true,hp:100,maxHp:100,alive:true,vx:0,vy:0};

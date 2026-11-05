@@ -63,21 +63,21 @@ const LOCAL_SERVICES=Object.freeze({
 });
 const CONTRACTS=Object.freeze({
  dock:{kind:'kill',goal:4,ore:16,data:15,name:'Зачистка патрулей',
-  desc:'Уничтожьте 4 корабля противника и вернитесь за наградой.'},
+  desc:'Участвуйте в уничтожении 4 кораблей противника и вернитесь за наградой.'},
  lab:{kind:'rich',goal:2,ore:22,data:19,name:'Геологические образцы',
   desc:'Найдите 2 богатых астероида с янтарной рудой и разберите их экстрактором, удерживая E.'},
  arsenal:{kind:'defend',goal:5,ore:30,data:26,name:'Оборона периметра',
-  desc:'Уничтожьте 5 врагов в радиусе 650 м от арсенала. Защищайте подходы к станции.'},
+  desc:'Участвуйте в уничтожении 5 врагов в радиусе 650 м от арсенала. Защищайте подходы к станции.'},
  carrier:{kind:'intercept',goal:5,ore:36,data:32,name:'Прикрытие авиагруппы',
-  desc:'Перехватите 5 боевых кораблей: истребителей, фланкеров, таранщиков или тяжёлых. Разведчики не учитываются.'}
+  desc:'Участвуйте в перехвате 5 боевых кораблей: истребителей, фланкеров, таранщиков или тяжёлых. Разведчики не учитываются.'}
 });
 export const contractFor=type=>CONTRACTS[type]||CONTRACTS.dock;
 // A station offers two tasks; only one is active at a time. Rewards renew after a cooldown.
 const ALT_CONTRACTS=Object.freeze({
  dock:{kind:'rich',goal:1,ore:10,data:24,name:'Геологические сведения',desc:'Разберите один богатый астероид, удерживая E. Меньше сплава, зато больше данных.'},
- lab:{kind:'kill',goal:4,ore:31,data:9,name:'Очистка маршрута',desc:'Уничтожьте 4 корабля противника. Больше сплава, но мало исследовательских данных.'},
- arsenal:{kind:'intercept',goal:3,ore:18,data:35,name:'Охота на перехватчики',desc:'Уничтожьте 3 боевых корабля, кроме разведчиков. Меньше сплава, больше данных.'},
- carrier:{kind:'defend',goal:5,ore:28,data:45,name:'Оборона авианосца',desc:'Уничтожьте 5 врагов в радиусе 650 м от авианосца. Меньше сплава, больше данных.'}
+ lab:{kind:'kill',goal:4,ore:31,data:9,name:'Очистка маршрута',desc:'Участвуйте в уничтожении 4 кораблей противника. Больше сплава, но мало исследовательских данных.'},
+ arsenal:{kind:'intercept',goal:3,ore:18,data:35,name:'Охота на перехватчики',desc:'Участвуйте в уничтожении 3 боевых кораблей, кроме разведчиков. Меньше сплава, больше данных.'},
+ carrier:{kind:'defend',goal:5,ore:28,data:45,name:'Оборона авианосца',desc:'Участвуйте в уничтожении 5 врагов в радиусе 650 м от авианосца. Меньше сплава, больше данных.'}
 });
 export const contractChoices=(type,runs=0)=>[
  {id:'standard',tag:'Основное поручение',...contractFor(type)},
@@ -86,8 +86,11 @@ export const contractChoices=(type,runs=0)=>[
  ore:Math.max(8,Math.round(choice.ore*.65)),
  data:Math.max(6,Math.round(choice.data*.65))}:choice);
 // A contract counts a real field event, not any action with the same name.
-export function eligibleContractProgress(contract,kind,subject=null,station=null){
+export function eligibleContractProgress(contract,kind,subject=null,station=null,pilotParticipated=false){
  if(!contract||contract.progress>=contract.goal)return false;
+ // Enemy crossfire and unattended escorts must not complete the pilot's orders.
+ // The pilot may tag a target and let a wingmate finish it.
+ if(kind==='kill'&&!pilotParticipated)return false;
  if(contract.kind==='kill')return kind==='kill';
  if(contract.kind==='rich')return kind==='mine'&&subject?.rich===true;
  if(contract.kind==='defend')return kind==='kill'&&!!subject&&!!station&&
@@ -226,7 +229,8 @@ const contractPanel=(o,state)=>{
   '<small>Можно взять один. Награду получите после возвращения сюда.</small></div>'+
   '<div class="base-contract-choices">'+o.contractOptions.map(choice=>
    '<article class="base-contract-choice"><strong>'+choice.name+'</strong>'+
-   '<small>'+choice.desc+'</small><em>Награда: '+choice.ore+' сплава · '+choice.data+' данных</em>'+
+   '<small>'+choice.desc+'</small><em>Награда: '+choice.ore+' сплава · '+choice.data+
+   ' данных · '+choice.data+' опыта</em>'+
    action('acceptContract','Принять заказ','',choice.id)+'</article>').join('')+
   '</div></section>';
  const summary={
@@ -246,7 +250,7 @@ const contractPanel=(o,state)=>{
  return '<section class="base-contract '+c.status+'"><div class="base-contract-copy">'+
   '<span class="base-kicker">ПОЛЕВОЙ ЗАКАЗ</span><strong>'+c.name+'</strong>'+
   '<small>'+summary[c.status]+'</small><span class="base-contract-reward">Награда: '+
-  c.ore+' сплава · '+c.data+' данных</span></div>'+contractActions+'</section>';
+  c.ore+' сплава · '+c.data+' данных · '+c.data+' опыта</span></div>'+contractActions+'</section>';
 };
 // Tactical station briefing. The mission is a world object, not a kill counter.
 const corridorPanel=(base,state,compact=false)=>{
@@ -338,7 +342,7 @@ const relayPanel=(base,state,compact=false)=>{
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
   RELAY_DEFENSE.rewardOre+' сплава · +'+RELAY_DEFENSE.rewardData+
-  ' данных</span><div>'+actions+'</div></div></article>';
+  ' данных и столько же опыта</span><div>'+actions+'</div></div></article>';
 };
 const carrierPanel=(base,state,compact=false)=>{
  const op=carrierOffer(base,state.operation,state.time);
@@ -373,7 +377,7 @@ const carrierPanel=(base,state,compact=false)=>{
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
    CARRIER_INTERCEPTION.rewardOre+' сплава · +'+CARRIER_INTERCEPTION.rewardData+
-   ' данных</span><div>'+actions+'</div></div></article>';
+   ' данных и столько же опыта</span><div>'+actions+'</div></div></article>';
 };
 const specialOffer=(base,state)=>corridorOffer(base,state.operation)||
  probeOffer(base,state.operation)||relayOffer(base,state.operation,state.time)||
@@ -509,7 +513,8 @@ function stationNextStep(base,state,o,regionalGoal=false){
  let buttons=action('baseTab','Посмотреть задания','','operations');
  if(ready){
   kind='reward';title='Заказ выполнен — заберите награду';
-  description=c.name+': +'+c.ore+' сплава и +'+c.data+' данных. Награда ещё не зачислена.';
+  description=c.name+': +'+c.ore+' сплава, +'+c.data+' данных и +'+c.data+
+   ' опыта. Награда ещё не зачислена.';
   buttons=action('claimContract','Забрать награду');
  }else if(c&&!local&&c.progress>=c.goal){
   kind='return';title='Награда ждёт на другой станции';
@@ -652,7 +657,7 @@ export function renderBasePanel(base,state){
    '</td><td>'+signed(r.hull)+'</td></tr>').join('')+'</tbody></table></div></details>';
  const claim=state.lastContractReceipt;
  const claimNote=claim?'<p class="base-economy-claim" role="status">Награда за полевой заказ получена: +'+
-  claim.ore+' сплава, +'+claim.data+' данных. '+(claim.credited?
+  claim.ore+' сплава, +'+claim.data+' данных и +'+claim.data+' опыта. '+(claim.credited?
    'Она включена в отчёт того вылета, где выполнен заказ.':
    'В прежней истории нет подходящего отчёта; награда зачислена на счёт.')+'</p>':'';
  const breakdown=details?'<details class="base-economy-breakdown"><summary>Источники ресурсов и последствия боя</summary>'+

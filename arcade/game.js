@@ -39,7 +39,7 @@ import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
@@ -706,6 +706,15 @@ export class ArcadeGame {
    }
  }
  notice(text,seconds=3){this.message.textContent=text;this.messageUntil=this.time+seconds;}
+ rewardNotice(text,previousLevel,seconds=5){
+  // The level-up notification is otherwise overwritten by the operation's
+  // completion message in the same frame. Keep both results in one notice.
+  if(this.player.level>previousLevel){
+   text+=' Новый уровень: '+this.player.level+'! '+(this.isTouchLayout?
+    'Откройте «Развитие» в меню.':'Навыки пилота — '+this.controlLabel('skills')+'.');
+  }
+  this.notice(text,seconds);
+ }
  toggleAudio(){
   const enabled=this.heritage.toggleSound();
   $('audioBtn').textContent=enabled?'🔊 Звук включён':'♫ Начать со звуком';
@@ -917,6 +926,7 @@ export class ArcadeGame {
    return;
   }
   if(!result.endsWith('-complete'))return;
+  const previousLevel=this.player.level;
   this.endInteraction();
   if(this.waypoint?.id==='opening-'+arc.kind)this.waypoint=arc.returnWaypoint;
   if(arc.kind==='intercept'){
@@ -925,8 +935,8 @@ export class ArcadeGame {
    this.cockpit.resourceGain(OPENING_ARC.interceptRewardOre,this.time);
    this.collect({type:'data',value:OPENING_ARC.interceptRewardData,source:'operation'});
    this.spawnClock=Math.max(this.spawnClock,15);
-   this.notice('Наводчик уничтожен: патрули у дока стали реже на 2 минуты. '+
-    '+'+OPENING_ARC.interceptRewardData+' данных!',6);
+   this.rewardNotice('Наводчик уничтожен: патрули у дока стали реже на 2 минуты. '+
+    '+'+OPENING_ARC.interceptRewardData+' данных и опыта!',previousLevel,6);
   }else{
    this.player.ore+=OPENING_ARC.rescueRewardOre;
    recordSortieIncome(this,'ore','operation',OPENING_ARC.rescueRewardOre);
@@ -938,9 +948,9 @@ export class ArcadeGame {
     const dock=this.world.home;
     this.waypoint={id:dock.id,x:dock.x,y:dock.y,label:'Вернуться на ремонт'};
    }
-   this.notice('Эвакуация завершена: +'+OPENING_ARC.rescueRewardOre+
+   this.rewardNotice('Эвакуация завершена: +'+OPENING_ARC.rescueRewardOre+
     ' сплава, +'+OPENING_ARC.rescueRewardXp+
-    ' опыта и аварийный щит. Враг получил сигнал: патрули участятся.',6);
+    ' опыта и аварийный щит. Враг получил сигнал: патрули участятся.',previousLevel,6);
   }
   if(this.firstHardwareReward==null)this.firstHardwareReward='pending';
   this.showOpeningReward();
@@ -1161,7 +1171,8 @@ export class ArcadeGame {
  advanceContract(kind,subject=null){
   const c=this.contract;
   const station=c?this.world.stations.get(c.baseId):null;
-  if(!eligibleContractProgress(c,kind,subject,station))return;
+  const pilotParticipated=kind==='kill'&&qualifiesForDirectCombatXp(subject,this.time);
+  if(!eligibleContractProgress(c,kind,subject,station,pilotParticipated))return;
   c.progress++;
   if(c.progress===c.goal){
    c.completedSortieId=this.sortieStart?.id??null;
@@ -1272,12 +1283,13 @@ export class ArcadeGame {
   this.player.ore+=RELAY_DEFENSE.rewardOre;
   recordSortieIncome(this,'ore','operation',RELAY_DEFENSE.rewardOre);
   this.cockpit.resourceGain(RELAY_DEFENSE.rewardOre,this.time);
+  const previousLevel=this.player.level;
   this.collect({type:'data',value:RELAY_DEFENSE.rewardData});
   recordSortieIncome(this,'data','operation',RELAY_DEFENSE.rewardData);
   this.heritage.vfx.nova(op.x,op.y,130,'green');
   this.heritage.station('claimContract',base.type);
-  this.notice('РЕТРАНСЛЯТОР ЗАЩИЩЁН! +'+RELAY_DEFENSE.rewardOre+' сплава, +'+
-   RELAY_DEFENSE.rewardData+' данных.'+(next?' На карте отмечен следующий узел.':''),5.5);
+  this.rewardNotice('РЕТРАНСЛЯТОР ЗАЩИЩЁН! +'+RELAY_DEFENSE.rewardOre+' сплава, +'+
+   RELAY_DEFENSE.rewardData+' данных и опыта.'+(next?' На карте отмечен следующий узел.':''),previousLevel,5.5);
  }
 
   // A carrier operation begins only when the player reaches the contact area.
@@ -1394,12 +1406,14 @@ export class ArcadeGame {
    this.player.ore+=CARRIER_INTERCEPTION.rewardOre;
    recordSortieIncome(this,'ore','operation',CARRIER_INTERCEPTION.rewardOre);
    this.cockpit.resourceGain(CARRIER_INTERCEPTION.rewardOre,this.time);
+   const previousLevel=this.player.level;
    this.collect({type:'data',value:CARRIER_INTERCEPTION.rewardData});
    recordSortieIncome(this,'data','operation',CARRIER_INTERCEPTION.rewardData);
    this.spawnClock=Math.max(this.spawnClock||0,10);
    this.heritage.vfx.nova(base.x,base.y,132,'green');
    this.heritage.station('claimContract',base.type);
-   this.notice('СНАБЖЕНИЕ ПЕРЕХВАЧЕНО! +38 сплава, +30 данных. Вдоль маршрута вражеские патрули станут реже.',6);
+   this.rewardNotice('СНАБЖЕНИЕ ПЕРЕХВАЧЕНО! +'+CARRIER_INTERCEPTION.rewardOre+' сплава, +'+
+    CARRIER_INTERCEPTION.rewardData+' данных и опыта. Вдоль маршрута вражеские патрули станут реже.',previousLevel,6);
   }
 
  // After a successful intercept, the telemetry is valuable only when delivered.
@@ -1523,13 +1537,14 @@ export class ArcadeGame {
   this.player.ore+=CORRIDOR_OPERATION.rewardOre;
   recordSortieIncome(this,'ore','operation',CORRIDOR_OPERATION.rewardOre);
   this.cockpit.resourceGain(CORRIDOR_OPERATION.rewardOre,this.time);
+  const previousLevel=this.player.level;
   this.collect({type:'data',value:CORRIDOR_OPERATION.rewardData});
   recordSortieIncome(this,'data','operation',CORRIDOR_OPERATION.rewardData);
   this.heritage.vfx.nova(base.x,base.y,130,'green');
   this.heritage.station('claimContract',base.type);
-  this.notice('КОРИДОР ОТКРЫТ! +'+CORRIDOR_OPERATION.rewardOre+' сплава, +'+CORRIDOR_OPERATION.rewardData+
-   ' данных. Патрулей у дока станет меньше. В ангаре открыт чертёж рельса: изготовление — 36 сплава.'+
-   (nextStation?' На карте отмечена станция: '+(baseNames[nextStation.type]||'неизвестная')+'.':''),6);
+  this.rewardNotice('КОРИДОР ОТКРЫТ! +'+CORRIDOR_OPERATION.rewardOre+' сплава, +'+CORRIDOR_OPERATION.rewardData+
+   ' данных и опыта. Патрулей у дока станет меньше. В ангаре открыт чертёж рельса: изготовление — 36 сплава.'+
+   (nextStation?' На карте отмечена станция: '+(baseNames[nextStation.type]||'неизвестная')+'.':''),previousLevel,6);
  }
 
  // The player chooses between repairing under fire and releasing E to fight.
@@ -1566,13 +1581,14 @@ export class ArcadeGame {
   this.player.ore+=PROBE_OPERATION.rewardOre;
   recordSortieIncome(this,'ore','operation',PROBE_OPERATION.rewardOre);
   this.cockpit.resourceGain(PROBE_OPERATION.rewardOre,this.time);
+  const previousLevel=this.player.level;
   this.collect({type:'data',value:PROBE_OPERATION.rewardData});
   recordSortieIncome(this,'data','operation',PROBE_OPERATION.rewardData);
   this.heritage.vfx.nova(op.x,op.y,105,'cyan');
   this.heritage.station('claimContract',base.type);
-  this.notice('СИГНАЛ ВОССТАНОВЛЕН! +'+PROBE_OPERATION.rewardOre+' сплава, +'+
-   PROBE_OPERATION.rewardData+' данных. Местная разведка усилена.'+
-   (next?' Отмечен новый узел сети.':''),5.5);
+  this.rewardNotice('СИГНАЛ ВОССТАНОВЛЕН! +'+PROBE_OPERATION.rewardOre+' сплава, +'+
+   PROBE_OPERATION.rewardData+' данных и опыта. Местная разведка усилена.'+
+   (next?' Отмечен новый узел сети.':''),previousLevel,5.5);
  }
  syncShipLoadout(){
   if(!this.shipLoadout)return;
@@ -2180,9 +2196,9 @@ export class ArcadeGame {
      (c.completedSortieId==null&&this.sortieReports.some(r=>r.baseId===b.id))};
    if(this.firstHardwareReward==null)this.firstHardwareReward='pending';
    this.baseTab='summary';
-   this.notice('Поручение выполнено: +'+c.ore+' сплава · +'+c.data+
-    ' данных и опыта.'+(levelsGained?' Новый уровень: '+p.level+'! Откройте развитие пилота.':'')+
-    (this.firstHardwareReward==='pending'?' Выберите бесплатное оружие!':''),5);
+   this.rewardNotice('Поручение выполнено: +'+c.ore+' сплава · +'+c.data+
+    ' данных · +'+c.data+' опыта.'+
+    (this.firstHardwareReward==='pending'?' Выберите бесплатное оружие!':''),previousLevel,5);
    this.heritage.station(act,b.type);
    this.pausedRenderPending=true;this.renderDock();return;
   }else if(act==='claimFirstModule'){
@@ -2403,15 +2419,16 @@ export class ArcadeGame {
   this.fieldLoan.cooldownUntil=plan.cooldownUntil;
   this.fieldLoan.used++;
   const mastery=ionMasteryAward(plan.targets.length,this.ionMasteryAwarded);
+  const previousLevel=this.player.level;
   if(mastery){this.ionMasteryAwarded=true;this.collect({type:'data',value:mastery});
    recordSortieIncome(this,'data','other',mastery);}
   this.heritage.vfx.nova(plan.targets[0].x,plan.targets[0].y,43,'cyan');
   this.heritage.play('ionShot',.26,{x:plan.targets[0].x,y:plan.targets[0].y});
   const result=mastery?'Цепной разряд освоен: '+plan.targets.length+
-   ' цели · +'+mastery+' данных · ион '+this.fieldLoan.charges+'/'+ION_CONDUCTOR.charges:
+   ' цели · +'+mastery+' данных и опыта · ион '+this.fieldLoan.charges+'/'+ION_CONDUCTOR.charges:
    'Ионный разряд: '+plan.targets.length+' '+
    (plan.targets.length===1?'цель':'цели')+' · осталось '+this.fieldLoan.charges;
-  this.notice(result+(disrupted?' · Подготовка импульса сорвана':''),mastery?4.2:2.3);
+  this.rewardNotice(result+(disrupted?' · Подготовка импульса сорвана':''),previousLevel,mastery?4.2:2.3);
   this.hud();return true;
  }
  callStrike(){
@@ -2914,8 +2931,9 @@ export class ArcadeGame {
    this.advanceContract('mine',rock);
    const discoveryXp=firstRichAsteroidExperience(this.player,rock,kind);
    if(discoveryXp){
-    this.notice('Исследован первый богатый астероид: +'+discoveryXp+' опыта',3);
+    const previousLevel=this.player.level;
     this.awardExperience(discoveryXp);
+    this.rewardNotice('Исследован первый богатый астероид: +'+discoveryXp+' опыта',previousLevel,3);
    }
   }
   this.heritage.vfx.asteroidBreak(rock.x,rock.y,rock.r);

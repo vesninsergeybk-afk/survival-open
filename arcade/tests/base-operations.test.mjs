@@ -22,7 +22,8 @@ const Actions=RuntimeHarness;
 const fakeGame=(base)=>({
  dead:false,docked:base,contract:null,time:10,player:{ore:80,data:0,hp:110,maxHp:110,shield:0,points:0},
  heritage:{station:()=>{},ui:()=>{},vfx:{nova:()=>{}}},cockpit:{resourceGain:()=>{}},
- notice:()=>{},renderDock(){},collect(item){this.player.data+=item.value;},
+ notice:()=>{},rewardNotice:Actions.prototype.rewardNotice,
+ renderDock(){},collect(item){this.player.data+=item.value;},
  baseState(){return state({ore:this.player.ore,contract:this.contract});}
 });
 
