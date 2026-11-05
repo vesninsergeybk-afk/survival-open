@@ -46,6 +46,71 @@ test('a verified scout report travels to a caller and the shared order travels b
  assert.equal(net.directiveFor(scout,game.time).mode,'intercept');
 });
 
+test('a transient jammer cannot silently consume a wingmans undelivered observations',()=>{
+ const witness=ship(1,'scout',90),leader=ship(2,'fighter',160);
+ const game=scene([witness,leader]),net=game.enemyComms;
+ net.update(game);
+ const cell=net.cells.find(c=>c.leader===leader);
+ assert.ok(cell&&cell.members.includes(witness));
+ const observedAt=.3;
+ witness._commsSight={x:44,y:33,vx:30,vy:0,at:observedAt,
+  motion:'straight',hullRatio:.75};
+ witness._commsHit={at:observedAt,damage:5};
+ witness._commsAttack={at:observedAt,kind:'long',weapon:'rail'};
+ witness._commsLoss={at:observedAt,victim:901};
+ witness._commsIncident={at:observedAt,x:135,y:65,
+  kind:'industry',assetId:'industry:depot'};
+ game.tactical={effects:[{kind:'jam',x:witness.x,y:witness.y,
+  radius:90,until:.7}]};
+ game.time=.4;net.update(game);
+ for(const name of ['Sight','Hit','Attack','Loss','Incident'])
+  assert.equal(witness['_commsDelivered'+name+'At'],undefined,
+   `${name} must remain pending while the jammer blocks actual transmission`);
+ assert.equal(cell.intel,null);
+ assert.equal(cell.attackReports.length,0);
+ assert.equal(cell.incident,null);
+ assert.equal(game.tactical.effects[0].confirmed,true);
+ // Radio becomes available while each observation is still actionable.
+ game.time=.8;net.update(game);
+ for(const name of ['Sight','Hit','Attack','Loss','Incident'])
+  assert.equal(witness['_commsDelivered'+name+'At'],observedAt,
+   `${name} must be delivered once after radio recovery`);
+ assert.equal(cell.intel?.x,44);
+ assert.equal(cell.attackReports.length,1);
+ assert.equal(cell.lossReports.length,1);
+ assert.equal(cell.incident?.assetId,'industry:depot');
+ const sent=net.events.filter(e=>e.from===witness&&
+  ['contact','weapon','distress'].includes(e.kind)).length;
+ game.time=1.2;net.update(game);
+ assert.equal(net.events.filter(e=>e.from===witness&&
+  ['contact','weapon','distress'].includes(e.kind)).length,sent,
+  'recovered messages are not sent again on later ticks');
+ // A second independent impact can now corroborate the restored first
+ // report and enter the mesh. No weapon warning is invented by the jammer.
+ witness._commsAttack={at:1.7,kind:'long',weapon:'rail'};
+ game.time=1.8;net.update(game);
+ assert.ok([...net.mesh.nodes.get('c:'+cell.id).known.values()].some(p=>
+  p.kind==='long'),
+  'a recovered observation contributes to two-hit mesh corroboration');
+});
+
+test('recovered radio never turns expired observations into fresh intelligence',()=>{
+ const witness=ship(1,'scout',90),leader=ship(2,'fighter',160);
+ const game=scene([witness,leader]),net=game.enemyComms;
+ net.update(game);
+ witness._commsSight={x:44,y:33,vx:0,vy:0,at:.3};
+ witness._commsAttack={kind:'area',at:.3,weapon:'ion'};
+ witness._commsIncident={at:.3,x:120,y:60,kind:'industry',assetId:'depot'};
+ game.tactical={effects:[{kind:'jam',x:90,y:60,radius:90,until:3.5}]};
+ game.time=.4;net.update(game);
+ game.time=4;net.update(game);
+ const cell=net.cells.find(c=>c.leader===leader);
+ assert.equal(cell?.intel,null);
+ assert.equal(cell?.incident,null);
+ assert.equal(cell?.attackReports.length,0);
+ assert.equal(net.mesh.bestForCell(cell,4),null);
+});
+
 test('two time-separated sightings justify a maneuver counter, one sight never does',()=>{
  assert.equal(assessEnemyMotion([{at:1,motion:'straight'}],1.4),null);
  assert.equal(assessEnemyMotion([{at:1,motion:'straight'},
