@@ -1,5 +1,5 @@
 import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
-import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-1';
+import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
@@ -11,6 +11,7 @@ import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './stat
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1';
+import {renderContourMap} from './contour-atlas.js?v=contour-visual-3-enemy-radio-2';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -73,6 +74,7 @@ export function renderStationRoutePreview(base,state={}){
 }
 
 export function renderWorldMap(game){
+ if(game.mapView==='territory')return renderContourMap(game);
  const p=game.player,world=game.world,enemyVisible=game.enemyBasesUnlocked();
  const topology=world.networkTopology();
  const precisionUnlocked=precisionRailUnlocked(world);
@@ -298,7 +300,8 @@ export function renderWorldMap(game){
   '</b></span>'+(game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':'')+
   '<button data-act="close">'+(unapplied?'В полёт · сборка не применена':'В полёт · Esc')+'</button></div></header>'+
   (unapplied?'<p class="map-unapplied-note" role="status">Сборка ангара не применена. Перед вылетом потребуется подтверждение.</p>':'')+
-  '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">Схема сектора</button>'+
+  '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">Ближняя карта</button>'+
+  '<button type="button" data-act="mapView" data-id="territory">Контуры</button>'+
   '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">Регионы и цели · '+(known.length+signals.length)+'</button></nav>'+
   (discoveryLead||intelLead?'<div class="map-discovery-lead">'+discoveryLead+intelLead+'</div>':'')+
   '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+

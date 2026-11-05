@@ -7,6 +7,7 @@ import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-camp
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
 import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1';
+import {createContours,validContours} from './territory-system.js?v=contours-1';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
@@ -95,7 +96,8 @@ export function captureCheckpoint(game,base){
   if(changed.length)rocks.push([key,changed]);
  }
  return {version:2,seed:game.seed,baseId:base.id,state,world:{
-  regionalSupply:game.world.regionalSupply,stations:[...game.world.stations],rocks,discovered:[...game.world.discovered]}};
+  regionalSupply:game.world.regionalSupply,contours:game.world.contours,
+  stations:[...game.world.stations],rocks,discovered:[...game.world.discovered]}};
 }
 export function migrateCheckpoint(data){
  if(data?.version!==1)return data;
@@ -170,6 +172,7 @@ export function validateCheckpoint(data){
  }
  if(!home||!dock?.active||dock.enemy||Math.hypot(p.x-dock.x,p.y-dock.y)>210||
   w.discovered.some(id=>!ids.has(id)))return false;
+ if(w.contours!==undefined&&!validContours(w.contours,w.stations))return false;
  if(s.enemies.some(e=>e.stationRaid&&!ids.has(e.stationRaid.stationId))||
    w.regionalSupply?.command?.reports.some(r=>!ids.has(r.stationId)))return false;
  for(const pair of w.rocks){
@@ -201,6 +204,7 @@ export function restoreCheckpoint(game,data){
  world.discovered=new Set(data.world.discovered);
  world.ensureRegionalStations();
  world.regionalSupply=data.world.regionalSupply||createRegionalSupply(data.state.time);
+ world.contours=data.world.contours||createContours();
  for(const b of world.stations.values())if(b.suppressed&&b.suppressedUntil<=data.state.time)b.suppressed=false;
  for(const [key,patches] of data.world.rocks){
   const [x,y]=key.split(':').map(Number),list=world.rockCell(x,y);
@@ -227,6 +231,9 @@ export function restoreCheckpoint(game,data){
  game.nextDefenseCheckAt=0;game.lastDefenseNoticeAt=-Infinity;
  game.defenseTopology=null;game.defenseTopologyAt=0;
  game.cachedTarget=null;game.cachedWorldLinks=[];game.cachedNetworkLinked=world.networkTopology().linked;
+ game.contourVisualAt=-Infinity;game.contourVisualFields=null;
+ game.lastContourNoticeAt=-Infinity;game.contourFirst=null;game.contourSelection=null;game.contourError='';
+ game.contourFeedback=null;game.contourBirths=[];
  game.docked=world.stations.get(data.baseId);game.dead=false;game.paused=true;game.pausedRenderPending=true;
  game.cruiseCharge=0;game.cruising=false;
  return game.docked;

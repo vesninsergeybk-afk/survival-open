@@ -9,7 +9,7 @@
  */
 import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-2';
 import {BACKBONE,backbonePeers,backboneActive,backboneDelay,
-  archiveReport,archivedWeapon} from './enemy-backbone.js?v=enemy-backbone-1';
+  archiveReport,archivedWeapon} from './enemy-backbone.js?v=enemy-backbone-2';
 export const ENEMY_MESH=Object.freeze({
   tick:.72,flight:.66,shipLink:510,stationLink:1050,backboneLink:1450,
   bucket:1550,maxHops:12,maxTransfers:36,maxPending:112,
@@ -109,8 +109,7 @@ export class EnemyMesh{
         kind:received.kind,at:now});
       if(to.kind==='station'){
         this.rememberStation(to,now);
-        if(received.kind!=='doctrine')
-          archiveReport(to.ref,received,now);
+        archiveReport(to.ref,received,now);
       }
       if(to.kind==='cell'&&received.kind!=='contact'&&
          now>=this.nextNoticeAt&&

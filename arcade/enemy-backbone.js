@@ -37,16 +37,24 @@ export function threatArchive(station,now){
    lastAt:a.lastAt,reports:a.reports}));
 }
 export function archiveReport(station,packet,now){
- if(!live(station,null)||!packet||!kinds.has(packet.kind)||
-    !finite(packet.at)||packet.at>now||now-packet.at>BACKBONE.archiveAge)
+ const doctrine=packet?.kind==='doctrine';
+ const kind=doctrine?packet.weaponKind:packet?.kind;
+ const observedAt=doctrine?packet.sourceAt:packet?.at;
+ // A relayed archive is evidence of an earlier sighting, not a new sighting.
+ // Preserve the original time and never count its echoes as corroboration.
+ if(!live(station,null)||!kinds.has(kind)||
+    (doctrine&&!weapons.has(kind))||!finite(observedAt)||
+    observedAt>now||observedAt<0||now-observedAt>BACKBONE.archiveAge||
+    (doctrine&&(!finite(packet.at)||packet.at<observedAt||
+      packet.at>now||packet.at-observedAt>BACKBONE.archiveAge)))
    return false;
  const records=threatArchive(station,now);
- const assetId=packet.kind==='sabotage'?packet.assetId||null:null;
- const existing=records.find(a=>a.kind===packet.kind&&a.assetId===assetId);
+ const assetId=kind==='sabotage'?packet.assetId||null:null;
+ const existing=records.find(a=>a.kind===kind&&a.assetId===assetId);
  if(existing){
-   existing.lastAt=Math.max(existing.lastAt,packet.at);
-   existing.reports=Math.min(3,existing.reports+1);
- }else records.push({kind:packet.kind,assetId,lastAt:packet.at,reports:1});
+   existing.lastAt=Math.max(existing.lastAt,observedAt);
+   if(!doctrine)existing.reports=Math.min(3,existing.reports+1);
+ }else records.push({kind,assetId,lastAt:observedAt,reports:1});
  records.sort((a,b)=>b.lastAt-a.lastAt||b.reports-a.reports);
  station.meshArchive=records.slice(0,BACKBONE.maxArchive);
  return true;

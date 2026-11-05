@@ -238,7 +238,7 @@ export class EnemyTheaterStrategy{
         continue;
       }
       const changed=!prior||prior.assetId!==chosen.assetId||
-        prior.role!==chosen.role;
+        prior.role!==chosen.role||prior.spread!==chosen.spread;
       let recipients=0;
       for(const e of cell.members){
         if(!eligible(e)){e._theaterOrder=null;continue;}
@@ -266,6 +266,7 @@ export class EnemyTheaterStrategy{
     if(!eligible(e)||!order||!cell||
        !cell.theaterAssignment||cell.theaterAssignment.assetId!==order.assetId||
        cell.theaterAssignment.role!==order.role||
+       cell.theaterAssignment.spread!==order.spread||
        cell.brokenUntil||cell.leader?.hp<=0||
        !cell.members.includes(e)||now-order.receivedAt>THEATER.orderAge||
        distance(e,cell.leader)>THEATER.link||
@@ -281,7 +282,8 @@ export class EnemyTheaterStrategy{
       if(!pending||now-pending.at>2.4){cell.pendingTheater=null;continue;}
       if(!cell.theaterAssignment||
          pending.assetId!==cell.theaterAssignment.assetId||
-         pending.role!==cell.theaterAssignment.role){
+         pending.role!==cell.theaterAssignment.role||
+         pending.spread!==cell.theaterAssignment.spread){
         cell.pendingTheater=null;continue;
       }
       // A spoken squad order requires a *recipient* flying it, never the

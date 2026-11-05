@@ -1,5 +1,5 @@
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-1';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2';
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
 import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expedition-1';
 import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
@@ -11,10 +11,10 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2';
 import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
-import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-1';
+import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2';
@@ -32,9 +32,9 @@ import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-contour-visual-3-enemy-radio-2';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
@@ -50,7 +50,8 @@ import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './c
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3-expedition-1-campaign-1';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-1';
+import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -60,6 +61,8 @@ import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home
 import {regionalCampaignPressure,campaignDestination} from './regional-campaign.js?v=campaign-1-repair-qa-1';
 import {updateStationInterdiction,interruptStationInterdiction,threatenedStations} from './strategic-command.js?v=campaign-1-repair-qa-1-tactical-balance-1';
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
+import {connectContour,disconnectContour,contourFields,contourArea,contourProduction,advanceContours,fieldAt} from './territory-system.js?v=contours-1';
+import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -183,6 +186,8 @@ export class ArcadeGame {
   this.lastNoiseSource=null;this.noiseAlert=null;
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';this.mapReturnToBase=false;
+  this.mapView='territory';this.contourRegion='all';this.contourFirst=null;this.contourSelection=null;this.contourError='';this.enemyBackboneMap=false;
+  this.contourFeedback=null;this.contourBirths=[];
   this.openingArc=createOpeningArc(this.world.home);this.openingRepairing=false;
   this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
   this.lastContractReceipt=null;
@@ -204,6 +209,7 @@ export class ArcadeGame {
    this.renderScale=1;this.qualityTimer=0;
   this.messageUntil=0;this.vw=1200;this.vh=800;
   this.worldVisualLast=-Infinity;this.cachedWorldLinks=[];
+  this.contourVisualAt=-Infinity;this.contourVisualFields=null;this.lastContourNoticeAt=-Infinity;
   this.cachedNetworkLinked=new Set();this.cachedTarget=null;
   this.nextDefenseCheckAt=0;this.lastDefenseNoticeAt=-Infinity;
   this.defenseTopology=null;this.defenseTopologyAt=0;
@@ -355,7 +361,7 @@ export class ArcadeGame {
    this.heritage.visibility(document.hidden);
   });
   this.overlay.addEventListener('click',e=>{
-   const b=e.target.closest('button[data-act]');if(!b)return;
+   const b=e.target.closest('[data-act]');if(!b)return;
    const act=b.dataset.act;
    if(b.disabled)return;
    if(this.pendingStationModule&&this.overlay.dataset.mode==='base'&&
@@ -382,9 +388,77 @@ export class ArcadeGame {
     this.skillBranch=b.dataset.id;this.renderSkills();
     this.overlay.querySelector('.skill-branch-tabs [aria-pressed="true"]')?.focus({preventScroll:true});return;
    }
-   if(act==='mapView'&&['map','targets'].includes(b.dataset.id)){
+   if(act==='mapView'&&['map','territory','targets'].includes(b.dataset.id)){
     this.mapView=b.dataset.id;this.overlay.innerHTML=renderWorldMap(this);
     this.overlay.querySelector('.map-view-switch [aria-pressed="true"]')?.focus({preventScroll:true});return;
+   }
+   if(act==='contourRegion'){
+    this.contourRegion=b.dataset.id;this.contourFirst=null;this.contourSelection=null;this.contourError='';
+    this.contourFeedback=null;
+    this.overlay.innerHTML=renderWorldMap(this);return;
+   }
+   if(act==='contourEnemyRadio'){
+    this.enemyBackboneMap=!this.enemyBackboneMap;
+    if(this.enemyBackboneMap)this.contourRegion='all';
+    this.overlay.innerHTML=renderWorldMap(this);
+    this.overlay.querySelector('[data-act="contourEnemyRadio"]')?.focus({preventScroll:true});
+    return;
+   }
+   if(act==='contourCancel'){
+    this.contourFirst=null;this.contourError='';this.overlay.innerHTML=renderWorldMap(this);return;
+   }
+   if(act==='contourUnlink'){
+    const old=contourFields(this.world).length;
+    if(disconnectContour(this.world,b.dataset.from,b.dataset.id)){
+     const remaining=contourFields(this.world).length;
+     this.contourError=remaining<old?'Связь разорвана: часть территории временно потеряна. Соедините станции снова, чтобы восстановить поле.':
+      'Связь разорвана. При необходимости её можно провести заново.';
+     this.contourFeedback=null;
+     this.contourFirst=null;this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
+     this.heritage.ui('cancel');
+    }
+    this.overlay.innerHTML=renderWorldMap(this);return;
+   }
+   if(act==='contourPulse'){
+    const state=this.world.contours,p=this.player;
+    if(state.flux>=5&&this.time>=(state.pulseReadyAt||0)&&p.shield<42&&
+      fieldAt(this.world,p.x,p.y)){
+     state.flux-=5;state.pulseReadyAt=this.time+120;p.shield=Math.min(42,p.shield+22);
+     this.heritage.vfx.nova(p.x,p.y,110,'cyan');this.heritage.ui('upgrade');
+    }
+    this.overlay.innerHTML=renderWorldMap(this);this.pausedRenderPending=true;return;
+   }
+   if(act==='contourNode'||act==='contourConnect'){
+    const id=b.dataset.id,node=this.world.stations.get(id);
+    if(!node)return;
+    if(act==='contourConnect'&&this.contourFirst!==b.dataset.from)return;
+    this.contourSelection=id;this.contourError='';
+    this.contourFeedback=null;
+    if(!node.active||node.enemy||node.suppressed){this.contourFirst=null;}
+    else if(!this.contourFirst)this.contourFirst=id;
+    else if(this.contourFirst===id)this.contourFirst=null;
+    else{
+     const oldFields=contourFields(this.world),oldArea=contourArea(oldFields);
+     const oldProduction=contourProduction(oldFields);
+     const result=connectContour(this.world,this.contourFirst,id);
+     if(result.ok){
+      const after=contourFields(this.world);
+      const gain=Math.max(0,contourArea(after)-oldArea);
+      const fluxGain=Math.max(0,contourProduction(after)-oldProduction);
+      this.contourFirst=id;this.defenseTopology=null;
+      this.cachedWorldLinks=[];this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
+      this.heritage.ui('upgrade');
+      if(gain>1){
+       this.contourFeedback={title:'Контур замкнут',text:'Новая территория: +'+
+        (gain/1000000).toFixed(1)+' усл. км². Добыча: +'+fluxGain.toFixed(1)+' флюкса за 3 минуты.',at:this.time};
+       const born=after.filter(f=>!oldFields.some(old=>
+        Math.hypot(f.center.x-old.center.x,f.center.y-old.center.y)<1));
+       this.contourBirths=born.map(f=>({id:f.id,x:f.center.x,y:f.center.y,at:this.time}));
+       for(const field of born.slice(0,4))this.heritage.vfx.nova(field.center.x,field.center.y,150,'amber');
+      }else this.contourFeedback={title:'Линия проложена',text:'Соедините соседние станции, чтобы замкнуть территорию и запустить добычу.',at:this.time};
+     }else this.contourError=result.reason;
+    }
+    this.overlay.innerHTML=renderWorldMap(this);return;
    }
    if(act==='installModule'){this.askStationModule(b.dataset.role);return;}
    if(act==='confirmModule'){this.confirmStationModule(b.dataset.role||'');return;}
@@ -433,6 +507,9 @@ export class ArcadeGame {
    if(act==='restart'){this.runStore?.end();location.reload();}
   });
   this.overlay.addEventListener('keydown',e=>{
+   if(e.target.matches?.('.contour-node,.contour-region')&&(e.key==='Enter'||e.key===' ')){
+    e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));return;
+   }
    const button=e.target.closest('.base-tabs button[role="tab"]');
    if(!button||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
    const tabs=['summary','operations','hangar','network'];
@@ -920,7 +997,9 @@ export class ArcadeGame {
     this.world.regionalSupply?.frontier?.teal?.repairExpedition]
     .find(c=>c?.id===data.id&&c.seen);
    const intel=labLogisticsIntel(this.world,this.player).contacts.find(c=>c.id===data.id);
-   if(!region&&!cargo&&!intel&&(!base||(!base.discovered&&!data.signal)))return;
+   // The strategic atlas deliberately exposes the campaign stations before
+   // local reconnaissance; its route button must actually work for them.
+   if(!region&&!cargo&&!intel&&(!base||(!base.discovered&&!data.signal&&this.mapView!=='territory')))return;
    const waypoint=intel?{id:intel.id,x:intel.x,y:intel.y,label:intel.label,
     ...(intel.kind==='cargo'?{radioContact:true,signalLabel:intel.label,signalLive:true}:{})}:
     region?{id:data.id,...region.survey,label:region.name}:
@@ -2858,6 +2937,15 @@ export class ArcadeGame {
   this.updateCorridor(dt);
   this.updateRelayDefense(dt);
   updateRegionalWorld(this,dt);
+  const contourEvents=advanceContours(this.world,this.time,dt,this.enemies,this.player);
+  if(contourEvents.some(e=>e.kind==='lost')&&this.time-this.lastContourNoticeAt>18){
+   this.lastContourNoticeAt=this.time;
+   this.notice('Вражеский налёт уничтожил добывающего плазмофага. Следующая экспедиция отправится автоматически.',5);
+  }else if(contourEvents.some(e=>e.kind==='delivered'&&e.amount>.05)&&
+   this.time-this.lastContourNoticeAt>48&&fieldAt(this.world,this.player.x,this.player.y)){
+   this.lastContourNoticeAt=this.time;
+   this.notice('Сборщики доставили флюкс на станцию. Запас и защитный импульс доступны на карте контуров.',4);
+  }
   let mx=(isPressed(this.keys,this.controls,'right')||this.keys.has('ArrowRight')?1:0)-
     (isPressed(this.keys,this.controls,'left')||this.keys.has('ArrowLeft')?1:0)+this.touch.x;
   let my=(isPressed(this.keys,this.controls,'down')||this.keys.has('ArrowDown')?1:0)-
@@ -3521,6 +3609,7 @@ export class ArcadeGame {
    c.lineWidth=2;c.strokeStyle='#59dbc180';c.setLineDash([14,8]);
    c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();c.setLineDash([]);
   }
+  drawContourWorld(this,c,cam);
   this.heritage.vfx.render(c,'back',
    {worldX:cam.x,worldY:cam.y,width:cam.w,height:cam.h});
   this.visuals.drawDerelict(c,cam,this.time,this.fps);
@@ -3725,6 +3814,7 @@ export class ArcadeGame {
    }
   }
   drawFieldEffects(c,this);
+  drawTacticalVfx(c,this,cam);
   drawTactical(c,this);
   drawEnemyGunWarnings(c,this,cam,this.fps);
   drawEnemyDefenseGoals(c,this,cam,this.fps);

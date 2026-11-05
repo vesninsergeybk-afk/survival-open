@@ -607,6 +607,133 @@
  #overlay .base-dialog:has(.base-tabs){max-height:calc(100dvh - 12px)}
 }
 
+/* Open strategic atlas: its core controls stay visible on desktop and mobile. */
+.map-view-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:9px 0}
+#overlay .map-view-switch button{margin:0;min-height:42px;font-size:12px;background:#102b3b}
+#overlay .map-view-switch button[aria-pressed="true"]{border-color:#f1c879;background:#53462f;color:#fff0d1}
+.contour-dialog .map-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
+.contour-dialog .map-heading p{max-width:64ch}
+.contour-wallet{display:inline-block;color:#9cebd8;font-size:12px;margin-bottom:5px;white-space:nowrap}
+.contour-wallet b{color:#f9e5b3;font-size:17px}
+.contour-region-switch{display:flex;overflow-x:auto;gap:5px;padding:2px 0 10px}
+#overlay .contour-region-switch button{flex:0 0 auto;min-height:40px;margin:0;padding:5px 11px;font-size:11px;background:#132d3e}
+#overlay .contour-region-switch button[aria-pressed="true"]{background:#38565b;border-color:#84f0d6;color:#f1fff7}
+.contour-map-canvas{min-width:0}
+.contour-map-caption{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 10px;
+ background:#102e3b;border:1px solid #3b6a7a;border-radius:5px 5px 0 0}
+.contour-map-caption span{font-weight:800;font-size:12px;letter-spacing:.05em;color:#d6fff4}
+.contour-map-caption small{color:#aacfd7;text-align:right;font-size:11px}
+.contour-chart{display:block;width:100%;max-height:min(60vh,550px);border:1px solid #3b6a7a;border-top:0;
+ border-radius:0 0 5px 5px!important}
+.contour-node[role="button"],.contour-region[role="button"]{cursor:pointer;outline:none}
+.contour-player-pin{pointer-events:none}
+.contour-node:hover .contour-ring,.contour-node:focus .contour-ring,
+.contour-region:hover .contour-region-halo,.contour-region:focus .contour-region-halo{
+ stroke:#fff1be;stroke-width:3;fill:#3b695a29}
+.contour-node:focus .contour-hit,.contour-region:focus circle:last-child{stroke:#fff1be;stroke-width:1.5}
+.contour-map-label{fill:#e5fff5;font-weight:700;font-size:10px;paint-order:stroke;
+ stroke:#071c2b;stroke-width:3px;pointer-events:none}
+.contour-owned-field{fill:#22dfb01b;stroke:#60efcc99;stroke-width:2}
+.contour-live-link{fill:none;stroke:#85f3d5;stroke-width:2.7;stroke-opacity:.83}
+.contour-broken-link{fill:none;stroke:#fb7d8d;stroke-width:2.8;stroke-dasharray:5 5}
+.contour-hostile-trunk{fill:none;stroke:#ffa765;stroke-width:2.6;stroke-dasharray:9 7;
+ stroke-opacity:.82;pointer-events:none}
+.contour-hostile-broken{fill:none;stroke:#c77d95;stroke-width:2.4;stroke-dasharray:2 9;
+ stroke-opacity:.72;pointer-events:none}
+.contour-radio{margin-top:10px;padding:10px;border:1px solid #826e62;border-radius:5px;
+ background:#2b28344d;color:#f3d5c0}
+.contour-radio>summary{cursor:pointer;font-weight:700;font-size:12px}
+.contour-radio p,.contour-radio small{display:block;font-size:11px;line-height:1.5;color:#d9bfaa}
+#overlay .contour-radio button{margin:6px 0;min-height:38px;background:#4b3b37;border-color:#b98a69;
+ font-size:11px;color:#ffebd4}
+#overlay .contour-radio button[aria-pressed="true"]{background:#6b4234;border-color:#f4b878}
+.contour-radio ul{padding-left:18px;margin:7px 0;font-size:11px;line-height:1.65}
+.contour-radio li b{color:#ffd09b}
+.contour-best-link{fill:none;stroke:#ffe2a0;stroke-width:3;stroke-dasharray:8 6;animation:contourFlow 8s linear infinite}
+.contour-possible-link{fill:none;stroke:#73eacb77;stroke-width:1.8;stroke-dasharray:4 7}
+.contour-goal-link{fill:none;stroke:#ffc17c77;stroke-width:1.6;stroke-dasharray:3 8}
+.contour-future-field{fill:#e6c16b2b;stroke:#ffdb88;stroke-width:2;stroke-dasharray:7 4;pointer-events:none}
+.contour-harvest-route{fill:none;stroke:#ffce7b9c;stroke-width:1.3;stroke-dasharray:4 5}
+.contour-vortex-map circle:nth-of-type(2){transform-box:fill-box;transform-origin:center;
+ animation:contourBreathe 3.4s ease-in-out infinite}
+.contour-legend{display:flex;align-items:center;flex-wrap:wrap;gap:5px 12px;padding:9px 2px 5px;
+ font-size:10px;color:#b8d5df}
+.contour-legend span{display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+.contour-key{display:inline-block;width:9px;height:9px;background:#99adbd;border-radius:50%}
+.contour-key.mine{background:#8af2d6}.contour-key.dormant{background:#edc783}
+.contour-key.hostile{background:#ff7786;border-radius:2px;transform:rotate(45deg)}
+.contour-key.available{background:transparent;border:2px dashed #7effd8;width:10px;height:10px}
+.contour-key.vortex{background:#f58437;border:2px solid #ffda8e}
+.contour-context{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#aeced8;
+ background:#102b3b;border-left:3px solid #74deca;border-radius:4px;font-size:11px;padding:10px;margin-top:5px}
+#overlay .contour-context button{min-height:36px;margin:0;font-size:11px;white-space:nowrap}
+.contour-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:9px}
+.contour-summary>div{display:flex;flex-direction:column;gap:4px;padding:10px 7px;background:#102e3b;
+ border:1px solid #3d6d7a;border-radius:5px;text-align:center}
+.contour-summary small{font-size:9px;color:#93c5c5;line-height:1.25;letter-spacing:.035em}
+.contour-summary strong{font-size:19px;color:#d8fff2;font-variant-numeric:tabular-nums}
+.contour-guide{padding:14px;border:1px solid #4e8994;border-left:3px solid #f2cc84;
+ border-radius:5px;background:linear-gradient(150deg,#173849,#0c2838)}
+.contour-guide-kicker{font-size:10px;letter-spacing:.12em;font-weight:800;color:#f4ce88}
+.contour-guide h3{font-size:17px;line-height:1.25;color:#f0faf5;margin:7px 0}
+.contour-guide p,.contour-economy p,.contour-rules p{font-size:12px;line-height:1.48;
+ color:#c3dce4;margin:7px 0 10px}
+.contour-guide-state{display:inline-block;font-size:10px;padding:3px 7px;border-radius:4px}
+.contour-guide-state.blocked{color:#ffdbbd;background:#7253404d}
+.contour-choices{display:grid;gap:7px;margin-top:10px}
+#overlay .contour-choice{display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:100%;margin:0;padding:10px 11px;text-align:left;background:#17434b;border-color:#4a8b8b}
+#overlay .contour-choice:hover,#overlay .contour-choice:focus{background:#24635b;border-color:#a6f6df}
+#overlay .contour-choice.closing{background:#413e32;border-color:#d6bd7f}
+.contour-choice span:first-child{display:flex;flex-direction:column;gap:4px;min-width:0}
+.contour-choice b{font-size:12px;color:#eafff8}
+.contour-choice small{font-size:10px;color:#c5dfd9;line-height:1.35}
+.contour-choice>span:last-child{font-size:20px;color:#a9e9db}
+#overlay .contour-route{min-height:43px;width:100%;margin-top:5px;background:#275668}
+#overlay .contour-cancel{border:0;background:transparent;min-height:34px;font-size:11px;color:#b2d5dc;margin:7px 0 0}
+.contour-feedback{display:grid;gap:3px;border:1px solid #c7a968a3;border-left:4px solid #ffd48c;
+ padding:10px;background:#51452973;border-radius:4px;color:#ffe8b1;font-size:12px;margin-bottom:8px}
+.contour-feedback span{font-size:11px;color:#f2e6d1;line-height:1.4}
+.contour-economy{margin-top:9px;padding:12px;border:1px solid #5e927b;border-radius:5px;
+ background:#102e33}.contour-economy>b{font-size:13px;color:#b9f8e8}
+.contour-economy small{display:block;font-size:10px;color:#a8c9c6;margin-top:5px}
+#overlay .contour-economy button{min-height:42px;width:100%;margin:4px 0}
+.contour-warning{border-left:3px solid #fa8391;color:#ffd2d6;background:#4f26324a;
+ padding:9px;font-size:12px}
+.contour-rules{margin-top:9px;border:1px solid #355e70;border-radius:5px;padding:9px 12px;
+ background:#102838;color:#bdd6e0;font-size:12px}
+.contour-rules>summary{cursor:pointer;min-height:25px;align-content:center}
+@keyframes contourFlow{to{stroke-dashoffset:-112}}
+@keyframes contourBreathe{50%{opacity:.55;transform:scale(1.3)}}
+.contour-selection{border:1px solid #588f9e9c;border-radius:5px;background:#102b3b;padding:12px}
+.contour-selection b{font-size:14px;color:#dcfff3}
+.contour-selection p{font-size:12px;color:#d8e6ee;line-height:1.45;margin:6px 0}
+.contour-selection small{display:block;color:#a5cfd0;margin:5px 0}
+#overlay .contour-selection button{min-height:44px;margin-top:6px;width:100%}
+.contour-error{border-left:3px solid #f6a67e;background:#5d2e3455;padding:9px 12px;color:#ffe4c7}
+.contour-links{margin-top:12px;border-top:1px solid #50788c;padding-top:7px;color:#d5eef2}
+.contour-links summary{cursor:pointer;font-size:12px}
+.contour-links>div{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-top:6px;font-size:11px}
+#overlay .contour-links button{min-height:38px;margin:0;background:#422b35;color:#ffdfd4}
+.contour-side .map-objective{background:#102a39;border-left-color:#83dfcb}
+@media(max-width:700px){
+ #overlay .contour-dialog{padding:8px 10px}
+ .contour-dialog .map-view-switch{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #overlay .contour-dialog .map-view-switch button{font-size:10px;padding:6px 3px}
+ .contour-region-switch{padding-bottom:5px}
+ #overlay .contour-region-switch button{min-height:40px}
+ .contour-shell .map-side{display:block;max-height:none;padding:0}
+ .contour-chart{max-height:44vh}
+ .contour-shell .map-canvas{display:block}
+ .contour-map-caption{display:block;padding:5px 8px}
+ .contour-map-caption small{display:block;text-align:left;margin-top:3px}
+ .contour-summary strong{font-size:16px}
+ .contour-guide{padding:11px}
+}
+@media(prefers-reduced-motion:reduce){
+ .contour-best-link,.contour-vortex-map circle:nth-of-type(2){animation:none}
+}
+
 /* Active contracts report progress; abandoning is a secondary, deliberate
    two-step action instead of the only enabled button on the entire card. */
 .base-contract-actions{flex:0 0 208px;min-width:0;display:grid;gap:7px;justify-items:stretch}

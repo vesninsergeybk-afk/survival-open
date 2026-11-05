@@ -242,16 +242,16 @@ test('published module tree loads current regional backbone and archive paths',(
  const map=source('map-panel.js');
  const dock=source('base-panel.js');
  const checkpoint=source('run-checkpoint.js');
- assert.match(entry,/game\.js\?v=[^"']*backbone-1/);
+ assert.match(entry,/game\.js\?v=[^"']*backbone-2/);
  for(const name of ['enemy-comms','ai','region-runtime',
    'run-checkpoint','map-panel','base-panel'])
    assert.ok(game.includes(name+'.js?v=')&&
-     game.match(new RegExp(name+'\\.js\\?v=[^"\\x27]*backbone-1')),
+     game.match(new RegExp(name+'\\.js\\?v=[^"\\x27]*backbone-2')),
      'game must refresh '+name);
- assert.match(ai,/enemy-strategy\.js\?v=[^"']*backbone-1/);
- assert.match(comms,/enemy-mesh\.js\?v=[^"']*backbone-1/);
- assert.match(mesh,/enemy-backbone\.js\?v=enemy-backbone-1/);
- assert.match(map,/enemy-backbone\.js\?v=enemy-backbone-1/);
- assert.match(dock,/map-panel\.js\?v=[^"']*backbone-1/);
+ assert.match(ai,/enemy-strategy\.js\?v=[^"']*backbone-2/);
+ assert.match(comms,/enemy-mesh\.js\?v=[^"']*backbone-2/);
+ assert.match(mesh,/enemy-backbone\.js\?v=enemy-backbone-2/);
+ assert.match(map,/enemy-backbone\.js\?v=enemy-backbone-2/);
+ assert.match(dock,/map-panel\.js\?v=[^"']*backbone-2/);
  assert.match(checkpoint,/meshArchive/);
 });

@@ -2,6 +2,7 @@ import {warFronts,warFront,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {ensureStationDefense,defenseLinked} from './network-defense.js?v=network-defense-4';
 import {baseNames} from './balance.js?v=arcade-balanced-bases-30';
+import {contourFields} from './territory-system.js?v=contours-1';
 
 export const STATION_INTERDICTION=Object.freeze({memory:180,radioSpeed:900,reportDelay:3,
  observationPeriod:1,observersPerTick:12,orderCooldown:95,missionDuration:125,
@@ -66,6 +67,9 @@ export function updateStrategicCommand(game){
  s.reports=s.reports.filter(r=>now-r.seenAt<=STATION_INTERDICTION.memory);
  const receivers=fronts.filter(f=>f.depot?.enemy);
  const stations=[...world.stations.values()].filter(b=>b.active&&!b.enemy&&['lab','carrier'].includes(b.type));
+ const critical=new Map();
+ for(const field of contourFields(world))for(const id of field.vertices)
+  critical.set(id,(critical.get(id)||0)+field.area);
  const enemies=game.enemies||[];
  if(!enemies.length||!stations.length)return;
  const count=Math.min(enemies.length,STATION_INTERDICTION.observersPerTick);
@@ -76,7 +80,8 @@ export function updateStrategicCommand(game){
    .filter(x=>x.d<=x.f.radio).sort((a,b)=>a.d-b.d)[0];
   if(!receiver)continue;
   const b=stations.filter(b=>distance(e,b)<=290&&canObserveStation(game,e,b))
-   .sort((a,b)=>(a.type==='lab'?0:1)-(b.type==='lab'?0:1)||distance(e,a)-distance(e,b))[0];
+   .sort((a,b)=>(critical.get(b.id)||0)-(critical.get(a.id)||0)||
+    (a.type==='lab'?0:1)-(b.type==='lab'?0:1)||distance(e,a)-distance(e,b))[0];
   if(!b)continue;
   const prior=s.reports.find(r=>r.stationId===b.id&&r.front===receiver.f.key);
   if(prior&&now-prior.seenAt<15)continue;
@@ -108,8 +113,11 @@ export function assignStationInterdiction(game,ship,key){
  ship._commsOrder=null;ship._commsIntent=null;ship._theaterOrder=null;ship._theaterIntent=null;
  s.nextOrders[key]=now+STATION_INTERDICTION.orderCooldown;
  const base=game.world.stations.get(report.stationId);
+ const threatensContour=contourFields(game.world).some(f=>f.vertices.includes(report.stationId));
  game.notice?.('Ответ промышленной сети: оплаченный поставкой корабль направлен подавить связь станции «'+
-  (base?.title||baseNames[base?.type]||'Узел')+'». Маршрут для защиты доступен на карте; прицельный рельс / ион сорвут подготовку.',8);
+  (base?.title||baseNames[base?.type]||'Узел')+'».'+
+  (threatensContour?' Под угрозой и захваченная территория.':'')+
+  ' Маршрут для защиты доступен на карте; прицельный рельс / ион сорвут подготовку.',8);
  return true;
 }
 

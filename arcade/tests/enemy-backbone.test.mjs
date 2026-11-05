@@ -4,7 +4,7 @@ import {EnemyMesh,ENEMY_MESH} from '../enemy-mesh.js';
 import {BACKBONE,BACKBONE_LINKS,backboneActive,backboneDelay,
  archiveReport,archivedWeapon,threatArchive,visibleBackbone}
  from '../enemy-backbone.js';
-import {planTheater,theaterDestination} from '../enemy-strategy.js';
+import {planTheater,theaterDestination,EnemyTheaterStrategy} from '../enemy-strategy.js';
 
 const coords={
  'industry:depot':[7200,1600],
@@ -135,6 +135,27 @@ test('stored doctrine can be retransmitted to a newly arrived defender after raw
  assert.equal(m.bestForCell(receiver,183),null);
 });
 
+test('a restored trunk can carry old evidence into two regional archives without making it fresh',()=>{
+ const depot=station('industry:depot'),mine=station('28:5'),
+  military=station('4:-32'),source=evidence(squad(1,7240,1600));
+ const m=new EnemyMesh(),g=game([depot,mine,military],[source]);
+ tick(m,g,[source],2);tick(m,g,[source],2.75);
+ assert.equal(archivedWeapon(depot,2.75)?.lastAt,1.7);
+ g.tactical.effects=[{kind:'jam',x:mine.x,y:mine.y,radius:650,until:63}];
+ for(const t of [9,30,60])tick(m,g,[source],t);
+ assert.equal(archivedWeapon(mine,60),null);
+ g.tactical.effects=[];
+ for(const t of [64,71,81])tick(m,g,[source],t);
+ assert.deepEqual(archivedWeapon(mine,81),
+  {kind:'long',assetId:null,lastAt:1.7,reports:1});
+ assert.deepEqual(archivedWeapon(military,81),
+  {kind:'long',assetId:null,lastAt:1.7,reports:1});
+ assert.equal(archiveReport(mine,{kind:'doctrine',weaponKind:'long',
+  sourceAt:1.7,at:81},81),true);
+ assert.equal(archivedWeapon(mine,81)?.reports,1,
+  'repeated summaries never fabricate independent eyewitnesses');
+});
+
 test('received archive summary widens existing convoy guards without free power',()=>{
  const c=squad(5,9000,1500);
  const cargo={id:'cargo-1',regionalCargo:true,x:9100,y:1500,
@@ -152,6 +173,34 @@ test('received archive summary widens existing convoy guards without free power'
  const after=theaterDestination(c.members[1],learned);
  assert.ok(Math.hypot(after.x-before.x,after.y-before.y)>10);
  assert.equal(c.members[1].hp,70);assert.equal(c.members[1].damage,10);
+});
+
+test('a changed formation is announced only after a wingman flies the delivered order',()=>{
+ const c=squad(5,9000,1500),cargo={id:'cargo-1',regionalCargo:true,
+  x:9100,y:1500,hp:100,angle:Math.PI/2};
+ const g=game([station('4:-32')],[c]);
+ g.world.regionalSupply.convoys=[cargo];
+ let warning={kind:'long',archived:true,at:2,sourceAt:1.7};
+ const net={cells:[c],mesh:{bestForCell:()=>warning,alarmFor:()=>null},
+  send:()=>true,intercepts:[]};
+ const theater=new EnemyTheaterStrategy();
+ for(const e of c.members)e._commsCell=c;
+ g.time=4;theater.update(g,net);
+ assert.equal(c.theaterAssignment.role,'screen');
+ assert.equal(c.theaterAssignment.spread,1);
+ c.pendingTheater=null;
+ warning={kind:'area',archived:true,at:4.5,sourceAt:4.1};
+ g.time=6;theater.update(g,net);
+ assert.equal(c.theaterAssignment.role,'screen');
+ assert.equal(c.theaterAssignment.spread,1.25);
+ assert.ok(c.pendingTheater,'a formation change is a new order');
+ theater.confirmExecution(g,net);
+ assert.equal(net.intercepts.length,0,'a spoken order requires actual movement');
+ c.members[1]._theaterIntent={at:6,assetId:cargo.id,mode:'screen'};
+ g.playerCanInterceptEnemyRadio=()=>true;
+ theater.confirmExecution(g,net);
+ assert.equal(net.intercepts.length,1);
+ assert.match(net.intercepts[0].message,/Архив машин/);
 });
 
 test('an unseen hostile station is absent from the player trunk map',()=>{

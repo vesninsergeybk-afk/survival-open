@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Выживший · Тактические поля · Мастерская эффектов</title>
+<style>
+ :root{color-scheme:dark;background:#050b16;color:#e7f2ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+ *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 60% 0%,#162743 0%,#060d19 58%,#050913 100%)}
+ main{max-width:1180px;margin:auto;padding:clamp(18px,4vw,38px)}
+ .eyebrow{color:#88b5d0;font-size:11px;letter-spacing:.2em;font-weight:750}h1{font-size:clamp(25px,4vw,39px);margin:12px 0 6px;letter-spacing:-.035em}
+ .lead{color:#a8bdd1;line-height:1.65;margin:0 0 23px;max-width:790px}.top{display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap}
+ .back{color:#acebf7;text-decoration:none;padding:9px 13px;border:1px solid #43627c;border-radius:10px;font-size:13px}
+ .tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
+ button,select{font:inherit;color:inherit;background:#12243a;border:1px solid #34516d;border-radius:12px;cursor:pointer}
+ .tool{padding:15px 12px;text-align:left;min-height:72px;transition:border-color .16s,background .16s}
+ .tool span{display:block;font-weight:730;font-size:14px}.tool small{display:block;color:#a6bed1;margin-top:5px;font-size:11px}
+ .tool[aria-pressed="true"]{background:#1e3550;border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+ .tool[data-id="pulse"]{--accent:#8fe8ff}.tool[data-id="decoy"]{--accent:#ffd28c}
+ .tool[data-id="trap"]{--accent:#bc9bff}.tool[data-id="jam"]{--accent:#8af9d2}
+ .stage{position:relative;background:#080f1c;border:1px solid #304d67;border-radius:16px;overflow:hidden;box-shadow:0 20px 70px #0006}
+ canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
+ .stage-note{position:absolute;top:12px;left:14px;padding:7px 10px;background:#061321c9;border:1px solid #42617c99;border-radius:7px;font-size:11px;letter-spacing:.1em;color:#c3dbea;pointer-events:none}
+ .stage-foot{position:absolute;bottom:13px;left:15px;right:15px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+ .meter{background:#071524d9;border:1px solid #355571bb;padding:7px 11px;border-radius:7px;font-size:12px;color:#d0e6f5}
+ .controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:14px;padding:14px;background:#0c1929;border:1px solid #2a4158;border-radius:14px}
+ .controls label{font-size:13px;color:#bdd0de;display:flex;align-items:center;gap:9px}
+ select{padding:9px 10px;min-width:175px}button.replay{padding:10px 15px;background:#2b536a;border-color:#76a6bf;font-weight:700}
+ input[type=checkbox]{accent-color:#81ddef;width:17px;height:17px;cursor:pointer}
+ .description{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:20px;margin-top:17px;border-top:1px solid #294258;padding-top:18px}
+ .description h2{margin:0 0 7px;font-size:19px}.description p{color:#b4c8d9;font-size:14px;line-height:1.7;margin:0}
+ .facts{background:#0d1e2f;border-radius:12px;border:1px solid #33516b;padding:13px 16px}
+ .facts strong{display:block;color:#e7f7ff;font-size:21px}.facts span{display:block;color:#acc2d5;font-size:12px;margin-top:5px}
+ .fine{color:#8aa1b9;font-size:12px;line-height:1.6;margin-top:21px}
+ @media(max-width:700px){.tools{grid-template-columns:repeat(2,minmax(0,1fr))}.description{grid-template-columns:1fr}.stage-note{font-size:9px}.meter{font-size:10px}.controls{align-items:stretch}.controls label{width:100%}}
+</style>
+</head>
+<body>
+<main>
+ <div class="top"><span class="eyebrow">ВЫЖИВШИЙ / ВИЗУАЛЬНАЯ МАСТЕРСКАЯ</span><a class="back" href="./">← В игру</a></div>
+ <h1>Нелетальное оружие: язык эффектов</h1>
+ <p class="lead">Четыре устройства, четыре разные реакции мира. Здесь используется тот же код отрисовки, что и в аркаде. Сцена имитирует противников и сообщения, чтобы показать эффекты без ожидания открытия станций.</p>
+ <div class="tools" role="group" aria-label="Выберите тактическое устройство">
+  <button class="tool" data-id="pulse" aria-pressed="true"><span>01 · Инерционный импульс</span><small>Разорвать сближение</small></button>
+  <button class="tool" data-id="decoy" aria-pressed="false"><span>02 · Ложный маяк</span><small>Увести патруль</small></button>
+  <button class="tool" data-id="trap" aria-pressed="false"><span>03 · Гравитационная ловушка</span><small>Сдержать проход</small></button>
+  <button class="tool" data-id="jam" aria-pressed="false"><span>04 · Радиопомеха</span><small>Разорвать связь</small></button>
+ </div>
+ <div class="stage">
+  <canvas id="scene" width="960" height="540" role="img" aria-label="Анимированная схема тактического устройства и кораблей"></canvas>
+  <div class="stage-note">ТАКТИЧЕСКИЙ СЛОТ · ПРОБЕЛ · ДЕМОНСТРАЦИЯ</div>
+  <div class="stage-foot"><span class="meter" id="effectLabel">Импульс · зона 165 м</span><span class="meter" id="status">Сигнал активен</span></div>
+ </div>
+ <div class="controls">
+  <label for="branch">Вариант <select id="branch"></select></label>
+  <button class="replay" id="replay">↻ Повторить включение</button>
+  <label><input type="checkbox" id="lowFps"> Упрощённая графика (20 FPS)</label>
+  <label><input type="checkbox" id="reduced"> Без вращения и пульсации</label>
+ </div>
+ <div class="description">
+  <div><h2 id="heading">Инерционный импульс</h2><p id="description">Расходящаяся волна показывает момент, когда ближние враги теряют скорость. Векторный выброс дополнительно обозначает направление отталкивания.</p></div>
+  <div class="facts"><strong id="cooldown">14 секунд</strong><span>Перезарядка устройства</span><span id="range">Радиус действия — 165 м</span></div>
+ </div>
+ <p class="fine">Это лабораторная демонстрация визуальных эффектов. Она не создаёт второй версии игры и не заменяет проверку боевых сценариев. В самой аркаде поля используют реальные радиусы, время действия, движение врагов и доставку сообщений.</p>
+</main>
+<script type="module">
+ import {createTactical,tacticalSpec,activateTactical,updateTactical,
+  drawTactical,tacticalDecoy,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-2';
+ import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
+
+ const canvas=document.querySelector('#scene'),c=canvas.getContext('2d'),
+  buttons=[...document.querySelectorAll('.tool')],branchEl=document.querySelector('#branch'),
+  status=document.querySelector('#status'),label=document.querySelector('#effectLabel');
+ const descriptions={
+  pulse:['Инерционный импульс','Ударная волна показывает момент замедления. Векторный выброс даёт короткий направленный толчок; оболочка защищает корабль в движении.'],
+  decoy:['Ложный маяк','Маяк излучает ложный сигнал. Тонкая пунктирная траектория появляется лишь у кораблей, которые действительно приняли его за цель и доступны наблюдению.'],
+  trap:['Гравитационная ловушка','Искажение пространства удерживает выбранный участок. Ветвь «узел» показывает поток к центру; «вязкая среда» — сильное сопротивление движению.'],
+  jam:['Радиопомеха','Область подавления обозначена разорванными зелёными дугами. Центральный разряд и подпись появляются после фактической попытки передачи.']
+ };
+ const branches={pulse:[['','Стандартная волна'],['shell','Защитная оболочка'],['burst','Векторный выброс']],
+  decoy:[['','Обычный маяк'],['lure','Сборщик патрулей'],['ghost','Долгий след']],
+  trap:[['','Обычная ловушка'],['sink','Гравитационный узел'],['snare','Вязкая среда']],
+  jam:[['','Обычная помеха'],['wide','Широкий диапазон'],['deep','Долгая тишина']]};
+ const stars=Array.from({length:90},(_,i)=>({
+  x:(i*181+43)%960,y:(i*i*73+61)%540,r:i%13===0?1.3:.65}));
+ let selected='pulse',started=performance.now(),marked=false;
+ const model={time:20,fps:60,player:{x:430,y:276,angle:Math.PI/2,vx:44,vy:0,r:18,hp:100},
+  enemies:[],tactical:createTactical(),visuals:{reducedMotion:false},
+  playerCanInspectEnemyIntent:()=>true};
+ const dummy=(x,y,id)=>({x,y,serial:id,hp:100,r:16,type:'fighter',state:'hunt',vx:0,vy:0});
+
+ function switchTool(id){
+  selected=id;buttons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.id===id)));
+  branchEl.replaceChildren();
+  for(const [value,text] of branches[id]){
+   const o=document.createElement('option');o.value=value;o.textContent=text;branchEl.append(o);
+  }
+  document.querySelector('#heading').textContent=descriptions[id][0];
+  document.querySelector('#description').textContent=descriptions[id][1];
+  activate();
+ }
+ function activate(){
+  started=performance.now();marked=false;model.time=20;
+  model.player.x=430;model.player.y=276;
+  model.enemies=[dummy(340,210,1),dummy(504,316,18),dummy(580,250,23),
+   dummy(610,360,32),dummy(725,205,37)];
+  model.tactical=createTactical();
+  model.tactical.owned=['pulse','decoy','trap','jam'];
+  model.tactical.equipped=selected;
+  if(branchEl.value)model.tactical.branches[selected]={path:branchEl.value,rank:2};
+  const spec=tacticalSpec(model.tactical);
+  const target=selected==='trap'?{x:520,y:280}:{x:635,y:238};
+  const out=activateTactical(model,target);
+  if(out.kind==='pulse'){
+   model.tactical.pulseAt=model.time;model.tactical.pulseX=model.player.x;
+   model.tactical.pulseY=model.player.y;model.tactical.pulseRadius=spec.radius;
+  }
+  label.textContent=descriptions[selected][0]+' · зона '+Math.round(spec.radius)+' м';
+  document.querySelector('#cooldown').textContent=spec.cooldown+' секунд';
+  document.querySelector('#range').textContent='Радиус '+Math.round(spec.radius)+' м · действие '+spec.duration+' с';
+ }
+ function drawShip(x,y,color,scale=1){
+  c.save();c.translate(x,y);c.scale(scale,scale);
+  c.strokeStyle=color;c.fillStyle='#152638';c.lineWidth=2;
+  c.beginPath();c.moveTo(0,-19);c.lineTo(14,13);c.lineTo(0,7);c.lineTo(-14,13);
+  c.closePath();c.fill();c.stroke();
+  c.fillStyle=color;c.globalAlpha=.6;c.fillRect(-3,1,6,9);c.restore();
+ }
+ function background(){
+  c.fillStyle='#07111f';c.fillRect(0,0,960,540);
+  c.fillStyle='#46708f';for(const s of stars){c.globalAlpha=s.r===1.3?.55:.21;
+   c.beginPath();c.arc(s.x,s.y,s.r,0,Math.PI*2);c.fill();}
+  c.globalAlpha=.1;c.strokeStyle='#54759a';c.lineWidth=1;
+  for(let i=0;i<10;i++){c.beginPath();c.moveTo(i*110-100,0);c.lineTo(i*110+130,540);c.stroke();}
+  c.globalAlpha=.14;c.strokeStyle='#5979a4';
+  c.beginPath();c.arc(790,160,64,0,Math.PI*2);c.stroke();
+  c.beginPath();c.arc(790,160,47,0,Math.PI*2);c.stroke();
+  c.globalAlpha=1;
+ }
+ function render(now){
+  const elapsed=(now-started)/1000,spec=tacticalSpec(model.tactical);
+  if(elapsed>spec.duration+1.35){activate();}
+  else model.time=20+elapsed;
+  model.fps=document.querySelector('#lowFps').checked?20:60;
+  model.visuals.reducedMotion=document.querySelector('#reduced').checked;
+  if(selected==='pulse'&&branchEl.value==='shell'){
+   model.player.x=430+Math.sin(elapsed*.8)*56;
+   model.player.vx=Math.cos(elapsed*.8)*45;
+  }
+  updateTactical(model);
+  if(selected==='decoy')for(const e of model.enemies){
+   const point=tacticalDecoy(model,e);
+   if(point){e._tacticalDecoyUntil=model.time+.34;
+    e.x+=(point.x-e.x)*.003;e.y+=(point.y-e.y)*.003;}
+  }
+  if(selected==='jam'&&elapsed>.8&&!marked){
+   tacticalJammingConfirmed(model,{x:400,y:255},{x:610,y:250});marked=true;
+  }
+  background();
+  for(const enemy of model.enemies)drawShip(enemy.x,enemy.y,'#eb9a8b',.68);
+  drawShip(model.player.x,model.player.y,'#8deeff',1.05);
+  drawTacticalVfx(c,model,{x:0,y:0,w:960,h:540});drawTactical(c,model);
+  const effect=model.tactical.effects[0];
+  status.textContent=effect?.confirmed?'РЕАКЦИЯ ПОДТВЕРЖДЕНА':
+   selected==='pulse'?'ВОЛНА АКТИВИРОВАНА':'ОЖИДАНИЕ РЕАКЦИИ';
+  requestAnimationFrame(render);
+ }
+ buttons.forEach(b=>b.addEventListener('click',()=>switchTool(b.dataset.id)));
+ branchEl.addEventListener('change',activate);
+ document.querySelector('#replay').addEventListener('click',activate);
+ switchTool('pulse');requestAnimationFrame(render);
+</script>
+</body>
+</html>
