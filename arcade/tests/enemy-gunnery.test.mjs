@@ -43,6 +43,21 @@ test('a fighter commits to a warning point; a dodge does not retarget its shot',
     'no burst can bypass the individual reload');
 });
 
+test('opening commander uses the same visible charging shot; other mission structures still cannot fire',()=>{
+ const commander=ship('fighter',9,210),game=scene([commander]);
+ commander.missionStructure=true;commander.openingCommander=true;
+ commander.state='standoff';commander._enemyLearningSaw=true;commander._gunNextAt=0;
+ assert.equal(updateEnemyGunnery(commander,game,game.player),false);
+ assert.ok(commander._gunAiming,'the commander telegraphs the shot');
+ game.time=1.8;
+ assert.equal(updateEnemyGunnery(commander,game,game.player),true);
+ assert.equal(game.shots.length,1);
+ const excluded=ship('fighter',10,220);
+ excluded.missionStructure=true;excluded._enemyLearningSaw=true;excluded._gunNextAt=0;
+ assert.equal(updateEnemyGunnery(excluded,game,game.player),false);
+ assert.equal(excluded._gunAiming,null);
+});
+
 test('gunner cannot aim from radio, noise, cover, or a dead target',()=>{
   const e=ship('flanker',1),game=scene([e]);e._gunNextAt=0;
   assert.equal(updateEnemyGunnery(e,game,game.player),false);

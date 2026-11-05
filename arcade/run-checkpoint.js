@@ -4,6 +4,7 @@ import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-rewar
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2';
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
+import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-1';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
@@ -17,7 +18,7 @@ const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal m
  'contract operation geoScanUntil overchargeUntil fieldLoan fieldTrialTaken fieldReturnAt ionMasteryAwarded '+
  'holdFire beamClock rocketClock zoneClock stationary lastX lastY hacks activeBases enemySerial '+
  'allySerial groupSerial heavyPortalShown lastEncounter lastEncounterLabelAt amberBeltSeen ionFieldSeen '+
- 'waypoint lastIonAudioCycle fieldEffects sortieReports economyExpenses').split(' ');
+ 'waypoint lastIonAudioCycle fieldEffects sortieReports economyExpenses openingArc').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const cell=v=>typeof v==='string'&&(/^-?\d+:-?\d+$/.test(v)||
@@ -123,6 +124,7 @@ export function validateCheckpoint(data){
   Object.keys(s).some(k=>!FIELDS.includes(k)))return false;
  if(s.sortieReports!==undefined&&!validSortieReports(s.sortieReports))return false;
  if(s.economyExpenses!==undefined&&!validEconomyExpenses(s.economyExpenses))return false;
+ if(s.openingArc!==undefined&&!validateOpeningArc(s.openingArc))return false;
  if(s.firstHardwareReward!==undefined&&s.firstHardwareReward!==null&&
   !['pending','rail','flak','plasma'].includes(s.firstHardwareReward))return false;
  if(['rail','flak','plasma'].includes(s.firstHardwareReward)&&
@@ -193,6 +195,8 @@ export function restoreCheckpoint(game,data){
  // Commit only after the complete world has been reconstructed successfully.
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
+ game.openingArc=data.state.openingArc||{...createOpeningArc(world.home),status:'skipped'};
+ game.openingRepairing=false;
  game.sortieReports=data.state.sortieReports||[];
  game.sortieStart=null;
  game.keys.clear();game.touch.x=0;game.touch.y=0;

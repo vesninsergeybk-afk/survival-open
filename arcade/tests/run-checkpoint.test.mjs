@@ -15,6 +15,7 @@ import {RUN_KEYS,RunCheckpointStore,captureCheckpoint,restoreCheckpoint,packRun,
 import {startSortie,finishSortie,appendSortieReport} from '../sortie-economy.js';
 import {emptyEconomyExpenses,recordEconomyExpense} from '../sortie-ledger.js';
 import {transitCost} from '../base-panel.js';
+import {createOpeningArc,beginOpeningArc} from '../opening-arc.js';
 
 const entry=new URL('../game.js',import.meta.url);
 const source=readFileSync(entry,'utf8').replace(/\nnew ArcadeGame\(\);\s*$/,'\n')
@@ -61,6 +62,23 @@ test('frontier economy, finite wrecks and new station IDs survive a real checkpo
  const forbidden=unpackRun(packRun(checkpoint));
  forbidden.world.regionalSupply.frontier.teal.wrecks[0].stock=999;
  assert.equal(validateCheckpoint(forbidden),false,'wrecks cannot be refilled through a save');
+});
+test('the optional opening crisis and its objective survive a station checkpoint once',()=>{
+ const g=scene();g.openingArc=createOpeningArc(g.world.home);
+ beginOpeningArc(g.openingArc,'intercept',42);
+ g.openingArc.commanderSerial=8;
+ g.openingArc.returnWaypoint={id:'0:0',x:g.world.home.x,y:g.world.home.y,label:'Домашний док'};
+ g.enemies=[{serial:8,group:1,type:'fighter',openingCommander:true,
+  x:g.player.x+180,y:g.player.y+50,vx:0,vy:0,hp:100,maxHp:100,r:18}];
+ const loaded=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.ok(validateCheckpoint(loaded));
+ const fresh=scene();restoreCheckpoint(fresh,loaded);
+ assert.equal(fresh.openingArc.status,'active');
+ assert.equal(fresh.openingArc.commanderSerial,8);
+ assert.equal(fresh.enemies[0].openingCommander,true);
+ assert.deepEqual(fresh.openingArc.returnWaypoint,g.openingArc.returnWaypoint);
+ const damaged=unpackRun(packRun(loaded));damaged.state.openingArc.repair=500;
+ assert.equal(validateCheckpoint(damaged),false);
 });
 test('an announced, funded industrial response survives a save without a duplicate charge',()=>{
  const g=scene(),s=g.world.regionalSupply.frontier.azure;

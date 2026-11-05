@@ -1,5 +1,5 @@
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
 import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expedition-1';
 import {strategicCapture} from './regional-supply.js?v=living-world-3';
@@ -11,19 +11,19 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-4-enemy-gunnery-1';
-import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-4-enemy-gunnery-1-opening-arc-1';
+import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-4-enemy-gunnery-1';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
-import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1';
+import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
 import {ArcadeVisuals} from './visuals.js?v=regions-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1';
@@ -42,15 +42,17 @@ import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADE
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
-import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1';
+import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
+import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
+ openingArcActive,openingArcPressure,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-1';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -151,6 +153,9 @@ export class ArcadeGame {
   this.shipLoadout=createLoadout();
   this.firstHardwareReward=null;
   let hangarStorage=null;try{hangarStorage=window.localStorage;}catch{}
+  this.recordStorage=hangarStorage;
+  let priorBest=0;try{priorBest=Number(hangarStorage?.getItem('survivor.best-flight.v1')||0);}catch{}
+  this.bestFlight=Number.isFinite(priorBest)&&priorBest>=0?priorBest:0;
   this.hangarSession=new HangarSession(hangarStorage);
   this.enemyLearning=this.visuals.capitalDamageQA?null:new EnemyLearning(hangarStorage);
   this.enemyComms=new EnemyComms();
@@ -169,6 +174,7 @@ export class ArcadeGame {
   this.lastNoiseSource=null;this.noiseAlert=null;
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';this.mapReturnToBase=false;
+  this.openingArc=createOpeningArc(this.world.home);this.openingRepairing=false;
   this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
   this.lastContractReceipt=null;
   this.economyExpenses=emptyEconomyExpenses();
@@ -293,6 +299,9 @@ export class ArcadeGame {
     this.overlay.dataset.mode='';this.dismiss();
     this.notice('Новый вылет. На активных станциях прогресс сохраняется.',5);return;
    }
+   if(act==='openingPick'){this.chooseOpeningRoute(b.dataset.role);return;}
+   if(act==='openingSkip'){this.skipOpeningRoute();return;}
+   if(act==='openingReward'){this.claimOpeningReward(b.dataset.role);return;}
    if(act.startsWith('hg')){this.hangarAction(b.dataset);return;}
    if(act==='skillBranch'&&['Корабль','Технологии','Добыча'].includes(b.dataset.id)){
     this.skillBranch=b.dataset.id;this.renderSkills();
@@ -549,8 +558,154 @@ export class ArcadeGame {
    if(departed&&planned)this.notice(planned.message,4);
    return departed;
   }
+ showOpeningChoice(){
+  if(this.openingArc?.status!=='offer'||!this.overlay.hidden||this.paused||this.dead)return;
+  this.paused=true;this.pausedRenderPending=true;
+  this.overlay.dataset.mode='opening-choice';this.overlay.hidden=false;
+  this.heritage.pause('map');
+  this.overlay.innerHTML='<div class="dialog opening-choice" role="dialog" aria-modal="true" '+
+   'aria-labelledby="opening-title"><span class="opening-kicker">ПЕРЕХВАТ · ДОМАШНИЙ СЕКТОР</span>'+
+   '<h2 id="opening-title">Два срочных сигнала</h2>'+
+   '<p>Наводчик противника ведёт патрули к доку. В другой стороне осталась аварийная капсула. '+
+   'Помочь можно только в одном месте — сигнал второй цели будет потерян.</p>'+
+   '<div class="opening-options">'+
+   '<button data-act="openingPick" data-role="intercept"><strong>Перехватить наводчика</strong>'+
+   '<small>Уничтожить отмеченный корабль. Данные для развития и заметно более редкие патрули на две минуты.</small></button>'+
+   '<button data-act="openingPick" data-role="rescue"><strong>Эвакуировать капсулу</strong>'+
+   '<small>Подлететь и удерживать E / «Действие» 3,5 с. Больше сплава и аварийный щит, но враг заметит спасение.</small></button>'+
+   '</div><p class="opening-note">Первое успешно выполненное поручение даёт один бесплатный оружейный модуль за забег. '+
+   'На выполнение — около двух с половиной минут игрового времени.</p>'+
+   '<button data-act="openingSkip" class="opening-skip">Продолжить свободный полёт</button></div>';
+  this.presentMenu('[data-act="openingPick"]');
+ }
+ skipOpeningRoute(){
+  if(this.overlay.dataset.mode!=='opening-choice')return;
+  this.openingArc.status='skipped';this.dismiss();
+  this.notice('Сигналы пропущены. Все обычные задания и операции доступны.',4);
+ }
+ chooseOpeningRoute(kind){
+  if(this.overlay.dataset.mode!=='opening-choice'||
+   !beginOpeningArc(this.openingArc,kind,this.time))return;
+  const arc=this.openingArc;
+  arc.returnWaypoint=this.waypoint?.id&&Number.isFinite(this.waypoint.x)&&
+   Number.isFinite(this.waypoint.y)?{...this.waypoint}:null;
+  if(kind==='intercept'){
+   const spec=ENEMY_TYPES.fighter,serial=++this.enemySerial;
+   const group=++this.groupSerial;
+   const commander={serial,group,type:'fighter',
+    x:arc.interceptX,y:arc.interceptY,vx:0,vy:0,r:18,
+    hp:Math.max(100,spec.hp*1.8),maxHp:Math.max(100,spec.hp*1.8),
+    damage:spec.dmg,think:.2,fire:1.1,state:'hunt',commitUntil:0,
+    target:this.player,angle:0,hit:0,expAwarded:false,scenario:'opening-intercept',
+    protect:null,openingCommander:true,missionStructure:true,entryPortalPending:false};
+   this.enemies.push(commander);
+   for(const offset of [-1,1]){
+    const scout=ENEMY_TYPES.scout;
+    this.enemies.push({serial:++this.enemySerial,group,type:'scout',
+     x:arc.interceptX+offset*78,y:arc.interceptY+offset*64,vx:0,vy:0,r:14,
+     hp:scout.hp,maxHp:scout.hp,damage:scout.dmg,think:.15,fire:1.3,
+     state:'hunt',commitUntil:0,target:this.player,angle:0,hit:0,
+     expAwarded:false,scenario:'opening-escort',protect:commander,
+     entryPortalPending:false});
+   }
+   arc.commanderSerial=serial;
+  }
+  this.waypoint={id:'opening-'+kind,
+   x:kind==='intercept'?arc.interceptX:arc.rescueX,
+   y:kind==='intercept'?arc.interceptY:arc.rescueY,
+   label:kind==='intercept'?'Вражеский наводчик':'Аварийная капсула'};
+  this.dismiss();
+  this.notice(kind==='intercept'?
+   'Цель отмечена: наводчик окружён патрулями. Подойдите на дистанцию оружия и назначьте приоритет.':
+   'Капсула отмечена. Удерживайте E рядом с ней; отпускайте кнопку для стрельбы.',6);
+ }
+ showOpeningReward(){
+  if(this.firstHardwareReward!=='pending'||!this.overlay.hidden||this.dead)return;
+  this.paused=true;this.pausedRenderPending=true;
+  this.overlay.dataset.mode='opening-reward';this.overlay.hidden=false;
+  this.heritage.pause('base');
+  this.overlay.innerHTML='<div class="dialog opening-choice" role="dialog" aria-modal="true" '+
+   'aria-labelledby="opening-reward-title"><span class="opening-kicker">УСПЕХ · НОВОЕ ОСНАЩЕНИЕ</span>'+
+   '<h2 id="opening-reward-title">Выберите второе оружие</h2>'+
+   '<p>Модуль бесплатный и сразу устанавливается в свободный узел корабля. '+
+   'Это выбор тактики, а не улучшение урона на несколько процентов.</p>'+
+   '<div class="opening-options">'+
+   '<button data-act="openingReward" data-role="rail"><strong>Рельс · держать дистанцию</strong>'+
+   '<small>Автоматический выстрел на 700 м. Можно атаковать раньше, чем враг войдёт в радиус плазмы.</small></button>'+
+   '<button data-act="openingReward" data-role="flak"><strong>Картечь · встречать рои</strong>'+
+   '<small>Поражает до трёх близких целей. Подпускайте группы примерно на 245 м.</small></button>'+
+   '<button data-act="openingReward" data-role="plasma"><strong>Вторая плазма · сближаться</strong>'+
+   '<small>Сильный ближний залп по одиночному кораблю; следите за общим перегревом.</small></button>'+
+   '</div><button data-act="close" class="opening-skip">Позже — выбрать на станции</button></div>';
+  this.presentMenu('[data-act="openingReward"]');
+ }
+ claimOpeningReward(id){
+  if(this.overlay.dataset.mode!=='opening-reward')return;
+  const preserveDraft=!!this.hangarSession?.dirty?.(this.shipLoadout);
+  const reward=claimFirstContractModule(this.shipLoadout,this.firstHardwareReward,id,{preserveDraft});
+  if(!reward.ok){this.notice(reward.reason,3);return;}
+  this.shipLoadout=reward.loadout;this.firstHardwareReward=reward.status;
+  if(this.lastContractReceipt){
+   this.lastContractReceipt.firstHardwareReward=id;
+   this.lastContractReceipt.firstHardwareInstalled=reward.installed;
+  }
+  if(!preserveDraft)this.hangarSession?.begin(this.shipLoadout);
+  this.syncShipLoadout();this.dismiss();
+  this.heritage.ui('upgrade');
+  this.notice(reward.installed?
+   'ОРУЖИЕ УСТАНОВЛЕНО: '+MODULES[id].name+'. Попробуйте его в следующем бою!':
+   'Орудие на складе. Освободите узел в ангаре и примените сборку.',6);
+ }
+ updateOpeningArc(dt){
+  const arc=this.openingArc;
+  if(!arc||this.visuals.capitalDamageQA)return;
+  if(arc.status==='offer'){
+   if(this.time>130){arc.status='skipped';return;}
+   if(this.time>=OPENING_ARC.offerAt&&!this.operation&&
+     Math.hypot(this.player.x-this.world.home.x,this.player.y-this.world.home.y)<2200)
+    this.showOpeningChoice();
+   return;
+  }
+  if(!openingArcActive(arc))return;
+  const commander=arc.kind==='intercept'?
+   this.enemies.find(e=>e.serial===arc.commanderSerial&&e.openingCommander):null;
+  const near=arc.kind==='rescue'&&
+   Math.hypot(this.player.x-arc.rescueX,this.player.y-arc.rescueY)<=OPENING_ARC.repairRange;
+  const result=advanceOpeningArc(arc,this.time,dt,{
+   commanderAlive:!!commander&&commander.hp>0,
+   repairing:!!this.openingRepairing,withinRange:near});
+  if(result==='failed'){
+   if(this.waypoint?.id==='opening-'+arc.kind)this.waypoint=arc.returnWaypoint;
+   this.notice('Срочный сигнал потерян. Забег продолжается; обычные операции доступны.',5);
+   return;
+  }
+  if(!result.endsWith('-complete'))return;
+  this.endInteraction();
+  if(this.waypoint?.id==='opening-'+arc.kind)this.waypoint=arc.returnWaypoint;
+  if(arc.kind==='intercept'){
+   this.player.ore+=OPENING_ARC.interceptRewardOre;
+   recordSortieIncome(this,'ore','operation',OPENING_ARC.interceptRewardOre);
+   this.cockpit.resourceGain(OPENING_ARC.interceptRewardOre,this.time);
+   this.collect({type:'data',value:OPENING_ARC.interceptRewardData,source:'operation'});
+   this.spawnClock=Math.max(this.spawnClock,15);
+   this.notice('Наводчик уничтожен: патрули у дока стали реже на 2 минуты. '+
+    '+'+OPENING_ARC.interceptRewardData+' данных!',6);
+  }else{
+   this.player.ore+=OPENING_ARC.rescueRewardOre;
+   recordSortieIncome(this,'ore','operation',OPENING_ARC.rescueRewardOre);
+   this.cockpit.resourceGain(OPENING_ARC.rescueRewardOre,this.time);
+   this.player.shield=Math.max(this.player.shield,OPENING_ARC.rescueShield);
+   this.spawnClock=Math.max(this.spawnClock,9);
+   this.notice('Эвакуация завершена: +'+OPENING_ARC.rescueRewardOre+
+    ' сплава и аварийный щит. Враг получил сигнал: патрули участятся.',6);
+  }
+  if(this.firstHardwareReward==null)this.firstHardwareReward='pending';
+  this.showOpeningReward();
+ }
   dismiss(discardDraft=false){
    if(!this.overlay.hidden&&['run-start','death'].includes(this.overlay.dataset.mode))return false;
+   if(!this.overlay.hidden&&this.overlay.dataset.mode==='opening-choice'&&
+      this.openingArc?.status==='offer')this.openingArc.status='skipped';
    if(!discardDraft&&!this.overlay.hidden&&this.docked&&this.stationExitArmed&&
     typeof this.hangarSession?.dirty==='function'&&this.hangarSession.dirty(this.shipLoadout)){
     this.askDepartureConfirmation();return false;
@@ -1232,7 +1387,8 @@ export class ArcadeGame {
   }
  }
  updateShipWeapons(dt){
-  updateAutomaticWeapons(this,dt,!this.heavyCharge&&automaticFireAllowed(this.holdFire,this.mining.active,this.probeRepairing));
+  updateAutomaticWeapons(this,dt,!this.heavyCharge&&automaticFireAllowed(this.holdFire,
+   this.mining.active,this.probeRepairing||this.openingRepairing));
  }
   toggleManualRail(){
    if(this.dead||this.paused||!this.overlay.hidden)return false;
@@ -1248,7 +1404,8 @@ export class ArcadeGame {
    this.heritage.ui('tab');this.hud();return true;
   }
   fireManualRailAt(point){
-   if(this.dead||this.paused||!this.overlay.hidden)return false;
+   if(this.dead||this.paused||!this.overlay.hidden||this.openingRepairing||
+    this.actionHeld?.kind==='opening-repair')return false;
    const result=fireAimedRail(this,point);
    if(!result.ok){this.notice(result.reason,2);return false;}
    this.notice(result.hits?'ТОЧНЫЙ ВЫСТРЕЛ · попадание'+(result.hits>1?' ×'+result.hits:''):
@@ -1256,7 +1413,8 @@ export class ArcadeGame {
    this.hud();return true;
   }
  callHowitzer(){
-  if(this.dead||this.paused||!this.overlay.hidden||this.mining.active||this.probeRepairing)return false;
+  if(this.dead||this.paused||!this.overlay.hidden||this.mining.active||
+   this.probeRepairing||this.openingRepairing||this.actionHeld?.kind==='opening-repair')return false;
   const plan=planHowitzer(this);
   if(!plan.ok){this.notice(plan.reason,2.8);return false;}
   this.heavyCharge=plan.charge;this.heritage.play('rocket',.2);this.hud();return true;
@@ -1360,6 +1518,11 @@ export class ArcadeGame {
   return nearest;
  }
  currentInteraction(){
+  const arc=this.openingArc;
+  if(openingArcActive(arc)&&arc.kind==='rescue'&&
+   Math.hypot(this.player.x-arc.rescueX,this.player.y-arc.rescueY)<=OPENING_ARC.repairRange)
+   return {kind:'opening-repair',target:{x:arc.rescueX,y:arc.rescueY},
+    label:'Эвакуация',hold:true};
   const probe=this.operation?.id===PROBE_OPERATION.id?this.operation:null;
   const rock=this.mining.target;
   const range=extractorStats(this.skillRanks.extractor||0,this.skillRanks.mining||0).range;
@@ -1379,7 +1542,7 @@ export class ArcadeGame {
  endInteraction(source=null){
   if(!this.actionHeld)return;
   if(source&&this.actionHeld.source!==source)return;
-  this.actionHeld=null;this.probeRepairing=false;this.mining.active=false;
+  this.actionHeld=null;this.probeRepairing=false;this.openingRepairing=false;this.mining.active=false;
   this.heritage.extraction(false);
  }
  toggleHoldFire(){
@@ -1396,10 +1559,12 @@ export class ArcadeGame {
   if(button){
    const focus=this.actionHeld||this.interactionFocus;
    const label=focus?.kind==='repair'?'Ремонт':focus?.kind==='mine'?'Добыча':
+    focus?.kind==='opening-repair'?'Эвакуация':
     focus?.kind==='station'?'Станция':'Действие';
    if(button.textContent!==label)button.textContent=label;
    button.disabled=!focus;
    button.setAttribute('aria-label',focus?(focus.kind==='station'?'Открыть станцию':
+    focus.kind==='opening-repair'?'Удерживать для эвакуации капсулы':
     focus.kind==='repair'?'Удерживать для ремонта зонда':'Удерживать для добычи'):'Нет объектов для взаимодействия');
   }
   const quiet=$('quietBtn');
@@ -1450,11 +1615,13 @@ export class ArcadeGame {
   const focus=held?
    (held.kind==='mine'&&this.mining.target?.alive?
     {kind:'mine',target:this.mining.target,label:'Добыча'}:
+    held.kind==='opening-repair'&&openingArcActive(this.openingArc)?
+     {kind:'opening-repair',target:{x:this.openingArc.rescueX,y:this.openingArc.rescueY},label:'Эвакуация'}:
     held.kind==='repair'&&this.operation?.id===PROBE_OPERATION.id?
      {kind:'repair',target:this.operation,label:'Ремонт'}:null):this.interactionFocus;
   if(!focus?.target||outsideCamera(focus.target.x,focus.target.y,cam,85))return;
   const t=focus.target,r=focus.kind==='mine'?t.r+12:focus.kind==='station'?61:38;
-  c.save();c.lineWidth=1.7;c.strokeStyle=focus.kind==='repair'?'#ffc678':
+  c.save();c.lineWidth=1.7;c.strokeStyle=['repair','opening-repair'].includes(focus.kind)?'#ffc678':
    focus.kind==='station'?'#87f0cf':'#7de5f5';
   c.setLineDash([7,6]);c.beginPath();c.arc(t.x,t.y,r,0,TAU);c.stroke();
   c.setLineDash([]);c.fillStyle='#c9f6f6';c.font='bold 12px system-ui';
@@ -1462,6 +1629,31 @@ export class ArcadeGame {
   if(!(focus.kind==='mine'&&this.mining.active))
    c.fillText(focus.label+(this.isTouchLayout?'':' · E'),t.x,t.y-r-13);
   c.restore();
+ }
+ drawOpeningBeacon(c,cam){
+  const arc=this.openingArc;
+  if(!openingArcActive(arc)||arc.kind!=='rescue'||
+    outsideCamera(arc.rescueX,arc.rescueY,cam,105))return;
+  const x=arc.rescueX,y=arc.rescueY;
+  const glow=this.visuals.reducedMotion?0:Math.sin(this.time*3)*4;
+  c.save();c.translate(x,y);
+  c.fillStyle='#10283c';c.strokeStyle='#f4c17c';c.lineWidth=2.5;
+  c.beginPath();c.roundRect(-30,-17,60,34,8);c.fill();c.stroke();
+  c.fillStyle='#f9c887';c.fillRect(-12,-7,24,14);
+  c.strokeStyle='#78f5de';c.lineWidth=2;
+  c.beginPath();c.arc(0,0,44+glow,0,TAU);c.stroke();
+  c.strokeStyle='#ffda92';c.lineWidth=4;
+  c.beginPath();c.arc(0,0,53,-Math.PI/2,
+   -Math.PI/2+TAU*(arc.repair/OPENING_ARC.repairSeconds));c.stroke();
+  c.textAlign='center';c.font='bold 12px system-ui';c.fillStyle='#fff1d0';
+  c.fillText('АВАРИЙНАЯ КАПСУЛА',0,-66);
+  c.font='11px system-ui';
+  c.fillText(Math.round(arc.repair/OPENING_ARC.repairSeconds*100)+'% · УДЕРЖИВАЙТЕ E',0,-51);
+  c.restore();
+  if(this.openingRepairing){
+   c.save();c.strokeStyle='#83fbe4';c.lineWidth=3;
+   c.beginPath();c.moveTo(this.player.x,this.player.y);c.lineTo(x,y);c.stroke();c.restore();
+  }
  }
   dock(selected=null){
   if(this.dead)return;
@@ -1787,7 +1979,8 @@ export class ArcadeGame {
  callFieldWeapon(){
   if((this.fieldLoan?.moduleId||'ion')!=='resonator')return this.callIonDischarge();
   if(this.dead||this.paused||!this.overlay.hidden)return false;
-  if(this.mining.active||this.probeRepairing){this.notice('Отпустите E, чтобы применить полевой модуль.',2.5);return false;}
+  if(this.mining.active||this.probeRepairing||this.openingRepairing){
+   this.notice('Отпустите E, чтобы применить полевой модуль.',2.5);return false;}
   if(!this.weaponProfile.resonator){this.notice('Установите резонатор в ангаре и примените сборку.',3);return false;}
   if(this.weaponThermal.locked||this.heavyCharge){this.notice('Дождитесь охлаждения или завершения выстрела гаубицы.',2.5);return false;}
   const plan=planResonance(this);
@@ -1808,7 +2001,7 @@ export class ArcadeGame {
  }
  callIonDischarge(){
   if(this.dead||this.paused||!this.overlay.hidden)return false;
-  if(this.mining.active||this.probeRepairing){
+  if(this.mining.active||this.probeRepairing||this.openingRepairing){
    this.notice('Во время добычи и ремонта ионный разряд недоступен',2.5);return false;
   }
   if(this.fieldLoan&&!this.weaponProfile.ion){this.notice('Установите ионный проводник в свободный узел ангара',3);return false;}
@@ -1960,12 +2153,17 @@ export class ArcadeGame {
   this.heritage.play('death',.1);
   this.heritage.onDeath();
   this.dead=true;this.paused=true;this.pausedRenderPending=true;
+  if(this.time>this.bestFlight){
+   this.bestFlight=Math.floor(this.time);
+   try{this.recordStorage?.setItem('survivor.best-flight.v1',String(this.bestFlight));}catch{}
+  }
   this.runStore?.end();
   this.deathVfxAt=performance.now();this.deathSceneEnd=this.deathVfxAt+1100;
   this.overlay.hidden=true;this.overlay.dataset.mode='death';
   this.overlay.innerHTML='<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="death-title"><h2 id="death-title">Корабль потерян</h2><p>Время полёта: '+
     Math.floor(this.time/60)+' мин · уровень '+this.player.level+
-    ' · открыто станций '+this.activeBases+'</p>'+
+    ' · открыто станций '+this.activeBases+'</p><p>Личный рекорд: '+
+    runClock(this.bestFlight)+' · новый забег позволяет выбрать другую тактику.</p>'+
     (failed?'<p>Последний вылет: '+failed.seconds+' с · сплав '+(failed.ore>=0?'+':'')+failed.ore+
      ' · данные '+(failed.data>=0?'+':'')+failed.data+
      ' · получено повреждений '+failed.details.damageTaken+
@@ -2256,7 +2454,7 @@ export class ArcadeGame {
   const region=regionAt(this.player.x,this.player.y);
   if(Math.hypot(this.player.x,this.player.y)<=70000&&['amethyst','amber'].includes(region.id)&&this.world.regionalSupply)
    adjusted={...adjusted,types:adjusted.types.filter(type=>type!=='gunship')};
-  return adjusted;
+  return openingArcPressure(adjusted,this.openingArc,this.time,this.player,home);
  }
  spawnGroup(director=openingThreat(this.time,this.player.level),noiseSignal=null){
   if(!director.types.length||this.enemies.length>=RULES.maxEnemies)return 0;
@@ -2497,7 +2695,11 @@ export class ArcadeGame {
   this.interactionFocus=this.currentInteraction();
   // Action kind is locked when pressed. Neither docking nor repair may hijack mining.
   this.probeRepairing=activeInteraction(this.actionHeld,'repair',atProbe);
+  this.openingRepairing=activeInteraction(this.actionHeld,'opening-repair',
+   openingArcActive(this.openingArc)&&this.openingArc.kind==='rescue'&&
+   Math.hypot(p.x-this.openingArc.rescueX,p.y-this.openingArc.rescueY)<=OPENING_ARC.repairRange);
   this.mining.active=activeInteraction(this.actionHeld,'mine',candidate?.alive);
+  this.updateOpeningArc(dt);
   if(this.mining.active&&!this.miningIntroShown){
    this.miningIntroShown=true;
    this.notice(matchMedia('(pointer: coarse)').matches?
@@ -2652,7 +2854,9 @@ export class ArcadeGame {
    }
   }
   this.enemies=this.enemies.filter(e=>e.hp>0&&
-   (e.interceptCargo||e.relayAssault||dist(e,p)<Math.max(this.vw,this.vh)*1.65+500));
+   (e.interceptCargo||e.relayAssault||
+    (e.openingCommander&&openingArcActive(this.openingArc))||
+    dist(e,p)<Math.max(this.vw,this.vh)*1.65+500));
   for(const a of this.allies){
    for(const e of this.grid.query(a.x,a.y,a.r+35)){
     if(e.hp<=0||e.converted||dist(a,e)>a.r+e.r)continue;
@@ -3101,6 +3305,7 @@ export class ArcadeGame {
    }
   }
   this.drawInteractionFocus(c,cam);
+  this.drawOpeningBeacon(c,cam);
   for(const d of this.drops){
    if(outsideCamera(d.x,d.y,cam,20))continue;
    if(d.hot){c.fillStyle='#ff96323d';c.beginPath();c.arc(d.x,d.y,12,0,TAU);c.fill();}
@@ -3150,6 +3355,13 @@ export class ArcadeGame {
     const preparing=e.state==='windup';
     c.strokeStyle=preparing?'#ffc070':'#ff7552';c.lineWidth=preparing?2.5:3;
     c.beginPath();c.arc(e.x,e.y,e.r+(preparing?8+3*Math.sin(this.time*19):9),0,TAU);c.stroke();
+   }
+   if(e.openingCommander&&openingArcActive(this.openingArc)&&
+      this.openingArc.commanderSerial===e.serial){
+    c.save();c.strokeStyle='#ffd08f';c.lineWidth=3;
+    c.setLineDash([9,5]);c.beginPath();c.arc(e.x,e.y,e.r+19,0,TAU);c.stroke();
+    c.setLineDash([]);c.fillStyle='#ffe2a9';c.font='bold 11px system-ui';
+    c.textAlign='center';c.fillText('НАВОДЧИК',e.x,e.y-e.r-34);c.restore();
    }
    const spriteKey=e.type;
    if(!this.visuals.drawEnemy(c,e,this.time)&&

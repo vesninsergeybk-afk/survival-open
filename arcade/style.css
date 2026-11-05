@@ -20,6 +20,29 @@ canvas#game.rail-manual{cursor:crosshair}
 .dialog p{color:#cfdfeb;font-size:13px;line-height:1.5}.dialog button{color:#effbff;border:1px solid #61aecd70;background:#1b425f;border-radius:12px;padding:11px 14px;margin:5px;transition:background .1s}
 .dialog button:hover:not(:disabled){background:#245c7d}.dialog button:disabled{opacity:.4;cursor:not-allowed}
 .dialog .close{background:#0d2639;border-color:#638da8b3;margin-top:15px}
+/* A single early decision, never another full station dashboard. */
+#overlay .opening-choice{width:min(620px,100%);text-align:left;border-color:#e2b77491;
+ background:linear-gradient(148deg,#173342,#0b1a2f 72%);}
+.opening-choice .opening-kicker{font-size:10px;color:#ffcf87;letter-spacing:.13em;font-weight:800}
+.opening-choice h2{margin:5px 0 8px;color:#f6ecce}
+.opening-choice p{margin:7px 0 12px}
+.opening-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:10px}
+#overlay .opening-options button{margin:0;text-align:left;min-height:88px;padding:13px;
+ background:#183a4df0;border:1px solid #75bbbc8c;border-radius:10px;}
+.opening-options button strong{display:block;color:#e8fff4;font-size:15px;margin-bottom:6px}
+.opening-options button small{display:block;color:#bddbe6;font-size:12px;line-height:1.42}
+#overlay .opening-options button:focus-visible{outline:3px solid #ffe0a3;outline-offset:2px}
+.opening-choice .opening-note{font-size:11px;color:#e5cda9}
+#overlay .opening-skip{margin:7px 0 0;background:transparent;border-color:#6c8b9e78;
+ color:#bed7e4;font-size:12px}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:340px){
+ #overlay .opening-choice{padding:10px 14px}
+ .opening-choice h2{font-size:17px;margin:2px 0}
+ .opening-choice p{font-size:10px;margin:3px 0 7px}
+ #overlay .opening-options button{min-height:0;padding:8px}
+ .opening-options button strong{font-size:12px;margin-bottom:2px}
+ .opening-options button small{font-size:10px;line-height:1.2}
+}
 .dock-actions{display:grid;gap:6px}.dock-actions button{text-align:left}.muted{color:#9fb9c7!important}
 .skill-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;text-align:left}
 .skill-columns section{border:1px solid #6aa5c141;background:#0a243b73;border-radius:15px;padding:11px}

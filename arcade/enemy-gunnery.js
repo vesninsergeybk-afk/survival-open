@@ -16,7 +16,7 @@ export function updateEnemyGunnery(e,game,target){
   // A hit or a message containing only a rough sector never grants the
   // perfect tracking required for a gun solution. Mission escorts may shoot
   // only once they themselves see the player.
-  if(e.hp<=0||e.converted||e.boss||e.missionStructure||
+  if(e.hp<=0||e.converted||e.boss||(e.missionStructure&&!e.openingCommander)||
      e.relayAssault||e.interceptCargo||
      typeof game.enemyShot!=='function'||
      e.signalIntel&&e.signalIntel.mode!=='engaged'||
@@ -116,6 +116,7 @@ export function drawEnemyDefenseGoals(ctx,game,cam,fps=60){
        !game.playerCanInspectEnemyIntent(e))continue;
     const label=asset.type==='healer'?'ПРИКРЫВАЕТ РЕМОНТНИКА':
       e.scenario==='mine-guard'?'ОХРАНЯЕТ КОМПЛЕКС':
+      e.scenario==='opening-escort'?'ПРИКРЫВАЕТ НАВОДЧИКА':
       'СОПРОВОЖДАЕТ ГРУЗ';
     ctx.save();ctx.globalAlpha=.82;ctx.textAlign='center';
     ctx.font='bold 9px system-ui';ctx.fillStyle='#f9cc90';

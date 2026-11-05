@@ -71,6 +71,8 @@
 .cockpit-hud .hud-sector-kicker{color:#F7C976;font-size:10px;font-weight:750;letter-spacing:.18em}
 .cockpit-hud .hud-sector-plaque strong{font-size:15px;letter-spacing:.04em;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.cockpit-hud .hud-survival-clock{font-size:10px;letter-spacing:.08em;color:#e5d6b7;
+ font-variant-numeric:tabular-nums;white-space:nowrap}
 .cockpit-hud .cockpit-telemetry{padding:0}
 .cockpit-hud .hud-weapon-mark{position:absolute;left:4%;top:19%;width:20%;height:53%;
  object-fit:contain;filter:drop-shadow(0 0 5px #6EE3EB73)}
