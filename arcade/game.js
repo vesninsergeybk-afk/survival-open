@@ -42,7 +42,7 @@ import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADE
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
-import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1-expedition-1-campaign-1';
+import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1-expedition-1-campaign-1-opening-tactics-1';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2-expedition-1-campaign-1';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3-expedition-1-campaign-1';
@@ -52,7 +52,7 @@ import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
- openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-3';
+ openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-4';
 import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1';
 import {regionalCampaignPressure,campaignDestination} from './regional-campaign.js?v=campaign-1';
 import {updateStationInterdiction,interruptStationInterdiction,threatenedStations} from './strategic-command.js?v=campaign-1';
@@ -590,7 +590,8 @@ export class ArcadeGame {
    '<small>Уничтожить отмеченный корабль. Данные для развития и заметно более редкие патрули на две минуты.</small></button>'+
    '<button data-act="openingPick" data-role="rescue"><strong>Эвакуировать капсулу</strong>'+
    '<small>Подлететь и удерживать E / «Действие»: всего 3,5 с работы, можно прерывать. '+
-   'Пока работает луч, пушки молчат. Награда — сплав и щит; после спасения враг поднимет тревогу.</small></button>'+
+   'Пока работает луч, пушки молчат. На половине работы капсула включит защитный импульс. ' +
+   'Награда — сплав и щит; после спасения враг поднимет тревогу.</small></button>'+
    '</div><p class="opening-note">Первое успешно выполненное поручение даёт один бесплатный оружейный модуль за забег. '+
    'На выполнение — около двух с половиной минут игрового времени.</p>'+
    '<button data-act="openingSkip" class="opening-skip">Продолжить свободный полёт</button></div>';
@@ -634,8 +635,8 @@ export class ArcadeGame {
    label:kind==='intercept'?'Вражеский наводчик':'Аварийная капсула'};
   this.dismiss();
   this.notice(kind==='intercept'?
-   'Цель отмечена: наводчик окружён патрулями. Подойдите на дистанцию оружия и назначьте приоритет.':
-   'Капсула отмечена. Удерживайте E рядом: прогресс сохранится, если отпустить кнопку и отбиваться.',6);
+   'Наводчик с охраной держит дистанцию. Сближайтесь рывком (Shift); коснитесь или щёлкните по нему для приоритета автоогня.':
+   'Капсула отмечена. Удерживайте E рядом: прогресс сохраняется после паузы, а на половине работы сработает её защитный импульс.',6);
  }
  showOpeningReward(){
   if(this.firstHardwareReward!=='pending'||!this.overlay.hidden||this.dead)return;
@@ -690,11 +691,30 @@ export class ArcadeGame {
    return;
   }
   if(!openingArcActive(arc))return;
+  if(arc.kind==='intercept'&&!arc.commanderDefeated&&this.waypoint?.id==='opening-intercept'){
+   // The leader actively hunts the player. The arrow must follow the ship,
+   // rather than forever pointing at its original spawn coordinates.
+   const leader=this.enemies.find(e=>e.serial===arc.commanderSerial&&e.hp>0&&!e.converted);
+   if(leader){this.waypoint.x=leader.x;this.waypoint.y=leader.y;}
+  }
   const near=arc.kind==='rescue'&&
    Math.hypot(this.player.x-arc.rescueX,this.player.y-arc.rescueY)<=OPENING_ARC.repairRange;
+  const hadPulse=!!arc.rescuePulseUsed;
   const result=advanceOpeningArc(arc,this.time,dt,{
    commanderDefeated:arc.commanderDefeated===true,
    repairing:!!this.openingRepairing,withinRange:near});
+  if(!hadPulse&&arc.rescuePulseUsed&&result!=='failed'){
+   // One visible mid-task gain: the capsule can shield the pilot once and
+   // disrupt nearby hostile projectiles, but cannot defeat pursuing ships.
+   this.player.shield=Math.max(this.player.shield,OPENING_ARC.rescuePulseShield);
+   for(const shot of this.shots||[])if(shot.alive&&
+    Math.hypot(shot.x-arc.rescueX,shot.y-arc.rescueY)<=OPENING_ARC.rescuePulseRadius)
+    shot.alive=false;
+   this.heritage?.vfx?.nova?.(arc.rescueX,arc.rescueY,OPENING_ARC.rescuePulseRadius,'green');
+   this.heritage?.play?.('hack',.5,{x:arc.rescueX,y:arc.rescueY});
+   this.notice('Защитный импульс капсулы: щит не ниже '+OPENING_ARC.rescuePulseShield+
+    ', ближайшие снаряды погашены. Можно отбиться и продолжить спасение.',4.5);
+  }
   if(result==='failed'){
    if(this.waypoint?.id==='opening-'+arc.kind)this.waypoint=arc.returnWaypoint;
    this.notice('Срочный сигнал потерян. Забег продолжается; обычные операции доступны.',5);
