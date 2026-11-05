@@ -121,7 +121,10 @@ test('stored doctrine can be retransmitted to a newly arrived defender after raw
  g.enemies.push(...receiver.members);
  tick(m,g,[source,receiver],32);
  tick(m,g,[source,receiver],32.8);
- const p=m.bestForCell(receiver,32.8);
+ assert.equal(m.bestForCell(receiver,32.8),null,
+  'stale raw report cannot replace the separate delayed archive summary');
+ tick(m,g,[source,receiver],33.7);
+ const p=m.bestForCell(receiver,33.7);
  assert.equal(p?.kind,'long');
  assert.equal(p?.archived,true);
  assert.equal('x' in p,false);
