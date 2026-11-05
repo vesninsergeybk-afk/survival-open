@@ -2,6 +2,7 @@ import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1
 import {activeContourTransition,fieldIsNew} from './contour-dynamics.js?v=contour-dynamics-2';
 import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {drawContourVortexArt} from './contour-vortex-art.js?v=contour-vortex-80frames-1';
+import {drawSiphon3,SIPHON3_WORLD_SIZE} from './siphon3-art.js?v=siphon3-live-1';
 
 const visible=(p,cam,r=200)=>p.x>=cam.x-r&&p.x<=cam.x+cam.w+r&&
  p.y>=cam.y-r&&p.y<=cam.y+cam.h+r;
@@ -217,26 +218,32 @@ export function drawContourWorld(game,c,cam){
   const t=h.phase==='out'?Math.min(1,h.progress):h.phase==='back'?1-Math.min(1,h.progress):1;
   const x=field.anchor.x+(field.center.x-field.anchor.x)*t;
   const y=field.anchor.y+(field.center.y-field.anchor.y)*t;
-  if(!visible({x,y},cam,30))continue;
+  if(!visible({x,y},cam,Math.ceil(SIPHON3_WORLD_SIZE*.6)))continue;
   if(h.phase==='gather'){
    c.save();c.strokeStyle='rgba(255,221,138,.8)';c.lineWidth=2;
    c.beginPath();c.arc(x,y,11+(calm?0:3*Math.sin(now*8)),0,Math.PI*2);c.stroke();c.restore();
   }
-  c.save();c.translate(x,y);
-  c.rotate(Math.atan2(field.center.y-field.anchor.y,field.center.x-field.anchor.x)+
-   (h.phase==='back'?Math.PI:0)+Math.PI/2);
-  c.shadowBlur=10;c.shadowColor=h.phase==='back'?'#ffb553':'#93eede';
-  c.fillStyle=h.phase==='back'?'#ffca74':'#bfffee';
-  c.beginPath();c.ellipse(0,0,3.2,6.5,0,0,Math.PI*2);c.fill();
-  c.fillStyle=h.phase==='back'?'rgba(255,179,90,.85)':'rgba(144,245,231,.83)';
-  const flap=3+(calm?0:Math.sin(now*16+h.progress*6)*2);
-  c.beginPath();c.ellipse(-5,-1,flap,5,-.45,0,Math.PI*2);
-  c.ellipse(5,-1,flap,5,.45,0,Math.PI*2);c.fill();
-  if(h.phase==='back'){
-   c.shadowColor='#ffd88b';c.shadowBlur=14;c.fillStyle='#ffe9b4';
-   c.beginPath();c.arc(0,9,3.4,0,Math.PI*2);c.fill();
+  // The live unit uses the same fixed-pivot 80-frame animation as the QA lab.
+  // Keep the former low-cost icon only if the texture is still loading.
+  const direction=Math.atan2(field.center.y-field.anchor.y,field.center.x-field.anchor.x)+
+   (h.phase==='back'?Math.PI:0);
+  const seed=[...field.id].reduce((sum,ch)=>sum+ch.charCodeAt(0),0);
+  if(!drawSiphon3(c,{x,y,angle:direction,phase:h.phase,progress:h.progress,
+   time:now,seed,size:SIPHON3_WORLD_SIZE,reducedMotion:calm})){
+   c.save();c.translate(x,y);c.rotate(direction+Math.PI/2);
+   c.shadowBlur=10;c.shadowColor=h.phase==='back'?'#ffb553':'#93eede';
+   c.fillStyle=h.phase==='back'?'#ffca74':'#bfffee';
+   c.beginPath();c.ellipse(0,0,3.2,6.5,0,0,Math.PI*2);c.fill();
+   c.fillStyle=h.phase==='back'?'rgba(255,179,90,.85)':'rgba(144,245,231,.83)';
+   const flap=3+(calm?0:Math.sin(now*16+h.progress*6)*2);
+   c.beginPath();c.ellipse(-5,-1,flap,5,-.45,0,Math.PI*2);
+   c.ellipse(5,-1,flap,5,.45,0,Math.PI*2);c.fill();
+   if(h.phase==='back'){
+    c.shadowColor='#ffd88b';c.shadowBlur=14;c.fillStyle='#ffe9b4';
+    c.beginPath();c.arc(0,9,3.4,0,Math.PI*2);c.fill();
+   }
+   c.restore();
   }
-  c.restore();
  }
  // A delivery is acknowledged at the actual receiving station, not at an
  // arbitrary world-space point. The player's common flux purse is unchanged.
