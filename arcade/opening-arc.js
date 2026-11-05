@@ -96,7 +96,7 @@ export function openingArcPressure(director,arc,now,player,home){
  return result;
 }
 
-export function openingArcObjective(arc,now){
+export function openingArcObjective(arc,now,touch=false){
  if(arc?.reliefUntil>now)return 'ПАТРУЛИ ПОТЕРЯЛИ НАВЕДЕНИЕ · '+
   Math.ceil(arc.reliefUntil-now)+' с реже';
  if(arc?.alarmUntil>now)return 'ТРЕВОГА ПОСЛЕ СПАСЕНИЯ · '+
@@ -104,7 +104,7 @@ export function openingArcObjective(arc,now){
  if(!openingArcActive(arc))return '';
  const seconds=Math.max(0,Math.ceil(arc.expiresAt-now));
  if(arc.kind==='intercept')return 'ПЕРЕХВАТ · уничтожьте наводчика · '+seconds+' с';
- return 'ЭВАКУАЦИЯ · удерживайте E у капсулы · '+
+ return 'ЭВАКУАЦИЯ · '+(touch?'держите «Действие»':'удерживайте E у капсулы')+' · '+
   Math.round(arc.repair/OPENING_ARC.repairSeconds*100)+'% · '+seconds+' с';
 }
 

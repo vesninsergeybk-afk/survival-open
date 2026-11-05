@@ -2,7 +2,7 @@
    The local radar is deliberately bounded to 1.1km and redraws <=5 times/sec. */
 import {miningSignal} from './mining.js?v=arcade-extraction-risk-34';
 import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
-import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-3';
+import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-5';
 import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1';
 import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1';
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1';
@@ -92,7 +92,7 @@ export class CockpitDisplay {
    display(n.interactionCue,'E · '+label+(focus.kind==='station'?'':' · удерживать'));
   }
   const op=game.operation,c=game.contract,tracker=n.contractObjective;
-  const opening=openingArcObjective(game.openingArc,game.time);
+  const opening=openingArcObjective(game.openingArc,game.time,this.compactHud);
   // A standard station contract also unlocks the first free module. Never
   // hide that reward just because the optional opening dilemma was skipped.
   const unclaimedWeapon=game.firstHardwareReward==='pending'?
