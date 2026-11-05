@@ -1,3 +1,4 @@
+import {EnemyMesh} from './enemy-mesh.js?v=enemy-mesh-1';
 import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1';
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
@@ -43,6 +44,12 @@ const modeLabel=Object.freeze({press:'НАЖИМ',pincer:'ОБХОД',
 /** These are orders produced by the selected maneuver. Explanations about
  * observed weapons only appear after delivered, repeated evidence. */
 export function enemyOrderMessage(mode,threat=null){
+  if(threat?.mesh&&mode==='close'&&threat.kind==='long')
+    return 'Из общей сети: противник использует дальнобойное оружие. Сблизиться!';
+  if(threat?.mesh&&mode==='scatter'&&threat.kind==='area')
+    return 'Из общей сети: обнаружено площадное оружие. Увеличить интервалы!';
+  if(threat?.mesh&&mode==='pincer'&&threat.kind==='close')
+    return 'Из общей сети: опасен ближний бой. Обойти с флангов!';
   if(mode==='close'&&threat?.kind==='long')
     return 'Он бьёт издалека. Всем на сближение!';
   if(mode==='pincer'&&threat?.kind==='close')
@@ -247,6 +254,7 @@ export class EnemyComms {
     this.serial=0;this.messages=0;this.decisions=0;
     this.intercepts=[];
     this.theater=new EnemyTheaterStrategy();
+    this.mesh=new EnemyMesh();
   }
 
   reportSight(e,player,now){
@@ -501,6 +509,13 @@ export class EnemyComms {
         intelFresh(cell.intel,now))
         cell.threat=assessEnemyOpportunity(cell.motionReports,now)||
           assessEnemyMotion(cell.motionReports,now);
+      // A mesh warning changes doctrine only after the receiver actually
+      // sees the player. It cannot grant a remote cell target coordinates.
+      if(!cell.threat&&cell.intel&&!cell.intel.estimated&&
+         intelFresh(cell.intel,now)){
+        const warning=this.mesh.bestForCell(cell,now);
+        if(warning)cell.threat={kind:warning.kind,lastAt:warning.at,mesh:true};
+      }
       if(!cell.intel||cell.intel.estimated||!intelFresh(cell.intel,now)){
         // Two coherent impacts can locate a rough firing *sector* beyond
         // optical range. It is never promoted to an exact target track.
@@ -543,7 +558,8 @@ export class EnemyComms {
       // A pilot may already be intercepting when the group learns that the
       // player holds a straight course. The stronger lead is still a *new*
       // tactical decision worth explaining once it is really flown.
-      const tactic=cell.threat?.kind==='maneuver'?cell.threat.motion:
+      const tactic=cell.threat?.mesh?'mesh:'+cell.threat.kind:
+        cell.threat?.kind==='maneuver'?cell.threat.motion:
         cell.threat?.kind==='weak'?'weak':null;
       const newTactic=canChange&&cell.mode===outcome.mode&&tactic&&
         cell.lastReportedTactic!==tactic;
@@ -574,6 +590,7 @@ export class EnemyComms {
             planId:cell.plan?.id??null,planPhase:cell.plan?.phase??null};
       }
     }
+    this.mesh.update(game,this.cells,now);
     this.theater.update(game,this);
   }
 
@@ -598,6 +615,7 @@ export class EnemyComms {
       if(pending.threat?.kind==='maneuver')
         cell.lastReportedTactic=pending.threat.motion;
       if(pending.threat?.kind==='weak')cell.lastReportedTactic='weak';
+      if(pending.threat?.mesh)cell.lastReportedTactic='mesh:'+pending.threat.kind;
       if(!game.playerCanInterceptEnemyRadio?.(cell.leader)&&
         !game.playerCanInspectEnemyIntent?.(cell.leader))continue;
       const message=pending.planPhase>0&&cell.plan?.id===pending.planId?
@@ -778,6 +796,7 @@ export class EnemyComms {
       }
       labelCenters.push(e);cues++;
     }
+    this.mesh.render(ctx,cam,now,game,fps);
     this.theater.render(ctx,cam,now,game,fps);
     ctx.restore();return drawn;
   }
