@@ -1,5 +1,5 @@
 import {CENTRAL_INDUSTRY} from './central-industry.js?v=home-conflict-1';
-import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-campaign-1-repair-qa-1';
+import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-campaign-1-repair-qa-1-enemy-economy-1';
 import {FRONTIERS,FRONTIER_REPAIR} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
 
 export const FRONT_KEYS=Object.freeze(['home','north','azure','teal']);

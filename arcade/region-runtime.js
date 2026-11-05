@@ -1,7 +1,7 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
 import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
+import {SUPPLY,supplyRoute,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=enemy-economy-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1';
 import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
 import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1';
@@ -56,12 +56,26 @@ export function announceIndustryEvent(game,event){
   line=table[event.kind]||null;
  }else if(!event.network){
   source=stations.get(SUPPLY.mineId);depot=stations.get(SUPPLY.militaryId);
-  if(!source?.discovered)return false;
+  if(!source?.discovered&&!depot?.discovered)return false;
   const table={
    dispatch:['Северная шахта отправила руду',
     'При доставке узел оплатит тяжёлый патруль','РУДА В ПУТИ','source'],
    delivery:['Руда доставлена военному узлу',
-    'Противник получил материал для тяжёлого патруля','ТЯЖЁЛЫЙ РЕЗЕРВ','depot']
+    'Противник получил материал для тяжёлого патруля','ТЯЖЁЛЫЙ РЕЗЕРВ','depot'],
+   'shipment-overdue':['Военный узел не дождался груза',
+    'Противник только сейчас обнаружил пропажу','ТРАНСПОРТ ПРОПАЛ','depot'],
+   'route-prep':['После потерь враг потратил руду',
+    'Готовится новый обходной путь снабжения','ПЕРЕСТРОЙКА МАРШРУТА','depot'],
+   'route-changed':['Враг перестроил грузовую дорогу',
+    'Новые грузы идут в обход прежней засады','МАРШРУТ ИЗМЕНЁН','source'],
+   'screen-prep':['Враг потратил руду на охранение',
+    'Готовятся усиленные рейсы вместо обычных','ГОТОВЯТ ОХРАНУ','depot'],
+   'screen-ready':['Охранение подготовлено',
+    'Следующие грузы потребуют больше руды','ОХРАНА УСИЛЕНА','depot'],
+   'screen-dispatch':['Отправлен усиленный транспорт',
+    'Вместе с ним идёт тяжёлое прикрытие','УСИЛЕННЫЙ РЕЙС','source'],
+   overflow:['Руда прибыла в переполненный узел',
+    'Нового подкрепления не появилось','ПОСТАВКА НЕ ПРИНЯТА','depot']
   };
   line=table[event.kind]||null;
  }
@@ -188,7 +202,8 @@ export function updateRegionalWorld(game,dt){
       cargo.screened?['gunship','healer']:['fighter','healer']):cargo.frontierCargo?
      (cargo.screened?(cargo.frontierNetwork==='azure'?['flanker','gunship']:['gunship','healer']):
       FRONTIERS[cargo.frontierNetwork].escort):
-     cargo.centralCargo&&cargo.screened?['gunship','fighter']:['fighter','fighter'];
+     (cargo.centralCargo||!cargo.frontierCargo)&&cargo.screened?
+      ['gunship','fighter']:['fighter','fighter'];
     for(let i=0;i<2;i++)game.enemies.push(makeEnemy(game,roster[i],cargo.x+(i?95:-95),cargo.y+85,
      cargo.frontierRepair?'frontier-repair-escort':cargo.frontierCargo?'frontier-escort':'regional-escort',
      cargo,cargo.frontierNetwork||null));
@@ -383,7 +398,7 @@ export function drawRegionalWorld(game,c,cam){
  const mine=game.world.stations.get(SUPPLY.mineId);
  if(mine?.discovered&&mine.enemy){
   c.save();c.strokeStyle='#ffbd7944';c.lineWidth=2;c.setLineDash([18,25]);c.beginPath();
-  SUPPLY_ROUTE.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.stroke();c.restore();
+  supplyRoute(s.strategy?.route).forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.stroke();c.restore();
  }
  const local=game.world.stations.get(CENTRAL_INDUSTRY.sourceId);
  if(local?.discovered&&local.enemy){

@@ -1,12 +1,16 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
+import {SUPPLY,supplyRoute,supplyStatus} from './regional-supply.js?v=enemy-economy-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1';
 import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
- 'mine-captured':'Источник руды захвачен','military-captured':'Военный узел захвачен',diverted:'Груз лишился военной базы назначения'};
+ 'mine-captured':'Источник руды захвачен','military-captured':'Военный узел захвачен',diverted:'Груз лишился военной базы назначения',
+ 'route-prep':'Готовится обходной путь','route-changed':'Грузовой маршрут изменён',
+ 'screen-prep':'Готовится тяжёлый эскорт','screen-ready':'Охрана рейсов усилена',
+ 'screen-dispatch':'Вышел охраняемый транспорт','shipment-overdue':'Груз признан пропавшим',
+ overflow:'Избыточная поставка не принята'};
 const REGION_BRIEF=Object.freeze({
   amethyst:{goal:'Остановить налёты в домашнем секторе: перехватить снабжение, остановить шахту или захватить сборочный пост.',
   danger:'Стартовые патрули и местная промышленная сеть.',
@@ -98,13 +102,21 @@ export function renderRegionAtlas(game){
     (id==='azure'?'заряженного перехватчика':'ремонтника')+' к обычному патрулю. '+
     (depot?.discovered?'Уже отправлено усиленных патрулей: '+net.raids+'.':'Резервы пока неизвестны.')+'</p>';
   }).join('');
+ const northernStatus=mine?.discovered&&mine.enemy&&
+  world.stations.get(SUPPLY.militaryId)?.enemy?'<p>Снабжение севера: '+
+  (s.strategy?.routePlan?'враг готовит обходной путь':s.strategy?.route==='diversion'?'путь изменён после потерь':'путь прямой')+
+  '; '+(s.strategy?.screenPlan?'готовится тяжёлая охрана':s.strategy?.screened?
+   'новые рейсы идут с тяжёлым прикрытием за дополнительную руду':'обычная охрана')+'. '+
+  (world.stations.get(SUPPLY.militaryId)?.discovered?
+   'Готовых резервов: '+s.reserves+'; '+(s.pendingRaid?'один отряд ожидает выхода.':'отряд на вылете не готов.'):
+   'Запас военного узла пока не разведан.')+'</p>':'';
  return '<div class="map-objective region-status"><span>РЕГИОН '+current.number+' · '+enc(current.name)+'</span><p>'+enc(current.cue)+'</p>'+
   '<details class="region-atlas"><summary>Выбрать регион · угрозы, подготовка и цель</summary><svg viewBox="0 0 300 240" role="img" aria-label="Старт в центре, рудный пояс на востоке, разлом на юге, военный рубеж на севере, обломки на западе">'+
   '<rect width="300" height="240" rx="12" fill="#08182b"/><path d="M 150 120 L 300 0 V 240 Z" fill="#ffbb7015"/>'+
   '<path d="M 150 120 L 0 0 H 300 Z" fill="#dfa1e315"/><path d="M 150 120 L 0 240 H 300 Z" fill="#82e8ff15"/>'+
   '<path d="M 150 120 L 0 0 V 240 Z" fill="#88e6c815"/><circle cx="150" cy="120" r="53" fill="#24233c" stroke="#caa0ff"/>'+labels+
   '<circle cx="'+Math.max(5,Math.min(295,player.x))+'" cy="'+Math.max(5,Math.min(235,player.y))+'" r="4" fill="#ffffff"/></svg><p>Контуры условны. Точка разведки ведёт внутрь региона, но не раскрывает расположение неизвестных станций. Сначала изучите описание и подготовьте корабль.</p><p><b>Маршевый перелёт:</b> удерживайте курс к выбранному региону или разведанной дружественной станции. Через 2,2 с в спокойном пространстве корабль ускорится. Вблизи врагов, станций и бурь скорость станет обычной. Время полёта продолжается. В разведанных регионах фоновая опасность ограничена. Остановка снабжения или захват сборки уменьшает местный натиск; готовые отряды остаются опасными.</p><div class="region-directions">'+buttons+'</div></details>'+
-  (mine?.discovered?'<p>'+enc(supplyStatus(world))+'</p><p>Рудных грузов перехвачено: '+s.intercepted+'. '+
+  (mine?.discovered?'<p>'+enc(supplyStatus(world))+'</p>'+northernStatus+'<p>Рудных грузов перехвачено: '+s.intercepted+'. '+
    (world.stations.get(SUPPLY.militaryId)?.discovered?'Тяжёлых подкреплений вышло: '+s.raids+'. Резервов в узле: '+s.reserves+'.':
     'Оставшийся запас военного узла неизвестен.')+'</p>'+history:
    cargo?'':'<p>На востоке — богатый рудный пояс. Выберите направление в обзоре регионов.</p>')+
@@ -115,7 +127,12 @@ export function regionalMapOverlay(game,point,visible){
  const mine=game.world.stations.get(SUPPLY.mineId);
  let out='';
  if(mine?.discovered){
-  out+='<path d="M '+SUPPLY_ROUTE.map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+'" stroke="'+(mine.enemy?'#ffbc78':'#a4d8b1')+'" opacity=".7" stroke-width="2" stroke-dasharray="9 6" fill="none"/>';
+  const route=s.strategy?.route||'direct';
+  out+='<path d="M '+supplyRoute(route).map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+'" stroke="'+(mine.enemy?'#ffbc78':'#a4d8b1')+'" opacity=".7" stroke-width="2" stroke-dasharray="9 6" fill="none"/>';
+  // A witnessed shipment keeps its old course after headquarters changes the
+  // route. Show the old track only for a cargo the player has actually seen.
+  for(const cargo of s.convoys)if(cargo.seen&&(cargo.routeId||'direct')!==route)
+   out+='<path d="M '+supplyRoute(cargo.routeId).map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+'" stroke="#ffbc78" opacity=".33" stroke-width="1" stroke-dasharray="4 8" fill="none"/>';
  }
  if(game.world.stations.get(CENTRAL_INDUSTRY.sourceId)?.discovered){
   out+='<path d="M '+centralRoute(s.central?.strategy?.rerouted?'diversion':'direct').map(p=>{const q=point(p);return q.x.toFixed(1)+' '+q.y.toFixed(1);}).join(' L ')+'" stroke="#83efcd" opacity=".7" stroke-width="2" stroke-dasharray="7 9" fill="none"/>';
@@ -152,7 +169,7 @@ export function regionalMapOverlay(game,point,visible){
    c.centralCargo?'#83efcd':'#ffc481';
   const label=c.frontierRepair?'РЕМОНТНЫЙ КОРАБЛЬ':c.frontierCargo?(c.screened?'УСИЛЕННЫЙ ГРУЗ':
    (c.frontierNetwork==='azure'?'ЭНЕРГОТРАНСПОРТ':'РЕМОНТНЫЙ ГРУЗ')):
-   c.centralCargo?'МЕСТНЫЙ ГРУЗ':'РУДНЫЙ ТРАНСПОРТ';
+   c.centralCargo?'МЕСТНЫЙ ГРУЗ':c.screened?'РУДА ПОД ОХРАНОЙ':'РУДНЫЙ ТРАНСПОРТ';
   out+='<g><rect x="'+(q.x-5)+'" y="'+(q.y-5)+'" width="10" height="10" fill="'+color+'"/><text x="'+(q.x+9)+'" y="'+(q.y-9)+'" fill="#ffdbad" font-size="11">'+label+'</text></g>';
  }
  return out;
