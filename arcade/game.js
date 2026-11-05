@@ -34,7 +34,7 @@ import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-contour-visual-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
@@ -60,8 +60,8 @@ import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home
 import {regionalCampaignPressure,campaignDestination} from './regional-campaign.js?v=campaign-1-repair-qa-1';
 import {updateStationInterdiction,interruptStationInterdiction,threatenedStations} from './strategic-command.js?v=campaign-1-repair-qa-1-tactical-balance-1';
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
-import {connectContour,disconnectContour,contourFields,advanceContours,fieldAt} from './territory-system.js?v=contours-1';
-import {drawContourWorld} from './contour-visuals.js?v=contours-1';
+import {connectContour,disconnectContour,contourFields,contourArea,contourProduction,advanceContours,fieldAt} from './territory-system.js?v=contours-1';
+import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -186,6 +186,7 @@ export class ArcadeGame {
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';this.mapReturnToBase=false;
   this.mapView='territory';this.contourRegion='all';this.contourFirst=null;this.contourSelection=null;this.contourError='';
+  this.contourFeedback=null;this.contourBirths=[];
   this.openingArc=createOpeningArc(this.world.home);this.openingRepairing=false;
   this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
   this.lastContractReceipt=null;
@@ -392,6 +393,7 @@ export class ArcadeGame {
    }
    if(act==='contourRegion'){
     this.contourRegion=b.dataset.id;this.contourFirst=null;this.contourSelection=null;this.contourError='';
+    this.contourFeedback=null;
     this.overlay.innerHTML=renderWorldMap(this);return;
    }
    if(act==='contourCancel'){
@@ -403,6 +405,7 @@ export class ArcadeGame {
      const remaining=contourFields(this.world).length;
      this.contourError=remaining<old?'Связь разорвана: часть территории временно потеряна. Соедините станции снова, чтобы восстановить поле.':
       'Связь разорвана. При необходимости её можно провести заново.';
+     this.contourFeedback=null;
      this.contourFirst=null;this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
      this.heritage.ui('cancel');
     }
@@ -417,22 +420,34 @@ export class ArcadeGame {
     }
     this.overlay.innerHTML=renderWorldMap(this);this.pausedRenderPending=true;return;
    }
-   if(act==='contourNode'){
+   if(act==='contourNode'||act==='contourConnect'){
     const id=b.dataset.id,node=this.world.stations.get(id);
     if(!node)return;
+    if(act==='contourConnect'&&this.contourFirst!==b.dataset.from)return;
     this.contourSelection=id;this.contourError='';
+    this.contourFeedback=null;
     if(!node.active||node.enemy||node.suppressed){this.contourFirst=null;}
     else if(!this.contourFirst)this.contourFirst=id;
     else if(this.contourFirst===id)this.contourFirst=null;
     else{
-     const before=contourFields(this.world).length;
+     const oldFields=contourFields(this.world),oldArea=contourArea(oldFields);
+     const oldProduction=contourProduction(oldFields);
      const result=connectContour(this.world,this.contourFirst,id);
      if(result.ok){
       const after=contourFields(this.world);
+      const gain=Math.max(0,contourArea(after)-oldArea);
+      const fluxGain=Math.max(0,contourProduction(after)-oldProduction);
       this.contourFirst=id;this.defenseTopology=null;
       this.cachedWorldLinks=[];this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
       this.heritage.ui('upgrade');
-      if(after.length>before)this.heritage.vfx.nova(after[after.length-1].center.x,after[after.length-1].center.y,150,'amber');
+      if(gain>1){
+       this.contourFeedback={title:'Контур замкнут',text:'Новая территория: +'+
+        (gain/1000000).toFixed(1)+' усл. км². Добыча: +'+fluxGain.toFixed(1)+' флюкса за 3 минуты.',at:this.time};
+       const born=after.filter(f=>!oldFields.some(old=>
+        Math.hypot(f.center.x-old.center.x,f.center.y-old.center.y)<1));
+       this.contourBirths=born.map(f=>({id:f.id,x:f.center.x,y:f.center.y,at:this.time}));
+       for(const field of born.slice(0,4))this.heritage.vfx.nova(field.center.x,field.center.y,150,'amber');
+      }else this.contourFeedback={title:'Линия проложена',text:'Соедините соседние станции, чтобы замкнуть территорию и запустить добычу.',at:this.time};
      }else this.contourError=result.reason;
     }
     this.overlay.innerHTML=renderWorldMap(this);return;
@@ -484,7 +499,7 @@ export class ArcadeGame {
    if(act==='restart'){this.runStore?.end();location.reload();}
   });
   this.overlay.addEventListener('keydown',e=>{
-   if(e.target.matches?.('.contour-node')&&(e.key==='Enter'||e.key===' ')){
+   if(e.target.matches?.('.contour-node,.contour-region')&&(e.key==='Enter'||e.key===' ')){
     e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));return;
    }
    const button=e.target.closest('.base-tabs button[role="tab"]');

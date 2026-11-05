@@ -10,8 +10,36 @@ export function drawContourWorld(game,c,cam){
   game.contourVisualFields=contourFields(game.world);game.contourVisualAt=now;
  }
  const fields=game.contourVisualFields;
- if(!fields.length)return;
+ const links=game.world.contours?.links||[];
+ if(!fields.length&&!links.length)return;
+ const calm=!!game.visuals?.reducedMotion,lowFps=game.fps<34;
  c.save();
+ // Links are real structures even before a field closes. Render them in the
+ // physical world so the action on the atlas has an immediate visible result.
+ for(const [from,to] of links){
+  const a=game.world.stations.get(from),b=game.world.stations.get(to);
+  if(!a||!b)continue;
+  if(Math.max(a.x,b.x)<cam.x-140||Math.min(a.x,b.x)>cam.x+cam.w+140||
+   Math.max(a.y,b.y)<cam.y-140||Math.min(a.y,b.y)>cam.y+cam.h+140)continue;
+  const healthy=a.active&&b.active&&!a.enemy&&!b.enemy&&!a.suppressed&&!b.suppressed;
+  c.save();c.lineCap='round';
+  c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);
+  c.strokeStyle=healthy?'rgba(33,211,196,.09)':'rgba(250,91,104,.11)';
+  c.lineWidth=15;c.stroke();
+  c.strokeStyle=healthy?'rgba(98,244,218,.56)':'rgba(255,115,129,.56)';
+  c.lineWidth=2.8;c.setLineDash(healthy?[23,12]:[9,16]);
+  if(!calm)c.lineDashOffset=-(now*35)%35;
+  c.stroke();c.setLineDash([]);
+  if(healthy&&!calm&&!lowFps){
+   const t=((now*.1+(a.x+b.y)*.000013)%1+1)%1;
+   const x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+   if(visible({x,y},cam,25)){
+    c.shadowColor='#7dffe5';c.shadowBlur=13;c.fillStyle='#dafff0';
+    c.beginPath();c.arc(x,y,3.6,0,Math.PI*2);c.fill();
+   }
+  }
+  c.restore();
+ }
  for(const field of fields){
   if(!visible(field.center,cam,950))continue;
   c.save();
@@ -51,6 +79,21 @@ export function drawContourWorld(game,c,cam){
   c.fillStyle='#090b18';c.beginPath();c.ellipse(0,0,13,9,phase*.12,0,Math.PI*2);c.fill();
   c.strokeStyle='#ffe4a5';c.lineWidth=2;c.stroke();
   c.restore();
+  const born=game.contourBirths?.find(item=>item.id===field.id);
+  if(born){
+   const age=now-born.at;
+   if(age>=0&&age<8){
+    const fade=1-age/8;
+    c.save();c.translate(x,y);c.lineWidth=2.5;
+    c.strokeStyle='rgba(255,191,92,'+(fade*.7).toFixed(3)+')';
+    c.beginPath();c.arc(0,0,94+(calm?0:age*45),0,Math.PI*2);c.stroke();
+    if(age<4){
+     c.font='bold 13px system-ui';c.textAlign='center';c.fillStyle='rgba(255,229,165,'+
+      (1-age/4).toFixed(3)+')';c.fillText('НОВЫЙ КОНТУР',0,-116);
+    }
+    c.restore();
+   }
+  }
  }
  const byId=new Map(fields.map(f=>[f.id,f]));
  for(const h of game.world.contours.harvesters){
@@ -60,10 +103,11 @@ export function drawContourWorld(game,c,cam){
   const y=field.anchor.y+(field.center.y-field.anchor.y)*t;
   if(!visible({x,y},cam,30))continue;
   c.save();c.translate(x,y);c.rotate(Math.atan2(field.center.y-field.anchor.y,field.center.x-field.anchor.x)+Math.PI/2);
-  c.shadowBlur=10;c.shadowColor='#fdbd6a';c.fillStyle='#ffd78a';
+  c.shadowBlur=10;c.shadowColor=h.phase==='back'?'#ffb553':'#93eede';
+  c.fillStyle=h.phase==='back'?'#ffca74':'#bfffee';
   c.beginPath();c.ellipse(0,0,3.2,6.5,0,0,Math.PI*2);c.fill();
-  c.fillStyle='rgba(144,245,231,.83)';
-  const flap=3+Math.sin(now*16+h.progress*6)*2;
+  c.fillStyle=h.phase==='back'?'rgba(255,179,90,.85)':'rgba(144,245,231,.83)';
+  const flap=3+(calm?0:Math.sin(now*16+h.progress*6)*2);
   c.beginPath();c.ellipse(-5,-1,flap,5,-.45,0,Math.PI*2);
   c.ellipse(5,-1,flap,5,.45,0,Math.PI*2);c.fill();c.restore();
  }

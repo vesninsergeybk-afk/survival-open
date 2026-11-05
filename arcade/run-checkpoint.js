@@ -224,6 +224,7 @@ export function restoreCheckpoint(game,data){
  game.cachedTarget=null;game.cachedWorldLinks=[];game.cachedNetworkLinked=world.networkTopology().linked;
  game.contourVisualAt=-Infinity;game.contourVisualFields=null;
  game.lastContourNoticeAt=-Infinity;game.contourFirst=null;game.contourSelection=null;game.contourError='';
+ game.contourFeedback=null;game.contourBirths=[];
  game.docked=world.stations.get(data.baseId);game.dead=false;game.paused=true;game.pausedRenderPending=true;
  game.cruiseCharge=0;game.cruising=false;
  return game.docked;
