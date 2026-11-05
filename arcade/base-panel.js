@@ -808,7 +808,7 @@ export function renderBasePanel(base,state){
   '<span class="base-kicker">ОБОРОНА СТАНЦИИ</span><h3>Защитные заряды · '+protection.charges+'/'+protection.capacity+'</h3>'+
   '<p class="base-defense-summary">ПВО действует автоматически: станция тратит заряды на опасные снаряды поблизости. Орбитальные удары сейчас '+
   (protection.meteorEnabled?'перехватываются':'пропускаются')+'. '+
-  (protection.stasis?'Стазис срабатывает автоматически, когда рядом собирается группа врагов.':
+  (protection.stasis?'Стазис тоже автоматический: сработает при группе врагов рядом со станцией. Кнопки запуска нет.':
    'Стазис откроется после соединения двух станций.')+'</p>'+
   '<details class="base-secondary-info base-defense-choice-details"><summary>Изменить перехват орбитальных ударов</summary>'+
   '<p class="base-defense-tradeoff" role="note">'+(protection.meteorEnabled?
