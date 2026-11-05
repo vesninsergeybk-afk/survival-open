@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EnemyComms} from '../enemy-comms.js';
-import {THEATER,theaterAssets,planTheater,theaterDestination}
+import {THEATER,EnemyTheaterStrategy,theaterAssets,planTheater,theaterDestination}
   from '../enemy-strategy.js';
 
 const ship=(serial,x=serial*25,y=0,extra={})=>({
@@ -161,4 +161,49 @@ test('asset capture invalidates delivered theater orders at the next decision',(
   depot.enemy=false;depot.captured=true;
   g.time=3;net.update(g);
   assert.equal(net.strategicDirectiveFor(wing,3),null);
+});
+
+
+test('existing pursuit does not silently become peaceful station guard duty',()=>{
+  const depot=station('industry:depot',180,0),c=cell(1,20);
+  c.intel={x:880,y:0,at:5,estimated:false};
+  assert.equal(planTheater([c],world(supply([]),[depot]),5).size,0,
+    'a verified remote encounter is not abandoned for an unthreatened site');
+});
+
+test('defenders face the confirmed approach and never use a live player pointer',()=>{
+  const depot=station('industry:depot',180),w=world(supply([]),[depot]);
+  const c=cell(1,20),pilot=c.members[1];
+  c.intel={x:300,y:0,at:5,estimated:false};
+  const right=[...planTheater([c],w,5).values()][0];
+  assert.equal(right.role,'reinforce');
+  const first=theaterDestination(pilot,right);
+  c.intel={x:60,y:0,at:5,estimated:false};
+  const left=[...planTheater([c],w,5).values()][0];
+  const second=theaterDestination(pilot,left);
+  assert.ok(Math.hypot(first.x-second.x,first.y-second.y)>150,
+    'real delivered threat bearing changes the guarded perimeter');
+});
+
+test('repelling a witnessed attack is displayed as an intercept, not generic cover',()=>{
+  const depot=station('industry:depot',180),calls=[cell(1,20),cell(2,50)];
+  const ships=calls.flatMap(c=>c.members),g=game(null,ships,world(supply([]),[depot]));
+  g.time=5;g.playerCanInspectEnemyIntent=()=>true;
+  for(const c of calls){
+    c.intel={x:300,y:0,at:5,estimated:false};
+    for(const e of c.members)e._commsCell=c;
+  }
+  const net={cells:calls,send:()=>true,intercepts:[]};
+  const strategy=new EnemyTheaterStrategy();
+  strategy.update(g,net);
+  const repelling=calls.find(c=>c.theaterAssignment?.role==='repel');
+  assert.ok(repelling);
+  const wing=repelling.members[1];
+  const order=strategy.directiveFor(wing,5);
+  assert.equal(order.role,'repel');
+  wing._theaterIntent={at:5,assetId:order.assetId,mode:'repel'};
+  strategy.confirmExecution(g,net);
+  assert.equal(net.intercepts.length,1);
+  assert.equal(net.intercepts[0].mode,'intercept');
+  assert.match(net.intercepts[0].message,/Оттеснить/);
 });
