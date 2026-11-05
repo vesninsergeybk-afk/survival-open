@@ -212,11 +212,10 @@
  #overlay .base-dialog .base-quick-service{padding:11px 13px}
  #overlay .base-dialog .base-quick-service h3{font-size:15px}
  #overlay .base-dialog .base-foot{padding-top:7px}
- #overlay .base-dialog .hg-layout-editing{display:block}
  #overlay .base-dialog .hg-arsenal{padding:8px 10px}
  #overlay .base-dialog .hg-weapon-glyph{flex-basis:31px!important;width:31px;height:37px}
  #overlay .base-dialog .hg-weapon-row .hg-weapon{min-height:54px}
- #overlay .base-dialog .hg-weapon em{margin-top:4px;font-size:9px}
+ #overlay .base-dialog .hg-weapon em{margin-top:4px;font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){
  #overlay .base-dialog,.preview-dialog,.base-tab-panel:not([hidden]),

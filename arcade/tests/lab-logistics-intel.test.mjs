@@ -140,7 +140,7 @@ test('desktop and compact maps give a truthful route selection hint',()=>{
  const g=game();installLab(g,lab('2:2',2500,2300,true));
  const html=renderWorldMap(g);
  assert.match(html,/map-intel-wide">Выберите маршрут в списке справа/);
- assert.match(html,/map-intel-compact">Нажмите «Цели»/);
+ assert.match(html,/map-intel-compact">Нажмите «Список»/);
  assert.doesNotMatch(LAB_LOGISTICS_TECH.unlocked,/в разделе «Регионы и цели»/);
 });
 

@@ -38,7 +38,8 @@ test('selecting a node offers one-click installation and on-demand descriptions'
  session.begin(loadout);session.dispatch({act:'hgSlot',id:'1'},ctx);
  let html=renderShipHangar({...ctx,hangarSession:session},session);
  assert.match(html,/hg-layout-editing/);assert.match(html,/class="hg-arsenal"/);
- assert.ok(html.indexOf('data-act="hgEquip" data-id="plasma"')<html.indexOf('hg-future-weapons'));
+ assert.match(html,/aria-label="Установка выбранного оружия"/);
+ assert.equal((html.match(/data-act="hgEquip"/g)||[]).length,1);
  assert.match(html,/data-help-only/);assert.doesNotMatch(html,/class="hg-inspector"/);
  const result=session.dispatch({act:'hgEquip',id:'plasma'},ctx);
  assert.equal(result.loadout.slots[1],'plasma');assert.equal(result.ore,76);
@@ -59,10 +60,10 @@ test('a closed hardpoint explains its lock instead of opening an unusable weapon
 
 test('free field trial is selected directly from the station, without searching the hangar',()=>{
  const closed=panel(renderBasePanel(home,state()),'summary');
- assert.match(closed,/data-act="showFieldTrial">Выбрать пробное оружие/);
+ assert.match(closed,/data-act="showFieldTrial">Полевой модуль · бесплатно/);
  assert.doesNotMatch(closed,/data-act="loanField"/);
  const opened=panel(renderBasePanel(home,state({fieldTrialPickerOpen:true})),'summary');
- assert.match(opened,/Выберите одно пробное оружие/);
+ assert.match(opened,/Выберите один полевой модуль/);
  assert.match(opened,/data-act="loanField" data-role="ion">Выбрать ионный/);
  assert.match(opened,/data-act="loanField" data-role="resonator">Выбрать резонатор/);
  assert.match(opened,/модуль установится сразу/);
@@ -71,15 +72,17 @@ test('free field trial is selected directly from the station, without searching 
  assert.match(game,/this\.fieldTrialPickerOpen=false;\s*this\.baseTab='hangar'/);
 });
 
-test('station network shows its current protection, but folds away advanced calculations and future prices',()=>{
+test('station network exposes territory and development before defence, with optional radio calculations',()=>{
  const html=renderBasePanel(home,state({baseTab:'network'}));
  const network=html.slice(html.indexOf('id="base-panel-network"'));
  assert.match(network,/ОБОРОНА СТАНЦИИ/);
  assert.match(network,/Защитные заряды · 1\/1/);
  assert.match(network,/Если пропускать орбитальные удары, они смогут поражать врагов/);
  assert.match(network,/<details class="base-secondary-info base-defense-rules"><summary>Точные условия ПВО и стазиса/);
- assert.match(network,/<details class="base-secondary-info base-network-future"><summary>Следующие улучшения/);
- assert.match(network,/<details class="base-secondary-info base-network-advanced"><summary>Карта связи/);
+ assert.match(network,/<div class="base-network-future"><h4>Следующие улучшения/);
+ assert.match(network,/<details class="base-secondary-info base-network-advanced"[^>]*><summary>Радиосвязь услуг/);
+ assert.ok(network.indexOf('Связь и территория')<network.indexOf('Развитие станции'));
+ assert.ok(network.indexOf('Развитие станции')<network.indexOf('ОБОРОНА СТАНЦИИ'));
  assert.match(network,/data-act="toggleMeteorDefense"/);
  const withoutInterception=renderBasePanel({...home,defense:{charges:1,meteorEnabled:false}},state({baseTab:'network'}));
  assert.match(withoutInterception,/Перехват отключён: орбитальные удары могут поражать врагов, астероиды и Ваш корабль/);
@@ -123,7 +126,7 @@ test('empty weapon node explains how to get another gun without misleading stock
  const html=renderShipHangar({...state({loadout,firstHardwareReward:null}),baseActive:true},session);
  assert.match(html,/На складе пока нет второго орудия/);
  assert.match(html,/После первого сданного полевого заказа/);
- assert.match(html,/Купить · 24 сплава/);
+ assert.match(html,/Купить и установить · 24 сплава/);
  assert.doesNotMatch(html,/На складе: 0 · установлено: 1/);
 });
 

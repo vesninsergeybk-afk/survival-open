@@ -140,7 +140,7 @@ test('a player with one working station sees a specific next exploration target'
  game.contourSelection=world.home.id;
  const html=renderWorldMap(game);
  assert.match(html,/Нужна ещё одна станция/);
- assert.match(html,/У выбранной станции/);
+ assert.match(html,/Новых допустимых соединений сейчас нет/);
  assert.equal((html.match(/class="contour-goal-link"/g)||[]).length,1);
  assert.match(html,/contour-goal-link/);
  assert.match(html,/Отметить маршрут к станции/);

@@ -1,5 +1,6 @@
 import {ionDamage} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 import {applySpecialization} from './weapon-specializations.js?v=weapons-cycle-2';
+import {TACTICAL_DEVICES} from './tactical-fields.js?v=tactical-field-2';
 // Run-owned hardware; saved blueprints contain choices, never resources/unlocks.
 export const FRAME_STEPS=Object.freeze([
  {nodes:2,heavy:false,level:1,cost:0,name:'Лёгкий корпус'},
@@ -165,7 +166,7 @@ export class HangarSession {
     this.blueprints=this.blueprints.map((_,i)=>validBlueprint(saved.items[i])?{slots:[...saved.items[i].slots]}:null);
   }catch{/* Storage is optional, including blocked or damaged storage. */}
   this.slot=0;this.filter='all';this.catalog=false;this.inspect=false;this.selected='plasma';
-  this.focusWeapon='plasma';this.message='';
+  this.focusWeapon='plasma';this.focusTactic=null;this.message='';
  }
  begin(loadout){this.draft=cloneLoadout(loadout);this.catalog=false;this.inspect=false;this.message='';}
  dirty(loadout){return this.draft?.slots.some((id,i)=>id!==loadout.slots[i]);}
@@ -184,10 +185,19 @@ export class HangarSession {
    this.focusWeapon=data.id;
    this.selected=data.id;
   }
+  if(act==='hgFocusTactic'&&Object.hasOwn(TACTICAL_DEVICES,data.id))this.focusTactic=data.id;
   if(act==='hgBrowse')this.catalog=true;
   if(act==='hgShip')this.catalog=false;
   if(act==='hgCatalog'){this.catalog=true;this.inspect=false;}
-  if(act==='hgFilter'&&['all','auto','manual','heavy'].includes(data.id))this.filter=data.id;
+  if(act==='hgFilter'&&['all','auto','manual','heavy'].includes(data.id)){
+   this.filter=data.id;
+   const matches=item=>!!item&&(this.slot===5?item.kind==='heavy':item.kind!=='heavy')&&
+    (this.filter==='all'||item.kind===this.filter);
+   if(!matches(MODULES[this.focusWeapon])){
+    this.focusWeapon=Object.values(MODULES).find(matches)?.id||this.focusWeapon;
+    this.selected=this.focusWeapon;
+   }
+  }
   if(act==='hgSelect'&&Object.hasOwn(MODULES,data.id)){
    this.selected=data.id;this.focusWeapon=data.id;this.inspect=true;
   }

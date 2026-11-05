@@ -55,9 +55,14 @@ test('the ordinary slot catalog includes free trial weapons beside owned and pur
  const g=game();g.shipLoadout=createLoadout();g.hangarSession.begin(g.shipLoadout);
  g.hangarSession.dispatch({act:'hgSlot',id:'1'},context({loadout:g.shipLoadout}));
  const html=renderBasePanel(g.docked,{...g.baseState(),baseTab:'hangar'});
- assert.match(html,/data-act="hgBorrow" data-id="ion"/);
- assert.match(html,/data-act="hgBorrow" data-id="resonator"/);
- assert.match(html,/Проба · бесплатно/);assert.match(html,/data-help-only/);
+ assert.match(html,/data-act="hgFocusWeapon" data-id="ion"/);
+ assert.match(html,/data-act="hgFocusWeapon" data-id="resonator"/);
+ assert.match(html,/Бесплатная проба · 3 заряда/);assert.match(html,/data-help-only/);
+ for(const id of ['ion','resonator']){
+  g.hangarSession.dispatch({act:'hgFocusWeapon',id},{loadout:g.shipLoadout});
+  const focused=renderBasePanel(g.docked,{...g.baseState(),baseTab:'hangar'});
+  assert.match(focused,new RegExp('data-act="hgBorrow" data-id="'+id+'"'));
+ }
  assert.doesNotMatch(html,/data-act="hgInstall"|class="hg-inspector"/);
  assert.doesNotMatch(html,/data-act="hgApply"/);
 });
@@ -65,6 +70,7 @@ test('the ordinary slot catalog includes free trial weapons beside owned and pur
  test('locked future weapons never advertise free installation',()=>{
  const g=game();g.player.level=1;g.shipLoadout=createLoadout();g.hangarSession.begin(g.shipLoadout);
  g.hangarSession.dispatch({act:'hgSlot',id:'1'},context({loadout:g.shipLoadout}));
+ g.hangarSession.dispatch({act:'hgFocusWeapon',id:'rail'},{loadout:g.shipLoadout});
  const html=renderBasePanel(g.docked,{...g.baseState(),baseTab:'hangar'});
  const rail=html.split('data-act="hgEquip" data-id="rail"')[1].split('</button>')[0];
  assert.match(rail,/disabled>Закрыто/);assert.doesNotMatch(rail,/Установить · бесплатно/);

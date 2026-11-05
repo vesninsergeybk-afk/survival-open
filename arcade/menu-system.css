@@ -1076,7 +1076,7 @@
 #overlay .ship-hangar .hg-layout-centered,#overlay .ship-hangar .hg-layout-editing,
 .preview-dialog .ship-hangar .hg-layout-centered,.preview-dialog .ship-hangar .hg-layout-editing{
  display:grid;max-width:none;margin:0;grid-template-columns:minmax(280px,1fr) minmax(320px,1fr);gap:0}
-#overlay .ship-hangar .hg-layout-editing,.preview-dialog .ship-hangar .hg-layout-editing{grid-template-columns:minmax(215px,.73fr) minmax(260px,.95fr) minmax(300px,1.1fr)}
+#overlay .ship-hangar .hg-layout-editing,.preview-dialog .ship-hangar .hg-layout-editing{grid-template-columns:minmax(275px,.85fr) minmax(350px,1.15fr)}
 .hg-weapon-inspector{min-width:0;padding:14px 15px 18px;border-left:1px solid #6493a06b;
  background:linear-gradient(155deg,#123647,#091e2d);color:#dbe9ed}
 .hg-weapon-inspector .hg-section-head{margin-bottom:9px}
@@ -1109,7 +1109,7 @@
 .hg-tactic-branches{margin-top:10px}
 .hg-services-direct{padding:14px 15px}
 .hg-services-direct .base-operations{padding:0}
-@media(max-width:1100px){
+@media(max-width:760px){
  #overlay .ship-hangar .hg-layout-centered,#overlay .ship-hangar .hg-layout-editing,
  .preview-dialog .ship-hangar .hg-layout-centered,.preview-dialog .ship-hangar .hg-layout-editing{display:block}
  #overlay .ship-hangar .hg-layout-editing>.hg-ship{display:none}
@@ -1126,4 +1126,89 @@
  #overlay .hg-view-nav button,.preview-dialog .hg-view-nav button{font-size:11px;padding:7px 3px;min-height:44px}
  .hg-weapon-inspector .hg-upgrade-grid{grid-template-columns:1fr}
  .hg-focused-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+/* Focused menus: one item to inspect, two fitting areas, visible next steps. */
+.menu-symbol{display:inline-block;width:23px;height:23px;flex:none;vertical-align:middle;
+ fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.hg-view-nav button,.map-view-switch button{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.hg-view-nav .menu-symbol,.map-view-switch .menu-symbol{width:20px;height:20px}
+.hg-weapon-picks .hg-module-icon{width:21px;height:25px}
+#overlay .hg-weapon-picks button,.preview-dialog .hg-weapon-picks button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px}
+.hg-fitting-strip{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:10px 0}
+#overlay .hg-fitting-strip button,.preview-dialog .hg-fitting-strip button{display:flex;align-items:center;justify-content:center;gap:6px;
+ min-height:44px;min-width:0;margin:0;padding:7px 4px;font-size:11px;background:#102c3b;border:1px solid #60868f}
+.hg-fitting-strip b{font-size:15px;color:#a2e7e1}.hg-fitting-strip span{overflow-wrap:anywhere}
+#overlay .hg-fitting-strip button[aria-pressed="true"],.preview-dialog .hg-fitting-strip button[aria-pressed="true"]{border-color:#f1d090;background:#424737;color:#ffe6ac}
+.hg-fitting-strip .empty{border-style:dashed!important}.hg-fitting-strip .locked{color:#8da3b3!important;background:#101f2b!important}
+#overlay .hg-weapon-row,.preview-dialog .hg-weapon-row{display:block}
+#overlay .hg-weapon-row .hg-weapon,.preview-dialog .hg-weapon-row .hg-weapon{width:100%;min-height:80px;align-items:center;text-align:left;gap:12px;padding:12px}
+.hg-weapon .hg-weapon-glyph{flex:0 0 auto}.hg-weapon .hg-module-icon{width:30px;height:36px}
+#overlay .hg-weapon-row .hg-weapon strong,.preview-dialog .hg-weapon-row .hg-weapon strong{font-size:15px}
+#overlay .hg-weapon-row .hg-weapon small,.preview-dialog .hg-weapon-row .hg-weapon small{font-size:12px}
+#overlay .hg-weapon-row .hg-weapon em,.preview-dialog .hg-weapon-row .hg-weapon em{font-size:12px;color:#f2d99b}
+.hg-fit-action{display:grid;gap:9px;margin:12px 0;padding:12px;border:1px solid #a9bd8b88;background:#21382f}
+.hg-fit-action>strong{font-size:13px;color:#d8edd9}.hg-fit-action>small{line-height:1.5;color:#c2d6d3}
+.hg-fit-action .hg-weapon-fit{width:100%;min-height:46px!important}
+.dialog .ship-hangar p.hg-requirement,.hg-requirement{color:#f3d3a0;line-height:1.5}
+.hg-upgrade-grid article>div>strong{display:flex;align-items:center;gap:8px;min-width:0}
+.hg-upgrade-grid article .menu-symbol{width:24px;height:24px}
+.hg-upgrade-action{display:flex!important;align-items:center;gap:8px}
+.hg-upgrade-action>button:first-child{flex:1;min-width:0}
+.dialog .ship-hangar .menu-info{width:38px;min-width:38px;min-height:38px;flex:0 0 38px;padding:0}
+.hg-next-upgrade{margin:15px 0;border-top:1px solid #67949455;padding-top:14px}
+.hg-next-upgrade h4{margin:0 0 10px;font-size:16px;color:#f0d8a8}
+.hg-next-upgrade>.hg-upgrade-grid{grid-template-columns:1fr;max-width:600px}
+.hg-all-technologies{border-top:1px solid #67949455;margin:12px 0 0}
+.hg-all-technologies>.hg-upgrade-grid{margin-top:12px}
+.hg-all-upgrades>.hg-section-head>b{font-size:12px;color:#cde9d9}
+.hg-empty-upgrades{max-width:70ch}
+.dialog .ship-hangar .hg-tactical{padding:14px;border-radius:6px}
+.hg-tactical-equipped{font-size:12px;color:#b2d8cb}
+.hg-tactic-selector{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 16px}
+#overlay .hg-tactic-pick,.preview-dialog .hg-tactic-pick{display:grid;justify-items:center;align-content:start;gap:5px;min-width:0;min-height:100px;
+ padding:12px 6px;margin:0;text-align:center;background:#102b3a;border:1px solid #6599a0}
+.hg-tactic-pick .menu-symbol{width:28px;height:28px}.hg-tactic-pick strong{font-size:14px}
+.hg-tactic-pick small{font-size:11px;line-height:1.4;color:#b7d2d5}
+#overlay .hg-tactic-pick.selected,.preview-dialog .hg-tactic-pick.selected{border-color:#edce8d;background:#374637;box-shadow:inset 0 -3px #edce8d}
+.hg-tactic-detail{max-width:900px;margin:auto;padding:15px;background:#0b2332;border:1px solid #588a936b;scroll-margin-top:110px}
+.hg-tactic-detail .hg-section-head h3{display:flex;align-items:center;gap:10px;margin:0}
+.hg-tactic-detail .hg-primary{min-height:44px!important}
+.hg-tactic-branches .hg-upgrade-grid{grid-template-columns:repeat(2,minmax(0,1fr));border-left:0;padding-left:0}
+.hg-tactic-branches h4{font-size:15px;color:#f0d8a8;margin:8px 0}
+.hg-tactic-branches strong{font-size:13px}
+.base-territory-summary,.base-station-development{padding:16px;margin:0 0 14px;border:1px solid #679a9c88;border-radius:6px;background:#102c36}
+.base-territory-summary>h3,.base-station-development>h3,.base-network-direct>h3{display:flex;align-items:center;gap:9px;margin:0 0 12px;font-size:18px;color:#e2f3eb}
+.base-station-development h4{font-size:13px;color:#c6dedb;margin:12px 0 9px}
+.base-territory-stats{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.base-territory-stats>span{padding:7px 10px;border:1px solid #66919666;font-size:12px;color:#bcd9d6}
+.base-territory-stats b{margin-left:5px;color:#d4fbe8}
+.base-territory-summary p{font-size:13px;line-height:1.5;color:#d8e9e4;max-width:85ch}
+.base-territory-summary p.base-network-distinction{font-size:12px;color:#afd0d3}
+.base-territory-summary>.base-network-advanced{margin-bottom:0}
+@media(max-width:1000px) and (min-width:761px){
+ #overlay .ship-hangar .hg-layout-centered,.preview-dialog .ship-hangar .hg-layout-centered{grid-template-columns:minmax(240px,.8fr) minmax(300px,1.2fr)}
+ #overlay .ship-hangar .hg-layout-editing,.preview-dialog .ship-hangar .hg-layout-editing{grid-template-columns:minmax(240px,.8fr) minmax(310px,1.2fr)}
+ .hg-weapon-picks{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ #overlay .ship-hangar .hg-layout-editing,.preview-dialog .ship-hangar .hg-layout-editing{display:block}
+ .hg-fitting-strip{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .hg-catalog-open .hg-catalog-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #overlay .hg-weapon-row .hg-weapon,.preview-dialog .hg-weapon-row .hg-weapon{min-height:90px;padding:9px;gap:7px}
+ .hg-weapon-inspector,.hg-tactic-detail{scroll-margin-top:110px}
+ .hg-tactic-selector{gap:5px}.hg-tactic-pick small{font-size:10px}
+ #overlay .hg-tactic-pick,.preview-dialog .hg-tactic-pick{padding:10px 3px;min-height:103px}
+ .hg-tactic-pick strong{font-size:12px}
+ .hg-tactic-branches .hg-upgrade-grid{grid-template-columns:1fr}
+ .hg-all-upgrades>.hg-section-head{display:block}.hg-all-upgrades>.hg-section-head>b{display:block;margin-bottom:12px}
+ .base-territory-summary,.base-station-development{padding:12px}
+}
+@media(pointer:coarse){
+ #overlay .dialog button.menu-info,.preview-dialog .ship-hangar .menu-info{width:44px;min-width:44px;min-height:44px;flex-basis:44px}
+}
+@media(max-width:370px){
+ .hg-view-nav .menu-symbol{display:none}
+ .hg-catalog-open .hg-catalog-list{grid-template-columns:1fr}
+ .hg-tactic-selector{grid-template-columns:repeat(2,minmax(0,1fr))}
 }

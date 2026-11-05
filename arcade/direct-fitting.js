@@ -1,4 +1,4 @@
-import {equipModule} from './ship-loadout.js?v=direct-fit-1';
+import {equipModule} from './ship-loadout.js?v=direct-fit-1-menu-focus-1';
 import {fieldLoanOffer,createFieldLoan,missionAssignment} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 
 // Quote borrowing and installation together. A failed fit consumes no trial or alloy.

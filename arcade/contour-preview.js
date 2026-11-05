@@ -1,5 +1,7 @@
 import {CONTOURS,contourArea,contourFields,contourLinkOffer,contourProduction,
  insidePolygon} from './territory-system.js?v=contours-1';
+import {REGIONS} from './regions.js?v=regions-1';
+import {mapViewport} from './map-navigation.js?v=map-ux-1';
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 
@@ -34,4 +36,37 @@ export function contourConnectionChoices(world,from,nodes){
   // by information the player has not earned yet.
   .sort((a,b)=>a.distance-b.distance);
  return {ready,next};
+}
+
+// Use the same visible nodes for the automatic suggestion and the actual atlas.
+export function contourRegionNodes(world,region,viewport=null){
+ if(!region)return [];
+ const center=viewport?.center||region.survey,scale=viewport?.scale||(region.id==='amethyst'?.055:.049);
+ const radius=Math.max(5300,Math.hypot(340,240)/scale+500);
+ const nodes=new Map(world.nearbyStations(center.x,center.y,radius,true).map(s=>[s.id,s]));
+ for(const s of world.stations.values())if(s.active||s.discovered||s.strategicRole)nodes.set(s.id,s);
+ return [...nodes.values()].filter(s=>{
+  const x=340+(s.x-center.x)*scale,y=240+(s.y-center.y)*scale;
+  return x>18&&x<662&&y>18&&y<462;
+ });
+}
+
+// Select a starting point for suggestions only. Never construct a line, spend
+// resources, change ownership or reveal an unvisited station here.
+export function focusContourRegion(game,id,preferredId=null){
+ const region=REGIONS.find(r=>r.id===id);
+ game.contourRegion=region?.id||'all';game.contourFirst=null;game.contourSelection=null;
+ game.contourError='';game.contourInfo='';game.contourFeedback=null;
+ if(!region)return null;
+ const nodes=contourRegionNodes(game.world,region,mapViewport({...game,mapView:'territory'}));
+ const own=nodes.filter(s=>s.active&&!s.enemy&&!s.suppressed);
+ const preferred=own.find(s=>s.id===preferredId);
+ const proposals=own.map(node=>({node,choices:contourConnectionChoices(game.world,node.id,nodes)}));
+ proposals.sort((a,b)=>Number(b.choices.ready.some(c=>c.preview.areaGain>1))-Number(a.choices.ready.some(c=>c.preview.areaGain>1))||
+  Number(b.choices.ready.length>0)-Number(a.choices.ready.length>0)||
+  Number(!b.choices.ready.length&&b.choices.next.length>0)-Number(!a.choices.ready.length&&a.choices.next.length>0)||
+  distance(a.node,game.player)-distance(b.node,game.player));
+ const source=preferred||proposals[0]?.node;
+ if(source)game.contourFirst=game.contourSelection=source.id;
+ return source||null;
 }
