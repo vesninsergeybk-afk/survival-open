@@ -21,6 +21,16 @@ const isVisible=(a,cam,pad=20)=>a&&a.x>=cam.x-pad&&
   a.x<=cam.x+cam.w+pad&&a.y>=cam.y-pad&&a.y<=cam.y+cam.h+pad;
 const color=kind=>kind==='contact'?'#b69aff':
   kind==='distress'||kind==='weapon'?'#ffc17b':'#80dcec';
+const observationLabels=Object.freeze({
+  contact:'ЦЕЛЬ ОБНАРУЖЕНА',weapon:'ОПОЗНАНО ОРУЖИЕ',
+  loss:'ЗВЕНО НЕСЁТ ПОТЕРИ',incident:'ОБЪЕКТ ПОД ОГНЁМ'
+});
+function observedCue(e,kind,now){
+  if(now<(e._commsNextCueAt??-Infinity)&&
+     (kind==='contact'||e._commsObservationCue?.kind===kind))return;
+  e._commsObservationCue={kind,at:now,until:now+1.7};
+  e._commsNextCueAt=now+(kind==='contact'?3.6:2.6);
+}
 const modeLabel=Object.freeze({press:'НАЖИМ',pincer:'ОБХОД',
   intercept:'ПЕРЕХВАТ',screen:'ПРИКРЫТИЕ',
   close:'СБЛИЖЕНИЕ',scatter:'РАССЕЯТЬСЯ'});
@@ -43,10 +53,10 @@ export function enemyOrderMessage(mode,threat=null){
     return 'Он держит прямой курс. Зайти наперерез!';
   if(mode==='pincer'&&threat?.kind==='maneuver'&&threat.motion==='turning')
     return 'Он постоянно меняет курс. Охватить с двух сторон!';
-  return ({press:'Контакт подтверждён. Держать давление!',
-    pincer:'Два звена — обойти цель с флангов.',
-    intercept:'Цель маневрирует. Перехватить курс!',
-    screen:'Ремонтник под угрозой. Прикрыть!',
+  return ({press:'Не дать цели выйти из боя. Держать давление!',
+    pincer:'Сковать цель огнём. Обойти с двух сторон!',
+    intercept:'Перекрыть путь отхода. Перехватить курс!',
+    screen:'Сохранить ремонтника. Перехватить угрозу!',
     close:'Сократить дистанцию. Держать строй!',
     scatter:'Разомкнуть строй! Увеличить интервалы.'})[mode]||null;
 }
@@ -293,6 +303,12 @@ export class EnemyComms {
           cell.incident=null;cell.motionReports=[];
           cell.pendingDecision=null;cell.lastReportedTactic=null;
           for(const e of cell.members)e._commsOrder=null;
+          // This is a real, temporary advantage earned by choosing a
+          // commander as the target, not a decorative 'network down' badge.
+          if(cell.members.length>=2&&
+             (game.playerCanInterceptEnemyRadio?.(wasLeader)||
+              game.playerCanInspectEnemyIntent?.(wasLeader)))
+            game.notice?.('Командир звена уничтожен. Связь нарушена — строй временно распался.',3.4);
         }
         if(now>=cell.brokenUntil){
           cell.leader=elect(cell.members);cell.brokenUntil=0;
@@ -379,6 +395,7 @@ export class EnemyComms {
             cell.motionReports.push({at:sight.at,motion:sight.motion});
             if(cell.motionReports.length>ENEMY_COMMS.maxMotionReports)
               cell.motionReports.shift();
+            observedCue(e,'contact',now);
             contact=true;
           }
         }
@@ -396,6 +413,7 @@ export class EnemyComms {
             cell.lossReports.push({...loss});
             if(cell.lossReports.length>ENEMY_COMMS.maxLossReports)
               cell.lossReports.shift();
+            observedCue(e,'loss',now);
             distress=true;
           }
         }
@@ -407,6 +425,7 @@ export class EnemyComms {
             cell.attackReports.push({...attack,reporter:e.serial});
             if(cell.attackReports.length>ENEMY_COMMS.maxAttackReports)
               cell.attackReports.shift();
+            observedCue(e,'weapon',now);
           }
         }
         const incident=e._commsIncident;
@@ -416,6 +435,7 @@ export class EnemyComms {
           if(e===leader||this.send(e,leader,'distress',now)){
             if(!cell.incident||incident.at>=cell.incident.at)
               cell.incident={...incident};
+            observedCue(e,'incident',now);
             distress=true;
           }
         }
@@ -591,6 +611,28 @@ export class EnemyComms {
         ctx.beginPath();ctx.arc(x,y,2.6,0,Math.PI*2);ctx.fill();
       }
       drawn++;
+    }
+    // These labels say what a pilot *actually reported*, before its flight
+    // chooses a response. Two small labels are enough to show perception
+    // without concealing the player or turning hidden contacts into markers.
+    let observations=0;const observationPoints=[];
+    if(game?.playerCanInspectEnemyIntent)for(const cell of this.cells){
+      if(observations>=2)break;
+      for(const e of cell.members){
+        if(observations>=2)break;
+        const cue=e._commsObservationCue;
+        if(!cue||now<cue.at||now>cue.until||!legal(e)||
+           !isVisible(e,cam,20)||
+           !game.playerCanInspectEnemyIntent(e)||
+           observationPoints.some(p=>distance(p,e)<160))continue;
+        const label=observationLabels[cue.kind];
+        if(!label)continue;
+        ctx.globalAlpha=clamp((cue.until-now)*1.4,0,.9);
+        ctx.textAlign='center';ctx.font='bold 9px system-ui';
+        ctx.fillStyle=cue.kind==='contact'?'#d1b7ff':'#ffe0a3';
+        ctx.fillText(label,e.x,e.y-(e.r||14)-38,175);
+        observationPoints.push(e);observations++;
+      }
     }
     // The actual transmitted command becomes a brief, world-anchored speech
     // bubble; the old compact mode label remains when interception failed.

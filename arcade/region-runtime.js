@@ -1,5 +1,5 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
-import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-4';
+import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-4-enemy-gunnery-1';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
 import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralWorkerPosition,centralEvent} from './central-industry.js?v=living-world-1';
@@ -57,7 +57,8 @@ export function updateRegionalWorld(game,dt){
  // A finite local defense. Leaving the screen does not create a fresh garrison.
  if(mine?.enemy&&distance(mine,game.player)<800&&!mine.regionalGuard&&game.enemies.length<=RULES.maxEnemies-2){
   mine.regionalGuard=true;++game.groupSerial;
-  for(let i=0;i<2;i++)game.enemies.push(makeEnemy(game,i?'fighter':'scout',mine.x-180+i*280,mine.y-220,'mine-guard'));
+  for(let i=0;i<2;i++)game.enemies.push(makeEnemy(game,i?'fighter':'scout',
+   mine.x-180+i*280,mine.y-220,'mine-guard',mine));
  }
  for(const cargo of [...s.convoys,...(s.central?.convoys||[]),
    ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[])]){

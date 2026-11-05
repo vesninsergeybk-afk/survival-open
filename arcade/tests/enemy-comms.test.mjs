@@ -460,6 +460,42 @@ test('a visible wingman cannot expose an unseen commander through radio lines',(
  assert.ok(strokes.length>0,'acknowledged, visible peers still show real traffic');
 });
 
+test('perception cues name delivered evidence without broadcasting hidden drones',()=>{
+ const scout=ship(1,'scout',100),leader=ship(2,'fighter',150);
+ const game=scene([scout,leader]),net=game.enemyComms;
+ game.playerCanInspectEnemyIntent=()=>true;
+ net.update(game);net.reportSight(scout,game.player,.1);
+ game.time=.7;net.update(game);
+ assert.equal(scout._commsObservationCue?.kind,'contact');
+ const labels=[],ctx={save(){},restore(){},setLineDash(){},beginPath(){},
+  moveTo(){},lineTo(){},stroke(){},arc(){},fill(){},fillText(s){labels.push(s);}};
+ net.render(ctx,{x:0,y:0,w:400,h:270},.8,false,60,game);
+ assert.ok(labels.some(s=>s==='ЦЕЛЬ ОБНАРУЖЕНА'));
+ net.reportAttack(scout,'rail',380,1.4);
+ game.time=1.5;net.update(game);
+ assert.equal(scout._commsObservationCue?.kind,'weapon',
+  'a new weapon signature overrides an older generic contact cue');
+ labels.length=0;net.render(ctx,{x:0,y:0,w:400,h:270},1.6,false,60,game);
+ assert.ok(labels.includes('ОПОЗНАНО ОРУЖИЕ'));
+ game.playerCanInspectEnemyIntent=()=>false;
+ labels.length=0;net.render(ctx,{x:0,y:0,w:400,h:270},1.7,false,60,game);
+ assert.deepEqual(labels,[],'perception markers cannot reveal hidden ships');
+});
+
+test('a commander loss announces the real temporary coordination gap once',()=>{
+ const leader=ship(2,'fighter',160),a=ship(1,'flanker',100),
+  b=ship(3,'scout',130),game=scene([leader,a,b]);
+ const notices=[];game.notice=text=>notices.push(text);
+ game.playerCanInterceptEnemyRadio=()=>true;
+ game.enemyComms.update(game);
+ leader.hp=0;game.time=.7;game.enemyComms.update(game);
+ assert.equal(notices.length,1);
+ assert.match(notices[0],/Связь нарушена/);
+ assert.ok(game.enemyComms.cells[0].brokenUntil>game.time);
+ game.time=1.4;game.enemyComms.update(game);
+ assert.equal(notices.length,1,'a loss must never spam the radio warning');
+});
+
 test('living witnesses learn signatures from lethal strikes; isolated deaths teach nothing',()=>{
  const witness=ship(1,'fighter',150,70),victimA=ship(2,'scout',130,90),
   victimB=ship(3,'scout',175,90),survivor=ship(4,'flanker',165,72);

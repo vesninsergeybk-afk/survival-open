@@ -5,7 +5,8 @@ import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from 
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
 import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-3';
-import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-4';
+import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-4-enemy-gunnery-1';
+import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   const dir=norm(tx-body.x,ty-body.y);
@@ -162,7 +163,8 @@ const pickTarget=(e,game)=>{
       for(const craft of mission.craft){
         if(craft.hp<=0)continue;
         const d=dist(e,craft);
-        if(d<270&&(e.type==='flanker'||e.type==='gunship'||e.type==='fighter')){
+        if(d<270&&game.enemyCanSee?.(e,craft)&&
+           (e.type==='flanker'||e.type==='gunship'||e.type==='fighter')){
           target=craft;break;
         }
       }
@@ -175,7 +177,7 @@ const pickTarget=(e,game)=>{
       if(ally.hp<=0)continue;
       const z=dist(e,ally);
       const priority=ally.role==='bomber'?.62:1;
-      if(z<290&&z*priority<d){d=z*priority;target=ally;}
+      if(z<290&&game.enemyCanSee?.(e,ally)&&z*priority<d){d=z*priority;target=ally;}
     }
   }
   return target;
@@ -184,11 +186,12 @@ export function updateEnemy(e,game,dt){
   if(e.hp<=0)return;
   // A successfully hacked craft is friendly immediately, even if an earlier
   // hostile stasis pulse has not expired yet.
-  if(e.converted){e._commsIntent=null;updateConverted(e,game,dt);return;}
+  if(e.converted){e._commsIntent=null;e._gunAiming=null;updateConverted(e,game,dt);return;}
   // A connected station briefly locks ordinary hostile craft in place.
   // Authored mission targets, bosses and cargo never receive this status.
   if(game.time<(e.stasisUntil||0)){
     e._commsIntent=null;
+    e._gunAiming=null;
     e._irisChargeStarted=null;
     e.vx*=Math.exp(-8*dt);e.vy*=Math.exp(-8*dt);
     e.x+=e.vx*dt;e.y+=e.vy*dt;
@@ -196,7 +199,7 @@ export function updateEnemy(e,game,dt){
   }
   // Every visible intent must be renewed by real steering this frame.
   e._commsIntent=null;
-  if(stormSeek(e,game,dt))return;
+  if(stormSeek(e,game,dt)){e._gunAiming=null;return;}
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;
   const signalOrder=updateSignalIntent(e,game,dt);
@@ -209,11 +212,13 @@ export function updateEnemy(e,game,dt){
   const packTactic=e.type==='scout'&&localContact?
     irisPackDirective(e,game):null;
   if(updateIrisPerception(e,game,dt)){
+    e._gunAiming=null;
     if(e.type==='scout')scoutAttack(e,game,
       e.signalIntel?.combatFocus||game.player,true);
     return;
   }
   if(signalOrder){
+    e._gunAiming=null;
     const avoid=game.avoidance(e.x,e.y,38);
     const speed=ENEMY_TYPES[e.type].speed*signalOrder.speed*
       (e.type==='scout'?irisBurstThrust(e,game.time):1);
@@ -250,10 +255,20 @@ export function updateEnemy(e,game,dt){
         state=t<e.chargeReadyAt?'windup':'charge';
       }
       else if(e.hp/e.maxHp<.36&&findHealer(e,game))state='repair';
-      else if(e.protect?.hp>0&&!e.protect.converted){
-        const nearMedic=Math.min(dist(game.player,e.protect),
-          dist(e.target,e.protect));
-        state=nearMedic<(e.state==='intercept'?275:215)?'intercept':'guard';
+      else if(e.protect?.hp>0&&!e.protect.converted&&!e.protect.captured){
+        // A defender owns a location, not a magical live target coordinate.
+        // It intercepts only a recently witnessed or delivered threat to
+        // that location; otherwise it stays with its patient or cargo.
+        const memory=e._awarenessLast;
+        const order=game.enemyComms?.directiveFor?.(e,t);
+        const hasThreat=e._enemyLearningSaw||
+          !!memory&&t-memory.at<=4.8||
+          !!order?.intel&&t-order.intel.at<=2.6||
+          !!e.signalIntel&&t-(e.signalIntel.lastSeenAt??-Infinity)<=3.4;
+        const nearThreat=hasThreat&&
+          dist(enemyPursuitTarget(e,game),e.protect)<
+            (e.state==='intercept'?275:225);
+        state=nearThreat?'intercept':'guard';
       }
       else if(e.type==='flanker')state='flank';
       else if(e.type==='gunship')state='standoff';
@@ -288,7 +303,8 @@ export function updateEnemy(e,game,dt){
     goalX=e.x-v.x*correction*125-v.y*lateral*direction;
     goalY=e.y-v.y*correction*125+v.x*lateral*direction;
   }else if(e.state==='guard'&&e.protect?.hp>0){
-    // Guardians remain between their medic and the incoming player.
+    // If no one has seen the player, this is just a fixed guard formation.
+    // The remembered threat point, if any, determines the facing.
     const v=norm(p.x-e.protect.x,p.y-e.protect.y);
     const side=(e.serial%2===0?1:-1)*48;
     goalX=e.protect.x+v.x*103-v.y*side;
@@ -451,6 +467,7 @@ export function updateEnemy(e,game,dt){
   }
   steer(e,goalX,goalY,speed,dt,{x:extraX,y:extraY});
   e.healFlash=Math.max(0,(e.healFlash||0)-dt);
+  updateEnemyGunnery(e,game,selected);
   if(e.type==='scout'&&!search&&localContact)scoutAttack(e,game,game.player,
     e._irisScanMode==='acquire'&&game.time<(e._irisScanUntil||0));
   if(e.type==='gunship'&&!e.relayAssault&&e.fire<=0&&
