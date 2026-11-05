@@ -342,6 +342,26 @@ canvas#game.rail-manual{cursor:crosshair}
 .audio-mixer-body output{font-variant-numeric:tabular-nums;color:#fff2c4}
 .audio-mixer-body small{font-size:10px;color:#a1bdc8;line-height:1.35}
 @media(max-width:800px){#audioMixer summary{padding:4px 8px}}
+#controlSettings{position:relative;color:#cceaf2;background:#081a30ec;
+ border:1px solid #599cba77;border-radius:9px;font-size:11px;max-width:min(340px,92vw)}
+#controlSettings>summary{cursor:pointer;padding:5px 10px;user-select:none}
+#controlSettings[open]{z-index:12;box-shadow:0 8px 30px #0009}
+.control-settings-body{position:absolute;top:100%;right:0;width:min(340px,92vw);
+ max-height:min(68dvh,510px);overflow:auto;overscroll-behavior:contain;padding:12px;
+ border:1px solid #599cba77;border-radius:10px;background:#071729f7;
+ box-shadow:0 14px 35px #000a;display:grid;gap:8px}
+.control-settings-body>strong{color:#f0fbff;font-size:13px}
+.control-settings-body>p{margin:0;font-size:11px;line-height:1.4;color:#b4d0dc}
+#controlsBindingList{display:grid;gap:3px}
+.control-binding-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
+ min-height:32px;border-bottom:1px solid #4460785a}
+.control-binding-row button,#controlsReset{background:#163653;color:#e0fbff;
+ border:1px solid #6ba9c67b;border-radius:7px;padding:5px 10px;cursor:pointer}
+.control-binding-row button{min-width:70px;font:600 12px system-ui}
+.control-binding-row button:focus-visible,#controlsReset:focus-visible{
+ outline:2px solid #95f0d0;outline-offset:2px}
+#controlsBindingMessage.error{color:#ffbeac}
+@media(pointer:coarse){#controlSettings{display:none}}
 
 /* Base operations: strategic station choice is visible alongside practical services. */
 .base-modules{margin:10px 0 13px;padding:13px;border:1px solid #7ac6df63;

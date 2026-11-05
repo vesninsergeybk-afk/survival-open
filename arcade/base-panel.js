@@ -1,4 +1,5 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-1-unified-controls-1';
+import {readableKey,DEFAULT_CONTROLS} from './control-layout.js?v=unified-controls-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
@@ -9,8 +10,8 @@ import {CARRIER_INTERCEPTION,carrierOffer,autonomousStrikeCarrier} from './carri
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1';
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
-import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
-import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1';
+import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
+import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1';
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1';
@@ -554,6 +555,7 @@ function stationNextStep(base,state,o,regionalGoal=false){
 }
 
 export function renderBasePanel(base,state){
+ const fieldKey=readableKey((state.controls||DEFAULT_CONTROLS).field);
  const o=baseOffer(base,state),active=!!base.active;
  const status=base.suppressed?'СВЯЗЬ ПОДАВЛЕНА':active?(o.connected?'СЕТЬ ПОДКЛЮЧЕНА':'АВТОНОМНЫЙ УЗЕЛ'):'СТАНЦИЯ ВЫКЛЮЧЕНА';
  const activation=card('base-power'+(active?' connected':''),
@@ -710,9 +712,9 @@ export function renderBasePanel(base,state){
   '<section class="base-trial-picker" aria-label="Бесплатное пробное оружие">'+
   '<strong>Выберите одно пробное оружие</strong><p>На выбор один бесплатный модуль с тремя зарядами. После выбора он попадёт в ангар: там останется применить сборку.</p>'+
   '<div class="base-trial-options">'+
-  '<div><b>Ионный проводник</b><small>Цепной разряд по целям с плазменными метками · Space</small>'+
+  '<div><b>Ионный проводник</b><small>Цепной разряд по целям с плазменными метками · '+fieldKey+'</small>'+
   action('loanField','Выбрать ионный','','ion')+'</div>'+
-  '<div><b>Резонатор</b><small>Связывает несколько целей и передаёт между ними часть урона · Space</small>'+
+  '<div><b>Резонатор</b><small>Связывает несколько целей и передаёт между ними часть урона · '+fieldKey+'</small>'+
   action('loanField','Выбрать резонатор','','resonator')+'</div></div></section>':'';
  const regionalGoal=state.world&&state.position?renderHomeConflict({world:state.world,player:state.position,
   time:state.time,openingArc:state.openingArc},{compact:true}):'';
@@ -791,8 +793,8 @@ export function renderBasePanel(base,state){
   '<div>'+action('baseTab','Вернуться к операциям','','operations')+'</div></section>';
  const loan=state.fieldLoan,spec=loan&&fieldWeapon(loan),offer=fieldLoanOffer(base,state);
  const fieldHelp=id=>id==='ion'?
-  'Плазма ставит метки. Space даёт мгновенный цепной разряд по отмеченной группе. Нужен плазменный луч.':
-  'Space связывает 2–3 близкие цели на 4 с. Затем стреляйте: 35% урона передаётся по связи. Камни и расстояние свыше 260 м разрывают передачу.';
+  'Плазма ставит метки. '+fieldKey+' даёт мгновенный цепной разряд по отмеченной группе. Нужен плазменный луч.':
+  fieldKey+' связывает 2–3 близкие цели на 4 с. Затем стреляйте: 35% урона передаётся по связи. Камни и расстояние свыше 260 м разрывают передачу.';
  const refill=refillQuote(loan,o.ore);
  const fieldPanel=loan?card('base-service base-local','ПОЛЕВОЙ МОДУЛЬ',
   spec.name+' · '+loan.charges+'/'+spec.capacity+' заряда',

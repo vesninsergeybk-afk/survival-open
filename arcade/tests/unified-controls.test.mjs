@@ -1,0 +1,90 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,validControls,readControls,
+ changeControl,readableKey,isPressed} from '../control-layout.js';
+import {manualWeapons,selectedManual,cycleManual,manualClick} from '../manual-weapon-controls.js';
+import {planHowitzer} from '../ship-weapons.js';
+import {game} from './weapons-scene.mjs';
+import {precisionRailUnlocked} from '../station-progression.js';
+
+test('new bindings are complete, one-action-per-key and survive storage',()=>{
+ assert.equal(validControls(DEFAULT_CONTROLS),true);
+ assert.equal(new Set(CONTROL_ACTIONS.map(x=>x.code)).size,CONTROL_ACTIONS.length);
+ const move=changeControl(DEFAULT_CONTROLS,'dash','KeyV');
+ assert.equal(move.ok,true);
+ assert.equal(isPressed(new Set(['KeyV']),move.bindings,'dash'),true);
+ assert.equal(isPressed(new Set(['KeyV']),DEFAULT_CONTROLS,'dash'),false);
+ const store={getItem(key){assert.equal(key,CONTROL_STORAGE_KEY);return JSON.stringify(move.bindings);}};
+ assert.deepEqual(readControls(store),move.bindings);
+ assert.equal(readableKey('Space'),'Пробел');
+});
+
+test('a duplicate, unsafe or malformed key mapping cannot silently break movement',()=>{
+ assert.equal(changeControl(DEFAULT_CONTROLS,'dash','KeyW').ok,false);
+ assert.equal(changeControl(DEFAULT_CONTROLS,'dash','Escape').ok,false);
+ assert.equal(changeControl(DEFAULT_CONTROLS,'dash','F5').ok,false);
+ assert.deepEqual(readControls({getItem:()=>'{invalid'}),DEFAULT_CONTROLS);
+ assert.deepEqual(readControls({getItem:()=>JSON.stringify({...DEFAULT_CONTROLS,up:'KeyS'})}),DEFAULT_CONTROLS);
+});
+
+test('manual modes have a stable order while RMB priority remains independent',()=>{
+ const both=manualWeapons({rail:true,howitzer:true},true);
+ assert.deepEqual(both,['rail','howitzer']);
+ assert.deepEqual(manualWeapons({rail:true,howitzer:true},false),['howitzer']);
+ assert.equal(selectedManual('missing',both),'rail');
+ assert.equal(cycleManual('rail',both,1),'howitzer');
+ assert.equal(cycleManual('howitzer',both,1),'rail');
+ assert.equal(cycleManual('rail',both,-1),'howitzer');
+ assert.equal(manualClick('rail',true),'rail');
+ assert.equal(manualClick('rail',false),'rail');
+ assert.equal(manualClick('rail',false,true),'designate');
+ assert.equal(manualClick('howitzer',true),'howitzer');
+ assert.equal(manualClick('howitzer',false,true),'designate','touch target selection remains available with heavy weapon installed');
+ assert.equal(manualClick('rail',true,true),'rail','explicit touch precision mode still fires the rail');
+ assert.equal(manualClick(null,false),'designate');
+});
+
+test('manual howitzer really aims at mouse point, while F keeps its automatic target',()=>{
+ const g=game();g.weaponProfile.howitzer=true;
+ const aimed=planHowitzer(g,{x:215,y:120});
+ assert.equal(aimed.ok,true);
+ assert.equal(aimed.charge.x,215);
+ assert.equal(aimed.charge.y,120);
+ assert.equal(planHowitzer(g,{x:901,y:0}).ok,false);
+ assert.equal(planHowitzer(g,{x:NaN,y:0}).ok,false);
+ assert.equal(planHowitzer(g).ok,false,'F still requires a hostile target');
+});
+
+test('actual game selection keeps manual rail and howitzer separate from automatic mounts',()=>{
+ const g=game(['rail','plasma',null,null,null,'howitzer']);
+ const arsenal={id:'1:0',type:'arsenal',x:100,y:0,enemy:false,active:true,discovered:true};
+ g.world.stations.set(arsenal.id,arsenal);
+ assert.equal(precisionRailUnlocked(g.world),true);
+ g.syncManualWeaponSelection();
+ assert.equal(g.selectedManualWeapon,'rail');
+ assert.equal(g.manualRailMode,false,'installing the rail must preserve automatic fire');
+ assert.equal(g.switchManualWeapon(),true);
+ assert.equal(g.selectedManualWeapon,'howitzer');
+ assert.equal(g.manualRailMode,false);
+ assert.ok(g.weaponProfile.plasma);
+ assert.equal(g.switchManualWeapon(),true);
+ assert.equal(g.selectedManualWeapon,'rail');
+ assert.equal(g.manualRailMode,false,'returning to rail does not disable automatic fire before a manual shot');
+ assert.equal(g.fireSelectedManualAt({x:190,y:30}),true);
+ assert.equal(g.manualRailMode,true,'a deliberate desktop LMB shot enters precision control');
+ g.syncManualWeaponSelection();
+ assert.equal(g.manualRailMode,true,'normal loadout refresh does not erase the deliberate mode choice');
+});
+
+test('the published UI offers keyboard settings and a single cursor-directed manual action',()=>{
+ const gameText=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(gameText,/this\.fireSelectedManualAt\(worldPoint\)/);
+ assert.match(gameText,/this\.designateTargetAt\(point\)/);
+ assert.match(gameText,/this\.switchManualWeapon\(e\.deltaY>0\?1:-1\)/);
+ assert.match(gameText,/e\.button===2[\s\S]{0,110}this\.designateTargetAt/);
+ assert.match(html,/id="controlsBindingList"/);
+ assert.match(html,/id="controlsReset"/);
+ assert.match(gameText,/this\.recordStorage\?\.setItem\(CONTROL_STORAGE_KEY/);
+});

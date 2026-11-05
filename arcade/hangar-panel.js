@@ -1,8 +1,9 @@
 import {WEAPON_SPECIALIZATIONS,specializationState,quoteSpecialization} from './weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2';
 import {loadoutAnalysis} from './loadout-analysis.js?v=weapons-cycle-2-campaign-1';
 import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalSpec,tacticalQuote} from './tactical-fields.js?v=tactical-field-1';
+import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1';
 import {MODULES,FRAME_STEPS,BLUEPRINT_NAMES,SHIP_ART,HangarSession,createLoadout,
- frameSpec,slotOpen,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2';
+ frameSpec,slotOpen,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>typeof n==='number'?Number(n.toFixed(2)).toLocaleString('ru-RU'):n;
@@ -47,6 +48,7 @@ function tacticalPanel(context){
  const state=context.tactical||createTactical(),current=TACTICAL_DEVICES[state.equipped],
   spec=tacticalSpec(state),loan=context.fieldLoan,
   overridden=loan&&context.loadout.slots.includes(loan.moduleId||'ion');
+ const fieldKey=esc(readableKey((context.controls||DEFAULT_CONTROLS).field));
  const cards=Object.entries(TACTICAL_DEVICES).map(([id,device])=>{
   const owned=state.owned.includes(id),equipped=state.equipped===id;
   const act=owned?'equip':'unlock',quote=tacticalQuote(state,act,id,context);
@@ -65,9 +67,9 @@ function tacticalPanel(context){
     (owned?'Equip':'Unlock'),esc(caption),id,!quote.ok)+upgrade+'</article>';
  }).join('');
  return '<section class="hg-tactical" aria-label="Нелетальное оружие"><div class="hg-tactical-current"><div>'+
-  '<span class="hg-eyebrow">ТАКТИЧЕСКИЙ СЛОТ · SPACE</span><h3>'+esc(current.name)+'</h3><p>'+esc(current.desc)+
+  '<span class="hg-eyebrow">ТАКТИЧЕСКИЙ СЛОТ · '+fieldKey+'</span><h3>'+esc(current.name)+'</h3><p>'+esc(current.desc)+
   ' · Перезарядка '+spec.cooldown+' с.</p>'+
-  (overridden?'<small>Пока установлен прокатный модуль, Space активирует его. После возврата снова работает тактический слот.</small>':'')+
+  (overridden?'<small>Пока установлен прокатный модуль, '+fieldKey+' активирует его. После возврата снова работает тактический слот.</small>':'')+
   '</div><details class="hg-tactical-details" data-hangar-section="tactical"><summary>Заменить или улучшить</summary><div class="hg-tactical-options">'+cards+
   '</div></details></div></section>';
 }
@@ -97,6 +99,7 @@ function shipScene(context,session){
 export function renderShipHangar(state,session=state.hangarSession){
  const context={...state,fieldLoan:state.fieldLoan||state.ionLoan,level:state.level||1,ore:state.ore||0,baseActive:state.baseActive!==false,
   loadout:state.loadout||createLoadout(),ranks:state.skillRanks||state.ranks||{}};
+ const controlKey=id=>esc(readableKey((context.controls||DEFAULT_CONTROLS)[id]));
  session=session||new HangarSession();if(!session.draft)session.begin(context.loadout);
  const current=context.loadout,draft=session.draft,frame=frameSpec(current),slot=session.slot,
   open=slotOpen(current,slot),id=session.selected,m=MODULES[id],old=draft.slots[slot],quote=quoteLoadout(current,draft,context);
@@ -133,7 +136,7 @@ export function renderShipHangar(state,session=state.hangarSession){
    item.cost===null?'Прокат':stock.owned?'Ещё одно орудие: '+item.cost+' сплава':'Изготовить: '+item.cost+' сплава');
   return '<button type="button" data-act="hgSelect" data-id="'+item.id+'" class="hg-weapon'+(session.inspect&&id===item.id?' selected':'')+
    (reason?' unavailable':'')+'" style="--module-color:'+item.color+'" aria-pressed="'+(session.inspect&&id===item.id)+'">'+icon(item.id)+
-   '<span><strong>'+item.name+'</strong><small>'+item.role+' · '+(item.kind==='auto'?'автоогонь':item.kind==='heavy'?'F':'Space')+'</small><em>'+
+   '<span><strong>'+item.name+'</strong><small>'+item.role+' · '+(item.kind==='auto'?'автоогонь':item.kind==='heavy'?'ЛКМ':controlKey('field'))+'</small><em>'+
    esc(availability)+'</em></span></button>';
  };
  const noFreeStock=!old&&slot!==5&&accessible.length>0&&
@@ -164,7 +167,7 @@ export function renderShipHangar(state,session=state.hangarSession){
    button('hgRemove','Снять модуль','',!old,'hg-remove'):
    '<h3>Узел ещё закрыт</h3><p>'+(slot===5?'Узел H открывается отдельно после пяти обычных. В него устанавливается осадная гаубица.':
     'Дополнительные узлы открываются по очереди. Графическая стадия корабля не ограничивает число доступных узлов.')+'</p>')+
-   '<div class="hg-control-note"><span>Автооружие · <kbd>C</kbd> вкл/выкл</span><span>Тактический модуль · <kbd>Space</kbd></span><span>Приоритет автоматике · ПКМ</span><span>Ручной рельс · ЛКМ</span><span>Гаубица · <kbd>F</kbd></span></div></aside>';
+   '<div class="hg-control-note"><span>Автооружие · <kbd>'+controlKey('cease')+'</kbd> вкл/выкл</span><span>Тактический модуль · <kbd>'+controlKey('field')+'</kbd></span><span>Приоритет автоматике · ПКМ</span><span>Выбранное ручное оружие · ЛКМ</span><span>Смена ручного оружия · колесо мыши</span><span>Гаубица · <kbd>'+controlKey('howitzer')+'</kbd> — запасной способ</span><span>Клавиши можно изменить в настройках.</span></div></aside>';
  const frameLock=!next?'':context.level<next.level?'Нужен уровень '+next.level:context.ore<next.cost?'Не хватает '+(next.cost-context.ore)+' ед. сплава':'';
  const progression='<section class="hg-progression"><div><span class="hg-eyebrow">РАЗВИТИЕ КОРПУСА</span><strong>'+frame.nodes+(frame.nodes===5?' обычных узлов':' обычных узла')+(frame.heavy?' + H':'')+'</strong></div>'+
   '<ol>'+FRAME_STEPS.map((step,i)=>'<li class="'+(i<=current.frame?'unlocked':'')+'"><b>'+step.nodes+(step.heavy?' + H':'')+'</b><small>ур. '+step.level+'</small></li>').join('')+'</ol>'+

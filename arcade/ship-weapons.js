@@ -1,6 +1,6 @@
 import {RULES,beamDamage} from './balance.js?v=arcade-balanced-bases-30';
 import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight} from './weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2';
-import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2';
+import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2-unified-controls-1';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=rpg-precision-audit-1-expedition-1-campaign-1';
@@ -201,15 +201,25 @@ export function updateAuxiliaryWeapons(game,dt,allowed){
  for(const id of ['rail','flak'].sort((a,b)=>game.moduleClocks[a]-game.moduleClocks[b]))
   if(game.weaponProfile[id]&&game.moduleClocks[id]<=0&&!game.weaponThermal.locked)fireBeamFamily(game,id);
 }
-export function planHowitzer(game){
+export function planHowitzer(game,point=null){
  if(!game.weaponProfile?.howitzer)return {ok:false,reason:'Установите гаубицу в узел H в ангаре'};
  if(game.heavyCharge)return {ok:false,reason:'Гаубица уже готовит выстрел'};
  if(game.heavyShells?.length)return {ok:false,reason:'Снаряд гаубицы ещё в полёте'};
  if(game.weaponThermal.locked)return {ok:false,reason:'Оружие перегрето. Дождитесь охлаждения'};
  if(game.heavyCooldown>0)return {ok:false,reason:'Гаубица заряжается: '+Math.ceil(game.heavyCooldown)+' с'};
- const chosen=selectTargets(game,900,1,true)[0];
- if(!chosen)return {ok:false,reason:'Для гаубицы нет враждебной цели в пределах 900 м'};
- return {ok:true,charge:{x:chosen.target.x,y:chosen.target.y,remaining:1.25,total:1.25}};
+ // LMB uses the cursor point; F and the touch HUD retain the old automatic
+ // target selection for players who use those controls.
+ let target;
+ if(point){
+  if(!Number.isFinite(point.x)||!Number.isFinite(point.y)||targetDistance(game.player,point)>900)
+   return {ok:false,reason:'Укажите точку выстрела в пределах 900 м'};
+  target=point;
+ }else{
+  const chosen=selectTargets(game,900,1,true)[0];
+  if(!chosen)return {ok:false,reason:'Для гаубицы нет враждебной цели в пределах 900 м'};
+  target=chosen.target;
+ }
+ return {ok:true,charge:{x:target.x,y:target.y,remaining:1.25,total:1.25}};
 }
 export function updateHowitzer(game,dt){
  game.heavyCooldown=Math.max(0,(game.heavyCooldown||0)-dt);

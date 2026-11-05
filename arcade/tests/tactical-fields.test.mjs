@@ -162,7 +162,7 @@ test('hangar teaches tactical effects without a second combat hotkey',()=>{
  const loadout=createLoadout(),session=new HangarSession();session.begin(loadout);
  const ui=renderShipHangar({loadout,hangarSession:session,tactical:createTactical(),
   ...station,skillRanks:{},ranks:{}},session);
- assert.match(ui,/ТАКТИЧЕСКИЙ СЛОТ · SPACE/);
+ assert.match(ui,/ТАКТИЧЕСКИЙ СЛОТ · Пробел/);
  assert.match(ui,/Инерционный импульс/);
  assert.match(ui,/Ложный маяк/);
  assert.match(ui,/Радиопомеха/);
