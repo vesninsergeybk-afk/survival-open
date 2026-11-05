@@ -75,10 +75,14 @@ test('the optional opening crisis and its objective survive a station checkpoint
  const fresh=scene();restoreCheckpoint(fresh,loaded);
  assert.equal(fresh.openingArc.status,'active');
  assert.equal(fresh.openingArc.commanderSerial,8);
+ assert.equal(fresh.openingArc.commanderDefeated,false);
+ assert.equal(fresh.openingArc.commanderDefeatedAt,null);
  assert.equal(fresh.enemies[0].openingCommander,true);
  assert.deepEqual(fresh.openingArc.returnWaypoint,g.openingArc.returnWaypoint);
  const damaged=unpackRun(packRun(loaded));damaged.state.openingArc.repair=500;
  assert.equal(validateCheckpoint(damaged),false);
+ const old=unpackRun(packRun(loaded));delete old.state.openingArc.commanderDefeated;
+ assert.ok(validateCheckpoint(old),'checkpoints predating the kill flag remain readable');
 });
 test('an announced, funded industrial response survives a save without a duplicate charge',()=>{
  const g=scene(),s=g.world.regionalSupply.frontier.azure;

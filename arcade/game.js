@@ -23,7 +23,7 @@ import {ArcadeVisuals} from './visuals.js?v=regions-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1';
@@ -47,12 +47,12 @@ import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogist
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
- openingArcActive,openingArcPressure,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-2';
+ openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-3';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -664,18 +664,18 @@ export class ArcadeGame {
   if(!arc||this.visuals.capitalDamageQA)return;
   if(arc.status==='offer'){
    if(this.time>130){arc.status='skipped';return;}
-   if(this.time>=OPENING_ARC.offerAt&&!this.operation&&
+   // Do not interrupt a contract the pilot already chose in the station.
+   // The crisis can be offered later, while there is still time to respond.
+   if(this.time>=OPENING_ARC.offerAt&&!this.operation&&!this.contract&&
      Math.hypot(this.player.x-this.world.home.x,this.player.y-this.world.home.y)<2200)
     this.showOpeningChoice();
    return;
   }
   if(!openingArcActive(arc))return;
-  const commander=arc.kind==='intercept'?
-   this.enemies.find(e=>e.serial===arc.commanderSerial&&e.openingCommander):null;
   const near=arc.kind==='rescue'&&
    Math.hypot(this.player.x-arc.rescueX,this.player.y-arc.rescueY)<=OPENING_ARC.repairRange;
   const result=advanceOpeningArc(arc,this.time,dt,{
-   commanderAlive:!!commander&&commander.hp>0,
+   commanderDefeated:arc.commanderDefeated===true,
    repairing:!!this.openingRepairing,withinRange:near});
   if(result==='failed'){
    if(this.waypoint?.id==='opening-'+arc.kind)this.waypoint=arc.returnWaypoint;
@@ -2840,6 +2840,7 @@ export class ArcadeGame {
   for(const e of this.enemies){
    e.hit=Math.max(0,(e.hit||0)-dt);
    if(e.hp>0)continue;
+   recordOpeningCommanderDefeat(this.openingArc,e,this.time);
    if(!e.visualDeath){
     e.visualDeath=true;
     const heavy=e.type==='gunship';
@@ -3492,8 +3493,22 @@ export class ArcadeGame {
     c.save();c.translate(x,y);c.rotate(a+Math.PI/2);
     c.fillStyle='#71f4e0';c.beginPath();c.moveTo(0,-12);c.lineTo(-8,7);
     c.lineTo(8,7);c.fill();c.restore();
-    c.font='12px system-ui';c.textAlign='center';c.fillStyle='#b4edec';
-    c.fillText(Math.round(d)+' м',x,y+25);
+    const cue=openingWaypointCue(target,d);
+    c.save();c.textAlign='center';
+    if(cue){
+     // A bare distance can look like the label of a station directly behind
+     // the arrow. The first two assignments identify their target explicitly.
+     c.font='bold 11px system-ui';
+     const w=Math.min(204,Math.max(118,c.measureText(cue).width+18));
+     const bx=clamp(x,w/2+8,this.vw-w/2-8),by=clamp(y+25,22,this.vh-16);
+     c.fillStyle='#082235e8';c.fillRect(bx-w/2,by-14,w,24);
+     c.strokeStyle='#edc487b0';c.lineWidth=1;c.strokeRect(bx-w/2,by-14,w,24);
+     c.fillStyle='#ffdfab';c.fillText(cue,bx,by+2,w-12);
+    }else{
+     c.font='12px system-ui';c.fillStyle='#b4edec';
+     c.fillText(Math.round(d)+' м',x,y+25);
+    }
+    c.restore();
    }
   }
  }

@@ -11,7 +11,7 @@ export const OPENING_ARC=Object.freeze({
 
 export function createOpeningArc(home){
  return {version:1,status:'offer',kind:null,startedAt:0,expiresAt:0,
-  commanderSerial:null,repair:0,
+  commanderSerial:null,commanderDefeated:false,commanderDefeatedAt:null,repair:0,
   rescueX:home.x-755,rescueY:home.y+670,
   interceptX:home.x+625,interceptY:home.y-500,
   reliefUntil:0,alarmUntil:0,returnWaypoint:null};
@@ -25,12 +25,23 @@ export function beginOpeningArc(arc,kind,now){
  arc.expiresAt=now+OPENING_ARC.deadline;return true;
 }
 
-export function advanceOpeningArc(arc,now,dt,{commanderAlive=true,repairing=false,withinRange=false}={}){
+export function recordOpeningCommanderDefeat(arc,enemy,now){
+ if(!openingArcActive(arc)||arc.kind!=='intercept'||
+  !enemy?.openingCommander||enemy.serial!==arc.commanderSerial||enemy.hp>0||
+  enemy.expAwarded||enemy.converted||!Number.isFinite(now))return false;
+ arc.commanderDefeated=true;arc.commanderDefeatedAt=now;return true;
+}
+
+export function advanceOpeningArc(arc,now,dt,{commanderDefeated=false,repairing=false,withinRange=false}={}){
  if(!openingArcActive(arc))return 'idle';
  // One success transition only; a late kill cannot award a failed assignment.
- if(now>=arc.expiresAt){arc.status='failed';return 'failed';}
+ const timelyKill=arc.kind==='intercept'&&commanderDefeated&&arc.commanderSerial!==null&&
+  Number.isFinite(arc.commanderDefeatedAt)&&arc.commanderDefeatedAt<arc.expiresAt;
+ if(now>=arc.expiresAt&&!timelyKill){arc.status='failed';return 'failed';}
  if(arc.kind==='intercept'){
-  if(!commanderAlive){
+  // An absent ship is not proof of victory: saves, despawns and a missing
+  // reference must never hand out the first weapon for free.
+  if((now<arc.expiresAt||timelyKill)&&commanderDefeated&&arc.commanderSerial!==null){
    arc.status='complete';arc.reliefUntil=now+OPENING_ARC.interceptRelief;
    return 'intercept-complete';
   }
@@ -90,6 +101,13 @@ export function openingArcObjective(arc,now){
   Math.round(arc.repair/OPENING_ARC.repairSeconds*100)+'% · '+seconds+' с';
 }
 
+export function openingWaypointCue(waypoint,distance){
+ if(!Number.isFinite(distance)||distance<0)return '';
+ if(waypoint?.id==='opening-intercept')return 'НАВОДЧИК · '+Math.round(distance)+' М';
+ if(waypoint?.id==='opening-rescue')return 'КАПСУЛА · '+Math.round(distance)+' М';
+ return '';
+}
+
 export function validateOpeningArc(arc){
  if(!arc||arc.version!==1||!['offer','active','complete','failed','skipped'].includes(arc.status)||
   ![null,'intercept','rescue'].includes(arc.kind))return false;
@@ -98,6 +116,11 @@ export function validateOpeningArc(arc){
    Math.abs(arc[key])>1e9)return false;
  if(arc.repair<0||arc.repair>OPENING_ARC.repairSeconds||
   (arc.commanderSerial!==null&&(!Number.isInteger(arc.commanderSerial)||arc.commanderSerial<1)))return false;
+ if(arc.commanderDefeated!==undefined&&typeof arc.commanderDefeated!=='boolean')return false;
+ if(arc.commanderDefeated&&arc.kind!=='intercept')return false;
+ if(arc.commanderDefeatedAt!==undefined&&arc.commanderDefeatedAt!==null&&
+  (!Number.isFinite(arc.commanderDefeatedAt)||arc.commanderDefeatedAt<0||
+   arc.commanderDefeatedAt>1e9||!arc.commanderDefeated))return false;
  if(arc.status==='active'&&(!arc.kind||arc.expiresAt<=arc.startedAt))return false;
  if(arc.returnWaypoint!==undefined&&arc.returnWaypoint!==null&&
   (typeof arc.returnWaypoint!=='object'||typeof arc.returnWaypoint.id!=='string'||
