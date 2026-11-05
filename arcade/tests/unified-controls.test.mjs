@@ -85,6 +85,10 @@ test('the published UI offers keyboard settings and a single cursor-directed man
  assert.match(gameText,/this\.switchManualWeapon\(e\.deltaY>0\?1:-1\)/);
  assert.match(gameText,/e\.button===2[\s\S]{0,110}this\.designateTargetAt/);
  assert.match(html,/id="controlsBindingList"/);
+ assert.ok(html.indexOf('id="controlsBindingMessage"')<html.indexOf('id="controlsBindingList"'),
+  'conflict feedback must be visible above the long list, without scrolling');
  assert.match(html,/id="controlsReset"/);
  assert.match(gameText,/this\.recordStorage\?\.setItem\(CONTROL_STORAGE_KEY/);
+ assert.match(gameText,/list\.querySelector\('\[data-bind=/,
+  'the remapped button must regain focus after rebuilding the list');
 });
