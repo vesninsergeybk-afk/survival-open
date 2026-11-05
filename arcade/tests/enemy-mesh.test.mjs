@@ -9,11 +9,12 @@ const ship=(serial,x,y=0)=>({
   type:'fighter',state:'hunt',hp:70,maxHp:70,damage:12,
   think:10,fire:10,commitUntil:10
 });
-const group=(id,x)=>({
-  id,leader:ship(id*10+1,x),members:[ship(id*10+1,x),
-    ship(id*10+2,x+18,15)],brokenUntil:0,mode:null,intel:null,
-  proposals:new Map(),attackReports:[],lossReports:[],motionReports:[]
-});
+const group=(id,x)=>{
+  const leader=ship(id*10+1,x),wing=ship(id*10+2,x+18,15);
+  return {id,leader,members:[leader,wing],
+    brokenUntil:0,mode:null,intel:null,proposals:new Map(),
+    attackReports:[],lossReports:[],motionReports:[]};
+};
 const station=(id,x,y=0)=>({
   id,x,y,hp:250,maxHp:250,enemy:true,captured:false,
   strategicRole:'central-depot',type:'carrier',rank:2
@@ -170,7 +171,7 @@ test('delivered attack alarm changes local defense without imaginary gun positio
 test('recipient does not change tactics until it itself sees the player',()=>{
   const a=attack(group(1,0)),b=group(2,1450),relay=station('relay',720);
   const g=game([relay],[a,b]),net=new EnemyComms();
-  net.update(g);
+  g.time=0;net.update(g);
   const source=net.cells.find(c=>c.members.some(e=>e.serial===a.leader.serial));
   const remote=net.cells.find(c=>c.members.some(e=>e.serial===b.leader.serial));
   assert.ok(source&&remote&&source!==remote);
@@ -178,6 +179,16 @@ test('recipient does not change tactics until it itself sees the player',()=>{
   for(const t of [2,2.75,3.5]){
     g.time=t;net.update(g);
   }
-  assert.equal(remote.threat?.mesh,true,'remote cell can know general weapon category');
-  assert.fail('placeholder');
+  assert.equal(remote.threat?.mesh,undefined,
+    'remote observation alone cannot be promoted to local target knowledge');
+  assert.equal(net.mesh.bestForCell(remote,3.5)?.kind,'long');
+  // Only after this particular squad spots the target can it use the
+  // learned weapon category to choose a combat manoeuvre.
+  g.time=4.25;
+  net.reportSight(remote.leader,g.player,4.1);
+  net.update(g);
+  assert.equal(remote.threat?.mesh,true);
+  assert.equal(remote.threat.kind,'long');
+  assert.equal(remote.mode,'close');
+  assert.equal(Object.hasOwn(remote.threat,'x'),false);
 });
