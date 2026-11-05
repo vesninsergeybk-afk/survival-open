@@ -1,6 +1,6 @@
 import {menuInfo} from './menu-screens.js?v=all-menus-1';
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1';
-import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2';
+import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';

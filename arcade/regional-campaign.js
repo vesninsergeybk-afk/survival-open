@@ -1,4 +1,4 @@
-import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2';
+import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-supply-stronghold-1';
 import {regionAt,REGIONS,REGION_LIMIT} from './regions.js?v=regions-audit-1';
 
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -20,25 +20,48 @@ export function campaignDestination(game,key){
 // Time unlocks formations, but cannot erase the military effect of a blockade.
 // Geography retains different baseline danger; funded ships and retaliation
 // are added by the existing, resource-backed industrial systems.
+// Geography sets a readable soft gate. The player's level never increases
+// the enemy threat: venturing towards a major hostile base does. Disrupting
+// its industry removes its elite patrol bonus and restores safer routes.
+export function strongholdThreat(world,player){
+ const region=regionAt(player.x,player.y);
+ const front=warFronts(world).find(f=>f.regions.includes(region.id));
+ const inactive=!front?.depot?.enemy||!!front?.outcome;
+ const nodes=inactive?[]:[front.source,front.depot].filter(s=>s?.enemy&&s.hp>0);
+ const distance=nodes.length?Math.min(...nodes.map(s=>Math.hypot(s.x-player.x,s.y-player.y))):Infinity;
+ const depth=region.id==='amethyst'?0:region.id==='amber'?1:region.id==='azure'?1:2;
+ const proximity=distance<1800?2:distance<4800?1:0;
+ const tier=inactive?1:Math.min(5,1+depth+proximity);
+ return {tier,region:region.id,front:front?.key||null,distance,
+  recommendedLevel:[1,2,4,6,9][tier-1],nearStronghold:distance<4800};
+}
+
 export function regionalCampaignPressure(director,world,player){
  if(!world?.regionalSupply||!director.types?.length||Math.hypot(player.x,player.y)>REGION_LIMIT)return director;
  const region=regionAt(player.x,player.y).id;
- // The first theatre keeps its more detailed home-conflict director.
- if(region==='amethyst'&&world.home&&Math.hypot(player.x-world.home.x,player.y-world.home.y)<=10500)return director;
+ const threat=strongholdThreat(world,player);
+ const atHome=region==='amethyst'&&world.home&&
+  Math.hypot(player.x-world.home.x,player.y-world.home.y)<=10500;
+ if(atHome&&threat.tier===1)return director;
  const front=warFronts(world).find(f=>f.regions.includes(region));if(!front)return director;
  const base=region==='amethyst'?{cap:18,interval:6.2}:region==='lilac'?{cap:28,interval:4.8}:{cap:23,interval:5.4};
  const effect=front.outcome==='captured'?{cap:Math.ceil(base.cap*.5),interval:base.interval*1.8}:
   front.outcome==='starved'?{cap:Math.ceil(base.cap*.65),interval:base.interval*1.5}:
   !front.working?{cap:base.cap-3,interval:base.interval*1.15}:base;
- // Residual patrols still exist after liberation, but an empty industrial
- // network cannot keep replacing heavy hulls and specialist ships for free.
  const remaining=front.outcome==='captured'?['scout','fighter']:
   front.outcome==='starved'?['scout','fighter','flanker']:null;
- const types=remaining?director.types.filter(type=>remaining.includes(type)):director.types;
- return {...director,cap:Math.min(director.cap,effect.cap),
-  interval:Math.max(director.interval,effect.interval),
-  groupSize:Math.min(front.outcome?2:3,director.groupSize),
-  types:types.length?types:director.types.slice(0,1)};
+ const supplement=threat.tier>=4?['flanker','berserker','healer','gunship']:
+  threat.tier>=3?['flanker','berserker']:threat.tier>=2?['flanker']:[];
+ // An unfunded region never conjures its specialists as ambient substitutes.
+ const types=remaining?director.types.filter(type=>remaining.includes(type)):
+  [...new Set([...director.types,...supplement])];
+ const tierBonus=Math.max(0,threat.tier-2);
+ return {...director,cap:Math.min(director.cap+Math.min(4,tierBonus*2),effect.cap+tierBonus*2),
+  interval:Math.max(director.interval,effect.interval-tierBonus*.35),
+  groupSize:Math.min(front.outcome?2:threat.tier>=4?4:3,
+   director.groupSize+(threat.tier>=4?1:0)),
+  types:types.length?types:director.types.slice(0,1),
+  strongholdTier:threat.tier};
 }
 
 export function campaignVisible(game){

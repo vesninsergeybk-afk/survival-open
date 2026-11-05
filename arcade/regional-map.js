@@ -1,8 +1,9 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
 import {SUPPLY,supplyRoute,supplyStatus,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2';
-import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1-enemy-balance-2';
-import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
-import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2';
+import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-stronghold-1';
+import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1';
+import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-supply-stronghold-1';
+import {strongholdThreat} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1-stronghold-1';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
@@ -36,6 +37,8 @@ const REGION_BRIEF=Object.freeze({
 export function renderRegionAtlas(game){
  const world=game.world,s=world.regionalSupply;if(!s)return '';
  const current=regionAt(game.player.x,game.player.y),mine=world.stations.get(SUPPLY.mineId);
+ const threat=strongholdThreat(world,game.player);
+ const threatCue=threat.tier>1?'<p class="region-threat-cue">ОПАСНОСТЬ '+threat.tier+'/5 · рекомендуемый уровень '+threat.recommendedLevel+'+. У главных баз вражеские группы сильнее. Нарушение снабжения ослабляет патрули.</p>':'';
  const fronts=warFronts(world);
  const q=p=>({x:150+p.x*.0022,y:120+p.y*.0022});
  const labels=REGIONS.map(r=>{const p=q(r);return '<text x="'+p.x+'" y="'+p.y+'" text-anchor="middle" fill="'+r.color+'" font-size="12">'+r.number+' · '+(r.id==='amethyst'?'Старт':r.id==='amber'?'Рудный пояс':r.id==='azure'?'Разлом':r.id==='lilac'?'Военный рубеж':'Обломки')+'</text>';}).join('');
@@ -94,7 +97,7 @@ export function renderRegionAtlas(game){
    return '<p><strong>'+(id==='azure'?'Энергосеть разлома':'Ремонтная сеть обломков')+'</strong>: источник — '+known(source)+
     ', сборка — '+known(depot)+'. Замечено грузов: '+net.convoys.filter(c=>c.seen).length+
     '. Резервов: '+(depot?.discovered?net.reserves:'неизвестно')+'. '+
-    (id==='azure'?'Разряды бурь заряжают перехватчиков.':'Сборщики разбирают ограниченные залежи металла.')+
+    (id==='azure'?'Разряды бурь заряжают перехватчиков.':'Сборщики подбирают приходящие с космическим дрейфом обломки. Разрушение скоплений прерывает добычу.')+
     tactics+(source?.discovered||depot?.discovered?
      ' Ремонтные экспедиции: отправлено '+(net.repairsLaunched||0)+
      ', доставлено '+(net.repairsCompleted||0)+', перехвачено '+(net.repairsIntercepted||0)+
@@ -112,7 +115,7 @@ export function renderRegionAtlas(game){
   (world.stations.get(SUPPLY.militaryId)?.discovered?
    'Готовых резервов: '+s.reserves+'; '+(s.pendingRaid?'один отряд ожидает выхода.':'отряд на вылете не готов.'):
    'Запас военного узла пока не разведан.')+'</p>':'';
- return '<div class="map-objective region-status"><span>РЕГИОН '+current.number+' · '+enc(current.name)+'</span><p>'+enc(current.cue)+'</p>'+
+ return '<div class="map-objective region-status"><span>РЕГИОН '+current.number+' · '+enc(current.name)+'</span><p>'+enc(current.cue)+'</p>'+threatCue+
   '<details class="region-atlas"><summary>Выбрать регион · угрозы, подготовка и цель</summary><svg viewBox="0 0 300 240" role="img" aria-label="Старт в центре, рудный пояс на востоке, разлом на юге, военный рубеж на севере, обломки на западе">'+
   '<rect width="300" height="240" rx="12" fill="#08182b"/><path d="M 150 120 L 300 0 V 240 Z" fill="#ffbb7015"/>'+
   '<path d="M 150 120 L 0 0 H 300 Z" fill="#dfa1e315"/><path d="M 150 120 L 0 240 H 300 Z" fill="#82e8ff15"/>'+

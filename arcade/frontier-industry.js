@@ -2,7 +2,8 @@ import {stormFields,stormPhase} from './regional-storms.js?v=regions-1';
 
 // Two deliberately different regional economies: the azure induction plant
 // harvests actual environmental discharge cycles; teal's recycler dismantles
-// a finite, visible wreck field. Neither source can conjure reinforcements.
+// visible wrecks that periodically catch new drifting scrap. Destroying all
+// collection sites or the source ends the inflow. No free combat ships exist.
 export const FRONTIERS=Object.freeze({
  azure:Object.freeze({id:'azure',name:'Лазурный разлом',resource:'заряды',
   sourceId:'frontier:azure:source',depotId:'frontier:azure:depot',
@@ -31,6 +32,7 @@ export const FRONTIER_STATIONS=Object.freeze([
  {id:FRONTIERS.teal.depotId,x:-42000,y:9000,type:'carrier',rank:3,
   strategicRole:'frontier-teal-depot',title:'Ремонтная верфь',hp:520,turrets:3,turretHp:95}
 ]);
+export const TEAL_DRIFT=Object.freeze({period:48,amount:5});
 export const FRONTIER_WRECKS=Object.freeze([
  {id:'wreck:0',x:-35170,y:10940,stock:60},
  {id:'wreck:1',x:-36100,y:11230,stock:60},
@@ -98,12 +100,13 @@ function createNetwork(id,time){
   intercepted:0,launched:0,raids:0,lastPulse:-1,history:[],strategy:createStrategy(time),
   repairExpedition:null,repairsLaunched:0,repairsCompleted:0,repairsIntercepted:0,
   nextRepairAt:at+FRONTIER_REPAIR.earliest,repairDispatchTimes:[],
+  nextDriftAt:id==='teal'?at+TEAL_DRIFT.period:null,lastDriftAt:-1,
   worker:id==='teal'?{frontierWorker:true,network:'teal',x:start.x,y:start.y,
    hp:95,maxHp:95,r:18,phase:'seek',cacheId:null,carry:0,
    from:{...start},to:{...start},at,until:at}:null,
   wrecks:id==='teal'?FRONTIER_WRECKS.map(w=>({frontierSalvage:true,network:'teal',
    id:w.id,x:w.x,y:w.y,r:35,hp:100,maxHp:100,stock:w.stock,maxStock:w.stock,
-   hit:0,rewarded:false})):[]};
+   hit:0,rewarded:false,driftAt:-1})):[]};
 }
 export function createFrontierIndustry(time=0){return {version:1,
  azure:createNetwork('azure',time),teal:createNetwork('teal',time)};}
@@ -275,7 +278,25 @@ export function advanceFrontierIndustry(world,time){
      if(src.discovered)emit('harvest',t);
     }
    }
-   if(id==='teal')tealWorkerTick(world,s,t);
+   if(id==='teal'){
+    // Older saves begin their next drift from the current simulation time.
+    // Scrap joins a surviving wreck, then a living worker must salvage and
+    // haul it to the source; the player can interrupt either stage.
+    s.nextDriftAt??=t+TEAL_DRIFT.period;
+    if(t>=s.nextDriftAt){
+     s.nextDriftAt=t+TEAL_DRIFT.period;
+     if(src?.enemy&&s.worker?.hp>0){
+      const open=s.wrecks.filter(c=>c.hp>0&&c.stock<c.maxStock)
+       .sort((a,b)=>a.stock-b.stock||a.id.localeCompare(b.id));
+      if(open.length){
+       const wreck=open[0];wreck.stock=Math.min(wreck.maxStock,wreck.stock+TEAL_DRIFT.amount);
+       wreck.driftAt=t;s.lastDriftAt=t;
+       if(src.discovered)emit('wreck-drift',t);
+      }
+     }
+    }
+    tealWorkerTick(world,s,t);
+   }
    updateStrategy(s,id,src,depot,t,emit);
    if(src?.enemy&&depot?.enemy&&s.resource>=cfg.cost&&
       t>=s.nextDispatch&&s.convoys.length===0&&s.reserves<2){
@@ -489,11 +510,13 @@ export function frontierIndustryValid(root,time){
    !['delivered','intercepted','launched','raids'].every(k=>
      Number.isSafeInteger(s[k])&&numeric(s[k]))||
    !Number.isInteger(s.lastPulse)||!numeric(s.lastPulse,-1,1e9)||
+   (s.nextDriftAt!==undefined&&s.nextDriftAt!==null&&!numeric(s.nextDriftAt,0,1e9))||
+   (s.lastDriftAt!==undefined&&!numeric(s.lastDriftAt,-1,time))||
    !responseValid(s.strategy)||
    !Array.isArray(s.history)||s.history.length>8||
    s.history.some(e=>e.network!==id||!numeric(e.time,0,time)||
     !['harvest','dispatch','delivery','diverted','raid-warning','raid',
-      'intercept','worker-lost','wreck-emptied','source-captured','depot-captured',
+      'intercept','worker-lost','wreck-emptied','wreck-drift','source-captured','depot-captured',
       'route-prep','route-changed','screen-prep','screen-ready','screen-dispatch',
       'emergency-prep','emergency-raid','shipment-overdue',
       'repair-depot-dispatch','repair-source-dispatch',
@@ -556,7 +579,8 @@ export function frontierIndustryValid(root,time){
     const c=s.wrecks[i],spec=FRONTIER_WRECKS[i];
     if(c.id!==spec.id||c.frontierSalvage!==true||c.network!=='teal'||
       c.x!==spec.x||c.y!==spec.y||c.r!==35||c.maxHp!==100||
-      !numeric(c.hp,0,100)||c.maxStock!==spec.stock||
+      !numeric(c.hp,0,100)||(c.driftAt!==undefined&&!numeric(c.driftAt,-1,time))||
+      c.maxStock!==spec.stock||
       !numeric(c.stock,0,spec.stock)||typeof c.rewarded!=='boolean')return false;
    }
   }

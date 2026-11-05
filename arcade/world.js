@@ -1,7 +1,7 @@
 import {amberRegion} from './regions.js?v=regions-1';
-import {STRATEGIC_STATIONS,createRegionalSupply} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2';
-import {CENTRAL_STATIONS} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2';
-import {FRONTIER_STATIONS} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
+import {STRATEGIC_STATIONS,createRegionalSupply} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1';
+import {CENTRAL_STATIONS} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1';
+import {FRONTIER_STATIONS} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1';
 import {RULES, hash, dist, baseNames} from './balance.js?v=arcade-network-20';
 import {amberBeltDensity,nearAmberBelt,inAmberCorridor} from './terrain.js?v=arcade-belt-26';
 import {createContours,fieldAt} from './territory-system.js?v=contours-1-world-feedback-1';
