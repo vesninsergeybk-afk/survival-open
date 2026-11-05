@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#081320">
+<meta name="robots" content="noindex,nofollow">
+<title>Сифон‑3 · испытание добытчика · Выживший</title>
+<link rel="stylesheet" href="./siphon3-lab.css?v=1">
+<script type="module" src="./siphon3-lab.js?v=1"></script>
+</head>
+<body>
+ <header class="topbar">
+  <div class="brand"><span aria-hidden="true" class="brandmark">◇</span><span>ВЫЖИВШИЙ<small>Испытание Сифона‑3</small></span></div>
+  <nav aria-label="Переходы"><a href="./">Мастерская концепций</a><a href="../">Аркада</a></nav>
+ </header>
+ <main>
+  <section class="intro">
+   <span class="eyebrow">ИГРОВОЙ СТЕНД · ОТДЕЛЬНО ОТ СОХРАНЕНИЯ</span>
+   <h1>Сифон‑3 <span>в живой территории</span></h1>
+   <p>Проверяем нового сборщика энергии на поле, похожем на игровое: он вылетает от станции к огненной воронке внутри захваченного треугольника, добывает ресурс и возвращается. Маршрут, время рейса, доставка и возможность уничтожения рассчитываются модулем действующей игры.</p>
+   <div class="notice"><strong>Что здесь настоящее:</strong> кадры Сифона‑3 и расчёт территориальных добытчиков из <code>territory-system.js</code>. <strong>Что пока условно:</strong> карта, оформление воронки, противник и размещение объектов. Цифры этого стенда не меняют баланс игры.</div>
+  </section>
+  <section class="workbench" aria-label="Интерактивный стенд">
+   <div class="scene-pane">
+    <div class="scene-head"><div><span class="live-dot"></span> ПОЛЕВОЕ ИСПЫТАНИЕ <strong id="sim-status">Запуск…</strong></div><span id="sim-clock">00:00 игрового времени</span></div>
+    <canvas id="scene" width="1056" height="620" role="img" aria-label="Космическое поле с треугольником станций, огненной воронкой и движущимися Сифонами‑3"></canvas>
+    <div class="scene-foot"><span id="scene-caption">Светящийся контур означает занятую территорию. Жук должен доставить энергию на станцию.</span><span id="asset-status" aria-live="polite">Загрузка изображения…</span></div>
+    <div class="scene-actions">
+     <button id="spawn" class="primary" type="button">Выпустить Сифона</button>
+     <button id="intercept" class="danger" type="button">Проверить перехват</button>
+     <button id="pause" type="button">Пауза</button>
+     <button id="restart" type="button">Начать заново</button>
+    </div>
+   </div>
+   <aside class="control-pane" aria-label="Управление испытанием">
+    <div class="pane-heading"><span class="eyebrow">НАБЛЮДЕНИЕ</span><h2>Что делает добытчик</h2></div>
+    <div class="metrics">
+     <div><small>Энергия в сети</small><strong id="flux">0,0 <i>/ 30</i></strong></div>
+     <div><small>Доставлено за опыт</small><strong id="delivered">0,0</strong></div>
+     <div><small>На маршруте</small><strong id="workers">0 / 2</strong></div>
+     <div><small>Потеряно</small><strong id="lost">0</strong></div>
+    </div>
+    <div class="phase-card"><small>Текущее действие</small><strong id="phase">Ожидаем вылета</strong><p id="phase-detail">Добытчик появится автоматически или по кнопке.</p></div>
+    <div class="control">
+     <label for="scale">Скорость просмотра <output id="scale-value">×2</output></label>
+     <select id="scale"><option value="1">×1 · реальное игровое время</option><option value="2" selected>×2 · удобно наблюдать</option><option value="4">×4 · быстрый просмотр</option></select>
+    </div>
+    <div class="control">
+     <label for="sprite-size">Размер жука на экране <output id="sprite-value">64 пикс.</output></label>
+     <input type="range" id="sprite-size" min="30" max="120" value="64" step="2">
+     <div class="range-hints"><span>30 · мелкая цель</span><span>120 · крупный план</span></div>
+    </div>
+    <div class="control">
+     <label for="backdrop">На каком фоне проверяем</label>
+     <select id="backdrop"><option value="dark">Тёмный космос</option><option value="bright">Яркая туманность</option><option value="tactical">Стратегическая карта</option></select>
+    </div>
+    <div class="control"><label class="check"><input id="labels" type="checkbox" checked> Подписывать действия над жуком</label></div>
+    <div class="log-box"><h3>События рейса</h3><ol id="event-log" aria-live="polite"><li>Ожидаем загрузки сцены.</li></ol></div>
+    <p class="micro">В механике игры вылеты происходят примерно раз в 45 игровых секунд, одновременно допускаются два сборщика на область. Кнопка выпуска запускает дополнительный рейс для испытания.</p>
+   </aside>
+  </section>
+  <section class="conclusions" aria-label="Критерии приёмки">
+   <div><span class="eyebrow">ЧТО МЫ ПРОВЕРЯЕМ</span><h2>Три вопроса к игровому виду</h2></div>
+   <div class="check-grid">
+    <article><b>01 · Узнаваемость</b><p>Различим ли Сифона на масштабе 30–64 пикселя, когда фон яркий и рядом есть воронка?</p></article>
+    <article><b>02 · Читаемость действия</b><p>Понятно ли без пояснений, летит ли он к источнику, добывает или несёт энергию обратно?</p></article>
+    <article><b>03 · Реакция на опасность</b><p>Замечает ли игрок перехват и понимает ли, почему груз не дошёл до станции?</p></article>
+   </div>
+  </section>
+ </main>
+ <footer>Это диагностическая сцена. Настоящая игровая карта, сохранения и ресурсы не изменяются. <a href="./">Вернуться в мастерскую концепций</a></footer>
+</body>
+</html>
