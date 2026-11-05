@@ -64,11 +64,9 @@ test('a report needs two real long-range transmissions to reach military command
  tick(m,g,[origin],2);
  assert.equal(mine.meshArchive,undefined);
  tick(m,g,[origin],2.75);
- console.log('DEBUG2',JSON.stringify({pending:m.pending.map(t=>({from:t.from,to:t.to,kind:t.packet.kind,arrives:t.arrives,trunk:t.trunk})),nodes:[...m.nodes].map(([id,n])=>({id,known:[...n.known.values()].map(p=>p.kind)}))}));
  assert.equal(archivedWeapon(center,2.75)?.kind,'long');
  assert.equal(archivedWeapon(mine,2.75),null);
  tick(m,g,[origin],9.1);
- console.log('DEBUG9',JSON.stringify({pending:m.pending.map(t=>({from:t.from,to:t.to,kind:t.packet.kind,arrives:t.arrives,trunk:t.trunk})),mine:mine.meshArchive,nodes:[...m.nodes].map(([id,n])=>({id,known:[...n.known.values()].map(p=>p.kind)}))}));
  assert.equal(archivedWeapon(mine,9.1)?.kind,'long');
  assert.equal(archivedWeapon(military,9.1),null);
  tick(m,g,[origin],19.2);
