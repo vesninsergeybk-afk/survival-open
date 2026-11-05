@@ -233,6 +233,7 @@ test('landscape phone layout reserves notches and exposes navigation without thr
 
 
 test('published module tree loads current regional backbone and archive paths',()=>{
+ const source=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
  const entry=source('index.html');
  const game=source('game.js');
  const ai=source('ai.js');
