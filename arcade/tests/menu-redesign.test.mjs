@@ -159,11 +159,11 @@ test('published entry points invalidate the entire changed ES-module import chai
  assert.match(source('index.html'),/game\.js\?v=[^"']*network-defense-4/);
  assert.match(game,/region-runtime\.js\?v=living-world-4-logistics-audit-1/);
  const aiPath='ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-'+
-  'enemy-world-response-1-network-defense-4-enemy-audit-4-enemy-gunnery-1-opening-arc-1';
+  'enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1';
  for(const importer of ['game.js','region-runtime.js','combat-rewards.js'])
   assert.ok(source(importer).includes(aiPath),
    importer+' must import the same AI module instance');
- const commsPath='enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-4';
+ const commsPath='enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1';
  assert.ok(game.includes(commsPath));
  assert.ok(source('ai.js').includes(commsPath),
   'AI and game must share a single enemy radio module');

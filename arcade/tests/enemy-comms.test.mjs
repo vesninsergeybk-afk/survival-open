@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {EnemyComms,ENEMY_COMMS,collectiveDecision,enemyOrderMessage,
- classifyEnemyAttack,assessEnemyThreat,assessEnemyMotion,incomingFireEstimate,
- estimatedWeaponRange} from '../enemy-comms.js';
+ classifyEnemyAttack,assessEnemyThreat,assessEnemyMotion,
+ assessEnemyOpportunity,incomingFireEstimate,
+ estimatedWeaponRange,radioOrderCapable} from '../enemy-comms.js';
 import {updateEnemy} from '../ai.js';
 import {RuntimeHarness} from './runtime-game.mjs';
 import {contactOnCircle} from '../impact-geometry.js';
@@ -102,6 +103,21 @@ test('a real radio majority counters observed straight and turning flight differ
   {kind:'maneuver',motion:'turning'}),/двух сторон/);
 });
 
+test('a follower cannot read an unsent change of the commanders intentions',()=>{
+ const leader=ship(1,'fighter',95,70),wing=ship(2,'fighter',155,70);
+ const game=scene([leader,wing]),net=game.enemyComms;
+ net.update(game);
+ net.reportSight(leader,game.player,.1);
+ game.time=.7;net.update(game);
+ const before=net.directiveFor(wing,game.time);
+ assert.ok(before,'the follower has a genuine radio order');
+ assert.equal(before.threat,null);
+ net.cells[0].threat={kind:'weak',lastAt:.7};
+ assert.equal(net.directiveFor(wing,game.time)?.threat,null,
+  'local group memory is not a radio transmission to every ship');
+ assert.equal(net.directiveFor(leader,game.time)?.threat?.kind,'weak');
+});
+
 test('a new confirmed tactic is announced even if its maneuver name stays the same',()=>{
  const a=ship(11,'fighter',100,70),b=ship(12,'fighter',160,70);
  for(const e of [a,b])e._enemyLearning={style:'intercept'};
@@ -126,6 +142,44 @@ test('a new confirmed tactic is announced even if its maneuver name stays the sa
  assert.equal(net.cells[0].lastReportedTactic,'straight');
  assert.ok(net.intercepts.some(item=>item.message.includes('наперерез')));
  assert.ok(heard.some(message=>message.includes('наперерез')));
+});
+
+test('witnessed hull damage invites a finite finishing push, but repair cancels it',()=>{
+ const seen=[{at:1,motion:'slow',hullRatio:.32},
+  {at:2.3,motion:'slow',hullRatio:.29}];
+ assert.equal(assessEnemyOpportunity(seen.slice(0,1),1.3),null);
+ assert.equal(assessEnemyOpportunity(seen,2.4)?.kind,'weak');
+ assert.equal(assessEnemyOpportunity([...seen,
+  {at:2.5,motion:'slow',hullRatio:.91}],2.6),null,
+  'a witnessed repair cancels the entire earlier low-hull sequence');
+ assert.equal(assessEnemyOpportunity(seen,5),null,'the opportunity expires');
+ const a=ship(1,'fighter',100,70),b=ship(2,'fighter',160,70);
+ for(const e of [a,b])e._enemyLearning={style:'intercept'};
+ const game=scene([a,b]),net=game.enemyComms;
+ game.player.hp=36;game.player.x=45;game.player.y=30;
+ game.playerCanInterceptEnemyRadio=()=>true;
+ const heard=[];game.notice=message=>heard.push(message);
+ net.update(game);
+ net.reportSight(a,game.player,.1);
+ game.time=.7;net.update(game);
+ assert.notEqual(net.cells[0].threat?.kind,'weak',
+  'one sighting cannot unleash a coordinated finishing push');
+ net.reportSight(a,game.player,1.4);
+ game.time=1.5;net.update(game);
+ assert.equal(net.cells[0].threat?.kind,'weak');
+ game.time=3.7;net.update(game);
+ assert.equal(net.cells[0].mode,'press');
+ game.time=3.75;execute(game);
+ assert.ok(net.intercepts.some(entry=>/повреждён корпус/.test(entry.message)));
+ assert.ok(heard.some(entry=>/Не дать уйти/.test(entry)));
+ const intel={x:45,y:30,vx:175,vy:0,at:3.75};
+ net.directiveFor=()=>({mode:'press',side:1,leader:a,intel,
+  threat:{kind:'weak'}});
+ updateEnemy(b,game,.016);const weak=b._commsIntent;
+ net.directiveFor=()=>({mode:'press',side:1,leader:a,intel,threat:null});
+ updateEnemy(b,game,.016);
+ assert.ok(Math.hypot(weak.x-b._commsIntent.x,weak.y-b._commsIntent.y)>30,
+  'the finishing push must actually change the attack destination');
 });
 
 test('a witnessed course changes actual intercept and flanking destinations',()=>{
@@ -217,6 +271,63 @@ test('actual convoy damage alerts only witnessing patrols and cannot spawn reinf
  hitRegionalCargo(hidden,{...cargo,hp:100,_nextWitnessAlarmAt:0},10);
  assert.equal(hidden.enemies.some(e=>e._commsIncident),false,
   'concealed transport damage cannot broadcast magically');
+});
+
+test('real convoy escorts receive, execute and reveal a local defensive purpose',()=>{
+ const cargo={id:'regional-cargo-73',x:150,y:100,hp:180,maxHp:180,
+  regionalCargo:true};
+ const leader=ship(1,'fighter',100,80),wing=ship(2,'fighter',198,88);
+ for(const e of [leader,wing]){e.protect=cargo;e.state='guard';}
+ const game=scene([leader,wing]),net=game.enemyComms;
+ game.player.x=600;game.player.y=600;
+ game.world={};game.heritage.vfx.hullImpact=()=>{};
+ game.enemyCanSee=(observer,target)=>observer===leader&&target===cargo;
+ game.playerCanInterceptEnemyRadio=()=>true;
+ const notices=[];game.notice=message=>notices.push(message);
+ net.update(game);
+ assert.equal(radioOrderCapable(wing,0),false,
+  'cargo guards do not join ordinary offensive votes');
+ game.time=.2;hitRegionalCargo(game,cargo,20);
+ assert.equal(leader._commsIncident?.assetId,cargo.id);
+ assert.equal(wing._commsIncident,undefined,
+  'an escort behind cover never claims to have witnessed the attack');
+ game.time=.8;net.update(game);
+ assert.equal(net.cells[0].mode,'intercept');
+ assert.equal(net.directiveFor(wing,game.time)?.threat?.escort,true);
+ assert.equal(net.directiveFor(wing,game.time)?.intel.estimated,true,
+  'the alarm locates damaged cargo, not the unseen player');
+ game.time=.84;execute(game);
+ assert.equal(wing._commsIntent?.mode,'intercept');
+ assert.ok(Math.hypot(wing._commsIntent.x-cargo.x,
+  wing._commsIntent.y-cargo.y)<170,
+  'a defender takes a screening position near the convoy');
+ assert.ok(net.intercepts.some(x=>/перекрыть подступы/.test(x.message)));
+ assert.ok(notices.some(x=>/Охрана транспорта/.test(x)));
+ assert.equal(radioOrderCapable(wing,game.time,
+  {kind:'sabotage',site:'convoy',assetId:'another-transport'}),false,
+  'an unrelated convoy cannot pull this escort off its assignment');
+ assert.equal(game.enemies.length,2,'a new order cannot spawn free escorts');
+ cargo.hp=0;wing.state='hunt';
+ assert.equal(radioOrderCapable(wing,game.time),true,
+  'after losing the protected convoy a surviving guard may rejoin combat');
+});
+
+test('a transport guard cannot sense an invisible player through cargo proximity',()=>{
+ const cargo={id:'regional-cargo-81',x:150,y:100,hp:180,maxHp:180,
+  regionalCargo:true};
+ const guard=ship(1,'fighter',130,70);
+ Object.assign(guard,{state:'guard',protect:cargo,think:0,commitUntil:0});
+ const game=scene([guard]);
+ game.player.x=170;game.player.y=125;
+ game.enemyCanSee=()=>false;
+ updateEnemy(guard,game,.016);
+ assert.equal(guard.state,'guard',
+  'physical proximity without a sighting must not reveal an attacker');
+ game.time=1;guard.think=0;guard.commitUntil=0;
+ game.enemyCanSee=()=>true;
+ updateEnemy(guard,game,.016);
+ assert.equal(guard.state,'intercept',
+  'a genuine fresh sighting allows the escort to engage nearby attackers');
 });
 
 test('a fresh visual contact supersedes an older industrial alarm',()=>{

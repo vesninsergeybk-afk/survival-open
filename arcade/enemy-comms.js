@@ -47,12 +47,16 @@ export function enemyOrderMessage(mode,threat=null){
   if(mode==='scatter'&&threat?.kind==='loss')
     return 'Звено несёт потери. Разомкнуть строй!';
   if(mode==='intercept'&&threat?.kind==='sabotage')
-    return threat.site==='convoy'?'Транспорт под огнём. К месту атаки!':
+    return threat.site==='convoy'?
+      (threat.escort?'Охрана транспорта, перекрыть подступы!':
+        'Транспорт под огнём. К месту атаки!'):
       'Наш промышленный узел атакован. Проверить район!';
   if(mode==='intercept'&&threat?.kind==='maneuver'&&threat.motion==='straight')
     return 'Он держит прямой курс. Зайти наперерез!';
   if(mode==='pincer'&&threat?.kind==='maneuver'&&threat.motion==='turning')
     return 'Он постоянно меняет курс. Охватить с двух сторон!';
+  if(mode==='press'&&threat?.kind==='weak')
+    return 'У него повреждён корпус. Не дать уйти!';
   return ({press:'Не дать цели выйти из боя. Держать давление!',
     pincer:'Сковать цель огнём. Обойти с двух сторон!',
     intercept:'Перекрыть путь отхода. Перехватить курс!',
@@ -122,6 +126,24 @@ export function assessEnemyMotion(reports,now){
     lastAt:latest.at}:null;
 }
 
+/** A visible hull breach is a short-lived opportunity, not permanent
+ * knowledge of the player's health. Healing seen by a pilot cancels it. */
+export function assessEnemyOpportunity(reports,now){
+  const recent=(reports||[]).filter(r=>r&&Number.isFinite(r.at)&&
+    now-r.at>=0&&now-r.at<=ENEMY_COMMS.motionMemory)
+    .sort((a,b)=>a.at-b.at);
+  const latest=recent.at(-1);
+  if(!latest||!Number.isFinite(latest.hullRatio)||
+    latest.hullRatio>.43||now-latest.at>ENEMY_COMMS.sightAge)return null;
+  for(let i=recent.length-2;i>=0;i--){
+    const previous=recent[i],age=latest.at-previous.at;
+    if(!Number.isFinite(previous.hullRatio)||previous.hullRatio>.43||age>4.2)
+      break;
+    if(age>=1.05)return {kind:'weak',lastAt:latest.at};
+  }
+  return null;
+}
+
 /** A hit can reveal the direction of incoming fire but cannot give its victim
  * a live player position. Coarse sectors deliberately lack velocity. */
 export function incomingFireEstimate(e,range,contact){
@@ -133,9 +155,17 @@ export function incomingFireEstimate(e,range,contact){
 }
 const intelFresh=(intel,now)=>!!intel&&now-intel.at>=0&&
   now-intel.at<=(intel.estimated?ENEMY_COMMS.estimatedIntelAge:ENEMY_COMMS.sightAge);
-export const radioOrderCapable=(e,now=0)=>legal(e)&&e.type!=='healer'&&
-  !e.protect&&now>=(e.stasisUntil||0)&&
-  (e.state==='hunt'||e.state==='flank'||e.state==='standoff');
+export const radioOrderCapable=(e,now=0,threat=null)=>legal(e)&&
+  e.type!=='healer'&&now>=(e.stasisUntil||0)&&
+  (((!e.protect||e.protect.hp<=0||e.protect.converted)&&
+    (e.state==='hunt'||e.state==='flank'||
+    e.state==='standoff'))||
+   // Escorts can execute a defensive alarm around their *own* convoy. A
+   // normal attack order cannot pull them away from their assigned cargo.
+   (e.protect?.hp>0&&e.protect.regionalCargo===true&&
+    threat?.kind==='sabotage'&&threat.site==='convoy'&&
+    threat.assetId===e.protect.id&&
+    (e.state==='guard'||e.state==='intercept')));
 
 /** A vote depends on the pilot's learned behavior, its equipment and damage.
  * Nothing here can alter an authored mission target or the projectile budget. */
@@ -195,6 +225,7 @@ function tallyVotes(proposals,intel,hasMedic,threat=null){
     votes.intercept+=Math.min(12,5+proposals.length*2);
   if(threat?.kind==='maneuver'&&threat.motion==='turning')
     votes.pincer+=Math.min(12,5+proposals.length*2);
+  if(threat?.kind==='weak')votes.press+=10;
   // A wounded flight changes its priorities only when there is somebody to
   // protect; it cannot obtain free repairs by voting for the screen maneuver.
   const mode=Object.keys(votes).reduce((best,key)=>
@@ -215,9 +246,12 @@ export class EnemyComms {
   reportSight(e,player,now){
     if(!legal(e)||!player||now<(e._commsNextSight??0))return false;
     e._commsNextSight=now+1.05+(Math.abs(e.serial||0)%4)*.11;
+    const hullRatio=Number.isFinite(player.hp)&&
+      Number.isFinite(player.maxHp)&&player.maxHp>0?
+        clamp(player.hp/player.maxHp,0,1):null;
     e._commsSight={x:player.x,y:player.y,vx:player.vx||0,
       vy:player.vy||0,motion:e._learningObservation?.context||'slow',
-      at:now};return true;
+      hullRatio,at:now};return true;
   }
 
   reportHit(e,damage,now){
@@ -234,7 +268,8 @@ export class EnemyComms {
       if(e===asset||!legal(e)||
         distance(e,asset)>ENEMY_COMMS.witnessRange||
         !game.enemyCanSee?.(e,asset))continue;
-      e._commsIncident={at:game.time,x:asset.x,y:asset.y,kind};
+      e._commsIncident={at:game.time,x:asset.x,y:asset.y,kind,
+        assetId:typeof asset.id==='string'?asset.id:null};
       witnesses++;
     }
     return witnesses;
@@ -392,7 +427,8 @@ export class EnemyComms {
           e._commsDeliveredSightAt=sight.at;
           if(e===leader||this.send(e,leader,'contact',now)){
             if(!cell.intel||sight.at>=cell.intel.at)cell.intel={...sight};
-            cell.motionReports.push({at:sight.at,motion:sight.motion});
+            cell.motionReports.push({at:sight.at,motion:sight.motion,
+              hullRatio:sight.hullRatio});
             if(cell.motionReports.length>ENEMY_COMMS.maxMotionReports)
               cell.motionReports.shift();
             observedCue(e,'contact',now);
@@ -448,10 +484,15 @@ export class EnemyComms {
       if(!cell.threat&&cell.incident&&
         !(cell.intel&&!cell.intel.estimated&&intelFresh(cell.intel,now)))
         cell.threat={kind:'sabotage',site:cell.incident.kind,
+          assetId:cell.incident.assetId,
+          escort:cell.incident.kind==='convoy'&&cell.members.some(e=>
+            e.protect?.hp>0&&e.protect.regionalCargo===true&&
+            cell.incident.assetId===e.protect.id),
           lastAt:cell.incident.at};
       if(!cell.threat&&cell.intel&&!cell.intel.estimated&&
         intelFresh(cell.intel,now))
-        cell.threat=assessEnemyMotion(cell.motionReports,now);
+        cell.threat=assessEnemyOpportunity(cell.motionReports,now)||
+          assessEnemyMotion(cell.motionReports,now);
       if(!cell.intel||cell.intel.estimated||!intelFresh(cell.intel,now)){
         // Two coherent impacts can locate a rough firing *sector* beyond
         // optical range. It is never promoted to an exact target track.
@@ -470,7 +511,7 @@ export class EnemyComms {
       if(accepted.length<2){cell.mode=null;continue;}
       // A group's voters can include repair units, but an announced combat
       // order requires a real recipient able to alter its course.
-      if(!cell.members.some(e=>e!==leader&&radioOrderCapable(e,now))){
+      if(!cell.members.some(e=>e!==leader&&radioOrderCapable(e,now,cell.threat))){
         cell.mode=null;continue;
       }
       const outcome=tallyVotes(accepted,cell.intel,hasMedic,cell.threat);
@@ -482,9 +523,10 @@ export class EnemyComms {
       // A pilot may already be intercepting when the group learns that the
       // player holds a straight course. The stronger lead is still a *new*
       // tactical decision worth explaining once it is really flown.
-      const newTactic=canChange&&cell.mode===outcome.mode&&
-        cell.threat?.kind==='maneuver'&&
-        cell.lastReportedTactic!==cell.threat.motion;
+      const tactic=cell.threat?.kind==='maneuver'?cell.threat.motion:
+        cell.threat?.kind==='weak'?'weak':null;
+      const newTactic=canChange&&cell.mode===outcome.mode&&tactic&&
+        cell.lastReportedTactic!==tactic;
       if(canChange){
         cell.votes=outcome.votes;
         cell.mode=outcome.mode;
@@ -497,8 +539,9 @@ export class EnemyComms {
         for(const e of cell.members)if(e!==leader&&
           this.send(leader,e,changed?'order':'relay',now)){
           e._commsOrder={cellId:cell.id,mode:cell.mode,
-            intel:{...cell.intel},at:now};
-          if(radioOrderCapable(e,now))delivered=true;
+            intel:{...cell.intel},threat:cell.threat?{...cell.threat}:null,
+            at:now};
+          if(radioOrderCapable(e,now,cell.threat))delivered=true;
         }
         // A sent order is only a *proposal* for a subtitle. We confirm actual
         // steering after the AI loop before declaring it a tactical reaction.
@@ -521,6 +564,7 @@ export class EnemyComms {
       cell.pendingDecision=null;
       if(pending.threat?.kind==='maneuver')
         cell.lastReportedTactic=pending.threat.motion;
+      if(pending.threat?.kind==='weak')cell.lastReportedTactic='weak';
       if(!game.playerCanInterceptEnemyRadio?.(cell.leader)&&
         !game.playerCanInspectEnemyIntent?.(cell.leader))continue;
       const message=enemyOrderMessage(cell.mode,pending.threat??cell.threat);
@@ -531,7 +575,7 @@ export class EnemyComms {
       if(this.intercepts.length>8)this.intercepts.shift();
       // A newly understood course is more useful than the generic first
       // contact notice. Give it a separate, still bounded notification slot.
-      const maneuverNotice=pending.threat?.kind==='maneuver';
+      const maneuverNotice=['maneuver','weak'].includes(pending.threat?.kind);
       if(now>=(this.nextNoticeAt||0)||
         (maneuverNotice&&now>=(this.nextManeuverNoticeAt||0))){
         game.notice?.('Радиоперехват: '+message,3.8);
@@ -556,7 +600,9 @@ export class EnemyComms {
     return {mode:cell.mode,side:position%2?1:-1,
       leader:cell.leader,intel:received?.intel||cell.intel,
       medic:cell.members.find(a=>a.type==='healer'&&a.hp>0)||null,
-      threat:cell.threat};
+      // A follower can act only on the threat it actually received. The
+      // commander learning something new must not rewrite old radio packets.
+      threat:e===cell.leader?cell.threat:received.threat??null};
   }
 
   intercepted(now){
