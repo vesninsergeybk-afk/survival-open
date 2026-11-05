@@ -1,0 +1,225 @@
+// Strategic territorial contours are player-authored. They do not replace the
+// automatic short-range radio tree used for station defence and fast travel.
+export const CONTOURS=Object.freeze({maxLength:2800,maxDegree:5,maxLinks:160,
+ minFaceArea:200000,launchInterval:45,cycleSeconds:180,fluxCap:30});
+const EPS=1e-7;
+const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
+const edgeKey=(a,b)=>a<b?a+'|'+b:b+'|'+a;
+const active=b=>!!b?.active&&!b.enemy&&!b.suppressed;
+const geometryCache=new WeakMap();
+const onSegment=(a,b,p)=>Math.abs(cross(a,b,p))<.01&&
+ p.x>=Math.min(a.x,b.x)-EPS&&p.x<=Math.max(a.x,b.x)+EPS&&
+ p.y>=Math.min(a.y,b.y)-EPS&&p.y<=Math.max(a.y,b.y)+EPS;
+const properCross=(a,b,c,e)=>{
+ if(onSegment(a,b,c)||onSegment(a,b,e)||onSegment(c,e,a)||onSegment(c,e,b))return true;
+ return (cross(a,b,c)>0)!==(cross(a,b,e)>0)&&
+  (cross(c,e,a)>0)!==(cross(c,e,b)>0);
+};
+
+export const createContours=()=>({links:[],flux:0,launches:{},harvesters:[],delivered:0,lost:0,
+ nextLaunchAt:0,pulseReadyAt:0});
+
+export function contourLinkOffer(world,firstId,secondId){
+ const state=world.contours,a=world.stations.get(firstId),b=world.stations.get(secondId);
+ if(!a||!b||a.id===b.id)return {ok:false,reason:'Выберите две разные станции'};
+ if(!active(a)||!active(b))return {ok:false,reason:'Обе станции должны быть включены и не подавлены'};
+ if(state.links.length>=CONTOURS.maxLinks)return {ok:false,reason:'Достигнут предел линий'};
+ if(state.links.some(([x,y])=>edgeKey(x,y)===edgeKey(a.id,b.id)))
+  return {ok:false,reason:'Эти станции уже соединены'};
+ const length=d(a,b);
+ if(length>CONTOURS.maxLength)return {ok:false,reason:'Станции слишком далеко: предел 2800 м'};
+ if(length<150)return {ok:false,reason:'Станции расположены слишком близко'};
+ if([a.id,b.id].some(id=>state.links.filter(pair=>pair.includes(id)).length>=CONTOURS.maxDegree))
+  return {ok:false,reason:'Станция уже использует пять контурных линий'};
+ for(const [x,y] of state.links){
+  const c=world.stations.get(x),e=world.stations.get(y);
+  if(!c||!e)continue;
+  const shared=[x,y].includes(a.id)||[x,y].includes(b.id);
+  if(shared){
+   // Sharing one endpoint is legal; overlapping a collinear line is not.
+   if(([a,b].some(p=>p.id!==x&&p.id!==y&&onSegment(c,e,p)))||
+      ([c,e].some(p=>p.id!==a.id&&p.id!==b.id&&onSegment(a,b,p))))
+    return {ok:false,reason:'Новая линия накладывается на существующую'};
+   continue;
+  }
+  if(c&&e&&properCross(a,b,c,e))return {ok:false,reason:'Новая линия пересекает существующую'};
+ }
+ for(const node of world.stations.values()){
+  if(node.id!==a.id&&node.id!==b.id&&onSegment(a,b,node))
+   return {ok:false,reason:'Линия проходит через другую станцию'};
+ }
+ return {ok:true,length};
+}
+export function connectContour(world,a,b){
+ const result=contourLinkOffer(world,a,b);
+ if(result.ok)world.contours.links.push([a,b]);
+ return result;
+}
+export function disconnectContour(world,a,b){
+ const links=world.contours?.links;
+ if(!links)return false;
+ const index=links.findIndex(pair=>edgeKey(...pair)===edgeKey(a,b));
+ if(index<0)return false;
+ links.splice(index,1);return true;
+}
+
+const polygonArea=points=>points.reduce((sum,p,i)=>{
+ const q=points[(i+1)%points.length];return sum+p.x*q.y-q.x*p.y;
+},0)/2;
+export const insidePolygon=(point,polygon)=>{
+ let inside=false;
+ for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){
+  const a=polygon[i],b=polygon[j];
+  if(onSegment(a,b,point))return true;
+  if((a.y>point.y)!==(b.y>point.y)&&
+   point.x<(b.x-a.x)*(point.y-a.y)/(b.y-a.y)+a.x)inside=!inside;
+ }
+ return inside;
+};
+const centerInside=polygon=>{
+ let twice=0,cx=0,cy=0;
+ for(let i=0;i<polygon.length;i++){
+  const a=polygon[i],b=polygon[(i+1)%polygon.length],crossing=a.x*b.y-b.x*a.y;
+  twice+=crossing;cx+=(a.x+b.x)*crossing;cy+=(a.y+b.y)*crossing;
+ }
+ const center=Math.abs(twice)>EPS?{x:cx/(3*twice),y:cy/(3*twice)}:polygon[0];
+ if(insidePolygon(center,polygon))return center;
+ // For a concave face, move toward an interior point of a triangle fan.
+ for(let i=1;i<polygon.length-1;i++){
+  const p={x:(polygon[0].x+polygon[i].x+polygon[i+1].x)/3,
+   y:(polygon[0].y+polygon[i].y+polygon[i+1].y)/3};
+  if(insidePolygon(p,polygon))return p;
+ }
+ return polygon[0];
+};
+
+export function contourFields(world){
+ const signature=(world.contours?.links||[]).map(([a,b])=>[a,b].map(id=>{
+  const node=world.stations.get(id);
+  return id+':'+(active(node)?1:0)+':'+(node?.x??0)+':'+(node?.y??0);
+ }).join('>')).join('|');
+ const cached=geometryCache.get(world);
+ if(cached?.signature===signature)return cached.fields;
+ const neighbours=new Map(),edges=[];
+ for(const [x,y] of world.contours?.links||[]){
+  const a=world.stations.get(x),b=world.stations.get(y);
+  if(!active(a)||!active(b))continue;
+  if(!neighbours.has(x))neighbours.set(x,[]);
+  if(!neighbours.has(y))neighbours.set(y,[]);
+  neighbours.get(x).push(y);neighbours.get(y).push(x);edges.push([x,y]);
+ }
+ for(const [id,list] of neighbours){
+  const p=world.stations.get(id);
+  list.sort((a,b)=>{
+   const q=world.stations.get(a),r=world.stations.get(b);
+   return Math.atan2(q.y-p.y,q.x-p.x)-Math.atan2(r.y-p.y,r.x-p.x);
+  });
+ }
+ const walked=new Set(),faces=[];
+ for(const [a,b] of edges)for(const [from,to] of [[a,b],[b,a]]){
+  if(walked.has(from+'>'+to))continue;
+  const vertices=[];let x=from,y=to,closed=false;
+  for(let k=0;k<=edges.length*2;k++){
+   const key=x+'>'+y;
+   if(walked.has(key))break;
+   walked.add(key);vertices.push(x);
+   const around=neighbours.get(y),index=around?.indexOf(x)??-1;
+   if(index<0)break;
+   const next=around[(index-1+around.length)%around.length];
+   x=y;y=next;
+   if(x===from&&y===to){closed=true;break;}
+  }
+  if(!closed||vertices.length<3)continue;
+  const polygon=vertices.map(id=>world.stations.get(id));
+  const area=polygonArea(polygon);
+  if(area<CONTOURS.minFaceArea)continue; // Excludes exterior clockwise face.
+  const center=centerInside(polygon);
+  const anchor=polygon.reduce((best,p)=>d(p,center)<d(best,center)?p:best);
+  faces.push({id:vertices.slice().sort().join('~'),vertices,polygon,area,center,anchor});
+ }
+ // Disconnected nested loops may exist. Their interiors are already owned;
+ // a second loop cannot mint land or production inside the same polygon.
+ const unique=faces.filter(f=>!faces.some(g=>g!==f&&g.area>f.area+EPS&&
+  f.polygon.every(p=>insidePolygon(p,g.polygon))));
+ geometryCache.set(world,{signature,fields:unique});return unique;
+}
+export function contourArea(fields){return fields.reduce((sum,f)=>sum+f.area,0);}
+export function contourProduction(fields){
+ const area=contourArea(fields);
+ return area>0?8*Math.sqrt(area/1000000):0;
+}
+export function fieldAt(world,x,y,fields=contourFields(world)){
+ const p={x,y};return fields.find(field=>insidePolygon(p,field.polygon))||null;
+}
+
+export function advanceContours(world,time,dt,enemies=[],player=null){
+ const state=world.contours;if(!state||dt<=0)return [];
+ const fields=contourFields(world),byId=new Map(fields.map(f=>[f.id,f]));
+ const area=contourArea(fields),production=contourProduction(fields),events=[];
+ state.harvesters=state.harvesters.filter(h=>byId.has(h.fieldId));
+ // One shared departure clock prevents remaking the same land as new faces
+ // from granting free shipments every time the player redraws a diagonal.
+ if(fields.length&&time>=state.nextLaunchAt){
+  state.nextLaunchAt=time+CONTOURS.launchInterval;
+  for(const field of fields){
+   if(state.harvesters.filter(h=>h.fieldId===field.id).length>=2)continue;
+   state.launches[field.id]=time;
+   state.harvesters.push({fieldId:field.id,progress:0,phase:'out',hp:2,
+    value:production*(field.area/area)*CONTOURS.launchInterval/CONTOURS.cycleSeconds});
+  }
+ }
+ for(const h of state.harvesters){
+  const field=byId.get(h.fieldId);if(!field)continue;
+  const distance=d(field.anchor,field.center);
+  const speed=Math.max(.004,190/Math.max(100,distance));
+  h.progress+=dt*speed;
+  if(h.phase==='out'&&h.progress>=1){h.phase='gather';h.progress=0;}
+  else if(h.phase==='gather'&&h.progress>=.24){h.phase='back';h.progress=0;}
+  else if(h.phase==='back'&&h.progress>=1){
+   const before=state.flux;
+   state.flux=Math.min(CONTOURS.fluxCap,state.flux+h.value);
+   state.delivered+=Math.max(0,state.flux-before);h.phase='done';
+   events.push({kind:'delivered',amount:Math.max(0,state.flux-before),fieldId:h.fieldId});continue;
+  }
+  const t=h.phase==='out'?Math.min(1,h.progress):h.phase==='back'?1-Math.min(1,h.progress):1;
+  const x=field.anchor.x+(field.center.x-field.anchor.x)*t;
+  const y=field.anchor.y+(field.center.y-field.anchor.y)*t;
+  // A raid can intercept visible collectors; remote simulation never invents
+  // an off-screen loss while the player cannot possibly respond.
+  if(player&&Math.hypot(player.x-x,player.y-y)<1700&&
+   enemies.some(e=>e.hp>0&&!e.converted&&Math.hypot(e.x-x,e.y-y)<65)){
+   h.hp-=dt*1.5;
+   if(h.hp<=0){h.phase='done';state.lost++;events.push({kind:'lost',fieldId:h.fieldId});}
+  }
+ }
+ state.harvesters=state.harvesters.filter(h=>h.phase!=='done');
+ // No unbounded historical field IDs in long play sessions.
+ if(Object.keys(state.launches).length>256){
+  const valid=new Set(fields.map(f=>f.id));
+  for(const id of Object.keys(state.launches))if(!valid.has(id))delete state.launches[id];
+ }
+ return events;
+}
+
+export function validContours(state,stations){
+ if(!state||typeof state!=='object'||!Array.isArray(state.links)||state.links.length>CONTOURS.maxLinks||
+  !Number.isFinite(state.flux)||state.flux<0||state.flux>CONTOURS.fluxCap||
+  !Number.isFinite(state.delivered)||state.delivered<0||
+  !Number.isInteger(state.lost)||state.lost<0||
+  !Number.isFinite(state.nextLaunchAt??0)||(state.nextLaunchAt??0)<0||
+  !Number.isFinite(state.pulseReadyAt??0)||(state.pulseReadyAt??0)<0||
+  !state.launches||typeof state.launches!=='object'||Array.isArray(state.launches)||
+  Object.keys(state.launches).length>256||!Array.isArray(state.harvesters)||state.harvesters.length>320)return false;
+ const ids=new Set(stations.map(([id])=>id)),unique=new Set();
+ for(const pair of state.links){
+  if(!Array.isArray(pair)||pair.length!==2||!pair.every(id=>typeof id==='string'&&ids.has(id))||
+   pair[0]===pair[1]||unique.has(edgeKey(...pair)))return false;
+  unique.add(edgeKey(...pair));
+ }
+ if(Object.values(state.launches).some(v=>!Number.isFinite(v)||v<0||v>1e9))return false;
+ for(const h of state.harvesters)if(!h||typeof h.fieldId!=='string'||
+  !['out','gather','back'].includes(h.phase)||!Number.isFinite(h.progress)||h.progress<0||h.progress>2||
+  !Number.isFinite(h.value)||h.value<0||h.value>100||!Number.isFinite(h.hp)||h.hp<0||h.hp>2)return false;
+ return true;
+}

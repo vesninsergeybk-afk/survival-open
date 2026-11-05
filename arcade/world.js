@@ -4,6 +4,7 @@ import {CENTRAL_STATIONS} from './central-industry.js?v=living-world-1-home-conf
 import {FRONTIER_STATIONS} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
 import {RULES, hash, dist, baseNames} from './balance.js?v=arcade-network-20';
 import {amberBeltDensity,nearAmberBelt,inAmberCorridor} from './terrain.js?v=arcade-belt-26';
+import {createContours,fieldAt} from './territory-system.js?v=contours-1';
 const BASE_CELL = 1250;
 export const RELAY_RANGE = 1450;
 export const RELAY_EXTENSION = 500;
@@ -24,6 +25,7 @@ export class World {
     this.home = this.station(0, 0, true);
     this.ensureRegionalStations();
     this.regionalSupply=createRegionalSupply();
+    this.contours=createContours();
   }
   ensureRegionalStations(){
     for(const spec of [...STRATEGIC_STATIONS,...CENTRAL_STATIONS,...FRONTIER_STATIONS]){
@@ -171,6 +173,9 @@ export class World {
       .filter(b=>b.enemy||b.captured)
       .sort((a,b)=>dist(a,{x,y})-dist(b,{x,y}));
     const base=stations[0]||null;
+    const field=fieldAt(this,x,y);
+    if(field&&(!base?.enemy||dist(base,{x,y})>450))
+      return {kind:'secured',base:base?.enemy?null:base,field};
     return {kind:base?(base.enemy?'hostile':'secured'):'neutral',base};
   }
   links(x,y,r=2200) {

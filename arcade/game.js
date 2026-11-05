@@ -60,6 +60,8 @@ import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home
 import {regionalCampaignPressure,campaignDestination} from './regional-campaign.js?v=campaign-1-repair-qa-1';
 import {updateStationInterdiction,interruptStationInterdiction,threatenedStations} from './strategic-command.js?v=campaign-1-repair-qa-1-tactical-balance-1';
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
+import {connectContour,disconnectContour,contourFields,advanceContours,fieldAt} from './territory-system.js?v=contours-1';
+import {drawContourWorld} from './contour-visuals.js?v=contours-1';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -183,6 +185,7 @@ export class ArcadeGame {
   this.lastNoiseSource=null;this.noiseAlert=null;
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';this.mapReturnToBase=false;
+  this.mapView='territory';this.contourRegion='all';this.contourFirst=null;this.contourSelection=null;this.contourError='';
   this.openingArc=createOpeningArc(this.world.home);this.openingRepairing=false;
   this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
   this.lastContractReceipt=null;
@@ -204,6 +207,7 @@ export class ArcadeGame {
    this.renderScale=1;this.qualityTimer=0;
   this.messageUntil=0;this.vw=1200;this.vh=800;
   this.worldVisualLast=-Infinity;this.cachedWorldLinks=[];
+  this.contourVisualAt=-Infinity;this.contourVisualFields=null;this.lastContourNoticeAt=-Infinity;
   this.cachedNetworkLinked=new Set();this.cachedTarget=null;
   this.nextDefenseCheckAt=0;this.lastDefenseNoticeAt=-Infinity;
   this.defenseTopology=null;this.defenseTopologyAt=0;
@@ -355,7 +359,7 @@ export class ArcadeGame {
    this.heritage.visibility(document.hidden);
   });
   this.overlay.addEventListener('click',e=>{
-   const b=e.target.closest('button[data-act]');if(!b)return;
+   const b=e.target.closest('[data-act]');if(!b)return;
    const act=b.dataset.act;
    if(b.disabled)return;
    if(this.pendingStationModule&&this.overlay.dataset.mode==='base'&&
@@ -382,9 +386,56 @@ export class ArcadeGame {
     this.skillBranch=b.dataset.id;this.renderSkills();
     this.overlay.querySelector('.skill-branch-tabs [aria-pressed="true"]')?.focus({preventScroll:true});return;
    }
-   if(act==='mapView'&&['map','targets'].includes(b.dataset.id)){
+   if(act==='mapView'&&['map','territory','targets'].includes(b.dataset.id)){
     this.mapView=b.dataset.id;this.overlay.innerHTML=renderWorldMap(this);
     this.overlay.querySelector('.map-view-switch [aria-pressed="true"]')?.focus({preventScroll:true});return;
+   }
+   if(act==='contourRegion'){
+    this.contourRegion=b.dataset.id;this.contourFirst=null;this.contourSelection=null;this.contourError='';
+    this.overlay.innerHTML=renderWorldMap(this);return;
+   }
+   if(act==='contourCancel'){
+    this.contourFirst=null;this.contourError='';this.overlay.innerHTML=renderWorldMap(this);return;
+   }
+   if(act==='contourUnlink'){
+    const old=contourFields(this.world).length;
+    if(disconnectContour(this.world,b.dataset.from,b.dataset.id)){
+     const remaining=contourFields(this.world).length;
+     this.contourError=remaining<old?'Связь разорвана: часть территории временно потеряна. Соедините станции снова, чтобы восстановить поле.':
+      'Связь разорвана. При необходимости её можно провести заново.';
+     this.contourFirst=null;this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
+     this.heritage.ui('cancel');
+    }
+    this.overlay.innerHTML=renderWorldMap(this);return;
+   }
+   if(act==='contourPulse'){
+    const state=this.world.contours,p=this.player;
+    if(state.flux>=5&&this.time>=(state.pulseReadyAt||0)&&p.shield<42&&
+      fieldAt(this.world,p.x,p.y)){
+     state.flux-=5;state.pulseReadyAt=this.time+120;p.shield=Math.min(42,p.shield+22);
+     this.heritage.vfx.nova(p.x,p.y,110,'cyan');this.heritage.ui('upgrade');
+    }
+    this.overlay.innerHTML=renderWorldMap(this);this.pausedRenderPending=true;return;
+   }
+   if(act==='contourNode'){
+    const id=b.dataset.id,node=this.world.stations.get(id);
+    if(!node)return;
+    this.contourSelection=id;this.contourError='';
+    if(!node.active||node.enemy||node.suppressed){this.contourFirst=null;}
+    else if(!this.contourFirst)this.contourFirst=id;
+    else if(this.contourFirst===id)this.contourFirst=null;
+    else{
+     const before=contourFields(this.world).length;
+     const result=connectContour(this.world,this.contourFirst,id);
+     if(result.ok){
+      const after=contourFields(this.world);
+      this.contourFirst=id;this.defenseTopology=null;
+      this.cachedWorldLinks=[];this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
+      this.heritage.ui('upgrade');
+      if(after.length>before)this.heritage.vfx.nova(after[after.length-1].center.x,after[after.length-1].center.y,150,'amber');
+     }else this.contourError=result.reason;
+    }
+    this.overlay.innerHTML=renderWorldMap(this);return;
    }
    if(act==='installModule'){this.askStationModule(b.dataset.role);return;}
    if(act==='confirmModule'){this.confirmStationModule(b.dataset.role||'');return;}
@@ -433,6 +484,9 @@ export class ArcadeGame {
    if(act==='restart'){this.runStore?.end();location.reload();}
   });
   this.overlay.addEventListener('keydown',e=>{
+   if(e.target.matches?.('.contour-node')&&(e.key==='Enter'||e.key===' ')){
+    e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));return;
+   }
    const button=e.target.closest('.base-tabs button[role="tab"]');
    if(!button||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
    const tabs=['summary','operations','hangar','network'];
@@ -920,7 +974,9 @@ export class ArcadeGame {
     this.world.regionalSupply?.frontier?.teal?.repairExpedition]
     .find(c=>c?.id===data.id&&c.seen);
    const intel=labLogisticsIntel(this.world,this.player).contacts.find(c=>c.id===data.id);
-   if(!region&&!cargo&&!intel&&(!base||(!base.discovered&&!data.signal)))return;
+   // The strategic atlas deliberately exposes the campaign stations before
+   // local reconnaissance; its route button must actually work for them.
+   if(!region&&!cargo&&!intel&&(!base||(!base.discovered&&!data.signal&&this.mapView!=='territory')))return;
    const waypoint=intel?{id:intel.id,x:intel.x,y:intel.y,label:intel.label,
     ...(intel.kind==='cargo'?{radioContact:true,signalLabel:intel.label,signalLive:true}:{})}:
     region?{id:data.id,...region.survey,label:region.name}:
@@ -2858,6 +2914,15 @@ export class ArcadeGame {
   this.updateCorridor(dt);
   this.updateRelayDefense(dt);
   updateRegionalWorld(this,dt);
+  const contourEvents=advanceContours(this.world,this.time,dt,this.enemies,this.player);
+  if(contourEvents.some(e=>e.kind==='lost')&&this.time-this.lastContourNoticeAt>18){
+   this.lastContourNoticeAt=this.time;
+   this.notice('Вражеский налёт уничтожил добывающего плазмофага. Следующая экспедиция отправится автоматически.',5);
+  }else if(contourEvents.some(e=>e.kind==='delivered'&&e.amount>.05)&&
+   this.time-this.lastContourNoticeAt>48&&fieldAt(this.world,this.player.x,this.player.y)){
+   this.lastContourNoticeAt=this.time;
+   this.notice('Сборщики доставили флюкс на станцию. Запас и защитный импульс доступны на карте контуров.',4);
+  }
   let mx=(isPressed(this.keys,this.controls,'right')||this.keys.has('ArrowRight')?1:0)-
     (isPressed(this.keys,this.controls,'left')||this.keys.has('ArrowLeft')?1:0)+this.touch.x;
   let my=(isPressed(this.keys,this.controls,'down')||this.keys.has('ArrowDown')?1:0)-
@@ -3521,6 +3586,7 @@ export class ArcadeGame {
    c.lineWidth=2;c.strokeStyle='#59dbc180';c.setLineDash([14,8]);
    c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();c.setLineDash([]);
   }
+  drawContourWorld(this,c,cam);
   this.heritage.vfx.render(c,'back',
    {worldX:cam.x,worldY:cam.y,width:cam.w,height:cam.h});
   this.visuals.drawDerelict(c,cam,this.time,this.fps);
