@@ -8,7 +8,7 @@ import {labLogisticsUnlocked} from './station-progression.js?v=lab-logistics-qa-
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from './contour-cartography.js?v=living-atlas-3';
 import {syncContourDynamics,activeContourTransition,fieldIsNew,enemyContourThreats} from './contour-dynamics.js?v=contour-dynamics-2';
-import {knownEnemyFields,enemyExpansionPlan} from './enemy-expansion.js?v=enemy-expansion-1';
+import {knownEnemyFields,enemyExpansionPlan} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':

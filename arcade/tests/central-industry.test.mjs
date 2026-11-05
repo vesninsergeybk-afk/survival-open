@@ -147,5 +147,6 @@ test('map keeps local routes secret before discovery and reveals observed convoy
  html=renderRegionAtlas(g);layer=regionalMapOverlay(g,p=>p,()=>true);
  assert.ok(html.includes('Местная промышленность'));
  assert.ok(!layer.includes('МЕСТНЫЙ ГРУЗ'));
- cargo.seen=true;assert.ok(regionalMapOverlay(g,p=>p,()=>true).includes('МЕСТНЫЙ ГРУЗ'));
+ cargo.seen=true;cargo.lastSeenAt=g.time;cargo.lastSeenX=cargo.x;cargo.lastSeenY=cargo.y;
+ assert.ok(regionalMapOverlay(g,p=>p,()=>true).includes('МЕСТНЫЙ ГРУЗ'));
 });

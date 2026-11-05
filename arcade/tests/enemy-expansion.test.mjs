@@ -14,7 +14,7 @@ function sector(){
   enemy:true,active:false,captured:false,suppressed:false,hp:100,maxHp:100,
   type:'dock',discovered:true,turrets:[]});
  world.enemyExpansion=createEnemyExpansion();world.enemyExpansion.prepared=true;
- world.regionalSupply.central.ore=12;
+ world.regionalSupply.central.ore=16;
  return world;
 }
 const game=world=>({world,player:{x:0,y:0},enemies:[],time:0,
@@ -25,20 +25,24 @@ test('the enemy pays for every actual link, closes a face, then earns bounded in
  assert.equal(advanceEnemyExpansion(w,89).length,0);
  const first=advanceEnemyExpansion(w,90);
  assert.equal(first.length,1);assert.equal(first[0].kind,'link');
- assert.equal(stock.ore,10);
+ assert.equal(stock.ore,14);
  assert.equal(w.enemyExpansion.links.length,1);
  assert.equal(advanceEnemyExpansion(w,91).length,0,'no free construction on repeated frames');
  assert.equal(enemyTerritoryFields(w).length,0);
+ // A functioning mine refills stock between construction cycles. The enemy
+ // must keep the material for its next transport in reserve at all times.
+ stock.ore=16;
  assert.equal(advanceEnemyExpansion(w,175)[0].kind,'link');
+ stock.ore=16;
  const claimed=advanceEnemyExpansion(w,260);
  assert.equal(claimed[0].kind,'claim');
  assert.ok(enemyTerritoryFields(w)[0].area>700000);
- assert.equal(stock.ore,6);
+ assert.equal(stock.ore,14);
  assert.equal(w.enemyExpansion.spent,6);
  assert.equal(knownEnemyFields(w).length,1);
  assert.equal(advanceEnemyExpansion(w,440).length,0,'no new triangle remains');
  assert.equal(w.enemyExpansion.earned,1,'one controlled face earns one ore per cycle');
- assert.equal(stock.ore,7);
+ assert.equal(stock.ore,15);
  assert.ok(validEnemyExpansion(w.enemyExpansion,[...w.stations],440));
 });
 
@@ -56,6 +60,7 @@ test('enemy projections show only discovered supports, never hidden station posi
  assert.match(html,/Из трёх опор разведано 2/);
  assert.doesNotMatch(html,/Известные опоры: [^<]*C\b/);
  hidden.discovered=true;
+ w.regionalSupply.central.ore=16;
  advanceEnemyExpansion(w,175);advanceEnemyExpansion(w,260);
  assert.match(renderWorldMap(g),/contour-enemy-land/);
  hidden.enemy=false;hidden.captured=true;hidden.active=true;

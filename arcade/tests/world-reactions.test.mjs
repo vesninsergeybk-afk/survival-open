@@ -152,7 +152,7 @@ test('repair ships are actual combat targets, visible mission markers and nonrep
  advanceRegionalSupply(g.world,140);
  const craft=s.repairExpedition;
  assert.ok(craft);
- craft.seen=true;
+ craft.seen=true;craft.lastSeenAt=g.time;craft.lastSeenX=craft.x;craft.lastSeenY=craft.y;
  const target=combatTargets(g,120,{x:craft.x,y:craft.y},false)
   .find(item=>item.target===craft);
  assert.ok(target,'the ship must be attackable by ordinary automatic weapons');

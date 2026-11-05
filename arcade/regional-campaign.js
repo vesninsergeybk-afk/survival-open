@@ -1,4 +1,4 @@
-import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1';
+import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2';
 import {regionAt,REGIONS,REGION_LIMIT} from './regions.js?v=regions-audit-1';
 
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

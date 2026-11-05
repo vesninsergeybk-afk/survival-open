@@ -1,5 +1,5 @@
-import {CENTRAL_INDUSTRY} from './central-industry.js?v=home-conflict-1';
-import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-campaign-1-repair-qa-1-enemy-economy-1';
+import {CENTRAL_INDUSTRY,centralExtractionAvailable} from './central-industry.js?v=home-conflict-1-enemy-balance-2';
+import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2';
 import {FRONTIERS,FRONTIER_REPAIR} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
 
 export const FRONT_KEYS=Object.freeze(['home','north','azure','teal']);
@@ -22,7 +22,7 @@ export function warFronts(world){
   const worker=s?.worker;
   const sourceAlive=!!source?.enemy;
   const raw=sourceAlive&&(stock||0)>=f.cost+(f.key==='home'&&s?.strategy?.screened?2:0);
-  const extraction=sourceAlive&&(f.key==='home'?worker?.hp>0&&worker.phase!=='evacuated':
+  const extraction=sourceAlive&&(f.key==='home'?centralExtractionAvailable(s):
    f.key==='teal'?worker?.hp>0&&(worker.carry>0||s.wrecks.some(w=>w.stock>0)):
    true);
   const working=!!(raw||extraction);

@@ -1,5 +1,5 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
-import {warFronts,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair-qa-1';
+import {warFronts,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2';
 import {CONTOURS,contourFields,contourArea,connectContour} from './territory-system.js?v=contours-1';
 
 // Enemy influence is real, paid for out of the *existing* industrial stock.
@@ -11,6 +11,16 @@ const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const key=(a,b)=>[a,b].sort().join('|');
 const hostile=s=>!!s?.enemy&&!s.captured&&!s.suppressed&&s.hp>0;
 const owner=front=>front.key==='home'||front.key==='north'?'ore':'resource';
+// Expansion is optional investment. It must never consume the material for
+// the next transport or the first response to an ambush. That material is
+// mined normally; this reserve is not a free grant or an untouchable wallet.
+export function expansionReserve(front){
+ if(!front?.working)return 0;
+ return front.cost+(front.key==='home'||front.key==='north'?4:2);
+}
+const canInvest=front=>!!front?.source?.enemy&&!!front?.depot?.enemy&&front.working&&
+ Number.isFinite(front.pool?.[owner(front)])&&
+ front.pool[owner(front)]>=EXPANSION.cost+expansionReserve(front);
 
 export const createEnemyExpansion=(now=0)=>({version:1,links:[],plan:null,
  nextAt:now+EXPANSION.firstAt,incomeAt:now+EXPANSION.cycle,
@@ -43,7 +53,7 @@ function choosePlan(world,fronts,links){
  const current=enemyView(world,links),base=contourArea(contourFields(current));
  const options=[];
  for(const front of fronts){
-  if(!front.source?.enemy||!front.depot?.enemy||!front.working)continue;
+  if(!canInvest(front))continue;
   for(const region of REGIONS.filter(r=>front.regions.includes(r.id))){
    const nodes=[...world.stations.values()].filter(s=>hostile(s)&&
     regionAt(s.x,s.y).id===region.id&&dist(s,region.survey)<6500);
@@ -110,13 +120,13 @@ export function advanceEnemyExpansion(world,time){
  if(time<state.nextAt||state.links.length>=EXPANSION.maxLinks)return events;
  state.nextAt=time+EXPANSION.interval;
  const fronts=warFronts(world);
- if(!planValid(world,state.plan))state.plan=null;
+ if(!planValid(world,state.plan)||
+  !canInvest(fronts.find(f=>f.key===state.plan?.front)))state.plan=null;
  if(!state.plan)state.plan=choosePlan(world,fronts,state.links);
  if(!state.plan)return events;
  const front=fronts.find(f=>f.key===state.plan.front);
  const stock=front&&owner(front);
- if(!front?.source?.enemy||!front?.depot?.enemy||!front.working||
-  !Number.isFinite(front.pool?.[stock])||front.pool[stock]<EXPANSION.cost)return events;
+ if(!canInvest(front))return events;
  const plan=enemyExpansionPlan(world);
  if(!plan?.missing.length){state.plan=null;return events;}
  const [a,b]=plan.missing[0],preview=enemyView(world,state.links);

@@ -1,6 +1,6 @@
 import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1';
 import {activeContourTransition,fieldIsNew} from './contour-dynamics.js?v=contour-dynamics-2';
-import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1';
+import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 
 const visible=(p,cam,r=200)=>p.x>=cam.x-r&&p.x<=cam.x+cam.w+r&&
  p.y>=cam.y-r&&p.y<=cam.y+cam.h+r;

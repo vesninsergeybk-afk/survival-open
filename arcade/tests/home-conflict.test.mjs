@@ -119,6 +119,7 @@ test('the plan offers an approximate survey, never exact unknown stations or inv
  assert.ok(g.world.regionalSupply.central.convoys.length);
  assert.equal(homeConflictTarget(g,'intercept'),null);
  const cargo=g.world.regionalSupply.central.convoys[0];cargo.seen=true;
+ cargo.lastSeenAt=g.time;cargo.lastSeenX=cargo.x;cargo.lastSeenY=cargo.y;
  assert.equal(homeConflictTarget(g,'intercept').id,cargo.id);
  source.discovered=true;
  assert.equal(homeConflictTarget(g,'depot').id,'conflict:depot');
