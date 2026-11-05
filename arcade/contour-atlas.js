@@ -5,7 +5,7 @@ import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1'
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
 import {labLogisticsUnlocked} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
-import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from './contour-cartography.js?v=living-atlas-1';
+import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from './contour-cartography.js?v=living-atlas-3';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -31,6 +31,9 @@ const route=b=>'<button class="contour-route" data-act="waypoint" data-id="'+esc
 function regionOverview(world,center,scale){
  return REGIONS.map(r=>{
   const p=at(r.survey,center,scale);
+  // The southern label belongs below its region; above it would sit in the
+  // home-region halo and become almost indistinguishable from its title.
+  const labelY=r.id==='azure'?70:-61;
   const sites=world.nearbyStations(r.survey.x,r.survey.y,5100,true);
   const count=new Set(sites.map(b=>b.id)).size;
   const owned=sites.filter(b=>b.active&&!b.enemy&&!b.suppressed).length;
@@ -40,12 +43,12 @@ function regionOverview(world,center,scale){
    <path d="M-18 0H18M0-18V18" stroke="${r.color}55" stroke-width="1"/>
    <text y="-3" text-anchor="middle" fill="#f1faff" font-size="18" font-weight="800">${owned}</text>
    <text y="13" text-anchor="middle" fill="${r.color}" font-size="9">из ${count}</text>
-   <text y="-61" text-anchor="middle" fill="${r.color}" font-size="12" font-weight="700">${esc(r.name)}</text>
+   <text y="${labelY}" text-anchor="middle" fill="${r.color}" font-size="12" font-weight="700">${esc(r.name)}</text>
    <circle r="53" fill="transparent"/></g>`;
  }).join('');
 }
 
-function stationMarks(nodes,center,scale,selectedId,sourceId,readyIds,goalIds){
+function stationMarks(nodes,center,scale,selectedId,sourceId,readyIds,goalIds,waypoint=null){
  return nodes.map(b=>{
   const p=at(b,center,scale),picked=b.id===selectedId||b.id===sourceId;
   const ready=readyIds.has(b.id),goal=goalIds.has(b.id),known=b.discovered||b.active||b.strategicRole;
@@ -55,8 +58,12 @@ function stationMarks(nodes,center,scale,selectedId,sourceId,readyIds,goalIds){
   const mark=b.enemy&&known?'<path d="M0 -7L7 0L0 7L-7 0Z" fill="'+fill+'"/>':
    b.active?'<circle r="7" fill="'+fill+'"/><circle r="3" fill="#113f43"/>':
    '<circle r="5.5" fill="'+fill+'" stroke="#102c3b" stroke-width="1.2"/>';
+  const labelWidth=name(b).length*6.5;
+  const labelConflict=waypoint&&Math.abs(waypoint.y-(p.y-17))<22&&
+   waypoint.x>=p.x+5&&waypoint.x<=p.x+labelWidth+28;
   const label=(picked||ready||goal||b.active)&&known?
-   '<text x="'+digits(p.x+13)+'" y="'+digits(p.y-13)+'" class="contour-map-label">'+esc(name(b))+'</text>':'';
+   '<text x="'+digits(p.x+(labelConflict?-13:13))+'" y="'+digits(p.y-13)+
+   '" class="contour-map-label"'+(labelConflict?' text-anchor="end"':'')+'>'+esc(name(b))+'</text>':'';
   return `<g class="contour-node${picked?' selected':''}${ready?' connectable':''}${goal?' suggested':''}" transform="translate(${digits(p.x)} ${digits(p.y)})" tabindex="0" role="button" data-act="contourNode" data-id="${esc(b.id)}" aria-label="${esc(name(b)+', '+state(b))}">
    <circle r="19" fill="transparent" class="contour-hit"/>
    ${ring?'<circle class="contour-ring" r="13.5" fill="none" stroke="'+ring+'" stroke-width="2"'+(ready||goal?' stroke-dasharray="4 3"':'')+'/>':''}
@@ -226,7 +233,8 @@ export function renderContourMap(game){
   <path d="M0 120H680M0 240H680M0 360H680M170 0V480M340 0V480M510 0V480" stroke="#5b9cb21a" stroke-dasharray="3 8"/>
   ${physical.backdrop}${physical.signals}${navigation}
   ${region?fieldArtwork(fields,world,center,scale)+ghost+paths+prospects+
-   stationMarks(nodes,center,scale,selected?.id,source?.id,readyIds,goalIds)+
+   stationMarks(nodes,center,scale,selected?.id,source?.id,readyIds,goalIds,
+    game.waypoint&&at(game.waypoint,center,scale))+
    incidentArtwork(game,region,center,scale):trunkLines+regionOverview(world,center,scale)+incidentArtwork(game,null,center,scale)}
   ${visiblePlayer?`<g class="contour-player-pin" transform="translate(${digits(player.x)} ${digits(player.y)})"><circle r="12" fill="#9dd9ff12" stroke="#d7faff" stroke-dasharray="3 3"/><path d="M0 -7L-5 5L0 2L5 5Z" fill="#fff"/><title>Ваш корабль</title></g>`:''}</svg>
   <div class="contour-legend"><span><i class="contour-key mine"></i> Своя</span><span><i class="contour-key dormant"></i> Не включена</span>

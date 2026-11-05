@@ -25,6 +25,8 @@ test('the strategic map starts with five accessible regions and no hidden naviga
  const focused=renderWorldMap(game);
  assert.ok((focused.match(/data-act="contourNode"/g)||[]).length>10);
  assert.match(focused,/data-act="mapView" data-id="targets"/);
+ assert.match(html,/text y="70" text-anchor="middle"[^>]+>Лазурный разлом<\/text>/,
+  'the southern label must not cover the home-region halo');
 });
 
 test('machine radio trunks are a separate opt-in map layer with earned knowledge',()=>{
@@ -227,4 +229,7 @@ test('station labels and ship marker cannot swallow a station click',()=>{
  const css=readFileSync(new URL('../menu-system.css',import.meta.url),'utf8');
  assert.match(css,/\.contour-player-pin\{pointer-events:none\}/);
  assert.match(css,/\.contour-map-label\{[^}]*pointer-events:none/);
+ game.waypoint={x:game.world.home.x+1400,y:game.world.home.y-300};
+ assert.match(renderWorldMap(game),/class="contour-map-label" text-anchor="end">Ремонтный док<\/text>/,
+  'a nearby navigation marker must not cover the station title');
 });

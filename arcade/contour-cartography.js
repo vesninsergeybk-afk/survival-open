@@ -63,7 +63,7 @@ export function atlasNebulae(seed,center,scale,overview){
   wisps.push(`<ellipse cx="${fmt(q.x)}" cy="${fmt(q.y)}" rx="${fmt(radius*1.7)}" ry="${fmt(radius*.85)}" transform="rotate(${rotation} ${fmt(q.x)} ${fmt(q.y)})" fill="url(#contour-nebula-${region.id})"/>`);
  }
  const gradients=REGIONS.map(r=>`<radialGradient id="contour-nebula-${r.id}"><stop offset="0" stop-color="${r.color}" stop-opacity=".16"/><stop offset=".5" stop-color="${r.color}" stop-opacity=".065"/><stop offset="1" stop-color="${r.color}" stop-opacity="0"/></radialGradient>`).join('');
- return `<g class="contour-nebulae" aria-hidden="true"><defs>${gradients}</defs>${wisps.join('')}</g>`;
+ return `<g class="contour-nebulae" aria-hidden="true" opacity="${overview?'1':'.62'}"><defs>${gradients}</defs>${wisps.join('')}</g>`;
 }
 
 // Each star is a genuine point of the flight renderer's deterministic grid:
@@ -77,7 +77,7 @@ export function atlasStars(seed,center,scale,overview){
  const endY=Math.ceil((center.y+spanY)/(grid*step))+1;
  const stars=[];
  for(let by=startY;by<=endY;by++)for(let bx=startX;bx<=endX;bx++){
-  if(hash(bx,by,seed+65)>(overview?.16:.65))continue;
+  if(hash(bx,by,seed+65)>(overview?.16:.47))continue;
   // Choose an actual star cell inside each coarse chart cell. The subset is
   // spatially stable, but avoids the artificial rows of a regular sampler.
   const gx=bx*step+Math.floor(hash(bx,by,seed+73)*step);
@@ -108,7 +108,7 @@ export function atlasLiveObjects(game,center,scale,overview){
   for(let cy=Math.floor((player.y-reach)/rockCell);cy<=Math.floor((player.y+reach)/rockCell);cy++){
    for(let cx=Math.floor((player.x-reach)/rockCell);cx<=Math.floor((player.x+reach)/rockCell);cx++){
     for(const rock of world.rocks.get(cx+':'+cy)||[]){
-     if(layers.rocks.length>=100)break;
+     if(layers.rocks.length>=62)break;
      if(!rock.alive||Math.hypot(rock.x-player.x,rock.y-player.y)>reach)continue;
      const p=atlasPoint(rock,center,scale);
      if(visible(p))layers.rocks.push(`<circle cx="${fmt(p.x)}" cy="${fmt(p.y)}" r="${Math.max(1.1,rock.r*scale*.55).toFixed(1)}"/>`);
