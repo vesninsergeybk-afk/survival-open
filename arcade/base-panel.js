@@ -1,4 +1,4 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1';
 import {readableKey,DEFAULT_CONTROLS} from './control-layout.js?v=unified-controls-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
@@ -555,6 +555,16 @@ function stationNextStep(base,state,o,regionalGoal=false){
   '<div class="base-next-actions">'+buttons+'</div></section>';
 }
 
+const stationEmblem=type=>{
+ const marks={dock:'M34 33h28v30H34z M27 42h14M55 42h14M27 54h14M55 54h14M42 27v14M54 27v14M42 55v14M54 55v14',
+  lab:'M40 25h16M44 25v17L31 65h34L52 42V25M38 53h20M43 60h10',
+  arsenal:'M34 66V40l14-16 14 16v26M48 28v38M29 54h38M36 42h24',
+  carrier:'M22 45h22l4-22 4 22h22L52 55l-4 18-4-18z M29 65h10M57 65h10'};
+ return '<svg viewBox="0 0 96 96" aria-hidden="true"><path class="emblem-frame" d="M28 4h40l24 24v40L68 92H28L4 68V28Z"/>'+
+  '<circle class="emblem-ring" cx="48" cy="48" r="34"/><path class="emblem-mark" d="'+(marks[type]||marks.dock)+'"/>'+
+  '<path class="emblem-ticks" d="M48 4v7M48 85v7M4 48h7M85 48h7M16 16l5 5M75 75l5 5M16 80l5-5M75 21l5-5"/></svg>';
+};
+
 export function renderBasePanel(base,state){
  const fieldKey=readableKey((state.controls||DEFAULT_CONTROLS).field);
  const o=baseOffer(base,state),active=!!base.active;
@@ -872,9 +882,14 @@ export function renderBasePanel(base,state){
   '<span>Маршруты между подключёнными узлами</span>'+
   (stationPromise?'<span class="base-technology-preview">'+stationPromise+'</span>':'')+
   '</div></div>';
- return '<div class="dialog base-dialog station-'+base.type+'" role="dialog" aria-modal="true" aria-label="Станция"><header class="base-head"><div><span class="base-system-label">ВЫЖИВШИЙ / ТЕРМИНАЛ СТАНЦИИ</span><h2>'+
-  (baseNames[base.type]||'Станция')+'</h2><p>Сплав <b>'+o.ore+'</b> · Данные <b>'+(state.data||0)+'</b> (опыт) · Корпус <b>'+Math.ceil(state.hp)+'/'+state.maxHp+'</b> · В сети '+
-  state.connectedBases+' · Дроны '+state.allies+'/'+o.cap+(base.type==='carrier'?' · Вылеты '+state.charges:'')+'</p></div>'+
+ return '<div class="dialog base-dialog station-'+base.type+'" role="dialog" aria-modal="true" aria-label="Станция"><header class="base-head">'+
+  '<div class="base-identity"><span class="base-emblem" aria-hidden="true">'+stationEmblem(base.type)+'</span><div>'+
+  '<span class="base-system-label">ВЫЖИВШИЙ / ТЕРМИНАЛ СТАНЦИИ</span><h2>'+(baseNames[base.type]||'Станция')+'</h2>'+
+  '<p class="base-credits"><span>Сплав <b>'+o.ore+'</b></span><span>Данные <b>'+(state.data||0)+'</b> (опыт)</span>'+
+  '<span>Корпус <b>'+Math.ceil(state.hp)+'/'+state.maxHp+'</b></span>'+
+  '<span class="base-aux-stat">В сети <b>'+state.connectedBases+'</b></span>'+
+  '<span class="base-aux-stat">Дроны <b>'+state.allies+'/'+o.cap+'</b></span>'+
+  (base.type==='carrier'?'<span>Вылеты <b>'+state.charges+'</b></span>':'')+'</p></div></div>'+
   '<span class="base-pill '+(o.connected?'online':'offline')+'">'+status+'</span></header>'+
   (active&&!o.connected&&!base.suppressed?'<p class="base-network-warning">Работает локально. Для сетевых услуг подключите промежуточные станции.</p>':'')+
   opening+'<footer class="base-foot">'+
