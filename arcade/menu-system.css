@@ -667,6 +667,39 @@
 .contour-map-label{fill:#e5fff5;font-weight:700;font-size:10px;paint-order:stroke;
  stroke:#071c2b;stroke-width:3px;pointer-events:none}
 .contour-owned-field{fill:#22dfb01b;stroke:#60efcc99;stroke-width:2}
+.contour-owned-field.contour-forming{animation:contourTerritoryFill 1.55s .95s both}
+.contour-claim-surges{pointer-events:none}
+.contour-claim-surges path{fill:none;stroke:#ffdc9c;stroke-width:4;stroke-linejoin:round;
+ stroke-dasharray:100;stroke-dashoffset:100;filter:drop-shadow(0 0 5px #ffa85f);
+ animation:contourEnergyRace 1.05s ease-out both}
+.contour-vortex-map.contour-vortex-forming{transform-box:fill-box;transform-origin:center;
+ animation:contourVortexBorn .8s 2.4s cubic-bezier(.12,.9,.23,1.2) both}
+.contour-retreat{pointer-events:none;animation:contourBorderRetreat 2.4s ease-out both}
+.contour-retreat path{fill:#f26f8526;stroke:#ff9aaa;stroke-width:2.4;stroke-dasharray:5 5}
+@keyframes contourEnergyRace{0%{stroke-dashoffset:100;opacity:.2}75%{opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes contourTerritoryFill{0%{clip-path:circle(0% at 50% 50%);opacity:0}20%{opacity:1}
+ 100%{clip-path:circle(150% at 50% 50%);opacity:1}}
+@keyframes contourVortexBorn{0%{opacity:0;transform:scale(.12)}65%{opacity:1;transform:scale(1.2)}
+ 100%{opacity:1;transform:scale(1)}}
+@keyframes contourBorderRetreat{0%{opacity:1}40%{opacity:.7}100%{opacity:0}}
+.contour-enemy-threats{pointer-events:none}
+.contour-threat-field{fill:#ff546319;stroke:#ff858b;stroke-width:1.9;stroke-dasharray:7 6;
+ animation:contourThreatBeat 2.5s ease-in-out infinite}
+.contour-threat-target circle{fill:#ff45531f;stroke:#ff9299;stroke-width:2.4;
+ stroke-dasharray:4 3;animation:contourThreatBeat 2.3s ease-in-out infinite}
+.contour-threat-target path{stroke:#ffadb1;stroke-width:2.6;stroke-linecap:round}
+.contour-threat-support{fill:none;stroke:#ffca9b;stroke-width:1.5;stroke-dasharray:2 4;opacity:.7}
+.contour-threat-route{fill:none;stroke:#ffb4a1;stroke-width:2;stroke-dasharray:5 8}
+@keyframes contourThreatBeat{0%,100%{stroke-opacity:.55;fill-opacity:.5}50%{stroke-opacity:1;fill-opacity:1}}
+.contour-threat-panel{margin:0 0 9px;padding:10px;background:#38252b9e;border:1px solid #ae6574;
+ border-left:3px solid #ffa1a8;border-radius:5px;color:#ffe2e4}
+.contour-threat-panel>b{font-size:11px;letter-spacing:.06em;color:#ffb7bd}
+.contour-threat-panel p{margin:5px 0 8px;color:#f1c1c7;font-size:11px;line-height:1.45}
+.contour-threat-panel>div{padding-top:7px;border-top:1px solid #975b6766;margin-top:6px}
+.contour-threat-panel strong,.contour-threat-panel small{display:block;font-size:11px}
+.contour-threat-panel small{color:#f3cdd1;margin:3px 0 5px;line-height:1.4}
+#overlay .contour-threat-panel button{min-height:35px;margin:2px 0;background:#543641;border-color:#d47c89;
+ color:#fff0ef;font-size:11px}
 .contour-live-link{fill:none;stroke:#85f3d5;stroke-width:2.7;stroke-opacity:.83}
 .contour-broken-link{fill:none;stroke:#fb7d8d;stroke-width:2.8;stroke-dasharray:5 5}
 .contour-hostile-trunk{fill:none;stroke:#ffa765;stroke-width:2.6;stroke-dasharray:9 7;
@@ -701,6 +734,8 @@
 .contour-key.storm{width:10px;height:10px;border:1.6px dashed #82e1f7;background:#63bfdf14;border-radius:50%}
 .contour-key.cargo{background:#ffbe78;border:1px solid #ffeed2;border-radius:2px}
 .contour-key.incident{background:#f8c26b;border:1px solid #fff1c8;transform:rotate(45deg);border-radius:2px}
+.contour-key.enemy-threat{background:#ff6777;border:1.5px dashed #fff0ed;transform:rotate(45deg);
+ border-radius:2px}
 .contour-incident-pin{pointer-events:none}
 .contour-incident-pin .contour-incident-halo{fill:#c5efff13;stroke:#7ce0eb;stroke-width:1.6;stroke-dasharray:3 3}
 .contour-incident-pin path{fill:#7ce0eb;stroke:#102c38;stroke-width:1.5}
@@ -777,7 +812,13 @@
 }
 @media(prefers-reduced-motion:reduce){
  .contour-best-link,.contour-vortex-map circle:nth-of-type(2),.contour-storm,
- .contour-map-cargo circle{animation:none}
+ .contour-map-cargo circle,.contour-owned-field.contour-forming,.contour-claim-surges path,
+ .contour-vortex-map.contour-vortex-forming,.contour-retreat,.contour-threat-field,
+ .contour-threat-target circle{animation:none}
+ .contour-claim-surges{display:none}
+ .contour-owned-field.contour-forming{opacity:1;clip-path:none}
+ .contour-vortex-map.contour-vortex-forming{opacity:1;transform:none}
+ .contour-retreat{display:none}
 }
 
 /* Active contracts report progress; abandoning is a secondary, deliberate

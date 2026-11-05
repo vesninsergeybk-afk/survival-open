@@ -1,4 +1,5 @@
 import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1';
+import {activeContourTransition,fieldWasOwned} from './contour-dynamics.js?v=contour-dynamics-1';
 
 const visible=(p,cam,r=200)=>p.x>=cam.x-r&&p.x<=cam.x+cam.w+r&&
  p.y>=cam.y-r&&p.y<=cam.y+cam.h+r;
@@ -11,8 +12,10 @@ export function drawContourWorld(game,c,cam){
  }
  const fields=game.contourVisualFields;
  const links=game.world.contours?.links||[];
- if(!fields.length&&!links.length)return;
+ const transition=activeContourTransition(game);
+ if(!fields.length&&!links.length&&!transition)return;
  const calm=!!game.visuals?.reducedMotion,lowFps=game.fps<34;
+ const elapsed=transition?Math.max(0,now-transition.at):Infinity;
  c.save();
  // Links are real structures even before a field closes. Render them in the
  // physical world so the action on the atlas has an immediate visible result.
@@ -30,6 +33,13 @@ export function drawContourWorld(game,c,cam){
   c.lineWidth=2.8;c.setLineDash(healthy?[23,12]:[9,16]);
   if(!calm)c.lineDashOffset=-(now*35)%35;
   c.stroke();c.setLineDash([]);
+  if(transition?.kind==='claim'&&elapsed<1.1&&transition.changedLinks.some(([x,y,ok])=>ok&&
+   ((x===from&&y===to)||(x===to&&y===from)))){
+   const progress=calm?1:Math.min(1,elapsed/1.1);
+   c.beginPath();c.moveTo(a.x,a.y);c.lineTo(a.x+(b.x-a.x)*progress,a.y+(b.y-a.y)*progress);
+   c.strokeStyle='rgba(255,229,171,.92)';c.lineWidth=5;c.shadowColor='#ffb866';c.shadowBlur=20;
+   c.stroke();c.shadowBlur=0;
+  }
   if(healthy&&!calm&&!lowFps){
    const t=((now*.1+(a.x+b.y)*.000013)%1+1)%1;
    const x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
@@ -43,9 +53,19 @@ export function drawContourWorld(game,c,cam){
  for(const field of fields){
   if(!visible(field.center,cam,950))continue;
   c.save();
+  const forming=transition?.kind==='claim'&&!fieldWasOwned(field.center,transition.previous);
+  if(forming&&!calm&&elapsed<2.5){
+   // The field first receives power along its links, then fills radially.
+   const radius=Math.max(...field.polygon.map(p=>Math.hypot(p.x-field.center.x,p.y-field.center.y)));
+   const fill=Math.min(1,Math.max(0,(elapsed-1)/1.5));
+   c.beginPath();c.arc(field.center.x,field.center.y,radius*fill,0,Math.PI*2);c.clip();
+  }
   c.beginPath();field.polygon.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();
   c.fillStyle='rgba(40,224,195,.035)';c.fill();
   c.strokeStyle='rgba(79,235,198,.22)';c.lineWidth=4;c.setLineDash([34,28]);c.stroke();c.setLineDash([]);
+  c.restore();
+  if(forming&&elapsed<2.5&&!calm)continue;
+  c.save();
   const {x,y}=field.center,phase=now*.72+field.area*.000001;
   const pulse=1+.085*Math.sin(now*1.55+field.area*.00001),r=64*pulse;
   c.translate(x,y);c.globalCompositeOperation='lighter';
@@ -94,6 +114,20 @@ export function drawContourWorld(game,c,cam){
     c.restore();
    }
   }
+ }
+ if(transition?.kind==='loss'&&elapsed<2.4){
+  c.save();c.globalAlpha=(1-elapsed/2.4)*.52;
+  for(const old of transition.previous){
+   if(!visible(old.center,cam,950))continue;
+   c.save();c.beginPath();old.polygon.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();
+   for(const live of fields){
+    live.polygon.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();
+   }
+   c.clip('evenodd');c.fillStyle='rgba(255,88,111,.18)';c.fillRect(cam.x,cam.y,cam.w,cam.h);
+   c.strokeStyle='#ff909b';c.lineWidth=3;c.setLineDash([10,12]);
+   c.beginPath();old.polygon.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();c.stroke();c.restore();
+  }
+  c.restore();
  }
  const byId=new Map(fields.map(f=>[f.id,f]));
  for(const h of game.world.contours.harvesters){
