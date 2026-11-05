@@ -52,7 +52,7 @@ export class EnemyMesh{
     this.nextTick=0;this.lastNow=0;this.nextNoticeAt=-Infinity;
     this.messages=0;this.deliveries=0;
   }
-  update(game,cells,now=game?.time??0){
+  update(game,cells,now=game?.time??0,net=null){
     if(!finite(now))return;
     if(now<this.lastNow-.01){
       // Checkpoint rollbacks must not retain information from the lost sortie.
@@ -95,11 +95,17 @@ export class EnemyMesh{
       this.events.push({from:nodePoint(from),to:nodePoint(to),
         kind:received.kind,at:now});
       if(to.kind==='station')this.rememberStation(to,now);
-      if(to.kind==='cell'&&weaponKinds.has(received.kind)&&
+      if(to.kind==='cell'&&received.kind!=='contact'&&
          now>=this.nextNoticeAt&&
          game.playerCanInterceptEnemyRadio?.(to.ref.leader)){
-        game.notice?.('Радиоперехват сети: '+reportLabel(received.kind)+
-          '. Звено получило предупреждение.',3.2);
+        const message='Сеть передала: '+reportLabel(received.kind)+
+          '. Звено получило предупреждение.';
+        game.notice?.('Радиоперехват: '+message,3.2);
+        if(net?.intercepts){
+          net.intercepts.push({at:now,until:now+3.2,
+            mode:'network',message,leader:to.ref.leader,cellId:to.ref.id});
+          if(net.intercepts.length>8)net.intercepts.shift();
+        }
         this.nextNoticeAt=now+7;
       }
     }
@@ -122,7 +128,15 @@ export class EnemyMesh{
       if(incident&&finite(incident.at)&&now-incident.at<=3.2)
         this.publish(node,{kind:'sabotage',at:incident.at,
           assetId:incident.assetId??null},now);
-      const sight=cell.intel;
+      // A lone surviving scout cannot command a tactical cell, but its own
+      // direct sight or witnessed sabotage can still enter the mesh.
+      const lone=cell.members?.length===1?cell.members[0]:null;
+      const aloneIncident=lone?._commsIncident;
+      if(aloneIncident&&finite(aloneIncident.at)&&
+         now-aloneIncident.at<=3.2)
+        this.publish(node,{kind:'sabotage',at:aloneIncident.at,
+          assetId:aloneIncident.assetId??null},now);
+      const sight=cell.intel||lone?._commsSight;
       if(sight&&!sight.estimated&&finite(sight.at)&&now-sight.at<=1.2)
         this.publish(node,{kind:'contact',at:sight.at},now);
     }
