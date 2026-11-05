@@ -1,4 +1,5 @@
 import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
+import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-1';
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
@@ -255,6 +256,26 @@ export function renderWorldMap(game){
    '<li><span>'+enc(({press:'Нажим',pincer:'Обход',intercept:'Перехват',
     screen:'Прикрытие',close:'Сближение',scatter:'Рассредоточение',network:'Сетевое донесение'})[order.mode]||'Манёвр')+
    '</span> '+enc(order.message)+'</li>').join('')+'</ul></details>':'';
+ // Only an active friendly laboratory lets the player inspect hostile
+ // radio activity. Both endpoint stations must already be discovered.
+ const knownTrunks=intel.unlocked?visibleBackbone(game):[];
+ const trunkLines=knownTrunks.map(link=>{
+  const a=world.stations.get(link.a),b=world.stations.get(link.b);
+  const x=point(a.x,a.y,p,scale),y=point(b.x,b.y,p,scale);
+  return '<path d="M '+x.x.toFixed(1)+' '+x.y.toFixed(1)+
+   ' L '+y.x.toFixed(1)+' '+y.y.toFixed(1)+'" fill="none" '+
+   'stroke="'+(link.active?'#f5b46d':'#a7758b')+
+   '" opacity=".48" stroke-width="1.6" stroke-dasharray="8 7">'+
+   '<title>'+enc(link.titleA)+' — '+enc(link.titleB)+
+   (link.active?' · связь работает':' · линия нарушена')+'</title></path>';
+ }).join('');
+ const trunkPanel=knownTrunks.length?
+  '<details class="map-objective map-radio-log"><summary>Магистрали машин · '+
+  knownTrunks.filter(l=>l.active).length+'/'+knownTrunks.length+
+  ' действуют</summary><ul>'+knownTrunks.slice(0,6).map(link=>
+   '<li><span>'+(link.active?'СВЯЗЬ':'ОБРЫВ')+'</span> '+
+   enc(link.titleA)+' — '+enc(link.titleB)+'</li>').join('')+
+  '</ul><small>Захват и радиопомехи нарушают передачу.</small></details>':'';
  const intelContacts=intel.contacts.map(c=>'<article class="map-contact">'+
   '<div><strong>'+enc(c.label)+'</strong><small>'+enc(c.detail)+'</small></div>'+
   '<button type="button" data-act="waypoint" data-id="'+enc(c.id)+'" data-x="'+
@@ -283,7 +304,7 @@ export function renderWorldMap(game){
   '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
   '<circle cx="340" cy="240" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
-  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,p,scale),visible)+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+intelMarks+marks+operationMark+enemyOrders+
+  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,p,scale),visible)+trunkLines+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+intelMarks+marks+operationMark+enemyOrders+
   '<g><circle cx="340" cy="240" r="13" fill="none" stroke="#8affff"/>'+
   dot(340,240,'#9bf9ff',5)+'</g>'+
   '<text x="351" y="266" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
@@ -301,7 +322,7 @@ export function renderWorldMap(game){
    (intelContacts?'<div class="map-contact-list">'+intelContacts+'</div>':
     (intel.localSecured?'<p>Местная цепочка снабжения подавлена. Другие действующие лаборатории могут обнаружить грузы в дальних регионах.</p>':
      '<p>Сейчас нет новых радиометок. Подключите лабораторию ближе к маршрутам грузов.</p>'))+'</section>':'')+
-  renderRegionAtlas(game)+radioHistory+
+  renderRegionAtlas(game)+radioHistory+trunkPanel+
   '<div class="map-objective"><span>ОБСТАНОВКА В СЕКТОРЕ</span><p>'+enc(territory)+'</p>'+
   (securedSupply.length?'<p>Зелёным отмечены перехваченные маршруты снабжения. В пределах 740 м от них вражеские патрули появляются реже.</p>':'')+'</div>'+
   (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
