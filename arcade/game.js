@@ -23,7 +23,7 @@ import {ArcadeVisuals} from './visuals.js?v=regions-1-campaign-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1';
@@ -47,12 +47,12 @@ import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogist
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2-expedition-1-campaign-1';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3-expedition-1-campaign-1';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
- openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-4';
+ openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-5';
 import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1';
 import {regionalCampaignPressure,campaignDestination} from './regional-campaign.js?v=campaign-1';
 import {updateStationInterdiction,interruptStationInterdiction,threatenedStations} from './strategic-command.js?v=campaign-1';
@@ -636,7 +636,8 @@ export class ArcadeGame {
   this.dismiss();
   this.notice(kind==='intercept'?
    'Наводчик с охраной держит дистанцию. Сближайтесь рывком (Shift); коснитесь или щёлкните по нему для приоритета автоогня.':
-   'Капсула отмечена. Удерживайте E рядом: прогресс сохраняется после паузы, а на половине работы сработает её защитный импульс.',6);
+   'Капсула отмечена. Удерживайте '+(this.isTouchLayout?'«Действие»':'E')+
+    ' рядом: прогресс сохраняется после паузы, а на половине работы сработает её защитный импульс.',6);
  }
  showOpeningReward(){
   if(this.firstHardwareReward!=='pending'||!this.overlay.hidden||this.dead)return;
@@ -1729,7 +1730,8 @@ export class ArcadeGame {
   c.textAlign='center';c.font='bold 12px system-ui';c.fillStyle='#fff1d0';
   c.fillText('АВАРИЙНАЯ КАПСУЛА',0,-66);
   c.font='11px system-ui';
-  c.fillText(Math.round(arc.repair/OPENING_ARC.repairSeconds*100)+'% · УДЕРЖИВАЙТЕ E',0,-51);
+  c.fillText(Math.round(arc.repair/OPENING_ARC.repairSeconds*100)+'% · '+
+   (this.isTouchLayout?'ДЕРЖИТЕ «ДЕЙСТВИЕ»':'УДЕРЖИВАЙТЕ E'),0,-51,220);
   c.restore();
   if(this.openingRepairing){
    c.save();c.strokeStyle='#83fbe4';c.lineWidth=3;

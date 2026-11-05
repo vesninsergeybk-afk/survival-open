@@ -161,6 +161,9 @@ test('short recovery windows punctuate the first ten minutes without disabling d
 test('timers, labels and invalid checkpoint data are bounded',()=>{
  const a=arc();beginOpeningArc(a,'rescue',20);
  assert.match(openingArcObjective(a,50),/ЭВАКУАЦИЯ/);
+ assert.match(openingArcObjective(a,50,true),/держите «Действие»/,
+  'a touch user must see the actual on-screen control, not a keyboard key');
+ assert.doesNotMatch(openingArcObjective(a,50,true),/удерживайте E/);
  assert.equal(openingWaypointCue({id:'opening-intercept'},1026.3),'НАВОДЧИК · 1026 М');
  assert.equal(openingWaypointCue({id:'opening-rescue'},150),'КАПСУЛА · 150 М');
  assert.equal(openingWaypointCue({id:'0:0'},150),'');
@@ -169,6 +172,17 @@ test('timers, labels and invalid checkpoint data are bounded',()=>{
  assert.equal(validateOpeningArc({...a,commanderSerial:-2}),false);
  assert.equal(validateOpeningArc({...a,returnWaypoint:{id:'n',x:NaN,y:0}}),false);
  assert.equal(validateOpeningArc({...a,status:'unknown'}),false);
+});
+
+test('opening rescue briefing names the touch action without inventing a keyboard',()=>{
+ const a=arc(),notices=[],g=Object.create(RuntimeHarness.prototype);
+ Object.assign(g,{openingArc:a,time:16,isTouchLayout:true,
+  overlay:{dataset:{mode:'opening-choice'}},waypoint:null,dismiss:()=>{},
+  notice:t=>notices.push(t)});
+ g.chooseOpeningRoute('rescue');
+ assert.equal(a.kind,'rescue');assert.equal(g.waypoint.id,'opening-rescue');
+ assert.match(notices[0],/«Действие»/);
+ assert.doesNotMatch(notices[0],/Удерживайте E/);
 });
 
 test('game grants interceptor payout and relief once, then offers an actual module',()=>{
