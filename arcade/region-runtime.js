@@ -1,13 +1,13 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
-import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1';
+import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-repair-qa-1';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
+import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1';
-import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
-import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1-campaign-1';
-import {updateStrategicCommand,assignStationInterdiction,drawStationInterdiction} from './strategic-command.js?v=campaign-1';
+import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
+import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1';
+import {updateStrategicCommand,assignStationInterdiction,drawStationInterdiction} from './strategic-command.js?v=campaign-1-repair-qa-1';
 import {stormPhase} from './regional-storms.js?v=regions-1';
-import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1';
+import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function makeEnemy(game,type,x,y,scenario,protect=null,frontierRole=null){
@@ -96,6 +96,8 @@ export function updateRegionalWorld(game,dt){
    if(e.kind==='repair-source-dispatch')game.notice(e.network==='azure'?
     'Электроангар потратил готовый резерв на ремонт индукционной вышки. Корабль идёт обратно по грузовой дороге.':
     'Верфь потратила готовый резерв на ремонт комбината. Ремонтный корабль возвращается к источнику.',8);
+   if(e.kind==='repair-screened-dispatch')game.notice(
+    'Противник потратил дополнительные материалы на усиленное сопровождение ремонтного корабля.',7);
    if(e.kind==='repair-depot-complete'||e.kind==='repair-source-complete')game.notice(
     'Ремонтный корабль достиг цели. Корпус и уцелевшие турели станции частично восстановлены.',7);
    if(e.kind==='repair-intercept')game.notice('Ремонтный рейс противника сорван. Потраченные материалы враг не вернёт.',6);
@@ -117,7 +119,8 @@ export function updateRegionalWorld(game,dt){
    if(!cargo.escorted&&game.enemies.length<=RULES.maxEnemies-2){
     cargo.escorted=true;++game.groupSerial;
     const roster=cargo.frontierRepair?
-     (cargo.frontierNetwork==='azure'?['fighter','flanker']:['fighter','healer']):cargo.frontierCargo?
+     (cargo.frontierNetwork==='azure'?(cargo.screened?['flanker','gunship']:['fighter','flanker']):
+      cargo.screened?['gunship','healer']:['fighter','healer']):cargo.frontierCargo?
      (cargo.screened?(cargo.frontierNetwork==='azure'?['flanker','gunship']:['gunship','healer']):
       FRONTIERS[cargo.frontierNetwork].escort):
      cargo.centralCargo&&cargo.screened?['gunship','fighter']:['fighter','fighter'];
@@ -262,9 +265,9 @@ export function spawnRegionalRaid(game,director){
 }
 export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  if(cargo.hp<=0||!Number.isFinite(damage)||damage<=0)return;
- const silentLoss=cargo.frontierCargo&&
+ const silentLoss=(cargo.frontierCargo||cargo.frontierRepair)&&
   !frontierRadioCoverage(game.world,cargo.frontierNetwork,cargo);
- if(cargo.frontierCargo)recordFrontierCargoAttack(game.world,cargo,source,
+ if(cargo.frontierCargo||cargo.frontierRepair)recordFrontierCargoAttack(game.world,cargo,source,
   distance(game.player,cargo),game.time);
  cargo.hp=Math.max(0,cargo.hp-damage);cargo.hit=.18;
  // Local escorts can witness an attack and call nearby pilots to the
@@ -282,7 +285,8 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  game.addDrop('ore',cargo.x,cargo.y,cargo.frontierRepair?4:frontier?.rewardOre??(cargo.centralCargo?CENTRAL_INDUSTRY.oreReward:SUPPLY.oreReward),{source:'salvage',life:60});
  game.addDrop('data',cargo.x+14,cargo.y,cargo.frontierRepair?5:frontier?.rewardData??(cargo.centralCargo?CENTRAL_INDUSTRY.dataReward:SUPPLY.dataReward),{source:'combat',life:60});
  game.notice(cargo.frontierRepair?
-  'Вражеский ремонтный корабль уничтожен. Запас на этот рейс потрачен, повреждённая станция останется без ремонта.':frontier?
+  'Вражеский ремонтный корабль уничтожен. Запас на этот рейс потрачен, повреждённая станция останется без ремонта.'+
+   (silentLoss?' В радиотени пропажу заметят позже.':' Сигнал об атаке получен вражеской сетью.'):frontier?
   (cargo.frontierNetwork==='azure'?
    'Батареи уничтожены: электроангар не получит усиление для одного будущего патруля. Готовые резервы сохраняются.':
    'Запчасти уничтожены: верфь не усилит патруль ремонтником из этой поставки. Готовые резервы сохраняются.')+
