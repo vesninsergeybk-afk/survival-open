@@ -305,6 +305,7 @@
 .map-contact.selected{border-color:#f0c477;box-shadow:inset 3px 0 0 #f0c477}
 .map-contact button{min-height:40px}
 .map-view-switch{display:none}
+.map-intel-compact{display:none}
 .map-unapplied-note{margin:9px 0!important;padding:8px 11px;border-left:3px solid var(--menu-amber);
  background:#3a3025;color:#ffe7b8!important;font-size:12px!important;text-align:left}
 .map-discovery-lead{margin:7px 0;padding:8px 11px;background:#123243;border-left:3px solid #89dfca;
@@ -440,6 +441,8 @@
  .map-heading-actions{flex-direction:row;align-items:center;gap:6px}
  .map-heading-actions button{min-height:44px}
  .map-view-switch{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:7px 0}
+ .map-intel-wide{display:none}
+ .map-intel-compact{display:inline}
  #overlay .map-view-switch button{margin:0!important;min-height:44px;background:#102b3b}
  #overlay .map-view-switch button[aria-pressed="true"]{border-color:#f1c879;background:#53462f;color:#fff0d1}
  .map-shell{display:block;margin-top:5px}

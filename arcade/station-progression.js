@@ -32,7 +32,7 @@ export const LAB_LOGISTICS_TECH=Object.freeze({
  name:'Радиоперехват снабжения',
  range:4300,
  promise:'Первая лаборатория откроет радиоперехват: научные узлы смогут отслеживать проходящие поблизости грузы. Лаборатории центрального сектора помогут также найти местную шахту.',
- unlocked:'Радиоперехват работает. На карте в разделе «Регионы и цели» видны доступные промышленные сигналы и движущиеся грузы. Другие лаборатории расширяют область слежения.'
+ unlocked:'Радиоперехват работает. На карте можно выбрать промышленный сигнал или радиометку груза. Другие лаборатории расширяют область слежения.'
 });
 
 export function labLogisticsUnlocked(world){
@@ -48,6 +48,12 @@ export function labDiscoveryPromise(station,world){
 }
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+export function cargoStrengthensEnemy(world,item){
+ if(!item||!(item.hp>0))return false;
+ const destinationId=item.centralCargo?CENTRAL_INDUSTRY.depotId:
+  item.frontierCargo?FRONTIERS[item.frontierNetwork]?.depotId:SUPPLY.militaryId;
+ return !!destinationId&&!!world?.stations?.get(destinationId)?.enemy;
+}
 export function labLogisticsIntel(world,player={x:0,y:0}){
  const labs=world?.stations?.values?[...world.stations.values()].filter(station=>
   station.type==='lab'&&station.active&&!station.enemy):[];
@@ -76,12 +82,9 @@ export function labLogisticsIntel(world,player={x:0,y:0}){
  const cargo=[...(network?.convoys||[]),...(network?.central?.convoys||[]),
   ...(network?.frontier?.azure?.convoys||[]),...(network?.frontier?.teal?.convoys||[])];
  for(const item of cargo){
-  const destinationId=item.centralCargo?CENTRAL_INDUSTRY.depotId:
-   item.frontierCargo?FRONTIERS[item.frontierNetwork]?.depotId:SUPPLY.militaryId;
   // A shipment heading to a captured destination no longer funds enemies.
   // Do not tempt the player to chase a worthless, already diverted cargo.
-  if(!destinationId||!world.stations.get(destinationId)?.enemy)continue;
-  if(!(item.hp>0)||!Number.isFinite(item.x)||!Number.isFinite(item.y)||
+  if(!cargoStrengthensEnemy(world,item)||!Number.isFinite(item.x)||!Number.isFinite(item.y)||
     !labs.some(lab=>distance(lab,item)<=LAB_LOGISTICS_TECH.range))continue;
   const label=item.centralCargo?'Местный рудный груз':item.frontierCargo?
    (item.frontierNetwork==='azure'?'Транспорт батарей':'Транспорт запчастей'):'Рудный транспорт';
@@ -96,7 +99,9 @@ export function labLogisticsIntel(world,player={x:0,y:0}){
  const history=counters&&counters.intercepted+counters.delivered>0?
   ' Результат: перехвачено рейсов — '+counters.intercepted+', доставлено — '+counters.delivered+'.':'';
  const status=localReach?situation+history:
-  'Радиоперехват действует рядом с лабораториями. Для поиска промышленных источников в других секторах нужны местные научные узлы.';
+  contacts.some(c=>c.kind==='cargo')?
+   'Обнаружены действующие перевозки противника. Их метки пропадут, когда груз покинет зону лабораторий.':
+   'Радиоперехват действует рядом с лабораториями. Для поиска промышленных источников в других секторах нужны местные научные узлы.';
  return {unlocked:true,localSecured:localReach&&!depot?.enemy,contacts:contacts.sort((a,b)=>
   (a.kind==='cargo'?0:1)-(b.kind==='cargo'?0:1)||distance(a,player)-distance(b,player)),status};
 }

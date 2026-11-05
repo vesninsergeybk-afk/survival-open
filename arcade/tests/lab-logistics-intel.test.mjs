@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {game} from './weapons-scene.mjs';
 import {CENTRAL_INDUSTRY,interceptCentralCargo} from '../central-industry.js';
-import {labDiscoveryPromise,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from '../station-progression.js';
+import {labDiscoveryPromise,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH,cargoStrengthensEnemy} from '../station-progression.js';
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
 import {captureCheckpoint,restoreCheckpoint} from '../run-checkpoint.js';
@@ -92,9 +92,56 @@ test('map waypoint selects only an actually scanned hostile cargo, never a forge
  assert.equal(waypoint.id,cargo.id);
  assert.equal(waypoint.x,cargo.x);
  assert.equal(waypoint.label,'Местный рудный груз');
+ assert.equal(waypoint.radioContact,true);
  waypoint=null;
  g.selectWaypoint({id:'central-cargo-not-real',x:'6500',y:'1600'});
  assert.equal(waypoint,null);
+});
+
+test('radio waypoint stops following a cargo outside lab range and reacquires it on renewed coverage',()=>{
+ const g=game(),b=installLab(g,lab('0:2',200,2800,true));
+ const cargo=centralCargo('central-cargo-1',4400,2800);cargo.launchedAt=10;
+ g.world.regionalSupply.central.convoys.push(cargo);
+ g.overlay.dataset.mode='map';g.player.x=4400;g.player.y=2800;
+ g.requestWaypointDeparture=waypoint=>{g.waypoint=waypoint;};
+ g.selectWaypoint({id:cargo.id,x:'4400',y:'2800'});
+ assert.equal(g.waypoint.radioContact,true);
+ g.time=11;updateRegionalWorld(g,1);
+ g.time=12;updateRegionalWorld(g,1);
+ assert.equal(g.waypoint.signalLive,false);
+ assert.match(g.waypoint.label,/Последняя радиометка/);
+ const lastX=g.waypoint.x,lastY=g.waypoint.y;
+ g.time=13;updateRegionalWorld(g,1);
+ assert.equal(g.waypoint.x,lastX,'ship movement beyond radio coverage must stay unknown');
+ assert.equal(g.waypoint.y,lastY);
+ b.x=5700;b.y=1900;
+ g.time=14;updateRegionalWorld(g,1);
+ assert.equal(g.waypoint.signalLive,true);
+ assert.equal(g.waypoint.x,cargo.x);
+ assert.equal(g.waypoint.y,cargo.y);
+ assert.equal(g.waypoint.label,'Местный рудный груз');
+});
+
+test('capturing a cargo destination cancels an obsolete radio chase',()=>{
+ const g=game();installLab(g,lab('3:2',4400,2800,true));
+ const cargo=centralCargo('central-cargo-1',4400,2800);cargo.launchedAt=10;
+ g.world.regionalSupply.central.convoys.push(cargo);
+ g.waypoint={id:cargo.id,x:cargo.x,y:cargo.y,label:'Местный рудный груз',
+  signalLabel:'Местный рудный груз',radioContact:true,signalLive:true};
+ const depot=g.world.stations.get(CENTRAL_INDUSTRY.depotId);
+ assert.equal(cargoStrengthensEnemy(g.world,cargo),true);
+ depot.enemy=false;depot.captured=true;
+ assert.equal(cargoStrengthensEnemy(g.world,cargo),false);
+ g.time=11;updateRegionalWorld(g,1);
+ assert.equal(g.waypoint,null);
+});
+
+test('desktop and compact maps give a truthful route selection hint',()=>{
+ const g=game();installLab(g,lab('2:2',2500,2300,true));
+ const html=renderWorldMap(g);
+ assert.match(html,/map-intel-wide">Выберите маршрут в списке справа/);
+ assert.match(html,/map-intel-compact">Нажмите «Регионы и цели»/);
+ assert.doesNotMatch(LAB_LOGISTICS_TECH.unlocked,/в разделе «Регионы и цели»/);
 });
 
 test('industrial waypoint becomes exact after discovery and vanishes when the source is neutralized',()=>{
