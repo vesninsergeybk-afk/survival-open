@@ -7,6 +7,7 @@
  * suppressing a relay breaks the route. No neural nets, spawned units or stat
  * modifiers are involved.
  */
+import {tacticalRadioJammed} from './tactical-fields.js?v=tactical-field-1';
 export const ENEMY_MESH=Object.freeze({
   tick:.72,flight:.66,shipLink:510,stationLink:1050,backboneLink:1450,
   bucket:1550,maxHops:12,maxTransfers:36,maxPending:112,
@@ -85,6 +86,8 @@ export class EnemyMesh{
       if(item.arrives>now){nextPending.push(item);continue;}
       const from=next.get(item.from),to=next.get(item.to);
       if(!from||!to||!nodeAlive(from,now)||!nodeAlive(to,now)||
+         tacticalRadioJammed(game,nodePoint(from))||
+         tacticalRadioJammed(game,nodePoint(to))||
          distance(nodePoint(from),nodePoint(to))>linkLimit(from,to)||
          !valid(item.packet,now)||to.known.has(item.packet.id))continue;
       const received={...item.packet,hops:item.packet.hops+1};
@@ -143,6 +146,7 @@ export class EnemyMesh{
     // Spatial hash avoids an all-pairs mesh graph with large enemy counts.
     const buckets=new Map();
     for(const node of next.values()){
+      if(tacticalRadioJammed(game,nodePoint(node)))continue;
       const p=nodePoint(node),key=keyFor(p.x,p.y);
       if(!buckets.has(key))buckets.set(key,[]);
       buckets.get(key).push(node);
@@ -165,6 +169,7 @@ export class EnemyMesh{
         x.hops<ENEMY_MESH.maxHops).sort((a,b)=>b.at-a.at);
       let sent=0;
       for(const other of neighbours){
+        if(tacticalRadioJammed(game,nodePoint(other)))continue;
         if(sent>=3||scheduled>=ENEMY_MESH.maxTransfers||
            this.pending.length>=ENEMY_MESH.maxPending)break;
         for(const packet of reports){

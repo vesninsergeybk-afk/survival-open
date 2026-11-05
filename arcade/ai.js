@@ -6,11 +6,21 @@ import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from 
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
 import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-3';
-import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1';
+import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-1';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
 import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1';
+import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
+  if(body._tacticalRepel?.until>body._tacticalNow){
+    tx=body.x+body._tacticalRepel.x*240;
+    ty=body.y+body._tacticalRepel.y*240;
+    speed=Math.max(speed,215);extra={x:0,y:0};
+  }else if(body._tacticalPull){
+    tx=body._tacticalPull.x;ty=body._tacticalPull.y;extra={x:0,y:0};
+  }
+  const slowing=body._tacticalSpeed??1;
+  speed*=slowing;extra={x:extra.x*slowing,y:extra.y*slowing};
   const dir=norm(tx-body.x,ty-body.y);
   const vx=dir.x*speed+extra.x,vy=dir.y*speed+extra.y;
   const blend=1-Math.exp(-3.8*dt);
@@ -285,7 +295,9 @@ export function updateEnemy(e,game,dt){
   }
   const selected=e.target?.hp>0?e.target:game.player;
   const targetingPlayer=selected===game.player;
-  const p=targetingPlayer?enemyPursuitTarget(e,game):selected;
+  const decoy=targetingPlayer?tacticalDecoy(game,e):null;
+  const p=decoy|| (targetingPlayer?enemyPursuitTarget(e,game):selected);
+  if(decoy)e._tacticalDecoyUntil=Math.min(decoy.until,game.time+.35);
   let goalX=p.x,goalY=p.y;
   let speed=ENEMY_TYPES[e.type].speed*(1+Math.min(.42,game.time/1300))*
     (e.type==='scout'?irisBurstThrust(e,game.time):1);
@@ -475,7 +487,7 @@ export function updateEnemy(e,game,dt){
   // repair and scripted combat objectives remain in charge of their ships.
   // No location for the player is inferred here from the world economy.
   const strategic=game.enemyComms?.strategicDirectiveFor?.(e,game.time);
-  if(targetingPlayer&&strategic&&
+  if(targetingPlayer&&!decoy&&strategic&&
      ['hunt','flank','standoff'].includes(e.state)){
     const dest=theaterDestination(e,strategic);
     if(dest){

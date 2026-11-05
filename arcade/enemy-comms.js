@@ -1,4 +1,5 @@
-import {EnemyMesh} from './enemy-mesh.js?v=enemy-mesh-1';
+import {EnemyMesh} from './enemy-mesh.js?v=enemy-mesh-1-tactical-field-1';
+import {tacticalRadioJammed} from './tactical-fields.js?v=tactical-field-1';
 import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1';
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
@@ -321,9 +322,21 @@ export class EnemyComms {
       estimate:incomingFireEstimate(e,range,contact)};return true;
   }
 
+  /** A pilot physically caught in a control field can report its effect.
+   * A second separated observation is still required for squad/mesh doctrine;
+   * simply looking at the player's equipment does not reveal anything. */
+  reportField(e,now){
+    if(!legal(e)||now<(e._commsNextFieldAt??0))return false;
+    e._commsNextFieldAt=now+1.08;
+    e._commsAttack={at:now,kind:'area',weapon:'control-field',estimate:null};
+    return true;
+  }
+
   send(from,to,kind,now){
     if(from===to||!legal(from)||!legal(to)||
-       distance(from,to)>ENEMY_COMMS.range)return false;
+       distance(from,to)>ENEMY_COMMS.range||
+       tacticalRadioJammed(this._tacticalGame,from)||
+       tacticalRadioJammed(this._tacticalGame,to))return false;
     this.events.push({from,to,kind,start:now,until:now+ENEMY_COMMS.pulseSeconds});
     if(this.events.length>ENEMY_COMMS.maxEvents)
       this.events.splice(0,this.events.length-ENEMY_COMMS.maxEvents);
@@ -331,6 +344,7 @@ export class EnemyComms {
   }
 
   update(game){
+    this._tacticalGame=game;
     const now=game.time;
     if(now<this.nextTick)return;
     this.nextTick=now+ENEMY_COMMS.tick;
