@@ -4,7 +4,6 @@ import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt} from './te
 import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const short=n=>Math.round(n).toLocaleString('ru-RU');
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
  b.title||baseNames[b.type]||'Станция';
 const state=b=>!b.discovered&&!b.active&&!b.strategicRole?'не исследована':
@@ -31,7 +30,7 @@ function regionOverview(world,center,scale){
   const sites=world.nearbyStations(r.survey.x,r.survey.y,5100,true);
   const count=new Set(sites.map(b=>b.id)).size;
   const owned=sites.filter(b=>b.active&&!b.enemy&&!b.suppressed).length;
-  return `<g class="contour-region" role="button" tabindex="0" data-act="contourRegion" data-id="${r.id}" aria-label="${esc(r.name)}: ${owned} включено из ${count} узлов" transform="translate(${digits(p.x)} ${digits(p.y)})">
+  return `<g class="contour-region" role="button" tabindex="0" data-act="contourRegion" data-id="${r.id}" aria-label="${esc(r.name)}. Работает ${owned} из ${count} узлов" transform="translate(${digits(p.x)} ${digits(p.y)})">
    <circle class="contour-region-halo" r="49" fill="${r.color}12" stroke="${r.color}70" stroke-width="1.5"/>
    <circle r="30" fill="#0b2333" stroke="${r.color}" stroke-width="1.5"/>
    <path d="M-18 0H18M0-18V18" stroke="${r.color}55" stroke-width="1"/>
@@ -105,7 +104,7 @@ function selectedPanel(game,selected,source,choices,region){
  }
  const suggestions=source&&choices.ready.slice(0,3).map(({node,preview},index)=>{
   const closes=preview.areaGain>1;
-  const extra=closes?'Замкнёт поле · +'+short(preview.areaGain/1000000)+' усл. км² · +'+digits(preview.productionGain)+' флюкса / 3 мин':
+  const extra=closes?'Замкнёт поле · +'+digits(preview.areaGain/1000000)+' усл. км² · +'+digits(preview.productionGain)+' флюкса / 3 мин':
    'Новая связь · территория появится после замыкания';
   return `<button class="contour-choice${closes?' closing':''}" data-act="contourConnect" data-from="${esc(source.id)}" data-id="${esc(node.id)}">
    <span><b>${index+1}. ${esc(name(node))}</b><small>${extra}</small></span><span aria-hidden="true">↗</span></button>`;
@@ -116,7 +115,7 @@ function selectedPanel(game,selected,source,choices,region){
  if(source){
   const next=choices.next[0]?.node;
   return `<section class="contour-guide">${lead}<h3>Нужна ещё одна станция</h3>
-   <p>У ${title} пока нет работающего соседа в пределах ${CONTOURS.maxLength} м. ${next?'Ближайший кандидат отмечен янтарным кольцом.':'Исследуйте соседние участки.'}</p>
+   <p>У выбранной станции пока нет работающего соседа в пределах ${CONTOURS.maxLength} м. ${next?'Ближайший кандидат отмечен янтарным кольцом.':'Исследуйте соседние участки.'}</p>
    ${next?route(next):''}<button class="contour-cancel" data-act="contourCancel">Снять выбор</button></section>`;
  }
  return `<section class="contour-guide">${lead}<h3>${title}</h3><p>Станция включена. Выберите её, чтобы начать соединение.</p>${route(selected)}</section>`;
@@ -135,7 +134,7 @@ export function renderContourMap(game){
  const pulseReady=inside&&world.contours.flux>=5&&game.time>=(world.contours.pulseReadyAt||0)&&game.player.shield<42;
  const source=world.stations.get(game.contourFirst),selected=world.stations.get(game.contourSelection)||source;
  const choices=source&&region?contourConnectionChoices(world,source.id,nodes):{ready:[],next:[]};
- const best=choices.ready[0],goals=source&&!choices.ready.length?choices.next.slice(0,2):[];
+ const best=choices.ready[0],goals=source&&!choices.ready.length?choices.next.slice(0,1):[];
  // Label only the strongest proposals; a thicket of labels would hide the map.
  const readyIds=new Set(choices.ready.slice(0,4).map(c=>c.node.id));
  const goalIds=new Set(goals.map(c=>c.node.id));
