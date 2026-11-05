@@ -15,7 +15,7 @@ export const ENEMY_MESH=Object.freeze({
   bucket:1550,maxHops:12,maxTransfers:36,maxPending:112,
   maxPerNode:12,maxEvents:28,maxDrawn:5,
   weaponLife:48,contactLife:15,incidentLife:36,tacticalAge:20,
-  stationMemory:6,doctrineLife:70,doctrineTacticalAge:125
+  stationMemory:6,doctrineLife:70,doctrineTacticalAge:44
 });
 const weaponKinds=new Set(['area','long','close']);
 const allowedKinds=new Set([...weaponKinds,'contact','sabotage','doctrine']);
@@ -189,7 +189,7 @@ export class EnemyMesh{
       neighbours.sort((a,b)=>distance(p,nodePoint(a))-
         distance(p,nodePoint(b))||a.id.localeCompare(b.id));
       const reports=[...node.known.values()].filter(x=>valid(x,now)&&
-        x.hops<ENEMY_MESH.maxHops).sort((a,b)=>b.at-a.at);
+        x.hops<ENEMY_MESH.maxHops).sort((a,b)=>Number(a.kind==='doctrine')-Number(b.kind==='doctrine')||b.at-a.at);
       let sent=0;
       for(const other of neighbours){
         if(tacticalRadioJammed(game,nodePoint(other)))continue;
@@ -217,7 +217,7 @@ export class EnemyMesh{
         if(!other||!backboneActive(node.ref,other.ref,game))continue;
         const reports=[...node.known.values()].filter(p=>
           valid(p,now)&&p.hops<ENEMY_MESH.maxHops)
-          .sort((a,b)=>b.at-a.at);
+          .sort((a,b)=>Number(a.kind==='doctrine')-Number(b.kind==='doctrine')||b.at-a.at);
         for(const packet of reports){
           const key=other.id+'|'+packet.id;
           if(other.known.has(packet.id)||queued.has(key))continue;
