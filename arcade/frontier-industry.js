@@ -54,7 +54,7 @@ export const FRONTIER_RESPONSE=Object.freeze({reportDelay:12,reportMemory:600,
 // A small, funded industrial decision distinct from the ambient combat director.
 // Existing patrol reserves are not converted into free maintenance ships.
 export const FRONTIER_REPAIR=Object.freeze({cost:4,earliest:140,cooldown:240,
- maxMissions:2,hp:125,speed:190,threshold:.78,hullGain:.26,turretGain:.32});
+ window:900,maxWindowMissions:2,hp:125,speed:190,threshold:.78,hullGain:.26,turretGain:.32});
 export const frontierRoute=(id,mode='direct')=>
  FRONTIER_ROUTES[id]?.[mode]||FRONTIERS[id].route;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -97,7 +97,7 @@ function createNetwork(id,time){
   reserves:0,assemblyUntil:0,nextRaid:0,pendingRaid:null,delivered:0,
   intercepted:0,launched:0,raids:0,lastPulse:-1,history:[],strategy:createStrategy(time),
   repairExpedition:null,repairsLaunched:0,repairsCompleted:0,repairsIntercepted:0,
-  nextRepairAt:at+FRONTIER_REPAIR.earliest,
+  nextRepairAt:at+FRONTIER_REPAIR.earliest,repairDispatchTimes:[],
   worker:id==='teal'?{frontierWorker:true,network:'teal',x:start.x,y:start.y,
    hp:95,maxHp:95,r:18,phase:'seek',cacheId:null,carry:0,
    from:{...start},to:{...start},at,until:at}:null,
@@ -130,6 +130,7 @@ function repairState(s,time){
  s.repairExpedition??=null;
  s.repairsLaunched??=0;s.repairsCompleted??=0;s.repairsIntercepted??=0;
  s.nextRepairAt??=Math.floor(time)+FRONTIER_REPAIR.earliest;
+ s.repairDispatchTimes??=s.repairExpedition?[s.repairExpedition.launchedAt]:[];
 }
 function damagedStation(station){
  return station.hp<station.maxHp*FRONTIER_REPAIR.threshold||
@@ -166,7 +167,7 @@ function report(s,kind,route,time,transmittedAt=time){
 }
 export function recordFrontierCargoAttack(world,cargo,weapon,range,time){
  const id=cargo?.frontierNetwork,s=world.regionalSupply?.frontier?.[id];
- if(!FRONTIERS[id]||!s?.convoys.includes(cargo)||cargo.hp<=0||
+ if(!FRONTIERS[id]||!(s?.convoys.includes(cargo)||s?.repairExpedition===cargo)||cargo.hp<=0||
    !['beam','rail','rocket','flak'].includes(weapon)||range<270||
    !Number.isFinite(range)||!Number.isFinite(time))return false;
  const st=strategyOf(s,time);
@@ -310,6 +311,10 @@ export function advanceFrontierIndustry(world,time){
    if(expedition){
     expedition.distance=(t-expedition.launchedAt)*FRONTIER_REPAIR.speed;
     Object.assign(expedition,repairPosition(id,expedition.distance,expedition.routeId,expedition.targetKind));
+    if(expedition.radioBuffer?.length&&frontierRadioCoverage(world,id,expedition)){
+     for(const at of expedition.radioBuffer)report(s,'long',expedition.routeId,at,t);
+     expedition.radioBuffer=[];
+    }
     if(expedition.distance>=frontierRouteLength(id,expedition.routeId)){
      const target=expedition.targetKind==='source'?src:depot;
      if(target?.enemy){repairStation(target);s.repairsCompleted++;
@@ -320,19 +325,26 @@ export function advanceFrontierIndustry(world,time){
      s.repairExpedition=null;
     }
    }
+   // The window counts departures during the *previous* 900 seconds, not
+   // calendar blocks that would permit a burst across their boundary.
+   s.repairDispatchTimes=s.repairDispatchTimes.filter(at=>t-at<FRONTIER_REPAIR.window);
    const goal=repairGoal(src,depot,s);
    if(!s.repairExpedition&&goal&&src?.enemy&&depot?.enemy&&
-      t>=s.nextRepairAt&&s.repairsLaunched<FRONTIER_REPAIR.maxMissions){
-    const routeId=strategyOf(s,t).route;
+      t>=s.nextRepairAt&&s.repairDispatchTimes.length<FRONTIER_REPAIR.maxWindowMissions){
+    const st=strategyOf(s,t),routeId=st.route;
+    const screened=t<st.screenUntil&&s.resource>=
+     FRONTIER_RESPONSE.screenCargoCost+(goal==='depot'?FRONTIER_REPAIR.cost:0);
     if(goal==='source')s.reserves--;
     else s.resource-=FRONTIER_REPAIR.cost;
-    s.nextRepairAt=t+FRONTIER_REPAIR.cooldown;
+    if(screened)s.resource-=FRONTIER_RESPONSE.screenCargoCost;
+    s.nextRepairAt=t+FRONTIER_REPAIR.cooldown;s.repairDispatchTimes.push(t);
     s.repairExpedition={id:'frontier-repair-'+id+'-'+(++s.repairsLaunched),
      frontierRepair:true,frontierNetwork:id,regionalCargo:true,type:'fighter',
-     routeId,targetKind:goal,distance:0,launchedAt:t,
+     routeId,targetKind:goal,distance:0,launchedAt:t,screened,
      ...repairPosition(id,0,routeId,goal),r:29,
      hp:FRONTIER_REPAIR.hp,maxHp:FRONTIER_REPAIR.hp,hit:0,seen:false,escorted:false};
     emit('repair-'+goal+'-dispatch',t);
+    if(s.repairExpedition.screened)emit('repair-screened-dispatch',t);
    }
    if(!depot?.enemy){s.reserves=0;s.pendingRaid=null;}
    if(depot?.enemy&&s.reserves>0&&!s.pendingRaid&&
@@ -359,7 +371,21 @@ export function interceptFrontierRepair(world,craft,time){
     craft.rewarded||craft.hp>0)return false;
  craft.rewarded=true;s.repairExpedition=null;s.repairsIntercepted++;
  frontierEvent(s,id,'repair-intercept',time);
+ reportShipmentLoss(world,s,id,craft,time);
  return true;
+}
+
+function reportShipmentLoss(world,s,id,cargo,time){
+ if(frontierRadioCoverage(world,id,cargo)){
+  report(s,'loss',cargo.routeId||'direct',time);
+ }else{
+  const st=strategyOf(s,time);
+  const speed=cargo.frontierRepair?FRONTIER_REPAIR.speed:FRONTIERS[id].speed;
+  const expected=Math.ceil(cargo.launchedAt+frontierRouteLength(id,cargo.routeId)/speed);
+  st.pendingLosses.push({route:cargo.routeId||'direct',at:Math.floor(time),
+   dueAt:Math.max(Math.floor(time)+1,expected+FRONTIER_RESPONSE.missingGrace)});
+  st.pendingLosses=st.pendingLosses.slice(-FRONTIER_RESPONSE.maxMissing);
+ }
 }
 
 export function interceptFrontierCargo(world,cargo,time){
@@ -367,17 +393,7 @@ export function interceptFrontierCargo(world,cargo,time){
  if(!FRONTIERS[id]||!s?.convoys.includes(cargo)||cargo.rewarded||cargo.hp>0)return false;
  cargo.rewarded=true;s.convoys=s.convoys.filter(c=>c!==cargo);
  s.intercepted++;frontierEvent(s,id,'intercept',time);
- if(frontierRadioCoverage(world,id,cargo)){
-  // An automated distress packet can be sent immediately before destruction.
-  report(s,'loss',cargo.routeId||'direct',time);
- }else{
-  const st=strategyOf(s,time);
-  const expected=Math.ceil(cargo.launchedAt+
-   frontierRouteLength(id,cargo.routeId)/FRONTIERS[id].speed);
-  st.pendingLosses.push({route:cargo.routeId||'direct',at:Math.floor(time),
-   dueAt:Math.max(Math.floor(time)+1,expected+FRONTIER_RESPONSE.missingGrace)});
-  st.pendingLosses=st.pendingLosses.slice(-FRONTIER_RESPONSE.maxMissing);
- }
+ reportShipmentLoss(world,s,id,cargo,time);
  return true;
 }
 export function damageFrontierAsset(world,target,damage,time){
@@ -482,14 +498,19 @@ export function frontierIndustryValid(root,time){
       'emergency-prep','emergency-raid','shipment-overdue',
       'repair-depot-dispatch','repair-source-dispatch',
       'repair-depot-complete','repair-source-complete','repair-aborted',
-      'repair-intercept'].includes(e.kind))||
+      'repair-intercept','repair-screened-dispatch'].includes(e.kind))||
    !Array.isArray(s.convoys)||s.convoys.length>1||
    (s.repairExpedition!==undefined&&s.repairExpedition!==null&&(
     !s.repairExpedition.frontierRepair||!s.repairExpedition.regionalCargo||
     s.repairExpedition.frontierNetwork!==id||
-    !new RegExp('^frontier-repair-'+id+'-[1-2]$').test(s.repairExpedition.id)||
+    !new RegExp('^frontier-repair-'+id+'-\\d+$').test(s.repairExpedition.id)||
     !['direct','diversion'].includes(s.repairExpedition.routeId)||
     !['source','depot'].includes(s.repairExpedition.targetKind)||
+    (s.repairExpedition.screened!==undefined&&typeof s.repairExpedition.screened!=='boolean')||
+    (s.repairExpedition.radioBuffer!==undefined&&(!Array.isArray(s.repairExpedition.radioBuffer)||
+     s.repairExpedition.radioBuffer.length>FRONTIER_RESPONSE.maxBufferedHits||
+     s.repairExpedition.radioBuffer.some(at=>!Number.isInteger(at)||
+      !numeric(at,s.repairExpedition.launchedAt,time))))||
     !numeric(s.repairExpedition.launchedAt,0,time)||
     !numeric(s.repairExpedition.distance,0,frontierRouteLength(id,s.repairExpedition.routeId)+FRONTIER_REPAIR.speed)||
     !point(s.repairExpedition)||!numeric(s.repairExpedition.hp,.001,FRONTIER_REPAIR.hp)||
@@ -497,12 +518,16 @@ export function frontierIndustryValid(root,time){
     typeof s.repairExpedition.seen!=='boolean'||
     typeof s.repairExpedition.escorted!=='boolean'))||
    (s.repairsLaunched!==undefined&&(!Number.isInteger(s.repairsLaunched)||
-    !numeric(s.repairsLaunched,0,FRONTIER_REPAIR.maxMissions)))||
+    !numeric(s.repairsLaunched)))||
    (s.repairsCompleted!==undefined&&(!Number.isInteger(s.repairsCompleted)||
-    !numeric(s.repairsCompleted,0,FRONTIER_REPAIR.maxMissions)))||
+    !numeric(s.repairsCompleted)))||
    (s.repairsIntercepted!==undefined&&(!Number.isInteger(s.repairsIntercepted)||
-    !numeric(s.repairsIntercepted,0,FRONTIER_REPAIR.maxMissions)))||
+    !numeric(s.repairsIntercepted)))||
    (s.nextRepairAt!==undefined&&!numeric(s.nextRepairAt,0,1e9))||
+   (s.repairDispatchTimes!==undefined&&(!Array.isArray(s.repairDispatchTimes)||
+    s.repairDispatchTimes.length>FRONTIER_REPAIR.maxWindowMissions||
+    s.repairDispatchTimes.some((at,i)=>!Number.isInteger(at)||!numeric(at,0,time)||
+     (i>0&&at<=s.repairDispatchTimes[i-1]))))||
    (s.repairsLaunched!==undefined&&s.repairsCompleted!==undefined&&
     s.repairsIntercepted!==undefined&&
     (s.repairsCompleted+s.repairsIntercepted>s.repairsLaunched||

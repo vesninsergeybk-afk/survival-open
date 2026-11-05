@@ -12,6 +12,7 @@ import {regionAt} from '../regions.js';
 import {openingThreat} from '../balance.js';
 import {combatTargets} from '../combat-targets.js';
 import {designationLabel} from '../target-designation.js';
+import {labLogisticsIntel,cargoStrengthensEnemy} from '../station-progression.js';
 
 const noop=()=>{};
 function game(id='azure'){
@@ -168,6 +169,58 @@ test('repair ships are actual combat targets, visible mission markers and nonrep
  assert.match(g.notices.at(-1),/ремонтный корабль уничтожен/i);
 });
 
+test('a discovered repair ship can actually be selected from the region map',()=>{
+ const g=game('azure'),s=network(g,'azure'),cfg=FRONTIERS.azure;
+ s.nextDispatch=1e8;s.resource=4;
+ g.world.stations.get(cfg.depotId).hp*=.5;
+ g.world.stations.get(cfg.sourceId).discovered=true;
+ advanceRegionalSupply(g.world,140);
+ const craft=s.repairExpedition;
+ assert.ok(craft);
+ assert.doesNotMatch(renderRegionAtlas(g),/Замечен ремонтный корабль/,
+  'industrial counters must not reveal live unobserved movements');
+ craft.seen=true;
+ g.overlay={dataset:{mode:'map'}};
+ let selected=null;
+ g.requestWaypointDeparture=(waypoint)=>{selected=waypoint};
+ g.selectWaypoint({id:craft.id,x:craft.x,y:craft.y,label:'Ремонтный корабль'});
+ assert.ok(selected,'the actual map button must lead to a navigable target');
+ assert.equal(selected.id,craft.id);
+ assert.equal(selected.label,'Ремонтный корабль');
+ assert.match(renderRegionAtlas(g),/Замечен ремонтный корабль/);
+ craft.seen=false;
+ selected=null;
+ g.selectWaypoint({id:craft.id,x:craft.x,y:craft.y,label:'Ремонтный корабль'});
+ assert.equal(selected,null,'the map must reject an unseen target without radio intelligence');
+});
+
+test('a nearby active laboratory detects a live repair expedition without revealing captured targets',()=>{
+ const g=game('teal'),s=network(g,'teal'),cfg=FRONTIERS.teal;
+ s.nextDispatch=1e8;s.resource=4;
+ const depot=g.world.stations.get(cfg.depotId);
+ depot.hp*=.5;
+ advanceRegionalSupply(g.world,140);
+ const craft=s.repairExpedition;
+ assert.ok(craft);
+ g.world.stations.set('test-lab',{id:'test-lab',type:'lab',active:true,
+  enemy:false,x:craft.x,y:craft.y});
+ let intel=labLogisticsIntel(g.world,g.player);
+ assert.ok(intel.contacts.some(c=>c.id===craft.id&&c.kind==='cargo'&&
+  c.label.includes('ремонтная')));
+ g.overlay={dataset:{mode:'map'}};
+ let chosen=null;
+ g.requestWaypointDeparture=waypoint=>{chosen=waypoint};
+ g.selectWaypoint({id:craft.id,x:craft.x,y:craft.y,label:'Радиометка ремонтного корабля'});
+ assert.ok(chosen?.radioContact,'laboratory tracking must create a live radio waypoint');
+ assert.equal(chosen.signalLabel,'Вражеская ремонтная экспедиция');
+ assert.equal(cargoStrengthensEnemy(g.world,craft),true);
+ depot.enemy=false;
+ assert.equal(cargoStrengthensEnemy(g.world,craft),false);
+ intel=labLogisticsIntel(g.world,g.player);
+ assert.ok(!intel.contacts.some(c=>c.id===craft.id),
+  'a captured destination must not remain a valuable radio interception objective');
+});
+
 test('maintenance has finite budget, does not launch for healthy stations or with no stores',()=>{
  const g=game('teal'),s=network(g,'teal'),cfg=FRONTIERS.teal;
  s.nextDispatch=1e8;
@@ -182,10 +235,84 @@ test('maintenance has finite budget, does not launch for healthy stations or wit
  assert.equal(s.repairsLaunched,0);
  s.resource=FRONTIER_REPAIR.cost;
  advanceRegionalSupply(g.world,900);
- assert.ok(s.repairsLaunched>0&&s.repairsLaunched<=FRONTIER_REPAIR.maxMissions);
+ assert.ok(s.repairsLaunched>0&&s.repairsLaunched<=FRONTIER_REPAIR.maxWindowMissions);
  assert.ok(s.repairsCompleted<=s.repairsLaunched);
  assert.ok(s.resource>=0);
  assert.ok(regionalSupplyValid(g.world.regionalSupply,900));
+});
+
+test('repair windows reopen in a long run while expenditure and active ships stay bounded',()=>{
+ const g=game('teal'),s=network(g,'teal'),cfg=FRONTIERS.teal;
+ s.nextDispatch=1e8;s.worker.hp=0;s.resource=16;
+ const depot=g.world.stations.get(cfg.depotId);
+ depot.hp=depot.maxHp*.1;
+ advanceRegionalSupply(g.world,140);
+ assert.equal(s.repairsLaunched,1);
+ advanceRegionalSupply(g.world,380);
+ assert.equal(s.repairsLaunched,2);
+ advanceRegionalSupply(g.world,800);
+ assert.equal(s.repairsLaunched,2,'only two expeditions per 15-minute interval');
+ advanceRegionalSupply(g.world,1039);
+ assert.equal(s.repairsLaunched,2,'a rolling window blocks a burst across the 15-minute boundary');
+ advanceRegionalSupply(g.world,1040);
+ assert.equal(s.repairsLaunched,3,'a long-lasting enemy world can repair again');
+ assert.equal(s.repairExpedition?.id,'frontier-repair-teal-3');
+ assert.deepEqual(s.repairDispatchTimes,[380,1040]);
+ assert.equal(s.resource,4,'all three repair missions used actual material');
+ assert.ok(regionalSupplyValid(g.world.regionalSupply,1040));
+});
+
+test('long-range hits to maintenance ships can trigger paid protective escorts',()=>{
+ const g=game('teal'),s=network(g,'teal'),cfg=FRONTIERS.teal;
+ s.nextDispatch=1e8;s.worker.hp=0;s.resource=12;
+ const depot=g.world.stations.get(cfg.depotId);
+ depot.hp=depot.maxHp*.15;
+ advanceRegionalSupply(g.world,140);
+ const craft=s.repairExpedition;
+ assert.ok(craft);
+ assert.ok(recordFrontierCargoAttack(g.world,craft,'rail',500,141));
+ assert.ok(recordFrontierCargoAttack(g.world,craft,'rail',500,143));
+ advanceRegionalSupply(g.world,184);
+ assert.ok(s.strategy.screenUntil>184);
+ const before=s.resource;
+ advanceRegionalSupply(g.world,380);
+ assert.equal(s.repairExpedition?.screened,true);
+ assert.equal(s.resource,before-FRONTIER_REPAIR.cost-FRONTIER_RESPONSE.screenCargoCost);
+ g.time=380;
+ g.player.x=s.repairExpedition.x;g.player.y=s.repairExpedition.y;
+ updateRegionalWorld(g,0);
+ assert.deepEqual(g.enemies.filter(e=>e.protect===s.repairExpedition).map(e=>e.type),
+  ['gunship','healer'],'paid heavy escort must appear in the actual encounter');
+ assert.ok(regionalSupplyValid(g.world.regionalSupply,380));
+});
+
+test('a repair ship destroyed in radio shadow is not reported until it misses arrival',()=>{
+ const g=game('teal'),s=network(g,'teal'),cfg=FRONTIERS.teal;
+ s.nextDispatch=1e8;s.resource=4;
+ g.world.stations.get(cfg.depotId).hp*=.4;
+ advanceRegionalSupply(g.world,140);
+ let craft=s.repairExpedition;
+ let lostAt=0;
+ for(let t=141;t<200;t++){
+  advanceRegionalSupply(g.world,t);
+  craft=s.repairExpedition;
+  if(craft&&!frontierRadioCoverage(g.world,'teal',craft)){
+   lostAt=t;break;
+  }
+ }
+ assert.ok(lostAt,'route includes a genuine radio blind spot');
+ craft.hp=0;
+ assert.ok(interceptSupply(g.world,craft,lostAt));
+ assert.equal(s.strategy.pendingLosses.length,1);
+ assert.equal(s.strategy.reports.length,0);
+ const expected=Math.ceil(craft.launchedAt+frontierRouteLength('teal',craft.routeId)/FRONTIER_REPAIR.speed);
+ const due=expected+FRONTIER_RESPONSE.missingGrace;
+ let events=advanceRegionalSupply(g.world,due-1);
+ assert.ok(!events.some(e=>e.kind==='shipment-overdue'));
+ events=advanceRegionalSupply(g.world,due);
+ assert.ok(events.some(e=>e.kind==='shipment-overdue'));
+ assert.equal(s.strategy.pendingLosses.length,0);
+ assert.ok(regionalSupplyValid(g.world.regionalSupply,due));
 });
 
 test('repair operations remain deterministic across frame steps and legacy industrial saves',()=>{

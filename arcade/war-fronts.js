@@ -1,6 +1,6 @@
 import {CENTRAL_INDUSTRY} from './central-industry.js?v=home-conflict-1';
-import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-campaign-1';
-import {FRONTIERS,FRONTIER_REPAIR} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
+import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-campaign-1-repair-qa-1';
+import {FRONTIERS,FRONTIER_REPAIR} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
 
 export const FRONT_KEYS=Object.freeze(['home','north','azure','teal']);
 // Read existing production state. No second economy or duplicate ownership.
@@ -27,7 +27,7 @@ export function warFronts(world){
    true);
   const working=!!(raw||extraction);
   const repairBudget=['azure','teal'].includes(f.key)&&s&&sourceAlive&&depot?.enemy&&
-   (s.repairsLaunched||0)<FRONTIER_REPAIR.maxMissions&&s.resource>=FRONTIER_REPAIR.cost&&
+   s.resource>=FRONTIER_REPAIR.cost&&
    (depot.hp<depot.maxHp*FRONTIER_REPAIR.threshold||depot.turrets.some(t=>t.hp>0&&t.hp<t.maxHp*.7));
   const payload=!!s&&(s.convoys.some(c=>c.hp>0)||s.reserves>0||!!s.pendingRaid||
    !!s.strategy?.emergency||s.repairExpedition?.hp>0||repairBudget);

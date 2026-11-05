@@ -119,6 +119,7 @@ test('a funded maintenance expedition keeps its route and budget across a statio
  assert.deepEqual(state.repairExpedition,craft);
  assert.equal(state.resource,paid);
  assert.equal(state.repairsLaunched,launched);
+ assert.deepEqual(state.repairDispatchTimes,[140]);
  advanceRegionalSupply(restored.world,240);
  assert.equal(state.repairsCompleted,1);
  assert.equal(state.repairExpedition,null);
@@ -126,6 +127,9 @@ test('a funded maintenance expedition keeps its route and budget across a statio
  const tampered=unpackRun(packRun(saved));
  tampered.world.regionalSupply.frontier.azure.repairExpedition.hp=100000;
  assert.equal(validateCheckpoint(tampered),false);
+ const tamperedWindow=unpackRun(packRun(saved));
+ tamperedWindow.world.regionalSupply.frontier.azure.repairDispatchTimes=Array(100).fill(140);
+ assert.equal(validateCheckpoint(tamperedWindow),false);
 });
 test('a missing freight report survives a checkpoint and arrives only at its overdue time',()=>{
  const g=scene();advanceRegionalSupply(g.world,g.time);
