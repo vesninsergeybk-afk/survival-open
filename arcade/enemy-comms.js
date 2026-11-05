@@ -1,9 +1,9 @@
-import {EnemyMesh} from './enemy-mesh.js?v=enemy-mesh-1-tactical-field-2-backbone-2';
+import {EnemyMesh} from './enemy-mesh.js?v=enemy-mesh-1-tactical-field-2-backbone-2-mesh-response-v2-1';
 import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-2';
-import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2';
+import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2-mesh-strategy-v2-1';
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
-  squadRoleFor,squadRoleLabel} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1';
+  squadRoleFor,squadRoleLabel} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1';
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 
 /** Bounded enemy radio. Messages carry actual local observations, and
@@ -127,6 +127,21 @@ export function assessEnemyThreat(reports,now){
     if(!best||candidate.lastAt>best.lastAt)best=candidate;
   }
   return best;
+}
+
+/** Apply real, delivered mesh weapon intelligence to a local engagement.
+ * A nearby witnessed attack or hull breach retains priority. A fresher
+ * observed course eventually supersedes an old remote warning. */
+export function applyMeshWeaponWarning(local,warning,now,hasSight){
+  if(!hasSight||!warning||
+     !['area','long','close'].includes(warning.kind))return local;
+  const observedAt=warning.archived?warning.sourceAt:warning.at;
+  if(!Number.isFinite(observedAt)||observedAt>now||
+     now-observedAt>20)return local;
+  if(local&&local.kind!=='maneuver')return local;
+  if(local?.kind==='maneuver'&&local.lastAt>observedAt+8)return local;
+  return {kind:warning.kind,lastAt:observedAt,mesh:true,
+    receivedAt:Number.isFinite(warning.receivedAt)?warning.receivedAt:observedAt};
 }
 
 /** Counter-manoeuvres need two *delivered* sightings separated in time.
@@ -538,13 +553,12 @@ export class EnemyComms {
         intelFresh(cell.intel,now))
         cell.threat=assessEnemyOpportunity(cell.motionReports,now)||
           assessEnemyMotion(cell.motionReports,now);
-      // A mesh warning changes doctrine only after the receiver actually
-      // sees the player. It cannot grant a remote cell target coordinates.
-      if(!cell.threat&&cell.intel&&!cell.intel.estimated&&
-         intelFresh(cell.intel,now)){
-        const warning=this.mesh.bestForCell(cell,now);
-        if(warning)cell.threat={kind:warning.kind,lastAt:warning.at,mesh:true};
-      }
+      // A received weapon signature can counter ordinary local manoeuvres.
+      // It never grants coordinates, and witnessed emergencies override it.
+      const hasSight=!!(cell.intel&&!cell.intel.estimated&&
+        intelFresh(cell.intel,now));
+      cell.threat=applyMeshWeaponWarning(cell.threat,
+        hasSight?this.mesh.bestForCell(cell,now):null,now,hasSight);
       if(!cell.intel||cell.intel.estimated||!intelFresh(cell.intel,now)){
         // Two coherent impacts can locate a rough firing *sector* beyond
         // optical range. It is never promoted to an exact target track.

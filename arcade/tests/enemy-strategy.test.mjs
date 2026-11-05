@@ -164,6 +164,42 @@ test('theater work is bounded by order age and network range',()=>{
   assert.equal(net.strategicDirectiveFor(wing,1+THEATER.orderAge+.01),null);
 });
 
+test('only a delivered, asset-specific mesh alarm mobilizes distant reserves',()=>{
+  const base={id:'industry:depot',x:870,y:0,hp:300,enemy:true,
+    strategicRole:'central-depot'},w=world([],[base]);
+  const c=cell(1,ship(1,0),ship(2,25));
+  assert.equal(planTheater([c],w,3).size,0,
+    'normal patrols cannot learn about a distant alarm from the world map');
+  const mesh={alarmFor:(_cell,id)=>id===base.id?
+    {kind:'sabotage',assetId:id,at:2}:null,bestForCell:()=>null};
+  const chosen=planTheater([c],w,3,mesh).get(c);
+  assert.equal(chosen?.role,'reinforce');
+  assert.equal(chosen.contact,undefined,'the alert cannot reveal an attacker');
+  base.x=THEATER.meshResponseRange+50;
+  assert.equal(planTheater([c],w,3,mesh).size,0,
+    'even network dispatch has a physical flight range');
+});
+
+test('a strategic squad keeps a viable assignment, but eventually reconsiders it',()=>{
+  const first=cargo('first',100,0),w=world([first]);
+  const c=cell(1,ship(1,0),ship(2,25));
+  const original=planTheater([c],w,1).get(c);
+  assert.equal(original?.assetId,first.id);
+  c.theaterAssignment=original;
+  const urgent={...cargo('new-repair',0,0),frontierRepair:true,screened:true};
+  w.regionalSupply.convoys.push(urgent);
+  const retained=planTheater([c],w,3).get(c);
+  assert.equal(retained.assetId,first.id,'routine traffic cannot cause course flips every second');
+  assert.equal(retained.startedAt,1,'repeated orders retain their original start');
+  c.theaterAssignment=retained;
+  const reconsidered=planTheater([c],w,THEATER.commitSeconds+2).get(c);
+  assert.equal(reconsidered.assetId,urgent.id,
+    'after the commitment, a more valuable nearby repair ship wins');
+  first.hp=0;
+  assert.equal(planTheater([c],w,4).get(c)?.assetId,urgent.id,
+    'destroyed objectives cancel commitment immediately');
+});
+
 test('a real pilot steers to its economic objective and then transmits a witnessed decision',()=>{
   const c=cargo('ship-x',0,0),leader=ship(1,180,0),wing=ship(2,212,25);
   const g=game([leader,wing],world([c])),net=new EnemyComms();

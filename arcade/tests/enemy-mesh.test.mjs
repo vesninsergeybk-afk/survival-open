@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EnemyMesh,ENEMY_MESH} from '../enemy-mesh.js';
-import {EnemyComms} from '../enemy-comms.js';
-import {planTheater} from '../enemy-strategy.js';
+import {EnemyComms,applyMeshWeaponWarning} from '../enemy-comms.js';
+import {planTheater,EnemyTheaterStrategy,theaterDestination} from '../enemy-strategy.js';
+import {updateEnemy} from '../ai.js';
+import {ArcadeGame} from './runtime-game.mjs';
 
 const ship=(serial,x,y=0)=>({
   serial,group:Math.floor(serial/10),x,y,vx:0,vy:0,r:14,
@@ -49,6 +51,8 @@ test('multi-hop mesh requires two real timed transfers, not global teleport',()=
   assert.equal(m.bestForCell(b,3.5)?.kind,'long');
   assert.ok(m.deliveries>=2);
   assert.ok(m.messages>=2);
+  assert.ok(m.bestForCell(b,3.5).receivedAt>=3.5,
+    'a relay distinguishes the latest receipt from the original eyewitness time');
 });
 
 test('no station means disconnected squadrons have no shared threat knowledge',()=>{
@@ -168,6 +172,60 @@ test('delivered attack alarm changes local defense without imaginary gun positio
   assert.equal(order.contact,undefined,'no fake shooter coordinates');
 });
 
+test('an industrial alarm travels two hops and sends real distant reinforcements',()=>{
+  const source=group(1,835),reserve=group(2,0),site=station('industry:depot',870);
+  source.incident={x:site.x,y:site.y,assetId:site.id,
+    kind:'industry',at:1.8};
+  const g=game([site],[source,reserve]),mesh=new EnemyMesh();
+  for(const t of [2,2.75])mesh.update(g,[source,reserve],t);
+  assert.equal(mesh.alarmFor(reserve,site.id,2.75),null);
+  mesh.update(g,[source,reserve],3.5);
+  assert.ok(mesh.alarmFor(reserve,site.id,3.5));
+  const theater=new EnemyTheaterStrategy();
+  for(const c of [source,reserve])for(const e of c.members)e._commsCell=c;
+  g.time=3.5;
+  theater.update(g,{cells:[source,reserve],mesh,send:()=>true,intercepts:[]});
+  const wing=reserve.members[1],order=theater.directiveFor(wing,g.time);
+  assert.equal(order?.role,'reinforce');
+  assert.equal(order.contact,undefined);
+  const waypoint=theaterDestination(wing,order);
+  assert.ok(waypoint&&waypoint.x>600,'reserve flies to the defended base');
+  g.enemyComms={directiveFor:()=>null,
+    strategicDirectiveFor:(e,time)=>theater.directiveFor(e,time)};
+  g.player.x=-1000;g.player.y=-1000;g.player.invul=99;
+  g.allies=[];g.missiles=[];g.shots=[];g.support={missions:[]};
+  g.avoidance=()=>({x:0,y:0});g.enemyCanSee=()=>false;
+  g.enemyShot=()=>true;g.heritage={play(){},vfx:{shipExplosion(){}}};
+  g.hurt=()=>{};
+  const before=wing.x;
+  updateEnemy(wing,g,.25);
+  assert.ok(wing.x>before,'the network order must actually change its movement');
+  assert.equal(wing._theaterIntent?.assetId,site.id);
+  site.captured=true;site.enemy=false;
+  assert.equal(theater.directiveFor(wing,3.5),null,
+    'the squad immediately abandons a captured enemy objective');
+});
+
+test('real station-core damage creates a bounded witness report, never a free alert',()=>{
+  const base={id:'industry:depot',x:870,y:0,enemy:true,captured:false,
+    turrets:[],hp:200,maxHp:200,nextVfxHit:0};
+  let attempts=0,witnesses=0;
+  const g={time:10,enemyComms:{reportIncident(asset,scene,kind){
+    assert.equal(asset,base);assert.equal(kind,'industry');
+    assert.equal(scene,g);attempts++;return witnesses;
+  }},heritage:{vfx:{hullImpact(){}}}};
+  ArcadeGame.prototype.hitEnemyBase.call(g,base,4);
+  assert.equal(attempts,1);
+  witnesses=1;g.time=10.1;
+  ArcadeGame.prototype.hitEnemyBase.call(g,base,4);
+  assert.equal(attempts,2,'an unwitnessed shot must not suppress future reports');
+  g.time=10.2;ArcadeGame.prototype.hitEnemyBase.call(g,base,4);
+  assert.equal(attempts,2,'one witnessed attack must not flood the mesh');
+  base.turrets=[{hp:20}];g.time=25;
+  ArcadeGame.prototype.hitEnemyBase.call(g,base,4);
+  assert.equal(attempts,2,'untouched core must not report imaginary core damage');
+});
+
 test('recipient does not change tactics until it itself sees the player',()=>{
   const a=attack(group(1,0)),b=group(2,1450),relay=station('relay',720);
   const g=game([relay],[a,b]),net=new EnemyComms();
@@ -191,6 +249,39 @@ test('recipient does not change tactics until it itself sees the player',()=>{
   assert.equal(remote.threat.kind,'long');
   assert.equal(remote.mode,'close');
   assert.equal(Object.hasOwn(remote.threat,'x'),false);
+});
+
+test('delivered weapon knowledge defeats a generic turn estimate, never local emergencies',()=>{
+  const warning={kind:'area',at:4,hops:2};
+  const maneuver={kind:'maneuver',motion:'turning',lastAt:5};
+  assert.deepEqual(applyMeshWeaponWarning(maneuver,warning,5.1,false),maneuver);
+  const choice=applyMeshWeaponWarning(maneuver,warning,5.1,true);
+  assert.equal(choice.kind,'area');assert.equal(choice.mesh,true);
+  assert.equal(Object.hasOwn(choice,'x'),false);
+  const sabotage={kind:'sabotage',lastAt:5};
+  assert.equal(applyMeshWeaponWarning(sabotage,warning,5.1,true),sabotage);
+  assert.equal(applyMeshWeaponWarning({kind:'maneuver',lastAt:14},warning,14,true)?.mesh,
+    undefined,'a substantially newer visible course eventually takes precedence');
+  assert.equal(applyMeshWeaponWarning(null,warning,25,true),null,
+    'old network warnings cannot dictate tactics indefinitely');
+});
+
+test('the actual tactical update uses mesh warnings despite repeated local turns',()=>{
+  const a=attack(group(1,0),'area'),b=group(2,1450),relay=station('relay',720);
+  const g=game([relay],[a,b]),net=new EnemyComms();
+  g.time=0;net.update(g);
+  const source=net.cells.find(c=>c.members.includes(a.leader));
+  const remote=net.cells.find(c=>c.members.includes(b.leader));
+  source.attackReports=[{kind:'area',at:.5},{kind:'area',at:1.7}];
+  for(const t of [2,2.75,3.5]){g.time=t;net.update(g);}
+  assert.equal(net.mesh.bestForCell(remote,3.5)?.kind,'area');
+  remote.motionReports=[{at:2.8,motion:'turning',hullRatio:.9}];
+  remote.leader._learningObservation={context:'turning'};
+  net.reportSight(remote.leader,g.player,4.1);
+  g.time=4.25;net.update(g);
+  assert.equal(remote.threat?.kind,'area');
+  assert.equal(remote.threat?.mesh,true);
+  assert.equal(remote.mode,'scatter');
 });
 
 

@@ -147,6 +147,20 @@ test('the loss of a designated wing invalidates the old trap immediately',()=>{
     'two surviving pilots can choose achievable new roles');
 });
 
+test('a delayed mesh warning can cancel an older maneuver plan when received',()=>{
+  const a=ship(1,'flanker',100,0),b=ship(2,'fighter',125,0);
+  const cell={members:[a,b],intel:{x:0,y:0,at:5,estimated:false}};
+  const plan=createEnemySquadPlan(cell,'pincer',
+    {kind:'maneuver',motion:'turning',lastAt:5},5.1);
+  const warning={kind:'area',mesh:true,lastAt:2,receivedAt:6.2};
+  assert.equal(squadPlanObsolete(plan,warning,6.2,cell.members,cell.intel),true,
+    'an old observation can be newly actionable after a real delivery');
+  const newPlan=createEnemySquadPlan(cell,'scatter',warning,6.2);
+  assert.equal(newPlan.observedAt,6.2);
+  assert.equal(squadPlanObsolete(newPlan,warning,6.3,cell.members,cell.intel),false,
+    'the same packet must not cause repeated replanning');
+});
+
 test('the whole game loop can execute a multi-step squad plan without changing ship stats',()=>{
   const members=[ship(1,'flanker',175,-100),ship(2,'fighter',240,35),
     ship(3,'scout',190,110)];

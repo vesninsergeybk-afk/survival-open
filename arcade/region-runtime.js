@@ -1,5 +1,5 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
-import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1';
+import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
 import {SUPPLY,supplyRoute,advanceRegionalSupply,interceptSupply,supplyEvent,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2-supply-stronghold-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-renewal-1';

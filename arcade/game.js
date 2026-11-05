@@ -20,11 +20,11 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1';
 import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1';
 import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
-import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1';
+import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2';
@@ -2739,6 +2739,12 @@ export class ArcadeGame {
   // A captured base is friendly even though the repaired structure has positive HP.
   if(base.hp<=0||base.captured||!base.enemy)return;
   if(base.turrets.some(t=>t.hp>0))return;
+  // Damage to a production site can be reported by actual nearby witnesses.
+  // The mesh only receives the site's identity, never the attacker's position.
+  if(this.time>=(base._nextWitnessAlarmAt??0)){
+   const witnesses=this.enemyComms?.reportIncident(base,this,'industry')||0;
+   if(witnesses)base._nextWitnessAlarmAt=this.time+9;
+  }
   if(this.time>(base.nextVfxHit||0)){
    this.heritage.vfx.hullImpact(base.x,base.y,damage>=40);
    base.nextVfxHit=this.time+.2;
