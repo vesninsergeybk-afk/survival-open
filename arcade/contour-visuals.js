@@ -1,6 +1,7 @@
 import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1';
 import {activeContourTransition,fieldIsNew} from './contour-dynamics.js?v=contour-dynamics-2';
 import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
+import {drawContourVortexArt} from './contour-vortex-art.js?v=contour-vortex-80frames-1';
 
 const visible=(p,cam,r=200)=>p.x>=cam.x-r&&p.x<=cam.x+cam.w+r&&
  p.y>=cam.y-r&&p.y<=cam.y+cam.h+r;
@@ -11,7 +12,7 @@ const intersectsCamera=(polygon,cam,pad=120)=>polygon.some(p=>visible(p,cam,pad)
   Math.min(...polygon.map(p=>p.y))<cam.y+cam.h+pad&&
   Math.max(...polygon.map(p=>p.y))>cam.y-pad);
 
-// Canvas world-space artwork; no large sprites, network loads or particle arrays.
+// Canvas world-space artwork with two small, shared vortex atlas textures.
 export function drawContourWorld(game,c,cam){
  const now=game.time;
  if(now-(game.contourVisualAt||-Infinity)>.4||!game.contourVisualFields){
@@ -130,11 +131,21 @@ export function drawContourWorld(game,c,cam){
   c.save();
   const {x,y}=field.center,phase=now*.72+field.area*.000001;
   const pulse=1+.085*Math.sin(now*1.55+field.area*.00001),r=64*pulse;
+  const born=game.contourBirths?.find(item=>item.id===field.id);
+  const age=born?now-born.at:Infinity;
+  const rise=Math.max(0,Math.min(1,age/1.2));
+  const arrival=born&&!calm?(age<0?0:age<1.2?rise*rise*(3-2*rise):1):1;
   c.translate(x,y);c.globalCompositeOperation='lighter';
   const glow=c.createRadialGradient(0,0,2,0,0,r*1.8);
   glow.addColorStop(0,'rgba(3,4,13,.75)');glow.addColorStop(.23,'rgba(255,118,25,.44)');
   glow.addColorStop(.48,'rgba(245,87,9,.23)');glow.addColorStop(1,'rgba(245,80,5,0)');
+  c.globalAlpha=arrival;
   c.fillStyle=glow;c.beginPath();c.arc(0,0,r*1.8,0,Math.PI*2);c.fill();
+  c.globalAlpha=1;
+  if(!drawContourVortexArt(c,now,field,pulse,{reducedMotion:calm,birth:arrival})){
+   // Keep the previous lightweight renderer if the atlas has not loaded,
+   // the browser lacks Image support, or an individual sheet fails.
+   c.globalAlpha=arrival;
   for(let arm=0;arm<7;arm++){
    c.beginPath();
    for(let step=0;step<=14;step++){
@@ -160,10 +171,9 @@ export function drawContourWorld(game,c,cam){
   c.globalCompositeOperation='source-over';
   c.fillStyle='#090b18';c.beginPath();c.ellipse(0,0,13,9,phase*.12,0,Math.PI*2);c.fill();
   c.strokeStyle='#ffe4a5';c.lineWidth=2;c.stroke();
+  }
   c.restore();
-  const born=game.contourBirths?.find(item=>item.id===field.id);
   if(born){
-   const age=now-born.at;
    if(age>=0&&age<8){
     const fade=1-age/8;
     c.save();c.translate(x,y);c.lineWidth=2.5;
@@ -192,20 +202,54 @@ export function drawContourWorld(game,c,cam){
   c.restore();
  }
  const byId=new Map(fields.map(f=>[f.id,f]));
+ const activeRoutes=new Set();
  for(const h of game.world.contours.harvesters){
   const field=byId.get(h.fieldId);if(!field)continue;
+  if(!activeRoutes.has(field.id)){
+   activeRoutes.add(field.id);
+   if(intersectsCamera([field.anchor,field.center],cam,45)){
+    c.save();c.lineWidth=1.6;c.strokeStyle='rgba(132,251,219,.25)';
+    c.setLineDash([8,14]);if(!calm)c.lineDashOffset=-now*12%22;
+    c.beginPath();c.moveTo(field.anchor.x,field.anchor.y);
+    c.lineTo(field.center.x,field.center.y);c.stroke();c.restore();
+   }
+  }
   const t=h.phase==='out'?Math.min(1,h.progress):h.phase==='back'?1-Math.min(1,h.progress):1;
   const x=field.anchor.x+(field.center.x-field.anchor.x)*t;
   const y=field.anchor.y+(field.center.y-field.anchor.y)*t;
   if(!visible({x,y},cam,30))continue;
-  c.save();c.translate(x,y);c.rotate(Math.atan2(field.center.y-field.anchor.y,field.center.x-field.anchor.x)+Math.PI/2);
+  if(h.phase==='gather'){
+   c.save();c.strokeStyle='rgba(255,221,138,.8)';c.lineWidth=2;
+   c.beginPath();c.arc(x,y,11+(calm?0:3*Math.sin(now*8)),0,Math.PI*2);c.stroke();c.restore();
+  }
+  c.save();c.translate(x,y);
+  c.rotate(Math.atan2(field.center.y-field.anchor.y,field.center.x-field.anchor.x)+
+   (h.phase==='back'?Math.PI:0)+Math.PI/2);
   c.shadowBlur=10;c.shadowColor=h.phase==='back'?'#ffb553':'#93eede';
   c.fillStyle=h.phase==='back'?'#ffca74':'#bfffee';
   c.beginPath();c.ellipse(0,0,3.2,6.5,0,0,Math.PI*2);c.fill();
   c.fillStyle=h.phase==='back'?'rgba(255,179,90,.85)':'rgba(144,245,231,.83)';
   const flap=3+(calm?0:Math.sin(now*16+h.progress*6)*2);
   c.beginPath();c.ellipse(-5,-1,flap,5,-.45,0,Math.PI*2);
-  c.ellipse(5,-1,flap,5,.45,0,Math.PI*2);c.fill();c.restore();
+  c.ellipse(5,-1,flap,5,.45,0,Math.PI*2);c.fill();
+  if(h.phase==='back'){
+   c.shadowColor='#ffd88b';c.shadowBlur=14;c.fillStyle='#ffe9b4';
+   c.beginPath();c.arc(0,9,3.4,0,Math.PI*2);c.fill();
+  }
+  c.restore();
+ }
+ // A delivery is acknowledged at the actual receiving station, not at an
+ // arbitrary world-space point. The player's common flux purse is unchanged.
+ for(const fx of game.contourDeliveryFX||[]){
+  const field=byId.get(fx.fieldId),age=now-fx.at;
+  if(!field||age<0||age>1.5||!visible(field.anchor,cam,70))continue;
+  const p=age/1.5,fade=1-p;
+  c.save();c.strokeStyle=`rgba(255,208,114,${(fade*.85).toFixed(3)})`;
+  c.lineWidth=2.4;c.beginPath();c.arc(field.anchor.x,field.anchor.y,9+34*p,0,Math.PI*2);c.stroke();
+  c.textAlign='center';c.font='bold 12px system-ui';
+  c.fillStyle=`rgba(255,231,171,${fade.toFixed(3)})`;
+  c.fillText(`+${fx.amount.toFixed(1)} ФЛЮКС`,field.anchor.x,field.anchor.y-20-18*p);
+  c.restore();
  }
  c.restore();
 }
