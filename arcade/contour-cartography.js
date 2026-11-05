@@ -168,7 +168,7 @@ export function atlasLiveObjects(game,center,scale,overview){
 
 export function atlasNavigation(game,center,scale,overview){
  const player=atlasPoint(game.player,center,scale);
- const waypoint=game.waypoint;
+ const waypoint=game.manualWaypoint||game.waypoint;
  const target=waypoint&&Number.isFinite(waypoint.x)&&Number.isFinite(waypoint.y)?
   atlasPoint(waypoint,center,scale):null;
  const guide=target&&visible(player)?`<path class="contour-navigation-path" d="M${fmt(player.x)} ${fmt(player.y)}L${fmt(target.x)} ${fmt(target.y)}"/>`:'';

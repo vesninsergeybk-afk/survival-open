@@ -6,9 +6,11 @@ import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1'
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
 import {labLogisticsUnlocked} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
-import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from './contour-cartography.js?v=living-atlas-3';
+import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from './contour-cartography.js?v=living-atlas-3-map-ux-1';
 import {syncContourDynamics,activeContourTransition,fieldIsNew,enemyContourThreats} from './contour-dynamics.js?v=contour-dynamics-2';
 import {knownEnemyFields,enemyExpansionPlan} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
+import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
+import {firstContourPlan} from './contour-plan.js?v=map-ux-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -71,13 +73,13 @@ function overviewStations(world,center,scale){
  }).join('')+'</g>';
 }
 
-function stationMarks(nodes,center,scale,selectedId,sourceId,readyIds,goalIds,waypoint=null){
+function stationMarks(nodes,center,scale,selectedId,sourceId,readyIds,goalIds,waypoint=null,planIds=new Set()){
  return nodes.map(b=>{
   const p=at(b,center,scale),picked=b.id===selectedId||b.id===sourceId;
   const ready=readyIds.has(b.id),goal=goalIds.has(b.id),known=b.discovered||b.active||b.strategicRole;
   const fill=b.suppressed?'#cf95ec':b.enemy&&known?'#ff7786':b.active?'#86f5d7':
    known?'#edc783':'#9baebc';
-  const ring=ready?'#7effd8':goal?'#ffcc85':picked?'#ffe5aa':null;
+  const ring=ready?'#7effd8':goal?'#ffcc85':picked?'#ffe5aa':planIds.has(b.id)?'#ffdb90':null;
   const mark=b.enemy&&known?'<path d="M0 -7L7 0L0 7L-7 0Z" fill="'+fill+'"/>':
    b.active?'<circle r="7" fill="'+fill+'"/><circle r="3" fill="#113f43"/>':
    '<circle r="5.5" fill="'+fill+'" stroke="#102c3b" stroke-width="1.2"/>';
@@ -87,11 +89,44 @@ function stationMarks(nodes,center,scale,selectedId,sourceId,readyIds,goalIds,wa
   const label=(picked||ready||goal||b.active)&&known?
    '<text x="'+digits(p.x+(labelConflict?-13:13))+'" y="'+digits(p.y-13)+
    '" class="contour-map-label"'+(labelConflict?' text-anchor="end"':'')+'>'+esc(name(b))+'</text>':'';
-  return `<g class="contour-node${picked?' selected':''}${ready?' connectable':''}${goal?' suggested':''}" transform="translate(${digits(p.x)} ${digits(p.y)})" tabindex="0" role="button" data-act="contourNode" data-id="${esc(b.id)}" aria-label="${esc(name(b)+', '+state(b))}">
+  return `<g class="contour-node${picked?' selected':''}${ready?' connectable':''}${goal?' suggested':''}${planIds.has(b.id)?' planned':''}" transform="translate(${digits(p.x)} ${digits(p.y)})" tabindex="0" role="button" data-act="contourNode" data-id="${esc(b.id)}" aria-label="${esc(name(b)+', '+state(b))}">
    <circle r="19" fill="transparent" class="contour-hit"/>
    ${ring?'<circle class="contour-ring" r="13.5" fill="none" stroke="'+ring+'" stroke-width="2"'+(ready||goal?' stroke-dasharray="4 3"':'')+'/>':''}
    ${mark}<title>${esc(name(b)+': '+state(b))}</title></g>${label}`;
  }).join('');
+}
+
+function proposedContourArtwork(plan,center,scale){
+ if(!plan)return '';
+ return `<g class="contour-first-plan" aria-hidden="true">
+  <path d="${svgPath(plan.stations,center,scale)}" class="contour-plan-area"/>
+  ${plan.edges.filter(e=>!e.built).map(e=>`<path d="${pathLine(e.a,e.b,center,scale)}" class="${e.ready?'contour-plan-ready':'contour-plan-future'}"/>`).join('')}
+  </g>`;
+}
+
+function firstContourGuide(plan){
+ if(!plan)return '';
+ const ready=plan.edges.filter(e=>e.built).length;
+ const list=plan.stations.map((b,i)=>{
+  const working=b.active&&!b.enemy&&!b.suppressed;
+  const known=b.active||b.discovered||b.strategicRole;
+  const caption=working?'Включена':!known?'Нужно разведать':'Нужно включить';
+  return `<li class="${working?'done':''}"><span>${i+1}. ${esc(name(b))}</span><small>${caption}</small></li>`;
+ }).join('');
+ const actions=plan.edges.filter(e=>!e.built&&e.ready).map(e=>
+  `<button data-act="contourPlanLink" data-from="${esc(e.a.id)}" data-id="${esc(e.b.id)}">Соединить: ${esc(name(e.a))} — ${esc(name(e.b))}</button>`).join('');
+ return `<section class="contour-first-guide" aria-label="План первого энергетического контура">
+  <b>ПЕРВЫЙ ЭНЕРГЕТИЧЕСКИЙ КОНТУР</b>
+  <div class="contour-first-progress">Станции ${plan.active}/3 · линии ${ready}/3</div>
+  <p>Янтарный треугольник — возможная территория; бирюзовый пунктир — линия, которую можно провести сейчас.</p>
+  <button class="contour-plan-focus" data-act="mapFocusPlan" data-ids="${plan.stations.map(b=>esc(b.id)).join(',')}">Показать треугольник целиком</button>
+  <ol>${list}</ol>
+  ${plan.uncertain?'<small>Неизвестные станции пока только кандидаты. Их принадлежность выяснится после разведки.</small>':''}
+  ${actions?`<div class="contour-first-actions">${actions}</div>`:''}
+  ${plan.next?`<p>Следующий шаг: ${plan.next.discovered?'включить':'найти и разведать'} отмеченный узел.</p>${route(plan.next)}`:
+   !actions?'<p>Все станции работают. Выберите оставшиеся линии на карте.</p>':''}
+  <small>Площадь будущего поля: ${(plan.area/1000000).toFixed(2)} усл. км². Дальность каждой линии — до ${CONTOURS.maxLength} м.</small>
+ </section>`;
 }
 
 function fieldArtwork(fields,world,center,scale,transition,overview=false){
@@ -216,8 +251,13 @@ function incidentArtwork(game,region,center,scale){
 
 function selectedPanel(game,selected,source,choices,region){
  const lead='<div class="contour-guide-kicker">СЛЕДУЮЩЕЕ ДЕЙСТВИЕ</div>';
- if(!region)return `<section class="contour-guide">${lead}<h3>Выберите регион</h3>
-  <p>На большой карте показаны все пять областей. Нажмите область, чтобы увидеть станции и линии.</p></section>`;
+ if(!region){
+  const first=!contourFields(game.world).length;
+  return `<section class="contour-guide">${lead}<h3>${first?'Начните первый контур':'Выберите регион'}</h3>
+   <p>${first?'Три подходящие станции образуют поле только после того, как вы проведёте между ними все три линии. Карта покажет возможный треугольник и расстояния.':
+    'На большой карте показаны все пять областей. Нажмите область, чтобы увидеть станции и линии.'}</p>
+   ${first?`<button class="contour-choice" data-act="contourRegion" data-id="${regionAt(game.player.x,game.player.y).id}">Показать первые станции ↗</button>`:''}</section>`;
+ }
  if(!selected){
   const own=[...game.world.stations.values()].filter(b=>b.active&&!b.enemy&&
    Math.hypot(b.x-region.survey.x,b.y-region.survey.y)<5300);
@@ -247,8 +287,9 @@ function selectedPanel(game,selected,source,choices,region){
   <button class="contour-cancel" data-act="contourCancel">Снять выбор</button></section>`;
  if(source){
   const next=choices.next[0]?.node;
+  const linked=(game.world.contours?.links||[]).filter(pair=>pair.includes(source.id)).length;
   return `<section class="contour-guide">${lead}<h3>Нужна ещё одна станция</h3>
-   <p>У выбранной станции пока нет работающего соседа в пределах ${CONTOURS.maxLength} м. ${next?'Ближайший кандидат отмечен янтарным кольцом.':'Исследуйте соседние участки.'}</p>
+   <p>${linked?'У выбранной станции уже проведено линий: '+linked+'. Других доступных соединений пока нет.':'У выбранной станции пока нет доступных соединений.'} ${next?'Ближайший кандидат отмечен янтарным кольцом.':'Проверьте соседние узлы и дальность связи — '+CONTOURS.maxLength+' м.'}</p>
    ${next?route(next):''}<button class="contour-cancel" data-act="contourCancel">Снять выбор</button></section>`;
  }
  return `<section class="contour-guide">${lead}<h3>${title}</h3><p>Станция включена. Выберите её, чтобы начать соединение.</p>${route(selected)}</section>`;
@@ -258,8 +299,9 @@ export function renderContourMap(game){
  const world=game.world,region=REGIONS.find(r=>r.id===game.contourRegion)||null;
  syncContourDynamics(game);
  const transition=activeContourTransition(game),threats=enemyContourThreats(game);
- const center=region?region.survey:{x:0,y:0},scale=region?(region.id==='amethyst'?.055:.049):.0035;
- const nearby=region?world.nearbyStations(center.x,center.y,5300,true):[];
+ const view=mapViewport(game),{center,scale}=view;
+ const radius=Math.max(5300,Math.hypot(340,240)/scale+500);
+ const nearby=region?world.nearbyStations(center.x,center.y,radius,true):[];
  const geography=atlasGeography(center,scale),nebulae=atlasNebulae(world.seed,center,scale,!region);
  const stars=atlasStars(world.seed,center,scale,!region);
  const physical=atlasLiveObjects(game,center,scale,!region);
@@ -269,6 +311,8 @@ export function renderContourMap(game){
  const nodes=[...map.values()].filter(s=>{const p=at(s,center,scale);
   return p.x>18&&p.x<662&&p.y>18&&p.y<462;});
  const fields=contourFields(world),area=contourArea(fields),production=contourProduction(fields);
+ const plan=region&&!fields.length?firstContourPlan(world,[...map.values()],
+  game.contourFirst||game.contourSelection,game.player):null;
  // This also materializes the surveyed station locations for the full atlas.
  // Evaluate before overviewStations so the overview contains every node.
  const overview=region?'':regionOverview(world,center,scale,fields);
@@ -289,7 +333,8 @@ export function renderContourMap(game){
  const inside=fieldAt(world,game.player.x,game.player.y,fields);
  const pulseReady=inside&&world.contours.flux>=5&&game.time>=(world.contours.pulseReadyAt||0)&&game.player.shield<42;
  const source=world.stations.get(game.contourFirst),selected=world.stations.get(game.contourSelection)||source;
- const choices=source&&region?contourConnectionChoices(world,source.id,nodes):{ready:[],next:[]};
+ const choices=source&&region?contourConnectionChoices(world,source.id,[...map.values()]):{ready:[],next:[]};
+ const planIds=new Set(plan?.stations.map(s=>s.id)||[]);
  const best=choices.ready[0],goals=source&&!choices.ready.length?choices.next.slice(0,1):[];
  // Label only the strongest proposals; a thicket of labels would hide the map.
  const readyIds=new Set(choices.ready.slice(0,4).map(c=>c.node.id));
@@ -310,6 +355,7 @@ export function renderContourMap(game){
  const stage=transition?.kind==='claim'?'Контур замкнут · энергия заполняет новую территорию':
   transition?.kind==='loss'?'Связь потеряна · границы поля отступают':
   area>0?'Поле действует · сборщики перевозят флюкс':source?'Выберите вторую станцию или цель для разведки':
+  plan?'Соедините три отмеченные станции · '+plan.active+'/3 включены':
   region?'Выберите станцию на карте':'Выберите регион, чтобы приблизить карту';
  const feedback=game.contourFeedback;
  const flash=feedback&&game.time-feedback.at<15?`<div class="contour-feedback" role="status"><b>${esc(feedback.title)}</b><span>${esc(feedback.text)}</span></div>`:'';
@@ -333,7 +379,7 @@ export function renderContourMap(game){
   <div class="contour-region-switch">${regions}</div>
   <section class="map-shell contour-shell"><div class="map-canvas contour-map-canvas">
   <div class="contour-map-caption"><span>${region?esc(region.name):'КАРТА ПЯТИ РЕГИОНОВ'}</span><small>${esc(stage)}</small></div>
-  <svg class="contour-chart" viewBox="0 0 680 480" role="group" aria-label="${region?'Выбор станций и линий':'Выбор региона'}">
+  <svg class="contour-chart" data-map-world="true" viewBox="0 0 680 480" role="group" aria-label="${region?'Выбор станций и линий':'Выбор региона'}">
   <defs><radialGradient id="contourAtlasGlow"><stop offset="0" stop-color="#1a5064" stop-opacity=".45"/><stop offset="1" stop-color="#071a2b" stop-opacity="0"/></radialGradient></defs>
   <rect width="680" height="480" rx="12" fill="#081a2a"/><circle cx="340" cy="240" r="300" fill="url(#contourAtlasGlow)"/>
   ${geography}${nebulae}${stars}
@@ -342,15 +388,17 @@ export function renderContourMap(game){
   ${region?enemyDomainArtwork(world,enemyFields,enemyPlan,center,scale,region,game.time)+
    fieldArtwork(fields,world,center,scale,transition)+enemyThreatArtwork(threats.filter(t=>{
     const p=at(t.target,center,scale);return p.x>=20&&p.x<=660&&p.y>=20&&p.y<=460;
-   }),center,scale)+ghost+paths+prospects+
+   }),center,scale)+proposedContourArtwork(plan,center,scale)+ghost+paths+prospects+
+   (source?`<circle class="contour-reach-ring" cx="${digits(at(source,center,scale).x)}" cy="${digits(at(source,center,scale).y)}" r="${digits(CONTOURS.maxLength*scale)}"/>`:'')+
    stationMarks(nodes,center,scale,selected?.id,source?.id,readyIds,goalIds,
-    game.waypoint&&at(game.waypoint,center,scale))+
+    (game.manualWaypoint||game.waypoint)&&at(game.manualWaypoint||game.waypoint,center,scale),planIds)+
    incidentArtwork(game,region,center,scale):overviewStations(world,center,scale)+
    enemyDomainArtwork(world,enemyFields,enemyPlan,center,scale,null,game.time)+
    fieldArtwork(fields,world,center,scale,transition,true)+paths+
    trunkLines+enemyThreatArtwork(threats,center,scale)+incidentArtwork(game,null,center,scale)+
    overview}
   ${visiblePlayer?`<g class="contour-player-pin" transform="translate(${digits(player.x)} ${digits(player.y)})"><circle r="12" fill="#9dd9ff12" stroke="#d7faff" stroke-dasharray="3 3"/><path d="M0 -7L-5 5L0 2L5 5Z" fill="#fff"/><title>Ваш корабль</title></g>`:''}</svg>
+  ${mapTools(game)}
   <div class="contour-legend"><span><i class="contour-key mine"></i> Своя</span><span><i class="contour-key unknown"></i> Не разведана</span><span><i class="contour-key dormant"></i> Не включена</span>
   <span><i class="contour-key hostile"></i> Враг</span><span><i class="contour-key available"></i> Возможная связь</span><span><i class="contour-key vortex"></i> Воронка</span>
   ${physical.visibleRelays?'<span><i class="contour-key relay"></i> Ретрансляторы</span>':''}
@@ -366,6 +414,7 @@ export function renderContourMap(game){
   <div><small>СБОРЩИКИ В ПУТИ</small><strong>${world.contours.harvesters.length}</strong></div></div>
   ${flash}${game.contourError?`<p class="contour-error" role="status">${esc(game.contourError)}</p>`:''}
   ${!flash&&game.contourInfo?`<p class="contour-info" role="status">${esc(game.contourInfo)}</p>`:''}
+  ${firstContourGuide(plan)}
   ${enemyThreatPanel(threats)}
   ${enemyExpansionPanel(enemyPlan&&(!region||enemyPlan.region===region.id)?enemyPlan:null)}
   ${selectedPanel(game,selected,source,choices,region)}
