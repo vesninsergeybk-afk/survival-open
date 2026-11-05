@@ -1,3 +1,4 @@
+import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1';
 import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-domains-1';
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1';
@@ -221,6 +222,8 @@ export function restoreCheckpoint(game,data){
  // Commit only after the complete world has been reconstructed successfully.
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
+ // Convert older saves only once, retaining every already earned skill point.
+ migrateLegacyPlayerExperience(game.player);
  game.tactical=data.state.tactical||createTactical();game.tacticalPointer=null;
  game.openingArc=data.state.openingArc||{...createOpeningArc(world.home),status:'skipped'};
  game.openingRepairing=false;

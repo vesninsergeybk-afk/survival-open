@@ -10,7 +10,8 @@ import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expeditio
 import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2';
 import {disableCentralWorker} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2';
 import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
-import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30';
+import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifiesForDirectCombatXp,XP_CURVE_VERSION} from './experience.js?v=early-experience-1';
+import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30-early-xp-1';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
@@ -56,12 +57,12 @@ import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESI
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
- openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-5';
+ openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-5-early-xp-1';
 import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {ambientPatrolRoute,patrolCanLeave} from './enemy-awareness.js?v=living-world-roaming-patrol-2';
 import {recordWorldFeedback,recordContourFeedback,advanceWorldFeedback,drawWorldFeedback,drawImpactInvestigation} from './world-feedback.js?v=world-feedback-1';
@@ -165,7 +166,8 @@ export class ArcadeGame {
   this.shotGrid=new SpatialGrid(95);
   this.rockGrid=new SpatialGrid(140);
   this.player={x:0,y:0,vx:0,vy:0,r:19,hp:110,maxHp:110,shield:0,
-    xp:0,level:1,points:0,ore:0,data:0,invul:0,angle:0,
+    xp:0,level:1,points:0,xpCurveVersion:XP_CURVE_VERSION,firstRichRockStudied:false,
+    ore:0,data:0,invul:0,angle:0,
      burstRemaining:0,burstCooldown:0,burstX:0,burstY:-1};
   this.skillRanks=Object.fromEntries(SKILLS.map(s=>[s.id,0]));
   this.shipLoadout=createLoadout();
@@ -928,13 +930,15 @@ export class ArcadeGame {
    recordSortieIncome(this,'ore','operation',OPENING_ARC.rescueRewardOre);
    this.cockpit.resourceGain(OPENING_ARC.rescueRewardOre,this.time);
    this.player.shield=Math.max(this.player.shield,OPENING_ARC.rescueShield);
+   this.awardExperience(OPENING_ARC.rescueRewardXp);
    this.spawnClock=Math.max(this.spawnClock,9);
    if(!this.waypoint&&this.player.hp/this.player.maxHp<.45){
     const dock=this.world.home;
     this.waypoint={id:dock.id,x:dock.x,y:dock.y,label:'Вернуться на ремонт'};
    }
    this.notice('Эвакуация завершена: +'+OPENING_ARC.rescueRewardOre+
-    ' сплава и аварийный щит. Враг получил сигнал: патрули участятся.',6);
+    ' сплава, +'+OPENING_ARC.rescueRewardXp+
+    ' опыта и аварийный щит. Враг получил сигнал: патрули участятся.',6);
   }
   if(this.firstHardwareReward==null)this.firstHardwareReward='pending';
   this.showOpeningReward();
@@ -2644,6 +2648,7 @@ export class ArcadeGame {
   const hpBefore=e.hp;
   damage=stormWeaponDamage(e,damage,source,this.time);
   e.hp-=damage;e.hit=.12;
+  if(aggressor===this.player && damage>0)e.lastPlayerHitAt=this.time;
   this.enemyLearning?.damaged(e,Math.min(hpBefore,Math.max(0,damage)));
   this.enemyComms?.reportHit(e,Math.min(hpBefore,Math.max(0,damage)),this.time);
   if(aggressor===this.player&&e.hp>0)
@@ -2889,6 +2894,11 @@ export class ArcadeGame {
   if(!destroyed)return;
   if(kind==='extract'){
    this.advanceContract('mine',rock);
+   const discoveryXp=firstRichAsteroidExperience(this.player,rock,kind);
+   if(discoveryXp){
+    this.notice('Исследован первый богатый астероид: +'+discoveryXp+' опыта',3);
+    this.awardExperience(discoveryXp);
+   }
   }
   this.heritage.vfx.asteroidBreak(rock.x,rock.y,rock.r);
   this.heritage.play('rockBreak',.22,{x:rock.x,y:rock.y});
@@ -2907,12 +2917,12 @@ export class ArcadeGame {
  addDrop(type,x,y,value,options={}){
   if(this.drops.length>=RULES.maxDrops){
    // When the cap is reached, award pickups directly rather than lose progress.
-   return this.collect({type,value,source:options.source})!==false;
+   return this.collect({type,value,source:options.source,xpGranted:options.xpGranted})!==false;
   }
   this.drops.push({type,x,y,value,source:options.source||null,
    vx:options.vx??(Math.random()-.5)*55,
    vy:options.vy??(Math.random()-.5)*55,
-   hot:!!options.hot,life:options.life??34});
+   xpGranted:options.xpGranted===true,hot:!!options.hot,life:options.life??34});
  }
  issueFieldCharge(e){
   if(e.fieldDropChecked||e.hp>0||e.converted)return false;
@@ -2921,6 +2931,15 @@ export class ArcadeGame {
   if(!id||!base||!loan||(base.fieldChargeIssued||{})[id]||loan.charges>=fieldWeapon(loan).capacity)return false;
   if(this.addDrop('fieldCell',e.x+12,e.y,1,{life:34})===false)return false;
   base.fieldChargeIssued??={};base.fieldChargeIssued[id]=true;return true;
+ }
+ awardExperience(amount){
+  const gained=grantExperience(this.player,amount);
+  if(gained){
+   this.heritage.play('levelUp',.4);
+   this.notice((gained>1?'Получено уровней: '+gained+'. ':'Новый уровень! ')+
+    'Навыки пилота — U, оружие и системы — в ангаре.',3);
+  }
+  return gained;
  }
  collect(item){
   const p=this.player;
@@ -2938,12 +2957,9 @@ export class ArcadeGame {
   }
   else{
    if(item.source)recordSortieIncome(this,'data',item.source,item.value);
-   p.data+=item.value;p.xp+=item.value;
-   while(p.xp>=expForNext(p.level)){
-    p.xp-=expForNext(p.level);p.level++;p.points++;
-    this.heritage.play('levelUp',.4);
-    if(p.level<=18 || p.level%3===0)this.notice('Новый уровень! Навыки пилота — U, оружие и системы — в ангаре.',3);
-   }
+   p.data+=item.value;
+   // Combat experience is earned at the kill, independently of collected data.
+   this.awardExperience(experienceFromPickup(item));
   }
  }
  update(dt){
@@ -3232,7 +3248,11 @@ export class ArcadeGame {
    if(!e.expAwarded&&!e.converted){
     e.expAwarded=true;
     this.advanceContract('kill',e);
-    this.addDrop('data',e.x,e.y,enemyDataReward(e),{source:'combat'});
+    const combatXp=enemyDataReward(e);
+    const directXp=qualifiesForDirectCombatXp(e,this.time);
+    if(directXp)this.awardExperience(combatXp);
+    this.addDrop('data',e.x,e.y,combatXp,
+     {source:'combat',life:50,xpGranted:directXp});
     const salvage=enemySalvage(e);
     // The dock repairs the ship for free. Standing inside its healing field
     // should never become a safe, automatic source of alloy.

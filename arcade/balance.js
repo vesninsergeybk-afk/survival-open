@@ -36,7 +36,12 @@ export const burstStats = rank => ({
   cooldown:5.8-rank*.65,
   multiplier:2.25
 });
-export const expForNext = level => Math.round(75 * Math.pow(1.36, Math.max(0, level - 1)));
+// Ease the opening decisions; from level 8 the existing curve is unchanged.
+const EARLY_XP_THRESHOLDS = Object.freeze([42, 68, 105, 155, 230, 330, 475]);
+export const legacyExpForNext = level =>
+  Math.round(75 * Math.pow(1.36, Math.max(0, level - 1)));
+export const expForNext = level =>
+  EARLY_XP_THRESHOLDS[level - 1] ?? legacyExpForNext(level);
 export const baseNames = Object.freeze({
   dock: 'Ремонтный док',
   arsenal: 'Военный арсенал',
