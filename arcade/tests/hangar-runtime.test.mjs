@@ -6,6 +6,7 @@ import {readFileSync} from 'node:fs';
 import {World} from '../world.js';
 import {SpatialGrid} from '../balance.js';
 import {createLoadout,HangarSession,loadoutProfile,createThermal,coolWeapons} from '../ship-loadout.js';
+import {updateFlakPellets} from '../ship-weapons.js';
 
 const entry=new URL('../game.js',import.meta.url);
 const source=readFileSync(entry,'utf8').replace(/\nnew ArcadeGame\(\);\s*$/,'\n')
@@ -41,7 +42,7 @@ function battle(g,seconds,dt=1/60){
  g.paused=false;g.overlay.hidden=true;
  for(let i=0;i<Math.ceil(seconds/dt);i++){
   g.time+=dt;coolWeapons(g.weaponThermal,dt,g.holdFire);
-  g.updateShipWeapons(dt);g.updateMissiles(dt);
+  g.updateShipWeapons(dt);g.updateMissiles(dt);updateFlakPellets(g,dt);
  }
 }
 function equip(g,slots){

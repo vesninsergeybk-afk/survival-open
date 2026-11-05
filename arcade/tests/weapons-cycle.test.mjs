@@ -8,7 +8,7 @@ import {createLoadout,createThermal,loadoutProfile,moduleStats,quoteLoadout,Hang
 import {combatTargets,damageTarget,selectTargets} from '../combat-targets.js';
 import {createFieldLoan,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,refillQuote,updateFieldEffects,resonanceDamage,fieldLoanOffer} from '../field-weapons.js';
 import {planIonDischarge} from '../ion-conductor.js';
-import {updateHowitzer} from '../ship-weapons.js';
+import {updateHowitzer,updateFlakPellets} from '../ship-weapons.js';
 import {plasmaDamageFactor} from '../weapon-specializations.js';
 import {beamDamage} from '../balance.js';
 import {automaticRange,corridorCue} from '../mission-feedback.js';
@@ -32,7 +32,9 @@ for(const id of ['plasma','rail','flak','rocket'])test(id+': common catalog dama
   if(kind==='jammer'){t=createCorridorOperation(g.docked);Object.assign(t,{x:150,y:0});g.operation=t;}
   else if(kind==='cargo'){const station={...g.docked,type:'carrier'},op=createCarrierInterception(station);Object.assign(op,{x:150,y:0,phase:'pursuit',angle:Math.PI/2});g.operation=op;t=op;g.enemies=[op];g.grid.insert(op);}
   else {const b={x:150,y:0,hp:500,maxHp:500,r:60,enemy:true,turrets:[]};t=kind==='base'?b:{x:150,y:0,hp:100,r:22};if(kind==='turret')b.turrets=[t];g.world.nearbyStations=()=>[b];g.enemyBasesUnlocked=()=>true;}
-  const hp=t.hp;g.updateShipWeapons(.01);if(id==='rocket')g.updateMissiles(.5);
+  const hp=t.hp;g.updateShipWeapons(.01);
+  if(id==='rocket')g.updateMissiles(.5);
+  if(id==='flak')updateFlakPellets(g,.2);
   assert.ok(t.hp<hp,kind+' must be damaged by '+id);
  }
 });
@@ -58,17 +60,20 @@ for(const id of ['plasma','rail','flak'])test(id+': rock cover blocks every actu
  const g=game();equip(g,id);g.skillRanks.double=2;
  const targets=[enemy(180,-12),enemy(190,0),enemy(200,12)];for(const e of targets)g.grid.insert(e);
  g.rockGrid.insert(rock(95,0,50));const impacts=[];g.damageRock=(r,d)=>impacts.push(d);
- g.updateShipWeapons(.01);assert.ok(impacts.length>0);assert.ok(targets.every(e=>e.hp===300));
+ g.updateShipWeapons(.01);if(id==='flak')updateFlakPellets(g,.2);
+ assert.ok(impacts.length>0);assert.ok(targets.every(e=>e.hp===300));
 });
 test('a core cannot absorb the same howitzer explosion that killed its protecting turret',()=>{
  const g=game(),t={x:170,y:0,r:22,hp:40},b={x:180,y:0,r:60,hp:500,maxHp:500,enemy:true,turrets:[t]};
  g.world.nearbyStations=()=>[b];g.enemyBasesUnlocked=()=>true;g.weaponProfile.howitzer=true;
  g.heavyCharge={x:170,y:0,remaining:.01,total:1.25};updateHowitzer(g,.02);
+ updateHowitzer(g,.3);
  assert.ok(t.hp<=0);assert.equal(b.hp,500);assert.ok(combatTargets(g,700).some(x=>x.target===b));
 });
 test('howitzer blast respects cover on the far side of the impact',()=>{
  const g=game(),e=enemy(200),r=rock(100,0,35);g.grid.insert(e);g.rockGrid.insert(r);g.damageRock=(r,d)=>{r.hp-=d;};
- g.weaponProfile.howitzer=true;g.heavyCharge={x:180,y:0,remaining:.01,total:1.25};updateHowitzer(g,.02);assert.equal(e.hp,300);
+ g.weaponProfile.howitzer=true;g.heavyCharge={x:180,y:0,remaining:.01,total:1.25};
+ updateHowitzer(g,.02);updateHowitzer(g,.3);assert.equal(e.hp,300);
 });
 test('a missile does not hit a structure that became friendly while it was in flight',()=>{
  const g=game(),b={x:150,y:0,r:60,hp:100,maxHp:500,enemy:false,captured:true,turrets:[]};

@@ -38,11 +38,11 @@ import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from '.
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 
-import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1';
+import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2';
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
-import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1-expedition-1-campaign-1-opening-tactics-1';
+import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1-expedition-1-campaign-1-opening-tactics-1-weapon-mechanics-2';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2-expedition-1-campaign-1';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3-expedition-1-campaign-1';
@@ -172,7 +172,7 @@ export class ArcadeGame {
   this.heavyCharge=null;this.heavyCooldown=0;this.syncShipLoadout();
   this.doctrine=null;this.lastDamageAt=-Infinity;
   this.network={armor:0,armament:0,engine:0,strikePower:0};
-  this.enemies=[];this.allies=[];this.drops=[];this.shots=[];this.missiles=[];this.flashes=[];this.weaponFx=[];
+  this.enemies=[];this.allies=[];this.drops=[];this.shots=[];this.missiles=[];this.flakPellets=[];this.heavyShells=[];this.flashes=[];this.weaponFx=[];
    this.support={charges:0,cooldown:0,missions:[]};
   this.zones=[];this.images={};this.time=0;this.spawnClock=9;this.miningNoise=0;
   this.lastNoiseSource=null;this.noiseAlert=null;
@@ -1684,8 +1684,8 @@ export class ArcadeGame {
      'Перевести рельсовое орудие в ручной режим прицеливания');
    }
    const heavy=$('heavyBtn');if(heavy){heavy.hidden=!this.weaponProfile.howitzer;
-    heavy.disabled=!!this.heavyCharge||this.heavyCooldown>0||this.weaponThermal.locked;
-    heavy.textContent=this.heavyCharge?'Подготовка…':this.heavyCooldown>0?'Гаубица · '+Math.ceil(this.heavyCooldown)+'с':'Гаубица';}
+    heavy.disabled=!!this.heavyCharge||!!this.heavyShells?.length||this.heavyCooldown>0||this.weaponThermal.locked;
+    heavy.textContent=this.heavyCharge?'Подготовка…':this.heavyShells?.length?'Гаубица · полёт':this.heavyCooldown>0?'Гаубица · '+Math.ceil(this.heavyCooldown)+'с':'Гаубица';}
    const tip=$('tips');if(tip){
     const base='WASD / стрелки — полёт · E — действие · C — автоогонь · Shift — рывок · Q — код · B — авиаудар · Tab — карта · U — развитие';
     const hint=fitted?' · SPACE — '+fieldText.replace(' · Space',''):'';
@@ -2680,7 +2680,6 @@ export class ArcadeGame {
    this.enemyLearning.flush(this.time);
   updateFieldEffects(this);
   coolWeapons(this.weaponThermal,dt,this.holdFire);
-  updateHowitzer(this,dt);
   this.heritage.tick(dt,this);
   this.updateCarrierInterception(dt);
   this.updateCorridor(dt);
@@ -2879,6 +2878,8 @@ export class ArcadeGame {
    updateAlly(a,this,dt);
   }
   this.updateMissiles(dt);
+  updateFlakPellets(this,dt);
+  updateHowitzer(this,dt);
   // Defense resolves warned impacts and imminent shots before collision damage.
   // It does not kill enemies or award loot/experience while the player waits.
   updateStationDefense(this);
@@ -3548,6 +3549,7 @@ export class ArcadeGame {
    if(outsideCamera(m.x,m.y,cam,80))continue;
    drawSeekingMissile(c,m,this.fps);
   }
+  drawBallisticWeapons(c,this,this.fps,this.visuals.reducedMotion,cam);
   for(const s of this.shots){
    if(outsideCamera(s.x,s.y,cam,15))continue;
    if(this.fps>=28&&this.visuals.drawHostileShot(c,s))continue;

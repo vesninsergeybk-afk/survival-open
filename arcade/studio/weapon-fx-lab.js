@@ -1,4 +1,5 @@
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from '../weapon-fx.js';
+import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from '../ballistic-weapons.js';
 import {drawSeekingMissile} from '../combat-feedback.js';
 import {drawFieldEffects} from '../field-weapons.js';
 import {WorldVFX} from '../../src/world-vfx.js';
@@ -17,8 +18,8 @@ const DATA=[
   desc:'Узкий ослепительно-светлый след, две параллельные кромки, парные скобы у ствола и резкая четырёхлучевая отметка попадания. При промахе конечной вспышки нет. Ручной выстрел использует тот же рисунок.',
   sound:'railgun',points:[{x:915,y:212}]},
  {id:'flak',name:'Осколочное орудие',short:'Осколочное',role:'Группа целей · рваная очередь',
-  desc:'Короткие янтарные штрихи с резким контактом. На нескольких целях видны разные реальные линии огня. До следующего прохода это отдельные мгновенные попадания, без физически летящих дробин и мнимого рассеивания урона.',
-  sound:'retro_blaster',points:[{x:735,y:150},{x:830,y:282},{x:730,y:400}]},
+  desc:'Из ствола вылетают девять настоящих осколков — по три на каждую цель в выбранном секторе. Они движутся по прямым, могут попасть в другой корпус или остановиться в астероиде. Широкий веер увеличивает охват, но уменьшает урон каждой тройки.',
+  sound:'retro_blaster',points:[{x:415,y:224},{x:424,y:286},{x:411,y:347}]},
  {id:'rocket',name:'Ракетная установка',short:'Ракеты',role:'Преследование · запуск и полёт',
   desc:'У ствола короткий реактивный выхлоп; затем летит уже существующий в игре ракетный снаряд с хвостом. Линии до выбранной цели нет — ракета может изменить курс.',
   sound:'knife',points:[{x:860,y:245}]},
@@ -29,10 +30,14 @@ const DATA=[
   desc:'Помеченные цели соединены тонкой пунктирной сетью. Когда по одной проходит реальное попадание, фиолетовый импульс обозначает перенесённый урон по соседней. Сама связь не наносит постоянного урона.',
   sound:'magic_wand',points:[{x:665,y:190},{x:805,y:300},{x:920,y:190}]},
  {id:'howitzer',name:'Тяжёлая гаубица',short:'Гаубица',role:'Осадное орудие · подготовленный залп',
-  desc:'После подготовки — мощный фиолетовый след от ствола до точки взрыва, расширяющееся ударное кольцо и общий игровой взрыв. В текущем коде попадание мгновенное: снаряд по траектории пока не летит.',
+  desc:'После подготовки снаряд летит к отмеченной точке. Противник может сменить позицию; астероид или корабль на пути вызовет ранний взрыв. На цели остаётся видимый круг поражения, а взрыв использует общий игровой пул эффектов.',
   sound:'explosion_big',points:[{x:800,y:267}]}
 ];
-const fxGame={time:0,weaponFx:[]},vfx=new WorldVFX();
+const fxGame={time:0,weaponFx:[],flakPellets:[],heavyShells:[],player:start,
+ shipLoadout:{specializations:{}},allies:[],grid:{query:()=>targets},rockGrid:{query:()=>[]},
+ damageEnemy(t,amount){t.hp=Math.max(0,t.hp-amount);},damageRock(){},
+ heritage:{play(){}}},vfx=new WorldVFX();
+fxGame.heritage.vfx=vfx;
 let selected=0,targets=[],missiles=[],sequence=false,sequenceNext=0,sequenceIndex=0;
 let fps=60,reducedMotion=false,last=0,accum=0,shotDelay=0,backgroundTime=0;
 let audio=null,audioEnabled=false,audioLoading=false;
@@ -74,14 +79,17 @@ function muzzle(origin,target,style){
 }
 function fire(){
  const d=DATA[selected];
- fxGame.weaponFx.length=0;vfx.reset();missiles=[];
+ fxGame.weaponFx.length=0;fxGame.flakPellets=[];fxGame.heavyShells=[];vfx.reset();missiles=[];
  targets=d.points.map((p,i)=>({x:p.x,y:p.y,r:i===0&&d.id==='howitzer'?27:21,
   hp:100,maxHp:100,type:'fighter'}));
  shotDelay=0;
- if(['plasma','rail','flak'].includes(d.id)){
+ if(['plasma','rail'].includes(d.id)){
   for(const target of targets)
    emitWeaponFx(fxGame,d.id,start,surface(start,target,target.r));
-  muzzle(start,targets[0],d.id==='flak'?'flak':d.id==='rail'?'railgun':'starter_pulse');
+  muzzle(start,targets[0],d.id==='rail'?'railgun':'starter_pulse');
+ }else if(d.id==='flak'){
+  const items=targets.map(target=>({kind:'enemy',target}));
+  launchFlakVolley(fxGame,start,items,items[0],{damage:14,range:245});
  }else if(d.id==='rocket'){
   emitWeaponFx(fxGame,'rocket',start,targets[0],{impact:false});
   muzzle(start,targets[0],'knife');
@@ -95,8 +103,7 @@ function fire(){
   emitWeaponFx(fxGame,'resonator',targets[0],targets[2]);
   vfx.nova(targets[0].x,targets[0].y,40,'violet');
  }else{
-  emitWeaponFx(fxGame,'howitzer',start,targets[0]);
-  vfx.nova(targets[0].x,targets[0].y,110,'violet');
+  launchHeavyShell(fxGame,start,targets[0]);
  }
  cueSound(d.sound);
 }
@@ -109,6 +116,7 @@ function newMissile(){
 function advance(dt){
  backgroundTime+=dt;fxGame.time+=dt;
  updateWeaponFx(fxGame,dt);vfx.update(dt);
+ updateFlakPellets(fxGame,dt);updateHeavyShells(fxGame,dt);
  for(let i=missiles.length-1;i>=0;i--){
   const m=missiles[i],u=unit(m.tx-m.x,m.ty-m.y);
   m.prevX=m.x;m.prevY=m.y;m.x+=u.x*m.speed*dt;m.y+=u.y*m.speed*dt;
@@ -178,10 +186,11 @@ function draw(){
  }
  drawHero();
  for(const m of missiles)drawSeekingMissile(ctx,m,fps);
+ drawBallisticWeapons(ctx,fxGame,fps,reducedMotion);
  drawWeaponFx(ctx,fxGame.weaponFx,fps,reducedMotion,{x:0,y:0,w:W,h:H});
  vfx.render(ctx,'front',{worldX:0,worldY:0,width:W,height:H});
  ctx.fillStyle='#8eb2c0';ctx.font='11px ui-monospace,monospace';
- ctx.fillText('СРАВНИТЕЛЬНЫЙ СТЕНД · УРОН НЕ СЧИТАЕТСЯ',19,30);
+ ctx.fillText('СРАВНИТЕЛЬНЫЙ СТЕНД · БАЛАНС НЕ ОЦЕНИВАЕТСЯ',19,30);
 }
 function frame(timestamp){
  const elapsed=Math.min(.14,(timestamp-last)/1000||.016);last=timestamp;

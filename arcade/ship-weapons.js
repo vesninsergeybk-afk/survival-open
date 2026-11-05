@@ -1,10 +1,13 @@
 import {RULES,beamDamage} from './balance.js?v=arcade-balanced-bases-30';
-import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight} from './weapon-specializations.js?v=weapons-cycle-2';
-import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1';
+import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight} from './weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2';
+import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=rpg-precision-audit-1-expedition-1-campaign-1';
 import {emitWeaponFx} from './weapon-fx.js';
+import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js';
+
+export {updateFlakPellets,drawBallisticWeapons};
 
 export const shipTargets=(game,range,limit=1,nearest=false,focus='precision')=>
  selectTargets(game,range,limit,!nearest&&focus==='precision');
@@ -15,7 +18,24 @@ const positions=(g,id)=>{
  // Callers of the combat library may supply an aggregate profile without art.
  return (slots.length?slots:Array.from({length:g.weaponProfile[id]||0},(_,i)=>i)).map(i=>mountPosition(g.player,i));
 };
+function fireFlakFamily(game){
+ const stats=statsFor(game,'flak'),targets=selectTargets(game,stats.range,stats.targets,false);
+ if(!targets.length)return false;
+ let fired=false,index=0;
+ for(const from of positions(game,'flak')){
+  // Separate mounts may cover different bearings. A wide-sweep upgrade widens
+  // each sector instead of manufacturing hits around the whole ship.
+  const anchor=targets[index%targets.length];index++;
+  fired=launchFlakVolley(game,from,targets,anchor,stats)||fired;
+ }
+ if(!fired)return false;
+ heatWeapons(game.weaponThermal,MODULES.flak.heat*game.weaponProfile.flak);
+ game.heritage.play('flakShot',.28,{x:game.player.x,y:game.player.y});
+ game.moduleClocks.flak=stats.interval;
+ return true;
+}
 function fireBeamFamily(game,id){
+ if(id==='flak')return fireFlakFamily(game);
  const stats=statsFor(game,id),targets=selectTargets(game,stats.range,stats.targets,id==='rail');
  if(!targets.length)return false;
  const weights=id==='plasma'?plasmaSplitWeights(targets.length):null;
@@ -184,6 +204,7 @@ export function updateAuxiliaryWeapons(game,dt,allowed){
 export function planHowitzer(game){
  if(!game.weaponProfile?.howitzer)return {ok:false,reason:'Установите гаубицу в узел H в ангаре'};
  if(game.heavyCharge)return {ok:false,reason:'Гаубица уже готовит выстрел'};
+ if(game.heavyShells?.length)return {ok:false,reason:'Снаряд гаубицы ещё в полёте'};
  if(game.weaponThermal.locked)return {ok:false,reason:'Оружие перегрето. Дождитесь охлаждения'};
  if(game.heavyCooldown>0)return {ok:false,reason:'Гаубица заряжается: '+Math.ceil(game.heavyCooldown)+' с'};
  const chosen=selectTargets(game,900,1,true)[0];
@@ -192,29 +213,20 @@ export function planHowitzer(game){
 }
 export function updateHowitzer(game,dt){
  game.heavyCooldown=Math.max(0,(game.heavyCooldown||0)-dt);
+ updateHeavyShells(game,dt);
  if(!game.heavyCharge)return;
  if(!game.weaponProfile.howitzer||game.mining?.active||game.probeRepairing||game.openingRepairing||
     game.actionHeld?.kind==='opening-repair'){game.heavyCharge=null;return;}
+ const chargingFor=game.heavyCharge.remaining;
  game.heavyCharge.remaining-=dt;if(game.heavyCharge.remaining>0)return;
  const aim=game.heavyCharge;game.heavyCharge=null;
  if(targetDistance(game.player,aim)>900){game.notice?.('Подготовка гаубицы отменена: точка удара дальше 900 м',2.8);return;}
  game.heavyCooldown=12;heatWeapons(game.weaponThermal,70);
- const from=mountPosition(game.player,5),d=targetDistance(from,aim);
- const cover=firstRockImpact(from.x,from.y,aim.x,aim.y,
-  game.rockGrid.query((from.x+aim.x)*.5,(from.y+aim.y)*.5,d*.5+60),3,game.player);
- const hit=cover?{x:cover.x,y:cover.y}:aim;
- emitWeaponFx(game,'howitzer',from,hit);game.heritage.vfx.nova(hit.x,hit.y,110,'violet');
- game.heritage.play('howitzerShot',.3,hit);
- // Snapshot exposed targets before damage: killing the last turret in this
- // explosion does not retroactively expose the core to that same explosion.
- for(const item of combatTargets(game,180,hit)){
-  const t=item.target;if(targetDistance(t,hit)>110+targetRadius(item))continue;
-  const dx=t.x-hit.x,dy=t.y-hit.y,n=Math.hypot(dx,dy)||1;
-  const start={x:hit.x+dx/n*2,y:hit.y+dy/n*2};
-  if(!clearLine(game,start,t,false))continue;
-  damageTarget(game,item,180,'howitzer',contactOnCircle(t.x,t.y,targetRadius(item),hit.x,hit.y));
- }
- if(cover)game.damageRock(cover.rock,180,from.x,from.y,'auto',true);
+ launchHeavyShell(game,mountPosition(game.player,5),aim);
+ // A 15 FPS frame may cross the precise end of the charging window. Only the
+ // unspent part of that frame moves the newly launched shell.
+ const flightDt=Math.max(0,dt-chargingFor);
+ if(flightDt>0)updateHeavyShells(game,flightDt);
 }
 export function drawHowitzerAim(ctx,charge){
  if(!charge)return;
