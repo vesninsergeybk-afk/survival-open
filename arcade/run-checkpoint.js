@@ -1,5 +1,5 @@
 import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1';
-import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
+import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-domains-1';
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2-campaign-1';
 import {createTactical,validTactical} from './tactical-fields.js?v=tactical-field-2';
@@ -8,6 +8,7 @@ import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
 import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
 import {createContours,validContours} from './territory-system.js?v=contours-1-world-feedback-1';
+import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
@@ -96,6 +97,7 @@ export function captureCheckpoint(game,base){
  }
  return {version:2,seed:game.seed,baseId:base.id,state,world:{
   regionalSupply:game.world.regionalSupply,contours:game.world.contours,
+  enemyExpansion:game.world.enemyExpansion,
   stations:[...game.world.stations],rocks,discovered:[...game.world.discovered]}};
 }
 export function migrateCheckpoint(data){
@@ -172,6 +174,7 @@ export function validateCheckpoint(data){
  if(!home||!dock?.active||dock.enemy||Math.hypot(p.x-dock.x,p.y-dock.y)>210||
   w.discovered.some(id=>!ids.has(id)))return false;
  if(w.contours!==undefined&&!validContours(w.contours,w.stations))return false;
+ if(!validEnemyExpansion(w.enemyExpansion,w.stations,s.time))return false;
  if(s.enemies.some(e=>e.stationRaid&&!ids.has(e.stationRaid.stationId))||
    w.regionalSupply?.command?.reports.some(r=>!ids.has(r.stationId)))return false;
  for(const pair of w.rocks){
@@ -204,6 +207,7 @@ export function restoreCheckpoint(game,data){
  world.ensureRegionalStations();
  world.regionalSupply=data.world.regionalSupply||createRegionalSupply(data.state.time);
  world.contours=data.world.contours||createContours();
+ world.enemyExpansion=data.world.enemyExpansion||createEnemyExpansion(data.state.time);
  for(const b of world.stations.values())if(b.suppressed&&b.suppressedUntil<=data.state.time)b.suppressed=false;
  for(const [key,patches] of data.world.rocks){
   const [x,y]=key.split(':').map(Number),list=world.rockCell(x,y);
@@ -231,6 +235,7 @@ export function restoreCheckpoint(game,data){
  game.defenseTopology=null;game.defenseTopologyAt=0;
  game.cachedTarget=null;game.cachedWorldLinks=[];game.cachedNetworkLinked=world.networkTopology().linked;
  game.contourVisualAt=-Infinity;game.contourVisualFields=null;
+ game.enemyContourVisualAt=-Infinity;game.enemyContourVisualFields=null;
  game.lastContourNoticeAt=-Infinity;game.contourFirst=null;game.contourSelection=null;game.contourError='';
  game.contourFeedback=null;game.contourBirths=[];game.contourDynamics=null;
  game.docked=world.stations.get(data.baseId);game.dead=false;game.paused=true;game.pausedRenderPending=true;

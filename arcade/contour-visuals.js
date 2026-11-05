@@ -1,8 +1,15 @@
 import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1';
-import {activeContourTransition,fieldWasOwned} from './contour-dynamics.js?v=contour-dynamics-1';
+import {activeContourTransition,fieldIsNew} from './contour-dynamics.js?v=contour-dynamics-2';
+import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1';
 
 const visible=(p,cam,r=200)=>p.x>=cam.x-r&&p.x<=cam.x+cam.w+r&&
  p.y>=cam.y-r&&p.y<=cam.y+cam.h+r;
+const polygonPath=(ctx,polygon)=>polygon.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+const intersectsCamera=(polygon,cam,pad=120)=>polygon.some(p=>visible(p,cam,pad))||
+ (Math.min(...polygon.map(p=>p.x))<cam.x+cam.w+pad&&
+  Math.max(...polygon.map(p=>p.x))>cam.x-pad&&
+  Math.min(...polygon.map(p=>p.y))<cam.y+cam.h+pad&&
+  Math.max(...polygon.map(p=>p.y))>cam.y-pad);
 
 // Canvas world-space artwork; no large sprites, network loads or particle arrays.
 export function drawContourWorld(game,c,cam){
@@ -12,11 +19,52 @@ export function drawContourWorld(game,c,cam){
  }
  const fields=game.contourVisualFields;
  const links=game.world.contours?.links||[];
+ if(now-(game.enemyContourVisualAt||-Infinity)>.4||!game.enemyContourVisualFields){
+  game.enemyContourVisualFields=enemyTerritoryFields(game.world);
+  game.enemyContourVisualAt=now;
+ }
+ const enemyFields=game.enemyContourVisualFields;
+ const enemyLinks=game.world.enemyExpansion?.links||[];
  const transition=activeContourTransition(game);
- if(!fields.length&&!links.length&&!transition)return;
+ if(!fields.length&&!links.length&&!transition&&!enemyFields.length&&!enemyLinks.length)return;
  const calm=!!game.visuals?.reducedMotion,lowFps=game.fps<34;
  const elapsed=transition?Math.max(0,now-transition.at):Infinity;
+ const energyEdges=new Set(transition?.kind==='claim'?transition.current
+  .filter(f=>fieldIsNew(f,transition.previous))
+  .flatMap(f=>f.vertices.map((id,i)=>[id,f.vertices[(i+1)%f.vertices.length]].sort().join('|'))):[]);
  c.save();
+ // The hostile field is a physical structure too. Its lines and reactor
+ // occupy the same world coordinates as the atlas, and disappear if a station
+ // is captured or its transmitter goes dark.
+ for(const [from,to] of enemyLinks){
+  const a=game.world.stations.get(from),b=game.world.stations.get(to);
+  if(!a?.enemy||!b?.enemy||a.suppressed||b.suppressed||a.hp<=0||b.hp<=0)continue;
+  if(!intersectsCamera([a,b],cam))continue;
+  c.save();c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);
+  c.strokeStyle='rgba(255,105,107,.3)';c.lineWidth=3;c.setLineDash([16,14]);
+  if(!calm)c.lineDashOffset=now*22%30;
+  c.stroke();c.restore();
+ }
+ const enemyBirth=game.world.enemyExpansion?.events?.find(e=>e.kind==='claim'&&now-e.at>=0&&now-e.at<3);
+ for(const f of enemyFields){
+  if(!intersectsCamera(f.polygon,cam))continue;
+  c.save();
+  if(enemyBirth&&f.vertices.includes(enemyBirth.a)&&f.vertices.includes(enemyBirth.b)&&!calm){
+   const r=Math.max(...f.polygon.map(p=>Math.hypot(p.x-f.center.x,p.y-f.center.y)));
+   const fraction=Math.min(1,Math.max(0,(now-enemyBirth.at-.6)/1.8));
+   c.beginPath();c.arc(f.center.x,f.center.y,r*fraction,0,Math.PI*2);c.clip();
+  }
+  c.beginPath();polygonPath(c,f.polygon);c.closePath();
+  c.fillStyle='rgba(246,68,79,.045)';c.fill();
+  c.strokeStyle='rgba(255,117,125,.28)';c.lineWidth=3;c.setLineDash([17,24]);c.stroke();
+  c.setLineDash([]);c.restore();
+  const angle=now*.75+f.area*.00001;
+  c.save();c.translate(f.center.x,f.center.y);
+  c.fillStyle='rgba(252,94,61,.3)';c.beginPath();c.arc(0,0,35+5*Math.sin(angle),0,Math.PI*2);c.fill();
+  c.strokeStyle='rgba(255,180,98,.7)';c.lineWidth=3;
+  c.beginPath();c.arc(0,0,19,angle,angle+Math.PI*1.35);c.stroke();
+  c.fillStyle='#371a25';c.beginPath();c.arc(0,0,8,0,Math.PI*2);c.fill();c.restore();
+ }
  // Links are real structures even before a field closes. Render them in the
  // physical world so the action on the atlas has an immediate visible result.
  for(const [from,to] of links){
@@ -33,8 +81,7 @@ export function drawContourWorld(game,c,cam){
   c.lineWidth=2.8;c.setLineDash(healthy?[23,12]:[9,16]);
   if(!calm)c.lineDashOffset=-(now*35)%35;
   c.stroke();c.setLineDash([]);
-  if(transition?.kind==='claim'&&elapsed<1.1&&transition.changedLinks.some(([x,y,ok])=>ok&&
-   ((x===from&&y===to)||(x===to&&y===from)))){
+  if(transition?.kind==='claim'&&elapsed<1.1&&energyEdges.has([from,to].sort().join('|'))){
    const progress=calm?1:Math.min(1,elapsed/1.1);
    c.beginPath();c.moveTo(a.x,a.y);c.lineTo(a.x+(b.x-a.x)*progress,a.y+(b.y-a.y)*progress);
    c.strokeStyle='rgba(255,229,171,.92)';c.lineWidth=5;c.shadowColor='#ffb866';c.shadowBlur=20;
@@ -52,15 +99,30 @@ export function drawContourWorld(game,c,cam){
  }
  for(const field of fields){
   if(!visible(field.center,cam,950))continue;
+  const animating=transition?.kind==='claim'&&!calm&&elapsed<2.5;
+  if(animating){
+   // The old/new intersection must stay visible throughout the fill.
+   c.save();c.beginPath();polygonPath(c,field.polygon);c.closePath();c.clip();
+   c.fillStyle='rgba(40,224,195,.035)';
+   for(const old of transition.previous){
+    c.beginPath();polygonPath(c,old.polygon);c.closePath();c.fill();
+   }
+   c.restore();
+  }
   c.save();
-  const forming=transition?.kind==='claim'&&!fieldWasOwned(field.center,transition.previous);
-  if(forming&&!calm&&elapsed<2.5){
-   // The field first receives power along its links, then fills radially.
+  const forming=transition?.kind==='claim'&&fieldIsNew(field,transition.previous);
+  if(animating){
+   // First limit to the current face. Then subtract the precise old union
+   // using the even-odd winding rule; the centroid may still be old land.
+   c.beginPath();polygonPath(c,field.polygon);c.closePath();c.clip();
+   c.beginPath();polygonPath(c,field.polygon);c.closePath();
+   for(const old of transition.previous){polygonPath(c,old.polygon);c.closePath();}
+   c.clip('evenodd');
    const radius=Math.max(...field.polygon.map(p=>Math.hypot(p.x-field.center.x,p.y-field.center.y)));
    const fill=Math.min(1,Math.max(0,(elapsed-1)/1.5));
    c.beginPath();c.arc(field.center.x,field.center.y,radius*fill,0,Math.PI*2);c.clip();
   }
-  c.beginPath();field.polygon.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();
+  c.beginPath();polygonPath(c,field.polygon);c.closePath();
   c.fillStyle='rgba(40,224,195,.035)';c.fill();
   c.strokeStyle='rgba(79,235,198,.22)';c.lineWidth=4;c.setLineDash([34,28]);c.stroke();c.setLineDash([]);
   c.restore();

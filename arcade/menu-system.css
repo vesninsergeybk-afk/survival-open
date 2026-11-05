@@ -667,6 +667,15 @@
 .contour-map-label{fill:#e5fff5;font-weight:700;font-size:10px;paint-order:stroke;
  stroke:#071c2b;stroke-width:3px;pointer-events:none}
 .contour-owned-field{fill:#22dfb01b;stroke:#60efcc99;stroke-width:2}
+.contour-global-ownership{pointer-events:none}
+.contour-global-ownership .contour-owned-field{fill:#2aeac552;stroke:#7dffe6;stroke-width:2.8}
+.contour-global-ownership .contour-vortex-map{filter:drop-shadow(0 0 4px #ff9b47)}
+.contour-global-station{pointer-events:none;stroke:#082b30;stroke-width:1}
+.contour-global-station.owned{fill:#8efce1}
+.contour-global-station.hostile{fill:#ff8895}
+.contour-global-station.known{fill:#e6c38c}
+.contour-region-claims{font-size:10px;font-weight:800;fill:#a9ffdf;paint-order:stroke;
+ stroke:#08222e;stroke-width:3px}
 .contour-owned-field.contour-forming{animation:contourTerritoryFill 1.55s .95s both}
 .contour-claim-surges{pointer-events:none}
 .contour-claim-surges path{fill:none;stroke:#ffdc9c;stroke-width:4;stroke-linejoin:round;
@@ -690,6 +699,23 @@
 .contour-threat-target path{stroke:#ffadb1;stroke-width:2.6;stroke-linecap:round}
 .contour-threat-support{fill:none;stroke:#ffca9b;stroke-width:1.5;stroke-dasharray:2 4;opacity:.7}
 .contour-threat-route{fill:none;stroke:#ffb4a1;stroke-width:2;stroke-dasharray:5 8}
+.contour-enemy-domains{pointer-events:none}
+.contour-enemy-land{fill:#e44b4930;stroke:#ff777e;stroke-width:2.2;stroke-opacity:.85}
+.contour-enemy-land.contour-enemy-forming{animation:contourTerritoryFill 1.55s .95s both}
+.contour-enemy-reactor{fill:#f86b59;stroke:#ffcb8a;stroke-width:1.4}
+.contour-enemy-proposed-field{fill:#ff8b3c12;stroke:#ffae72;stroke-width:2;
+ stroke-dasharray:7 7;animation:contourThreatBeat 3s ease-in-out infinite}
+.contour-enemy-proposed-link{fill:none;stroke:#ffaf86;stroke-width:2.3;stroke-dasharray:4 7;
+ animation:contourSignal 3s ease-in-out infinite}
+.contour-enemy-objective{fill:#ff97651f;stroke:#ffb079;stroke-width:2;stroke-dasharray:3 4;
+ animation:contourThreatBeat 2.4s ease-in-out infinite}
+.contour-expansion-panel{margin:0 0 10px;padding:10px;border:1px solid #98694f;
+ border-left:3px solid #ffb477;border-radius:5px;background:#382a2494;color:#ffead9}
+.contour-expansion-panel b{font-size:11px;letter-spacing:.05em;color:#ffbd8d}
+.contour-expansion-panel p,.contour-expansion-panel small{display:block;font-size:11px;
+ line-height:1.5;margin:6px 0;color:#f5d1bc}
+#overlay .contour-expansion-panel button{min-height:35px;background:#583c31;
+ color:#ffe9d4;border-color:#bd8b67;font-size:11px}
 @keyframes contourThreatBeat{0%,100%{stroke-opacity:.55;fill-opacity:.5}50%{stroke-opacity:1;fill-opacity:1}}
 .contour-threat-panel{margin:0 0 9px;padding:10px;background:#38252b9e;border:1px solid #ae6574;
  border-left:3px solid #ffa1a8;border-radius:5px;color:#ffe2e4}
@@ -730,6 +756,8 @@
 .contour-key.hostile{background:#ff7786;border-radius:2px;transform:rotate(45deg)}
 .contour-key.available{background:transparent;border:2px dashed #7effd8;width:10px;height:10px}
 .contour-key.vortex{background:#f58437;border:2px solid #ffda8e}
+.contour-key.enemy-land{background:#f36d63;border:1px solid #ffb2a4;border-radius:1px}
+.contour-key.enemy-plan{background:transparent;border:2px dashed #ffaa72;border-radius:1px}
 .contour-key.relay{width:12px;height:0;border-top:2px dotted #70b3eb;background:transparent;border-radius:0}
 .contour-key.storm{width:10px;height:10px;border:1.6px dashed #82e1f7;background:#63bfdf14;border-radius:50%}
 .contour-key.cargo{background:#ffbe78;border:1px solid #ffeed2;border-radius:2px}
@@ -814,7 +842,8 @@
  .contour-best-link,.contour-vortex-map circle:nth-of-type(2),.contour-storm,
  .contour-map-cargo circle,.contour-owned-field.contour-forming,.contour-claim-surges path,
  .contour-vortex-map.contour-vortex-forming,.contour-retreat,.contour-threat-field,
- .contour-threat-target circle{animation:none}
+ .contour-threat-target circle,.contour-enemy-proposed-field,
+ .contour-enemy-proposed-link,.contour-enemy-objective,.contour-enemy-forming{animation:none}
  .contour-claim-surges{display:none}
  .contour-owned-field.contour-forming{opacity:1;clip-path:none}
  .contour-vortex-map.contour-vortex-forming{opacity:1;transform:none}

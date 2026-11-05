@@ -9,6 +9,7 @@ import {updateStrategicCommand,assignStationInterdiction,drawStationInterdiction
 import {stormPhase} from './regional-storms.js?v=regions-1';
 import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1';
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
+import {advanceEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 /** Translate *completed simulation events*, never a speculative plan, into a
@@ -104,6 +105,16 @@ export function updateRegionalWorld(game,dt){
   s.visited.push(region.id);game.notice(region.name+'. '+region.cue,7);
  }
  const events=advanceRegionalSupply(world,game.time);
+ // Territorial construction draws exclusively on the industry's existing stock.
+ const expanded=advanceEnemyExpansion(world,game.time);
+ for(const move of expanded)if(move.witnessed){
+  recordWorldFeedback(game,{key:'machine-contour:'+move.front+':'+move.a+':'+move.b,
+   cause:move.kind==='claim'?'Противник замкнул территориальное поле':'Противник усилил линию между узлами',
+   effect:move.kind==='claim'?'Его промышленная сеть получит дополнительное сырьё, пока поле действует':
+    'На карте контуров показано, какие станции враг связывает',
+   kind:'industry',label:move.kind==='claim'?'ВРАЖЕСКОЕ ПОЛЕ':'ВРАЖЕСКАЯ ЛИНИЯ',
+   x:move.x,y:move.y,notify:true});
+ }
  if(Math.floor(game.time)>Math.floor(game.time-dt)){
   updateHomeConflict(game);updateStrategicCommand(game);
  }
