@@ -18,7 +18,7 @@ const weaponKinds=new Set(['area','long','close']);
 const allowedKinds=new Set([...weaponKinds,'contact','sabotage']);
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
-const valid=(p,now)=>!!p&&typeof p.id==='string'&&p.id.length<=100&&
+const valid=(p,now)=>!!p&&typeof p.id==='string'&&p.id.length<=192&&
   allowedKinds.has(p.kind)&&finite(p.at)&&finite(p.until)&&
   p.at<=now&&p.until>now&&p.until-p.at<=ENEMY_MESH.weaponLife+1&&
   Number.isInteger(p.hops)&&p.hops>=0&&p.hops<=ENEMY_MESH.maxHops&&
@@ -168,6 +168,10 @@ export class EnemyMesh{
     const life=report.kind==='contact'?ENEMY_MESH.contactLife:
       report.kind==='sabotage'?ENEMY_MESH.incidentLife:
       ENEMY_MESH.weaponLife;
+    // Continuous visual contact is one ongoing observation, not a new
+    // packet every frame. Preserve bandwidth for actual changed threats.
+    if(report.kind==='contact'&&[...node.known.values()].some(p=>
+       p.kind==='contact'&&p.origin===node.id&&now-p.at<7))return false;
     const id=node.id+':'+report.kind+':'+Math.floor(report.at*2)+
       (report.assetId?':'+report.assetId:'');
     if(node.known.has(id))return false;
