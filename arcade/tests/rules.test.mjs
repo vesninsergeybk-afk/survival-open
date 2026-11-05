@@ -12,7 +12,7 @@ test('луч даёт полный урон вблизи и слабеет вд�
  assert.ok(beamDamage(20,260)<20);
 });
 test('стоимость уровня растёт без мгновенного лавинообразного развития',()=>{
- assert.equal(expForNext(1),75);
+ assert.equal(expForNext(1),42);
  for(let level=2;level<25;level++)
   assert.ok(expForNext(level)>expForNext(level-1));
 });

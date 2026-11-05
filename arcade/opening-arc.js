@@ -4,7 +4,7 @@
 export const OPENING_ARC=Object.freeze({
  offerAt:16,deadline:155,repairSeconds:3.5,repairRange:155,
  interceptRewardData:27,interceptRewardOre:8,
- rescueRewardOre:28,rescueShield:35,
+ rescueRewardOre:28,rescueRewardXp:18,rescueShield:35,
  interceptRelief:120,rescueAlarm:100,
  rescuePulseProgress:.5,rescuePulseRadius:300,rescuePulseShield:18,
  localRadius:2600

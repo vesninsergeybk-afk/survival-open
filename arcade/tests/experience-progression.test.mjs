@@ -1,0 +1,96 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {expForNext,legacyExpForNext} from '../balance.js';
+import {enemyDataReward} from '../combat-rewards.js';
+import {contractChoices} from '../base-panel.js';
+import {OPENING_ARC} from '../opening-arc.js';
+import {XP_CURVE_VERSION,FIRST_RICH_ASTEROID_XP,experienceFromPickup,
+ grantExperience,firstRichAsteroidExperience,qualifiesForDirectCombatXp,migrateLegacyPlayerExperience} from '../experience.js';
+
+const pilot=(level=1,xp=0,points=0)=>({level,xp,points});
+const total=(level,xp,formula)=>Array.from({length:level-1},(_,i)=>formula(i+1))
+ .reduce((sum,step)=>sum+step,xp);
+
+test('the first levels accelerate but level eight and later keep existing costs',()=>{
+ assert.deepEqual(Array.from({length:8},(_,i)=>expForNext(i+1)),
+  [42,68,105,155,230,330,475,645]);
+ for(const level of [8,9,10,15,40])
+  assert.equal(expForNext(level),legacyExpForNext(level));
+});
+
+test('the opening combat contract now grants a meaningful first level',()=>{
+ const p=pilot(),contract=contractChoices('dock',0)[0];
+ assert.equal(contract.goal,4);
+ assert.equal(contract.data,15);
+ for(let i=0;i<contract.goal;i++)grantExperience(p,enemyDataReward({type:'scout',maxHp:28}));
+ grantExperience(p,contract.data);
+ assert.deepEqual({level:p.level,xp:p.xp,points:p.points},{level:2,xp:1,points:1});
+});
+
+test('combat XP arrives on destruction; looted data cannot award it twice',()=>{
+ const p=pilot(),xp=enemyDataReward({type:'scout',maxHp:28});
+ grantExperience(p,xp);
+ const drop={type:'data',source:'combat',value:xp,xpGranted:true};
+ assert.equal(experienceFromPickup(drop),0);
+ assert.equal(experienceFromPickup({type:'data',source:'combat',value:xp}),xp,
+  'older or unattended combat drops keep their pickup XP');
+ grantExperience(p,experienceFromPickup(drop));
+ assert.equal(p.xp,xp);
+ assert.equal(experienceFromPickup({type:'data',source:'operation',value:27}),27);
+ assert.equal(experienceFromPickup({type:'ore',source:'mining',value:20}),0);
+});
+
+test('direct XP requires recent player participation, preventing AFK station farming',()=>{
+ assert.equal(qualifiesForDirectCombatXp({},100),false);
+ assert.equal(qualifiesForDirectCombatXp({lastPlayerHitAt:99},100),true);
+ assert.equal(qualifiesForDirectCombatXp({lastPlayerHitAt:80},100),true);
+ assert.equal(qualifiesForDirectCombatXp({lastPlayerHitAt:79},100),false);
+ assert.equal(qualifiesForDirectCombatXp({lastPlayerHitAt:101},100),false);
+});
+
+test('a first rich asteroid plus the first geology contract grant level two',()=>{
+ const p=pilot(),contract=contractChoices('dock',0)[1];
+ assert.equal(contract.kind,'rich');
+ assert.equal(firstRichAsteroidExperience(p,{rich:false},'extract'),0);
+ assert.equal(firstRichAsteroidExperience(p,{rich:true},'auto'),0);
+ assert.equal(firstRichAsteroidExperience(p,{rich:true},'extract'),FIRST_RICH_ASTEROID_XP);
+ assert.equal(firstRichAsteroidExperience(p,{rich:true},'extract'),0);
+ grantExperience(p,FIRST_RICH_ASTEROID_XP);
+ grantExperience(p,contract.data);
+ assert.equal(p.level,2);
+ assert.equal(p.xp,0);
+ assert.equal(firstRichAsteroidExperience(p,{rich:true},'extract'),0);
+});
+
+test('opening rescue gives a smaller but real XP reward',()=>{
+ const p=pilot();
+ assert.equal(OPENING_ARC.rescueRewardXp,18);
+ assert.ok(OPENING_ARC.interceptRewardData>OPENING_ARC.rescueRewardXp);
+ grantExperience(p,OPENING_ARC.rescueRewardXp);
+ assert.equal(p.xp,18);
+});
+
+test('legacy checkpoint conversion preserves total XP and spent skill points',()=>{
+ const examples=[pilot(1,70,0),pilot(2,80,0),pilot(6,300,2),
+  pilot(7,0,0),pilot(8,600,3),pilot(20,123,15)];
+ for(const p of examples){
+  const before=total(p.level,p.xp,legacyExpForNext),originalLevel=p.level,points=p.points;
+  const gained=migrateLegacyPlayerExperience(p);
+  assert.equal(p.xpCurveVersion,XP_CURVE_VERSION);
+  assert.equal(total(p.level,p.xp,expForNext),before);
+  assert.ok(p.level>=originalLevel,'old saves must never lose a level');
+  assert.equal(p.points,points+gained,'existing spent points must remain spent');
+  const after={...p};
+  assert.equal(migrateLegacyPlayerExperience(p),0,'migration must run only once');
+  assert.deepEqual(p,after,'second restore cannot award extra XP');
+ }
+});
+
+test('late-level progress cannot be increased by repeating early discoveries',()=>{
+ const p=pilot(7,0,0),reward=firstRichAsteroidExperience(p,{rich:true},'extract');
+ assert.equal(reward,FIRST_RICH_ASTEROID_XP);
+ for(let i=0;i<50;i++)
+  assert.equal(firstRichAsteroidExperience(p,{rich:true},'extract'),0);
+ assert.equal(grantExperience(p,reward),0);
+ assert.equal(p.level,7);
+});

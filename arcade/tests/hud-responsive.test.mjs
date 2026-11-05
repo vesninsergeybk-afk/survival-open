@@ -35,9 +35,9 @@ test('HUD status boundaries and local radar contacts',()=>{
 
 test('experience gained across one or several level-ups is never lost in a rollover',()=>{
  assert.equal(experienceDifference({xp:20,level:1},{xp:29,level:1}),9);
- assert.equal(experienceDifference({xp:70,level:1},{xp:5,level:2}),10);
- assert.equal(experienceDifference({xp:70,level:1},{xp:8,level:3}),
-  5+102+8);
+ assert.equal(experienceDifference({xp:37,level:1},{xp:5,level:2}),10);
+ assert.equal(experienceDifference({xp:37,level:1},{xp:8,level:3}),
+  5+68+8);
  assert.equal(experienceDifference({xp:5,level:3},{xp:0,level:1}),null,
   'restarting a run must not be reported as newly earned XP');
 });
@@ -109,18 +109,18 @@ test('HUD reads game state and changes contextual prompts without changing simul
   assert.equal(node('dataGain').textContent,'+5');
   assert.equal(node('rewardFeed').hidden,false);
   game.player.level=3;game.player.xp=6;game.player.points=2;game.time=2.2;
-  hud.update(game,139,5);
-  assert.equal(node('xpValue').textContent,'6 / 139');
+  hud.update(game,105,5);
+  assert.equal(node('xpValue').textContent,'6 / 105');
   assert.equal(node('rewardLevel').textContent,'УРОВЕНЬ 3!');
-  assert.equal(node('rewardXp').textContent,'ОПЫТ +88',
+  assert.equal(node('rewardXp').textContent,'ОПЫТ +54',
    'total reflects the level-2 threshold, not the wrapped XP counter');
-  game.time=5.3;hud.update(game,139,5);
+  game.time=5.3;hud.update(game,105,5);
   assert.equal(node('rewardFeed').hidden,true,'feedback should not obscure combat indefinitely');
-  game.player.ore=15;game.time=5.4;hud.update(game,139,5);
+  game.player.ore=15;game.time=5.4;hud.update(game,105,5);
   assert.equal(node('rewardOre').textContent,'СПЛАВ 18 → 15 (−3)');
   assert.equal(node('rewardOre').classList.contains('spent'),true);
   game.player.level=1;game.player.ore=0;game.player.xp=0;game.time=0;
-  hud.update(game,75,5);
+  hud.update(game,42,5);
   assert.equal(node('rewardFeed').hidden,true,'restored or restarted runs do not invent pickups');
   game.holdFire=true;
   hud.update(game,100,5);
