@@ -38,8 +38,14 @@ export function renderRegionAtlas(game){
  const world=game.world,s=world.regionalSupply;if(!s)return '';
  const current=regionAt(game.player.x,game.player.y),mine=world.stations.get(SUPPLY.mineId);
  const threat=strongholdThreat(world,game.player);
- const threatCue=threat.tier>1?'<p class="region-threat-cue">ОПАСНОСТЬ '+threat.tier+'/5 · рекомендуемый уровень '+threat.recommendedLevel+'+. У главных баз вражеские группы сильнее. Нарушение снабжения ослабляет патрули.</p>':'';
  const fronts=warFronts(world);
+ const localFront=fronts.find(f=>f.key===threat.front);
+ const techCue=localFront?.known&&threat.industrialTech?
+  'Поставки усилили врага: ступень '+threat.industrialTech+'/3. ':'';
+ const threatCue=threat.tier>1?'<p class="region-threat-cue">ОПАСНОСТЬ '+threat.tier+
+  '/5 · рекомендуемый уровень '+threat.recommendedLevel+
+  '+. У главных баз вражеские группы сильнее. '+techCue+
+  'Перехват грузов задерживает развитие врага, захват сборочного узла останавливает подкрепления.</p>':'';
  const q=p=>({x:150+p.x*.0022,y:120+p.y*.0022});
  const labels=REGIONS.map(r=>{const p=q(r);return '<text x="'+p.x+'" y="'+p.y+'" text-anchor="middle" fill="'+r.color+'" font-size="12">'+r.number+' · '+(r.id==='amethyst'?'Старт':r.id==='amber'?'Рудный пояс':r.id==='azure'?'Разлом':r.id==='lilac'?'Военный рубеж':'Обломки')+'</text>';}).join('');
  const player=q(game.player),buttons=REGIONS.map(r=>{

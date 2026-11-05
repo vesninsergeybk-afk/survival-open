@@ -66,14 +66,13 @@ test('azure captures real storms and moves limited energy cells through physical
  advanceFrontierIndustry(w,900);
  assert.equal(JSON.stringify(s),snapshot,'same simulation time does not duplicate production');
 });
-test('teal worker collects only visible, exhaustible caches; damage or capture halts supply',()=>{
+test('teal worker collects from vulnerable visible caches that catch new drift; damage or capture halts supply',()=>{
  const w=new World();advanceRegionalSupply(w,480);
  const s=w.regionalSupply.frontier.teal;
  assert.ok(s.launched>=1,'a worker must finance at least one shipment');
- assert.ok(s.wrecks.some((v,i)=>v.stock<FRONTIER_WRECKS[i].stock));
- assert.ok(s.wrecks.every(v=>v.stock>=0));
- const harvested=s.wrecks.reduce((sum,c)=>sum+(c.maxStock-c.stock),0);
- assert.ok(harvested>0);
+ assert.ok(s.wrecks.every(v=>v.stock>=0&&v.stock<=v.maxStock));
+ assert.ok(s.lastDriftAt>=48,'an intact cache must catch newly drifting metal');
+ assert.ok(s.wrecks.some(v=>v.driftAt>=0),'incoming material must reach a real target');
  assert.equal(damageFrontierAsset(w,s.worker,110,480),'worker');
  const before=s.launched,bank=s.resource;
  advanceRegionalSupply(w,4500);

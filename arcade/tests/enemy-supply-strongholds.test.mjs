@@ -20,13 +20,44 @@ test('deep hostile strongholds are dangerous independently of player level',()=>
  const director={cap:21,interval:4,groupSize:3,types:['scout','fighter']};
  const promoted=regionalCampaignPressure(director,w,FRONTIERS.teal.depot);
  assert.equal(promoted.strongholdTier,5);
- assert.ok(promoted.types.includes('gunship'));
+ assert.ok(promoted.types.includes('berserker'));
+ assert.ok(!promoted.types.includes('gunship'),
+  'even a fortress cannot build ambient heavy ships without deliveries');
  assert.ok(promoted.groupSize>=3);
  const depot=w.stations.get(FRONTIERS.teal.depotId);
  depot.enemy=false;depot.captured=true;
  const suppressed=regionalCampaignPressure(director,w,FRONTIERS.teal.depot);
  assert.equal(strongholdThreat(w,FRONTIERS.teal.depot).tier,1);
  assert.ok(!suppressed.types.includes('gunship'));
+});
+
+test('enemy military technology grows only with delivered supplies, not arbitrary time or player levels',()=>{
+ const w=new World(),location=FRONTIERS.teal.depot;
+ const pool=w.regionalSupply.frontier.teal;
+ const base={cap:22,interval:4,groupSize:3,types:['scout','fighter','healer','gunship']};
+ let threat=strongholdThreat(w,location),patrol=regionalCampaignPressure(base,w,location);
+ assert.equal(threat.industrialTech,0);
+ assert.ok(!patrol.types.includes('healer'));
+ assert.ok(!patrol.types.includes('gunship'));
+ const level=threat.recommendedLevel;
+ pool.delivered=2;
+ threat=strongholdThreat(w,location);patrol=regionalCampaignPressure(base,w,location);
+ assert.equal(threat.industrialTech,1);
+ assert.ok(threat.recommendedLevel>level);
+ assert.ok(patrol.types.includes('healer'));
+ assert.ok(!patrol.types.includes('gunship'));
+ pool.delivered=5;
+ threat=strongholdThreat(w,location);patrol=regionalCampaignPressure(base,w,location);
+ assert.equal(threat.industrialTech,2);
+ assert.ok(patrol.types.includes('gunship'));
+ assert.equal(patrol.industrialTech,2);
+ assert.ok(patrol.interval>=4,'economic growth must not accelerate ambient spawns');
+ const depot=w.stations.get(FRONTIERS.teal.depotId);
+ depot.enemy=false;depot.captured=true;
+ threat=strongholdThreat(w,location);patrol=regionalCampaignPressure(base,w,location);
+ assert.equal(threat.industrialTech,0);
+ assert.equal(threat.tier,1);
+ assert.ok(!patrol.types.includes('gunship'));
 });
 
 test('home miners seek a second real asteroid belt before declaring starvation',()=>{

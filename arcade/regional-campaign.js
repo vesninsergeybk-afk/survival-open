@@ -32,8 +32,12 @@ export function strongholdThreat(world,player){
  const depth=region.id==='amethyst'?0:region.id==='amber'?1:region.id==='azure'?1:2;
  const proximity=distance<1800?2:distance<4800?1:0;
  const tier=inactive?1:Math.min(5,1+depth+proximity);
- return {tier,region:region.id,front:front?.key||null,distance,
-  recommendedLevel:[1,2,4,6,9][tier-1],nearStronghold:distance<4800};
+ // Military progress is earned by deliveries, not by level or elapsed time.
+ const deliveries=inactive?0:Math.max(0,front?.pool?.delivered||0);
+ const industrialTech=deliveries>=9?3:deliveries>=5?2:deliveries>=2?1:0;
+ return {tier,industrialTech,region:region.id,front:front?.key||null,distance,
+  recommendedLevel:[1,2,4,6,9][tier-1]+Math.min(2,industrialTech),
+  nearStronghold:distance<4800};
 }
 
 export function regionalCampaignPressure(director,world,player){
@@ -50,18 +54,22 @@ export function regionalCampaignPressure(director,world,player){
   !front.working?{cap:base.cap-3,interval:base.interval*1.15}:base;
  const remaining=front.outcome==='captured'?['scout','fighter']:
   front.outcome==='starved'?['scout','fighter','flanker']:null;
- const supplement=threat.tier>=4?['flanker','berserker','healer','gunship']:
-  threat.tier>=3?['flanker','berserker']:threat.tier>=2?['flanker']:[];
- // An unfunded region never conjures its specialists as ambient substitutes.
+ const supplement=threat.tier>=4?
+  ['flanker','berserker',...(threat.industrialTech>=1?['healer']:[]),
+   ...(threat.industrialTech>=2?['gunship']:[])]:
+  threat.tier>=3?['flanker','berserker',...(threat.industrialTech>=1?['healer']:[])]:
+  threat.tier>=2?['flanker']:[];
+ // Heavy ambient specialists in charted regions require actual deliveries.
+ const baseline=director.types.filter(type=>type!=='healer'&&type!=='gunship');
  const types=remaining?director.types.filter(type=>remaining.includes(type)):
-  [...new Set([...director.types,...supplement])];
+  [...new Set([...baseline,...supplement])];
  const tierBonus=Math.max(0,threat.tier-2);
  return {...director,cap:Math.min(director.cap+Math.min(4,tierBonus*2),effect.cap+tierBonus*2),
-  interval:Math.max(director.interval,effect.interval-tierBonus*.35),
+  interval:Math.max(director.interval,effect.interval),
   groupSize:Math.min(front.outcome?2:threat.tier>=4?4:3,
    director.groupSize+(threat.tier>=4?1:0)),
   types:types.length?types:director.types.slice(0,1),
-  strongholdTier:threat.tier};
+  strongholdTier:threat.tier,industrialTech:threat.industrialTech};
 }
 
 export function campaignVisible(game){

@@ -2850,14 +2850,17 @@ export class ArcadeGame {
   const group=++this.groupSerial,cam=this.camera(),created=[];
   const intelSource=noiseSignal;
   const strongholdTier=Math.max(1,Math.min(5,director.strongholdTier||1));
+  const industrialTech=Math.max(0,Math.min(3,director.industrialTech||0));
   for(let i=0;i<plan.members.length;i++){
    const member=plan.members[i];
    const xy=spawnOutside(cam,member.side,member.position,170+i*12);
    const type=member.type,def=ENEMY_TYPES[type],serial=++this.enemySerial;
-   const hp=def.hp*(1+Math.min(2.5,this.time/550))*(1+.16*(strongholdTier-1));
+   const hp=def.hp*(1+Math.min(2.5,this.time/550))*
+    (1+.16*(strongholdTier-1))*(1+.05*industrialTech);
    const enemy={serial,group,type,x:xy.x,y:xy.y,vx:0,vy:0,
-    r:type==='gunship'?22:14,hp,maxHp:hp,damage:def.dmg*(1+.05*(strongholdTier-1)),
-    strongholdTier,think:Math.random()*.32,fire:1+Math.random(),state:'hunt',
+    r:type==='gunship'?22:14,hp,maxHp:hp,
+    damage:def.dmg*(1+.05*(strongholdTier-1)+.015*industrialTech),
+    strongholdTier,industrialTech,think:Math.random()*.32,fire:1+Math.random(),state:'hunt',
     commitUntil:0,target:this.player,angle:0,hit:0,expAwarded:false,
     scenario:plan.pattern,protect:null,
     // Ordinary traffic has a route through the sector. Only a documented
