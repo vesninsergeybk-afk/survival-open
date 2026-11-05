@@ -1,4 +1,4 @@
-import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1';
+import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1';
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
   squadRoleFor,squadRoleLabel} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
@@ -18,7 +18,7 @@ export const ENEMY_COMMS=Object.freeze({
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const legal=e=>!!e&&e.hp>0&&!e.converted&&!e.boss&&
-  !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&
+  !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&!e.stationRaid&&
   (!e.signalIntel||e.signalIntel.mode!=='withdraw');
 const rank=e=>({gunship:7,fighter:6,flanker:5,scout:4,
   berserker:3,healer:2})[e.type]||1;

@@ -13,7 +13,7 @@ export const THEATER=Object.freeze({
 });
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const eligible=e=>!!e&&e.hp>0&&!e.converted&&!e.boss&&
-  !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&
+  !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&!e.stationRaid&&
   !e.openingCommander&&!e.protect&&
   (!e.signalIntel||e.signalIntel.mode==='engaged')&&
   e.type!=='healer'&&['scout','fighter','flanker','gunship','berserker'].includes(e.type);

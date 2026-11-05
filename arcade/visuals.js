@@ -1,5 +1,5 @@
 import {regionAt} from './regions.js?v=regions-1';
-import {drawInstalledModules} from './ship-weapons.js?v=weapons-cycle-2-regions-1';
+import {drawInstalledModules} from './ship-weapons.js?v=weapons-cycle-2-regions-1-campaign-1';
 /**
  * Arcade presentation uses the artwork and animation systems already approved
  * for Survivor. Visual variants never consume gameplay randomness.

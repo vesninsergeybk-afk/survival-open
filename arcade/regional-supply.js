@@ -1,4 +1,5 @@
 import {REGIONS} from './regions.js?v=regions-1';
+import {commandStateValid} from './strategic-command.js?v=campaign-1';
 import {createCentralIndustry,advanceCentralIndustry,interceptCentralCargo,centralIndustryValid,CENTRAL_INDUSTRY,centralEvent} from './central-industry.js?v=living-world-1-home-conflict-1';
 import {createFrontierIndustry,advanceFrontierIndustry,interceptFrontierCargo,interceptFrontierRepair,frontierIndustryValid,captureFrontierStation} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
 export const SUPPLY=Object.freeze({mineId:'28:5',militaryId:'4:-32',
@@ -114,6 +115,7 @@ export function strategicCapture(world,base,time){
 export function regionalSupplyValid(s,time){
  const num=(n,min,max)=>Number.isFinite(n)&&n>=min&&n<=max;
  return !!s&&s.version===1&&Number.isInteger(s.clock)&&num(s.clock,0,time)&&
+  commandStateValid(s.command,time)&&
   (s.central===undefined||centralIndustryValid(s.central,time))&&
   (s.frontier===undefined||frontierIndustryValid(s.frontier,time))&&
   num(s.ore,0,SUPPLY.capacity)&&num(s.nextDispatch,0,1e9)&&

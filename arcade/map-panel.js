@@ -1,13 +1,15 @@
-import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1';
+import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
-import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
+import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
-import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
+import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
 import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-4';
-import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1';
-import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1';
+import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1';
+import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1';
+import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1';
+import {renderStationThreats} from './strategic-command.js?v=campaign-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -115,7 +117,7 @@ export function renderWorldMap(game){
  })():'';
  const marks=known.map(b=>{
   const q=point(b.x,b.y,p,scale);if(!visible(q))return '';
-  const color=b.enemy?'#ff777d':b.active?'#84ead2':'#ffca84';
+  const color=b.suppressed?'#eda1ff':b.enemy?'#ff777d':b.active?'#84ead2':'#ffca84';
   const protectedNode=b.active&&!b.enemy;
   const linkedDefense=protectedNode&&defenseLinked(b,topology);
   const pvoRing=protectedNode?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
@@ -226,7 +228,7 @@ export function renderWorldMap(game){
   const label=isSignal?'Неопознанный сигнал':b.title||baseNames[b.type]||'Станция';
   const d=distance(b,p),same=game.waypoint?.id===b.id;
   const status=isSignal?'координаты приблизительные (погрешность до 170 м)':
-   b.enemy?'вражеская база':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети · ПВО'+(topology.count>=2?' и стазис':'')+(b.relayBoost?' · усиленная связь':''):'автономный узел · ПВО'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
+   b.enemy?'вражеская база':b.suppressed?'связь подавлена · восстановление через '+Math.max(0,Math.ceil(b.suppressedUntil-game.time))+' с':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети · ПВО'+(topology.count>=2?' и стазис':'')+(b.relayBoost?' · усиленная связь':''):'автономный узел · ПВО'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
   const value=isSignal?'Приблизиться и исследовать':'Построить маршрут';
   const discovery=!isSignal&&!b.enemy&&b.type==='arsenal'&&!precisionUnlocked?
    ' · ОТКРЫТИЕ: ручной прицел для рельсового орудия':
@@ -292,7 +294,9 @@ export function renderWorldMap(game){
   '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
     ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
   '<aside class="map-side">'+
+  renderStationThreats(game)+
   renderHomeConflict(game)+
+  renderCampaignProgress(game)+
   (intel.unlocked?'<section class="map-objective map-intel"><span>'+enc(LAB_LOGISTICS_TECH.name.toUpperCase())+'</span><p>'+enc(intel.status)+'</p>'+
    (intelContacts?'<div class="map-contact-list">'+intelContacts+'</div>':
     (intel.localSecured?'<p>Местная цепочка снабжения подавлена. Другие действующие лаборатории могут обнаружить грузы в дальних регионах.</p>':

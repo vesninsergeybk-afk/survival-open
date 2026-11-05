@@ -1,4 +1,4 @@
-import {MODULES,slotOpen} from './ship-loadout.js?v=weapons-cycle-2';
+import {MODULES,slotOpen} from './ship-loadout.js?v=weapons-cycle-2-campaign-1';
 import {emptySortieDetails,detailsForSave,validDetails} from './sortie-ledger.js?v=economy-ledger-1';
 
 // A sortie begins when the player actually leaves a station. Checkpoints are

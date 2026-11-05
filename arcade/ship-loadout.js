@@ -1,4 +1,4 @@
-import {ionDamage} from './ion-conductor.js?v=weapons-cycle-2';
+import {ionDamage} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 import {applySpecialization} from './weapon-specializations.js?v=weapons-cycle-2';
 // Run-owned hardware; saved blueprints contain choices, never resources/unlocks.
 export const FRAME_STEPS=Object.freeze([

@@ -1,12 +1,13 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
-import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1';
+import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1';
+import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1';
 import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
-import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1';
+import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1-campaign-1';
+import {updateStrategicCommand,assignStationInterdiction,drawStationInterdiction} from './strategic-command.js?v=campaign-1';
 import {stormPhase} from './regional-storms.js?v=regions-1';
-import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1';
+import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function makeEnemy(game,type,x,y,scenario,protect=null,frontierRole=null){
@@ -25,7 +26,9 @@ export function updateRegionalWorld(game,dt){
   s.visited.push(region.id);game.notice(region.name+'. '+region.cue,7);
  }
  const events=advanceRegionalSupply(world,game.time);
- if(Math.floor(game.time)>Math.floor(game.time-dt))updateHomeConflict(game);
+ if(Math.floor(game.time)>Math.floor(game.time-dt)){
+  updateHomeConflict(game);updateStrategicCommand(game);
+ }
  if(game.waypoint?.id?.startsWith('regional-cargo-')||game.waypoint?.id?.startsWith('central-cargo-')||
     game.waypoint?.id?.startsWith('frontier-cargo-')||
     game.waypoint?.id?.startsWith('frontier-repair-')){
@@ -197,6 +200,7 @@ export function spawnFrontierRaid(game,director){
    'Снабжение усилило обычный патруль заряженным перехватчиком. Лишите электроангар батарей, чтобы остановить такие подкрепления.':
    'Снабжение добавило к патрулю ремонтника. Перехватывайте запчасти, чтобы лишить врага этого усиления.',6);
  }
+ assignStationInterdiction(game,specialist,region);
  return Math.max(.001,pause||0);
 }
 // A delivered local shipment finances one additional three-ship sortie. The
@@ -227,6 +231,7 @@ export function spawnCentralRaid(game,director){
  s.pendingRaid=null;s.raids++;s.nextRaid=game.time+90;
  centralEvent(s,'central-raid',game.time);
  game.notice('Из сборочного поста прибыл оплаченный грузом налёт: тяжёлый корабль и два истребителя. Они идут со стороны поста. Перехват следующей поставки предотвратит следующий такой отряд.',7);
+ assignStationInterdiction(game,lead,'home');
  return Math.max(.001,ambientRecovery);
 }
 // Add one funded heavy ship to an ambient encounter, respect its pressure cap,
@@ -252,6 +257,7 @@ export function spawnRegionalRaid(game,director){
  s.pendingRaid=null;s.raids++;s.nextRaid=game.time+SUPPLY.raidPeriod;
  supplyEvent(s,'raid',game.time);
  game.notice('Военный узел добавил тяжёлый корабль к обычному патрулю. Перехват руды предотвращает такое усиление.',5);
+ assignStationInterdiction(game,heavy,'north');
  return Math.max(.001,pause||0);
 }
 export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
@@ -288,6 +294,7 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
 }
 export function drawRegionalWorld(game,c,cam){
  const p=game.player,s=game.world.regionalSupply;if(!s)return;
+ drawStationInterdiction(game,c,cam);
  const delta=Math.abs(Math.hypot(p.x,p.y)-centralBoundary(Math.atan2(p.y,p.x)));
  if(delta<Math.max(cam.w,cam.h)){
   c.save();c.strokeStyle='#c99be278';c.lineWidth=3;c.setLineDash([24,20]);c.beginPath();

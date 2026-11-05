@@ -99,6 +99,6 @@ export function damageTarget(game,item,damage,source='beam',point=null,secondary
  else if(item.kind==='base')game.hitEnemyBase(t,damage);
  else game.damageEnemy(t,damage,source,point);
  const dealt=t.captured?Math.min(before,damage):Math.max(0,before-Math.max(0,t.hp));
- if(dealt>0&&!secondary)game.weaponHit?.(item,dealt,source);
+ if(dealt>0&&!secondary)game.weaponHit?.(item,dealt,source,manual);
  return dealt;
 }
