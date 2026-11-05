@@ -2,7 +2,7 @@ import {
   CONTOURS,LAB_NODES,createLabWorld,harvesterPosition,forceLaunch,
   startIntercept,stepLab,
 } from './siphon3-runtime-core.js';
-import {drawSiphon3} from '../siphon3-art.js?v=siphon3-live-1';
+import {drawSiphon3,siphon3RigReady} from '../siphon3-art.js?v=siphon3-rig-2';
 
 const byId=id=>document.getElementById(id);
 const canvas=byId('scene');
@@ -233,6 +233,7 @@ function updateUi(){
     'Треугольник контролируется игроком. Выпустите сборщика и проследите его путь.';
   const actual=Math.round(workerSize*(canvas.getBoundingClientRect().width/W));
   byId('sprite-value').textContent=actual+' пикс. на экране';
+  if(siphon3RigReady())byId('asset-status').textContent='Шарнирная модель Сифона‑3 загружена · три независимые клешни';
 }
 
 function frame(now){
