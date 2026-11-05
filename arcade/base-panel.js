@@ -219,11 +219,11 @@ const contractPanel=(o,state)=>{
    action('baseMap','Посмотреть маршрут')+'</section>';
  }
  if(c.status==='available')return '<section class="base-contract-board"><div class="base-contract-copy">'+
-  '<span class="base-kicker">ПОЛЕВЫЕ ЗАКАЗЫ</span><strong>Небольшие заказы</strong>'+
-  '<small>Можно взять один обычный заказ. Особая операция выполняется независимо от него.</small></div>'+
+  '<span class="base-kicker">НА ВЫБОР</span><strong>Возьмите один заказ</strong>'+
+  '<small>Можно взять один. Награду получите после возвращения сюда.</small></div>'+
   '<div class="base-contract-choices">'+o.contractOptions.map(choice=>
-   '<article class="base-contract-choice"><span>'+choice.tag+'</span><strong>'+choice.name+'</strong>'+
-   '<small>'+choice.desc+'</small><em>'+choice.ore+' сплава · '+choice.data+' данных</em>'+
+   '<article class="base-contract-choice"><strong>'+choice.name+'</strong>'+
+   '<small>'+choice.desc+'</small><em>Награда: '+choice.ore+' сплава · '+choice.data+' данных</em>'+
    action('acceptContract','Принять заказ','',choice.id)+'</article>').join('')+
   '</div></section>';
  const summary={
@@ -267,7 +267,7 @@ const corridorPanel=(base,state,compact=false)=>{
   '<div><span>ИЗМЕНЕНИЕ МИРА</span><b>Разведка +350 м · патрули реже</b></div></div>';
  return '<article class="base-featured-op mission-corridor '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ДОК</span><span>'+
-  (done?'КОРИДОР ОТКРЫТ':returning?'ОСТАЛОСЬ ВЕРНУТЬСЯ':active?'ВЫЛЕТ НАЧАТ':'РАЗВЕДКА ПОД ПОМЕХАМИ')+'</span></div>'+
+  (done?'КОРИДОР ОТКРЫТ':returning?'ОСТАЛОСЬ ВЕРНУТЬСЯ':active?'ОПЕРАЦИЯ ПРИНЯТА':'РАЗВЕДКА ПОД ПОМЕХАМИ')+'</span></div>'+
   '<strong>'+CORRIDOR_OPERATION.name+'</strong><p>'+body+'</p>'+
   (compact?'':facts)+
   (returning?'<small>Телеметрия получена. Награда и разведка откроются после возвращения в док.</small>':
@@ -736,13 +736,13 @@ export function renderBasePanel(base,state){
   (firstRewardPromise?'<div class="base-quiet-promise">'+
    'Первый сданный заказ даст бесплатное оружие на выбор.</div>':'')+
   (stationPromise?'<div class="base-quiet-promise">'+stationPromise+'</div>':'');
- const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ЗАДАЧИ И ПОСЛЕДСТВИЯ</span><strong>Выберите, что изменить в секторе</strong>'+
-  '<p>Полевой заказ даёт сплав и данные после возвращения на станцию, где его взяли. Особая операция меняет мир и имеет свои условия завершения.</p></div></div>'+
+ const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ВАШИ ЗАДАНИЯ</span><strong>Куда отправимся?</strong>'+
+  '<p>Можно выполнить одну особую операцию и один полевой заказ одновременно. Награды выдаются после возвращения.</p></div></div>'+
   firstReward+
   (o.contract.status==='ready'?'<h3 class="base-section-title">Готовая награда</h3>'+contractPanel(o,state):'')+
   (specialOffer(base,state)?'<details class="base-mission-details"'+
    (state.operation?.baseId===base.id&&o.contract.status!=='ready'?' open':'')+'><summary>Особая операция · '+
-   (baseNames[base.type]||'Станция')+'</summary>'+specialPanel(base,state)+'</details>':'')+
+   (specialOffer(base,state)?.name||(baseNames[base.type]||'Станция'))+'</summary>'+specialPanel(base,state)+'</details>':'')+
   (o.contract.status==='ready'?'':'<h3 class="base-section-title">Полевые заказы</h3>'+contractPanel(o,state))+'</div>';
  const localMission=specialOffer(base,state),hullPercent=Math.round(state.hp/state.maxHp*100);
  const missionForPreparation=state.operation||localMission;
@@ -806,14 +806,15 @@ export function renderBasePanel(base,state){
   (base.relayBoost||o.reasons.antenna?antenna:'');
  const network='<div class="base-operations"><section class="base-network-simple">'+
   '<span class="base-kicker">ОБОРОНА СТАНЦИИ</span><h3>Защитные заряды · '+protection.charges+'/'+protection.capacity+'</h3>'+
-  '<p class="base-defense-summary">ПВО действует автоматически: в бирюзовом круге станция тратит заряд на опасный снаряд или разрешённый к перехвату орбитальный удар. Орбитальные удары сейчас '+
+  '<p class="base-defense-summary">ПВО действует автоматически: станция тратит заряды на опасные снаряды поблизости. Орбитальные удары сейчас '+
   (protection.meteorEnabled?'перехватываются':'пропускаются')+'. '+
-  (protection.stasis?'Стазис тоже автоматический: импульс сработает, только если рядом с вами и станцией окажутся не менее двух обычных врагов. Кнопки запуска нет.':
-   'Стазис станет доступен после соединения двух станций.')+'</p>'+
+  (protection.stasis?'Стазис тоже автоматический: сработает при группе врагов рядом со станцией. Кнопки запуска нет.':
+   'Стазис откроется после соединения двух станций.')+'</p>'+
+  '<details class="base-secondary-info base-defense-choice-details"><summary>Изменить перехват орбитальных ударов</summary>'+
   '<p class="base-defense-tradeoff" role="note">'+(protection.meteorEnabled?
    'Если пропускать орбитальные удары, они смогут поражать врагов и астероиды, но также могут повредить Ваш корабль.':
    'Перехват отключён: орбитальные удары могут поражать врагов, астероиды и Ваш корабль.')+'</p>'+
-  '<div class="base-defense-choice">'+meteorChoice+'</div>'+
+  '<div class="base-defense-choice">'+meteorChoice+'</div></details>'+
   '<details class="base-secondary-info base-defense-rules"><summary>Точные условия ПВО и стазиса</summary><div class="base-secondary-body">'+
   '<p class="base-defense-status">'+protectionText+'.</p>'+
   '<p>ПВО отражает одну угрозу за заряд. Между перехватами проходит не меньше 0,7 с; снаряды остаются под защитой и при пропуске орбитальных ударов.</p>'+
