@@ -192,3 +192,30 @@ test('recipient does not change tactics until it itself sees the player',()=>{
   assert.equal(remote.mode,'close');
   assert.equal(Object.hasOwn(remote.threat,'x'),false);
 });
+
+
+test('a lone scout can report direct contact without pretending to identify a weapon',()=>{
+  const lone=group(1,0),relay=station('relay',720);
+  lone.members=[lone.leader];
+  lone.leader._commsSight={x:42,y:-15,at:1.8,motion:'turning',hp:10};
+  const g=game([relay],[lone]),m=new EnemyMesh();
+  m.update(g,[lone],2);
+  m.update(g,[lone],2.75);
+  assert.ok(relay.meshIntel?.some(p=>p.kind==='contact'));
+  assert.equal(relay.meshIntel.some(p=>p.kind==='long'||p.kind==='area'),false);
+  assert.ok(relay.meshIntel.every(p=>!('x' in p)&&!('hp' in p)));
+});
+
+test('only a truly intercepted mesh receipt is filed as a network report',()=>{
+  const a=attack(group(1,0)),b=group(2,1450),relay=station('relay',720);
+  const g=game([relay],[a,b]),m=new EnemyMesh(),net={intercepts:[]},notices=[];
+  g.notice=message=>notices.push(message);
+  m.update(g,[a,b],2,net);m.update(g,[a,b],2.75,net);
+  assert.equal(net.intercepts.length,0,'silent distant traffic stays private');
+  g.playerCanInterceptEnemyRadio=e=>e===b.leader;
+  m.update(g,[a,b],3.5,net);
+  assert.equal(net.intercepts.length,1);
+  assert.equal(net.intercepts[0].mode,'network');
+  assert.match(net.intercepts[0].message,/дальнобойное/);
+  assert.match(notices[0],/Радиоперехват/);
+});
