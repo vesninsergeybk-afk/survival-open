@@ -153,6 +153,13 @@ test('new artwork is lightweight and every path is present in the actual Pages g
 
 test('published entry points invalidate the entire changed ES-module import chain',()=>{
  assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),
+  /game\.js\?v=[^"']*mesh-log-1/);
+ assert.match(readFileSync(new URL('../game.js',import.meta.url),'utf8'),
+  /map-panel\.js\?v=[^"']*mesh-log-1/);
+ assert.match(readFileSync(new URL('../base-panel.js',import.meta.url),'utf8'),
+  /map-panel\.js\?v=[^"']*mesh-log-1/);
+
+ assert.match(readFileSync(new URL('../index.html',import.meta.url),'utf8'),
   /game\.js\?v=[^"']*mesh-1/);
  assert.match(readFileSync(new URL('../game.js',import.meta.url),'utf8'),
   /enemy-comms\.js\?v=[^"']*mesh-1/);
