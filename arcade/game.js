@@ -11,6 +11,8 @@ import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shad
 import {disableCentralWorker} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1';
 import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1';
 import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifiesForDirectCombatXp,XP_CURVE_VERSION} from './experience.js?v=early-experience-1-xp-feedback-pass1-1';
+import {createStrategicExperience,claimStationActivation,claimStationCapture,claimExploration,
+ claimContourExpansion,claimFirstFluxDelivery,claimGeologicalSurvey,claimStrategicSabotage} from './strategic-experience.js?v=strategic-xp-pass2-1';
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=xp-feedback-pass1-1';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1-supply-stronghold-1';
@@ -58,7 +60,7 @@ import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESI
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -86,9 +88,9 @@ const SKILLS=[
  {id:'shield',branch:'Корабль',title:'Энергощит',max:3,from:4,requires:'hull',desc:'Часть урона поглощает восстанавливаемый щит'},
  {id:'dodge',branch:'Корабль',title:'Уклонение',max:3,from:3,desc:'Короткий ускоренный рывок после попадания'},
  {id:'magnet',branch:'Добыча',title:'Магнитный захват',max:3,from:2,desc:'Притягивает сплав и данные с большей дистанции'},
- {id:'mining',branch:'Добыча',title:'Геологическая подготовка',max:4,from:2,desc:'Усиливает экстрактор; первый ранг уменьшает шум добычи на 16%, каждый второй добавляет сплав'},
+ {id:'mining',branch:'Добыча',title:'Геологическая подготовка',max:4,from:2,desc:'Усиливает экстрактор; первый ранг уменьшает шум добычи на 16%, каждый второй добавляет сплав. Каждый ранг даёт +2 опыта за новое далёкое месторождение (до шести участков).'},
  {id:'extractor',branch:'Добыча',title:'Дуговой экстрактор',max:3,from:3,requires:'mining',desc:'Экстрактор быстрее расщепляет астероиды и отделяет больше сплава'},
- {id:'radar',branch:'Технологии',title:'Навигационный радар',max:2,from:3,desc:'Раньше отмечает нейтральные базы'},
+ {id:'radar',branch:'Технологии',title:'Навигационный радар',max:2,from:3,desc:'Обнаруживает станции раньше; каждый ранг добавляет +2 опыта за первую разведку новой станции (не более 18 станций).'},
  {id:'tactics',branch:'Технологии',title:'Боевой протокол',max:3,from:5,desc:'Союзники быстрее выбирают опасные цели'}
 ];
 
@@ -125,11 +127,13 @@ function nextSkillEffect(id,rank,levels={}){
   case 'mining':return 'Мощность экстрактора: '+extractorStats(levels.extractor||0,rank).damagePerSecond+' → '+
     extractorStats(levels.extractor||0,n).damagePerSecond+' урона/с'+
     (n%2===0?' · +1 сплав за астероид':'')+
-    (n===1?' · шум добычи −16%':'');
+    (n===1?' · шум добычи −16%':'')+' · опыт за новый участок: +'+
+    (9+rank*2)+' → +'+(9+n*2);
   case 'extractor':return 'Разряд: '+extractorStats(rank,levels.mining||0).damagePerSecond+
     ' → '+extractorStats(n,levels.mining||0).damagePerSecond+' урона/с'+
     (n===1||n===3?' · +1 сплав за астероид':'');
-  case 'radar':return 'Радиус обнаружения баз: '+(570+rank*190)+' → '+(570+n*190);
+  case 'radar':return 'Радиус обнаружения станций: '+(570+rank*190)+' → '+(570+n*190)+
+    ' · опыт за новую станцию: +'+(6+rank*2)+' → +'+(6+n*2);
   case 'tactics':return 'Решения ведомых: чаще на '+(Math.round(n*.2*100))+
     '% относительно базового темпа';
   default:return '';
@@ -168,6 +172,7 @@ export class ArcadeGame {
   this.rockGrid=new SpatialGrid(140);
   this.player={x:0,y:0,vx:0,vy:0,r:19,hp:110,maxHp:110,shield:0,
     xp:0,level:1,points:0,xpCurveVersion:XP_CURVE_VERSION,firstRichRockStudied:false,
+    strategicXp:createStrategicExperience(),
     ore:0,data:0,invul:0,angle:0,
      burstRemaining:0,burstCooldown:0,burstX:0,burstY:-1};
   this.skillRanks=Object.fromEntries(SKILLS.map(s=>[s.id,0]));
@@ -504,8 +509,12 @@ export class ArcadeGame {
       this.cachedWorldLinks=[];this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
       this.heritage.ui('upgrade');
       if(gain>1){
+       const previousLevel=this.player.level;
+       const strategicXp=this.awardStrategicExperience(claimContourExpansion(this.player,after,gain));
        this.contourFeedback={title:'Контур замкнут',text:'Новая территория: +'+
-        (gain/1000000).toFixed(1)+' усл. км². Добыча: +'+fluxGain.toFixed(1)+' флюкса за 3 минуты.',at:this.time};
+        (gain/1000000).toFixed(1)+' усл. км². Добыча: +'+fluxGain.toFixed(1)+' флюкса за 3 минуты.'+
+        (strategicXp?' +'+strategicXp+' опыта за новую территорию.':''),at:this.time};
+       if(strategicXp)this.rewardNotice('Территория расширена: +'+strategicXp+' опыта.',previousLevel,5);
        // The centre of a new outer face can coincide with old territory.
        // Vortex arrival follows the fill, rather than appearing on click.
        const born=after.filter(f=>!oldFields.some(old=>old.id===f.id));
@@ -1408,12 +1417,15 @@ export class ArcadeGame {
    this.cockpit.resourceGain(CARRIER_INTERCEPTION.rewardOre,this.time);
    const previousLevel=this.player.level;
    this.collect({type:'data',value:CARRIER_INTERCEPTION.rewardData});
+   const sabotageXp=this.awardStrategicExperience(claimStrategicSabotage(this.player,'carrier',base.id));
    recordSortieIncome(this,'data','operation',CARRIER_INTERCEPTION.rewardData);
    this.spawnClock=Math.max(this.spawnClock||0,10);
    this.heritage.vfx.nova(base.x,base.y,132,'green');
    this.heritage.station('claimContract',base.type);
    this.rewardNotice('СНАБЖЕНИЕ ПЕРЕХВАЧЕНО! +'+CARRIER_INTERCEPTION.rewardOre+' сплава, +'+
-    CARRIER_INTERCEPTION.rewardData+' данных и опыта. Вдоль маршрута вражеские патрули станут реже.',previousLevel,6);
+    CARRIER_INTERCEPTION.rewardData+' данных и опыта.'+
+    (sabotageXp?' +'+sabotageXp+' опыта за срыв снабжения.':'')+
+    ' Вдоль маршрута вражеские патрули станут реже.',previousLevel,6);
   }
 
  // After a successful intercept, the telemetry is valuable only when delivered.
@@ -1539,11 +1551,13 @@ export class ArcadeGame {
   this.cockpit.resourceGain(CORRIDOR_OPERATION.rewardOre,this.time);
   const previousLevel=this.player.level;
   this.collect({type:'data',value:CORRIDOR_OPERATION.rewardData});
+  const sabotageXp=this.awardStrategicExperience(claimStrategicSabotage(this.player,'corridor',base.id));
   recordSortieIncome(this,'data','operation',CORRIDOR_OPERATION.rewardData);
   this.heritage.vfx.nova(base.x,base.y,130,'green');
   this.heritage.station('claimContract',base.type);
   this.rewardNotice('КОРИДОР ОТКРЫТ! +'+CORRIDOR_OPERATION.rewardOre+' сплава, +'+CORRIDOR_OPERATION.rewardData+
-   ' данных и опыта. Патрулей у дока станет меньше. В ангаре открыт чертёж рельса: изготовление — 36 сплава.'+
+   ' данных и опыта.'+(sabotageXp?' +'+sabotageXp+' опыта за отключение глушителя.':'')+
+   ' Патрулей у дока станет меньше. В ангаре открыт чертёж рельса: изготовление — 36 сплава.'+
    (nextStation?' На карте отмечена станция: '+(baseNames[nextStation.type]||'неизвестная')+'.':''),previousLevel,6);
  }
 
@@ -2237,18 +2251,21 @@ export class ArcadeGame {
    b.activated=true;b.activationTime=this.time;
    p.ore+=o.rewardAlloy;
    p.hp=Math.min(p.maxHp,p.hp+o.rewardRepair);
+   const previousLevel=p.level;
+   const stationXp=this.awardStrategicExperience(claimStationActivation(p,b));
    const topology=this.world.networkTopology();
    this.cachedNetworkLinked=topology.linked;
    this.defenseTopology=null;
    synchronizeStationDefenses(this.world,this.time,topology);
-    this.notice('Станция активна'+(topology.linked.has(b.id)?
+    this.rewardNotice('Станция активна'+(topology.linked.has(b.id)?
     ' · подключено узлов: '+topology.count:' · ищите ретранслятор')+
     (o.rewardAlloy?' · +'+o.rewardAlloy+' сплава':'')+
+     (stationXp?' · +'+stationXp+' опыта':'')+
      (o.relayCost?' · −'+o.relayCost+' сплава':'')+
      (precisionUnlockedHere?' · ОТКРЫТО: '+PRECISION_RAIL_TECH.name+' (ЛКМ)':'')+
      (labUnlockedHere?' · ОТКРЫТО: '+LAB_LOGISTICS_TECH.name+' (карта)':
       b.type==='lab'?' · Область радиоперехвата расширена':''),
-     precisionUnlockedHere||labUnlockedHere?7:3.8);
+     previousLevel,precisionUnlockedHere||labUnlockedHere?7:3.8);
    this.heritage.vfx.nova(b.x,b.y,130,'cyan');
   }else if(!b.active){this.notice('Сначала активируйте станцию',2);return;}
   else if(act==='hire'){
@@ -2729,6 +2746,9 @@ export class ArcadeGame {
    const precisionUnlockedHere=base.type==='arsenal'&&!precisionRailUnlocked(this.world);
    const labUnlockedHere=base.type==='lab'&&!labLogisticsUnlocked(this.world);
    base.hp=Math.max(1,Math.round(base.maxHp*.3));base.captured=true;base.enemy=false;base.active=true;
+   const previousLevel=this.player.level;
+   const captureXp=this.awardStrategicExperience(claimStationCapture(this.player,base));
+   const captureReward=captureXp?' +'+captureXp+' опыта.':'';
    this.enemyContourVisualAt=-Infinity;
    if(precisionUnlockedHere)this.precisionRailAvailable=true;
    this.defenseTopology=null;
@@ -2749,13 +2769,13 @@ export class ArcadeGame {
      'frontier-azure-depot':'Электроангар захвачен. Организованные рейсы ионных перехватчиков остановлены.',
      'frontier-teal-source':'Комбинат захвачен. Разбор обломков и отправка запчастей остановлены.',
      'frontier-teal-depot':'Ремонтная верфь захвачена. Подготовка новых ремонтных караулов прекращена.'};
-    this.notice((notice[base.strategicRole]||'Промышленный узел захвачен.')+
+    this.rewardNotice((notice[base.strategicRole]||'Промышленный узел захвачен.')+captureReward+
      (precisionUnlockedHere?' Открыт ручной прицел рельса (ЛКМ).':'')+
-     (labUnlockedHere?' Открыт радиоперехват снабжения (карта).':''),7);
-   }else this.notice('Вражеская база захвачена! Заряд кода: Q'+
+     (labUnlockedHere?' Открыт радиоперехват снабжения (карта).':''),previousLevel,7);
+   }else this.rewardNotice('Вражеская база захвачена! Заряд кода: Q'+captureReward+
     (precisionUnlockedHere?' · Ручной прицел рельса открыт (ЛКМ)':'')+
     (labUnlockedHere?' · Радиоперехват снабжения открыт (карта)':
-     base.type==='lab'?' · Радионаблюдение расширено':''),6);
+     base.type==='lab'?' · Радионаблюдение расширено':''),previousLevel,6);
   }
  }
  nearbyEnemyBase(radius=900){
@@ -2930,10 +2950,12 @@ export class ArcadeGame {
   if(kind==='extract'){
    this.advanceContract('mine',rock);
    const discoveryXp=firstRichAsteroidExperience(this.player,rock,kind);
-   if(discoveryXp){
+   const surveyXp=claimGeologicalSurvey(this.player,rock,kind,this.skillRanks.mining||0);
+   if(discoveryXp||surveyXp){
     const previousLevel=this.player.level;
-    this.awardExperience(discoveryXp);
-    this.rewardNotice('Исследован первый богатый астероид: +'+discoveryXp+' опыта',previousLevel,3);
+    this.awardExperience(discoveryXp+surveyXp);
+    this.rewardNotice(discoveryXp?'Исследован первый богатый астероид: +'+discoveryXp+' опыта':
+     'Изучено новое месторождение: +'+surveyXp+' опыта',previousLevel,3.5);
    }
   }
   this.heritage.vfx.asteroidBreak(rock.x,rock.y,rock.r);
@@ -2977,6 +2999,10 @@ export class ArcadeGame {
   }
   return gained;
  }
+ awardStrategicExperience(amount){
+  if(amount>0)this.awardExperience(amount);
+  return amount;
+ }
  collect(item){
   const p=this.player;
   if(item.type==='fieldCell'){
@@ -3014,12 +3040,19 @@ export class ArcadeGame {
   recordContourFeedback(this,contourEvents);
   this.contourDeliveryFX=(this.contourDeliveryFX||[])
    .filter(fx=>this.time-fx.at<1.5);
+  let firstDeliveryXp=0;
   for(const event of contourEvents){
    if(event.kind==='delivered'&&event.amount>.01){
     this.contourDeliveryFX.push({fieldId:event.fieldId,amount:event.amount,at:this.time});
+    firstDeliveryXp+=claimFirstFluxDelivery(p,event.amount);
    }
   }
-  if(contourEvents.some(e=>e.kind==='lost')&&this.time-this.lastContourNoticeAt>18){
+  if(firstDeliveryXp){
+   const previousLevel=p.level;
+   this.awardStrategicExperience(firstDeliveryXp);this.lastContourNoticeAt=this.time;
+   this.rewardNotice('Первая доставка флюкса из территориальной воронки: +'+firstDeliveryXp+
+    ' опыта. Запас доступен на карте контуров.',previousLevel,5);
+  }else if(contourEvents.some(e=>e.kind==='lost')&&this.time-this.lastContourNoticeAt>18){
    this.lastContourNoticeAt=this.time;
    this.notice('Вражеский налёт уничтожил добывающего плазмофага. Следующая экспедиция отправится автоматически.',5);
   }else if(contourEvents.some(e=>e.kind==='delivered'&&e.amount>.05)&&
@@ -3079,13 +3112,22 @@ export class ArcadeGame {
   this.worldQueryClock-=dt;
   if(this.worldQueryClock<=0||Math.hypot(p.x-this.worldQueryX,p.y-this.worldQueryY)>75){
    this.nearRocks=this.world.nearbyRocks(p.x,p.y,Math.max(this.vw,this.vh)*.85+450);
+   let discoveredXp=0;const friendlyFinds=[];let exploredCount=0;
    for(const b of this.world.discover(p.x,p.y,570+this.skillRanks.radar*190)){
     if(this.waypoint?.id===b.id)this.waypoint={id:b.id,x:b.x,y:b.y,label:b.title||baseNames[b.type]};
+    exploredCount++;
+    discoveredXp+=claimExploration(p,b,this.skillRanks.radar||0);
     if(!b.enemy&&!b.active){
-    this.heritage.world('discover');
-    this.notice('Обнаружена станция: '+baseNames[b.type],3);
+     friendlyFinds.push(baseNames[b.type]);this.heritage.world('discover');
+    }
    }
-   }
+   if(discoveredXp){
+    const previousLevel=p.level;
+    this.awardStrategicExperience(discoveredXp);
+    this.rewardNotice((exploredCount===1?'Обнаружена новая станция':'Обнаружены станции: '+exploredCount)+
+     ' · +'+discoveredXp+' опыта за разведку.',previousLevel,4);
+   }else if(friendlyFinds.length)
+    this.notice('Обнаружена станция: '+friendlyFinds[0],3);
    this.localStations=this.world.nearbyStations(p.x,p.y,1000,false);
    const localStations=this.localStations.filter(b=>b.active);
    this.nearDock=localStations.find(b=>b.type==='dock'&&dist(b,p)<185)||null;

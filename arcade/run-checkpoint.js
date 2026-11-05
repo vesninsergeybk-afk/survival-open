@@ -1,4 +1,5 @@
 import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1';
+import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1';
 import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-domains-1-supply-stronghold-1';
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1';
@@ -174,6 +175,7 @@ export function validateCheckpoint(data){
  }
  if(!home||!dock?.active||dock.enemy||Math.hypot(p.x-dock.x,p.y-dock.y)>210||
   w.discovered.some(id=>!ids.has(id)))return false;
+ if(p.strategicXp!==undefined&&!validStrategicExperience(p.strategicXp,w.stations))return false;
  if(w.contours!==undefined&&!validContours(w.contours,w.stations))return false;
  if(!validEnemyExpansion(w.enemyExpansion,w.stations,s.time))return false;
  if(s.enemies.some(e=>e.stationRaid&&!ids.has(e.stationRaid.stationId))||
@@ -224,6 +226,7 @@ export function restoreCheckpoint(game,data){
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
  // Convert older saves only once, retaining every already earned skill point.
  migrateLegacyPlayerExperience(game.player);
+ inheritStrategicExperience(game.player,world);
  game.tactical=data.state.tactical||createTactical();game.tacticalPointer=null;
  game.openingArc=data.state.openingArc||{...createOpeningArc(world.home),status:'skipped'};
  game.openingRepairing=false;
