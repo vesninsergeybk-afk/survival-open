@@ -357,7 +357,9 @@ export class ArcadeGame {
     if(e.code===this.controls.railMode&&!this.dead)this.toggleManualRail();
     if(e.code===this.controls.map)this.openMap();
     if(e.code===this.controls.skills)this.skills();
-    if(e.code==='Escape')openSystemMenu(this);
+    // Consume Escape before opening a native dialog; otherwise its default
+    // cancel action can immediately close the newly opened pause menu.
+    if(e.code==='Escape'){e.preventDefault();openSystemMenu(this);}
     if(e.code===this.controls.railMode&&this.dead)location.reload();
    }
    this.keys.add(e.code);

@@ -90,3 +90,19 @@ test('local map puts destinations above optional reports and displays remapped c
  assert.ok(html.indexOf('Обнаруженные станции')<html.indexOf('<details class="map-world-details">'));
  assert.match(html,/G — карта · J — развитие/);assert.doesNotMatch(html,/Tab или M/);
 });
+test('flight Escape consumes the native cancel action before opening the pause dialog',()=>{
+ const {doc,game,nodes}=nativeScene(),priorDoc=globalThis.document,priorWindow=globalThis.window;
+ const fallback={hidden:true,open:false,style:{},addEventListener(){}},listeners={};
+ const get=doc.getElementById;doc.getElementById=id=>id==='creditsDialog'?null:get(id)||fallback;
+ doc.addEventListener=(type,fn)=>(listeners[type]||=[]).push(fn);
+ game.overlay.addEventListener=()=>{};game.bindControlSettings=()=>{};
+ let prevented=false;
+ nodes.get('gameMenuDialog').showModal=function(){assert.equal(prevented,true);this.open=true;};
+ globalThis.document=doc;globalThis.window={addEventListener(){}};
+ try{
+  RuntimeHarness.prototype.bind.call(game);
+  const key={code:'Escape',key:'Escape',repeat:false,target:{closest:()=>null},preventDefault(){prevented=true;}};
+  for(const fn of listeners.keydown)fn(key);
+  assert.ok(nodes.get('gameMenuDialog').open);assert.ok(game.paused);
+ }finally{globalThis.document=priorDoc;globalThis.window=priorWindow;}
+});
