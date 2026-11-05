@@ -9,7 +9,7 @@ import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=car
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1';
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1';
-import {arsenalDiscoveryPromise} from './station-progression.js?v=rpg-precision-1';
+import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-1';
 import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
@@ -606,7 +606,7 @@ export function renderBasePanel(base,state){
  const selected=['summary','operations','hangar','network'].includes(state.baseTab)?state.baseTab:'summary';
  const firstReward=active?firstContractRewardPanel(state):'';
  const firstRewardPromise=active&&state.firstHardwareReward==null;
- const arsenalPromise=arsenalDiscoveryPromise(base,state.world);
+ const stationPromise=arsenalDiscoveryPromise(base,state.world)||labDiscoveryPromise(base,state.world);
  const brief=baseBrief(base,state,o);
  const lastSortie=state.sortieReports?.at(-1);
  const signed=n=>(n>0?'+':'')+n;
@@ -731,7 +731,7 @@ export function renderBasePanel(base,state){
   basePreview(base,state)+'</div></details>'+
   (firstRewardPromise?'<div class="base-quiet-promise">'+
    'Первый сданный заказ даст бесплатное оружие на выбор.</div>':'')+
-  (arsenalPromise?'<div class="base-quiet-promise">'+arsenalPromise+'</div>':'');
+  (stationPromise?'<div class="base-quiet-promise">'+stationPromise+'</div>':'');
  const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ЗАДАЧИ И ПОСЛЕДСТВИЯ</span><strong>Выберите, что изменить в секторе</strong>'+
   '<p>Полевой заказ даёт сплав и данные после возвращения на станцию, где его взяли. Особая операция меняет мир и имеет свои условия завершения.</p></div></div>'+
   firstReward+
@@ -840,7 +840,7 @@ export function renderBasePanel(base,state){
   '<span>Особые операции и полевые заказы</span>'+
   '<span>Дроны, ремонт и оснащение станции</span>'+
   '<span>Маршруты между подключёнными узлами</span>'+
-  (arsenalPromise?'<span class="base-technology-preview">'+arsenalPromise+'</span>':'')+
+  (stationPromise?'<span class="base-technology-preview">'+stationPromise+'</span>':'')+
   '</div></div>';
  return '<div class="dialog base-dialog station-'+base.type+'" role="dialog" aria-modal="true" aria-label="Станция"><header class="base-head"><div><span class="base-system-label">ВЫЖИВШИЙ / ТЕРМИНАЛ СТАНЦИИ</span><h2>'+
   (baseNames[base.type]||'Станция')+'</h2><p>Сплав <b>'+o.ore+'</b> · Данные <b>'+(state.data||0)+'</b> (опыт) · Корпус <b>'+Math.ceil(state.hp)+'/'+state.maxHp+'</b> · В сети '+

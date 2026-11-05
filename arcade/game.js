@@ -1,5 +1,5 @@
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-4-logistics-audit-1';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
 import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expedition-1';
 import {strategicCapture} from './regional-supply.js?v=living-world-3';
@@ -29,9 +29,9 @@ import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -42,7 +42,7 @@ import {claimFirstContractModule} from './first-contract-reward.js?v=first-contr
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
 import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1';
-import {precisionRailUnlocked,PRECISION_RAIL_TECH} from './station-progression.js?v=rpg-precision-1-rpg-audit-1';
+import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1';
@@ -634,8 +634,10 @@ export class ArcadeGame {
     ...(this.world.regionalSupply?.central?.convoys||[]),
     ...(this.world.regionalSupply?.frontier?.azure?.convoys||[]),
     ...(this.world.regionalSupply?.frontier?.teal?.convoys||[])].find(c=>c.id===data.id&&c.seen);
-   if(!region&&!cargo&&(!base||(!base.discovered&&!data.signal)))return;
-   const waypoint=region?{id:data.id,...region.survey,label:region.name}:
+   const intel=labLogisticsIntel(this.world,this.player).contacts.find(c=>c.id===data.id);
+   if(!region&&!cargo&&!intel&&(!base||(!base.discovered&&!data.signal)))return;
+   const waypoint=intel?{id:intel.id,x:intel.x,y:intel.y,label:intel.label}:
+    region?{id:data.id,...region.survey,label:region.name}:
     cargo?{id:cargo.id,x:cargo.x,y:cargo.y,label:cargo.frontierCargo?
      (cargo.frontierNetwork==='azure'?'Энерготранспорт':'Ремонтный груз'):
      cargo.centralCargo?'Местный груз':'Рудный транспорт'}:
@@ -1673,6 +1675,7 @@ export class ArcadeGame {
   if(act==='activate'){
    if(o.reasons.activate){this.notice(o.reasons.activate,2);return;}
     const precisionUnlockedHere=b.type==='arsenal'&&!precisionRailUnlocked(this.world);
+    const labUnlockedHere=b.type==='lab'&&!labLogisticsUnlocked(this.world);
    p.ore-=o.relayCost;
    recordEconomyExpense(this,'stations',o.relayCost);
    b.active=true;b.discovered=true;this.activeBases++;b.activationIndex=this.activeBases;
@@ -1689,7 +1692,10 @@ export class ArcadeGame {
     ' · подключено узлов: '+topology.count:' · ищите ретранслятор')+
     (o.rewardAlloy?' · +'+o.rewardAlloy+' сплава':'')+
      (o.relayCost?' · −'+o.relayCost+' сплава':'')+
-     (precisionUnlockedHere?' · ОТКРЫТО: '+PRECISION_RAIL_TECH.name+' (R)':''),precisionUnlockedHere?6:3.8);
+     (precisionUnlockedHere?' · ОТКРЫТО: '+PRECISION_RAIL_TECH.name+' (R)':'')+
+     (labUnlockedHere?' · ОТКРЫТО: '+LAB_LOGISTICS_TECH.name+' (карта, «Регионы и цели»)':
+      b.type==='lab'?' · Область радиоперехвата расширена':''),
+     precisionUnlockedHere||labUnlockedHere?7:3.8);
    this.heritage.vfx.nova(b.x,b.y,130,'cyan');
   }else if(!b.active){this.notice('Сначала активируйте станцию',2);return;}
   else if(act==='hire'){
@@ -2129,6 +2135,7 @@ export class ArcadeGame {
   base.hp-=damage;
   if(base.hp<=0){
    const precisionUnlockedHere=base.type==='arsenal'&&!precisionRailUnlocked(this.world);
+   const labUnlockedHere=base.type==='lab'&&!labLogisticsUnlocked(this.world);
    base.hp=Math.max(1,Math.round(base.maxHp*.3));base.captured=true;base.enemy=false;base.active=true;
    if(precisionUnlockedHere)this.precisionRailAvailable=true;
    this.defenseTopology=null;
@@ -2150,9 +2157,12 @@ export class ArcadeGame {
      'frontier-teal-source':'Комбинат захвачен. Разбор обломков и отправка запчастей остановлены.',
      'frontier-teal-depot':'Ремонтная верфь захвачена. Подготовка новых ремонтных караулов прекращена.'};
     this.notice((notice[base.strategicRole]||'Промышленный узел захвачен.')+
-     (precisionUnlockedHere?' Открыт ручной прицел рельса (R).':''),7);
+     (precisionUnlockedHere?' Открыт ручной прицел рельса (R).':'')+
+     (labUnlockedHere?' Открыт радиоперехват снабжения (карта).':''),7);
    }else this.notice('Вражеская база захвачена! Заряд кода: Q'+
-    (precisionUnlockedHere?' · Ручной прицел рельса открыт (R)':''),6);
+    (precisionUnlockedHere?' · Ручной прицел рельса открыт (R)':'')+
+    (labUnlockedHere?' · Радиоперехват снабжения открыт (карта)':
+     base.type==='lab'?' · Радионаблюдение расширено':''),6);
   }
  }
  nearbyEnemyBase(radius=900){
