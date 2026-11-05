@@ -137,3 +137,12 @@ test('advanced station risk decisions are behind an explicit disclosure',()=>{
  assert.match(network,/data-act="toggleMeteorDefense"/);
  assert.match(network,/ПВО действует автоматически/);
 });
+
+test('published module addresses invalidate the station and hangar caches',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ const base=readFileSync(new URL('../base-panel.js',import.meta.url),'utf8');
+ assert.match(html,/game\.js\?v=[^"]*station-clarity-1/);
+ assert.match(game,/base-panel\.js\?v=[^']*station-clarity-1/);
+ assert.match(base,/hangar-panel\.js\?v=[^']*station-clarity-1/);
+});
