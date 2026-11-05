@@ -3,7 +3,7 @@ import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight} fr
 import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {combatTargets,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=rpg-precision-audit-1';
+import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=rpg-precision-audit-1';
 import {emitWeaponFx} from './weapon-fx.js';
 
 export const shipTargets=(game,range,limit=1,nearest=false,focus='precision')=>
@@ -20,7 +20,7 @@ function fireBeamFamily(game,id){
  if(!targets.length)return false;
  const weights=id==='plasma'?plasmaSplitWeights(targets.length):null;
  for(const from of positions(game,id)){
-  let mountFired=false;
+  let firstFiredTarget=null;
   for(let i=0;i<targets.length;i++){
    const item=targets[i],t=item.target,d=targetDistance(game.player,t);
    if(t.hp<=0)continue;
@@ -45,13 +45,12 @@ function fireBeamFamily(game,id){
     }
    }else damageTarget(game,item,damage,id==='plasma'?'beam':id,point);
    emitWeaponFx(game,id,from,{x:point?.x??t.x,y:point?.y??t.y},{blocked:!!cover});
-   mountFired=true;
+   firstFiredTarget??=t;
   }
   // A second mount may find the target already destroyed by the first.
   // Do not invent a muzzle flash for a shot that never actually happened.
-  if(mountFired){
-   const t=targets[0].target;
-   game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(t.y-from.y,t.x-from.x),
+  if(firstFiredTarget){
+   game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(firstFiredTarget.y-from.y,firstFiredTarget.x-from.x),
     id==='rail'?'railgun':id==='flak'?'flak':undefined);
   }
  }
@@ -130,14 +129,17 @@ export function fireAimedRail(game,point){
  let hits=0,rocksHit=0;
  for(const from of positions(game,'rail')){
   const end={x:from.x+ux*stats.range,y:from.y+uy*stats.range};
-  const intersections=targets.map(item=>({item,t:shotCircle(from,end,item.target,targetRadius(item))}))
+  // Previous mounts may already have destroyed a hull. Re-evaluate its
+  // presence before calculating this mount's actual interception point.
+  const intersections=targets.filter(item=>targetAlive(game,item,true))
+   .map(item=>({item,t:shotCircle(from,end,item.target,targetRadius(item))}))
    .filter(hit=>hit.t!==null).sort((a,b)=>a.t-b.t);
   const rocks=game.rockGrid.query((from.x+end.x)*.5,(from.y+end.y)*.5,stats.range*.5+80);
   const cover=firstRockImpact(from.x,from.y,end.x,end.y,rocks,2,game.player);
   const before=intersections.find(hit=>!cover||hit.t<=cover.t+1e-8);
   const damage=stats.damage*1.5*weaponDamageFactor(game.shipLoadout,'rail',before?.item?.target||
    intersections[0]?.item?.target);
-  let impact=end;
+  let impact=end,exitImpact=null,exitBlocked=false;
   if(before){
    impact=onRay(from,end,before.t);
    if(damageTarget(game,before.item,damage,'rail',impact,false,true)>0)hits++;
@@ -152,10 +154,15 @@ export function fireAimedRail(game,point){
     if(second&&(!beyond||targetDistance(from,second)<beyond.t*stats.range)){
      game.damageRock(second.rock,damage*penetration,from.x,from.y,'auto',true,
       contactAtPoint(second.rock.x,second.rock.y,second.x,second.y));
-    }else if(beyond&&damageTarget(game,beyond.item,damage*penetration,'rail',onRay(from,end,beyond.t),false,true)>0)hits++;
+     exitImpact={x:second.x,y:second.y};exitBlocked=true;
+    }else if(beyond){
+     exitImpact=onRay(from,end,beyond.t);
+     if(damageTarget(game,beyond.item,damage*penetration,'rail',exitImpact,false,true)>0)hits++;
+    }
    }
   }
   emitWeaponFx(game,'rail',from,impact,{impact:!!before||!!cover,blocked:!!cover});
+  if(exitImpact)emitWeaponFx(game,'rail',impact,exitImpact,{secondary:true,blocked:exitBlocked});
   game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(uy,ux),'railgun');
  }
  heatWeapons(game.weaponThermal,MODULES.rail.heat*game.weaponProfile.rail);

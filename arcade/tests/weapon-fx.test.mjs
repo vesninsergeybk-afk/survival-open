@@ -118,6 +118,41 @@ test('cover ends a shot on rock and an already killed target produces no second 
  assert.equal(muzzles.length,1,'no flash should announce a nonexistent second shot');
 });
 
+test('second flak mount aims its muzzle at the surviving target, not the first dead one',()=>{
+ const g=game(['flak','flak',null,null,null,null]);
+ const a={...enemy(145,-75),hp:5},b=enemy(185,80);
+ g.grid.insert(a);g.grid.insert(b);
+ const muzzles=[];g.heritage.vfx=new Proxy({},
+  {get:(_,key)=>key==='muzzle'?(...args)=>muzzles.push(args):()=>{}});
+ g.updateShipWeapons(.02);
+ assert.ok(a.hp<=0);assert.ok(b.hp<500);
+ assert.equal(muzzles.length,2);
+ const [x,y,angle]=muzzles[1];
+ assert.ok(Math.abs(angle-Math.atan2(b.y-y,b.x-x))<.001,
+  'second mount visually points to a destroyed target');
+});
+
+test('manual rail penetration shows its real second segment; a dead hull is no longer marked hit',()=>{
+ const g=game(['rail',null,null,null,null,null]),t=enemy(220);
+ g.manualRailMode=true;g.shipLoadout.specializations.rail={path:'penetrator',rank:1};
+ g.grid.insert(t);g.rockGrid.insert({x:105,y:0,r:34,hp:500,maxHp:500,alive:true});
+ g.damageRock=()=>{};
+ const fired=fireAimedRail(g,{x:220,y:0});
+ assert.equal(fired.ok,true);assert.equal(fired.hits,1);
+ assert.equal(g.weaponFx.length,2);
+ assert.ok(g.weaponFx[0].blocked);
+ assert.equal(g.weaponFx[1].secondary,true);
+ assert.ok(g.weaponFx[1].x<g.weaponFx[1].x2);
+ assert.ok(g.weaponFx[1].x2<t.x,'secondary effect ends at the hull surface');
+
+ const multi=game(['rail','rail',null,null,null,null]),fragile={...enemy(150),hp:2};
+ multi.manualRailMode=true;multi.grid.insert(fragile);
+ assert.equal(fireAimedRail(multi,{x:150,y:0}).ok,true);
+ assert.equal(multi.weaponFx.length,2,'manual mode consumes both installed mounts');
+ assert.equal(multi.weaponFx.filter(e=>e.impact).length,1,
+  'the second mount invents a hull impact after the first killed the target');
+});
+
 test('real rocket, manual rail and heavy artillery display only an executed shot',()=>{
  const rocket=game();install(rocket,'rocket');rocket.grid.insert(enemy(180));
  rocket.updateShipWeapons(.03);
@@ -184,6 +219,15 @@ test('seven separate verified catalog events drive the existing mixer',()=>{
   }else assert.ok(existsSync(new URL(file,new URL('../../audio-lab/',import.meta.url))),
    `recording missing from repository: ${key}`);
  }
+});
+
+test('production muzzle palette matches rail, flak, rocket and plasma silhouettes',()=>{
+ const vfx=new ArcadeHeritage().vfx,emitted=[];
+ vfx._emit=(kind,x,y,options)=>emitted.push({kind,...options});
+ vfx._scatter=()=>{};vfx._flash=()=>{};
+ for(const kind of ['railgun','flak','knife','starter_pulse'])vfx.muzzle(0,0,0,kind);
+ assert.deepEqual(emitted.filter(e=>e.kind==='muzzle').map(e=>e.tint),
+  ['blue','orange','orange','cyan']);
 });
 
 test('visual laboratory is discoverable and uses production effects, not its own drawn beams',()=>{
