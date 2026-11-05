@@ -423,7 +423,7 @@ export class WorldVFX {
 
     muzzle(x,y,angle,weapon='starter_pulse') {
         const heavy=['knife','railgun','drone_swarm'].includes(weapon);
-        const tint=weapon==='knife'?'orange':weapon==='railgun'?'gold':'cyan';
+        const tint=weapon==='knife'||weapon==='flak'?'orange':weapon==='railgun'?'gold':'cyan';
         const fx=x+Math.cos(angle)*22, fy=y+Math.sin(angle)*22;
         this._emit('muzzle',fx,fy,{
             size:heavy?38:23,life:.16,tint,

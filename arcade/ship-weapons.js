@@ -4,6 +4,7 @@ import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaS
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {combatTargets,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=rpg-precision-audit-1';
+import {emitWeaponFx} from './weapon-fx.js';
 
 export const shipTargets=(game,range,limit=1,nearest=false,focus='precision')=>
  selectTargets(game,range,limit,!nearest&&focus==='precision');
@@ -19,6 +20,7 @@ function fireBeamFamily(game,id){
  if(!targets.length)return false;
  const weights=id==='plasma'?plasmaSplitWeights(targets.length):null;
  for(const from of positions(game,id)){
+  let mountFired=false;
   for(let i=0;i<targets.length;i++){
    const item=targets[i],t=item.target,d=targetDistance(game.player,t);
    if(t.hp<=0)continue;
@@ -38,16 +40,24 @@ function fireBeamFamily(game,id){
       contactOnCircle(t.x,t.y,targetRadius(item),cover.x,cover.y);
      if(second)game.damageRock(second.rock,damage*penetration,cover.x,cover.y,'auto',true,hit);
      else damageTarget(game,item,damage*penetration,id,hit);
-     game.flash(cover.x,cover.y,hit?.x??t.x,hit?.y??t.y,'#a5bfff');
+     emitWeaponFx(game,'rail',cover,{x:hit?.x??t.x,y:hit?.y??t.y},
+      {secondary:true,blocked:!!second});
     }
    }else damageTarget(game,item,damage,id==='plasma'?'beam':id,point);
-   game.flash(from.x,from.y,point?.x??t.x,point?.y??t.y,cover?'#f6ca87':MODULES[id].color);
+   emitWeaponFx(game,id,from,{x:point?.x??t.x,y:point?.y??t.y},{blocked:!!cover});
+   mountFired=true;
   }
-  const t=targets[0].target;
-  game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(t.y-from.y,t.x-from.x),id==='rail'?'railgun':undefined);
+  // A second mount may find the target already destroyed by the first.
+  // Do not invent a muzzle flash for a shot that never actually happened.
+  if(mountFired){
+   const t=targets[0].target;
+   game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(t.y-from.y,t.x-from.x),
+    id==='rail'?'railgun':id==='flak'?'flak':undefined);
+  }
  }
  heatWeapons(game.weaponThermal,MODULES[id].heat*game.weaponProfile[id]);
- game.heritage.play(id==='rail'?'rocket':'laser',id==='plasma'?.32:.25,{x:game.player.x,y:game.player.y});
+ game.heritage.play({plasma:'plasmaShot',rail:'railShot',flak:'flakShot'}[id],
+  id==='plasma'?.32:.25,{x:game.player.x,y:game.player.y});
  if(id==='plasma'){
   // Only an actual emitted beam provides an observable combat rhythm.
   // Scouts never read the player's private cooldown or aim selection.
@@ -66,10 +76,11 @@ function fireRockets(game){
   game.missiles.push({x:from.x,y:from.y,prevX:from.x,prevY:from.y,trail:[{x:from.x,y:from.y}],
    target:t,targetKind:item.kind,targetBase:item.base||null,tx:t.x,ty:t.y,
    damage:stats.damage*weaponDamageFactor(game.shipLoadout,'rocket',t),speed:tuning.speed,life:tuning.life});
-  game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(t.y-from.y,t.x-from.x),'railgun');
+  emitWeaponFx(game,'rocket',from,t,{impact:false});
+  game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(t.y-from.y,t.x-from.x),'knife');
  }
  heatWeapons(game.weaponThermal,MODULES.rocket.heat*game.weaponProfile.rocket);
- game.rocketClock=stats.interval;game.heritage.play('rocket',.5,{x:game.player.x,y:game.player.y});return true;
+ game.rocketClock=stats.interval;game.heritage.play('rocketShot',.5,{x:game.player.x,y:game.player.y});return true;
 }
 export function updateAutomaticWeapons(game,dt,allowed){
  game.moduleClocks??={rail:0,flak:0};
@@ -144,14 +155,14 @@ export function fireAimedRail(game,point){
     }else if(beyond&&damageTarget(game,beyond.item,damage*penetration,'rail',onRay(from,end,beyond.t),false,true)>0)hits++;
    }
   }
-  game.flash(from.x,from.y,impact.x,impact.y,before?'#b8e6ff':cover?'#f6ca87':'#7b9be9');
+  emitWeaponFx(game,'rail',from,impact,{impact:!!before||!!cover,blocked:!!cover});
   game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(uy,ux),'railgun');
  }
  heatWeapons(game.weaponThermal,MODULES.rail.heat*game.weaponProfile.rail);
  // The deliberate shot has more punch, but takes longer to reload. A miss
  // costs the same heat and time, so manual control is not free extra DPS.
  game.moduleClocks.rail=stats.interval*1.3;
- game.heritage.play('rocket',.34,{x:game.player.x,y:game.player.y});
+ game.heritage.play('railShot',.34,{x:game.player.x,y:game.player.y});
  return {ok:true,hits,rocksHit,cooldown:game.moduleClocks.rail};
 }
 // Kept as the auxiliary-only public entry point for tools and isolated scenarios.
@@ -183,8 +194,8 @@ export function updateHowitzer(game,dt){
  const cover=firstRockImpact(from.x,from.y,aim.x,aim.y,
   game.rockGrid.query((from.x+aim.x)*.5,(from.y+aim.y)*.5,d*.5+60),3,game.player);
  const hit=cover?{x:cover.x,y:cover.y}:aim;
- game.flash(from.x,from.y,hit.x,hit.y,'#e4b7ff');game.heritage.vfx.nova(hit.x,hit.y,110,'violet');
- game.heritage.play('largeExplosion',.3,hit);
+ emitWeaponFx(game,'howitzer',from,hit);game.heritage.vfx.nova(hit.x,hit.y,110,'violet');
+ game.heritage.play('howitzerShot',.3,hit);
  // Snapshot exposed targets before damage: killing the last turret in this
  // explosion does not retroactively expose the core to that same explosion.
  for(const item of combatTargets(game,180,hit)){

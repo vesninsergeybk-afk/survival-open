@@ -1,0 +1,201 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {existsSync,readFileSync} from 'node:fs';
+import {WEAPON_FX_KINDS,WEAPON_FX_CAP,emitWeaponFx,updateWeaponFx,drawWeaponFx} from '../weapon-fx.js';
+import {ArcadeHeritage} from '../heritage.js';
+import {updateHowitzer,fireAimedRail} from '../ship-weapons.js';
+import {createFieldLoan} from '../field-weapons.js';
+import {damageTarget} from '../combat-targets.js';
+import {loadoutProfile} from '../ship-loadout.js';
+import {SOUND_CATALOG} from '../../audio-lab/sound-map.js';
+import {game} from './weapons-scene.mjs';
+
+const A={x:21,y:-19},B={x:281,y:57};
+function canvas(){
+ const strokes=[],arcs=[];let path=[];
+ const c={strokeStyle:null,lineWidth:0,globalAlpha:1,
+  save(){},restore(){},setLineDash(){},
+  beginPath(){path=[];},moveTo(x,y){path.push({x,y});},lineTo(x,y){path.push({x,y});},
+  arc(x,y,r){arcs.push({x,y,r});},
+  fill(){},stroke(){strokes.push({color:this.strokeStyle,width:this.lineWidth,alpha:this.globalAlpha,path:[...path]});}};
+ return {c,strokes,arcs};
+}
+const enemy=(x,y=0)=>({x,y,r:15,hp:500,maxHp:500,type:'fighter',converted:false});
+const install=(g,id)=>{
+ g.shipLoadout.slots[0]=id;g.weaponProfile=loadoutProfile(g.shipLoadout);
+};
+
+test('all seven signatures accept only finite actual endpoints and keep a strict bound',()=>{
+ const g={time:5,weaponFx:[]};
+ assert.equal(WEAPON_FX_KINDS.length,7);
+ assert.equal(new Set(WEAPON_FX_KINDS).size,7);
+ for(const kind of WEAPON_FX_KINDS){
+  assert.equal(emitWeaponFx(g,kind,A,B),true);
+  const event=g.weaponFx.at(-1);
+  assert.equal(event.kind,kind);assert.equal(event.x,A.x);assert.equal(event.y,A.y);
+  assert.equal(event.x2,B.x);assert.equal(event.y2,B.y);
+  assert.ok(event.life>=.20,'must survive more than one 15 FPS frame');
+ }
+ assert.equal(emitWeaponFx(g,'unknown',A,B),false);
+ assert.equal(emitWeaponFx(g,'rail',A,{x:NaN,y:3}),false);
+ assert.equal(emitWeaponFx(g,'rail',A,A),false);
+ for(let i=0;i<1000;i++)emitWeaponFx(g,'plasma',{x:i,y:0},B);
+ assert.equal(g.weaponFx.length,WEAPON_FX_CAP);
+ assert.equal(g.weaponFx.at(-1).x,999);
+ updateWeaponFx(g,.18);assert.ok(g.weaponFx.every(e=>e.age>.17));
+ updateWeaponFx(g,.8);assert.deepEqual(g.weaponFx,[]);
+});
+
+test('seven distinct silhouettes remain drawn at 15 FPS and under reduced motion',()=>{
+ const colors=[];
+ for(const kind of WEAPON_FX_KINDS){
+  const g={time:3};emitWeaponFx(g,kind,A,B);
+  const low=canvas(),high=canvas();
+  drawWeaponFx(low.c,g.weaponFx,15,true,{x:-30,y:-50,w:420,h:180});
+  drawWeaponFx(high.c,g.weaponFx,60,false);
+  assert.ok(low.strokes.length>=3,`${kind} disappears at 15 FPS`);
+  assert.ok(high.strokes.length>=low.strokes.length,`${kind} gets less legible at 60 FPS`);
+  colors.push(low.strokes.map(s=>s.color).join('|'));
+ }
+ assert.equal(new Set(colors).size,7,'each weapon must have its own color and structural fingerprint');
+});
+
+test('reduced motion fixes animated anchors while normal mode advances them',()=>{
+ for(const kind of ['plasma','resonator','howitzer']){
+  const g={time:1};emitWeaponFx(g,kind,A,B);
+  const event=g.weaponFx[0],first=canvas(),second=canvas(),moving=canvas();
+  event.age=.01;drawWeaponFx(first.c,g.weaponFx,60,true);
+  event.age=.12;drawWeaponFx(second.c,g.weaponFx,60,true);
+  drawWeaponFx(moving.c,g.weaponFx,60,false);
+  assert.deepEqual(first.arcs,second.arcs,`${kind} motion setting changed the geometry`);
+  assert.notDeepEqual(moving.arcs,second.arcs,`${kind} lost its non-reduced pulse`);
+ }
+});
+
+test('missed rail does not invent a hit sparkle, rocket launch does not draw to target',()=>{
+ const miss={time:1},hit={time:1},rocket={time:1};
+ emitWeaponFx(miss,'rail',A,B,{impact:false});
+ emitWeaponFx(hit,'rail',A,B,{impact:true});
+ emitWeaponFx(rocket,'rocket',A,B,{impact:true});
+ const a=canvas(),b=canvas(),c=canvas();
+ drawWeaponFx(a.c,miss.weaponFx);drawWeaponFx(b.c,hit.weaponFx);
+ drawWeaponFx(c.c,rocket.weaponFx);
+ assert.equal(a.arcs.length,0);assert.ok(b.arcs.length>0);
+ assert.equal(rocket.weaponFx[0].impact,false);
+ for(const stroke of c.strokes)for(const point of stroke.path)
+  assert.ok(Math.hypot(point.x-A.x,point.y-A.y)<42,'rocket plume extends to a fictitious impact');
+});
+
+test('actual plasma, rail, flak fire records differentiated paths, without the old generic flashes',()=>{
+ for(const kind of ['plasma','rail','flak']){
+  const g=game();install(g,kind);const t=enemy(150,10);g.grid.insert(t);
+  g.updateShipWeapons(.02);
+  assert.ok(t.hp<500,`${kind} did no damage`);
+  assert.equal(g.weaponFx[0].kind,kind);
+  assert.equal(g.flashes.length,0,'the old generic beam was double-rendered');
+  assert.ok(g.weaponFx[0].x2<t.x,'the mark ends on the hull surface');
+ }
+});
+
+test('cover ends a shot on rock and an already killed target produces no second mount muzzle',()=>{
+ const blocked=game(),t=enemy(220);
+ blocked.grid.insert(t);
+ blocked.rockGrid.insert({x:110,y:0,r:34,hp:1000,maxHp:1000,alive:true});
+ blocked.damageRock=()=>{};
+ blocked.updateShipWeapons(.02);
+ const mark=blocked.weaponFx[0];
+ assert.equal(mark.kind,'plasma');assert.equal(mark.blocked,true);
+ assert.ok(mark.x2<190,'cover flash goes beyond the first rock');
+ assert.equal(t.hp,500,'the visible cover cannot be bypassed');
+
+ const multi=game(['rail','rail',null,null,null,null]);
+ const fragile={...enemy(150),hp:10};multi.grid.insert(fragile);
+ const muzzles=[];multi.heritage.vfx=new Proxy({},
+  {get:(_,key)=>key==='muzzle'?(...args)=>muzzles.push(args):()=>{}});
+ multi.updateShipWeapons(.02);
+ assert.ok(fragile.hp<=0);
+ assert.equal(multi.weaponFx.length,1,'second mount never fired');
+ assert.equal(muzzles.length,1,'no flash should announce a nonexistent second shot');
+});
+
+test('real rocket, manual rail and heavy artillery display only an executed shot',()=>{
+ const rocket=game();install(rocket,'rocket');rocket.grid.insert(enemy(180));
+ rocket.updateShipWeapons(.03);
+ assert.equal(rocket.missiles.length,1);
+ assert.equal(rocket.weaponFx[0].kind,'rocket');
+ assert.equal(rocket.weaponFx[0].impact,false);
+ const rail=game();install(rail,'rail');rail.manualRailMode=true;
+ const target=enemy(200,0);rail.grid.insert(target);
+ const fired=fireAimedRail(rail,{x:200,y:0});
+ assert.ok(fired.ok);assert.ok(fired.hits>0);
+ assert.ok(rail.weaponFx.every(e=>e.kind==='rail'&&e.impact));
+ const miss=game();install(miss,'rail');miss.manualRailMode=true;
+ const empty=fireAimedRail(miss,{x:500,y:100});
+ assert.ok(empty.ok);assert.equal(empty.hits,0);
+ assert.ok(miss.weaponFx.every(e=>!e.impact));
+ const heavy=game();heavy.weaponProfile.howitzer=1;
+ heavy.heavyCharge={x:270,y:0,total:1.25,remaining:.01};
+ updateHowitzer(heavy,.02);
+ assert.equal(heavy.weaponFx[0].kind,'howitzer');
+ assert.equal(heavy.weaponFx[0].x2,270);
+});
+
+test('real ion chain and real resonance transfer use their own signatures',()=>{
+ const ion=game();ion.fieldLoan=createFieldLoan('ion',ion.docked.id,ion.time);
+ ion.shipLoadout.slots[1]='ion';ion.syncShipLoadout();
+ const a={...enemy(150),ionMarkUntil:100},b={...enemy(220),ionMarkUntil:100};
+ ion.grid.insert(a);ion.grid.insert(b);
+ assert.equal(ion.callIonDischarge(),true);
+ assert.equal(ion.weaponFx.length,2);
+ assert.ok(ion.weaponFx.every(e=>e.kind==='ion'));
+ assert.ok(ion.weaponFx[0].x2<a.x,'first ion leg must end on the hull surface');
+ const resonator=game();resonator.fieldLoan=createFieldLoan('resonator',resonator.docked.id,resonator.time);
+ resonator.shipLoadout.slots[1]='resonator';resonator.syncShipLoadout();
+ const c=enemy(150),d=enemy(220);resonator.grid.insert(c);resonator.grid.insert(d);
+ assert.ok(resonator.callFieldWeapon());
+ assert.equal(resonator.weaponFx?.length||0,0,'creating a passive link is not a hit');
+ damageTarget(resonator,{kind:'enemy',target:c},10,'rail');
+ assert.ok(resonator.weaponFx.some(e=>e.kind==='resonator'));
+ assert.ok(resonator.weaponFx.every(e=>e.x2<d.x),
+  'resonance transfer must end at the contact surface, not the target centre');
+});
+
+test('seven separate verified catalog events drive the existing mixer',()=>{
+ const h=new ArcadeHeritage(),events=[];
+ const manifest=JSON.parse(readFileSync(new URL('../../audio-lab/assets/sfx/kenney/manifest.json',import.meta.url),'utf8'));
+ h.soundOn=true;h.audio={playEvent:key=>events.push(key)};
+ h.vfx.clock=10;
+ for(const kind of ['plasmaShot','railShot','flakShot','rocketShot','ionShot','resonatorShot','howitzerShot'])
+  assert.equal(h.play(kind,.01,{x:0,y:0}),true);
+ assert.deepEqual(events,[
+  'starter_soft','railgun','retro_blaster','knife','lightning','magic_wand','explosion_big'
+ ]);
+ for(const key of events){
+  const def=SOUND_CATALOG[key];
+  assert.ok(def,`missing mixer entry for ${key}`);
+  assert.ok(def.sampleUrls?.length||def.sampleUrl,`no actual recording for ${key}`);
+  const file=def.sampleUrls?.[0]||def.sampleUrl;
+  if(file.includes('/kenney/')){
+   // Production downloads these CC0 binaries from a pinned mirror and checks
+   // their SHA before Pages deployment. They are absent from Git by design.
+   const source=manifest.files.find(item=>item.file===file.split('/').at(-1));
+   assert.ok(source?.size>0&&/^[a-f0-9]{40}$/.test(source.blobSha),
+    `recording lacks a pinned, verified source: ${key}`);
+  }else assert.ok(existsSync(new URL(file,new URL('../../audio-lab/',import.meta.url))),
+   `recording missing from repository: ${key}`);
+ }
+});
+
+test('visual laboratory is discoverable and uses production effects, not its own drawn beams',()=>{
+ const html=readFileSync(new URL('../studio/weapon-fx-lab.html',import.meta.url),'utf8');
+ const js=readFileSync(new URL('../studio/weapon-fx-lab.js',import.meta.url),'utf8');
+ const hub=readFileSync(new URL('../studio/index.html',import.meta.url),'utf8');
+ assert.match(hub,/href="\.\/weapon-fx-lab\.html"/);
+ for(const key of ['battle','families','fps','motion','sound','sequence'])
+  assert.match(html,new RegExp('id="'+key+'"'));
+ assert.match(js,/import \{emitWeaponFx,updateWeaponFx,drawWeaponFx\} from '\.\.\/weapon-fx\.js'/);
+ assert.match(js,/import \{drawSeekingMissile\} from '\.\.\/combat-feedback\.js'/);
+ assert.match(js,/import \{drawFieldEffects\} from '\.\.\/field-weapons\.js'/);
+ assert.match(js,/import \{WorldVFX\} from '\.\.\/\.\.\/src\/world-vfx\.js'/);
+ for(const id of WEAPON_FX_KINDS)assert.match(js,new RegExp("id:'"+id+"'"));
+});
