@@ -6,8 +6,9 @@ import {createTactical,validTactical} from './tactical-fields.js?v=tactical-fiel
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-campaign-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
-import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1';
-import {createContours,validContours} from './territory-system.js?v=contours-1';
+import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
+import {createContours,validContours} from './territory-system.js?v=contours-1-world-feedback-1';
+import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
@@ -24,9 +25,7 @@ const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal m
  'waypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
-const cell=v=>typeof v==='string'&&(/^-?\d+:-?\d+$/.test(v)||
- ['industry:source','industry:depot'].includes(v)||
- /^frontier:(azure|teal):(source|depot)$/.test(v));
+const cell=validStationId;
 const hash=text=>{let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);return (h>>>0).toString(16);};
 
 // Runtime targets, operation/cargo objects and station missions share references.

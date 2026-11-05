@@ -5,6 +5,7 @@ import {renderWorldMap} from '../map-panel.js';
 import {connectContour} from '../territory-system.js';
 import {previewContourConnection,contourConnectionChoices} from '../contour-preview.js';
 import {drawContourWorld} from '../contour-visuals.js';
+import {recordWorldFeedback} from '../world-feedback.js';
 import {readFileSync} from 'node:fs';
 
 const harness=()=>({world:new World(),player:{x:0,y:0,shield:0},
@@ -115,6 +116,40 @@ test('world view renders unfinished links and clearly distinguishes interrupted 
  b.suppressed=true;strokes.length=0;game.contourVisualAt=-Infinity;
  drawContourWorld(game,ctx,camera);
  assert.ok(strokes.some(s=>s?.includes('255,115,129')));
+});
+
+test('the default territory map explains real industrial consequences without forcing the pilot into another tab',()=>{
+ const game=harness();
+ recordWorldFeedback(game,{key:'live',cause:'Враг перехватил сборщика',
+  effect:'Этот рейс не принёс флюкс'});
+ game.contourInfo='Связь проведена. Замкните область для добычи.';
+ const html=renderWorldMap(game);
+ assert.match(html,/Что произошло в мире · 1/);
+ assert.match(html,/Враг перехватил сборщика/);
+ assert.match(html,/Этот рейс не принёс флюкс/);
+ assert.match(html,/contour-info/);
+ assert.match(html,/Замкните область для добычи/);
+ assert.match(html,/Контуры территорий/);
+});
+
+test('regional atlas pins at most three witnessed events at their verified positions',()=>{
+ const game=harness();game.contourRegion='amethyst';game.time=20;
+ recordWorldFeedback(game,{key:'located',cause:'Груз перехвачен',effect:'Поставка сорвана',
+  kind:'loss',label:'СНАБЖЕНИЕ ПЕРЕХВАЧЕНО',x:0,y:0});
+ recordWorldFeedback(game,{key:'secret',cause:'Радиоперехват',effect:'Враг меняет тактику',
+  label:'ТАКТИКА',x:undefined,y:undefined});
+ const html=renderWorldMap(game);
+ assert.equal((html.match(/class="contour-incident-pin /g)||[]).length,1);
+ assert.match(html,/aria-label="Груз перехвачен → Поставка сорвана"/);
+ assert.match(html,/Замеченное событие/);
+ for(let i=0;i<5;i++)recordWorldFeedback(game,{key:'extra-'+i,
+  cause:'Доставка '+i,effect:'Потери',label:'ОТМЕТКА',kind:'loss',
+  x:(i-2)*1350,y:(i%2?1:-1)*900});
+ assert.equal((renderWorldMap(game).match(/class="contour-incident-pin /g)||[]).length,3);
+ game.contourRegion='all';
+ assert.doesNotMatch(renderWorldMap(game),/class="contour-incident-pin /);
+ game.contourRegion='amethyst';game.time=201;
+ assert.doesNotMatch(renderWorldMap(game),/class="contour-incident-pin /);
 });
 
 test('station labels and ship marker cannot swallow a station click',()=>{

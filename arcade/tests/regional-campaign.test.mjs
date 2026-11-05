@@ -4,7 +4,8 @@ import {game} from './weapons-scene.mjs';
 import {World} from '../world.js';
 import {openingThreat} from '../balance.js';
 import {warFronts} from '../war-fronts.js';
-import {campaignProgress,regionalCampaignPressure,renderCampaignProgress,campaignDestination} from '../regional-campaign.js';
+import {campaignProgress,regionalCampaignPressure,renderCampaignProgress,
+ campaignConsequences,campaignDestination} from '../regional-campaign.js';
 import {homeIndustryState} from '../home-conflict.js';
 import {strategicCapture,advanceRegionalSupply,regionalSupplyValid} from '../regional-supply.js';
 import {FRONTIERS} from '../frontier-industry.js';
@@ -12,6 +13,7 @@ import {labLogisticsIntel} from '../station-progression.js';
 import {CENTRAL_INDUSTRY} from '../central-industry.js';
 import {autonomousStrikeCarrier} from '../carrier-interception.js';
 import {renderBasePanel} from '../base-panel.js';
+import {renderRegionAtlas} from '../regional-map.js';
 
 test('the campaign derives four fronts from ownership and actual remaining deliveries',()=>{
  const w=new World();assert.equal(campaignProgress(w).secured,0);
@@ -80,6 +82,36 @@ test('campaign navigation exposes regional survey points and never hidden statio
  assert.doesNotMatch(html,/data-x=|data-y=|industry:depot/);
  const p=campaignProgress(g.world);assert.equal(p.complete,false);
  assert.ok(g.world.stations.get(CENTRAL_INDUSTRY.depotId).enemy);
+});
+test('a compact campaign debrief reports actual player effects without revealing unknown fronts',()=>{
+ const g=game(),w=g.world,s=w.regionalSupply.central;
+ s.intercepted=2;
+ assert.deepEqual(campaignConsequences(w),[],
+  'secret factory accounting is not an automatic player newsfeed');
+ w.stations.get(CENTRAL_INDUSTRY.sourceId).discovered=true;
+ let events=campaignConsequences(w);
+ assert.equal(events.length,1);
+ assert.match(events[0].actions.join(' '),/перехвачено грузов: 2/);
+ assert.doesNotMatch(renderCampaignProgress(g),/Ремонтная сеть обломков.*сорвано/);
+ w.stations.get(CENTRAL_INDUSTRY.depotId).enemy=false;
+ w.stations.get(CENTRAL_INDUSTRY.depotId).captured=true;
+ events=campaignConsequences(w);
+ assert.match(events[0].actions.join(' '),/выпуск новых промышленных отрядов остановлен/);
+ assert.match(renderCampaignProgress(g),/Что изменили Ваши действия/);
+});
+test('region navigation switches from industrial threat to actual secured status only after discovery',()=>{
+ const g=game(),f=warFronts(g.world).find(f=>f.key==='home');
+ let atlas=renderRegionAtlas(g);
+ assert.doesNotMatch(atlas,/✓ сеть подавлена|промышленность действует/);
+ f.source.discovered=true;
+ atlas=renderRegionAtlas(g);
+ assert.match(atlas,/промышленность действует/);
+ f.depot.enemy=false;f.depot.captured=true;
+ strategicCapture(g.world,f.depot,g.time);
+ atlas=renderRegionAtlas(g);
+ assert.match(atlas,/✓ сеть подавлена/);
+ assert.match(atlas,/Промышленная сеть этого региона подавлена/);
+ assert.doesNotMatch(atlas,/Остановить налёты в домашнем секторе/);
 });
 test('after a northern mine capture, the next plan leads to the military frontier, with no unknown exact coordinates',()=>{
  const g=game(),front=warFronts(g.world).find(f=>f.key==='north');

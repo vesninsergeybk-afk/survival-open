@@ -521,6 +521,15 @@
 .map-radio-log ul{margin:8px 0 0;padding-left:18px;display:grid;gap:7px}
 .map-radio-log li{color:#e5dfef;font-size:11px;line-height:1.35}
 .map-radio-log li span{color:#ffcf9f;font-weight:700}
+.world-feedback-log{border-color:#69c9da72;background:#122b39d9}
+.world-feedback-log summary{color:#b8f7ed;font-weight:700;font-size:12px;cursor:pointer}
+.world-feedback-log p{font-size:11px;line-height:1.4;color:#a9cfdb;margin:6px 0 0}
+.world-feedback-log ol{display:grid;gap:8px;margin:9px 0 0;padding-left:20px}
+.world-feedback-log li{font-size:11px;line-height:1.35;color:#c4dfe8}
+.world-feedback-log li strong{display:block;color:#f1f9fd;font-weight:650}
+.world-feedback-log li span{display:block;color:#9be9d1;font-size:11px;letter-spacing:normal}
+.contour-info{margin:6px 0;padding:9px 11px;border:1px solid #64deb78c;
+ border-radius:8px;background:#113b367a;color:#d6fff0;font-size:12px;line-height:1.45}
 
 /* Ship fitting is a focused task. The catalogue and inspector appear only
    after selecting a hardpoint, not during the first look at the ship. */
@@ -664,6 +673,14 @@
 .contour-key.hostile{background:#ff7786;border-radius:2px;transform:rotate(45deg)}
 .contour-key.available{background:transparent;border:2px dashed #7effd8;width:10px;height:10px}
 .contour-key.vortex{background:#f58437;border:2px solid #ffda8e}
+.contour-key.incident{background:#f8c26b;border:1px solid #fff1c8;transform:rotate(45deg);border-radius:2px}
+.contour-incident-pin{pointer-events:none}
+.contour-incident-pin .contour-incident-halo{fill:#c5efff13;stroke:#7ce0eb;stroke-width:1.6;stroke-dasharray:3 3}
+.contour-incident-pin path{fill:#7ce0eb;stroke:#102c38;stroke-width:1.5}
+.contour-incident-pin.loss .contour-incident-halo{stroke:#ffbc83}
+.contour-incident-pin.loss path{fill:#ffbc83}
+.contour-incident-pin text{fill:#f4f8e9;font-size:9px;font-weight:800;paint-order:stroke;
+ stroke:#071c2b;stroke-width:3px}
 .contour-context{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#aeced8;
  background:#102b3b;border-left:3px solid #74deca;border-radius:4px;font-size:11px;padding:10px;margin-top:5px}
 #overlay .contour-context button{min-height:36px;margin:0;font-size:11px;white-space:nowrap}

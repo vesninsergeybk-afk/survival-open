@@ -548,7 +548,8 @@ test('a delayed executed order still creates a visible speech bubble and HUD not
  const leader=ship(2,'fighter',150),wing=ship(1,'flanker',100);
  const net=new EnemyComms(),intel={x:0,y:0,vx:0,vy:0,at:1.5};
  const cell={id:1,leader,members:[leader,wing],mode:'close',intel,
-  threat:{kind:'long'},lastDecisionAt:1,pendingDecision:{at:1,mode:'close'}};
+  threat:{kind:'long'},lastDecisionAt:1,
+  pendingDecision:{at:1,mode:'close',threat:{kind:'long'}}};
  net.cells=[cell];wing._commsCell=cell;
  wing._commsOrder={cellId:1,mode:'close',intel,at:1};
  wing._commsIntent={x:10,y:20,mode:'close',leader,at:1.5};
@@ -561,6 +562,10 @@ test('a delayed executed order still creates a visible speech bubble and HUD not
  net.render(ctx,{x:0,y:0,w:500,h:320},1.5,false,60,game);
  assert.ok(labels.some(line=>line.includes('ПЕРЕХВАЧЕН ПРИКАЗ')));
  assert.ok(notices.some(line=>line.includes('бьёт издалека')));
+ assert.match(game.worldFeedback.history[0].cause,/дальний огонь/);
+ assert.match(game.worldFeedback.history[0].effect,/Всем на сближение/);
+ assert.equal(game.worldFeedback.history[0].position,null,
+  'an existing radio bubble is enough; the second marker must not obscure it');
 });
 
 test('a visible wingman cannot expose an unseen commander through radio lines',()=>{

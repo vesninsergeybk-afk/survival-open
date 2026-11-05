@@ -2,6 +2,7 @@ import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
 import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1';
 import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
+import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
@@ -31,14 +32,22 @@ const REGION_BRIEF=Object.freeze({
 export function renderRegionAtlas(game){
  const world=game.world,s=world.regionalSupply;if(!s)return '';
  const current=regionAt(game.player.x,game.player.y),mine=world.stations.get(SUPPLY.mineId);
+ const fronts=warFronts(world);
  const q=p=>({x:150+p.x*.0022,y:120+p.y*.0022});
  const labels=REGIONS.map(r=>{const p=q(r);return '<text x="'+p.x+'" y="'+p.y+'" text-anchor="middle" fill="'+r.color+'" font-size="12">'+r.number+' · '+(r.id==='amethyst'?'Старт':r.id==='amber'?'Рудный пояс':r.id==='azure'?'Разлом':r.id==='lilac'?'Военный рубеж':'Обломки')+'</text>';}).join('');
  const player=q(game.player),buttons=REGIONS.map(r=>{
   const intel=REGION_BRIEF[r.id],route=game.waypoint?.id==='region-'+r.id;
+  const front=fronts.find(f=>f.regions.includes(r.id));
+  // Public geography is always known; only surveyed enemy production may
+  // appear in the status, and the status follows real industrial stock.
+  const status=!front?.known?'':front.outcome?' · ✓ сеть подавлена':
+   !front.working?' · добыча остановлена':' · промышленность действует';
+  const goal=front?.known&&front.outcome?
+   'Промышленная сеть этого региона подавлена. Можно исследовать станции и оставшиеся угрозы.':intel.goal;
   const distance=Math.round(Math.hypot(game.player.x-r.survey.x,game.player.y-r.survey.y));
   return '<details class="region-card"'+(route||current.id===r.id?' open':'')+'><summary><strong>'+r.number+' · '+enc(r.name)+'</strong><small>'+
-   (current.id===r.id?'Вы здесь · ':route?'Маршрут выбран · ':'')+distance+' м до точки разведки</small></summary>'+
-   '<p><b>Зачем лететь:</b> '+enc(intel.goal)+'</p><p><b>Опасность:</b> '+enc(intel.danger)+'</p>'+
+   (current.id===r.id?'Вы здесь · ':route?'Маршрут выбран · ':'')+distance+' м до точки разведки'+status+'</small></summary>'+
+   '<p><b>Зачем лететь:</b> '+enc(goal)+'</p><p><b>Опасность:</b> '+enc(intel.danger)+'</p>'+
    '<p><b>Подготовка:</b> '+enc(intel.preparation)+'</p><p><b>Что изменится:</b> '+enc(intel.result)+'</p>'+
    '<button type="button" data-act="waypoint" data-id="region-'+r.id+'" data-x="'+r.survey.x+'" data-y="'+r.survey.y+'" data-label="'+enc(r.name)+'">'+
    (route?'✓ Маршрут выбран · изменить':'Построить маршрут к ориентиру')+'</button></details>';

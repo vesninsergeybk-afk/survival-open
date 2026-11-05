@@ -5,11 +5,75 @@ import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} f
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1';
 import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1';
 import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1';
-import {updateStrategicCommand,assignStationInterdiction,drawStationInterdiction} from './strategic-command.js?v=campaign-1-repair-qa-1';
+import {updateStrategicCommand,assignStationInterdiction,drawStationInterdiction} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
 import {stormPhase} from './regional-storms.js?v=regions-1';
 import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1';
+import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+/** Translate *completed simulation events*, never a speculative plan, into a
+ * short witnessed cause → consequence. Unknown industrial nodes stay unknown. */
+export function announceIndustryEvent(game,event){
+ const stations=game.world.stations;
+ let line=null,source=null,depot=null;
+ if(event.network&&FRONTIERS[event.network]){
+  const cfg=FRONTIERS[event.network];
+  source=stations.get(cfg.sourceId);depot=stations.get(cfg.depotId);
+  if(!source?.discovered&&!depot?.discovered)return false;
+  const electro=event.network==='azure';
+  const table={
+   dispatch:[electro?'Отправлены батареи':'Отправлены запчасти',
+    electro?'Доставка оплатит ионных перехватчиков':'Доставка усилит ремонтную верфь','ГРУЗ В ПУТИ','source'],
+   delivery:[electro?'Батареи доставлены':'Запчасти доставлены',
+    electro?'Электроангар готовит ионный отряд':'Верфь готовит отряд с ремонтником','СБОРКА ВРАГА','depot'],
+   'route-changed':['После потерь изменён маршрут',
+    'Новые грузы пойдут обходной дорогой','МАРШРУТ ИЗМЕНЁН','source'],
+   'screen-ready':['Враг потратил запас на охрану',
+    'Новые рейсы могут идти под усиленным прикрытием','ОХРАНЕНИЕ ГОТОВО','source'],
+   'shipment-overdue':['Груз не прибыл вовремя',
+    'Сеть получила донесение о пропаже','ТРАНСПОРТ ПРОПАЛ','depot'],
+   'repair-depot-complete':['Ремонтный корабль прибыл',
+    'Часть корпуса и турелей военного узла восстановлена','ВРАГ ОТРЕМОНТИРОВАН','depot'],
+   'repair-source-complete':['Ремонтный корабль прибыл',
+    'Часть корпуса и турелей добывающего узла восстановлена','ВРАГ ОТРЕМОНТИРОВАН','source'],
+   'repair-intercept':['Ремонтный рейс сорван',
+    'Потраченные на него материалы не вернутся','РЕМОНТ СОРВАН',null]
+  };
+  line=table[event.kind]||null;
+ }else if(event.central){
+  source=stations.get(CENTRAL_INDUSTRY.sourceId);depot=stations.get(CENTRAL_INDUSTRY.depotId);
+  if(!source?.discovered&&!depot?.discovered)return false;
+  const table={
+   'central-dispatch':['Шахта отправила груз',
+    'Если он дойдёт, сборочный пост получит материалы','ГРУЗ В ПУТИ','source'],
+   'central-delivery':['Груз доставлен на сборку',
+    'Пост готовит тяжёлый корабль и два истребителя','СБОРКА ОТРЯДА','depot'],
+   'central-route-changed':['После перехватов шахта сменила путь',
+    'Новые рейсы пойдут в обход; маршрут виден на карте','ОБХОДНОЙ МАРШРУТ','source'],
+   'central-screen-ready':['Шахта потратила руду на охрану',
+    'Следующие рейсы могут получить тяжёлый эскорт','ОХРАНЕНИЕ ГОТОВО','source']
+  };
+  line=table[event.kind]||null;
+ }else if(!event.network){
+  source=stations.get(SUPPLY.mineId);depot=stations.get(SUPPLY.militaryId);
+  if(!source?.discovered)return false;
+  const table={
+   dispatch:['Северная шахта отправила руду',
+    'При доставке узел оплатит тяжёлый патруль','РУДА В ПУТИ','source'],
+   delivery:['Руда доставлена военному узлу',
+    'Противник получил материал для тяжёлого патруля','ТЯЖЁЛЫЙ РЕЗЕРВ','depot']
+  };
+  line=table[event.kind]||null;
+ }
+ if(!line)return false;
+ const [cause,effect,label,target]=line;
+ const station=target==='source'?source:target==='depot'?depot:null;
+ const location=station?.discovered?station:null;
+ const network=event.network||(event.central?'central':'north');
+ recordWorldFeedback(game,{key:network+':'+event.kind+':'+event.time,
+  cause,effect,label,kind:'industry',notify:true,x:location?.x,y:location?.y});
+ return true;
+}
 function makeEnemy(game,type,x,y,scenario,protect=null,frontierRole=null){
  const def=ENEMY_TYPES[type];
  return {serial:++game.enemySerial,group:game.groupSerial,type,x,y,vx:0,vy:0,
@@ -62,6 +126,7 @@ export function updateRegionalWorld(game,dt){
  const mine=world.stations.get(SUPPLY.mineId);
  const local=world.stations.get(CENTRAL_INDUSTRY.sourceId);
  for(const e of events){
+  if(announceIndustryEvent(game,e))continue;
   if(e.kind==='dispatch'&&mine?.discovered)
    game.notice('Добывающий комплекс отправил руду на север. Маршрут снабжения отмечен на карте.',6);
   if(e.kind==='delivery'&&mine?.discovered)
@@ -284,6 +349,16 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  const frontier=cargo.frontierCargo?FRONTIERS[cargo.frontierNetwork]:null;
  game.addDrop('ore',cargo.x,cargo.y,cargo.frontierRepair?4:frontier?.rewardOre??(cargo.centralCargo?CENTRAL_INDUSTRY.oreReward:SUPPLY.oreReward),{source:'salvage',life:60});
  game.addDrop('data',cargo.x+14,cargo.y,cargo.frontierRepair?5:frontier?.rewardData??(cargo.centralCargo?CENTRAL_INDUSTRY.dataReward:SUPPLY.dataReward),{source:'combat',life:60});
+ recordWorldFeedback(game,{key:'cargo-loss:'+cargo.id,kind:'loss',
+  label:cargo.frontierRepair?'РЕМОНТНЫЙ РЕЙС СОРВАН':'СНАБЖЕНИЕ ПЕРЕХВАЧЕНО',
+  cause:cargo.frontierRepair?'Вы уничтожили ремонтный корабль':
+   cargo.centralCargo?'Вы уничтожили местный груз':
+   cargo.frontierCargo?'Вы перехватили региональный груз':'Вы перехватили рудный груз',
+  effect:cargo.frontierRepair?'Повреждённая станция не получит этот ремонт':
+   cargo.centralCargo?'Один будущий налёт лишился материалов':
+   cargo.frontierCargo?(cargo.frontierNetwork==='azure'?'Один будущий ионный отряд не усилится':
+    'Один будущий отряд не получит ремонтника'):
+   'Один будущий патруль не получит тяжёлое усиление',x:cargo.x,y:cargo.y});
  game.notice(cargo.frontierRepair?
   'Вражеский ремонтный корабль уничтожен. Запас на этот рейс потрачен, повреждённая станция останется без ремонта.'+
    (silentLoss?' В радиотени пропажу заметят позже.':' Сигнал об атаке получен вражеской сетью.'):frontier?

@@ -190,7 +190,7 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
   if(player&&Math.hypot(player.x-x,player.y-y)<1700&&
    enemies.some(e=>e.hp>0&&!e.converted&&Math.hypot(e.x-x,e.y-y)<65)){
    h.hp-=dt*1.5;
-   if(h.hp<=0){h.phase='done';state.lost++;events.push({kind:'lost',fieldId:h.fieldId});}
+   if(h.hp<=0){h.phase='done';state.lost++;events.push({kind:'lost',fieldId:h.fieldId,x,y});}
   }
  }
  state.harvesters=state.harvesters.filter(h=>h.phase!=='done');
