@@ -1,5 +1,5 @@
-import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1';
-import {World} from './world.js?v=living-world-3-radio-shadow-1';
+import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1';
+import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1';
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2';
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1';
@@ -249,6 +249,16 @@ export class RunCheckpointStore{
   this.record=this.read();this.runId=this.record?.runId||null;
   this.lastBody=this.record?.kind==='checkpoint'?this.record.body:null;
   return this.record?.kind==='checkpoint'?this.record.data:null;
+ }
+ recoveryCheckpoint(){
+  if(this.blocked||!this.runId)return null;
+  const latest=this.read();
+  if(this.blocked)return null;
+  if((latest?.serial||0)!==(this.record?.serial||0)||latest?.runId!==this.runId){
+   this.blocked=true;this.issue='conflict';return null;
+  }
+  // Read the immutable saved graph, never the dying ship's mutable world.
+  return latest?.kind==='checkpoint'?latest.data:null;
  }
  startNew(){
   if(this.blocked)return {ok:false,reason:this.issue};

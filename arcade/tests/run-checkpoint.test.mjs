@@ -411,11 +411,35 @@ test('another tab cannot silently replace newer purchases with stale state',()=>
  assert.equal(second.save(stale).reason,'conflict');
  assert.equal(new RunCheckpointStore(storage).load().state.player.ore,37);
 });
-test('death and a deliberate new flight suppress older backup continuations',()=>{
+test('deliberately ending a run or starting anew suppresses older backup continuations',()=>{
  const g=scene(),{store,storage}=save(g);assert.ok(store.end().ok);
  assert.equal(new RunCheckpointStore(storage).load(),null);
  const next=new RunCheckpointStore(storage);next.load();next.startNew();
  assert.equal(new RunCheckpointStore(storage).load(),null);
+});
+test('death preserves only the last docked world; restoring discards unsaved rewards and captures',()=>{
+ const g=scene(),{store,storage}=save(g);g.runStore=store;
+ g.heritage.vfx.shipExplosion=noop;g.heritage.play=noop;g.heritage.onDeath=noop;
+ g.sortieReports=[];g.sortieStart=startSortie(g);g.time+=90;g.player.ore+=500;
+ g.world.stations.get('industry:depot').enemy=false;
+ g.player.hp=0;g.die();
+ assert.ok(g.dead);assert.ok(g.pendingCheckpoint);
+ assert.match(g.overlay.innerHTML,/Вернуться к последней стыковке/);
+ const disk=new RunCheckpointStore(storage).load();
+ assert.equal(disk.state.player.ore,20);assert.equal(disk.state.time,243.5);
+ assert.equal(disk.world.stations.find(([id])=>id==='industry:depot')[1].enemy,true);
+ const fresh=scene();restoreCheckpoint(fresh,g.pendingCheckpoint);
+ assert.equal(fresh.player.ore,20);assert.equal(fresh.dead,false);
+ assert.equal(fresh.world.stations.get('industry:depot').enemy,true);
+ assert.ok(store.end().ok);assert.equal(new RunCheckpointStore(storage).load(),null);
+});
+test('recovery cannot resurrect a stale checkpoint after another tab saves or starts a new run',()=>{
+ const g=scene(),{store,storage}=save(g),second=new RunCheckpointStore(storage);second.load();
+ g.player.ore=50;assert.ok(second.save(captureCheckpoint(g,g.docked)).ok);
+ assert.equal(store.recoveryCheckpoint(),null);assert.equal(store.issue,'conflict');
+ assert.equal(new RunCheckpointStore(storage).load().state.player.ore,50);
+ const fresh=new RunCheckpointStore(memory());fresh.load();fresh.startNew();
+ assert.equal(fresh.recoveryCheckpoint(),null,'no docking means no recovery');
 });
 test('unsupported future saves and inaccessible storage are left intact',()=>{
  const storage=memory(),raw='{"format":999,"serial":99,"body":"future"}';
@@ -466,6 +490,8 @@ test('real station save gate never turns an in-flight or dead state into a check
 test('continuation renders the restored sector and terrain before the dock pauses it again',()=>{
  const original=scene(),saved=unpackRun(packRun(captureCheckpoint(original,original.docked)));
  const g=scene();g.pendingCheckpoint=saved;g.vw=1200;g.vh=800;
+ g.dead=true;g.heritage.dead=true;g.enemyComms=new EnemyComms();g.enemyComms.nextTick=900;
+ g.designatedTarget={target:{hp:1},expiresAt:900};
  let sky=null,rendered=false;g.visuals={updateSky(x,y){sky=[x,y];}};
  g.heritage.pause=noop;g.hangarSession={begin:noop};
  g.renderDock=()=>{
@@ -474,6 +500,8 @@ test('continuation renders the restored sector and terrain before the dock pause
   assert.ok(g.paused);assert.equal(g.time,original.time);rendered=true;
  };
  g.continueRun();assert.ok(rendered);assert.equal(g.pendingCheckpoint,null);
+ assert.equal(g.heritage.dead,false);assert.equal(g.enemyComms.nextTick,0);
+ assert.equal(g.designatedTarget,null);
 });
 
 

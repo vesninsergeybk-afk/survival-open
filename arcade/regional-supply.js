@@ -1,5 +1,5 @@
 import {REGIONS} from './regions.js?v=regions-1';
-import {createCentralIndustry,advanceCentralIndustry,interceptCentralCargo,centralIndustryValid,CENTRAL_INDUSTRY,centralEvent} from './central-industry.js?v=living-world-1';
+import {createCentralIndustry,advanceCentralIndustry,interceptCentralCargo,centralIndustryValid,CENTRAL_INDUSTRY,centralEvent} from './central-industry.js?v=living-world-1-home-conflict-1';
 import {createFrontierIndustry,advanceFrontierIndustry,interceptFrontierCargo,frontierIndustryValid,captureFrontierStation} from './frontier-industry.js?v=living-world-3-radio-shadow-1';
 export const SUPPLY=Object.freeze({mineId:'28:5',militaryId:'4:-32',
  production:.2,capacity:24,cargoCost:12,dispatchPeriod:90,speed:220,

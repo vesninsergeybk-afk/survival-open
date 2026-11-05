@@ -1,13 +1,13 @@
 // The first small, autonomous industrial loop. It is part of regionalSupply,
 // not an independent source of free enemies. Production requires a living
 // worker, an actual asteroid and a hostile source station. Every convoy is
-// paid for once and can fund at most one replacement ambient encounter.
+// paid for once and can fund at most one additional industrial sortie.
 export const CENTRAL_INDUSTRY=Object.freeze({
  sourceId:'industry:source',depotId:'industry:depot',
  sourceX:4400,sourceY:2800,depotX:7200,depotY:1600,
  workerSpeed:155,miningRate:1,miningYield:.24,workerCapacity:4,
  oreCapacity:16,cargoCost:8,dispatchPeriod:75,
- cargoSpeed:210,cargoHp:115,warning:9,assembly:14,
+ cargoSpeed:125,cargoHp:115,warning:20,assembly:28,
  oreReward:6,dataReward:8
 });
 
@@ -26,19 +26,34 @@ export const CENTRAL_ROUTE=Object.freeze([
  Object.freeze({x:CENTRAL_INDUSTRY.depotX,y:CENTRAL_INDUSTRY.depotY})
 ]);
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-const legLengths=CENTRAL_ROUTE.slice(1).map((p,i)=>distance(CENTRAL_ROUTE[i],p));
-const routeLength=legLengths.reduce((a,b)=>a+b,0);
+export const CENTRAL_DIVERSION=Object.freeze([
+ CENTRAL_ROUTE[0],Object.freeze({x:5050,y:3850}),
+ Object.freeze({x:7200,y:3250}),CENTRAL_ROUTE.at(-1)
+]);
+export const centralRoute=mode=>mode==='diversion'?CENTRAL_DIVERSION:CENTRAL_ROUTE;
+const routeSize=mode=>centralRoute(mode).slice(1).reduce((n,p,i)=>n+distance(centralRoute(mode)[i],p),0);
+export const centralCargoRemaining=cargo=>Math.max(0,routeSize(cargo.route)-cargo.distance);
+// Legacy shipments retain their original speed; an update must not move an
+// already saved transport backwards or silently alter its arrival deadline.
+export const centralCargoSpeed=cargo=>cargo.speed??210;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 
-export function centralCargoPosition(progress){
- let rest=clamp(progress,0,routeLength);
- for(let i=1;i<CENTRAL_ROUTE.length;i++){
-  const a=CENTRAL_ROUTE[i-1],b=CENTRAL_ROUTE[i],d=legLengths[i-1];
+export function centralCargoPosition(progress,mode='direct'){
+ const route=centralRoute(mode);
+ let rest=clamp(progress,0,routeSize(mode));
+ for(let i=1;i<route.length;i++){
+  const a=route[i-1],b=route[i],d=distance(a,b);
   if(rest<=d){const f=rest/d;return {x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f,
    angle:Math.atan2(b.y-a.y,b.x-a.x)+Math.PI/2};}
   rest-=d;
  }
- return {...CENTRAL_ROUTE.at(-1),angle:0};
+ return {...route.at(-1),angle:0};
+}
+
+// Preparations and every reinforced dispatch spend actual mined ore. Already
+// launched cargo keeps its own route when the network changes its next route.
+export function centralStrategy(s){
+ return s.strategy??= {losses:0,screened:false,rerouted:false,planUntil:0};
 }
 
 export function createCentralIndustry(time=0){
@@ -116,21 +131,31 @@ export function advanceCentralIndustry(world,time){
  while(s.clock<Math.floor(time)){
   const t=++s.clock;
   workerTick(world,s,t);
- if(mine?.enemy&&depot?.enemy&&s.ore+1e-8>=CENTRAL_INDUSTRY.cargoCost&&
+  const strategy=centralStrategy(s);
+  if(mine?.enemy&&depot?.enemy&&strategy.planUntil>0&&t>=strategy.planUntil&&s.ore>=4){
+   s.ore-=4;strategy.planUntil=0;
+   if(!strategy.screened){strategy.screened=true;emit('central-screen-ready',t);}
+   else {strategy.rerouted=true;emit('central-route-changed',t);}
+  }
+  if(strategy.screened&&strategy.losses>=2&&!strategy.rerouted&&!strategy.planUntil)
+   strategy.planUntil=t+18;
+  const cost=CENTRAL_INDUSTRY.cargoCost+(strategy.screened?2:0);
+ if(mine?.enemy&&depot?.enemy&&s.ore+1e-8>=cost&&
     t>=s.nextDispatch&&s.convoys.length<1&&s.reserves<2){
-   s.ore=Math.max(0,s.ore-CENTRAL_INDUSTRY.cargoCost);
+   s.ore=Math.max(0,s.ore-cost);
    s.nextDispatch=t+CENTRAL_INDUSTRY.dispatchPeriod;
    s.convoys.push({id:'central-cargo-'+(++s.serial),regionalCargo:true,
     centralCargo:true,type:'fighter',distance:0,launchedAt:t,
+    speed:CENTRAL_INDUSTRY.cargoSpeed,screened:strategy.screened,route:strategy.rerouted?'diversion':'direct',
     ...centralCargoPosition(0),r:29,hp:CENTRAL_INDUSTRY.cargoHp,
     maxHp:CENTRAL_INDUSTRY.cargoHp,hit:0,seen:false});
    emit('central-dispatch',t);
   }
   for(const cargo of s.convoys){
    if(cargo.hp<=0)continue;
-   cargo.distance=(t-cargo.launchedAt)*CENTRAL_INDUSTRY.cargoSpeed;
-   Object.assign(cargo,centralCargoPosition(cargo.distance));
-   if(cargo.distance>=routeLength){
+   cargo.distance=(t-cargo.launchedAt)*centralCargoSpeed(cargo);
+   Object.assign(cargo,centralCargoPosition(cargo.distance,cargo.route));
+   if(cargo.distance>=routeSize(cargo.route)){
     cargo.hp=0;
     if(depot?.enemy){
      if(s.reserves<2){s.reserves++;s.delivered++;s.assemblyUntil=t+CENTRAL_INDUSTRY.assembly;
@@ -148,8 +173,8 @@ export function advanceCentralIndustry(world,time){
   }
  }
  for(const cargo of s.convoys){
-  cargo.distance=(time-cargo.launchedAt)*CENTRAL_INDUSTRY.cargoSpeed;
-  Object.assign(cargo,centralCargoPosition(cargo.distance));
+  cargo.distance=(time-cargo.launchedAt)*centralCargoSpeed(cargo);
+  Object.assign(cargo,centralCargoPosition(cargo.distance,cargo.route));
  }
  Object.assign(s.worker,centralWorkerPosition(s.worker,time));
  return events;
@@ -160,6 +185,9 @@ export function interceptCentralCargo(world,cargo,time){
  if(!s?.convoys.includes(cargo)||cargo.rewarded||cargo.hp>0)return false;
  cargo.rewarded=true;s.intercepted++;
  s.convoys=s.convoys.filter(c=>c!==cargo);
+ const strategy=centralStrategy(s);strategy.losses++;
+ if(!strategy.planUntil&&(!strategy.screened||strategy.losses>=2&&!strategy.rerouted))
+  strategy.planUntil=time+18;
  centralEvent(s,'central-intercept',time);return true;
 }
 
@@ -181,6 +209,13 @@ export function centralIndustryValid(s,time){
   valid(s.assemblyUntil)&&valid(s.nextRaid)&&
   (!s.pendingRaid||valid(s.pendingRaid.readyAt))&&
   ['produced','delivered','intercepted','raids'].every(k=>valid(s[k]))&&
+  (s.strategy===undefined||s.strategy&&Number.isSafeInteger(s.strategy.losses)&&
+   valid(s.strategy.losses)&&typeof s.strategy.screened==='boolean'&&
+   typeof s.strategy.rerouted==='boolean'&&valid(s.strategy.planUntil))&&
+  (s.conflict===undefined||s.conflict&&s.conflict.version===1&&
+   (s.conflict.offeredAt===null||valid(s.conflict.offeredAt,0,time))&&
+   [null,'survey','intercept','source','depot','lab','arsenal','carrier'].includes(s.conflict.plan)&&
+   [null,'starved','captured'].includes(s.conflict.outcome))&&
   w?.centralWorker===true&&valid(w.hp,0,w.maxHp)&&w.maxHp===70&&w.r===16&&
   ['seek','outbound','mining','return','disabled','evacuated'].includes(w.phase)&&
   (w.rockId===null||typeof w.rockId==='string'&&w.rockId.length<100)&&
@@ -191,7 +226,10 @@ export function centralIndustryValid(s,time){
   Array.isArray(s.convoys)&&s.convoys.length<=1&&
   s.convoys.every(c=>c.centralCargo===true&&c.regionalCargo===true&&
    /^central-cargo-\d+$/.test(c.id)&&valid(c.launchedAt,0,time)&&
-   valid(c.distance,0,routeLength+CENTRAL_INDUSTRY.cargoSpeed)&&
+   [undefined,'direct','diversion'].includes(c.route)&&
+   [undefined,125,210].includes(c.speed)&&
+   (c.screened===undefined||typeof c.screened==='boolean')&&
+   valid(c.distance,0,routeSize(c.route)+centralCargoSpeed(c))&&
    point(c)&&valid(c.hp,.001,CENTRAL_INDUSTRY.cargoHp)&&
    c.maxHp===CENTRAL_INDUSTRY.cargoHp&&c.r===29);
 }

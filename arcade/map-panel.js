@@ -1,4 +1,4 @@
-import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1';
+import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1';
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
@@ -6,7 +6,8 @@ import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './rela
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
 import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-4';
-import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1';
+import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1';
+import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -291,6 +292,7 @@ export function renderWorldMap(game){
   '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
     ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
   '<aside class="map-side">'+
+  renderHomeConflict(game)+
   (intel.unlocked?'<section class="map-objective map-intel"><span>'+enc(LAB_LOGISTICS_TECH.name.toUpperCase())+'</span><p>'+enc(intel.status)+'</p>'+
    (intelContacts?'<div class="map-contact-list">'+intelContacts+'</div>':
     (intel.localSecured?'<p>Местная цепочка снабжения подавлена. Другие действующие лаборатории могут обнаружить грузы в дальних регионах.</p>':

@@ -1,8 +1,8 @@
 // First-of-type discoveries teach a new action without adding another currency,
 // another station tab, or a second copy of run progression in the save file.
 // Station activation is already checkpointed, so restored runs keep the unlock.
-import {CENTRAL_INDUSTRY} from './central-industry.js?v=living-world-1';
-import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1';
+import {CENTRAL_INDUSTRY} from './central-industry.js?v=living-world-1-home-conflict-1';
+import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1';
 import {FRONTIERS} from './frontier-industry.js?v=living-world-3-radio-shadow-1';
 
 export const PRECISION_RAIL_TECH=Object.freeze({

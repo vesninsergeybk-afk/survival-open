@@ -1,7 +1,7 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
-import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1';
+import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
@@ -9,8 +9,9 @@ import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=car
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1';
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1';
-import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1';
+import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1';
 import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1';
+import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -492,7 +493,7 @@ const tabPanel=(id,selected,body)=>'<section class="base-tab-panel" id="base-pan
 
 // Station entry should tell the pilot what to do now. Awards still go through
 // their existing game handlers; this only changes where the actions appear.
-function stationNextStep(base,state,o){
+function stationNextStep(base,state,o,regionalGoal=false){
  const c=state.contract;
  const local=c?.baseId===base.id;
  const ready=local&&c.progress>=c.goal;
@@ -541,6 +542,7 @@ function stationNextStep(base,state,o){
   buttons=op.baseId===base.id?action('baseTab','Посмотреть операцию','','operations'):
    action('baseMap','Показать цель на карте');
  }
+ if(kind==='standard'&&regionalGoal)return '';
  return '<section class="base-next-step '+kind+'" aria-label="Что делать сейчас">'+
   '<div><span class="base-kicker">ЧТО СЕЙЧАС ВАЖНО</span><h3>'+title+'</h3><p>'+description+'</p></div>'+
   '<div class="base-next-actions">'+buttons+'</div></section>';
@@ -707,7 +709,9 @@ export function renderBasePanel(base,state){
   action('loanField','Выбрать ионный','','ion')+'</div>'+
   '<div><b>Резонатор</b><small>Связывает несколько целей и передаёт между ними часть урона · Space</small>'+
   action('loanField','Выбрать резонатор','','resonator')+'</div></div></section>':'';
- const dashboard=stationNextStep(base,state,o)+
+ const regionalGoal=state.world&&state.position?renderHomeConflict({world:state.world,player:state.position,
+  time:state.time,openingArc:state.openingArc},{compact:true}):'';
+ const dashboard=stationNextStep(base,state,o,!!regionalGoal)+regionalGoal+
   '<div class="base-quick-services">'+
   '<section class="base-quick-service"><span class="base-kicker">КОРАБЛЬ</span><h3>Ремонт и оснащение</h3>'+
   '<p>'+repairHint+(base.type==='dock'?' Вблизи дока корпус также восстанавливается бесплатно, если не получать урон.':'')+'</p>'+

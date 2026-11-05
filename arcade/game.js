@@ -1,12 +1,12 @@
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
 import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expedition-1';
-import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shadow-1';
-import {disableCentralWorker} from './central-industry.js?v=living-world-1';
+import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1';
+import {disableCentralWorker} from './central-industry.js?v=living-world-1-home-conflict-1';
 import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3-radio-shadow-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=arcade-balanced-bases-30';
-import {World} from './world.js?v=living-world-3-radio-shadow-1';
+import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
@@ -23,16 +23,16 @@ import {ArcadeVisuals} from './visuals.js?v=regions-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -43,16 +43,17 @@ import {claimFirstContractModule} from './first-contract-reward.js?v=first-contr
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
 import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1';
-import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1';
+import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
  openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-3';
+import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home-conflict.js?v=home-conflict-1';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -294,6 +295,7 @@ export class ArcadeGame {
    if(this.pendingStationModule&&this.overlay.dataset.mode==='base'&&
     !b.closest('.base-module-confirm'))return;
    if(act==='runContinue'){this.continueRun();return;}
+   if(act==='conflictPlan'){this.chooseConflictPlan(b.dataset.role);return;}
    if(act==='runNew'){
     this.pendingCheckpoint=null;this.runStore?.startNew();
     this.overlay.dataset.mode='';this.dismiss();
@@ -355,7 +357,7 @@ export class ArcadeGame {
     }
    if(act==='acceptOperation'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimContract'||act==='claimFirstModule'||act==='installModule'||act==='antenna')
     this.baseAction(act,b.dataset.role||'');
-   if(act==='restart')location.reload();
+   if(act==='restart'){this.runStore?.end();location.reload();}
   });
   this.overlay.addEventListener('keydown',e=>{
    const button=e.target.closest('.base-tabs button[role="tab"]');
@@ -553,7 +555,12 @@ export class ArcadeGame {
   confirmDeparture(){
    if(!this.overlay.querySelector?.('.departure-confirm'))return false;
    const planned=this.pendingWaypointSelection;this.pendingWaypointSelection=null;
-   if(planned){this.waypoint=planned.waypoint;if(planned.waypoint)this.heritage.world('contract');}
+   if(planned){
+    this.waypoint=planned.waypoint;
+    if(planned.waypoint?.conflictPlan&&this.world.regionalSupply?.central?.conflict)
+     this.world.regionalSupply.central.conflict.plan=planned.waypoint.conflictPlan;
+    if(planned.waypoint)this.heritage.world('contract');
+   }
    const departed=this.dismiss(true);
    if(departed&&planned)this.notice(planned.message,4);
    return departed;
@@ -808,12 +815,24 @@ export class ArcadeGame {
     {id:data.id,x,y,label:data.label||'Сигнал станции'};
    this.requestWaypointDeparture(waypoint,'Маршрут: '+waypoint.label+' · '+Math.round(dist(this.player,waypoint))+' м');
   }
+  chooseConflictPlan(plan){
+   if(this.dead||!['base','map'].includes(this.overlay.dataset.mode))return false;
+   const target=homeConflictTarget(this,plan);
+   if(!target)return false;
+   updateHomeConflict(this);
+   // Planning and departure are one transaction, including the existing
+   // unsaved hangar confirmation. Cancelling departure must not change a plan.
+   this.requestWaypointDeparture({...target,conflictPlan:plan},'План выбран: '+target.label);
+   return true;
+  }
   requestWaypointDeparture(waypoint,message){
    if(!this.overlay.hidden&&this.docked&&this.stationExitArmed&&
     typeof this.hangarSession?.dirty==='function'&&this.hangarSession.dirty(this.shipLoadout)){
     this.pendingWaypointSelection={waypoint,message};this.askDepartureConfirmation();return;
    }
    this.waypoint=waypoint;
+   if(waypoint?.conflictPlan&&this.world.regionalSupply?.central?.conflict)
+    this.world.regionalSupply.central.conflict.plan=waypoint.conflictPlan;
    if(waypoint)this.heritage.world('contract');
    if(this.dismiss()!==false)this.notice(message,4);
   }
@@ -1430,7 +1449,7 @@ export class ArcadeGame {
  baseState(){
   const topology=this.world.networkTopology();
   return {loadout:this.shipLoadout,hangarSession:this.hangarSession,skillRanks:this.skillRanks,points:this.player.points,hangarUpgrades:this.hangarUpgrades(),ore:this.player.ore,data:this.player.data,xp:this.player.xp,level:this.player.level,
-   firstHardwareReward:this.firstHardwareReward,
+   firstHardwareReward:this.firstHardwareReward,openingArc:this.openingArc,
    nextXp:expForNext(this.player.level),world:this.world,hp:this.player.hp,maxHp:this.player.maxHp,time:this.time,
    civilianBases:[...this.world.stations.values()].filter(b=>b.active&&!b.captured).length,
    relayGain:this.docked&&!this.docked.relayBoost?
@@ -1480,7 +1499,7 @@ export class ArcadeGame {
    (saved?(baseNames[base.type]||'Станция')+' · уровень '+p.level+' · сплав '+p.ore+' · данные '+p.data:
     this.runStore?.issue==='unsupported'?'Этот вылет сохранён более новой версией игры. Прежняя запись останется; новый вылет в этой версии можно начать без сохранений.':
      'Не удалось прочитать контрольную точку. Можно начать новый вылет.')+'</p><p>'+
-   'Прогресс сохраняется на активных станциях и после подготовки корабля. Продолжение возвращает к последней контрольной точке. После гибели начинается новый вылет.</p>'+
+   'Прогресс сохраняется на активных станциях и после подготовки корабля. После гибели можно вернуться к последней стыковке: весь мир, корабль и ресурсы восстановятся на тот момент. Всё, что произошло после неё, будет потеряно.</p>'+
    (saved?'<button data-act="runContinue">Продолжить со станции</button><p>Новый вылет заменит это сохранение.</p>':'')+
    '<button data-act="runNew">Новый вылет</button></div>';
   this.presentMenu('[data-act="'+(saved?'runContinue':'runNew')+'"]');
@@ -1489,6 +1508,16 @@ export class ArcadeGame {
   if(!this.pendingCheckpoint)return;
   try{restoreCheckpoint(this,this.pendingCheckpoint);}
   catch{this.notice('Сохранённый вылет не удалось восстановить. Запись оставлена без изменений.',6);return;}
+  this.heritage.dead=false;
+  this.deathSceneEnd=0;
+  this.enemyComms=new EnemyComms();
+  this.designatedTarget=null;this.interactionFocus=null;this.weaponFx=[];
+  this.nearArsenalBonus=false;this.nearArsenalDefense=false;
+  this.nearDockField=false;this.nearQuietLab=false;this.nearDock=null;
+  if(this.enemyLearning){
+   this.enemyLearning.lastPlayer=null;this.enemyLearning.lastObservation=-Infinity;
+   this.enemyLearning.nextSave=this.time+15;
+  }
   this.precisionRailAvailable=precisionRailUnlocked(this.world);
   this.manualRailMode=false;
   this.canvas?.classList?.remove('rail-manual');
@@ -1499,6 +1528,8 @@ export class ArcadeGame {
   this.visuals.updateSky(this.player.x,this.player.y);
   this.nearRocks=this.world.nearbyRocks(this.player.x,this.player.y,Math.max(this.vw,this.vh)*.85+450);
   this.localStations=this.world.nearbyStations(this.player.x,this.player.y,1000,false);
+  this.grid?.clear();this.shotGrid?.clear();this.rockGrid?.clear();
+  for(const rock of this.nearRocks)if(rock.alive)this.rockGrid?.insert(rock);
   this.pendingCheckpoint=null;this.syncShipLoadout();this.hangarSession.begin(this.shipLoadout);
   this.baseTab='summary';this.overlay.dataset.mode='base';this.overlay.hidden=false;
   this.stationExitArmed=true;
@@ -2165,18 +2196,22 @@ export class ArcadeGame {
    this.bestFlight=Math.floor(this.time);
    try{this.recordStorage?.setItem('survivor.best-flight.v1',String(this.bestFlight));}catch{}
   }
-  this.runStore?.end();
+  this.pendingCheckpoint=this.runStore?.recoveryCheckpoint()||null;
+  if(!this.pendingCheckpoint)this.runStore?.end();
   this.deathVfxAt=performance.now();this.deathSceneEnd=this.deathVfxAt+1100;
   this.overlay.hidden=true;this.overlay.dataset.mode='death';
   this.overlay.innerHTML='<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="death-title"><h2 id="death-title">Корабль потерян</h2><p>Время полёта: '+
     Math.floor(this.time/60)+' мин · уровень '+this.player.level+
     ' · открыто станций '+this.activeBases+'</p><p>Личный рекорд: '+
-    runClock(this.bestFlight)+' · новый забег позволяет выбрать другую тактику.</p>'+
+    runClock(this.bestFlight)+'.</p>'+
     (failed?'<p>Последний вылет: '+failed.seconds+' с · сплав '+(failed.ore>=0?'+':'')+failed.ore+
      ' · данные '+(failed.data>=0?'+':'')+failed.data+
      ' · получено повреждений '+failed.details.damageTaken+
      ' · потеряно дронов '+failed.details.dronesLost+'.</p>':'')+
-    '<button data-act="restart">Новый вылет</button></div>';
+    (this.pendingCheckpoint?'<p>Вернитесь к последней стыковке: корабль, станции, ресурсы и состояние мира восстановятся на момент сохранения. Все события последней вылазки будут отменены.</p>'+
+     '<button data-act="runContinue">Вернуться к последней стыковке · '+runClock(this.pendingCheckpoint.state.time)+'</button>':
+     '<p>Активной контрольной точки нет. Включите домашний док и стыкуйтесь со станциями, чтобы сохранять продвижение.</p>')+
+    '<button data-act="restart">Начать заново'+(this.pendingCheckpoint?' · удалить это прохождение':'')+'</button></div>';
  }
  updateMissiles(dt){
   for(const m of this.missiles){
@@ -2358,7 +2393,7 @@ export class ArcadeGame {
     const notice={mine:'Добывающий комплекс захвачен. Новые грузы не выйдут; транспорт в пути ещё нужно перехватить.',
      military:'Военный узел захвачен. Подготовка тяжёлых подкреплений остановлена.',
      'central-source':'Местная шахта захвачена. Добыча остановлена, но уже отправленные грузы ещё в пути.',
-     'central-depot':'Сборочный пост захвачен. Новые местные патрули не появятся, транспорт теперь идёт впустую.',
+     'central-depot':'Сборочный пост захвачен. Промышленные налёты прекращены, фоновые патрули остаются. Прежние грузы больше не дадут противнику корабли.',
      'frontier-azure-source':'Индукционная вышка захвачена. Электроангар перестанет получать новые батареи.',
      'frontier-azure-depot':'Электроангар захвачен. Организованные рейсы ионных перехватчиков остановлены.',
      'frontier-teal-source':'Комбинат захвачен. Разбор обломков и отправка запчастей остановлены.',
@@ -2442,7 +2477,7 @@ export class ArcadeGame {
   return !!enemy&&dist(this.player,enemy)<=ENEMY_COMMS.interceptRange;
  }
  sectorDirector(director){
-  let adjusted=director;
+  let adjusted=homeConflictPressure(director,this.world,this.player);
   if(director.types.length){
    const control=this.world.sectorControl?.(this.player.x,this.player.y)||{kind:'neutral',base:null};
    if(control.kind==='hostile'&&(control.base?.strategicRole||this.enemyBasesUnlocked()))adjusted={...adjusted,
@@ -3546,7 +3581,7 @@ export class ArcadeGame {
   }else{
    if(this.dead&&this.overlay.hidden){
     this.overlay.hidden=false;this.pausedRenderPending=true;
-    this.presentMenu('[data-act="restart"]');
+    this.presentMenu(this.pendingCheckpoint?'[data-act="runContinue"]':'[data-act="restart"]');
    }
    // Other paused dialogs need one static backdrop, not a permanent redraw.
    if((!this.paused&&!this.dead)||this.pausedRenderPending){
