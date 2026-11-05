@@ -100,8 +100,9 @@ test('maintenance is accessible on the home screen; statistics stay optional',()
 
 test('regular jobs are visible before long optional mission description',()=>{
  const html=renderBasePanel(home,state({baseTab:'operations'}));
- assert.match(html,/<details class="base-mission-details"><summary>Особая операция/);
- assert.match(html,/<h3 class="base-section-title">Полевые заказы<\/h3>/);
+ assert.match(html,/<section class="base-task-group special" aria-label="Особая операция">/);
+ assert.match(html,/<section class="base-task-group regular" aria-label="Полевые заказы"><h3>Полевые заказы<\/h3>/);
+ assert.match(html,/data-act="acceptOperation">Принять операцию/);
  assert.match(html,/data-act="acceptContract"/);
  assert.match(html,/data-act="showFieldTrial"/,'the starter weapon trial stays discoverable');
  assert.match(html,/role="tab"[^>]*>Задания<\/button>/);

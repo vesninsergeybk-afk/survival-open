@@ -17,17 +17,20 @@ const state=(extra={})=>({ore:20,data:0,hp:110,maxHp:110,shield:0,allies:0,
 const panel=(html,id)=>html.slice(html.indexOf('id="base-panel-'+id+'"'),
  html.indexOf('id="base-panel-'+({summary:'operations',operations:'hangar',hangar:'network'}[id]||'missing')+'"'));
 
-test('ship fitting opens with a ship and one clear action, not a catalogue or stat inspector',()=>{
+test('ship fitting opens with the ship and a directly accessible weapon development panel',()=>{
  const loadout=createLoadout(),session=new HangarSession();session.begin(loadout);
  const html=renderShipHangar({...state(),hangarSession:session},session);
  assert.match(html,/class="hg-layout hg-layout-centered"/);
  assert.match(html,/Нажмите на узел, чтобы выбрать для него оружие/);
  assert.match(html,/data-act="hgSlot" data-id="1"/);
  assert.match(html,/Текущее вооружение установлено/);
- assert.doesNotMatch(html,/class="hg-arsenal"|class="hg-inspector"/);
+ assert.doesNotMatch(html,/class="hg-arsenal"/);
+ assert.match(html,/class="hg-weapon-inspector"/);
+ assert.match(html,/data-act="hgFocusWeapon" data-id="plasma"/);
+ assert.match(html,/data-act="hgView" data-id="upgrades"/);
  assert.doesNotMatch(html,/data-act="hgApply"/);
  assert.match(html,/<details class="hg-combat-details"><summary>Урон, нагрев/);
- assert.match(html,/<details class="hg-more-frames"><summary>Развитие корпуса/);
+ assert.doesNotMatch(html,/<details class="hg-more-frames">/);
 });
 
 test('selecting a node offers one-click installation and on-demand descriptions',()=>{
@@ -107,7 +110,8 @@ test('accepted special operation does not claim a sortie has already begun',()=>
 test('mission choices say what can be accepted and where the reward comes from',()=>{
  const operations=panel(renderBasePanel(home,state({baseTab:'operations'})),'operations');
  assert.match(operations,/Куда отправимся\?/);
- assert.match(operations,/Особая операция · Глухой коридор/);
+ assert.match(operations,/aria-label="Особая операция"/);
+ assert.match(operations,/Глухой коридор/);
  assert.match(operations,/Награда: 16 сплава · 15 данных/);
  assert.doesNotMatch(operations,/Небольшие заказы|ОСНОВНОЕ ПОРУЧЕНИЕ/);
 });
@@ -139,11 +143,13 @@ test('published module addresses invalidate the station and hangar caches',()=>{
  assert.match(base,/hangar-panel\.js\?v=[^']*station-clarity-1/);
 });
 
-test('an accepted special operation stays compact until its details are opened',()=>{
+test('an accepted special operation shows its status and route without an accordion',()=>{
  const operation={id:'silent-corridor',baseId:home.id,hp:150,phase:'attack'};
  const operations=panel(renderBasePanel(home,state({operation,baseTab:'operations'})),'operations');
  assert.match(operations,/Текущие задания/);
- assert.match(operations,/<details class="base-mission-details"><summary>Особая операция · Глухой коридор · В работе/);
- assert.doesNotMatch(operations,/<details class="base-mission-details" open/);
- assert.match(operations,/Нажмите на особую операцию, чтобы увидеть подробности/);
+ assert.match(operations,/<section class="base-task-group special" aria-label="Особая операция">/);
+ assert.match(operations,/Глухой коридор/);
+ assert.match(operations,/ОПЕРАЦИЯ ПРИНЯТА/);
+ assert.match(operations,/data-act="baseMap">Показать маршрут/);
+ assert.doesNotMatch(operations,/class="base-mission-details"/);
 });

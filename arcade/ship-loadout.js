@@ -164,7 +164,8 @@ export class HangarSession {
    if(saved?.version===1&&Array.isArray(saved.items))
     this.blueprints=this.blueprints.map((_,i)=>validBlueprint(saved.items[i])?{slots:[...saved.items[i].slots]}:null);
   }catch{/* Storage is optional, including blocked or damaged storage. */}
-  this.slot=0;this.filter='all';this.catalog=false;this.inspect=false;this.selected='plasma';this.message='';
+  this.slot=0;this.filter='all';this.catalog=false;this.inspect=false;this.selected='plasma';
+  this.focusWeapon='plasma';this.message='';
  }
  begin(loadout){this.draft=cloneLoadout(loadout);this.catalog=false;this.inspect=false;this.message='';}
  dirty(loadout){return this.draft?.slots.some((id,i)=>id!==loadout.slots[i]);}
@@ -177,18 +178,26 @@ export class HangarSession {
    if((this.slot===5)!==(slot===5))this.filter='all';
    this.slot=slot;this.catalog=true;this.inspect=!slotOpen(current,slot);
    this.selected=this.draft.slots[slot]||(slot===5?'howitzer':'plasma');
+   this.focusWeapon=this.selected;
+  }
+  if(act==='hgFocusWeapon'&&Object.hasOwn(MODULES,data.id)){
+   this.focusWeapon=data.id;
+   this.selected=data.id;
   }
   if(act==='hgBrowse')this.catalog=true;
   if(act==='hgShip')this.catalog=false;
   if(act==='hgCatalog'){this.catalog=true;this.inspect=false;}
   if(act==='hgFilter'&&['all','auto','manual','heavy'].includes(data.id))this.filter=data.id;
-  if(act==='hgSelect'&&Object.hasOwn(MODULES,data.id)){this.selected=data.id;this.inspect=true;}
+  if(act==='hgSelect'&&Object.hasOwn(MODULES,data.id)){
+   this.selected=data.id;this.focusWeapon=data.id;this.inspect=true;
+  }
   if(act==='hgEquip'||act==='hgUnequip'){
    if(this.dirty(current)){this.message='Сначала примените или отмените загруженную схему';return;}
    const id=act==='hgUnequip'?null:data.id;
    const result=equipModule(current,this.slot,id,context);
    if(!result.ok){this.message=result.reason;return;}
    this.begin(result.loadout);this.selected=id||'plasma';
+   if(id)this.focusWeapon=id;
    this.message=id?MODULES[id].short+' · установлено'+(result.cost?' · −'+result.cost+' сплава':''):
     'Оружие снято и осталось на складе';
    return {type:'apply',...result};
