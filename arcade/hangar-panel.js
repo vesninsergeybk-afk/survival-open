@@ -136,7 +136,7 @@ export function renderShipHangar(state,session=state.hangarSession){
    (cost?'Прокат · '+cost+' сплава':'Проба · бесплатно'):cost?'Купить · '+cost+' сплава':'Установить · бесплатно';
   return '<div class="hg-weapon-row" style="--module-color:'+item.color+'"><button type="button" data-act="'+
    (borrowing?'hgBorrow':'hgEquip')+'" data-id="'+item.id+'" class="hg-weapon'+(equipped?' selected':'')+
-   (reason?' unavailable':'')+'" data-help="'+esc(help)+'"'+(reason||equipped?' disabled':'')+'>'+icon(item.id)+
+   (reason?' unavailable':'')+'" data-help="'+esc(help)+'"'+(reason||equipped?' disabled':'')+'><span class="hg-weapon-glyph" aria-hidden="true">'+icon(item.id)+'</span>'+
    '<span><strong>'+item.short+'</strong><small>'+item.role+'</small><em>'+esc(price)+'</em>'+
    (reason?'<small class="hg-choice-reason">'+esc(reason)+'</small>':'')+'</span></button>'+
    '<button type="button" class="menu-info" data-help-only data-help="'+esc(help)+'" aria-label="О модуле: '+
