@@ -22,6 +22,14 @@ export const TACTICAL_BRANCHES=Object.freeze({
 });
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const limit=(v,min,max)=>Math.max(min,Math.min(max,v));
+// Low-discrepancy sampling: consecutive patrol IDs must not make the first
+// sixty enemies *all* fall for a beacon. One beacon keeps the same response
+// throughout its lifetime; the next beacon may fool a different subset.
+export function decoyResponse(serial,cast=1){
+ const id=Math.abs(Math.trunc(Number.isFinite(serial)?serial:0)),
+  salt=Math.abs(Math.trunc(Number.isFinite(cast)?cast:1));
+ return ((Math.imul(id,0x9e3779b9)+Math.imul(salt,0x85ebca6b))>>>0)/4294967296;
+}
 export const createTactical=()=>({equipped:'pulse',owned:['pulse'],branches:{},readyAt:0,effects:[],uses:0});
 export function validTactical(value,now=0){
  if(!value||typeof value!=='object'||!Object.hasOwn(TACTICAL_DEVICES,value.equipped)||
@@ -37,7 +45,10 @@ export function validTactical(value,now=0){
    !Number.isInteger(choice.rank)||choice.rank<1||choice.rank>2)return false;
  return value.effects.every(e=>e&&['decoy','trap','jam','shell'].includes(e.kind)&&
   Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.until)&&
-  e.until>=0&&e.until<=now+12&&Number.isFinite(e.radius)&&e.radius>=0&&e.radius<=850);
+  e.until>=0&&e.until<=now+12&&Number.isFinite(e.radius)&&e.radius>=0&&e.radius<=850&&
+  (e.cast===undefined||Number.isSafeInteger(e.cast)&&e.cast>0&&e.cast<=value.uses)&&
+  (e.confirmed===undefined||typeof e.confirmed==='boolean')&&
+  (e.kind!=='decoy'||Number.isFinite(e.decoyChance)&&e.decoyChance>=0&&e.decoyChance<=1));
 }
 export function tacticalQuote(state,act,id,context={}){
  const fail=reason=>({ok:false,reason});
@@ -123,7 +134,7 @@ export function activateTactical(game,target=null){
  }else{
   const point=spec.id==='jam'?player:tacticalAim(player,target);
   state.effects.push(field(spec.id,point,now+spec.duration,spec.radius,
-   spec.id==='decoy'?{decoyChance:spec.decoyChance}:{}));
+   spec.id==='decoy'?{decoyChance:spec.decoyChance,cast:state.uses+1}:{}));
  }
  state.effects=state.effects.slice(-3);state.readyAt=now+spec.cooldown;state.uses++;
  return {ok:true,name:TACTICAL_DEVICES[spec.id].short,kind:spec.id,affected,
@@ -132,6 +143,15 @@ export function activateTactical(game,target=null){
 export function tacticalRadioJammed(game,point){
  return (game?.tactical?.effects||[]).some(e=>e.kind==='jam'&&e.until>game.time&&
   dist(e,point)<=e.radius);
+}
+// Only a real blocked transmission confirms a jammer's effect. Merely
+// detecting a ship in the bubble is not evidence that it needed the radio.
+export function tacticalJammingConfirmed(game,from,to){
+ for(const field of game?.tactical?.effects||[]){
+  if(field.kind!=='jam'||field.until<=game.time||
+     dist(field,from)>field.radius&&dist(field,to)>field.radius)continue;
+  field.confirmed=true;
+ }
 }
 export function tacticalDecoy(game,enemy){
  const now=game.time,decoy=(game.tactical?.effects||[]).findLast(e=>e.kind==='decoy'&&e.until>now&&
@@ -142,7 +162,9 @@ export function tacticalDecoy(game,enemy){
   enemy._enemyLearningSaw)return null;
  // A consistent subset remains suspicious; this is not a faction-wide mind control.
  const serial=Math.abs(Math.trunc(enemy.serial||0));
- return serial%100/100<decoy.decoyChance?decoy:null;
+ const follows=decoyResponse(serial,decoy.cast??Math.round(decoy.until*100))<decoy.decoyChance;
+ if(follows)decoy.confirmed=true;
+ return follows?decoy:null;
 }
 export function updateTactical(game){
  const state=game.tactical;if(!state)return;
@@ -157,6 +179,7 @@ export function updateTactical(game){
    if(dist(e,center)>effect.radius+(e.r||0))continue;
    const spec=tacticalSpec({...state,equipped:effect.kind==='shell'?'pulse':'trap'});
    e._tacticalSpeed=Math.min(e._tacticalSpeed,spec.slow);
+   effect.confirmed=true;
    if(effect.kind==='trap'&&spec.branch?.path==='sink'&&
     !e.stationRaid&&!e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&!e.protect?.hp)
     e._tacticalPull=center;
@@ -178,6 +201,14 @@ export function drawTactical(ctx,game){
   if(e.kind==='decoy'){
    ctx.beginPath();ctx.moveTo(p.x-11,p.y);ctx.lineTo(p.x+11,p.y);
    ctx.moveTo(p.x,p.y-11);ctx.lineTo(p.x,p.y+11);ctx.stroke();
+  }
+  // This caption is earned by a changed course, slowed ship or blocked
+  // message. An empty field has no "success" label.
+  if(e.confirmed){
+   const captions={shell:'СБЛИЖЕНИЕ ЗАМЕДЛЕНО',decoy:'МАРШРУТ ИЗМЕНЁН',
+    trap:'ЦЕЛЬ ЗАДЕРЖАНА',jam:'ПЕРЕДАЧА СОРВАНА'};
+   ctx.setLineDash([]);ctx.textAlign='center';ctx.font='bold 10px system-ui';
+   ctx.globalAlpha=.9*remaining;ctx.fillText(captions[e.kind],p.x,p.y-24);
   }
  }
  if(state.pulseAt!==undefined&&now-state.pulseAt<.42){

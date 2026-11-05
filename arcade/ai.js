@@ -6,10 +6,10 @@ import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from 
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
 import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-3';
-import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-1';
+import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
 import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1';
-import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-1';
+import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-2';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -297,7 +297,10 @@ export function updateEnemy(e,game,dt){
   const targetingPlayer=selected===game.player;
   const decoy=targetingPlayer?tacticalDecoy(game,e):null;
   const p=decoy|| (targetingPlayer?enemyPursuitTarget(e,game):selected);
-  if(decoy)e._tacticalDecoyUntil=Math.min(decoy.until,game.time+.35);
+  if(decoy){
+    e._tacticalDecoyUntil=Math.min(decoy.until,game.time+.35);
+    e._commsIntent=null;e._theaterIntent=null;
+  }
   let goalX=p.x,goalY=p.y;
   let speed=ENEMY_TYPES[e.type].speed*(1+Math.min(.42,game.time/1300))*
     (e.type==='scout'?irisBurstThrust(e,game.time):1);
@@ -378,21 +381,23 @@ export function updateEnemy(e,game,dt){
       goalX-=heading.y*48;goalY+=heading.x*48;
     }
   }
-  const search=e.type==='scout'&&e.state==='hunt'?irisSearchGoal(e,game):null;
+  // A pilot that believes the beacon's signal must actually investigate it;
+  // old search waypoints and delayed radio orders cannot silently overwrite it.
+  const search=!decoy&&e.type==='scout'&&e.state==='hunt'?irisSearchGoal(e,game):null;
   if(search){goalX=search.x;goalY=search.y;speed*=.78;}
   const orbit=e.type==='scout'&&e.state==='hunt'&&!search?
     scoutAttackGoal(e,p):null;
   if(orbit){goalX=orbit.x;goalY=orbit.y;}
   const tactical=(irisTactic&&(irisTactic.mode==='cover'||irisTactic.mode==='break'))?
     irisTactic:(packTactic||irisTactic);
-  if(tactical&&e.state==='hunt'&&targetingPlayer){
+  if(tactical&&!decoy&&e.state==='hunt'&&targetingPlayer){
     goalX=tactical.x;goalY=tactical.y;
     speed*=tactical.speed;
   }
   // A received order adjusts destinations but cannot override an escort's
   // guard, a medic's treatment or IRIS's authored pack choreography.
   const radio=game.enemyComms?.directiveFor(e,game.time);
-  if(radio&&targetingPlayer&&radioOrderCapable(e,game.time,radio.threat)&&
+  if(radio&&!decoy&&targetingPlayer&&radioOrderCapable(e,game.time,radio.threat)&&
     !(e.type==='scout'&&tactical)){
     const intel=radio.intel;
     const reported={x:intel.x+clamp(intel.vx*.12,-26,26),
@@ -472,7 +477,7 @@ export function updateEnemy(e,game,dt){
       leader:radio.leader,at:game.time,
       planId:radio.planId??null,planPhase:radio.planPhase??null,
       role:radio.role||null};
-  }else if(radio&&targetingPlayer&&radioOrderCapable(e,game.time,radio.threat)&&
+  }else if(radio&&!decoy&&targetingPlayer&&radioOrderCapable(e,game.time,radio.threat)&&
     e.type==='scout'&&tactical===packTactic&&
     packTactic.radioApplied&&packTactic.radioMode===radio.mode){
     // The established IRIS formation has altered its actual flight radius
