@@ -60,6 +60,15 @@ test('the global atlas keeps exact positions but does not disclose unknown stati
  assert.match(html,/0 \/ [0-9]+/,'region counters are placed outside the node clusters');
 });
 
+test('published entrypoint refreshes the complete map import chain',()=>{
+ const entry=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ const panel=readFileSync(new URL('../map-panel.js',import.meta.url),'utf8');
+ for(const [file,source] of [['entrypoint',entry],['game',game],['map panel',panel]])
+  assert.match(source,/global-constellations-1-spacing-1/,
+   `${file} must use the new module URL so cached browsers do not show the old atlas`);
+});
+
 test('machine radio trunks are a separate opt-in map layer with earned knowledge',()=>{
  const game=harness(),world=game.world;
  const a=world.stations.get('industry:depot'),b=world.stations.get('28:5');
