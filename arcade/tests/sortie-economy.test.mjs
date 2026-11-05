@@ -98,7 +98,7 @@ test('a cash-poor pilot on contract cooldown can still depart to mine without a 
 });
 
 test('the dock shows the last completed result and honest, labelled purchase routes',()=>{
- const s=state({xp:20,nextXp:75,sortieReports:[{seconds:133,ore:31,data:28,hull:-15,drones:0,levels:0,baseId:'0:0'}]});
+ const s=state({xp:20,nextXp:42,sortieReports:[{seconds:133,ore:31,data:28,hull:-15,drones:0,levels:0,baseId:'0:0'}]});
  const html=renderBasePanel(home,s);
  assert.match(html,/ПОСЛЕ ВЫЛЕТА/);
  assert.match(html,/2 мин 13 с/);
@@ -109,7 +109,8 @@ test('the dock shows the last completed result and honest, labelled purchase rou
  assert.match(html,/data-act="showFieldTrial"/);
  assert.match(html,/История: 1 вылет и расходы/);
  assert.match(html,/Бесплатно · сплав не расходуется/);
- assert.match(html,/Данные дают опыт пилоту: до уровня 2 осталось 55/);
+ assert.match(html,/Опыт пилота:<\/b> до уровня 2 осталось 22/);
+ assert.doesNotMatch(html,/Данные дают опыт пилоту/);
  assert.match(html,/data-act="baseTab" data-role="hangar"/);
  assert.match(html,/data-act="baseMap"/);
  assert.doesNotMatch(renderBasePanel(home,state()),/ПОСЛЕ ВЫЛЕТА/);
