@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {impactRock,rockYield,MINING_NOISE,extractionNoiseDelta} from '../mining.js';
 import {contactOnCircle} from '../impact-geometry.js';
 import {firstRichAsteroidExperience} from '../experience.js';
-import {claimGeologicalSurvey} from '../strategic-experience.js';
+import {claimGeologicalSurvey,createStrategicExperience,STRATEGIC_XP} from '../strategic-experience.js';
 
 const gameSource=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 const start=gameSource.indexOf(' damageRock(');
@@ -65,6 +65,25 @@ test('partial extraction creates live noise without premature ore or duplicated 
  game.damageRock(rock,50,0,0,'extract',false);
  assert.deepEqual(experience,[18],'broken rock cannot award more XP');
  assert.equal(game.miningNoise,42,'dead rock cannot emit noise twice');
+});
+test('real extraction differentiates a fresh first-rich bonus from a migrated pilot survey',()=>{
+ for(const alreadyStudied of [false,true]){
+  const xp=[],pilot={level:3,firstRichRockStudied:alreadyStudied,
+   strategicXp:createStrategicExperience()},game=new Harness();
+  Object.assign(game,{time:30,miningNoise:0,skillRanks:{mining:2},nearQuietLab:false,
+   doctrine:null,player:pilot,advanceContract:()=>{},awardExperience:n=>xp.push(n),
+   rewardNotice:()=>{},heritage:{vfx:{asteroidBreak:()=>{},asteroidImpact:()=>{}},play:()=>{}},
+   addDrop:()=>{}});
+  const rock={id:'4:0/1',x:4000,y:100,r:30,originX:4000,originY:100,
+   rich:true,hp:50,maxHp:50,alive:true,vx:0,vy:0};
+  game.damageRock(rock,50,3900,100,'extract',false);
+  assert.deepEqual(xp,[alreadyStudied?STRATEGIC_XP.survey+4:18],
+   alreadyStudied?'the old save earns its first new geological bonus':
+    'a new pilot earns the original first-rich bonus without stacking survey XP');
+  assert.equal(pilot.strategicXp.surveys.length,1);
+  game.damageRock(rock,50,3900,100,'extract',false);
+  assert.equal(xp.length,1,'the same depleted rock cannot grant another reward');
+ }
 });
 test('previous beam damage cannot turn full-yield extraction into near-silent farming',()=>{
  const game=new Harness();

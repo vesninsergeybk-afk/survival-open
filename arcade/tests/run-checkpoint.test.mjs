@@ -77,6 +77,18 @@ test('strategic XP claims survive a checkpoint and older saves backfill visible 
  const tampered=unpackRun(packRun(checkpoint));tampered.state.player.strategicXp.captures.push('fake');
  assert.equal(validateCheckpoint(tampered),false);
 });
+test('an early pass-two checkpoint with free home milestones recovers its XP capacity on load',()=>{
+ const g=scene();g.player.strategicXp=createStrategicExperience();
+ g.player.strategicXp.activations.push('0:0');
+ g.player.strategicXp.exploration.push('0:0');
+ const checkpoint=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.ok(validateCheckpoint(checkpoint),'the previously published ledger format remains accepted');
+ const restored=scene();restoreCheckpoint(restored,checkpoint);
+ assert.deepEqual(restored.player.strategicXp.activations,[]);
+ assert.deepEqual(restored.player.strategicXp.exploration,[]);
+ assert.equal(restored.player.xp,g.player.xp);
+ assert.equal(restored.player.level,g.player.level);
+});
 test('enemy territorial investments survive docking without spending twice, and old checkpoints load',()=>{
  const g=scene(),w=g.world;
  w.regionalSupply.central.ore=14;

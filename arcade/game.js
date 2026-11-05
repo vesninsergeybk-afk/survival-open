@@ -2967,8 +2967,10 @@ export class ArcadeGame {
   if(!destroyed)return;
   if(kind==='extract'){
    this.advanceContract('mine',rock);
-   const discoveryXp=firstRichAsteroidExperience(this.player,rock,kind);
+   // Check whether the first-rich-rock bonus had already been paid *before*
+   // this extraction. Migrated saves may have no historical survey ledger.
    const surveyXp=claimGeologicalSurvey(this.player,rock,kind,this.skillRanks.mining||0);
+   const discoveryXp=firstRichAsteroidExperience(this.player,rock,kind);
    if(discoveryXp||surveyXp){
     const previousLevel=this.player.level;
     this.awardExperience(discoveryXp+surveyXp);
