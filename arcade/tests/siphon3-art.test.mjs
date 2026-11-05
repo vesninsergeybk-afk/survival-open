@@ -63,6 +63,10 @@ test('hinged claws have phase-specific, deterministic poses with smooth boundari
  const gatherEnd=siphon3Pose('gather',.24,0,0,true),back=siphon3Pose('back',0,0,0,true);
  assert.ok(Math.abs(out.spread-gather.spread)<1e-9);
  assert.ok(Math.abs(gatherEnd.spread-back.spread)<1e-9);
+ assert.ok(Math.abs(siphon3Pose('back',1,0,0,true).spread-
+  siphon3Pose('out',0,0,0,true).spread)<1e-9,'docked worker must not snap its claws');
+ assert.ok(siphon3Pose('back',.9,0,0,true).spread>
+  siphon3Pose('back',.7,0,0,true).spread+.2,'worker must open to unload at dock');
  const clamp=siphon3Pose('gather',.24*.25,0,0,true);
  assert.ok(clamp.spread<.15,'claws must close visibly during suction');
  assert.ok(out.angles.dorsal-clamp.angles.dorsal>25,'dorsal limb should sweep over 25 degrees');
