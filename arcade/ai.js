@@ -5,7 +5,7 @@ import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from 
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
 import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-3';
-import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-4-enemy-gunnery-1';
+import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1';
 import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
@@ -378,7 +378,7 @@ export function updateEnemy(e,game,dt){
   // A received order adjusts destinations but cannot override an escort's
   // guard, a medic's treatment or IRIS's authored pack choreography.
   const radio=game.enemyComms?.directiveFor(e,game.time);
-  if(radio&&targetingPlayer&&radioOrderCapable(e,game.time)&&
+  if(radio&&targetingPlayer&&radioOrderCapable(e,game.time,radio.threat)&&
     !(e.type==='scout'&&tactical)){
     const intel=radio.intel;
     const reported={x:intel.x+clamp(intel.vx*.12,-26,26),
@@ -407,15 +407,27 @@ export function updateEnemy(e,game,dt){
         goalY+=heading.x*radio.side*flank;
       }
     }else if(radio.mode==='intercept'){
-      // A straight-moving player can be intercepted ahead of the last
-      // witnessed course. Turning away defeats this fallible extrapolation.
-      const straight=radio.threat?.kind==='maneuver'&&
-        radio.threat.motion==='straight';
-      goalX+=clamp(intel.vx*(straight?.43:.22),straight?-82:-52,straight?82:52);
-      goalY+=clamp(intel.vy*(straight?.43:.22),straight?-82:-52,straight?82:52);
+      if(radio.threat?.kind==='sabotage'&&
+         radio.threat.site==='convoy'&&e.protect?.hp>0&&
+         e.protect.regionalCargo){
+        // The attacker is unknown when only damage to the transport was
+        // witnessed. Escorts form a screen around their *moving* asset,
+        // instead of chasing a magically revealed player coordinate.
+        const outward=norm(e.x-e.protect.x,e.y-e.protect.y);
+        goalX=e.protect.x+outward.x*132-outward.y*radio.side*68;
+        goalY=e.protect.y+outward.y*132+outward.x*radio.side*68;
+      }else{
+        // A straight-moving player can be intercepted ahead of the last
+        // witnessed course. Turning away defeats this fallible extrapolation.
+        const straight=radio.threat?.kind==='maneuver'&&
+          radio.threat.motion==='straight';
+        goalX+=clamp(intel.vx*(straight?.43:.22),straight?-82:-52,straight?82:52);
+        goalY+=clamp(intel.vy*(straight?.43:.22),straight?-82:-52,straight?82:52);
+      }
     }else if(radio.mode==='press'){
-      goalX+=heading.x*34-heading.y*radio.side*22;
-      goalY+=heading.y*34+heading.x*radio.side*22;
+      const finish=radio.threat?.kind==='weak';
+      goalX+=heading.x*(finish?79:34)-heading.y*radio.side*(finish?43:22);
+      goalY+=heading.y*(finish?79:34)+heading.x*radio.side*(finish?43:22);
     }else if(radio.mode==='close'){
       // Real short-distance advance; the existing speed limit still applies.
       const margin=e.type==='gunship'?210:145;
@@ -433,7 +445,7 @@ export function updateEnemy(e,game,dt){
     }
     e._commsIntent={x:goalX,y:goalY,mode:radio.mode,
       leader:radio.leader,at:game.time};
-  }else if(radio&&targetingPlayer&&radioOrderCapable(e,game.time)&&
+  }else if(radio&&targetingPlayer&&radioOrderCapable(e,game.time,radio.threat)&&
     e.type==='scout'&&tactical===packTactic&&
     packTactic.radioApplied&&packTactic.radioMode===radio.mode){
     // The established IRIS formation has altered its actual flight radius
