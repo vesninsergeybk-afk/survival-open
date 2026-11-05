@@ -274,7 +274,7 @@ test('a claimed field contract is credited to its completed flight and saved exa
  assert.equal(g.sortieReports[0].data,22);
  assert.equal(g.sortieReports[0].details.oreContracts,16);
  assert.equal(g.sortieReports[0].details.dataContracts,15);
- assert.deepEqual(g.lastContractReceipt,{ore:16,data:15,credited:true});
+ assert.deepEqual(g.lastContractReceipt,{ore:16,data:15,levelsGained:1,credited:true});
  g.baseAction('claimContract','');
  assert.equal(g.player.ore,36);assert.equal(g.sortieReports[0].ore,16);
  const {storage}=save(g),fresh=scene();restoreCheckpoint(fresh,new RunCheckpointStore(storage).load());
