@@ -16,7 +16,9 @@ const harness=()=>({world:new World(),player:{x:0,y:0,shield:0},
 test('the strategic map starts with five accessible regions and no hidden navigation gate',()=>{
  const game=harness(),html=renderWorldMap(game);
  assert.match(html,/Вся карта/);
- assert.equal((html.match(/data-act="contourRegion"/g)||[]).length,11);
+ assert.equal((html.match(/data-act="contourRegion"/g)||[]).length,12,
+  'the atlas includes a direct first-contour shortcut alongside the region controls');
+ assert.match(html,/Показать первые станции/);
  assert.equal((html.match(/class="contour-region"/g)||[]).length,5);
  assert.equal((html.match(/data-act="contourNode"/g)||[]).length,0);
  assert.match(html,/КАРТА ПЯТИ РЕГИОНОВ/);

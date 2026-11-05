@@ -25,7 +25,7 @@ const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal m
  'contract operation geoScanUntil overchargeUntil fieldLoan fieldTrialTaken fieldReturnAt ionMasteryAwarded '+
  'holdFire beamClock rocketClock zoneClock stationary lastX lastY hacks activeBases enemySerial '+
  'allySerial groupSerial heavyPortalShown lastEncounter lastEncounterLabelAt amberBeltSeen ionFieldSeen '+
- 'waypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc').split(' ');
+ 'waypoint manualWaypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const cell=validStationId;
@@ -129,6 +129,8 @@ export function validateCheckpoint(data){
   !Number.isInteger(s.shipLoadout.frame)||!FRAME_STEPS[s.shipLoadout.frame])return false;
  if(Object.values(s.skillRanks).some(v=>!Number.isInteger(v)||v<0||v>10)||
   Object.keys(s).some(k=>!FIELDS.includes(k)))return false;
+ if(s.manualWaypoint!=null&&(!object(s.manualWaypoint)||s.manualWaypoint.id!=='map:manual'||
+  !finite(s.manualWaypoint.x)||!finite(s.manualWaypoint.y)))return false;
  if(s.sortieReports!==undefined&&!validSortieReports(s.sortieReports))return false;
  if(s.economyExpenses!==undefined&&!validEconomyExpenses(s.economyExpenses))return false;
  if(s.openingArc!==undefined&&!validateOpeningArc(s.openingArc))return false;

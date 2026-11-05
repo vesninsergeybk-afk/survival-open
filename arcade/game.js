@@ -44,7 +44,8 @@ import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1';
+import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
@@ -61,7 +62,7 @@ import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESI
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -205,6 +206,7 @@ export class ArcadeGame {
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';
   this.hangarView='weapons';this.mapReturnToBase=false;
   this.mapView='territory';this.contourRegion='all';this.contourFirst=null;this.contourSelection=null;this.contourError='';this.contourInfo='';this.enemyBackboneMap=false;
+  this.mapViewports={};this.mapPointers=new Map();this.mapDraggedUntil=0;this.lastMapPanRender=0;this.mapMarkMode=false;
   this.contourFeedback=null;this.contourBirths=[];this.contourDynamics=null;
   this.openingArc=createOpeningArc(this.world.home);this.openingRepairing=false;
   this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
@@ -232,6 +234,7 @@ export class ArcadeGame {
   this.nextDefenseCheckAt=0;this.lastDefenseNoticeAt=-Infinity;
   this.defenseTopology=null;this.defenseTopologyAt=0;
    this.waypoint={id:this.world.home.id,x:this.world.home.x,y:this.world.home.y,label:'Домашний док'};
+   this.manualWaypoint=null;
    this.nearArsenalBonus=false;this.nearArsenalDefense=false;this.nearDockField=false;this.nearQuietLab=false;
   for(const [k,url] of Object.entries(MODELS))sprite(url,this.images,k);
   // One ordinary heavy AI ship is exposed only for capital hull visual QA.
@@ -389,6 +392,11 @@ export class ArcadeGame {
    this.heritage.visibility(document.hidden);
   });
   this.overlay.addEventListener('click',e=>{
+   if(Date.now()<this.mapDraggedUntil){e.preventDefault();return;}
+   const mapSvg=e.target.closest?.('svg[data-map-world]');
+   if(this.overlay.dataset.mode==='map'&&this.mapMarkMode&&mapSvg){
+    this.setMapWaypoint(pointerOnMap(mapSvg,e.clientX,e.clientY));return;
+   }
    const b=e.target.closest('[data-act]');if(!b)return;
    const act=b.dataset.act;
    if(b.disabled)return;
@@ -434,6 +442,31 @@ export class ArcadeGame {
    if(act==='mapView'&&['map','territory','targets'].includes(b.dataset.id)){
     this.mapView=b.dataset.id;this.renderMap();
     this.overlay.querySelector('.map-view-switch [aria-pressed="true"]')?.focus({preventScroll:true});return;
+   }
+   if(act==='mapZoom'){
+    this.zoomMapAt(b.dataset.id==='in'?1.45:1/1.45);return;
+   }
+   if(act==='mapCenter'){
+    delete this.mapViewports[mapViewSpec(this).key];this.renderMap();return;
+   }
+   if(act==='mapClearWaypoint'){
+    this.manualWaypoint=null;this.contourInfo='Личная метка удалена. Основной маршрут сохранён.';
+    this.pausedRenderPending=true;this.renderMap();return;
+   }
+   if(act==='mapMarkMode'){
+    this.mapMarkMode=!this.mapMarkMode;this.renderMap();return;
+   }
+   if(act==='mapFocusPlan'){
+    const stations=(b.dataset.ids||'').split(',').map(id=>this.world.stations.get(id)).filter(Boolean);
+    if(stations.length!==3)return;
+    const spec=mapViewSpec(this);
+    if(!spec.key.startsWith('region:'))return;
+    const xs=stations.map(s=>s.x),ys=stations.map(s=>s.y);
+    const left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
+    const scale=Math.min(spec.limits[1],Math.max(spec.limits[0],
+     Math.min(510/(right-left+500),340/(bottom-top+500))));
+    this.mapViewports[spec.key]={center:{x:(left+right)/2,y:(top+bottom)/2},scale};
+    this.renderMap();return;
    }
    if(act==='contourRegion'){
     this.contourRegion=b.dataset.id;this.contourFirst=null;this.contourSelection=null;this.contourError='';this.contourInfo='';
@@ -490,6 +523,13 @@ export class ArcadeGame {
     }
     this.renderMap();this.pausedRenderPending=true;return;
    }
+   if(act==='contourPlanLink'){
+    this.contourSelection=b.dataset.from;
+    this.contourFirst=b.dataset.from;
+    this.contourError='';this.contourInfo='';this.contourFeedback=null;
+    this.makeContourLink(b.dataset.from,b.dataset.id);
+    this.renderMap();return;
+   }
    if(act==='contourNode'||act==='contourConnect'){
     const id=b.dataset.id,node=this.world.stations.get(id);
     if(!node)return;
@@ -499,37 +539,7 @@ export class ArcadeGame {
     if(!node.active||node.enemy||node.suppressed){this.contourFirst=null;}
     else if(!this.contourFirst)this.contourFirst=id;
     else if(this.contourFirst===id)this.contourFirst=null;
-    else{
-     const oldFields=contourFields(this.world),oldArea=contourArea(oldFields);
-     const oldProduction=contourProduction(oldFields);
-     const result=connectContour(this.world,this.contourFirst,id);
-     if(result.ok){
-      const after=contourFields(this.world);
-      const gain=Math.max(0,contourArea(after)-oldArea);
-      const fluxGain=Math.max(0,contourProduction(after)-oldProduction);
-      this.contourFirst=id;this.defenseTopology=null;
-      this.cachedWorldLinks=[];this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
-      this.heritage.ui('upgrade');
-      if(gain>1){
-       const previousLevel=this.player.level;
-       const strategicXp=this.awardStrategicExperience(claimContourExpansion(this.player,after,gain));
-       this.contourFeedback={title:'Контур замкнут',text:'Новая территория: +'+
-        (gain/1000000).toFixed(1)+' усл. км². Добыча: +'+fluxGain.toFixed(1)+' флюкса за 3 минуты.'+
-        (strategicXp?' +'+strategicXp+' опыта за новую территорию.':''),at:this.time};
-       if(strategicXp)this.rewardNotice('Территория расширена: +'+strategicXp+' опыта.',previousLevel,5);
-       // The centre of a new outer face can coincide with old territory.
-       // Vortex arrival follows the fill, rather than appearing on click.
-       const born=after.filter(f=>!oldFields.some(old=>old.id===f.id));
-       this.contourBirths=born.map(f=>({id:f.id,x:f.center.x,y:f.center.y,at:this.time+2.5}));
-       const anchor=born[0]?.center;
-       recordWorldFeedback(this,{key:'contour-linked:'+this.time+':'+id,
-        kind:'industry',label:'ТЕРРИТОРИЯ РАСШИРЕНА',
-        cause:'Вы замкнули связи между станциями',
-        effect:'Новое поле добывает флюкс: +'+fluxGain.toFixed(1)+' за 3 минуты. Враг может атаковать его опорные узлы',
-        x:anchor?.x,y:anchor?.y});
-      }else this.contourFeedback={title:'Линия проложена',text:'Соедините соседние станции, чтобы замкнуть территорию и запустить добычу.',at:this.time};
-     }else this.contourError=result.reason;
-    }
+    else this.makeContourLink(this.contourFirst,id);
     this.renderMap();return;
    }
    if(act==='installModule'){this.askStationModule(b.dataset.role);return;}
@@ -578,6 +588,71 @@ export class ArcadeGame {
     this.baseAction(act,b.dataset.role||'');
    if(act==='restart'){this.runStore?.end();location.reload();}
   });
+  this.overlay.addEventListener('wheel',e=>{
+   if(this.overlay.dataset.mode!=='map'||!e.target.closest?.('svg[data-map-world]'))return;
+   e.preventDefault();
+   const pixel=pointerOnMap(e.target.closest('svg[data-map-world]'),e.clientX,e.clientY);
+   if(insideMap(pixel))this.zoomMapAt(Math.max(.7,Math.min(1.45,
+    Math.exp(-e.deltaY*(e.deltaMode===1?.045:.0018)))),pixel);
+  },{passive:false});
+  this.overlay.addEventListener('contextmenu',e=>{
+   const svg=e.target.closest?.('svg[data-map-world]');
+   if(this.overlay.dataset.mode!=='map'||!svg)return;
+   e.preventDefault();
+   this.setMapWaypoint(pointerOnMap(svg,e.clientX,e.clientY));
+  });
+  this.overlay.addEventListener('pointerdown',e=>{
+   if(this.overlay.dataset.mode!=='map'||e.button!==0||!e.target.closest?.('svg[data-map-world]'))return;
+   this.mapPointers.set(e.pointerId,{x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,dragging:false});
+   if(this.mapPointers.size>1)this.mapDraggedUntil=Date.now()+200;
+  });
+  window.addEventListener('pointermove',e=>{
+   const current=this.mapPointers.get(e.pointerId);
+   if(!current||this.overlay.dataset.mode!=='map')return;
+   const svg=this.overlay.querySelector('svg[data-map-world]');if(!svg)return;
+   const before=[...this.mapPointers.values()].map(p=>({x:p.x,y:p.y}));
+   const moved=Math.hypot(e.clientX-current.startX,e.clientY-current.startY);
+   if(moved>7&&!current.dragging){
+    current.dragging=true;this.mapDraggedUntil=Date.now()+250;
+    try{this.overlay.setPointerCapture(e.pointerId);}catch{}
+   }
+   const previous={x:current.x,y:current.y};
+   current.x=e.clientX;current.y=e.clientY;
+   if(!current.dragging&&this.mapPointers.size<2)return;
+   if(this.mapPointers.size>=2){
+    this.mapDraggedUntil=Date.now()+250;
+    for(const pointer of this.mapPointers.values())pointer.dragging=true;
+   }
+   e.preventDefault();
+   const oldPixel=pointerOnMap(svg,previous.x,previous.y);
+   const newPixel=pointerOnMap(svg,e.clientX,e.clientY);
+   if(!oldPixel||!newPixel)return;
+   let view=mapViewport(this);
+   if(this.mapPointers.size>=2){
+    const after=[...this.mapPointers.values()].slice(0,2);
+    const prev=before.slice(0,2);
+    const oldDistance=Math.hypot(prev[0].x-prev[1].x,prev[0].y-prev[1].y);
+    const newDistance=Math.hypot(after[0].x-after[1].x,after[0].y-after[1].y);
+    const midpoint={x:(prev[0].x+prev[1].x)/2,y:(prev[0].y+prev[1].y)/2};
+    const pixel=pointerOnMap(svg,midpoint.x,midpoint.y);
+    if(insideMap(pixel)&&oldDistance>12&&newDistance>12)
+     view=zoomMap(view,pixel,newDistance/oldDistance,mapViewSpec(this).limits);
+    const newMidpoint=pointerOnMap(svg,(after[0].x+after[1].x)/2,(after[0].y+after[1].y)/2);
+    if(pixel&&newMidpoint)view=panMap(view,{x:newMidpoint.x-pixel.x,y:newMidpoint.y-pixel.y});
+   }else view=panMap(view,{x:newPixel.x-oldPixel.x,y:newPixel.y-oldPixel.y});
+   this.mapViewports[view.key]={center:view.center,scale:view.scale};
+   if(Date.now()-this.lastMapPanRender>35){
+    this.lastMapPanRender=Date.now();this.renderMap();
+   }
+  },{passive:false});
+  const releaseMapPointer=e=>{
+   if(!this.mapPointers.has(e.pointerId))return;
+   const moved=this.mapPointers.get(e.pointerId).dragging;
+   this.mapPointers.delete(e.pointerId);
+   if(moved){this.mapDraggedUntil=Date.now()+200;this.renderMap();}
+  };
+  window.addEventListener('pointerup',releaseMapPointer);
+  window.addEventListener('pointercancel',releaseMapPointer);
   this.overlay.addEventListener('keydown',e=>{
    if(e.target.matches?.('.contour-node,.contour-region')&&(e.key==='Enter'||e.key===' ')){
     e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));return;
@@ -808,6 +883,7 @@ export class ArcadeGame {
    const planned=this.pendingWaypointSelection;this.pendingWaypointSelection=null;
    if(planned){
     this.waypoint=planned.waypoint;
+    this.manualWaypoint=null;
     if(planned.waypoint?.conflictPlan&&this.world.regionalSupply?.central?.conflict)
      this.world.regionalSupply.central.conflict.plan=planned.waypoint.conflictPlan;
     if(planned.waypoint)this.heritage.world('contract');
@@ -1030,6 +1106,16 @@ export class ArcadeGame {
    if(this.overlay.dataset.mode==='map')this.renderMap();
    else if(this.overlay.dataset.mode==='base')this.renderDock();
   }
+  setMapWaypoint(pixel){
+   if(!insideMap(pixel))return false;
+   const target=worldAtMapPoint(mapViewport(this),pixel);
+   if(!Number.isFinite(target.x)||!Number.isFinite(target.y))return false;
+   this.manualWaypoint={id:'map:manual',x:Math.round(target.x),y:Math.round(target.y),label:'Моя метка'};
+   this.mapMarkMode=false;
+   this.contourInfo='Метка поставлена · '+Math.round(dist(this.player,this.manualWaypoint))+
+    ' м от корабля. Закройте карту, чтобы лететь по указателю.';
+   this.heritage.ui('tab');this.pausedRenderPending=true;this.renderMap();return true;
+  }
   renderMap(){
   const old=this.overlay.querySelector('.map-dialog'),identity=old?captureMenuControl(this.overlay):null;
   const scroll=old?.scrollTop||0;
@@ -1037,6 +1123,57 @@ export class ArcadeGame {
   this.overlay.innerHTML=renderWorldMap(this);this.presentMenu();
   const panel=this.overlay.querySelector('.map-dialog');if(panel)panel.scrollTop=same?scroll:0;
   restoreMenuControl(this.overlay,identity,this.mapReturnToBase?'[data-act="baseBack"]':'[data-act="close"]');
+ }
+ zoomMapAt(factor,pixel={x:340,y:240}){
+  const spec=mapViewSpec(this),view=zoomMap(mapViewport(this),pixel,factor,spec.limits);
+  this.mapViewports[view.key]={center:view.center,scale:view.scale};
+  if(spec.key.startsWith('region:')&&factor<1&&view.scale<=spec.limits[0]+1e-7){
+   const anchor=worldAtMapPoint(view,pixel);
+   this.contourRegion='all';
+   const global=mapViewSpec(this),scale=global.limits[1];
+   this.mapViewports[global.key]={scale,center:{
+    x:anchor.x-(pixel.x-340)/scale,y:anchor.y-(pixel.y-240)/scale}};
+  }
+  // The world atlas becomes an editable regional chart when zoomed far enough.
+  if(spec.key==='overview'&&factor>1&&view.scale>=spec.limits[1]-1e-7){
+   const anchor=worldAtMapPoint(view,pixel);
+   this.contourRegion=regionAt(anchor.x,anchor.y).id;
+   const detailed=mapViewSpec(this),scale=detailed.limits[0]*1.3;
+   this.mapViewports[detailed.key]={scale,center:{
+    x:anchor.x-(pixel.x-340)/scale,y:anchor.y-(pixel.y-240)/scale}};
+  }
+  this.renderMap();
+ }
+ makeContourLink(from,id){
+  const oldFields=contourFields(this.world),oldArea=contourArea(oldFields);
+  const oldProduction=contourProduction(oldFields);
+  const result=connectContour(this.world,from,id);
+  if(!result.ok){this.contourError=result.reason;return false;}
+  const after=contourFields(this.world);
+  const gain=Math.max(0,contourArea(after)-oldArea);
+  const fluxGain=Math.max(0,contourProduction(after)-oldProduction);
+  this.contourFirst=id;this.defenseTopology=null;
+  this.cachedWorldLinks=[];this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
+  this.heritage.ui('upgrade');
+  if(gain>1){
+   const previousLevel=this.player.level;
+   const strategicXp=this.awardStrategicExperience(claimContourExpansion(this.player,after,gain));
+   this.contourFeedback={title:'Контур замкнут',text:'Новая территория: +'+
+    (gain/1000000).toFixed(1)+' усл. км². Добыча: +'+fluxGain.toFixed(1)+' флюкса за 3 минуты.'+
+    (strategicXp?' +'+strategicXp+' опыта за новую территорию.':''),at:this.time};
+   if(strategicXp)this.rewardNotice('Территория расширена: +'+strategicXp+' опыта.',previousLevel,5);
+   // The centre of a new outer face can coincide with old territory.
+   // Vortex arrival follows the fill, rather than appearing on click.
+   const born=after.filter(f=>!oldFields.some(old=>old.id===f.id));
+   this.contourBirths=born.map(f=>({id:f.id,x:f.center.x,y:f.center.y,at:this.time+2.5}));
+   const anchor=born[0]?.center;
+   recordWorldFeedback(this,{key:'contour-linked:'+this.time+':'+id,
+    kind:'industry',label:'ТЕРРИТОРИЯ РАСШИРЕНА',
+    cause:'Вы замкнули связи между станциями',
+    effect:'Новое поле добывает флюкс: +'+fluxGain.toFixed(1)+' за 3 минуты. Враг может атаковать его опорные узлы',
+    x:anchor?.x,y:anchor?.y});
+  }else this.contourFeedback={title:'Линия проложена',text:'Соедините соседние станции, чтобы замкнуть территорию и запустить добычу.',at:this.time};
+  return true;
  }
  returnToStation(){
   if(!this.docked||!this.stationExitArmed)return false;
@@ -1060,6 +1197,7 @@ export class ArcadeGame {
    if(this.dead)return;
    this.endInteraction();
    if(!this.overlay.hidden&&this.overlay.dataset.mode==='map'){this.dismiss();return;}
+   this.mapPointers.clear();this.mapMarkMode=false;delete this.mapViewports.local;
    this.mapReturnToBase=!this.overlay.hidden&&!!this.docked&&(this.overlay.dataset.mode==='base'||this.stationExitArmed);
    this.paused=true;this.pausedRenderPending=true;this.heritage.pause('map');
    this.overlay.dataset.mode='map';this.overlay.hidden=false;
@@ -1122,6 +1260,7 @@ export class ArcadeGame {
     this.pendingWaypointSelection={waypoint,message};this.askDepartureConfirmation();return;
    }
    this.waypoint=waypoint;
+  this.manualWaypoint=null;
    if(waypoint?.conflictPlan&&this.world.regionalSupply?.central?.conflict)
     this.world.regionalSupply.central.conflict.plan=waypoint.conflictPlan;
    if(waypoint)this.heritage.world('contract');
@@ -3745,7 +3884,7 @@ export class ArcadeGame {
    this.cachedWorldLinks=topology.links.filter(([a,b])=>
     Math.min(dist(a,p),dist(b,p))<2600);
    const mission=this.contract;
-   this.cachedTarget=this.waypoint||this.operation||(mission&&mission.progress>=mission.goal?
+   this.cachedTarget=this.manualWaypoint||this.waypoint||this.operation||(mission&&mission.progress>=mission.goal?
     this.world.stations.get(mission.baseId):null);
   }
   for(const [a,b] of this.cachedWorldLinks){

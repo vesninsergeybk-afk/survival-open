@@ -13,8 +13,9 @@ import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './stat
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
-import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1';
+import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
+import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -99,30 +100,36 @@ export function renderWorldMap(game){
  const scanRadius=2200+(survey?650:0)+(homeCorridorSecure?350:0)+(probeScan?300:0);
  const signals=world.signals(p.x,p.y,scanRadius,enemyVisible)
   .filter(b=>!known.some(k=>k.id===b.id));
- const size=3300,scale=208/size,visible=pos=>Math.abs(pos.x-340)<315&&Math.abs(pos.y-240)<215;
+ const viewCamera=mapViewport(game),{center,scale}=viewCamera;
+ const navigator=game.manualWaypoint||game.waypoint;
+ const visible=pos=>Math.abs(pos.x-340)<315&&Math.abs(pos.y-240)<215;
  const grid=[];
- for(let m=-3000;m<=3000;m+=1000){
-  grid.push('<path d="M '+(340+m*scale).toFixed(1)+' 16 v 448 M 20 '+(240+m*scale).toFixed(1)+
-   ' h 640" stroke="#4f89a53b" stroke-width="1"/>');
+ for(let x=Math.ceil((center.x-340/scale)/1000)*1000;x<center.x+340/scale;x+=1000){
+  const q=point(x,center.y,center,scale);
+  grid.push('<path d="M '+q.x.toFixed(1)+' 0 V 480" stroke="#4f89a53b" stroke-width="1"/>');
+ }
+ for(let y=Math.ceil((center.y-240/scale)/1000)*1000;y<center.y+240/scale;y+=1000){
+  const q=point(center.x,y,center,scale);
+  grid.push('<path d="M 0 '+q.y.toFixed(1)+' H 680" stroke="#4f89a53b" stroke-width="1"/>');
  }
  const activeLinks=topology.links.map(([a,b])=>{
-  const x=point(a.x,a.y,p,scale),y=point(b.x,b.y,p,scale);
+  const x=point(a.x,a.y,center,scale),y=point(b.x,b.y,center,scale);
   return '<path d="M '+x.x.toFixed(1)+' '+x.y.toFixed(1)+' L '+y.x.toFixed(1)+' '+y.y.toFixed(1)+
    '" stroke="#77e2d3" opacity=".52" stroke-width="2" stroke-dasharray="7 5"/>';
  }).join('');
- const enemyOrders=enemyIntentMapPaths(game,(x,y)=>point(x,y,p,scale),visible);
+ const enemyOrders=enemyIntentMapPaths(game,(x,y)=>point(x,y,center,scale),visible);
  const readyStation=(game.operation?.id==='silent-corridor'||game.operation?.id===CARRIER_INTERCEPTION.id)&&game.operation.phase==='return'?
    world.stations.get(game.operation.baseId):contractReturnStation(game.contract,world);
  const defenseZone=contractDefenseZone(game.contract,world);
  const defenseRing=defenseZone?(()=>{
-  const q=point(defenseZone.station.x,defenseZone.station.y,p,scale),r=defenseZone.radius*scale;
+  const q=point(defenseZone.station.x,defenseZone.station.y,center,scale),r=defenseZone.radius*scale;
   return '<g><circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="'+r.toFixed(1)+
    '" fill="#6fe6d20b" stroke="#78e4d6" stroke-width="2" stroke-dasharray="7 7"/>'+
    '<text x="'+q.x.toFixed(1)+'" y="'+(q.y-r-6).toFixed(1)+
    '" text-anchor="middle" fill="#b8fff0" font-size="11">ЗОНА ЗАЩИТЫ · 650 М</text></g>';
  })():'';
  const marks=known.map(b=>{
-  const q=point(b.x,b.y,p,scale);if(!visible(q))return '';
+  const q=point(b.x,b.y,center,scale);if(!visible(q))return '';
   const color=b.suppressed?'#eda1ff':b.enemy?'#ff777d':b.active?'#84ead2':'#ffca84';
   const protectedNode=b.active&&!b.enemy;
   const linkedDefense=protectedNode&&defenseLinked(b,topology);
@@ -131,7 +138,7 @@ export function renderWorldMap(game){
    (linkedDefense?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
     '" r="'+(STATION_DEFENSE.stasisRadius*scale).toFixed(1)+'" fill="none" stroke="#b790f0" stroke-width="1"/>':''):'';
   const returnCue=readyStation?.id===b.id;
-  const selected=game.waypoint?.id===b.id;
+  const selected=navigator?.id===b.id;
   return '<g>'+pvoRing+(selected?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
    '" r="22" fill="#ffd58a18" stroke="#ffe2a0" stroke-width="2" stroke-dasharray="4 3"/>':'')+
    (returnCue?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
@@ -143,14 +150,14 @@ export function renderWorldMap(game){
    '" fill="#e3f4f4" font-size="11">'+enc(baseNames[b.type]||'Станция')+'</text></g>';
  }).join('');
  const echoes=signals.map(s=>{
-  const q=point(s.x,s.y,p,scale);if(!visible(q))return '';
+  const q=point(s.x,s.y,center,scale);if(!visible(q))return '';
   return '<g opacity=".82"><circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
    '" r="14" fill="none" stroke="#f8dc8a" stroke-dasharray="3 5"/>'+
    '<text x="'+q.x.toFixed(1)+'" y="'+(q.y+4).toFixed(1)+
    '" text-anchor="middle" fill="#f8dc8a" font-size="15">?</text></g>';
  }).join('');
  const intelMarks=intel.contacts.map(c=>{
-  const q=point(c.x,c.y,p,scale);if(!visible(q))return '';
+  const q=point(c.x,c.y,center,scale);if(!visible(q))return '';
   const moving=c.kind==='cargo',color=moving?'#ffcb77':'#9df1e3';
   return '<g><circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
    '" r="12" fill="none" stroke="'+color+'" stroke-width="2" stroke-dasharray="3 3"/>'+
@@ -169,7 +176,7 @@ export function renderWorldMap(game){
  const objectiveMarker=operation?((operation.id==='silent-corridor'||operation.id===CARRIER_INTERCEPTION.id)&&operation.phase==='return'?
    world.stations.get(operation.baseId):{x:operation.x,y:operation.y}):previewTarget||
   (home.corridorSecured?corridorPosition(home):null);
- const marker=objectiveMarker?point(objectiveMarker.x,objectiveMarker.y,p,scale):null;
+ const marker=objectiveMarker?point(objectiveMarker.x,objectiveMarker.y,center,scale):null;
  const operationMark=marker&&visible(marker)?
   '<circle cx="'+marker.x.toFixed(1)+'" cy="'+marker.y.toFixed(1)+'" r="13" fill="none" stroke="'+
   (operation||previewTarget?'#edacf9':'#7ce9bf')+'" stroke-width="2"/>'+
@@ -185,22 +192,23 @@ export function renderWorldMap(game){
    previewCarrier?'Район встречи':previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
  const carrierPath=operation?.id===CARRIER_INTERCEPTION.id&&operation.route?
   '<path d="M '+operation.route.map(r=>{
-   const q=point(r.x,r.y,p,scale);return q.x.toFixed(1)+' '+q.y.toFixed(1);
+   const q=point(r.x,r.y,center,scale);return q.x.toFixed(1)+' '+q.y.toFixed(1);
   }).join(' L ')+'" fill="none" stroke="#e4ad65" opacity=".8" stroke-width="2.4" stroke-dasharray="8 7"/>'+
-  (()=>{const q=point(operation.route[2].x,operation.route[2].y,p,scale);
+  (()=>{const q=point(operation.route[2].x,operation.route[2].y,center,scale);
    return visible(q)?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
     '" r="13" fill="none" stroke="#ffbd6c" stroke-width="2.6"/>'+
     '<text x="'+(q.x+18).toFixed(1)+'" y="'+(q.y-12).toFixed(1)+
     '" fill="#ffdbad" font-size="11">ВЫХОД КОНВОЯ</text>':'';})():'';
  const securedSupply=[...world.stations.values()].filter(b=>b.discovered&&b.supplyIntercepted);
  const securedRoutes=securedSupply.map(base=>{
-  const points=carrierRoute(base).map(r=>point(r.x,r.y,p,scale));
+  const points=carrierRoute(base).map(r=>point(r.x,r.y,center,scale));
   return '<path d="M '+points.map(q=>q.x.toFixed(1)+' '+q.y.toFixed(1)).join(' L ')+
    '" fill="none" stroke="#7ce7b4" opacity=".65" stroke-width="3" stroke-dasharray="14 8"/>';
  }).join('');
- const goal=game.waypoint?point(game.waypoint.x,game.waypoint.y,p,scale):null;
+ const goal=navigator?point(navigator.x,navigator.y,center,scale):null;
+ const pilot=point(p.x,p.y,center,scale);
  const route=goal&&visible(goal)?
-  '<path d="M 340 240 L '+goal.x.toFixed(1)+' '+goal.y.toFixed(1)+
+  '<path d="M '+pilot.x.toFixed(1)+' '+pilot.y.toFixed(1)+' L '+goal.x.toFixed(1)+' '+goal.y.toFixed(1)+
    '" stroke="#f4e6a0" stroke-width="2.4" stroke-dasharray="8 6"/>'+dot(goal.x,goal.y,'#fff0b8',4):'';
  const objective=game.contract;
  const operationText=operation?(operation.id===PROBE_OPERATION.id?
@@ -232,7 +240,7 @@ export function renderWorldMap(game){
   '" data-label="'+enc(baseNames[readyStation.type]||'Станция')+'">Построить маршрут к награде</button>':'';
  const row=(b,isSignal)=>{
   const label=isSignal?'Неопознанный сигнал':b.title||baseNames[b.type]||'Станция';
-  const d=distance(b,p),same=game.waypoint?.id===b.id;
+  const d=distance(b,p),same=navigator?.id===b.id;
   const status=isSignal?'координаты приблизительные (погрешность до 170 м)':
    b.enemy?'вражеская база':b.suppressed?'связь подавлена · восстановление через '+Math.max(0,Math.ceil(b.suppressedUntil-game.time))+' с':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети · ПВО'+(topology.count>=2?' и стазис':'')+(b.relayBoost?' · усиленная связь':''):'автономный узел · ПВО'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
   const value=isSignal?'Приблизиться и исследовать':'Построить маршрут';
@@ -249,11 +257,11 @@ export function renderWorldMap(game){
    '>'+ (same?'✓ Маршрут выбран':value)+'</button></article>';
  };
  const discovered=[...known].sort((a,b)=>Number(readyStation?.id===b.id)-Number(readyStation?.id===a.id)||
-  Number(game.waypoint?.id===b.id)-Number(game.waypoint?.id===a.id)||distance(a,p)-distance(b,p))
+  Number(navigator?.id===b.id)-Number(navigator?.id===a.id)||distance(a,p)-distance(b,p))
   .map(b=>row(b,false)).join('');
  const unidentified=signals.map(b=>row(b,true)).join('');
  const clear='<button type="button" data-act="waypoint" data-id="clear"'+
-  (!game.waypoint?' disabled':'')+'>Сбросить маршрут</button>';
+  (!navigator?' disabled':'')+'>Сбросить маршрут</button>';
  const intercepted=game.enemyComms?.intercepted?.(game.time)||[];
  const radioHistory=intercepted.length?
   '<details class="map-objective map-radio-log"><summary>Перехваченные приказы · '+
@@ -266,7 +274,7 @@ export function renderWorldMap(game){
  const knownTrunks=intel.unlocked?visibleBackbone(game):[];
  const trunkLines=knownTrunks.map(link=>{
   const a=world.stations.get(link.a),b=world.stations.get(link.b);
-  const x=point(a.x,a.y,p,scale),y=point(b.x,b.y,p,scale);
+  const x=point(a.x,a.y,center,scale),y=point(b.x,b.y,center,scale);
   return '<path d="M '+x.x.toFixed(1)+' '+x.y.toFixed(1)+
    ' L '+y.x.toFixed(1)+' '+y.y.toFixed(1)+'" fill="none" '+
    'stroke="'+(link.active?'#f5b46d':'#a7758b')+
@@ -285,7 +293,7 @@ export function renderWorldMap(game){
   '<div><strong>'+enc(c.label)+'</strong><small>'+enc(c.detail)+'</small></div>'+
   '<button type="button" data-act="waypoint" data-id="'+enc(c.id)+'" data-x="'+
   Number(c.x).toFixed(2)+'" data-y="'+Number(c.y).toFixed(2)+'" data-label="'+
-  enc(c.label)+'">'+(game.waypoint?.id===c.id?'✓ Маршрут выбран':'Построить маршрут')+'</button></article>').join('');
+  enc(c.label)+'">'+(navigator?.id===c.id?'✓ Маршрут выбран':'Построить маршрут')+'</button></article>').join('');
  const discoveryCues=[!precisionUnlocked?'найдите и включите либо захватите арсенал — получите ручной прицел рельса.':'',
   !intel.unlocked?'найдите и включите либо захватите лабораторию — получите радиоперехват снабжения.':''].filter(Boolean);
  const discoveryLead=discoveryCues.length?'<b>Открытия станций:</b> '+discoveryCues.join(' ')+
@@ -307,22 +315,23 @@ export function renderWorldMap(game){
   '<button type="button" data-act="mapView" data-id="territory">Контуры</button>'+
   '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">Цели · '+(known.length+signals.length)+'</button></nav>'+
   (discoveryLead||intelLead?'<details class="map-discovery-lead"><summary>Что можно открыть на станциях</summary>'+discoveryLead+intelLead+'</details>':'')+
-  '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
+  '<section class="map-shell"><div class="map-canvas"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
-  '<circle cx="340" cy="240" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
-  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,p,scale),visible)+trunkLines+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+intelMarks+marks+operationMark+enemyOrders+
-  '<g><circle cx="340" cy="240" r="13" fill="none" stroke="#8affff"/>'+
-  dot(340,240,'#9bf9ff',5)+'</g>'+
-  '<text x="351" y="266" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
+  '<circle cx="'+pilot.x.toFixed(1)+'" cy="'+pilot.y.toFixed(1)+'" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
+  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+intelMarks+marks+operationMark+enemyOrders+
+  '<g><circle cx="'+pilot.x.toFixed(1)+'" cy="'+pilot.y.toFixed(1)+'" r="13" fill="none" stroke="#8affff"/>'+
+  dot(pilot.x,pilot.y,'#9bf9ff',5)+'</g>'+
+  '<text x="'+(pilot.x+11).toFixed(1)+'" y="'+(pilot.y+26).toFixed(1)+'" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
+  mapTools(game)+
   '<div class="map-legend"><span>● вы</span><span>● активна</span><span>● выключена</span>'+
   '<span>◈ противник</span><span>⇢ согласованный манёвр</span><span>? сигнал</span><span>◎ операция</span>'+
   (intel.unlocked?'<span>Бирюзовый круг — промышленный сигнал · янтарный квадрат — радиометка груза</span>':'')+
   (known.some(b=>b.active&&!b.enemy)?'<span>бирюзовый круг — ПВО корабля · фиолетовый — радиус станции для стазиса (нужны 2 врага рядом с вами)</span>':'')+'</div>'+
-  '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
-    ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
+  '<div class="map-active-route"><b>Текущая цель:</b> '+(navigator?enc(navigator.label)+
+    ' · '+distance(navigator,p)+' м':'маршрут не задан')+clear+'</div></div>'+
   '<aside class="map-side">'+
   renderStationThreats(game)+
-  (view==='targets'?'<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div>':'')+
+  (view==='targets'?'<div class="map-active-route"><b>Текущая цель:</b> '+(navigator?enc(navigator.label)+' · '+distance(navigator,p)+' м':'маршрут не задан')+clear+'</div>':'')+
   (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
      operation?.id===CARRIER_INTERCEPTION.id?'ПЕРЕХВАТ КОНВОЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+
    (operation?'<button type="button" data-act="abandonOperation">Отложить операцию</button>':'')+'</div>':'')+

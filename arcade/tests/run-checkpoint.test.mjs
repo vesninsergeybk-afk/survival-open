@@ -47,6 +47,20 @@ function save(g,storage=memory()){
  const store=new RunCheckpointStore(storage,()=>1234);store.load();assert.ok(store.startNew().ok);
  assert.ok(store.save(captureCheckpoint(g,g.docked)).ok);return {storage,store};
 }
+test('a map marker survives save and leaves the mission waypoint untouched',()=>{
+ const g=scene();
+ g.waypoint={id:'mission:relay',x:1200,y:800,label:'Сигнал задания'};
+ g.manualWaypoint={id:'map:manual',x:1471,y:-620,label:'Моя метка'};
+ const data=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.ok(validateCheckpoint(data));
+ const restored=scene();restoreCheckpoint(restored,data);
+ assert.deepEqual(restored.manualWaypoint,g.manualWaypoint);
+ assert.deepEqual(restored.waypoint,g.waypoint);
+ const forged=unpackRun(packRun(data));forged.state.manualWaypoint.x=Infinity;
+ assert.equal(validateCheckpoint(forged),false);
+ const legacy=unpackRun(packRun(data));delete legacy.state.manualWaypoint;
+ assert.ok(validateCheckpoint(legacy));
+});
 test('strategic XP claims survive a checkpoint and older saves backfill visible past achievements',()=>{
  const g=scene(),site=g.world.stations.get('industry:source');
  site.enemy=false;site.active=true;site.captured=true;site.discovered=true;
