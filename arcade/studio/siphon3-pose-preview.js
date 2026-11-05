@@ -1,4 +1,4 @@
-import {drawSiphon3,siphon3RigReady} from '../siphon3-art.js?v=siphon3-rig-2';
+import {drawSiphon3,siphon3RigReady} from '../siphon3-art.js?v=siphon3-rig-3';
 
 const $=id=>document.getElementById(id);
 const canvas=$('pose-scene'),c=canvas?.getContext('2d');
@@ -6,11 +6,11 @@ if(canvas&&c){
  const W=canvas.width,H=canvas.height;
  const buttons=[...document.querySelectorAll('[data-pose]')];
  const modes={
-  cycle:{label:'Полный цикл',explain:'Полёт → раскрытие → две фазы всасывания → возвращение с грузом.'},
-  fly:{label:'Полёт',explain:'Клешни сложены; небольшие движения помогают удерживать курс.'},
+  cycle:{label:'Полный цикл',explain:'Полёт и работа клешней → всасывание энергии → золотое свечение на обратном пути.'},
+  fly:{label:'Полёт',explain:'Три клешни шевелятся независимо, корпус слегка покачивается.'},
   approach:{label:'Раскрытие',explain:'Перед воронкой три клешни раздвигаются для захвата энергии.'},
   gather:{label:'Добыча',explain:'Два согласованных сжатия клешней сопровождают всасывание энергии.'},
-  back:{label:'С грузом',explain:'Клешни складываются вокруг накопителя, затем раскрываются при стыковке.'},
+  back:{label:'С грузом',explain:'Золотая аура, вращающиеся искры и светящийся след показывают полный накопитель. Клешни раскрываются при разгрузке.'},
  };
  let mode='cycle',clock=0,last=0,paused=false;
  const ease=t=>Math.min(1,Math.max(0,t));
@@ -24,7 +24,7 @@ if(canvas&&c){
   if(k<3)return {phase:'out',progress:.68*ease(k/3),desc:'ЛЕТИТ К ВОРОНКЕ'};
   if(k<5)return {phase:'out',progress:.68+.32*ease((k-3)/2),desc:'РАСКРЫВАЕТ КЛЕШНИ'};
   if(k<8)return {phase:'gather',progress:.24*ease((k-5)/3),desc:'ДВА СЖАТИЯ · ВСАСЫВАНИЕ'};
-  if(k<12)return {phase:'back',progress:ease((k-8)/4),desc:'ВОЗВРАЩАЕТСЯ С ГРУЗОМ'};
+  if(k<12)return {phase:'back',progress:ease((k-8)/4),desc:'ЗОЛОТОЕ СВЕЧЕНИЕ · НЕСЁТ ЭНЕРГИЮ'};
   return {phase:'back',progress:1,opacity:k<12.5?1-(k-12)*2:(k-12.5)*2,
    desc:k<12.5?'РАЗГРУЗКА':'НОВЫЙ РЕЙС'};
  }
