@@ -177,6 +177,12 @@ export class EnemyMesh{
       if(!buckets.has(key))buckets.set(key,[]);
       buckets.get(key).push(node);
     }
+    // Fresh firsthand observations must outrank summaries. Once a detailed
+    // observation becomes too old for combat, a still-valid doctrine summary
+    // gets priority for newly connected squads.
+    const packetPriority=p=>p.kind==='doctrine'?
+      (now-p.sourceAt<=ENEMY_MESH.doctrineTacticalAge?1:-1):
+      (now-p.at<=ENEMY_MESH.tacticalAge?2:0);
     const queued=new Set(this.pending.map(t=>t.to+'|'+t.packet.id));
     let scheduled=0;
     for(const node of next.values()){
@@ -192,7 +198,7 @@ export class EnemyMesh{
       neighbours.sort((a,b)=>distance(p,nodePoint(a))-
         distance(p,nodePoint(b))||a.id.localeCompare(b.id));
       const reports=[...node.known.values()].filter(x=>valid(x,now)&&
-        x.hops<ENEMY_MESH.maxHops).sort((a,b)=>Number(a.kind==='doctrine')-Number(b.kind==='doctrine')||b.at-a.at);
+        x.hops<ENEMY_MESH.maxHops).sort((a,b)=>packetPriority(b)-packetPriority(a)||b.at-a.at);
       let sent=0;
       for(const other of neighbours){
         if(tacticalRadioJammed(game,nodePoint(other)))continue;
@@ -220,7 +226,7 @@ export class EnemyMesh{
         if(!other||!backboneActive(node.ref,other.ref,game))continue;
         const reports=[...node.known.values()].filter(p=>
           valid(p,now)&&p.hops<ENEMY_MESH.maxHops)
-          .sort((a,b)=>Number(a.kind==='doctrine')-Number(b.kind==='doctrine')||b.at-a.at);
+          .sort((a,b)=>packetPriority(b)-packetPriority(a)||b.at-a.at);
         for(const packet of reports){
           const key=other.id+'|'+packet.id;
           if(other.known.has(packet.id)||queued.has(key))continue;
