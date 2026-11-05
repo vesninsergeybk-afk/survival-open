@@ -1,6 +1,6 @@
 import {OPENING_ARC,runClock} from './opening-arc.js?v=opening-arc-5';
 import {baseNames} from './balance.js?v=arcade-network-20';
-import {MODULES,slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1';
+import {MODULES,slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-focus-1';
 export const escapeMenu=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const menuSymbol=kind=>{
  const paths={resume:'m8 4 13 8-13 8z',signal:'M12 9v6M9 12h6M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14',

@@ -1,6 +1,6 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1';
 import {readableKey,DEFAULT_CONTROLS} from './control-layout.js?v=unified-controls-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
@@ -11,10 +11,13 @@ import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weap
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
-import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1-direct-fit-2';
+import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1-direct-fit-2-menu-focus-1';
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
+import {CONTOURS,contourFields} from './territory-system.js?v=contours-1';
+import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1-menu-focus-1';
+import {menuIcon} from './menu-icons.js?v=menu-focus-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -499,7 +502,32 @@ const networkPreview=(base,state)=>{
   '<div class="base-network-preview-actions">'+
   '<button type="button" data-act="baseMap">Открыть полную карту</button></div></section>';
 };
-const tabHelp={summary:'Награды, ремонт и дроны.',operations:'Заказы, операции и цели в регионах.',hangar:'Выберите узел корабля, затем оружие. Оно устанавливается сразу.',network:'Защита, улучшения станции и перелёты.'};
+function territorySummary(base,state){
+ const world=state.world,lines=world?.contours?.links||[];
+ const fields=world?.contours?contourFields(world):[];
+ const localLines=lines.filter(pair=>pair.includes(base.id)).length;
+ const nodes=world?.nearbyStations?.(base.x,base.y,CONTOURS.maxLength,true)||[];
+ const choices=world?.contours?contourConnectionChoices(world,base.id,nodes):{ready:[],next:[]};
+ const next=choices.ready[0]||choices.next[0];
+ const safeName=node=>node.discovered||node.active||node.strategicRole?
+  (baseNames[node.type]||'Станция'):'Неизвестный узел';
+ let guidance='Включите три соседние станции и соедините их линиями на карте контуров. Замкнутый контур создаёт территорию и воронку.';
+ if(base.suppressed)guidance='Передатчик подавлен. Восстановите станцию в полёте, чтобы снова питать её линии и территорию.';
+ else if(next){
+  const destination=safeName(next.node)+' · '+Math.round(next.distance)+' м';
+  guidance=next.preview.ok?(next.preview.areaGain>1?
+   'Можно замкнуть территорию: соедините эту станцию с «'+destination+'» на карте контуров.':
+   'Доступна новая линия к «'+destination+'». После соединения замкните три или больше узлов, чтобы получить территорию.'):
+   'Следующий кандидат: «'+destination+'». Сначала разведайте и включите станцию, затем соедините её с сетью на карте контуров.';
+ }else if(localLines)guidance='У станции уже есть линии. Новых допустимых соединений поблизости сейчас нет; проверьте соседние узлы на карте контуров.';
+ const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ return '<section class="base-territory-summary" aria-label="Связь и территория"><h3>'+menuIcon('network')+'Связь и территория</h3>'+
+  '<div class="base-territory-stats"><span>Линий у станции <b>'+localLines+'</b></span><span>Контуров в мире <b>'+fields.length+'</b></span></div>'+
+  '<p>'+esc(guidance)+'</p><p class="base-network-distinction">Линии контура строятся вручную, до '+CONTOURS.maxLength+' м. Радиосвязь услуг подключается автоматически и сама по себе территорию не создаёт.</p>'+
+  action('baseContours','Открыть контуры этой станции')+
+  '<details class="base-secondary-info base-network-advanced" data-hangar-section="radio-details"><summary>Радиосвязь услуг · в сети дока '+(state.connectedBases||0)+' '+stationNoun(state.connectedBases||0)+'</summary>'+networkPreview(base,state)+'</details></section>';
+}
+const tabHelp={summary:'Награды, ремонт и дроны.',operations:'Заказы, операции и цели в регионах.',hangar:'Выберите узел и оружие, затем нажмите кнопку установки с ценой.',network:'Связь, территория, развитие, оборона и перелёты.'};
 const tabButton=(id,name,selected,notice='')=>'<button type="button" role="tab" id="base-tab-'+id+'" aria-controls="base-panel-'+id+'"'+(notice?' data-notice="'+notice+'" aria-label="'+name+' · '+notice+'"':'')+' tabindex="'+(id===selected?'0':'-1')+'" data-act="baseTab" data-role="'+id+
  '" aria-selected="'+(id===selected)+'" class="'+(id===selected?'selected':'')+'">'+name+'</button>';
 const tabPanel=(id,selected,body)=>'<section class="base-tab-panel" id="base-panel-'+id+'" aria-labelledby="base-tab-'+id+'" role="tabpanel" data-tab="'+id+'"'+
@@ -631,7 +659,7 @@ export function renderBasePanel(base,state){
   'СВЯЗЬ · РЕТРАНСЛЯТОР',base.relayBoost?'Антенна усилена':'Усилить антенну',
   'Стандартная связь '+RELAY_RANGE+' м. Усиление добавляет '+RELAY_EXTENSION+' м к дальности узла. '+
   ((state.relayGain||0)>0?'Сейчас подключит ещё '+state.relayGain+' узл(а).':
-   'Помогает соединить удалённые станции. На карте видно, какие узлы пока автономны.'),
+   'Расширяет радиосвязь услуг. На длину линий территориального контура не влияет.'),
   base.relayBoost?'<span class="base-ready">✓ УСТАНОВЛЕНО</span>':
    action('antenna','Усилить · '+o.antennaCost+' сплава',o.reasons.antenna),o.reasons.antenna):'';
  const selected=['summary','operations','hangar','network'].includes(state.baseTab)?state.baseTab:'summary';
@@ -733,8 +761,8 @@ export function renderBasePanel(base,state){
   Math.ceil(o.repairAmount)+' ед. за '+o.repairCost+' сплава.':
   'Корпус '+Math.ceil(state.hp)+'/'+state.maxHp+' — ремонт не требуется.';
  const quickTrial=state.fieldTrialPickerOpen&&base.id==='0:0'&&!state.fieldTrialTaken&&!state.fieldLoan?
-  '<section class="base-trial-picker" aria-label="Бесплатное пробное оружие">'+
-  '<strong>Выберите одно пробное оружие</strong><p>На выбор один бесплатный модуль с тремя зарядами. При наличии свободного узла модуль установится сразу.</p>'+
+  '<section class="base-trial-picker" aria-label="Бесплатный полевой модуль">'+
+  '<strong>Выберите один полевой модуль</strong><p>На выбор один бесплатный модуль с тремя зарядами. При наличии свободного узла модуль установится сразу.</p>'+
   '<div class="base-trial-options">'+
   '<div><b>Ионный проводник</b><small>Цепной разряд по целям с плазменными метками · '+fieldKey+'</small>'+
   action('loanField','Выбрать ионный','','ion')+'</div>'+
@@ -758,7 +786,7 @@ export function renderBasePanel(base,state){
   '<div class="base-quick-buttons">'+
   (state.hp<state.maxHp?action('repair','Починить · '+o.repairCost+' сплава',o.reasons.repair):'')+
   (base.id==='0:0'&&!state.fieldTrialTaken&&!state.fieldLoan?
-   action('showFieldTrial',state.fieldTrialPickerOpen?'Скрыть пробное оружие':'Выбрать пробное оружие'):'')+
+   action('showFieldTrial',state.fieldTrialPickerOpen?'Скрыть полевые модули':'Полевой модуль · бесплатно'):'')+
   action('baseTab','Открыть корабль','','hangar')+'</div>'+
   quickTrial+
   (state.hp<state.maxHp&&o.reasons.repair?'<small class="base-quick-reason">'+o.reasons.repair+'</small>':'')+'</section>'+
@@ -855,12 +883,12 @@ export function renderBasePanel(base,state){
   (!base.relayBoost&&!o.reasons.antenna?antenna:'');
  const futureUpgrades=(o.reasons.upgrade?upgrade:'')+
   (base.relayBoost||o.reasons.antenna?antenna:'');
- const network='<div class="base-operations">'+threats+capturedWing+'<section class="base-network-simple">'+
+ const defense='<section class="base-network-simple">'+
   '<span class="base-kicker">ОБОРОНА СТАНЦИИ</span><h3>Защитные заряды · '+protection.charges+'/'+protection.capacity+'</h3>'+
   '<p class="base-defense-summary">ПВО действует автоматически: станция тратит заряды на опасные снаряды поблизости. Орбитальные удары сейчас '+
   (protection.meteorEnabled?'перехватываются':'пропускаются')+'. '+
   (protection.stasis?'Стазис тоже автоматический: сработает при группе врагов рядом со станцией. Кнопки запуска нет.':
-   'Стазис откроется после соединения двух станций.')+'</p>'+
+   'Стазис откроется, когда в радиосети дока будут две станции.')+'</p>'+
   '<details class="base-secondary-info base-defense-choice-details"><summary>Изменить перехват орбитальных ударов</summary>'+
   '<p class="base-defense-tradeoff" role="note">'+(protection.meteorEnabled?
    'Если пропускать орбитальные удары, они смогут поражать врагов и астероиды, но также могут повредить Ваш корабль.':
@@ -870,14 +898,17 @@ export function renderBasePanel(base,state){
   '<p class="base-defense-status">'+protectionText+'.</p>'+
   '<p>ПВО отражает одну угрозу за заряд. Между перехватами проходит не меньше 0,7 с; снаряды остаются под защитой и при пропуске орбитальных ударов.</p>'+
   '<p>Стазис действует только в сети с домашним доком. Два обычных врага должны одновременно находиться не дальше 235 м от станции и 185 м от вас. Импульс останавливает до трёх на 2,6 с, затем восстанавливается 26 с. На боссов и цели операций не действует.</p>'+
-  '<p>Пропуск орбитальных ударов позволяет использовать их против врагов и астероидов, но опасен и для вас.</p></div></details></section>'+
-  (instantUpgrades?'<h3 class="base-section-title">Доступно сейчас</h3><div class="base-grid">'+instantUpgrades+'</div>':'')+
-  (futureUpgrades?'<details class="base-secondary-info base-network-future"><summary>Следующие улучшения · стоимость и условия</summary><div class="base-grid">'+futureUpgrades+'</div></details>':'')+
-  '<details class="base-secondary-info base-network-advanced"><summary>Карта связи между станциями</summary>'+networkPreview(base,state)+'</details>'+
+  '<p>Пропуск орбитальных ударов позволяет использовать их против врагов и астероидов, но опасен и для вас.</p></div></details></section>';
+ const network='<div class="base-operations">'+threats+territorySummary(base,state)+
+  '<section class="base-station-development" aria-label="Развитие станции"><h3>'+menuIcon('upgrades')+'Развитие станции</h3>'+
+  (instantUpgrades?'<h4>Доступно сейчас</h4><div class="base-grid">'+instantUpgrades+'</div>':'')+
+  (futureUpgrades?'<div class="base-network-future"><h4>Следующие улучшения · стоимость и условия</h4><div class="base-grid">'+futureUpgrades+'</div></div>':'')+'</section>'+
+  defense+capturedWing+
   (modules?'<section class="base-network-direct" aria-label="Оснащение станции"><h3>'+
-   (base.module?'Оснащение станции · установлено':'Оснащение станции · необратимый выбор')+
+   menuIcon('upgrades')+(base.module?'Специализация · установлена':'Специализация · необратимый выбор')+
    '</h3>'+modules+'</section>':'')+
-  (transit?'<section class="base-network-direct" data-hangar-section="transit"><h3>Перелёты между станциями</h3>'+transit+'</section>':'')+'</div>';
+  '<section class="base-network-direct" data-hangar-section="transit"><h3>'+menuIcon('navigation')+'Перелёты между станциями</h3>'+
+  (transit||'<p>Для перелёта нужна связь этой станции с домашним доком и ещё хотя бы одна доступная станция назначения.</p>')+'</section></div>';
  const pilotProgress=state.points>0?'<div class="base-pilot-progress" role="status">'+
   '<span><b>ПИЛОТ · УР. '+state.level+'</b> · '+
   (state.lastContractReceipt?.levelsGained?'Новый уровень! · ':'')+

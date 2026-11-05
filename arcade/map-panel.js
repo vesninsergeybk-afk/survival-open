@@ -1,4 +1,5 @@
 import {menuInfo} from './menu-screens.js?v=all-menus-1';
+import {menuIcon} from './menu-icons.js?v=menu-focus-1';
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1';
 import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
@@ -13,7 +14,7 @@ import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './stat
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
-import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1';
+import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
@@ -301,7 +302,7 @@ export function renderWorldMap(game){
  const intelLead=intel.unlocked?' <b>Радиоперехват:</b> '+(intelContacts?
   'найдены промышленные сигналы.':'новых целей пока нет.')+
   ' <span class="map-intel-wide">Выберите маршрут в списке справа.</span>'+
-  '<span class="map-intel-compact">Нажмите «Цели», чтобы выбрать маршрут.</span>':'';
+  '<span class="map-intel-compact">Нажмите «Список», чтобы выбрать маршрут.</span>':'';
  const view=game.mapView==='targets'?'targets':'map';
  const unapplied=game.mapReturnToBase&&game.hangarSession?.dirty(game.shipLoadout);
  return '<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
@@ -311,9 +312,9 @@ export function renderWorldMap(game){
   '</b></span>'+(game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':'')+
   '<button data-act="close">'+(unapplied?'В полёт · сборка не применена':'Продолжить полёт')+'</button></div></header>'+
   (unapplied?'<p class="map-unapplied-note" role="status">Сборка ангара не применена. Перед вылетом потребуется подтверждение.</p>':'')+
-  '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">Рядом</button>'+
-  '<button type="button" data-act="mapView" data-id="territory">Контуры</button>'+
-  '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">Цели · '+(known.length+signals.length)+'</button></nav>'+
+  '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">'+menuIcon('map')+'Рядом</button>'+
+  '<button type="button" data-act="mapView" data-id="territory">'+menuIcon('network')+'Контуры</button>'+
+  '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">'+menuIcon('navigation')+'Список · '+(known.length+signals.length)+'</button></nav>'+
   (discoveryLead||intelLead?'<details class="map-discovery-lead"><summary>Что можно открыть на станциях</summary>'+discoveryLead+intelLead+'</details>':'')+
   '<section class="map-shell"><div class="map-canvas"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+

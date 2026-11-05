@@ -1,4 +1,4 @@
-import {SHIP_UPGRADES} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1';
+import {SHIP_UPGRADES} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-focus-1';
 import {escapeMenu as esc,menuInfo,menuSymbol,screenHead,menuFooter} from './menu-screens.js?v=all-menus-1';
 export function renderPilotMenu({player:p,ranks,doctrine,skills,doctrines,branch='Корабль',nextEffect,nextXp,atStation=false}){
  const branches=[['Корабль','Пилотирование'],['Технологии','Технологии'],['Добыча','Добыча']];

@@ -2,7 +2,8 @@ import {menuInfo} from './menu-screens.js?v=all-menus-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {baseNames} from './balance.js?v=arcade-network-20';
 import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt} from './territory-system.js?v=contours-1';
-import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1';
+import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1-menu-focus-1';
+import {menuIcon} from './menu-icons.js?v=menu-focus-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
 import {labLogisticsUnlocked} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
@@ -289,7 +290,7 @@ function selectedPanel(game,selected,source,choices,region){
   const next=choices.next[0]?.node;
   const linked=(game.world.contours?.links||[]).filter(pair=>pair.includes(source.id)).length;
   return `<section class="contour-guide">${lead}<h3>Нужна ещё одна станция</h3>
-   <p>${linked?'У выбранной станции уже проведено линий: '+linked+'. Других доступных соединений пока нет.':'У выбранной станции пока нет доступных соединений.'} ${next?'Ближайший кандидат отмечен янтарным кольцом.':'Проверьте соседние узлы и дальность связи — '+CONTOURS.maxLength+' м.'}</p>
+   <p>Новых допустимых соединений сейчас нет. ${linked?'У выбранной станции уже проведено линий: '+linked+'.':''} ${next?'Ближайший кандидат отмечен янтарным кольцом. Сначала разведайте и включите его.':'Проверьте соседние узлы и дальность связи — '+CONTOURS.maxLength+' м.'}</p>
    ${next?route(next):''}<button class="contour-cancel" data-act="contourCancel">Снять выбор</button></section>`;
  }
  return `<section class="contour-guide">${lead}<h3>${title}</h3><p>Станция включена. Выберите её, чтобы начать соединение.</p>${route(selected)}</section>`;
@@ -371,11 +372,11 @@ export function renderContourMap(game){
  const activeSource=selected&&selected.active&&!selected.enemy&&!selected.suppressed;
  return `<div class="dialog map-dialog contour-dialog" role="dialog" aria-modal="true" aria-labelledby="map-menu-title">
   <header class="map-heading"><div><span class="map-kicker">СТРАТЕГИЧЕСКАЯ СЕТЬ</span><h2 id="map-menu-title">Контуры территорий</h2>
-  ${menuInfo('Как пользоваться контурами','Это уменьшенный мир: станции, опасные области, замеченные корабли и ваши линии находятся там же, где в полёте. Выберите регион, затем станцию. Для строительства связи выберите свою работающую станцию и второй узел. Подробные правила — под картой.')}</div>
+  ${menuInfo('Как пользоваться контурами','При открытии региона действующая станция выбирается автоматически для подсказки. Нажмите предложенное соединение или второй работающий узел, чтобы построить линию. Можно выбрать другую исходную станцию. Неизвестный кандидат сначала требует разведки и включения. Подробные правила — под картой.')}</div>
   <div class="map-heading-actions"><span class="contour-wallet">Флюкс <b>${digits(world.contours.flux)}</b> / ${CONTOURS.fluxCap}</span>
   ${game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':''}<button data-act="close">Продолжить полёт</button></div></header>
-  <nav class="map-view-switch" aria-label="Режим карты"><button data-act="mapView" data-id="map">Рядом</button>
-  <button data-act="mapView" data-id="territory" aria-pressed="true">Контуры</button><button data-act="mapView" data-id="targets">Цели</button></nav>
+  <nav class="map-view-switch" aria-label="Режим карты"><button data-act="mapView" data-id="map">${menuIcon('map')}Рядом</button>
+  <button data-act="mapView" data-id="territory" aria-pressed="true">${menuIcon('network')}Контуры</button><button data-act="mapView" data-id="targets">${menuIcon('navigation')}Список</button></nav>
   <div class="contour-region-switch">${regions}</div>
   <section class="map-shell contour-shell"><div class="map-canvas contour-map-canvas">
   <div class="contour-map-caption"><span>${region?esc(region.name):'КАРТА ПЯТИ РЕГИОНОВ'}</span><small>${esc(stage)}</small></div>

@@ -2,10 +2,11 @@ import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningH
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess} from './game-menu.js?v=all-menus-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
-import {menuHints} from './menu-hints.js?v=direct-fit-2';
+import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
 import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
+import {focusContourRegion} from './contour-preview.js?v=contour-visual-1-menu-focus-1';
 import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expedition-1';
 import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1';
 import {disableCentralWorker} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1';
@@ -42,16 +43,16 @@ import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 
-import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2';
+import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1';
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1-all-menus-1';
@@ -253,7 +254,7 @@ export class ArcadeGame {
   this.bind();this.resize();this.world.discover(0,0);
   this.notice(matchMedia('(pointer: coarse)').matches?
    'Подлетите к доку и нажмите «Действие».':
-   'WASD — полёт · '+this.controlLabel('interact')+' — домашний док · В доке можно выбрать пробное оружие · '+this.controlLabel('dash')+' — рывок.',9);
+   'WASD — полёт · '+this.controlLabel('interact')+' — домашний док · В доке можно бесплатно взять полевой модуль · '+this.controlLabel('dash')+' — рывок.',9);
   this.runStore=this.visuals.capitalDamageQA?null:new RunCheckpointStore(hangarStorage);
   const saved=this.runStore?.load();
   if(saved||['damaged','unsupported'].includes(this.runStore?.issue))this.offerContinuation(saved);
@@ -469,8 +470,7 @@ export class ArcadeGame {
     this.renderMap();return;
    }
    if(act==='contourRegion'){
-    this.contourRegion=b.dataset.id;this.contourFirst=null;this.contourSelection=null;this.contourError='';this.contourInfo='';
-    this.contourFeedback=null;
+    focusContourRegion(this,b.dataset.id);
     this.renderMap();return;
    }
    if(act==='contourEnemyRadio'){
@@ -559,6 +559,13 @@ export class ArcadeGame {
     this.overlay.querySelector('.base-trial-picker')?.scrollIntoView({block:'nearest'});
     this.overlay.querySelector(this.fieldTrialPickerOpen?
      '.base-trial-picker [data-act="loanField"]':'[data-act="showFieldTrial"]')?.focus({preventScroll:true});
+   }
+   if(act==='baseContours'&&this.docked?.active){
+    const region=regionAt(this.docked.x,this.docked.y);
+    this.mapView='territory';this.mapViewports||={};
+    this.mapViewports['region:'+region.id]={center:{x:this.docked.x,y:this.docked.y},scale:region.id==='amethyst'?.055:.049};
+    focusContourRegion(this,region.id,this.docked.id);
+    this.openMap();return;
    }
     if(act==='baseMap')this.openMap();
    if(act==='toggleMeteorDefense'&&this.docked?.active){
@@ -1812,7 +1819,7 @@ export class ArcadeGame {
    this.baseTab!=='hangar'||!this.docked?.active)return;
   if(data.act==='hgView'){
    if(!['weapons','tactics','upgrades','services'].includes(data.id))return;
-   this.hangarView=data.id;this.heritage.ui('tab');this.renderDock();
+   this.hangarView=data.id;this.hangarSession.message='';this.heritage.ui('tab');this.renderDock();
    this.overlay.querySelector('.hg-view-nav [aria-pressed="true"]')?.focus({preventScroll:true});
    return;
   }
@@ -1863,13 +1870,14 @@ export class ArcadeGame {
   }else this.heritage.ui('tab');
   this.renderDock();
   const selector='[data-act="'+data.act+'"]'+(data.id?'[data-id="'+data.id+'"]':'');
-  const focus=this.overlay.querySelector(data.act==='hgFocusWeapon'?'.hg-weapon-picks '+selector:selector);
+  const focus=this.overlay.querySelector(selector);
   if(focus&&!focus.disabled)focus.focus({preventScroll:true});
   if(result?.ok&&['hgEquip','hgUnequip'].includes(data.act))
    this.overlay.querySelector('[data-act="hgSlot"][data-id="'+this.hangarSession.slot+'"]')?.focus({preventScroll:true});
   if(data.act==='hgFocusWeapon'){
    this.overlay.querySelector('.hg-weapon-inspector')?.scrollIntoView({block:'nearest'});
   }
+  if(data.act==='hgFocusTactic')this.overlay.querySelector('.hg-tactic-detail')?.scrollIntoView({block:'nearest'});
   if(data.act==='hgInstall'||data.act==='hgRemove')this.revealLoadoutApply();
   if(data.act==='hgSelect'){
    const choice=this.overlay.querySelector('.hg-inspector [data-act="hgInstall"]:not(:disabled)')||

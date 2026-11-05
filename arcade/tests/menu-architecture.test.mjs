@@ -61,7 +61,7 @@ test('ship destinations separate tactical devices, system upgrades and repair se
   assert.match(html,/data-act="hgView" data-id="services"/);
  }
  assert.doesNotMatch(weapons,/data-act="hgTacticUnlock"/);
- assert.match(tactics,/data-act="hgTacticUnlock"/);
+ assert.match(tactics,/data-act="hgFocusTactic" data-id="decoy"/);
  assert.match(tactics,/data-act="hgTacticUpgrade"/);
  assert.doesNotMatch(tactics,/<details class="hg-tactic-upgrade-details"/);
  assert.match(upgrades,/data-act="hgFrame"/);

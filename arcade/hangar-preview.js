@@ -1,7 +1,7 @@
-import {menuHints} from './menu-hints.js?v=direct-fit-2';
-import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-direct-fit-2-menu-flow-2';
+import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
+import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-direct-fit-2-menu-flow-2-menu-focus-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
-import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1-tactical-field-1-direct-fit-2-orbital-terminal-1-menu-flow-2';
+import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1-tactical-field-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1';
 import {createTactical,applyTacticalChoice} from './tactical-fields.js?v=tactical-field-2';
 
 let context,session;

@@ -275,10 +275,10 @@ test('hangar teaches tactical effects without a second combat hotkey',()=>{
  const loadout=createLoadout(),session=new HangarSession();session.begin(loadout);
  const ui=renderShipHangar({loadout,hangarSession:session,tactical:createTactical(),hangarView:'tactics',
   ...station,skillRanks:{},ranks:{}},session);
- assert.match(ui,/ТАКТИЧЕСКИЙ СЛОТ · Пробел/);
+ assert.match(ui,/Сейчас установлено:[\s\S]*Импульс[\s\S]*Пробел/);
  assert.match(ui,/Инерционный импульс/);
- assert.match(ui,/Ложный маяк/);
- assert.match(ui,/Радиопомеха/);
+ assert.match(ui,/data-act="hgFocusTactic" data-id="decoy"/);
+ assert.match(ui,/data-act="hgFocusTactic" data-id="jam"/);
  assert.match(ui,/hgTacticUpgrade/);
 });
 test('invalid tactical upgrades, fabricated equipment and impossible durations cannot be saved',()=>{
