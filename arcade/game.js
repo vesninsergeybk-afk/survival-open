@@ -23,7 +23,7 @@ import {ArcadeVisuals} from './visuals.js?v=regions-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1';
@@ -579,7 +579,8 @@ export class ArcadeGame {
    '<button data-act="openingPick" data-role="intercept"><strong>Перехватить наводчика</strong>'+
    '<small>Уничтожить отмеченный корабль. Данные для развития и заметно более редкие патрули на две минуты.</small></button>'+
    '<button data-act="openingPick" data-role="rescue"><strong>Эвакуировать капсулу</strong>'+
-   '<small>Подлететь и удерживать E / «Действие» 3,5 с. Больше сплава и аварийный щит, но враг заметит спасение.</small></button>'+
+   '<small>Подлететь и удерживать E / «Действие»: всего 3,5 с работы, можно прерывать. '+
+   'Пока работает луч, пушки молчат. Награда — сплав и щит; после спасения враг поднимет тревогу.</small></button>'+
    '</div><p class="opening-note">Первое успешно выполненное поручение даёт один бесплатный оружейный модуль за забег. '+
    'На выполнение — около двух с половиной минут игрового времени.</p>'+
    '<button data-act="openingSkip" class="opening-skip">Продолжить свободный полёт</button></div>';
@@ -624,7 +625,7 @@ export class ArcadeGame {
   this.dismiss();
   this.notice(kind==='intercept'?
    'Цель отмечена: наводчик окружён патрулями. Подойдите на дистанцию оружия и назначьте приоритет.':
-   'Капсула отмечена. Удерживайте E рядом с ней; отпускайте кнопку для стрельбы.',6);
+   'Капсула отмечена. Удерживайте E рядом: прогресс сохранится, если отпустить кнопку и отбиваться.',6);
  }
  showOpeningReward(){
   if(this.firstHardwareReward!=='pending'||!this.overlay.hidden||this.dead)return;

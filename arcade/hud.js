@@ -91,15 +91,20 @@ export class CockpitDisplay {
   }
   const op=game.operation,c=game.contract,tracker=n.contractObjective;
   const opening=openingArcObjective(game.openingArc,game.time);
-  const unclaimedWeapon=game.firstHardwareReward==='pending'&&
-   game.openingArc?.status==='complete'?'БЕСПЛАТНОЕ ОРУЖИЕ · выберите модуль на станции':'';
+  // A standard station contract also unlocks the first free module. Never
+  // hide that reward just because the optional opening dilemma was skipped.
+  const unclaimedWeapon=game.firstHardwareReward==='pending'?
+   'БЕСПЛАТНОЕ ОРУЖИЕ · выберите модуль на станции':'';
   const regional=homeConflictCue(game);
   if(tracker){
-   tracker.hidden=!(op||c||opening||unclaimedWeapon||regional);
-   this.root.classList.toggle('has-objective',!!(op||c||opening||unclaimedWeapon||regional));
-   tracker.classList.toggle('ready',!op&&!!c&&c.progress>=c.goal);
-   display(tracker,op?missionHudText(game):openingArcActive(game.openingArc)?opening:
-    c?missionHudText(game):opening||unclaimedWeapon||regional);
+   // Time-limited opening tasks remain readable even when the player picks up
+   // another station assignment during the crisis.
+   const urgent=openingArcActive(game.openingArc);
+   const objective=urgent?opening:(op||c)?missionHudText(game):opening||unclaimedWeapon||regional;
+   tracker.hidden=!objective;
+   this.root.classList.toggle('has-objective',!!objective);
+   tracker.classList.toggle('ready',!urgent&&!op&&!!c&&c.progress>=c.goal);
+   display(tracker,objective);
   }
   const extracting=!!game.mining?.active,repairing=!!game.probeRepairing;
   const noise=miningSignal(game.miningNoise||0);

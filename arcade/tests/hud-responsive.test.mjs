@@ -152,6 +152,22 @@ test('HUD reads game state and changes contextual prompts without changing simul
   game.waypoint=null;
   hud.update(game,100,5);
   assert.equal(node('flightDistance').hidden,true);
+  game.firstHardwareReward='pending';
+  game.openingArc={status:'skipped',kind:null};
+  hud.update(game,100,5);
+  assert.match(node('contractObjective').textContent,/БЕСПЛАТНОЕ ОРУЖИЕ/,
+   'reward from a normal contract remains visible even after skipping the opening');
+  game.contract={kind:'kill',name:'Зачистить патрули',baseId:'0:0',progress:0,goal:3};
+  hud.update(game,100,5);
+  assert.match(node('contractObjective').textContent,/Зачистить патрули/);
+  game.openingArc={status:'active',kind:'rescue',expiresAt:155,repair:1};
+  hud.update(game,100,5);
+  assert.match(node('contractObjective').textContent,/ЭВАКУАЦИЯ/,
+   'the urgent assignment remains on top despite a second station contract');
+  game.openingArc={status:'failed',kind:'rescue'};
+  game.contract=null;
+  hud.update(game,100,5);
+  assert.match(node('contractObjective').textContent,/БЕСПЛАТНОЕ ОРУЖИЕ/);
  }finally{
   if(originalDocument===undefined)delete globalThis.document;else globalThis.document=originalDocument;
   if(originalWindow===undefined)delete globalThis.window;else globalThis.window=originalWindow;
