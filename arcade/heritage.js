@@ -1,4 +1,4 @@
-import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01';
+import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1';
 import {AudioEngine} from '../src/audio.js?v=foley-autofire-03';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=foley-autofire-03';
@@ -8,6 +8,8 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const LEVELS={dock:83,carrier:69,arsenal:96,lab:113,outpost:125};
 const SOUND_IDS=Object.freeze({
  laser:'starter_soft',rocket:'knife',enemyShot:'magic_wand',
+ plasmaShot:'starter_soft',railShot:'railgun',flakShot:'retro_blaster',
+ rocketShot:'knife',ionShot:'lightning',resonatorShot:'magic_wand',howitzerShot:'explosion_big',
  hit:'hit',
  explosion:'explosion_small',rocketImpact:'explosion_small',largeExplosion:'explosion_big',
  armorHit:'armor_hit',
@@ -90,7 +92,7 @@ export class ArcadeHeritage {
    return !!this.audio.rockImpact?.({heavy:kind==='rockBreak',...options});
   }
   if(kind==='droneDestroyed')options.intensity=(options.intensity??1)*.67;
-  if(kind==='laser'){
+  if(kind==='laser'||kind==='plasmaShot'){
    // The first shot after quiet is distinct. During sustained auto-fire,
    // successive pulses become quieter without suppressing visual gunfire.
    const gap=now-this.lastAutoShotAt;
@@ -99,7 +101,7 @@ export class ArcadeHeritage {
    options.intensity=(options.intensity??1)*(1-this.autoFireRun*.065);
   }
   // The mixer plays only decoded and license-verified audio recordings.
-  if((kind==='laser'||kind==='rocket')&&!position){
+  if((kind==='laser'||kind==='rocket'||kind==='plasmaShot'||kind==='rocketShot')&&!position){
    this.audio.shoot(key,options);
   }else this.audio.playEvent(key,options);
   return true;

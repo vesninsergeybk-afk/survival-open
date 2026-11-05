@@ -25,8 +25,9 @@ import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=weapons-cycle-2';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
-import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2';
+import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
+import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
@@ -40,11 +41,11 @@ import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADE
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
-import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1';
+import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3';
-import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2';
+import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1';
 import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
@@ -161,7 +162,7 @@ export class ArcadeGame {
   this.heavyCharge=null;this.heavyCooldown=0;this.syncShipLoadout();
   this.doctrine=null;this.lastDamageAt=-Infinity;
   this.network={armor:0,armament:0,engine:0,strikePower:0};
-  this.enemies=[];this.allies=[];this.drops=[];this.shots=[];this.missiles=[];this.flashes=[];
+  this.enemies=[];this.allies=[];this.drops=[];this.shots=[];this.missiles=[];this.flashes=[];this.weaponFx=[];
    this.support={charges:0,cooldown:0,missions:[]};
   this.zones=[];this.images={};this.time=0;this.spawnClock=9;this.miningNoise=0;
   this.lastNoiseSource=null;this.noiseAlert=null;
@@ -1793,7 +1794,7 @@ export class ArcadeGame {
   this.fieldEffects=[plan.effect];this.fieldLoan.charges=plan.chargesAfter;
   this.fieldLoan.cooldownUntil=plan.cooldownUntil;this.fieldLoan.used++;
   this.heritage.vfx.nova(plan.effect.targets[0].target.x,plan.effect.targets[0].target.y,43,'violet');
-  this.heritage.play('laser',.26,{x:this.player.x,y:this.player.y});
+  this.heritage.play('resonatorShot',.26,{x:this.player.x,y:this.player.y});
   this.notice('РЕЗОНАНС · '+plan.effect.targets.length+' цели · 4 секунды связи · зарядов '+this.fieldLoan.charges+'/3',3);
   this.hud();return true;
  }
@@ -1818,10 +1819,10 @@ export class ArcadeGame {
   let from=this.player;
   for(let i=0;i<plan.targets.length;i++){
    const target=plan.targets[i];
-   this.flash(from.x,from.y,target.x,target.y,'#84eaff');
    target.ionMarkUntil=0;
    const item=candidates.find(x=>x.target===target);
    const point=contactOnCircle(target.x,target.y,targetRadius(item),from.x,from.y);
+   emitWeaponFx(this,'ion',from,point);
    damageTarget(this,item,plan.damage[i],'ion',point);
    from=target;
   }
@@ -1832,7 +1833,7 @@ export class ArcadeGame {
   if(mastery){this.ionMasteryAwarded=true;this.collect({type:'data',value:mastery});
    recordSortieIncome(this,'data','other',mastery);}
   this.heritage.vfx.nova(plan.targets[0].x,plan.targets[0].y,43,'cyan');
-  this.heritage.play('laser',.26,{x:plan.targets[0].x,y:plan.targets[0].y});
+  this.heritage.play('ionShot',.26,{x:plan.targets[0].x,y:plan.targets[0].y});
   this.notice(mastery?'Цепной разряд освоен: '+plan.targets.length+
    ' цели · +'+mastery+' данных · ион '+this.fieldLoan.charges+'/'+ION_CONDUCTOR.charges:
    'Ионный разряд: '+plan.targets.length+' '+
@@ -2743,6 +2744,7 @@ export class ArcadeGame {
   this.drops=this.drops.filter(d=>d.life>0);
   for(const f of this.flashes)f.ttl-=dt;
   this.flashes=this.flashes.filter(f=>f.ttl>0);
+  updateWeaponFx(this,dt);
  }
  drawSprite(image,x,y,w,h,angle=0){
   const c=this.ctx;
@@ -3253,6 +3255,7 @@ export class ArcadeGame {
    c.strokeStyle='#73dffc77';c.lineWidth=3;c.beginPath();c.arc(p.x,p.y,37,0,TAU);c.stroke();
   }
   for(const f of this.flashes)drawEnergyFlash(c,f,this.fps);
+  drawWeaponFx(c,this.weaponFx,this.fps,this.visuals.reducedMotion,cam);
   this.heritage.vfx.render(c,'front',
    {worldX:cam.x,worldY:cam.y,width:cam.w,height:cam.h});
   c.restore();

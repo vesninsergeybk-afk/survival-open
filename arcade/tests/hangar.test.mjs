@@ -196,7 +196,8 @@ test('an auxiliary gun fires only when mounted, has a target, and automatic fire
  const e=enemy(300),game=combat([e]);
  updateAuxiliaryWeapons(game,.1,false);assert.equal(game.hits.length,0);
  updateAuxiliaryWeapons(game,.1,true);assert.deepEqual(game.hits,[38]);
- assert.equal(game.weaponThermal.current,18);assert.equal(game.flashes.length,1);
+ assert.equal(game.weaponThermal.current,18);assert.equal(game.weaponFx.length,1);
+ assert.equal(game.weaponFx[0].kind,'rail');
  updateAuxiliaryWeapons(game,.1,true);assert.equal(game.hits.length,1,'cooldown prevents a second immediate hit');
  game.moduleClocks.rail=0;game.weaponThermal.locked=true;updateAuxiliaryWeapons(game,.1,true);
  assert.equal(game.hits.length,1,'overheat suppresses auxiliary guns');
@@ -257,7 +258,8 @@ test('wide flak branch hits four enemies instead of three at lower per-target da
 test('duplicate auxiliary modules emit visible shots from both mounted positions',()=>{
  const e=enemy(300),game=combat([e]);game.shipLoadout.slots[1]='rail';game.weaponProfile.rail=2;
  updateAuxiliaryWeapons(game,1,true);assert.deepEqual(game.hits,[38,38]);
- assert.equal(game.flashes.length,2);assert.notEqual(game.flashes[0][0],game.flashes[1][0]);
+ assert.equal(game.weaponFx.length,2);
+ assert.notEqual(game.weaponFx[0].x,game.weaponFx[1].x);
 });
 test('howitzer requires H and a real target, telegraphs a fixed point and waits before damage',()=>{
  const e={...enemy(500),type:'gunship'},game=combat([e]);
