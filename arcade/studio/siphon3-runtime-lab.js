@@ -2,7 +2,7 @@ import {
   CONTOURS,LAB_NODES,createLabWorld,harvesterPosition,forceLaunch,
   startIntercept,stepLab,
 } from './siphon3-runtime-core.js';
-import {drawSiphon3,siphon3RigReady} from '../siphon3-art.js?v=siphon3-rig-2';
+import {drawSiphon3,siphon3RigReady} from '../siphon3-art.js?v=siphon3-rig-3';
 
 const byId=id=>document.getElementById(id);
 const canvas=byId('scene');
