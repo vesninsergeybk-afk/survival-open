@@ -184,7 +184,7 @@ test('buying a relay antenna spends alloy once and changes topology',()=>{
 });
 
 test('hangar acknowledges a hired drone instead of suggesting an impossible second purchase',()=>{
- const html=renderBasePanel(station(),state({ore:0,allies:1,droneRoles:['scout'],baseTab:'hangar'}));
+ const html=renderBasePanel(station(),state({ore:0,allies:1,droneRoles:['scout'],baseTab:'hangar',hangarView:'services'}));
  assert.match(html,/Дрон «Страж» уже в строю/);
  assert.doesNotMatch(html,/Дрон: 20 сплава · не хватает/);
 });

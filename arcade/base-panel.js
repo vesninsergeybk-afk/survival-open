@@ -1,4 +1,4 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2';
 import {readableKey,DEFAULT_CONTROLS} from './control-layout.js?v=unified-controls-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
@@ -253,6 +253,8 @@ const contractPanel=(o,state)=>{
   c.ore+' сплава · '+c.data+' данных · '+c.data+' опыта</span></div>'+contractActions+'</section>';
 };
 // Tactical station briefing. The mission is a world object, not a kill counter.
+const missionSummary=summary=>'<p class="base-op-summary">'+summary+'</p>';
+const missionDetails=(body,facts)=>'<details class="base-op-brief"><summary>Условия, опасность и последствия</summary><p>'+body+'</p>'+facts+'</details>';
 const corridorPanel=(base,state,compact=false)=>{
  const op=corridorOffer(base,state.operation);
  if(!op)return '';
@@ -275,14 +277,15 @@ const corridorPanel=(base,state,compact=false)=>{
  return '<article class="base-featured-op mission-corridor '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ДОК</span><span>'+
   (done?'КОРИДОР ОТКРЫТ':returning?'ОСТАЛОСЬ ВЕРНУТЬСЯ':active?'ОПЕРАЦИЯ ПРИНЯТА':'РАЗВЕДКА ПОД ПОМЕХАМИ')+'</span></div>'+
-  '<strong>'+CORRIDOR_OPERATION.name+'</strong><p>'+body+'</p>'+
-  (compact?'':facts)+
+  '<strong>'+CORRIDOR_OPERATION.name+'</strong>'+missionSummary(done?'Помехи сняты, разведка работает.':returning?
+   'Передайте телеметрию в домашнем доке.':active?'Отключите передатчик и вернитесь с данными.':
+   'Уничтожьте глушитель и вернитесь в док за наградой.')+
   (returning?'<small>Телеметрия получена. Награда и разведка откроются после возвращения в док.</small>':
    active||op.resumable?'<small>Передатчик: '+hp+'% прочности. Повреждения сохраняются при отступлении.</small>':'')+
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
   CORRIDOR_OPERATION.rewardOre+' сплава · +'+CORRIDOR_OPERATION.rewardData+
-  ' данных и столько же опыта</span><div>'+actions+'</div></div></article>';
+  ' данных и столько же опыта</span><div>'+actions+'</div></div>'+missionDetails(body,compact?'':facts)+'</article>';
 };
 const probePanel=(base,state,compact=false)=>{
  const op=probeOffer(base,state.operation);
@@ -305,14 +308,15 @@ const probePanel=(base,state,compact=false)=>{
  return '<article class="base-featured-op mission-probe '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ЛАБОРАТОРИЯ</span><span>'+
   (done?'СИГНАЛ ВОССТАНОВЛЕН':active?'РЕМОНТ В ПОЛЁТЕ':'СИГНАЛ БЕДСТВИЯ')+'</span></div>'+
-  '<strong>'+PROBE_OPERATION.name+'</strong><p>'+body+'</p>'+
-  (compact?'':facts)+
+  '<strong>'+PROBE_OPERATION.name+'</strong>'+missionSummary(done?'Зонд восстановлен.':active?
+   'Удерживайте E у зонда; в это время корабль не стреляет.':
+   'Найдите и восстановите зонд рядом с лабораторией.')+
   (active||op.resumable?'<div class="base-op-progress"><span>Восстановлено: '+pct+'%</span>'+
    '<progress value="'+pct+'" max="100" aria-label="Ход восстановления зонда"></progress></div>':'')+
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
   PROBE_OPERATION.rewardOre+' сплава · +'+PROBE_OPERATION.rewardData+
-  ' данных и столько же опыта</span><div>'+actions+'</div></div></article>';
+  ' данных и столько же опыта</span><div>'+actions+'</div></div>'+missionDetails(body,compact?'':facts)+'</article>';
 };
 const relayPanel=(base,state,compact=false)=>{
  const op=relayOffer(base,state.operation,state.time);
@@ -336,13 +340,14 @@ const relayPanel=(base,state,compact=false)=>{
  return '<article class="base-featured-op mission-relay '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · АРСЕНАЛ</span><span>'+
   (done?'ОБОРОНА ЗАВЕРШЕНА':active?'РЕТРАНСЛЯТОР ПОД УГРОЗОЙ':'ОЖИДАЕТ ПОДМОГИ')+'</span></div>'+
-  '<strong>'+RELAY_DEFENSE.name+'</strong><p>'+body+'</p>'+
-  (compact?'':facts)+
+  '<strong>'+RELAY_DEFENSE.name+'</strong>'+missionSummary(done?'Ретранслятор защищён.':active?
+   'Защитите передатчик от трёх волн налётчиков.':
+   'Остановите налёт, пока враг не уничтожил передатчик.')+
   (active?'<small>Передатчик: '+Math.ceil(op.hp/op.maxHp*100)+'% · '+relayDefenseCue(op,state.time)+'</small>':'')+
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
   RELAY_DEFENSE.rewardOre+' сплава · +'+RELAY_DEFENSE.rewardData+
-  ' данных и столько же опыта</span><div>'+actions+'</div></div></article>';
+  ' данных и столько же опыта</span><div>'+actions+'</div></div>'+missionDetails(body,compact?'':facts)+'</article>';
 };
 const carrierPanel=(base,state,compact=false)=>{
  const op=carrierOffer(base,state.operation,state.time);
@@ -370,14 +375,15 @@ const carrierPanel=(base,state,compact=false)=>{
  return '<article class="base-featured-op mission-carrier '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · АВИАНОСЕЦ</span><span>'+
    (done?'МАРШРУТ ОСЛАБЛЕН':returning?'ВЕРНИТЕСЬ С ДАННЫМИ':ongoing?'ПОГОНЯ':'КОНВОЙ НА ПОДХОДЕ')+'</span></div>'+
-  '<strong>'+CARRIER_INTERCEPTION.name+'</strong><p>'+body+'</p>'+
-  (compact?'':facts)+
+  '<strong>'+CARRIER_INTERCEPTION.name+'</strong>'+missionSummary(done?'Маршрут снабжения противника ослаблен.':returning?
+   'Доставьте сведения на авианосец.':ongoing?'Перехватите транспорт до его выхода.':
+   'Найдите конвой и остановите снабжение противника.')+
   (ongoing?'<small>Транспорт: '+Math.ceil(op.hp/CARRIER_INTERCEPTION.maxHp*100)+
    '% · до выхода '+Math.ceil(op.distanceRemaining)+' м.</small>':'')+
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
    CARRIER_INTERCEPTION.rewardOre+' сплава · +'+CARRIER_INTERCEPTION.rewardData+
-   ' данных и столько же опыта</span><div>'+actions+'</div></div></article>';
+   ' данных и столько же опыта</span><div>'+actions+'</div></div>'+missionDetails(body,compact?'':facts)+'</article>';
 };
 const specialOffer=(base,state)=>corridorOffer(base,state.operation)||
  probeOffer(base,state.operation)||relayOffer(base,state.operation,state.time)||
@@ -774,16 +780,16 @@ export function renderBasePanel(base,state){
  const hasAcceptedWork=localOperation||o.contract.status==='active'||o.contract.status==='ready';
  const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ВАШИ ЗАДАНИЯ</span><strong>'+
   (hasAcceptedWork?'Текущие задания':'Куда отправимся?')+'</strong>'+
-  '<p>'+(localOperation?'Нажмите на особую операцию, чтобы увидеть подробности. ':hasAcceptedWork?'':
+  '<p>'+(localOperation?'Особая операция уже принята. Её цель и маршрут показаны ниже. ':hasAcceptedWork?'':
    'Можно выполнить одну особую операцию и один полевой заказ одновременно. ')+
-  'Условия завершения и получения награды указаны у каждого задания.</p></div></div>'+
+  'Выбирайте любое доступное задание прямо здесь.</p></div></div>'+
   firstReward+
-  (o.contract.status==='ready'?'<h3 class="base-section-title">Готовая награда</h3>'+contractPanel(o,state):'')+
-  (specialOffer(base,state)?'<details class="base-mission-details"><summary>Особая операция · '+
-   (specialOffer(base,state)?.name||(baseNames[base.type]||'Станция'))+
-   (localOperation?' · '+(state.operation.phase==='return'?'Вернуться за наградой':'В работе'):'')+
-   '</summary>'+specialPanel(base,state)+'</details>':'')+
-  (o.contract.status==='ready'?'':'<h3 class="base-section-title">Полевые заказы</h3>'+contractPanel(o,state))+
+  '<div class="base-task-board">'+
+  (o.contract.status==='ready'?'<section class="base-task-group reward"><h3>Готовая награда</h3>'+contractPanel(o,state)+'</section>':'')+
+  (specialOffer(base,state)?'<section class="base-task-group special" aria-label="Особая операция"><h3>Особая операция</h3>'+
+   specialPanel(base,state)+'</section>':'')+
+  (o.contract.status==='ready'?'':'<section class="base-task-group regular" aria-label="Полевые заказы"><h3>Полевые заказы</h3>'+contractPanel(o,state)+'</section>')+
+  '</div>'+
   (regionalGoal||campaign?'<details class="base-secondary-info base-region-plans" data-hangar-section="region-plans">'+
    '<summary>Цели в регионах · ослабить противника и открыть станции</summary>'+regionalGoal+campaign+'</details>':'')+'</div>';
  const localMission=specialOffer(base,state),hullPercent=Math.round(state.hp/state.maxHp*100);
@@ -832,8 +838,11 @@ export function renderBasePanel(base,state){
    (state.fieldReturnNotice?'Модуль вернулся после задания. ':'')+
     'Повторный прокат доступен в арсенале. Обычное оружие продолжает работать.',
    '<span class="base-ready">ПЕРВАЯ ПРОБА ЗАВЕРШЕНА</span>'):'';
- const hangar=renderShipHangar({...state,baseActive:active,station:base})+'<details class="hg-services" data-hangar-section="services"><summary>Подготовка к вылету · ремонт · дроны · прокат оружия</summary><div class="base-operations">'+readiness+
-  '<div class="base-grid">'+repair+hire+'</div>'+local+fieldPanel+supply+'</div></details>';
+ const hangar=renderShipHangar({...state,baseActive:active,station:base})+
+  ((state.hangarView||'weapons')==='upgrades'&&state.doctrine?'<section class="base-doctrine-service"><h3>Доктрина пилота</h3><p>Смена доктрины возвращает очко развития и стоит 12 сплава.</p>'+
+   action('respec','Сменить доктрину · 12 сплава',o.ore<12?'Нужно 12 сплава':'')+'</section>':'')+
+  ((state.hangarView||'weapons')==='services'?'<section class="hg-services hg-services-direct" data-hangar-section="services" aria-label="Обслуживание корабля"><div class="base-operations">'+readiness+
+  '<div class="base-grid">'+repair+hire+'</div>'+local+fieldPanel+supply+'</div></section>':'');
  const protection=defenseStatus(base,o.connected&&state.connectedBases>=2,state.time||0);
  const protectionText='ПВО '+protection.charges+'/'+protection.capacity+' · радиус '+protection.radius+' м'+
   (protection.rechargeIn?' · заряд через '+protection.rechargeIn+' с':'')+
@@ -865,14 +874,10 @@ export function renderBasePanel(base,state){
   (instantUpgrades?'<h3 class="base-section-title">Доступно сейчас</h3><div class="base-grid">'+instantUpgrades+'</div>':'')+
   (futureUpgrades?'<details class="base-secondary-info base-network-future"><summary>Следующие улучшения · стоимость и условия</summary><div class="base-grid">'+futureUpgrades+'</div></details>':'')+
   '<details class="base-secondary-info base-network-advanced"><summary>Карта связи между станциями</summary>'+networkPreview(base,state)+'</details>'+
-  (modules?'<details class="base-secondary-info base-network-advanced"><summary>'+
+  (modules?'<section class="base-network-direct" aria-label="Оснащение станции"><h3>'+
    (base.module?'Оснащение станции · установлено':'Оснащение станции · необратимый выбор')+
-   '</summary>'+modules+'</details>':'')+
-  (transit?'<details class="base-secondary-info base-network-advanced" data-hangar-section="transit"><summary>Перелёты между станциями</summary>'+transit+'</details>':'')+
-  (state.doctrine?'<details class="base-secondary-info base-network-advanced">'+
-   '<summary>Сменить доктрину пилота</summary><section class="base-doctrine-service">'+
-   '<p>Возврат очка доктрины стоит 12 сплава.</p>'+
-   action('respec','Сменить доктрину · 12 сплава',o.ore<12?'Нужно 12 сплава':'')+'</section></details>':'')+'</div>';
+   '</h3>'+modules+'</section>':'')+
+  (transit?'<section class="base-network-direct" data-hangar-section="transit"><h3>Перелёты между станциями</h3>'+transit+'</section>':'')+'</div>';
  const pilotProgress=state.points>0?'<div class="base-pilot-progress" role="status">'+
   '<span><b>ПИЛОТ · УР. '+state.level+'</b> · '+
   (state.lastContractReceipt?.levelsGained?'Новый уровень! · ':'')+

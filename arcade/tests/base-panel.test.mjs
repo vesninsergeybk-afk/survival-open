@@ -88,7 +88,7 @@ test('instant repair price follows actual missing hull and explains free dock he
  const heavilyDamaged=baseOffer(dock,state({ore:20,hp:60,maxHp:110}));
  assert.deepEqual([tiny.repairCost,scratched.repairCost,heavilyDamaged.repairCost],[1,4,18]);
  assert.deepEqual([tiny.repairAmount,scratched.repairAmount,heavilyDamaged.repairAmount],[1,9,50]);
- const panel=renderBasePanel(dock,state({ore:20,hp:101,maxHp:110,baseTab:'hangar'}));
+ const panel=renderBasePanel(dock,state({ore:20,hp:101,maxHp:110,baseTab:'hangar',hangarView:'services'}));
  assert.match(panel,/Через 4 с без попаданий/);
  assert.match(panel,/Бесплатно:/);
  assert.match(panel,/Платный ремонт возвращает до 9 ед. сразу/);
@@ -197,7 +197,7 @@ test('each civilian station has a bounded, clearly priced local service',()=>{
  const dock=baseOffer(base('dock',{active:true}),state({ore:100}));
  assert.equal(dock.localService.key,'shield');
  assert.equal(dock.reasons.service,'');
- assert.match(renderBasePanel(base('dock',{active:true}),state({ore:100})),/Аварийный конденсатор/);
+ assert.match(renderBasePanel(base('dock',{active:true}),state({ore:100,baseTab:'hangar',hangarView:'services'})),/Аварийный конденсатор/);
  const full=baseOffer(base('dock',{active:true}),state({ore:100,shield:30}));
  assert.equal(full.reasons.service,'Щит уже заряжен');
  const lab=baseOffer(base('lab',{active:true}),state({ore:12,scanRemaining:0}));
@@ -210,7 +210,7 @@ test('each civilian station has a bounded, clearly priced local service',()=>{
  assert.match(arsenal.reasons.service,/8 ед. сплава/);
  const carrier=baseOffer(base('carrier',{active:true}),state({ore:100}));
  assert.equal(carrier.localService,null);
- assert.match(renderBasePanel(base('carrier',{active:true}),state({ore:100})),/УДАРНАЯ ЭСКАДРИЛЬЯ/);
+ assert.match(renderBasePanel(base('carrier',{active:true}),state({ore:100,baseTab:'hangar',hangarView:'services'})),/УДАРНАЯ ЭСКАДРИЛЬЯ/);
 });
 
 test('dock emergency shield can be bought once, without double-spending',()=>{

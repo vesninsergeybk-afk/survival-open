@@ -273,7 +273,7 @@ test('mesh radio messages cannot cross an active local jammer',()=>{
 });
 test('hangar teaches tactical effects without a second combat hotkey',()=>{
  const loadout=createLoadout(),session=new HangarSession();session.begin(loadout);
- const ui=renderShipHangar({loadout,hangarSession:session,tactical:createTactical(),
+ const ui=renderShipHangar({loadout,hangarSession:session,tactical:createTactical(),hangarView:'tactics',
   ...station,skillRanks:{},ranks:{}},session);
  assert.match(ui,/ТАКТИЧЕСКИЙ СЛОТ · Пробел/);
  assert.match(ui,/Инерционный импульс/);

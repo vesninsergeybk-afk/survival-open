@@ -1006,3 +1006,94 @@
  #overlay .hg-weapon-row .hg-weapon{min-height:54px}
  #overlay .hg-one-click{margin-top:6px}
 }
+
+/* Direct task board: the mission button and the ordinary contract are never
+   behind a disclosure. Long strategic plans remain optional below the board. */
+.base-task-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.base-task-group{min-width:0;padding:12px;border:1px solid #618c9a87;border-radius:7px;
+ background:linear-gradient(135deg,#122f3e,#0a1e2d)}
+.base-task-group.special{border-color:#d2a96b96}
+.base-task-group.reward{grid-column:1/-1;border-color:#d9bd7896}
+.base-task-group>h3{margin:0 0 11px;padding:0 0 9px;border-bottom:1px solid #83a3aa52;
+ color:#e8f3f3;font-size:18px}
+.base-task-group .base-featured-op,.base-task-group .base-contract-board,
+.base-task-group .base-contract{margin:0;min-width:0}
+.base-task-group .base-featured-op{display:flex;flex-direction:column}
+.base-task-group .base-contract-choices{grid-template-columns:1fr}
+.base-task-group .base-featured-foot{flex-wrap:wrap;gap:8px}
+.base-task-group .base-featured-foot>div{width:100%;display:flex;gap:7px;flex-wrap:wrap}
+.base-task-group .base-featured-foot button{min-height:43px}
+.base-op-summary{color:#e3ecec;font-size:13px;line-height:1.45;margin:8px 0 11px}
+.base-op-brief{margin:6px 0 10px;border-top:1px solid #5b86906e}
+.base-op-brief>summary{padding:10px 0;min-height:39px;cursor:pointer;color:#b7dbe0;
+ font-size:12px;font-weight:650}
+.base-op-brief>p{font-size:12px;line-height:1.5;color:#c1d3d9;margin:7px 0 12px}
+.base-op-brief>.base-op-details{margin-bottom:10px}
+.base-network-direct{margin:13px 0;padding:12px 14px;border:1px solid #6a9ea187;
+ border-radius:7px;background:linear-gradient(130deg,#163646,#0b2431)}
+.base-network-direct>h3{font-size:17px;color:#f0e2c3;margin:0 0 10px}
+.base-network-direct .base-modules,.base-network-direct .base-transit{margin:0}
+
+/* The ship screen now has four explicit destinations and one selected weapon.
+   Artwork, colors and existing purchase/upgrade controls are retained. */
+.hg-view-nav{position:sticky;top:50px;z-index:11;display:grid;
+ grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:7px 0;margin:0 0 9px;
+ background:#0b2030f5}
+#overlay .hg-view-nav button,.preview-dialog .hg-view-nav button{min-width:0;min-height:44px;margin:0;padding:8px 6px;
+ color:#bdd7df;background:#173446;border:1px solid #638899a0;font-weight:650;font-size:12px}
+#overlay .hg-view-nav button[aria-pressed="true"],.preview-dialog .hg-view-nav button[aria-pressed="true"]{border-color:#edd18d;background:#394640;color:#ffe9bc;
+ box-shadow:inset 0 -3px #efca7b}
+#overlay .ship-hangar .hg-layout-centered,#overlay .ship-hangar .hg-layout-editing,
+.preview-dialog .ship-hangar .hg-layout-centered,.preview-dialog .ship-hangar .hg-layout-editing{
+ display:grid;max-width:none;margin:0;grid-template-columns:minmax(280px,1fr) minmax(320px,1fr);gap:0}
+#overlay .ship-hangar .hg-layout-editing,.preview-dialog .ship-hangar .hg-layout-editing{grid-template-columns:minmax(215px,.73fr) minmax(260px,.95fr) minmax(300px,1.1fr)}
+.hg-weapon-inspector{min-width:0;padding:14px 15px 18px;border-left:1px solid #6493a06b;
+ background:linear-gradient(155deg,#123647,#091e2d);color:#dbe9ed}
+.hg-weapon-inspector .hg-section-head{margin-bottom:9px}
+.hg-weapon-picks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:12px}
+#overlay .hg-weapon-picks button,.preview-dialog .hg-weapon-picks button{min-height:38px;margin:0;padding:6px 4px;
+ background:#142d3b;color:#bfdde5;border:1px solid #5f8492;font-size:11px}
+#overlay .hg-weapon-picks button.selected,.preview-dialog .hg-weapon-picks button.selected{background:#4a4835;color:#ffe5b4;border-color:#e6c47e}
+.hg-weapon-description{font-size:12px;line-height:1.5;color:#c1d5df}
+.hg-focused-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0}
+.hg-focused-stats span{padding:9px 7px;border:1px solid #5b87906b;border-radius:5px;
+ font-size:10px;color:#abc9d1;overflow-wrap:anywhere}
+.hg-focused-stats b{display:block;margin-top:3px;font-size:13px;color:#ecedf0}
+.hg-weapon-availability{font-size:12px;color:#e9ce94}
+.hg-weapon-inspector .hg-upgrades{margin-top:13px;padding:12px}
+.hg-weapon-inspector .hg-upgrades h4,.hg-related-upgrades h4,
+.hg-tactical-details h4{margin:0 0 9px;color:#f0e2bc;font-size:15px}
+.hg-weapon-inspector .hg-upgrade-grid{grid-template-columns:1fr;margin:8px 0 0}
+.hg-weapon-inspector .hg-upgrade-grid article{padding:9px 11px}
+.hg-no-branches{font-size:12px;color:#b9cbd3}
+.hg-related-upgrades{margin-top:14px}
+#overlay .hg-weapon-row,.preview-dialog .hg-weapon-row{flex-wrap:wrap}
+#overlay .hg-weapon-row .hg-weapon,.preview-dialog .hg-weapon-row .hg-weapon{flex:1 1 125px}
+#overlay .hg-weapon-row .hg-weapon-fit,.preview-dialog .hg-weapon-row .hg-weapon-fit{min-height:42px;flex:1 1 92px;padding:6px 8px;font-size:11px}
+#overlay .hg-weapon-row .menu-info{flex:0 0 36px}
+.hg-all-upgrades{padding:15px;margin:12px 0}
+.hg-all-upgrades h3{font-size:18px;margin:0 0 12px}
+.hg-view-note{padding:9px 12px;border-left:3px solid #a0c5bf;background:#0f2b3b;
+ font-size:12px;color:#d2e2e5;line-height:1.45}
+.hg-tactical-details{margin-top:13px;flex:1 1 100%;min-width:0}
+.hg-tactic-branches{margin-top:10px}
+.hg-services-direct{padding:14px 15px}
+.hg-services-direct .base-operations{padding:0}
+@media(max-width:1100px){
+ #overlay .ship-hangar .hg-layout-centered,#overlay .ship-hangar .hg-layout-editing,
+ .preview-dialog .ship-hangar .hg-layout-centered,.preview-dialog .ship-hangar .hg-layout-editing{display:block}
+ #overlay .ship-hangar .hg-layout-editing>.hg-ship{display:none}
+ .hg-weapon-inspector{border-left:0;border-top:1px solid #6493a06b}
+ .hg-weapon-inspector .hg-upgrade-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ .base-task-board{grid-template-columns:1fr;gap:9px}
+ .base-task-group.reward{grid-column:auto}
+ .base-task-group{padding:10px}
+}
+@media(max-width:760px),(max-height:580px){
+ .hg-view-nav{top:44px;gap:4px}
+ #overlay .hg-view-nav button,.preview-dialog .hg-view-nav button{font-size:11px;padding:7px 3px;min-height:44px}
+ .hg-weapon-inspector .hg-upgrade-grid{grid-template-columns:1fr}
+ .hg-focused-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
