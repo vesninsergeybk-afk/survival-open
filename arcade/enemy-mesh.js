@@ -8,20 +8,25 @@
  * modifiers are involved.
  */
 import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-2';
+import {BACKBONE,backbonePeers,backboneActive,backboneDelay,
+  archiveReport,archivedWeapon} from './enemy-backbone.js?v=enemy-backbone-2';
 export const ENEMY_MESH=Object.freeze({
   tick:.72,flight:.66,shipLink:510,stationLink:1050,backboneLink:1450,
   bucket:1550,maxHops:12,maxTransfers:36,maxPending:112,
   maxPerNode:12,maxEvents:28,maxDrawn:5,
   weaponLife:48,contactLife:15,incidentLife:36,tacticalAge:20,
-  stationMemory:6
+  stationMemory:6,doctrineLife:70,doctrineTacticalAge:44
 });
 const weaponKinds=new Set(['area','long','close']);
-const allowedKinds=new Set([...weaponKinds,'contact','sabotage']);
+const allowedKinds=new Set([...weaponKinds,'contact','sabotage','doctrine']);
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
 const valid=(p,now)=>!!p&&typeof p.id==='string'&&p.id.length<=192&&
   allowedKinds.has(p.kind)&&finite(p.at)&&finite(p.until)&&
-  p.at<=now&&p.until>now&&p.until-p.at<=ENEMY_MESH.weaponLife+1&&
+  p.at<=now&&p.until>now&&p.until-p.at<=
+    (p.kind==='doctrine'?ENEMY_MESH.doctrineLife:ENEMY_MESH.weaponLife)+1&&
+  (p.kind!=='doctrine'||weaponKinds.has(p.weaponKind)&&
+    finite(p.sourceAt)&&p.sourceAt<=p.at&&p.at-p.sourceAt<=BACKBONE.archiveAge)&&
   Number.isInteger(p.hops)&&p.hops>=0&&p.hops<=ENEMY_MESH.maxHops&&
   (p.assetId==null||typeof p.assetId==='string'&&p.assetId.length<=100);
 const nodeAlive=(n,now)=>n.kind==='station'?
@@ -64,7 +69,8 @@ export class EnemyMesh{
     this.nextTick=now+ENEMY_MESH.tick;
     const next=new Map(),add=(id,kind,ref)=>{
       const old=this.nodes.get(id);
-      const node={id,kind,ref,known:old?.ref===ref?old.known:new Map()};
+      const node={id,kind,ref,known:old?.ref===ref?old.known:new Map(),
+        lastDoctrineAt:old?.ref===ref?old.lastDoctrineAt:-Infinity};
       if(kind==='station'&&node.known.size===0&&
          Array.isArray(ref.meshIntel)){
         for(const p of ref.meshIntel.slice(-ENEMY_MESH.stationMemory))
@@ -86,7 +92,8 @@ export class EnemyMesh{
       if(item.arrives>now){nextPending.push(item);continue;}
       const from=next.get(item.from),to=next.get(item.to);
       if(!from||!to||!nodeAlive(from,now)||!nodeAlive(to,now)||
-         distance(nodePoint(from),nodePoint(to))>linkLimit(from,to)||
+         !(item.trunk?backboneActive(from.ref,to.ref,game):
+           distance(nodePoint(from),nodePoint(to))<=linkLimit(from,to))||
          !valid(item.packet,now)||to.known.has(item.packet.id))continue;
       if(tacticalRadioJammed(game,nodePoint(from))||
          tacticalRadioJammed(game,nodePoint(to))){
@@ -100,11 +107,15 @@ export class EnemyMesh{
       this.deliveries++;
       this.events.push({from:nodePoint(from),to:nodePoint(to),
         kind:received.kind,at:now});
-      if(to.kind==='station')this.rememberStation(to,now);
+      if(to.kind==='station'){
+        this.rememberStation(to,now);
+        archiveReport(to.ref,received,now);
+      }
       if(to.kind==='cell'&&received.kind!=='contact'&&
          now>=this.nextNoticeAt&&
          game.playerCanInterceptEnemyRadio?.(to.ref.leader)){
-        const message='Сеть передала: '+reportLabel(received.kind)+
+        const message='Сеть передала: '+reportLabel(
+          received.kind==='doctrine'?received.weaponKind:received.kind)+
           '. Звено получило предупреждение.';
         game.notice?.('Радиоперехват: '+message,3.2);
         if(net?.intercepts){
@@ -146,6 +157,17 @@ export class EnemyMesh{
       if(sight&&!sight.estimated&&finite(sight.at)&&now-sight.at<=1.2)
         this.publish(node,{kind:'contact',at:sight.at},now);
     }
+    // Strategic stations publish a short-lived *summary of old observations*.
+    // This does not invent a new sighting and cannot reveal target coordinates.
+    for(const node of next.values())if(node.kind==='station'&&
+       now-node.lastDoctrineAt>=BACKBONE.doctrineInterval){
+      const memory=archivedWeapon(node.ref,now,BACKBONE.doctrineAge);
+      if(memory&&!tacticalRadioJammed(game,node.ref)){
+        this.publish(node,{kind:'doctrine',weaponKind:memory.kind,
+          sourceAt:memory.lastAt,at:now},now);
+        node.lastDoctrineAt=now;
+      }
+    }
     // Spatial hash avoids an all-pairs mesh graph with large enemy counts.
     const buckets=new Map();
     for(const node of next.values()){
@@ -154,10 +176,16 @@ export class EnemyMesh{
       if(!buckets.has(key))buckets.set(key,[]);
       buckets.get(key).push(node);
     }
+    // Fresh firsthand observations must outrank summaries. Once a detailed
+    // observation becomes too old for combat, a still-valid doctrine summary
+    // gets priority for newly connected squads.
+    const packetPriority=p=>p.kind==='doctrine'?
+      (now-p.sourceAt<=ENEMY_MESH.doctrineTacticalAge?1:-1):
+      (now-p.at<=ENEMY_MESH.tacticalAge?2:0);
     const queued=new Set(this.pending.map(t=>t.to+'|'+t.packet.id));
     let scheduled=0;
     for(const node of next.values()){
-      if(scheduled>=ENEMY_MESH.maxTransfers||
+      if(scheduled>=ENEMY_MESH.maxTransfers-BACKBONE.maxTransfers||
          this.pending.length>=ENEMY_MESH.maxPending)break;
       const p=nodePoint(node),cx=Math.floor(p.x/ENEMY_MESH.bucket),
         cy=Math.floor(p.y/ENEMY_MESH.bucket);
@@ -169,26 +197,52 @@ export class EnemyMesh{
       neighbours.sort((a,b)=>distance(p,nodePoint(a))-
         distance(p,nodePoint(b))||a.id.localeCompare(b.id));
       const reports=[...node.known.values()].filter(x=>valid(x,now)&&
-        x.hops<ENEMY_MESH.maxHops).sort((a,b)=>b.at-a.at);
+        x.hops<ENEMY_MESH.maxHops).sort((a,b)=>packetPriority(b)-packetPriority(a)||b.at-a.at);
       let sent=0;
       for(const other of neighbours){
         if(tacticalRadioJammed(game,nodePoint(other)))continue;
-        if(sent>=3||scheduled>=ENEMY_MESH.maxTransfers||
+        if(sent>=3||scheduled>=ENEMY_MESH.maxTransfers-BACKBONE.maxTransfers||
            this.pending.length>=ENEMY_MESH.maxPending)break;
         for(const packet of reports){
           const key=other.id+'|'+packet.id;
           if(other.known.has(packet.id)||queued.has(key))continue;
           this.pending.push({from:node.id,to:other.id,packet,
-            arrives:now+ENEMY_MESH.flight});
+            arrives:now+ENEMY_MESH.flight,trunk:false});
           queued.add(key);scheduled++;sent++;this.messages++;
           break;
         }
+      }
+    }
+    // Dedicated bandwidth for authored station-to-station trunks. Distance
+    // and delay are physical; a destroyed midpoint or a jammer severs the path.
+    let trunks=0;
+    for(const node of next.values()){
+      if(node.kind!=='station'||trunks>=BACKBONE.maxTransfers||
+         this.pending.length>=ENEMY_MESH.maxPending)continue;
+      const peers=backbonePeers(node.ref.id);
+      for(const peerId of peers){
+        const other=next.get('s:'+peerId);
+        if(!other||!backboneActive(node.ref,other.ref,game))continue;
+        const reports=[...node.known.values()].filter(p=>
+          valid(p,now)&&p.hops<ENEMY_MESH.maxHops)
+          .sort((a,b)=>packetPriority(b)-packetPriority(a)||b.at-a.at);
+        for(const packet of reports){
+          const key=other.id+'|'+packet.id;
+          if(other.known.has(packet.id)||queued.has(key))continue;
+          this.pending.push({from:node.id,to:other.id,packet,trunk:true,
+            arrives:now+backboneDelay(node.ref,other.ref)});
+          queued.add(key);trunks++;this.messages++;
+          break;
+        }
+        if(trunks>=BACKBONE.maxTransfers||
+           this.pending.length>=ENEMY_MESH.maxPending)break;
       }
     }
   }
   publish(node,report,now){
     const life=report.kind==='contact'?ENEMY_MESH.contactLife:
       report.kind==='sabotage'?ENEMY_MESH.incidentLife:
+      report.kind==='doctrine'?ENEMY_MESH.doctrineLife:
       ENEMY_MESH.weaponLife;
     // Continuous visual contact is one ongoing observation, not a new
     // packet every frame. Preserve bandwidth for actual changed threats.
@@ -198,7 +252,9 @@ export class EnemyMesh{
       (report.assetId?':'+report.assetId:'');
     if(node.known.has(id))return false;
     const packet={id,kind:report.kind,at:report.at,until:report.at+life,
-      hops:0,origin:node.id,assetId:report.assetId||null};
+      hops:0,origin:node.id,assetId:report.assetId||null,
+      ...(report.kind==='doctrine'?{
+        weaponKind:report.weaponKind,sourceAt:report.sourceAt}: {})};
     if(!valid(packet,now))return false;
     node.known.set(id,packet);this.prune(node,now);return true;
   }
@@ -219,10 +275,17 @@ export class EnemyMesh{
   bestForCell(cell,now){
     const node=this.nodes.get('c:'+cell?.id);
     if(!node)return null;
-    return [...node.known.values()].filter(p=>weaponKinds.has(p.kind)&&
+    const reports=[...node.known.values()].filter(p=>
+      (weaponKinds.has(p.kind)||p.kind==='doctrine')&&
       p.origin!==node.id&&now-p.at>=0&&
-      now-p.at<=ENEMY_MESH.tacticalAge)
-      .sort((a,b)=>b.at-a.at)[0]||null;
+      now-(p.kind==='doctrine'?p.sourceAt:p.at)<=
+        (p.kind==='doctrine'?ENEMY_MESH.doctrineTacticalAge:
+          ENEMY_MESH.tacticalAge));
+    return reports.sort((a,b)=>
+      (b.kind==='doctrine'?b.sourceAt:b.at)-
+      (a.kind==='doctrine'?a.sourceAt:a.at))
+      .map(p=>p.kind==='doctrine'?{...p,kind:p.weaponKind,
+        archived:true}:p)[0]||null;
   }
   alarmFor(cell,assetId,now){
     if(!assetId)return null;

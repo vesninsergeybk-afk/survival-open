@@ -26,6 +26,29 @@ test('the strategic map starts with five accessible regions and no hidden naviga
  assert.match(focused,/data-act="mapView" data-id="targets"/);
 });
 
+test('machine radio trunks are a separate opt-in map layer with earned knowledge',()=>{
+ const game=harness(),world=game.world;
+ const a=world.stations.get('industry:depot'),b=world.stations.get('28:5');
+ a.discovered=true;b.discovered=true;
+ game.enemyBackboneMap=true;
+ assert.doesNotMatch(renderWorldMap(game),/contour-hostile-trunk/,
+  'discovering stations alone does not unlock radio intelligence');
+ world.home.type='lab';world.home.active=true;
+ game.enemyBackboneMap=false;
+ let html=renderWorldMap(game);
+ assert.match(html,/Радиосеть машин/);
+ assert.match(html,/Показать радиолинии на всей карте/);
+ assert.doesNotMatch(html,/class="contour-hostile-trunk"/);
+ game.enemyBackboneMap=true;
+ html=renderWorldMap(game);
+ assert.match(html,/class="contour-hostile-trunk"/);
+ assert.match(html,/Сборочный пост/);
+ b.captured=true;b.enemy=false;
+ html=renderWorldMap(game);
+ assert.match(html,/class="contour-hostile-broken"/);
+ assert.match(html,/Оборвана/);
+});
+
 test('the atlas shows next actions, selected route, links, income and reversible controls',()=>{
  const game=harness(),world=game.world;
  game.contourRegion='amethyst';

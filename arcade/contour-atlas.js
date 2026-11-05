@@ -2,6 +2,8 @@ import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {baseNames} from './balance.js?v=arcade-network-20';
 import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt} from './territory-system.js?v=contours-1';
 import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1';
+import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
+import {labLogisticsUnlocked} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -155,6 +157,19 @@ export function renderContourMap(game){
  const nodes=[...map.values()].filter(s=>{const p=at(s,center,scale);
   return p.x>18&&p.x<662&&p.y>18&&p.y<462;});
  const fields=contourFields(world),area=contourArea(fields),production=contourProduction(fields);
+ // Enemy trunks are a separate, opt-in layer. Discovery of both ends and a
+ // player's laboratory are prerequisites; no unseen map data can leak here.
+ const enemyTrunks=labLogisticsUnlocked(world)?visibleBackbone(game):[];
+ const showTrunks=!!game.enemyBackboneMap&&enemyTrunks.length>0;
+ const trunkLines=showTrunks&&!region?enemyTrunks.map(link=>{
+  const a=world.stations.get(link.a),b=world.stations.get(link.b);
+  return `<path d="${pathLine(a,b,center,scale)}" class="${link.active?'contour-hostile-trunk':'contour-hostile-broken'}"><title>${esc(link.titleA)} — ${esc(link.titleB)}: ${link.active?'передача возможна':'связь прервана'}</title></path>`;
+ }).join(''):'';
+ const trunkPanel=enemyTrunks.length?`<details class="contour-radio"${showTrunks?' open':''}><summary>Радиосеть машин · ${enemyTrunks.filter(l=>l.active).length} из ${enemyTrunks.length} известных линий работают</summary>
+  <p>Известные соединения между вражескими станциями. По ним предупреждения переходят из региона в регион с задержкой.</p>
+  <button data-act="contourEnemyRadio" aria-pressed="${showTrunks}">${showTrunks?'Скрыть радиолинии':'Показать радиолинии на всей карте'}</button>
+  <ul>${enemyTrunks.slice(0,8).map(link=>`<li><b>${link.active?'Передаёт':'Оборвана'}</b> · ${esc(link.titleA)} — ${esc(link.titleB)}</li>`).join('')}</ul>
+  <small>Захват станции и радиопомехи разрывают соединение. Архивные сведения не содержат текущего положения корабля.</small></details>`:'';
  const inside=fieldAt(world,game.player.x,game.player.y,fields);
  const pulseReady=inside&&world.contours.flux>=5&&game.time>=(world.contours.pulseReadyAt||0)&&game.player.shield<42;
  const source=world.stations.get(game.contourFirst),selected=world.stations.get(game.contourSelection)||source;
@@ -206,7 +221,7 @@ export function renderContourMap(game){
   <path d="M0 120H680M0 240H680M0 360H680M170 0V480M340 0V480M510 0V480" stroke="#5b9cb21a" stroke-dasharray="3 8"/>
   ${region?fieldArtwork(fields,world,center,scale)+ghost+paths+prospects+
    stationMarks(nodes,center,scale,selected?.id,source?.id,readyIds,goalIds)+
-   incidentArtwork(game,region,center,scale):regionOverview(world,center,scale)}
+   incidentArtwork(game,region,center,scale):trunkLines+regionOverview(world,center,scale)}
   ${visiblePlayer?`<g class="contour-player-pin" transform="translate(${digits(player.x)} ${digits(player.y)})"><circle r="12" fill="#9dd9ff12" stroke="#d7faff" stroke-dasharray="3 3"/><path d="M0 -7L-5 5L0 2L5 5Z" fill="#fff"/><title>Ваш корабль</title></g>`:''}</svg>
   <div class="contour-legend"><span><i class="contour-key mine"></i> Своя</span><span><i class="contour-key dormant"></i> Не включена</span>
   <span><i class="contour-key hostile"></i> Враг</span><span><i class="contour-key available"></i> Возможная связь</span><span><i class="contour-key vortex"></i> Воронка</span>
@@ -218,6 +233,7 @@ export function renderContourMap(game){
   ${flash}${game.contourError?`<p class="contour-error" role="status">${esc(game.contourError)}</p>`:''}
   ${!flash&&game.contourInfo?`<p class="contour-info" role="status">${esc(game.contourInfo)}</p>`:''}
   ${selectedPanel(game,selected,source,choices,region)}
+  ${trunkPanel}
   ${fields.length?`<div class="contour-economy"><b>Воронки работают</b><p>Флюкс доставлен: ${digits(world.contours.delivered)} · потери сборщиков: ${world.contours.lost}. Желтые точки возвращаются с грузом, бирюзовые летят к воронке.</p>
    <button data-act="contourPulse"${pulseReady?'':' disabled'}>${(world.contours.pulseReadyAt||0)>game.time?'Импульс через '+Math.ceil(world.contours.pulseReadyAt-game.time)+' с':
    'Защитный импульс · 5 флюкса · +22 щита'}</button><small>Доступен, когда корабль находится внутри поля и щит ниже 42.</small></div>`:''}
