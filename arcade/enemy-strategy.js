@@ -22,15 +22,18 @@ const active=a=>a&&Number.isFinite(a.x)&&Number.isFinite(a.y)&&
 const cargoes=s=>[
   ...(s?.convoys||[]),...(s?.central?.convoys||[]),
   ...(s?.frontier?.azure?.convoys||[]),
-  ...(s?.frontier?.teal?.convoys||[])
-];
+  ...(s?.frontier?.teal?.convoys||[]),
+  s?.frontier?.azure?.repairExpedition,s?.frontier?.teal?.repairExpedition
+].filter(Boolean);
 const label=role=>({
   escort:'СОПРОВОЖДЕНИЕ',screen:'ПРИКРЫТЬ ТРАНСПОРТ',
   defend:'ОХРАНА УЗЛА',reinforce:'УСИЛИТЬ ОБОРОНУ'
 })[role]||'ОХРАНА';
 const reason=(role,asset)=>role==='escort'?
-  'Сопровождать груз. Не дать сорвать доставку!':
-  role==='screen'?'Транспорт под угрозой. Занять передний заслон!':
+  (asset?.frontierRepair?'Сопровождать ремонтный корабль. Обеспечить его прибытие!':
+   'Сопровождать груз. Не дать сорвать доставку!'):
+  role==='screen'?(asset?.frontierRepair?'Ремонтный корабль под угрозой. Прикрыть его!':
+   'Транспорт под угрозой. Занять передний заслон!'):
   role==='reinforce'?'Промышленный узел под угрозой. Усилить оборону!':
   'Приоритет — сохранить производственный узел. Держать периметр!';
 
@@ -40,7 +43,8 @@ export function theaterAssets(world){
   if(!world)return [];
   const state=world.regionalSupply,items=[];
   for(const a of cargoes(state))if(active(a)&&a.id){
-    items.push({asset:a,id:String(a.id),kind:'cargo',importance:80,max:THEATER.maxCargoCells});
+    items.push({asset:a,id:String(a.id),kind:'cargo',
+      importance:a.frontierRepair?92:80,max:THEATER.maxCargoCells});
   }
   for(const a of world.stations?.values?.()||[]){
     if(!active(a)||!a.enemy||!a.id||a.hp<=0||

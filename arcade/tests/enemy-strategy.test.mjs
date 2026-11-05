@@ -48,6 +48,21 @@ test('real industrial stock chooses a limited escort, screen and guard',()=>{
     'theater stops defending a destroyed shipment');
 });
 
+test('regional squads recognize a repair expedition as an industrial protection objective',()=>{
+ const w=world(),repair={...cargo('frontier-repair-teal-3',135,0),frontierRepair:true};
+ w.regionalSupply.frontier.teal.repairExpedition=repair;
+ const assets=theaterAssets(w);
+ assert.equal(assets.length,1);
+ assert.equal(assets[0].asset,repair);
+ assert.ok(assets[0].importance>80,'repair has strategic value');
+ const orders=planTheater([cell(1,ship(1,50),ship(2,65))],w,1);
+ assert.equal(orders.size,1);
+ assert.match([...orders.values()][0].reason,/ремонтный корабль/);
+ repair.hp=0;
+ assert.equal(planTheater([cell(1,ship(3,50),ship(4,65))],w,3).size,0,
+  'theater cannot keep assigning escorts to destroyed maintenance ships');
+});
+
 test('no omniscient remote orders and no stolen scripted missions',()=>{
   const w=world([cargo('c',10000,0)]);
   const remote=cell(1,ship(1,0),ship(2,30));

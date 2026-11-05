@@ -101,6 +101,19 @@ test('funded repair capacity and an expedition in flight prevent premature regio
  advanceRegionalSupply(w,210);assert.equal(s.repairsCompleted,1);
  assert.equal(warFronts(w).find(f=>f.key==='teal').outcome,'starved');
 });
+test('a temporarily exhausted repair dispatch window does not declare a funded enemy network defeated',()=>{
+ const w=new World(),s=w.regionalSupply.frontier.teal;
+ s.worker.hp=0;s.worker.phase='disabled';s.wrecks.forEach(r=>{r.hp=0;r.stock=0;});
+ s.resource=4;s.repairsLaunched=2;s.repairsCompleted=2;
+ s.repairDispatchTimes=[300,500];s.nextRepairAt=740;
+ const depot=w.stations.get(FRONTIERS.teal.depotId);
+ depot.hp=depot.maxHp*.3;
+ assert.equal(warFronts(w).find(f=>f.key==='teal').outcome,null,
+  'the stock can finance a later expedition once the rolling cooldown expires');
+ s.resource=0;
+ assert.equal(warFronts(w).find(f=>f.key==='teal').outcome,'starved',
+  'without production, reserves or funded repairs the network is genuinely exhausted');
+});
 test('a captured assembly station opens paid local air support without pretending it has a home radio link',()=>{
  const g=game(),post=g.world.stations.get(CENTRAL_INDUSTRY.depotId);
  post.enemy=false;post.captured=true;post.active=true;post.discovered=true;

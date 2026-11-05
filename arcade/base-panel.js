@@ -1,7 +1,7 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
-import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
+import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
@@ -9,11 +9,11 @@ import {CARRIER_INTERCEPTION,carrierOffer,autonomousStrikeCarrier} from './carri
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1';
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
-import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
+import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
 import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1';
-import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1';
-import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1';
-import {renderStationThreats} from './strategic-command.js?v=campaign-1';
+import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1';
+import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
+import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
