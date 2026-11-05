@@ -1,9 +1,9 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
 import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3';
+import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} from './regional-supply.js?v=living-world-3-radio-shadow-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralWorkerPosition,centralEvent} from './central-industry.js?v=living-world-1';
-import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-logistics-audit-1';
+import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1';
 import {stormPhase} from './regional-storms.js?v=regions-1';
 import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1';
 const outline=centralOutline();
@@ -74,6 +74,9 @@ export function updateRegionalWorld(game,dt){
    if(e.kind==='screen-prep')game.notice('Перехват переговоров: после дальнобойных атак враг готовит усиленное охранение. Это уменьшит его запас материалов.',7);
    if(e.kind==='screen-ready')game.notice('Враг подготовил усиленное охранение. Его получат только новые транспорты, если хватит материалов.',6);
    if(e.kind==='screen-dispatch')game.notice('Вышел транспорт с усиленным охранением. Охрана отвлечёт огонь; можно атаковать её или лишить сеть снабжения.',7);
+   if(e.kind==='shipment-overdue')game.notice(e.network==='azure'?
+    'Электроангар не дождался груза. Донесение о пропаже теперь поступает в командную сеть.':
+    'Ремонтная верфь не дождалась груза. Донесение о пропаже теперь поступает в командную сеть.',7);
   }
  }
  // A finite local defense. Leaving the screen does not create a fresh garrison.
@@ -226,6 +229,8 @@ export function spawnRegionalRaid(game,director){
 }
 export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  if(cargo.hp<=0||!Number.isFinite(damage)||damage<=0)return;
+ const silentLoss=cargo.frontierCargo&&
+  !frontierRadioCoverage(game.world,cargo.frontierNetwork,cargo);
  if(cargo.frontierCargo)recordFrontierCargoAttack(game.world,cargo,source,
   distance(game.player,cargo),game.time);
  cargo.hp=Math.max(0,cargo.hp-damage);cargo.hit=.18;
@@ -246,7 +251,9 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  game.notice(frontier?
   (cargo.frontierNetwork==='azure'?
    'Батареи уничтожены: электроангар не получит усиление для одного будущего патруля. Готовые резервы сохраняются.':
-   'Запчасти уничтожены: верфь не усилит патруль ремонтником из этой поставки. Готовые резервы сохраняются.'):
+   'Запчасти уничтожены: верфь не усилит патруль ремонтником из этой поставки. Готовые резервы сохраняются.')+
+   (silentLoss?' Радиотень: сигнал бедствия не ушёл. Пропажу заметят позже.':
+    ' Сигнал бедствия ушёл на ближайшую вражескую станцию.'):
   cargo.centralCargo?
   'Местный груз уничтожен: сборочный пост не усилит один будущий патруль. Ранее доставленные резервы сохраняются.':
   'Рудный груз перехвачен: военный узел не усилит один будущий патруль тяжёлым кораблём. Резервы сохраняются.',7);
@@ -359,6 +366,11 @@ export function drawRegionalWorld(game,c,cam){
    c.save();c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle=color;
    c.fillText(cargo.screened?'УСИЛЕННАЯ ОХРАНА':
     (electric?'ЭНЕРГОТРАНСПОРТ':'РЕМОНТНЫЙ ГРУЗ'),cargo.x,cargo.y-49);
+   if(source?.discovered&&source.enemy){
+    const onAir=frontierRadioCoverage(game.world,id,cargo);
+    c.font='10px system-ui';c.fillStyle=onAir?'#a6f3d0':'#ffe0a5';
+    c.fillText(onAir?'НА СВЯЗИ':'РАДИОТЕНЬ',cargo.x,cargo.y-65);
+   }
    c.fillStyle='#22313e';c.fillRect(cargo.x-33,cargo.y-42,66,4);
    c.fillStyle=color;c.fillRect(cargo.x-33,cargo.y-42,66*cargo.hp/cargo.maxHp,4);c.restore();
   }

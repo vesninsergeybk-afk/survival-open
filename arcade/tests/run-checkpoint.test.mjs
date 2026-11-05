@@ -103,6 +103,42 @@ test('an announced, funded industrial response survives a save without a duplica
  assert.ok(restored.world.regionalSupply.frontier.azure.resource>=0);
  assert.equal(resources,s.resource,'saving must not spend funds again');
 });
+test('a missing freight report survives a checkpoint and arrives only at its overdue time',()=>{
+ const g=scene();advanceRegionalSupply(g.world,g.time);
+ const s=g.world.regionalSupply.frontier.teal;
+ s.strategy.pendingLosses=[{route:'direct',at:230,dueAt:290}];
+ const checkpoint=captureCheckpoint(g,g.docked);
+ assert.ok(validateCheckpoint(checkpoint));
+ const restored=scene();restoreCheckpoint(restored,unpackRun(packRun(checkpoint)));
+ const rec=restored.world.regionalSupply.frontier.teal;
+ assert.deepEqual(rec.strategy.pendingLosses,s.strategy.pendingLosses);
+ assert.equal(rec.strategy.reports.filter(r=>r.kind==='loss').length,0);
+ advanceRegionalSupply(restored.world,289);
+ assert.equal(rec.strategy.reports.filter(r=>r.kind==='loss').length,0);
+ advanceRegionalSupply(restored.world,290);
+ assert.equal(rec.strategy.reports.filter(r=>r.kind==='loss').length,1);
+ assert.equal(rec.strategy.pendingLosses.length,0);
+ advanceRegionalSupply(restored.world,400);
+ assert.equal(rec.strategy.reports.filter(r=>r.kind==='loss').length,1,
+  'reloading a scheduled missing-shipment notice cannot duplicate the event');
+});
+test('untransmitted cargo telemetry remains on the same freighter after a checkpoint',()=>{
+ const g=scene(),network=g.world.regionalSupply.frontier.teal;
+ let cargo;
+ for(let t=1;t<=450&&!cargo;t++){
+  advanceRegionalSupply(g.world,t);
+  cargo=network.convoys[0];
+ }
+ assert.ok(cargo);
+ g.time=network.clock;
+ cargo.radioBuffer=[g.time];
+ assert.ok(validateCheckpoint(captureCheckpoint(g,g.docked)));
+ const restored=scene();restoreCheckpoint(restored,
+  unpackRun(packRun(captureCheckpoint(g,g.docked))));
+ const restoredCargo=restored.world.regionalSupply.frontier.teal.convoys[0];
+ assert.deepEqual(restoredCargo.radioBuffer,cargo.radioBuffer);
+ assert.equal(restored.world.regionalSupply.frontier.teal.strategy.reports.length,0);
+});
 test('checkpoint restores hull, inventory, progression, changed rocks and network together',()=>{
  const g=scene(),base=g.world.nearbyStations(1600,0,2100,false).find(b=>b!==g.docked);
  base.active=true;base.relayBoost=true;base.usedUpgrade=true;base.module='armor';
