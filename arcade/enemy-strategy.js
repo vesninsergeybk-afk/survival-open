@@ -123,7 +123,8 @@ export function planTheater(cells,world,now){
       const alarm=witnessed||!!contact;
       // Do not pull a squad away from an actual nearby engagement simply to
       // patrol a peaceful factory at the other edge of its radio cell.
-      if(!alarm&&cell.threat?.kind==='weak'&&contact===null)continue;
+      if(!alarm&&cell.intel&&!cell.intel.estimated&&
+         now-cell.intel.at>=0&&now-cell.intel.at<=THEATER.contactAge)continue;
       const previous=cell.theaterAssignment?.assetId===item.id?11:0;
       candidates.push({cell,item,score:item.importance-d/24+
         (alarm?36:0)+previous,alarm,contact});
@@ -145,7 +146,7 @@ export function planTheater(cells,world,now){
       role=c.alarm?(n>0&&c.contact?'repel':'reinforce'):'defend';
     const entry={asset:c.item.asset,assetId:c.item.id,
       role,kind:c.item.kind,at:now,
-      ...(role==='repel'&&c.contact?{
+      ...(c.contact?{
         contact:{x:c.contact.x,y:c.contact.y,at:c.contact.at}}:{}),
       reason:reason(role,c.item)};
     result.set(c.cell,entry);
@@ -267,7 +268,8 @@ export class EnemyTheaterStrategy{
       cell.pendingTheater=null;
       if(!game.playerCanInterceptEnemyRadio?.(cell.leader)&&
          !game.playerCanInspectEnemyIntent?.(cell.leader))continue;
-      const item={at:now,until:now+3.2,mode:'screen',
+      const item={at:now,until:now+3.2,
+        mode:pending.role==='repel'?'intercept':'screen',
         message:pending.reason,leader:cell.leader,cellId:cell.id};
       net.intercepts.push(item);
       if(net.intercepts.length>8)net.intercepts.shift();
