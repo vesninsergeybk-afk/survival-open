@@ -5,6 +5,7 @@ import {SUPPLY,SUPPLY_ROUTE,advanceRegionalSupply,interceptSupply,supplyEvent} f
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralWorkerPosition,centralEvent} from './central-industry.js?v=living-world-1';
 import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-logistics-audit-1';
 import {stormPhase} from './regional-storms.js?v=regions-1';
+import {labLogisticsIntel} from './station-progression.js?v=lab-logistics-1';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function makeEnemy(game,type,x,y,scenario,protect=null,frontierRole=null){
@@ -28,6 +29,14 @@ export function updateRegionalWorld(game,dt){
   const cargo=[...s.convoys,...(s.central?.convoys||[]),
    ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[])].find(c=>c.id===game.waypoint.id);
   if(cargo)Object.assign(game.waypoint,{x:cargo.x,y:cargo.y});else game.waypoint=null;
+ }
+ // A triangulated industrial position is provisional. Replace it when the
+ // station is actually discovered; remove a marker once its lead is resolved.
+ // A one-second tick avoids scanning the station network on every frame.
+ if(game.waypoint?.id?.startsWith('intel:')&&Math.floor(game.time)>Math.floor(game.time-dt)){
+  const current=labLogisticsIntel(world,game.player).contacts.find(c=>c.id===game.waypoint.id);
+  if(current)Object.assign(game.waypoint,{x:current.x,y:current.y,label:current.label});
+  else game.waypoint=null;
  }
  const mine=world.stations.get(SUPPLY.mineId);
  const local=world.stations.get(CENTRAL_INDUSTRY.sourceId);
