@@ -10,6 +10,16 @@ export const DEFAULTS = Object.freeze({count:3, speed:.115, capacity:38, rate:13
 const transition = (unit, phase) => { unit.phase = phase; unit.phaseElapsed = 0; };
 const distance = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
 
+/** Spiral parking pattern prevents all harvesters from occupying one pixel. */
+export function harvestSlot(id) {
+  const k=Math.max(0,Math.floor(id)-1);
+  const ring=Math.floor(k/8);
+  const angle=k*2.399963229728653; // golden angle, stable for any fleet count
+  const radius=.032+ring*.016;
+  return {x:SOURCE.x+Math.cos(angle)*radius,
+          y:SOURCE.y+Math.sin(angle)*radius};
+}
+
 function move(unit, destination, speed, dt) {
   const dx=destination.x-unit.x, dy=destination.y-unit.y;
   const dist=Math.hypot(dx,dy);
@@ -61,7 +71,7 @@ export function updateWorld(world, dt, settings={}) {
         }
         break;
       case 'to_source':
-        if(move(unit,SOURCE,config.speed,dt)) transition(unit,'deploy');
+        if(move(unit,harvestSlot(unit.id),config.speed,dt)) transition(unit,'deploy');
         break;
       case 'deploy':
         unit.angle=Math.atan2(SOURCE.y-unit.y,SOURCE.x-unit.x);

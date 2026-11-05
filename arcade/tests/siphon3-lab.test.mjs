@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
-import {createWorld,updateWorld,triggerThreat,STATIONS,SOURCE,isInsideTriangle} from '../studio/siphon3-sim.mjs';
+import {createWorld,updateWorld,triggerThreat,STATIONS,SOURCE,isInsideTriangle,harvestSlot} from '../studio/siphon3-sim.mjs';
 
 const fromStudio=path=>new URL('../studio/'+path,import.meta.url);
 
@@ -9,6 +9,12 @@ test('source is really enclosed by the three linked stations',()=>{
  assert.equal(STATIONS.length,3);
  assert.equal(new Set(STATIONS.map(s=>s.id)).size,3);
  assert.ok(isInsideTriangle(SOURCE));
+});
+
+test('24 harvesters have distinct docking spots inside territory',()=>{
+ const spots=Array.from({length:24},(_,i)=>harvestSlot(i+1));
+ assert.equal(new Set(spots.map(p=>p.x.toFixed(4)+','+p.y.toFixed(4))).size,24);
+ assert.ok(spots.every(p=>isInsideTriangle(p)));
 });
 
 test('harvesters travel, extract from common reserve and unload cargo at station',()=>{
