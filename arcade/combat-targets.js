@@ -4,21 +4,23 @@ import {canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
 
 export const targetDistance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const targetRadius=item=>item.target.r||({jammer:30,turret:22,base:60}[item.kind])||18;
-export function targetAlive(game,item){
+export function targetAlive(game,item,manual=false){
  const t=item?.target;if(!t||!(t.hp>0)||t.converted||t===game.player||game.allies?.includes(t))return false;
  if(t.interceptCargo&&t.phase==='approach')return false;
  if(item.kind==='base')return t.enemy!==false&&!t.captured&&!t.turrets?.some(x=>x.hp>0);
  if(item.kind==='turret')return item.base?.enemy!==false&&!item.base?.captured;
  if(item.kind==='jammer')return t.id==='silent-corridor'&&t.phase!=='return';
  if(t===game.operation&&!t.interceptCargo)return false;
- return canAutoTarget(t);
+ // Deliberate physical aim can strike an unconfirmed investigating patrol.
+ // Auto weapons and escorts still obey sensor/engagement restrictions.
+ return manual||canAutoTarget(t);
 }
 // A single catalog includes world objectives, never friendly repair/defense nodes.
 // Object identity deduplicates the cargo which is also present in the AI grid.
-export function combatTargets(game,range,origin=game.player){
+export function combatTargets(game,range,origin=game.player,manual=false){
  const result=[],seen=new Set(),op=game.operation;
  const add=item=>{
-  if(!seen.has(item.target)&&targetAlive(game,item)&&targetDistance(origin,item.target)<=range){
+  if(!seen.has(item.target)&&targetAlive(game,item,manual)&&targetDistance(origin,item.target)<=range){
    seen.add(item.target);result.push(item);
   }
  };
@@ -33,14 +35,18 @@ export function combatTargets(game,range,origin=game.player){
  // explicitly designate this industrial unit on the canvas.
  const worker=game.world?.regionalSupply?.central?.worker;
  if(worker?.hp>0&&game.world?.stations?.get('industry:source')?.enemy&&
-  game.designatedTarget?.target===worker&&game.time<=game.designatedTarget.expiresAt)
+  (manual||(game.designatedTarget?.target===worker&&game.time<=game.designatedTarget.expiresAt)))
   add({kind:'enemy',target:worker,goal:true});
  const salvage=game.world?.regionalSupply?.frontier?.teal;
- if(game.world?.stations?.get('frontier:teal:source')?.enemy&&
-    game.time<=game.designatedTarget?.expiresAt){
-  const target=game.designatedTarget.target;
-  if(target===salvage?.worker||salvage?.wrecks.includes(target))
-   add({kind:'enemy',target,goal:true});
+ if(game.world?.stations?.get('frontier:teal:source')?.enemy){
+  if(manual){
+   if(salvage?.worker)add({kind:'enemy',target:salvage.worker,goal:true});
+   for(const wreck of salvage?.wrecks||[])add({kind:'enemy',target:wreck,goal:true});
+  }else if(game.time<=game.designatedTarget?.expiresAt){
+   const target=game.designatedTarget.target;
+   if(target===salvage?.worker||salvage?.wrecks.includes(target))
+    add({kind:'enemy',target,goal:true});
+  }
  }
  const bases=game.world?.nearbyStations?game.world.nearbyStations(origin.x,origin.y,range+150,true)
   .filter(b=>b.enemy&&!b.captured&&(b.strategicRole||game.enemyBasesUnlocked?.()!==false)):
@@ -80,8 +86,8 @@ export function lineContact(game,from,item){
  return {cover,point:cover?contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y):
   contactOnCircle(item.target.x,item.target.y,targetRadius(item),from.x,from.y)};
 }
-export function damageTarget(game,item,damage,source='beam',point=null,secondary=false){
- if(!targetAlive(game,item)||!Number.isFinite(damage)||damage<=0)return 0;
+export function damageTarget(game,item,damage,source='beam',point=null,secondary=false,manual=false){
+ if(!targetAlive(game,item,manual)||!Number.isFinite(damage)||damage<=0)return 0;
  const t=item.target,before=t.hp;
  if(item.kind==='jammer'){
   if(game.time<(t.overheatedUntil||0))damage*=1.35;

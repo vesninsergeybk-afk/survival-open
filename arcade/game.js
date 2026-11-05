@@ -30,7 +30,7 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2';
@@ -40,8 +40,8 @@ import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADE
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
-import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1';
-import {precisionRailUnlocked,PRECISION_RAIL_TECH} from './station-progression.js?v=rpg-precision-1';
+import {updateAutomaticWeapons,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1';
+import {precisionRailUnlocked,PRECISION_RAIL_TECH} from './station-progression.js?v=rpg-precision-1-rpg-audit-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2';
@@ -1232,10 +1232,10 @@ export class ArcadeGame {
  }
   toggleManualRail(){
    if(this.dead||this.paused||!this.overlay.hidden)return false;
-   if(!this.weaponProfile.rail){this.notice('Для точной стрельбы установите рельсовое орудие в ангаре.',3);return false;}
    if(!precisionRailUnlocked(this.world)){
-    this.notice('Ручной режим рельса откроется после включения первого арсенала.',4);return false;
+    this.notice('Ручной прицел откроется после включения или захвата арсенала. Затем установите рельсовое орудие в ангаре.',5);return false;
    }
+   if(!this.weaponProfile.rail){this.notice('Ручной прицел открыт. Установите рельсовое орудие в ангаре.',4);return false;}
    this.manualRailMode=!this.manualRailMode;
    this.canvas?.classList?.toggle('rail-manual',this.manualRailMode);
    this.notice(this.manualRailMode?
@@ -2127,7 +2127,9 @@ export class ArcadeGame {
   }
   base.hp-=damage;
   if(base.hp<=0){
+   const precisionUnlockedHere=base.type==='arsenal'&&!precisionRailUnlocked(this.world);
    base.hp=Math.max(1,Math.round(base.maxHp*.3));base.captured=true;base.enemy=false;base.active=true;
+   if(precisionUnlockedHere)this.precisionRailAvailable=true;
    this.defenseTopology=null;
    base.activated=true;base.activationTime=this.time;
    this.activeBases++;base.activationIndex=this.activeBases;
@@ -2146,8 +2148,10 @@ export class ArcadeGame {
      'frontier-azure-depot':'Электроангар захвачен. Организованные рейсы ионных перехватчиков остановлены.',
      'frontier-teal-source':'Комбинат захвачен. Разбор обломков и отправка запчастей остановлены.',
      'frontier-teal-depot':'Ремонтная верфь захвачена. Подготовка новых ремонтных караулов прекращена.'};
-    this.notice(notice[base.strategicRole]||'Промышленный узел захвачен.',7);
-   }else this.notice('Вражеская база захвачена! Заряд кода: Q',6);
+    this.notice((notice[base.strategicRole]||'Промышленный узел захвачен.')+
+     (precisionUnlockedHere?' Открыт ручной прицел рельса (R).':''),7);
+   }else this.notice('Вражеская база захвачена! Заряд кода: Q'+
+    (precisionUnlockedHere?' · Ручной прицел рельса открыт (R)':''),6);
   }
  }
  nearbyEnemyBase(radius=900){

@@ -3,7 +3,7 @@ import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight} fr
 import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {combatTargets,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
+import {combatTargets,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=rpg-precision-audit-1';
 
 export const shipTargets=(game,range,limit=1,nearest=false,focus='precision')=>
  selectTargets(game,range,limit,!nearest&&focus==='precision');
@@ -109,7 +109,7 @@ export function fireAimedRail(game,point){
   return {ok:false,reason:'Ручной выстрел недоступен во время тишины, добычи, ремонта или подготовки гаубицы'};
  if(game.weaponThermal.locked)return {ok:false,reason:'Оружие перегрето'};
  if((game.moduleClocks?.rail||0)>0)return {ok:false,reason:'Рельс перезаряжается: '+Math.ceil(game.moduleClocks.rail*10)/10+' с'};
- const stats=statsFor(game,'rail'),targets=combatTargets(game,stats.range+85);
+ const stats=statsFor(game,'rail'),targets=combatTargets(game,stats.range+85,game.player,true);
  const assisted=targets.filter(item=>targetDistance(point,item.target)<=targetRadius(item)+24)
   .sort((a,b)=>targetDistance(point,a.target)-targetDistance(point,b.target))[0];
  const aim=assisted?assisted.target:point;
@@ -129,7 +129,7 @@ export function fireAimedRail(game,point){
   let impact=end;
   if(before){
    impact=onRay(from,end,before.t);
-   if(damageTarget(game,before.item,damage,'rail',impact)>0)hits++;
+   if(damageTarget(game,before.item,damage,'rail',impact,false,true)>0)hits++;
   }else if(cover){
    impact=cover;rocksHit++;
    game.damageRock(cover.rock,damage*.85,from.x,from.y,'auto',true,
@@ -141,7 +141,7 @@ export function fireAimedRail(game,point){
     if(second&&(!beyond||targetDistance(from,second)<beyond.t*stats.range)){
      game.damageRock(second.rock,damage*penetration,from.x,from.y,'auto',true,
       contactAtPoint(second.rock.x,second.rock.y,second.x,second.y));
-    }else if(beyond&&damageTarget(game,beyond.item,damage*penetration,'rail',onRay(from,end,beyond.t))>0)hits++;
+    }else if(beyond&&damageTarget(game,beyond.item,damage*penetration,'rail',onRay(from,end,beyond.t),false,true)>0)hits++;
    }
   }
   game.flash(from.x,from.y,impact.x,impact.y,before?'#b8e6ff':cover?'#f6ca87':'#7b9be9');

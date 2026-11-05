@@ -252,6 +252,7 @@ export function renderWorldMap(game){
   (unapplied?'<p class="map-unapplied-note" role="status">Сборка ангара не применена. Перед вылетом потребуется подтверждение.</p>':'')+
   '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">Схема сектора</button>'+
   '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">Регионы и цели · '+(known.length+signals.length)+'</button></nav>'+
+  (!precisionUnlocked?'<div class="map-discovery-lead"><b>Новое умение:</b> найдите и включите либо захватите арсенал. Откроется ручной прицел рельса; само орудие устанавливается в ангаре. Ищите арсенал среди неопознанных сигналов.</div>':'')+
   '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
   '<circle cx="340" cy="240" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
