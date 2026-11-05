@@ -3012,6 +3012,13 @@ export class ArcadeGame {
   syncContourDynamics(this);
   const contourEvents=advanceContours(this.world,this.time,dt,this.enemies,this.player);
   recordContourFeedback(this,contourEvents);
+  this.contourDeliveryFX=(this.contourDeliveryFX||[])
+   .filter(fx=>this.time-fx.at<1.5);
+  for(const event of contourEvents){
+   if(event.kind==='delivered'&&event.amount>.01){
+    this.contourDeliveryFX.push({fieldId:event.fieldId,amount:event.amount,at:this.time});
+   }
+  }
   if(contourEvents.some(e=>e.kind==='lost')&&this.time-this.lastContourNoticeAt>18){
    this.lastContourNoticeAt=this.time;
    this.notice('Вражеский налёт уничтожил добывающего плазмофага. Следующая экспедиция отправится автоматически.',5);

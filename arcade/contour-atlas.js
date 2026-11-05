@@ -119,11 +119,12 @@ function fieldArtwork(fields,world,center,scale,transition,overview=false){
  }).join('')}</g>`:'';
  const vortices=fields.map(f=>{
   const p=at(f.center,center,scale),a=at(f.anchor,center,scale);
- const size=overview ? .45 : 1;
+  const size=overview ? .45 : 1,side=36*size;
   return `<g class="contour-vortex-map${fresh(f)?' contour-vortex-forming':''}">${overview?'':`<path d="M${digits(a.x)} ${digits(a.y)}L${digits(p.x)} ${digits(p.y)}" class="contour-harvest-route"/>`}
    <circle cx="${digits(p.x)}" cy="${digits(p.y)}" r="${digits(17*size)}" fill="#ff923010" stroke="#ee8e4666"/>
    <circle cx="${digits(p.x)}" cy="${digits(p.y)}" r="${digits(10*size)}" fill="#f7793155" stroke="#ffc074"/>
    <circle cx="${digits(p.x)}" cy="${digits(p.y)}" r="${digits(4*size)}" fill="#241323" stroke="#ffe2a1"/>
+   <image class="contour-vortex-icon" href="../assets/space/contour-vortex-icon.webp" x="${digits(p.x-side/2)}" y="${digits(p.y-side/2)}" width="${digits(side)}" height="${digits(side)}" preserveAspectRatio="xMidYMid meet"/>
    <title>Огненная воронка · сбор флюкса</title></g>`;
  }).join('');
  if(overview)return `<g class="contour-global-ownership">${loss+filled+surge+vortices}</g>`;
