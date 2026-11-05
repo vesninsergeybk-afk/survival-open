@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createContours,connectContour,disconnectContour,contourLinkOffer,contourFields,contourArea,
- contourProduction,advanceContours,fieldAt,validContours,CONTOURS} from '../territory-system.js';
+ contourProduction,advanceContours,fieldAt,validContours,CONTOURS,contourReserveEligible,
+ armContourReserve,consumeContourReserve} from '../territory-system.js';
 
 const make=(locations={
  '0:0':[0,0],B:[1600,0],C:[900,1200],D:[2300,1250]
@@ -119,4 +120,39 @@ test('the field state is saveable and rejects forged resources and broken links'
  assert.equal(validContours({...w.contours,flux:CONTOURS.fluxCap+1},rows),false);
  assert.equal(validContours({...w.contours,links:[['missing','B']]},rows),false);
  assert.equal(validContours({...w.contours,links:[['B','C'],['C','B']]},rows),false);
+});
+
+test('flux buys one deliberate jamming decoy on a critical contour node, not passive invulnerability',()=>{
+ const w=triangle();w.stations.get('B').type='lab';
+ w.contours.flux=11;
+ assert.equal(contourReserveEligible(w,'B'),true);
+ assert.equal(contourReserveEligible(w,'C'),false,'ordinary nodes cannot advertise a useless jamming decoy');
+ assert.equal(armContourReserve(w,'C',100).ok,false);
+ assert.equal(w.contours.flux,11,'a rejected order cannot consume resources');
+ assert.equal(armContourReserve(w,'B',100).ok,true);
+ assert.equal(w.contours.flux,11-CONTOURS.reserveCost);
+ assert.equal(armContourReserve(w,'B',100).ok,false,'one network holds exactly one decoy');
+ assert.equal(consumeContourReserve(w,'B',111.99),false,'a last-second map click cannot defeat an already charged jammer');
+ assert.equal(consumeContourReserve(w,'C',112),false,'a decoy cannot protect a different station');
+ assert.equal(consumeContourReserve(w,'B',112),true);
+ assert.equal(consumeContourReserve(w,'B',114),false,'a reserve is spent exactly once');
+ assert.equal(w.contours.flux,5);
+ assert.equal(validContours(w.contours,[...w.stations]),true);
+});
+
+test('a destroyed reserved station loses its decoy; malformed and forged reserves fail save validation',()=>{
+ const w=triangle();w.stations.get('B').type='carrier';w.contours.flux=6;
+ assert.equal(armContourReserve(w,'B',3).ok,true);
+ const rows=[...w.stations];
+ assert.equal(validContours(w.contours,rows),true);
+ assert.equal(validContours({...w.contours,reserve:{stationId:'missing',readyAt:15}},rows),false);
+ assert.equal(validContours({...w.contours,reserve:{stationId:'B',readyAt:-2}},rows),false);
+ assert.equal(validContours({...w.contours,reserve:{stationId:'B',readyAt:NaN}},rows),false);
+ assert.equal(validContours({...w.contours,reserve:[]},rows),false);
+ w.stations.get('B').enemy=true;
+ const events=advanceContours(w,10,1);
+ assert.equal(events.filter(e=>e.kind==='reserveLost').length,1);
+ assert.equal(w.contours.reserve,null);
+ assert.equal(w.contours.flux,0,'losing a station does not mint a refund');
+ assert.equal(advanceContours(w,11,1).filter(e=>e.kind==='reserveLost').length,0);
 });

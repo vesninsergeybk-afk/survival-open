@@ -1,7 +1,8 @@
 // Strategic territorial contours are player-authored. They do not replace the
 // automatic short-range radio tree used for station defence and fast travel.
 export const CONTOURS=Object.freeze({maxLength:2800,maxDegree:5,maxLinks:160,
- minFaceArea:200000,launchInterval:45,cycleSeconds:180,fluxCap:30});
+ minFaceArea:200000,launchInterval:45,cycleSeconds:180,fluxCap:30,
+ reserveCost:6,reserveArmSeconds:12});
 const EPS=1e-7;
 const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
@@ -18,7 +19,7 @@ const properCross=(a,b,c,e)=>{
 };
 
 export const createContours=()=>({links:[],flux:0,launches:{},harvesters:[],delivered:0,lost:0,
- nextLaunchAt:0,pulseReadyAt:0});
+ nextLaunchAt:0,pulseReadyAt:0,reserve:null});
 
 export function contourLinkOffer(world,firstId,secondId){
  const state=world.contours,a=world.stations.get(firstId),b=world.stations.get(secondId);
@@ -153,10 +154,43 @@ export function fieldAt(world,x,y,fields=contourFields(world)){
  const p={x,y};return fields.find(field=>insidePolygon(p,field.polygon))||null;
 }
 
+// A paid decoy protects one strategically important contour node from a
+// *specific* supply-funded jamming order. It does not intercept weapons,
+// create defenders, or provide free passive income.
+export function contourReserveEligible(world,stationId){
+ const b=world.stations.get(stationId);
+ return !!b&&active(b)&&!!(b.type==='lab'||b.type==='carrier'||b.relayBoost)&&
+  contourFields(world).some(f=>f.vertices.includes(stationId));
+}
+export function armContourReserve(world,stationId,time){
+ const state=world.contours;
+ if(!state||!Number.isFinite(time)||time<0)return {ok:false,reason:'Недоступна сеть'};
+ if(state.reserve)return {ok:false,reason:'Один ложный маяк уже установлен. Дождитесь его срабатывания.'};
+ if(!contourReserveEligible(world,stationId))return {ok:false,reason:'Выберите работающую лабораторию, авианосную станцию или ретранслятор в действующем контуре.'};
+ if(state.flux<CONTOURS.reserveCost)return {ok:false,reason:'Недостаточно доставленного флюкса'};
+ state.flux-=CONTOURS.reserveCost;
+ state.reserve={stationId,readyAt:time+CONTOURS.reserveArmSeconds};
+ return {ok:true,readyAt:state.reserve.readyAt};
+}
+export function consumeContourReserve(world,stationId,time){
+ const r=world.contours?.reserve;
+ if(!r||r.stationId!==stationId||time<r.readyAt||
+  !contourReserveEligible(world,stationId))return false;
+ world.contours.reserve=null;
+ return true;
+}
+
 export function advanceContours(world,time,dt,enemies=[],player=null){
  const state=world.contours;if(!state||dt<=0)return [];
  const fields=contourFields(world),byId=new Map(fields.map(f=>[f.id,f]));
  const area=contourArea(fields),production=contourProduction(fields),events=[];
+ if(state.reserve){
+  const base=world.stations.get(state.reserve.stationId);
+  if(!base?.active||base.enemy){
+   events.push({kind:'reserveLost',stationId:state.reserve.stationId});
+   state.reserve=null;
+  }
+ }
  state.harvesters=state.harvesters.filter(h=>byId.has(h.fieldId));
  // One shared departure clock prevents remaking the same land as new faces
  // from granting free shipments every time the player redraws a diagonal.
@@ -212,6 +246,11 @@ export function validContours(state,stations){
   !state.launches||typeof state.launches!=='object'||Array.isArray(state.launches)||
   Object.keys(state.launches).length>256||!Array.isArray(state.harvesters)||state.harvesters.length>320)return false;
  const ids=new Set(stations.map(([id])=>id)),unique=new Set();
+ if(state.reserve!==undefined&&state.reserve!==null&&
+  (!state.reserve||typeof state.reserve!=='object'||Array.isArray(state.reserve)||
+   typeof state.reserve.stationId!=='string'||!ids.has(state.reserve.stationId)||
+   !Number.isFinite(state.reserve.readyAt)||state.reserve.readyAt<0||
+   state.reserve.readyAt>1e9))return false;
  for(const pair of state.links){
   if(!Array.isArray(pair)||pair.length!==2||!pair.every(id=>typeof id==='string'&&ids.has(id))||
    pair[0]===pair[1]||unique.has(edgeKey(...pair)))return false;

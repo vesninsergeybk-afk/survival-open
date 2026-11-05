@@ -2,7 +2,7 @@ import {warFronts,warFront,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {ensureStationDefense,defenseLinked} from './network-defense.js?v=network-defense-4';
 import {baseNames} from './balance.js?v=arcade-balanced-bases-30';
-import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1';
+import {contourFields,consumeContourReserve} from './territory-system.js?v=contours-2-operational-reserve-1';
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 
 export const STATION_INTERDICTION=Object.freeze({memory:180,radioSpeed:900,reportDelay:3,
@@ -225,6 +225,21 @@ export function updateStationInterdiction(game,e,dt){
   if(full)defense.rechargeAt=game.time+(linked?13:17);
   defense.visualAt=game.time;defense.visualKind='shot';
   game.notice?.('ПВО станции отбила подавляющий импульс. Запас защитных зарядов уменьшился.',4);
+ }else if(consumeContourReserve(game.world,base.id,game.time)){
+  // The decoy was funded by delivered flux and armed well before impact.
+  // It spoofs the *order* of this already-paid ship, leaving that ship alive
+  // and able to fight normally. Neither the real PVO nor enemy budget changes.
+  e.stationRaid=null;
+  game.notice?.('Ложный маяк станции «'+(base.title||baseNames[base.type]||'Узел')+
+   '» отвёл носитель помех от цели. Флюксовый резерв израсходован; корабль противника остаётся в бою.',7);
+  recordWorldFeedback(game,{key:'contour-decoy:'+base.id+':'+Math.floor(game.time),
+   kind:'industry',label:'ЛОЖНЫЙ МАЯК СРАБОТАЛ',
+   cause:'Флюксовый резерв подменил координаты радиоцели',
+   effect:'Оплаченный носитель прервал налёт; контур и радиосвязь станции сохранились',
+   x:base.x,y:base.y});
+  game.flash?.(base.x,base.y,e.x,e.y,'#87e9e7');
+  game.heritage?.vfx?.nova?.(base.x,base.y,145,'cyan');
+  return true;
  }else{
   const first=!base.suppressed;
   const poweredContour=first&&contourFields(game.world).some(f=>f.vertices.includes(base.id));

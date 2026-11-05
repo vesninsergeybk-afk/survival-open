@@ -9,7 +9,7 @@ import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-camp
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
 import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
-import {createContours,validContours} from './territory-system.js?v=contours-1-world-feedback-1';
+import {createContours,validContours} from './territory-system.js?v=contours-2-operational-reserve-1';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
 

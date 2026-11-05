@@ -52,7 +52,7 @@ export function recordContourFeedback(game,events){
   recorded+=Number(recordWorldFeedback(game,{key:'contour-flux:'+Math.floor(game.time),
    label:'ФЛЮКС ДОСТАВЛЕН',kind:'industry',
    cause:'Плазмофаги вернулись с флюксом',
-   effect:'Запас вырос на '+total.toFixed(1)+'; в своём поле его можно обменять на щит',
+   effect:'Запас вырос на '+total.toFixed(1)+'; его можно направить на щит или ложный маяк станции',
    x:field?.anchor.x,y:field?.anchor.y}));
  }
  return recorded;

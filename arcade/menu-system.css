@@ -798,6 +798,10 @@
 .contour-key.relay{width:12px;height:0;border-top:2px dotted #70b3eb;background:transparent;border-radius:0}
 .contour-key.storm{width:10px;height:10px;border:1.6px dashed #82e1f7;background:#63bfdf14;border-radius:50%}
 .contour-key.cargo{background:#ffbe78;border:1px solid #ffeed2;border-radius:2px}
+.contour-key.reserve{background:#94fbe6;border:2px solid #287b87;transform:rotate(45deg);border-radius:2px}
+.contour-reserve-pin{pointer-events:none}
+.contour-reserve-pin circle{fill:#6df3dd18;stroke:#9dfbe7;stroke-width:2;stroke-dasharray:3 4}
+.contour-reserve-pin path{fill:#a5fff1;stroke:#173b48;stroke-width:1.5}
 .contour-key.incident{background:#f8c26b;border:1px solid #fff1c8;transform:rotate(45deg);border-radius:2px}
 .contour-key.enemy-threat{background:#ff6777;border:1.5px dashed #fff0ed;transform:rotate(45deg);
  border-radius:2px}
@@ -842,6 +846,8 @@
  background:#102e33}.contour-economy>b{font-size:13px;color:#b9f8e8}
 .contour-economy small{display:block;font-size:10px;color:#a8c9c6;margin-top:5px}
 #overlay .contour-economy button{min-height:42px;width:100%;margin:4px 0}
+.contour-reserve{border-color:#579eaf;background:linear-gradient(145deg,#123447,#0c2937)}
+.contour-reserve strong{color:#d5fff6}
 .contour-warning{border-left:3px solid #fa8391;color:#ffd2d6;background:#4f26324a;
  padding:9px;font-size:12px}
 .contour-rules{margin-top:9px;border:1px solid #355e70;border-radius:5px;padding:9px 12px;
