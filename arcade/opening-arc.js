@@ -4,7 +4,7 @@
 export const OPENING_ARC=Object.freeze({
  offerAt:16,deadline:155,repairSeconds:3.5,repairRange:155,
  interceptRewardData:27,interceptRewardOre:8,
- rescueRewardOre:28,rescueShield:20,
+ rescueRewardOre:28,rescueShield:35,
  interceptRelief:120,rescueAlarm:100,
  localRadius:2600
 });
@@ -59,6 +59,14 @@ export function openingArcPressure(director,arc,now,player,home){
    result={...result,interval:result.interval*1.65,
     cap:Math.max(4,result.cap-Math.min(6,2+wave))};
   }
+ }
+ // The authored crisis adds its own concrete threat. Do not stack a full
+ // ambient swarm on top of the protected commander or an unarmed rescue hold.
+ // Completing the rescue ends this breathing room immediately and triggers
+ // its advertised alarm, so opting in does not make an endlessly safe sector.
+ if(nearby&&openingArcActive(arc)){
+  result={...result,interval:result.interval*(arc.kind==='rescue'?1.45:1.28),
+   cap:Math.max(4,result.cap-2)};
  }
  if(nearby&&arc?.reliefUntil>now){
   result={...result,interval:result.interval*1.5,

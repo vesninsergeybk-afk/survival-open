@@ -4,7 +4,7 @@ import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-rewar
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2';
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
-import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-1';
+import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-2';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
