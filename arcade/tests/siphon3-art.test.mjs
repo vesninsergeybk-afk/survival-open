@@ -4,7 +4,7 @@ import {readFileSync,existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {
  drawSiphon3,siphon3Frame,siphon3AtlasUrl,siphon3RigUrl,siphon3Pose,SIPHON3_FRAME_COUNT,
- SIPHON3_FRAME_RATE,SIPHON3_TILE,SIPHON3_WORLD_SIZE,
+ siphon3EnergyState,SIPHON3_FRAME_RATE,SIPHON3_TILE,SIPHON3_WORLD_SIZE,
 } from '../siphon3-art.js';
 
 const relative=p=>fileURLToPath(new URL(p,import.meta.url));
@@ -80,6 +80,38 @@ test('hinged claws have phase-specific, deterministic poses with smooth boundari
    }
   }
  }
+});
+
+test('independent hinges and the whole body remain animated without new painted frames',()=>{
+ const a=siphon3Pose('out',.35,.1,3),b=siphon3Pose('out',.35,.49,3);
+ assert.notDeepEqual(a.angles,b.angles);
+ assert.notEqual(a.angles.dorsal-a.angles.ventralLeft,
+  b.angles.dorsal-b.angles.ventralLeft,'claws must not flap as one rigid ornament');
+ assert.notEqual(a.bob,b.bob);
+ assert.notEqual(a.tilt,b.tilt);
+ const still=siphon3Pose('out',.35,.1,3,true);
+ assert.equal(still.bob,0);assert.equal(still.tilt,0);
+ assert.deepEqual(still,siphon3Pose('out',.35,3,3,true));
+});
+
+test('energy appears during gathering and remains clearly loaded until delivery',()=>{
+ const empty=siphon3EnergyState('out',1,2,4);
+ const gathering=siphon3EnergyState('gather',.15,2,4);
+ const full=siphon3EnergyState('gather',.24,2,4);
+ const returning=siphon3EnergyState('back',.97,3,4);
+ assert.equal(empty.load,0);assert.equal(empty.carrying,false);
+ assert.ok(gathering.load>.1&&gathering.load<1);
+ assert.equal(full.load,1);assert.equal(returning.load,1);
+ assert.equal(returning.carrying,true);
+ assert.deepEqual(siphon3EnergyState('back',.5,2,4,true),
+  siphon3EnergyState('back',.5,100,4,true));
+ const loaded=fakeContext(),unloaded=fakeContext();
+ drawSiphon3(loaded,{x:3,y:3,phase:'back',time:.3,sheet});
+ drawSiphon3(unloaded,{x:3,y:3,phase:'out',time:.3,sheet});
+ assert.ok(loaded.calls.filter(call=>call.name==='arc').length>=7,
+  'three cargo sparks, orbit and trailing particles should be visible');
+ assert.ok(loaded.calls.filter(call=>call.name==='stroke').length>=2);
+ assert.equal(unloaded.calls.filter(call=>call.name==='arc').length,0);
 });
 
 test('playable drawing and laboratory share a real shipped texture',()=>{
