@@ -1,3 +1,6 @@
+import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1';
+import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1';
+import {openSystemMenu,mountSystemMenu,attachMenuAccess} from './game-menu.js?v=all-menus-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
@@ -36,7 +39,7 @@ import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-1-enemy-economy-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-1-enemy-economy-1-all-menus-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
@@ -45,7 +48,7 @@ import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMar
 import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2';
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2';
-import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1';
+import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1-all-menus-1';
 import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1-expedition-1-campaign-1-opening-tactics-1-weapon-mechanics-2-unified-controls-1';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2-expedition-1-campaign-1';
@@ -271,6 +274,7 @@ export class ArcadeGame {
   render();
   panel.addEventListener('toggle',()=>{
    if(panel.open){
+    if(document.getElementById?.('gameMenuDialog')&&!document.getElementById('gameMenuDialog').open)return;
     if(!this.paused&&!this.dead&&this.overlay.hidden){this._controlsPausedGame=true;this.paused=true;
      this.heritage.pause('controls');}
    }else{
@@ -293,7 +297,7 @@ export class ArcadeGame {
   });
   document.addEventListener('keydown',e=>{
    if(!this.bindingCapture){
-    if(panel.open&&e.code==='Escape'){
+    if(panel.open&&e.code==='Escape'&&!document.getElementById?.('gameMenuDialog')?.open){
      e.preventDefault();e.stopImmediatePropagation();panel.open=false;
     }
     return;
@@ -316,19 +320,26 @@ export class ArcadeGame {
  bind(){
   this.controls||={...DEFAULT_CONTROLS};
   window.addEventListener('resize',()=>this.resize());
-  this.bindControlSettings();
+  this.bindControlSettings();mountSystemMenu(this);
   document.addEventListener('keydown',e=>{
    const launchOpen=document.getElementById?.('mobileLaunch')?.hidden===false;
+   if(document.getElementById?.('gameMenuDialog')?.open||document.getElementById?.('creditsDialog')?.open)return;
    if(!launchOpen&&!this.overlay.hidden&&keepTabInMenu(e,this.overlay))return;
    if(launchOpen)return;
-   if(!this.overlay.hidden&&this.overlay.dataset.mode==='run-start')return;
+   if(!this.overlay.hidden&&this.overlay.dataset.mode==='run-start'){
+    if(e.code==='Escape'&&this.overlay.querySelector('.run-confirm')){e.preventDefault();this.cancelRunAction();}
+    return;
+   }
    // A menu owns Tab for focus navigation; during flight Tab opens the map.
    if(e.code==='Escape'&&!this.overlay.hidden){
     e.preventDefault();
+    if(this.overlay.querySelector('.run-confirm')){this.cancelRunAction();return;}
     if(this.overlay.querySelector('.departure-confirm')){this.cancelDeparture();return;}
     if(this.pendingStationModule&&this.overlay.dataset.mode==='base'){
      this.cancelStationModule(this.pendingStationModule.role);return;
     }
+    if(this.overlay.dataset.mode==='map'&&this.mapReturnToBase&&this.docked){this.returnToStation();return;}
+    if(this.overlay.dataset.mode==='skills'&&this.stationExitArmed&&this.docked){this.returnToStation();return;}
     this.dismiss();return;
    }
    if(e.code===this.controls.map&&!this.overlay.hidden)return;
@@ -346,7 +357,7 @@ export class ArcadeGame {
     if(e.code===this.controls.railMode&&!this.dead)this.toggleManualRail();
     if(e.code===this.controls.map)this.openMap();
     if(e.code===this.controls.skills)this.skills();
-    if(e.code==='Escape')this.dismiss();
+    if(e.code==='Escape')openSystemMenu(this);
     if(e.code===this.controls.railMode&&this.dead)location.reload();
    }
    this.keys.add(e.code);
@@ -371,6 +382,20 @@ export class ArcadeGame {
    if(b.disabled)return;
    if(this.pendingStationModule&&this.overlay.dataset.mode==='base'&&
     !b.closest('.base-module-confirm'))return;
+   if(act==='systemMenu'){openSystemMenu(this);return;}
+   if(act==='requestRunNew'||act==='requestRestart'){this.requestRunAction(act==='requestRestart'?'restart':'runNew');return;}
+   if(act==='cancelRunNew'){this.cancelRunAction();return;}
+   if(act==='confirmRunNew'||act==='confirmRestart'){
+    const expected=act==='confirmRestart'?'restart':'runNew';
+    if(this.pendingRunAction!==expected||!this.overlay.querySelector('.run-confirm'))return;
+    this.cancelRunAction();
+    if(expected==='restart'){this.runStore?.end();location.reload();return;}
+    this.pendingCheckpoint=null;this.runStore?.startNew();this.overlay.dataset.mode='';this.dismiss();
+    this.notice('Новый вылет. Прогресс сохраняется на активных станциях.',4);return;
+   }
+   if(act==='pilotStation'){this.returnToStation();return;}
+   if(act==='pilotHangar'){this.baseTab='hangar';this.returnToStation();return;}
+   if(act==='pilotMap'){this.openMap();return;}
    if(act==='runContinue'){this.continueRun();return;}
    if(act==='conflictPlan'){this.chooseConflictPlan(b.dataset.role);return;}
    if(act==='campaignFront'){
@@ -390,27 +415,27 @@ export class ArcadeGame {
    if(act==='openingReward'){this.claimOpeningReward(b.dataset.role);return;}
    if(act.startsWith('hg')){this.hangarAction(b.dataset);return;}
    if(act==='skillBranch'&&['Корабль','Технологии','Добыча'].includes(b.dataset.id)){
-    this.skillBranch=b.dataset.id;this.renderSkills();
+    this.skillBranch=b.dataset.id;this.renderSkills();this.overlay.querySelector('.skill-dialog').scrollTop=0;
     this.overlay.querySelector('.skill-branch-tabs [aria-pressed="true"]')?.focus({preventScroll:true});return;
    }
    if(act==='mapView'&&['map','territory','targets'].includes(b.dataset.id)){
-    this.mapView=b.dataset.id;this.overlay.innerHTML=renderWorldMap(this);
+    this.mapView=b.dataset.id;this.renderMap();
     this.overlay.querySelector('.map-view-switch [aria-pressed="true"]')?.focus({preventScroll:true});return;
    }
    if(act==='contourRegion'){
     this.contourRegion=b.dataset.id;this.contourFirst=null;this.contourSelection=null;this.contourError='';this.contourInfo='';
     this.contourFeedback=null;
-    this.overlay.innerHTML=renderWorldMap(this);return;
+    this.renderMap();return;
    }
    if(act==='contourEnemyRadio'){
     this.enemyBackboneMap=!this.enemyBackboneMap;
     if(this.enemyBackboneMap)this.contourRegion='all';
-    this.overlay.innerHTML=renderWorldMap(this);
+    this.renderMap();
     this.overlay.querySelector('[data-act="contourEnemyRadio"]')?.focus({preventScroll:true});
     return;
    }
    if(act==='contourCancel'){
-    this.contourFirst=null;this.contourError='';this.overlay.innerHTML=renderWorldMap(this);return;
+    this.contourFirst=null;this.contourError='';this.renderMap();return;
    }
    if(act==='contourUnlink'){
     const before=contourFields(this.world),oldArea=contourArea(before);
@@ -434,7 +459,7 @@ export class ArcadeGame {
      this.contourFirst=null;this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
      this.heritage.ui('cancel');
     }
-    this.overlay.innerHTML=renderWorldMap(this);return;
+    this.renderMap();return;
    }
    if(act==='contourPulse'){
     const state=this.world.contours,p=this.player;
@@ -450,7 +475,7 @@ export class ArcadeGame {
       effect:'Щит усилен на '+Math.round(p.shield-shieldBefore)+'; перезарядка 120 с',
       label:'ЗАЩИТА ВОССТАНОВЛЕНА',x:p.x,y:p.y});
     }
-    this.overlay.innerHTML=renderWorldMap(this);this.pausedRenderPending=true;return;
+    this.renderMap();this.pausedRenderPending=true;return;
    }
    if(act==='contourNode'||act==='contourConnect'){
     const id=b.dataset.id,node=this.world.stations.get(id);
@@ -488,7 +513,7 @@ export class ArcadeGame {
       }else this.contourFeedback={title:'Линия проложена',text:'Соедините соседние станции, чтобы замкнуть территорию и запустить добычу.',at:this.time};
      }else this.contourError=result.reason;
     }
-    this.overlay.innerHTML=renderWorldMap(this);return;
+    this.renderMap();return;
    }
    if(act==='installModule'){this.askStationModule(b.dataset.role);return;}
    if(act==='confirmModule'){this.confirmStationModule(b.dataset.role||'');return;}
@@ -550,6 +575,7 @@ export class ArcadeGame {
    this.overlay.querySelector('.base-tabs [aria-selected="true"]')?.focus({preventScroll:true});
   });
   $('audioBtn').onclick=()=>this.toggleAudio();
+  const quickAudio=$('quickAudio');if(quickAudio)quickAudio.onclick=()=>this.toggleAudio();
   const credits = $('creditsDialog'), creditsButton = $('audioCredits');
   if (credits && creditsButton) {
    creditsButton.addEventListener('click', () => {
@@ -678,6 +704,7 @@ export class ArcadeGame {
   const enabled=this.heritage.toggleSound();
   $('audioBtn').textContent=enabled?'🔊 Звук включён':'♫ Начать со звуком';
   $('audioBtn').setAttribute('aria-pressed',String(enabled));
+  const quick=$('quickAudio');if(quick){quick.textContent=enabled?'♫':'♪';quick.setAttribute('aria-pressed',String(enabled));quick.setAttribute('aria-label',enabled?'Выключить звук':'Включить звук');}
   if(enabled)this.heritage.ui('audioOn');
   this.notice(enabled?'Звук и музыка включены':'Звук и музыка выключены',2.3);
  }
@@ -700,7 +727,7 @@ export class ArcadeGame {
    return true;
   }
   presentMenu(preferred=''){
-   menuHints(this.overlay);
+   attachMenuAccess(this.overlay);menuHints(this.overlay);
    if(typeof document!=='undefined'&&!this.menuFocusOrigin&&
     !this.overlay.contains?.(document.activeElement))
     this.menuFocusOrigin=document.activeElement;
@@ -725,8 +752,8 @@ export class ArcadeGame {
     '<section class="departure-confirm" role="alertdialog" aria-modal="true" '+
     'aria-labelledby="departure-title" aria-describedby="departure-description">'+
     '<span class="departure-kicker">АНГАР · НЕЗАВЕРШЁННАЯ ПОДГОТОВКА</span>'+
-    '<h2 id="departure-title">Оружие ещё не установлено</h2>'+
-    '<p id="departure-description">Вы изменили предварительную сборку, но не нажали «Применить». '+
+    '<h2 id="departure-title">Схема не применена</h2>'+
+    '<p id="departure-description">Загруженная схема ещё не применена. '+
     'Если вылететь сейчас, корабль сохранит прежнее вооружение, а новые настройки пропадут. '+
     'Сплав за предварительную сборку не списан.</p>'+
     '<div class="departure-actions">'+
@@ -768,21 +795,7 @@ export class ArcadeGame {
   this.paused=true;this.pausedRenderPending=true;
   this.overlay.dataset.mode='opening-choice';this.overlay.hidden=false;
   this.heritage.pause('map');
-  this.overlay.innerHTML='<div class="dialog opening-choice" role="dialog" aria-modal="true" '+
-   'aria-labelledby="opening-title"><span class="opening-kicker">ПЕРЕХВАТ · ДОМАШНИЙ СЕКТОР</span>'+
-   '<h2 id="opening-title">Два срочных сигнала</h2>'+
-   '<p>Наводчик противника ведёт патрули к доку. В другой стороне осталась аварийная капсула. '+
-   'Помочь можно только в одном месте — сигнал второй цели будет потерян.</p>'+
-   '<div class="opening-options">'+
-   '<button data-act="openingPick" data-role="intercept"><strong>Перехватить наводчика</strong>'+
-   '<small>Уничтожить отмеченный корабль. Данные для развития и заметно более редкие патрули на две минуты.</small></button>'+
-   '<button data-act="openingPick" data-role="rescue"><strong>Эвакуировать капсулу</strong>'+
-   '<small>Подлететь и удерживать '+this.controlLabel('interact')+' / «Действие»: всего 3,5 с работы, можно прерывать. '+
-   'Пока работает луч, пушки молчат. На половине работы капсула включит защитный импульс. ' +
-   'Награда — сплав и щит; после спасения враг поднимет тревогу.</small></button>'+
-   '</div><p class="opening-note">Первое успешно выполненное поручение даёт один бесплатный оружейный модуль за забег. '+
-   'На выполнение — около двух с половиной минут игрового времени.</p>'+
-   '<button data-act="openingSkip" class="opening-skip">Продолжить свободный полёт</button></div>';
+  this.overlay.innerHTML=renderOpeningSignals(this.controlLabel('interact'));
   this.presentMenu('[data-act="openingPick"]');
  }
  skipOpeningRoute(){
@@ -832,19 +845,7 @@ export class ArcadeGame {
   this.paused=true;this.pausedRenderPending=true;
   this.overlay.dataset.mode='opening-reward';this.overlay.hidden=false;
   this.heritage.pause('base');
-  this.overlay.innerHTML='<div class="dialog opening-choice" role="dialog" aria-modal="true" '+
-   'aria-labelledby="opening-reward-title"><span class="opening-kicker">УСПЕХ · НОВОЕ ОСНАЩЕНИЕ</span>'+
-   '<h2 id="opening-reward-title">Выберите второе оружие</h2>'+
-   '<p>Модуль бесплатный и сразу устанавливается в свободный узел корабля. '+
-   'Это выбор тактики, а не улучшение урона на несколько процентов.</p>'+
-   '<div class="opening-options">'+
-   '<button data-act="openingReward" data-role="rail"><strong>Рельс · держать дистанцию</strong>'+
-   '<small>Автоматический выстрел на 700 м. Можно атаковать раньше, чем враг войдёт в радиус плазмы.</small></button>'+
-   '<button data-act="openingReward" data-role="flak"><strong>Картечь · встречать рои</strong>'+
-   '<small>Поражает до трёх близких целей. Подпускайте группы примерно на 245 м.</small></button>'+
-   '<button data-act="openingReward" data-role="plasma"><strong>Вторая плазма · сближаться</strong>'+
-   '<small>Сильный ближний залп по одиночному кораблю; следите за общим перегревом.</small></button>'+
-   '</div><button data-act="close" class="opening-skip">Позже — выбрать на станции</button></div>';
+  this.overlay.innerHTML=renderOpeningHardware(this.shipLoadout);
   this.presentMenu('[data-act="openingReward"]');
  }
  claimOpeningReward(id){
@@ -989,7 +990,7 @@ export class ArcadeGame {
      operationId===PROBE_OPERATION.id?'Прогресс ремонта сохранён.':
      operationId===CORRIDOR_OPERATION.id&&this.world.stations.get(this.world.home.id)?.corridorMission?.phase==='return'?
       'Телеметрия сохранена. Возобновите операцию в доке, чтобы сдать её.':'Повреждения передатчика сохранены.'),4);
-   if(this.overlay.dataset.mode==='map')this.overlay.innerHTML=renderWorldMap(this);
+   if(this.overlay.dataset.mode==='map')this.renderMap();
    else if(this.overlay.dataset.mode==='base')this.renderDock();
   }
   abandonContract(){
@@ -997,17 +998,43 @@ export class ArcadeGame {
    const name=this.contract.name;finishFieldAssignment(this.fieldLoan,'contract',this.contract);this.contract=null;
    this.heritage.ui('cancel');
    this.notice('Поручение «'+name+'» отменено. Прогресс потерян.',3.4);
-   if(this.overlay.dataset.mode==='map')this.overlay.innerHTML=renderWorldMap(this);
+   if(this.overlay.dataset.mode==='map')this.renderMap();
    else if(this.overlay.dataset.mode==='base')this.renderDock();
   }
+  renderMap(){
+  const old=this.overlay.querySelector('.map-dialog'),identity=old?captureMenuControl(this.overlay):null;
+  const scroll=old?.scrollTop||0;
+  const same=old?.classList?.contains('map-mode-'+(this.mapView||'map'));
+  this.overlay.innerHTML=renderWorldMap(this);this.presentMenu();
+  const panel=this.overlay.querySelector('.map-dialog');if(panel)panel.scrollTop=same?scroll:0;
+  restoreMenuControl(this.overlay,identity,this.mapReturnToBase?'[data-act="baseBack"]':'[data-act="close"]');
+ }
+ returnToStation(){
+  if(!this.docked||!this.stationExitArmed)return false;
+  this.mapReturnToBase=false;this.overlay.dataset.mode='base';this.overlay.hidden=false;
+  this.heritage.pause('base');this.renderDock();return true;
+ }
+ requestRunAction(action){
+  if(!['run-start','death'].includes(this.overlay.dataset.mode)||!['runNew','restart'].includes(action))return false;
+  if(this.overlay.querySelector('.run-confirm'))return false;
+  this.pendingRunAction=action;
+  const dialog=this.overlay.querySelector('.dialog');if(dialog)dialog.inert=true;
+  this.overlay.insertAdjacentHTML('beforeend',renderRunConfirmation(action==='restart'));
+  focusMenu(this.overlay,'[data-act="cancelRunNew"]');return true;
+ }
+ cancelRunAction(){
+  this.pendingRunAction=null;this.overlay.querySelector('.run-confirm')?.remove();
+  const dialog=this.overlay.querySelector('.dialog');if(dialog)dialog.inert=false;
+  focusMenu(this.overlay,'[data-act="runContinue"]');
+ }
   openMap(){
    if(this.dead)return;
    this.endInteraction();
    if(!this.overlay.hidden&&this.overlay.dataset.mode==='map'){this.dismiss();return;}
-   this.mapReturnToBase=!this.overlay.hidden&&this.overlay.dataset.mode==='base'&&!!this.docked;
+   this.mapReturnToBase=!this.overlay.hidden&&!!this.docked&&(this.overlay.dataset.mode==='base'||this.stationExitArmed);
    this.paused=true;this.pausedRenderPending=true;this.heritage.pause('map');
    this.overlay.dataset.mode='map';this.overlay.hidden=false;
-   this.overlay.innerHTML=renderWorldMap(this);
+   this.renderMap();
    this.presentMenu(this.mapReturnToBase?'[data-act="baseBack"]':'[data-act="close"]');
    this.heritage.ui('map');
   }
@@ -1082,64 +1109,14 @@ export class ArcadeGame {
   this.renderSkills();
  }
  renderSkills(){
-  const focusIdentity=captureMenuControl(this.overlay);
+  const focusIdentity=this.overlay.querySelector('.skill-dialog')?captureMenuControl(this.overlay):null;
   const previousScroll=this.overlay.querySelector('.skill-dialog')?.scrollTop||0;
-  const p=this.player;
-  let content='<header class="skill-head"><h2 id="skill-menu-title">Развитие пилота · '+p.points+' '+pointsWord(p.points)+
-   '</h2><p>Уровень '+p.level+' · опыт '+Math.floor(p.xp)+' / '+expForNext(p.level)+
-   '. Данные с врагов дают опыт и очки развития; сплав из метеоритов нужен для флота и баз.</p></header>'+
-   '<p class="skill-hangar-note">Оружие, двигатель, корпус и щиты улучшайте в ангаре активной станции. Изученные навыки сохраняются и после следующей стыковки.</p>'+
-   '<section class="doctrine-strip"><div class="doctrine-header"><strong>БОЕВАЯ ДОКТРИНА</strong><small>'+(
-    this.doctrine?'Выбрано направление. Сменить его можно на активной базе за 12 сплава.':
-    'Один мощный стиль на выбор с 4-го уровня · стоит 1 очко · смена на базе.'
-   )+'</small></div><div class="doctrine-grid">'+
-   DOCTRINES.map(d=>{
-    const chosen=this.doctrine===d.id;
-    const reason=chosen?'ВЫБРАНО':this.doctrine?'Выбрана другая доктрина':
-     p.level<4?'Нужен уровень 4':p.points<1?'Нужно 1 очко':'ИЗУЧИТЬ';
-    const enabled=!this.doctrine&&p.level>=4&&p.points>0;
-    return '<button class="doctrine-choice'+(chosen?' selected':enabled?' ready':'')+
-      '" data-act="doctrine" data-id="'+d.id+'"'+(enabled?'':' disabled')+
-      '><strong>'+d.title+'</strong><small>'+d.desc+'</small><em>'+reason+'</em></button>';
-   }).join('')+'</div></section>'+
-   '<nav class="skill-branch-tabs" aria-label="Выберите ветвь развития">'+
-   [['Корабль','Пилотирование'],['Технологии','Технологии'],['Добыча','Добыча']].map(([key,label])=>
-    '<button type="button" data-act="skillBranch" data-id="'+key+'" aria-pressed="'+((this.skillBranch||'Корабль')===key)+'">'+label+'</button>').join('')+
-   '</nav><div class="skill-columns">';
-  const branches=[
-   ['Корабль','Пилотирование и аварийный отход'],
-   ['Технологии','Поиск станций и тактика ведомых'],
-   ['Добыча','Раскалывание породы, электрический разряд и магнитный сбор']
-  ];
-  for(const [branch,subtitle] of branches){
-   content+='<section class="skill-branch'+((this.skillBranch||'Корабль')===branch?' active':'')+'"><h3>'+(branch==='Корабль'?'Пилотирование':branch)+'</h3><p class="branch-subtitle">'+subtitle+'</p>';
-   for(const skill of SKILLS.filter(s=>s.branch===branch&&!SHIP_UPGRADES.has(s.id))){
-    const rank=this.skillRanks[skill.id],mastered=rank>=skill.max;
-    const prereq=skill.requires?SKILLS.find(x=>x.id===skill.requires):null;
-    const reason=mastered?'Максимум':
-     p.level<skill.from?'Нужен уровень '+skill.from:
-     prereq&&!this.skillRanks[prereq.id]?'Сначала '+prereq.title:
-     p.points<=0?'Нужно очко развития':'Можно изучить';
-    const unlocked=!mastered&&p.level>=skill.from&&
-     (!prereq||this.skillRanks[prereq.id]>0);
-    const canBuy=unlocked&&p.points>0;
-    const cls=mastered?'mastered':canBuy?'ready':'locked';
-    content+='<button class="skill-node '+cls+'" data-act="skill" data-id="'+skill.id+'" '+
-      (!canBuy?'disabled':'')+'><span class="skill-node-head"><strong>'+skill.title+
-      '</strong><em>'+rank+' / '+skill.max+'</em></span><small class="skill-effect">'+(mastered?'Изучено полностью':nextSkillEffect(skill.id,rank,this.skillRanks))+
-      '</small><small>'+skill.desc+
-      '</small><span class="skill-state">'+(prereq?'↳ '+prereq.title+' · ':'')+reason+
-      '</span></button>';
-   }
-   content+='</section>';
-  }
-  content+='</div><button class="close" data-act="close">Продолжить полёт</button>';
-  this.overlay.innerHTML='<div class="dialog wide skill-dialog" role="dialog" aria-modal="true" aria-labelledby="skill-menu-title">'+
-   '<button class="skill-close-corner" data-act="close" aria-label="Закрыть дерево развития">×</button>'+
-   content+'</div>';
+  this.overlay.innerHTML=renderPilotMenu({player:this.player,ranks:this.skillRanks,doctrine:this.doctrine,
+   skills:SKILLS,doctrines:DOCTRINES,branch:this.skillBranch||'Корабль',nextEffect:nextSkillEffect,
+   nextXp:expForNext(this.player.level),atStation:!!this.docked&&this.stationExitArmed});
   this.overlay.querySelector('.skill-dialog').scrollTop=previousScroll;
   this.presentMenu();
-  restoreMenuControl(this.overlay,focusIdentity,'[data-act="close"]');
+  restoreMenuControl(this.overlay,focusIdentity,'.skill-branch-tabs [aria-pressed="true"]');
  }
  buyDoctrine(id){
   if(this.dead||this.doctrine||this.player.level<4||this.player.points<1||
@@ -1797,16 +1774,7 @@ export class ArcadeGame {
  offerContinuation(saved){
   this.pendingCheckpoint=saved;this.paused=true;this.pausedRenderPending=true;
   this.overlay.dataset.mode='run-start';this.overlay.hidden=false;this.heritage.pause('base');
-  const base=saved?.world.stations.find(([id])=>id===saved.baseId)?.[1];
-  const p=saved?.state.player;
-  this.overlay.innerHTML='<div class="dialog" role="dialog" aria-modal="true" aria-label="Сохранённый вылет">'+
-   '<h2>'+(saved?'Продолжить вылет?':'Сохранённый вылет недоступен')+'</h2><p>'+
-   (saved?(baseNames[base.type]||'Станция')+' · уровень '+p.level+' · сплав '+p.ore+' · данные '+p.data:
-    this.runStore?.issue==='unsupported'?'Этот вылет сохранён более новой версией игры. Прежняя запись останется; новый вылет в этой версии можно начать без сохранений.':
-     'Не удалось прочитать контрольную точку. Можно начать новый вылет.')+'</p><p>'+
-   'Прогресс сохраняется на активных станциях и после подготовки корабля. После гибели можно вернуться к последней стыковке: весь мир, корабль и ресурсы восстановятся на тот момент. Всё, что произошло после неё, будет потеряно.</p>'+
-   (saved?'<button data-act="runContinue">Продолжить со станции</button><p>Новый вылет заменит это сохранение.</p>':'')+
-   '<button data-act="runNew">Новый вылет</button></div>';
+  this.overlay.innerHTML=renderContinuation(saved,this.runStore?.issue);
   this.presentMenu('[data-act="'+(saved?'runContinue':'runNew')+'"]');
  }
  continueRun(){
@@ -2563,18 +2531,7 @@ export class ArcadeGame {
   if(!this.pendingCheckpoint)this.runStore?.end();
   this.deathVfxAt=performance.now();this.deathSceneEnd=this.deathVfxAt+1100;
   this.overlay.hidden=true;this.overlay.dataset.mode='death';
-  this.overlay.innerHTML='<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="death-title"><h2 id="death-title">Корабль потерян</h2><p>Время полёта: '+
-    Math.floor(this.time/60)+' мин · уровень '+this.player.level+
-    ' · открыто станций '+this.activeBases+'</p><p>Личный рекорд: '+
-    runClock(this.bestFlight)+'.</p>'+
-    (failed?'<p>Последний вылет: '+failed.seconds+' с · сплав '+(failed.ore>=0?'+':'')+failed.ore+
-     ' · данные '+(failed.data>=0?'+':'')+failed.data+
-     ' · получено повреждений '+failed.details.damageTaken+
-     ' · потеряно дронов '+failed.details.dronesLost+'.</p>':'')+
-    (this.pendingCheckpoint?'<p>Вернитесь к последней стыковке: корабль, станции, ресурсы и состояние мира восстановятся на момент сохранения. Все события последней вылазки будут отменены.</p>'+
-     '<button data-act="runContinue">Вернуться к последней стыковке · '+runClock(this.pendingCheckpoint.state.time)+'</button>':
-     '<p>Активной контрольной точки нет. Включите домашний док и стыкуйтесь со станциями, чтобы сохранять продвижение.</p>')+
-    '<button data-act="restart">Начать заново'+(this.pendingCheckpoint?' · удалить это прохождение':'')+'</button></div>';
+  this.overlay.innerHTML=renderDeathScreen(this,failed);
  }
  updateMissiles(dt){
   for(const m of this.missiles){

@@ -1,3 +1,5 @@
+import {menuInfo} from './menu-screens.js?v=all-menus-1';
+import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1';
 import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
@@ -11,7 +13,7 @@ import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './stat
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
-import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-1';
+import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-1-all-menus-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
@@ -254,7 +256,7 @@ export function renderWorldMap(game){
   (!game.waypoint?' disabled':'')+'>Сбросить маршрут</button>';
  const intercepted=game.enemyComms?.intercepted?.(game.time)||[];
  const radioHistory=intercepted.length?
-  '<details class="map-objective map-radio-log" open><summary>Перехваченные приказы · '+
+  '<details class="map-objective map-radio-log"><summary>Перехваченные приказы · '+
   intercepted.length+'</summary><ul>'+intercepted.slice(0,3).map(order=>
    '<li><span>'+enc(({press:'Нажим',pincer:'Обход',intercept:'Перехват',
     screen:'Прикрытие',close:'Сближение',scatter:'Рассредоточение',network:'Сетевое донесение'})[order.mode]||'Манёвр')+
@@ -291,20 +293,20 @@ export function renderWorldMap(game){
  const intelLead=intel.unlocked?' <b>Радиоперехват:</b> '+(intelContacts?
   'найдены промышленные сигналы.':'новых целей пока нет.')+
   ' <span class="map-intel-wide">Выберите маршрут в списке справа.</span>'+
-  '<span class="map-intel-compact">Нажмите «Регионы и цели», чтобы выбрать маршрут.</span>':'';
+  '<span class="map-intel-compact">Нажмите «Цели», чтобы выбрать маршрут.</span>':'';
  const view=game.mapView==='targets'?'targets':'map';
  const unapplied=game.mapReturnToBase&&game.hangarSession?.dirty(game.shipLoadout);
  return '<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
   '<span class="map-kicker">НАВИГАЦИОННЫЙ КОМПЛЕКС</span><h2 id="map-menu-title">Карта сектора</h2>'+
-  '<p>Прокладывайте маршруты по разведанным станциям. Связь действует на 1450 м; каждая усиленная антенна добавляет 500 м. Неизвестные сигналы указаны приблизительно.</p>'+
+  menuInfo('Как пользоваться картой','Выберите станцию или сигнал и постройте маршрут. Связь действует на 1450 м; каждая усиленная антенна добавляет 500 м. Неизвестные сигналы указаны приблизительно.')+
   '</div><div class="map-heading-actions"><span>В сети <b>'+topology.count+'</b> · Открыто <b>'+known.length+
   '</b></span>'+(game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':'')+
-  '<button data-act="close">'+(unapplied?'В полёт · сборка не применена':'В полёт · Esc')+'</button></div></header>'+
+  '<button data-act="close">'+(unapplied?'В полёт · сборка не применена':'Продолжить полёт')+'</button></div></header>'+
   (unapplied?'<p class="map-unapplied-note" role="status">Сборка ангара не применена. Перед вылетом потребуется подтверждение.</p>':'')+
-  '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">Ближняя карта</button>'+
+  '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">Рядом</button>'+
   '<button type="button" data-act="mapView" data-id="territory">Контуры</button>'+
-  '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">Регионы и цели · '+(known.length+signals.length)+'</button></nav>'+
-  (discoveryLead||intelLead?'<div class="map-discovery-lead">'+discoveryLead+intelLead+'</div>':'')+
+  '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">Цели · '+(known.length+signals.length)+'</button></nav>'+
+  (discoveryLead||intelLead?'<details class="map-discovery-lead"><summary>Что можно открыть на станциях</summary>'+discoveryLead+intelLead+'</details>':'')+
   '<section class="map-shell"><div class="map-canvas"><svg viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
   '<circle cx="340" cy="240" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
@@ -319,8 +321,20 @@ export function renderWorldMap(game){
   '<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+
     ' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div></div>'+
   '<aside class="map-side">'+
-  renderWorldFeedbackMap(game)+
   renderStationThreats(game)+
+  (view==='targets'?'<div class="map-active-route"><b>Текущая цель:</b> '+(game.waypoint?enc(game.waypoint.label)+' · '+distance(game.waypoint,p)+' м':'маршрут не задан')+clear+'</div>':'')+
+  (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
+     operation?.id===CARRIER_INTERCEPTION.id?'ПЕРЕХВАТ КОНВОЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+
+   (operation?'<button type="button" data-act="abandonOperation">Отложить операцию</button>':'')+'</div>':'')+
+  '<div class="map-objective"><span>ПОЛЕВОЙ ЗАКАЗ</span><p>'+enc(objectiveText)+'</p>'+readyRoute+
+  (objective&&objective.progress<objective.goal?'<details class="map-cancel-contract"><summary>Отказаться от заказа</summary><p>Выполненная часть заказа будет потеряна.</p><button type="button" data-act="abandonContract">Подтвердить отказ</button></details>':'')+'</div>'+
+  '<h3>Обнаруженные станции</h3><div class="map-contact-list">'+(discovered||
+    '<p class="map-empty">Станций ещё нет. Продвигайтесь по сигналам радара.</p>')+'</div>'+
+  '<h3>Сигналы сканера <small>до '+scanRadius+' м</small></h3>'+
+  '<div class="map-contact-list">'+(unidentified||
+   '<p class="map-empty">Новых сигналов поблизости нет. Исследуйте следующий сектор.</p>')+
+  '</div><details class="map-world-details"><summary>Сектор, регионы и разведданные</summary>'+
+  renderWorldFeedbackMap(game)+
   renderHomeConflict(game)+
   renderCampaignProgress(game)+
   (intel.unlocked?'<section class="map-objective map-intel"><span>'+enc(LAB_LOGISTICS_TECH.name.toUpperCase())+'</span><p>'+enc(intel.status)+'</p>'+
@@ -330,16 +344,8 @@ export function renderWorldMap(game){
   renderRegionAtlas(game)+radioHistory+trunkPanel+
   '<div class="map-objective"><span>ОБСТАНОВКА В СЕКТОРЕ</span><p>'+enc(territory)+'</p>'+
   (securedSupply.length?'<p>Зелёным отмечены перехваченные маршруты снабжения. В пределах 740 м от них вражеские патрули появляются реже.</p>':'')+'</div>'+
-  (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
-     operation?.id===CARRIER_INTERCEPTION.id?'ПЕРЕХВАТ КОНВОЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+
-   (operation?'<button type="button" data-act="abandonOperation">Отложить операцию</button>':'')+'</div>':'')+
-  '<div class="map-objective"><span>ПОЛЕВОЙ ЗАКАЗ</span><p>'+enc(objectiveText)+'</p>'+readyRoute+
-  (objective&&objective.progress<objective.goal?'<button type="button" data-act="abandonContract">Отказаться · потерять прогресс</button>':'')+'</div>'+
-  '<h3>Обнаруженные станции</h3><div class="map-contact-list">'+(discovered||
-    '<p class="map-empty">Станций ещё нет. Продвигайтесь по сигналам радара.</p>')+'</div>'+
-  '<h3>Сигналы сканера <small>до '+scanRadius+' м</small></h3>'+
-  '<div class="map-contact-list">'+(unidentified||
-   '<p class="map-empty">Новых сигналов поблизости нет. Исследуйте следующий сектор.</p>')+
-  '</div></aside></section><footer class="map-foot">Tab или M — открыть карту · Esc — закрыть · U — развитие · E — станция. '+
-  'Дистанции до сигналов приблизительные; они уточняются по мере приближения.</footer></div>';
+  '</details></aside></section><footer class="map-foot">'+
+  enc(readableKey((game.controls||DEFAULT_CONTROLS).map))+' — карта · '+
+  enc(readableKey((game.controls||DEFAULT_CONTROLS).skills))+' — развитие · '+
+  (game.mapReturnToBase?'Esc — к станции.':'Esc — продолжить полёт.')+' Дистанции до сигналов приблизительные.</footer></div>';
 }

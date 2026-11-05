@@ -1,0 +1,137 @@
+/* One orbital terminal language for every menu. Content remains real HTML. */
+:root{--screen-ink:#f0ece3;--screen-muted:#b3c1c9;--screen-line:#667b8580;--screen-accent:#d9b68b;--screen-teal:#93d6d3}
+#overlay:has(.screen-dialog,.pilot-dialog,.map-dialog){background:radial-gradient(ellipse at 50% 15%,#213f4b80,#020609e8 80%);backdrop-filter:blur(5px)}
+#overlay :is(.screen-dialog,.pilot-dialog,.map-dialog),.system-dialog,.credits-dialog{
+ color:var(--screen-ink);color-scheme:dark;text-align:left;border:1px solid #879a9d8a;border-radius:12px;
+ background:radial-gradient(ellipse at 100% 0,#74bdc51c,transparent 52%),linear-gradient(135deg,#192730,#101a22 45%,#0b141c);
+ box-shadow:0 28px 100px #000b,inset 0 1px #e9f5ed25;scrollbar-color:#637a80 #09121a;scrollbar-width:thin;
+}
+#overlay .screen-dialog{width:min(94vw,720px);padding:24px;animation:terminal-arrive .18s ease-out}
+#overlay .screen-dialog::before,#overlay .pilot-dialog::before,#overlay .map-dialog::before{border-radius:11px;opacity:.45}
+.screen-head,.system-head{display:flex;align-items:center;gap:15px;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--screen-line)}
+.screen-head>div{min-width:0}.screen-kicker{display:block;color:#cfb38f;font-size:10px;letter-spacing:.15em;margin-bottom:7px}
+#overlay .screen-head h2,.system-head h2{color:var(--screen-ink);font-size:clamp(23px,3vw,30px);margin:0;line-height:1.15;font-weight:650}
+.menu-symbol{width:28px;height:28px;flex:none;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.screen-emblem{width:60px;height:60px;display:grid;place-items:center;flex:none;border:1px solid #8da3a16e;border-radius:50%;color:var(--screen-teal);background:#080e15;box-shadow:inset 0 0 0 5px #26373b}
+.screen-emblem .menu-symbol{width:32px;height:32px}
+#overlay :is(.screen-dialog,.pilot-dialog,.map-dialog) button,.system-dialog button,.credits-dialog button{
+ font-family:inherit;cursor:pointer;border:1px solid #71858e88;border-radius:5px;background:#1c303b;color:#e9f0ee;min-height:42px;padding:10px 14px;margin:0;font-size:13px;line-height:1.25;transition:background .12s,border-color .12s;
+}
+#overlay :is(.screen-dialog,.pilot-dialog,.map-dialog) button:hover:not(:disabled),.system-dialog button:hover:not(:disabled),.credits-dialog button:hover{border-color:#a8d9d7;background:#2b4650}
+#overlay :is(.screen-dialog,.pilot-dialog) button.primary,.system-dialog button.primary{background:linear-gradient(#c2d6ce,#9fbfb7);border-color:#cce5d9;color:#10262b;font-weight:700;box-shadow:inset 0 1px #f3fff16b}
+#overlay :is(.screen-dialog,.pilot-dialog) button.primary:hover,.system-dialog button.primary:hover{background:#d3e7db}
+#overlay .screen-dialog button.quiet{background:#101d26;color:#bacbd0}
+#overlay .screen-dialog button.dangerous{color:#f5c1af;border-color:#9f7969}
+#overlay :is(.screen-dialog,.pilot-dialog,.map-dialog) button:focus-visible,.system-dialog :is(button,summary,input):focus-visible,.credits-dialog :is(button,a):focus-visible{outline:2px solid #ffe0ad;outline-offset:3px}
+#overlay :is(.screen-dialog,.pilot-dialog) button:disabled,.system-dialog button:disabled{opacity:.68;cursor:not-allowed}
+#overlay :is(.screen-dialog,.pilot-dialog) p{font-size:14px;line-height:1.5;color:#c5d2d8}
+#overlay .screen-warning{padding:12px 14px;border-left:3px solid #d2af7e;background:#a77a3020;color:#ead5b5;margin:14px 0}
+.screen-note{display:block;color:var(--screen-muted);font-size:12px;line-height:1.5;margin:12px 0}
+.screen-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}
+.screen-metrics>span{background:#09151b70;border:1px solid #70818a4a;border-radius:6px;padding:13px;color:#aebfc8;font-size:12px}
+.screen-metrics b{display:block;color:#efe5d4;font-size:21px;font-variant-numeric:tabular-nums;font-weight:600;margin-top:5px;overflow-wrap:anywhere}
+#overlay .screen-record{font-size:12px;color:#a1b7bd}
+.menu-explanation,.pilot-doctrines,.map-world-details{border:1px solid #66828c59;border-radius:6px;background:#07121b60;padding:11px 14px;margin:14px 0;font-size:13px;color:var(--screen-muted)}
+:is(.menu-explanation,.pilot-doctrines,.map-world-details)>summary{cursor:pointer;color:#d1dfe1;min-height:24px;line-height:24px}
+#overlay .menu-explanation p{font-size:13px;color:#b7c7ce}
+.screen-footer,.system-footer{position:sticky;bottom:-24px;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:20px;padding:14px 0 0;background:#101b23f7;border-top:1px solid #84999c69;box-shadow:0 -12px 15px #101b23b0}
+.screen-secondary,.screen-primary{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.screen-primary{margin-left:auto}
+.screen-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.screen-choices.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.screen-choice,.pilot-choice{position:relative;display:flex;flex-direction:column;align-items:flex-start;padding:18px;border:1px solid #7a93977a;border-radius:8px;background:linear-gradient(145deg,#23353d80,#09151c);box-shadow:inset 0 1px #e0f8eb12}
+.screen-choice>.menu-symbol{width:38px;height:38px;color:#9ed6d3;margin:2px 0 10px}
+#overlay .screen-choice h3{font-size:18px;margin:0 28px 6px 0;color:#f0e6d6;line-height:1.25}
+#overlay .screen-choice p{font-size:13px;margin:0 0 16px}.screen-reward{color:#b8dac8;font-size:12px;line-height:1.4;margin:0 0 18px}
+#overlay .screen-choice>button:last-child{margin-top:auto;width:100%}
+#overlay :is(.screen-dialog,.pilot-dialog,.map-dialog) .menu-info{min-width:34px;min-height:34px;width:34px;height:34px;padding:0;border-radius:50%;display:inline-grid;place-items:center;font-family:Georgia,serif;font-weight:bold;color:#a8d5d4;background:#112630;border-color:#718d9580}
+.screen-choice>.menu-info,.pilot-choice>.menu-info,.pilot-skill>.menu-info{position:absolute;right:10px;top:10px}
+#overlay .pilot-dialog{width:min(96vw,960px);padding:22px}.pilot-status{display:flex;gap:12px 25px;flex-wrap:wrap;color:#aabfc8;font-size:13px;margin:12px 0 20px}.pilot-status b{color:#f0dfc4;margin-left:6px}
+#overlay .pilot-dialog .skill-branch-tabs{display:flex;gap:6px;margin:14px 0;padding:0;border:0;background:transparent}
+#overlay .pilot-dialog .skill-branch-tabs button{flex:1;margin:0;min-height:44px}
+#overlay .pilot-dialog .skill-branch-tabs button[aria-pressed="true"]{background:#4b4438;border-color:#d9b68b;color:#ffe4bb;box-shadow:inset 0 -2px #c8a679}
+.pilot-skill-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.pilot-skill{position:relative;display:flex;flex-direction:column;gap:10px;padding:15px;border:1px solid #64808c75;background:#0a17207d;border-radius:7px}
+.pilot-skill.ready{border-color:#8bb8ac99;background:linear-gradient(130deg,#233c3b8c,#102229)}
+.pilot-skill-title{display:flex;gap:10px;align-items:center;padding-right:27px;min-height:50px;flex-wrap:wrap}
+.pilot-skill-title .menu-symbol{color:#9ac6ca;width:25px;height:25px}
+#overlay .pilot-skill-title h3{font-size:16px;color:#e3e6dc;margin:0;flex:1;min-width:90px}
+.pilot-skill-title b{font-size:12px;color:#ddcbb1}.pilot-skill-title b{width:100%}
+#overlay .pilot-next-effect{margin:0;font-size:13px;min-height:38px;color:#b7d5ce}
+#overlay .pilot-dialog .pilot-skill .skill-node{display:block;text-align:center;min-height:42px;margin-top:auto;border-radius:5px;width:100%;font-size:12px;padding:9px}
+.pilot-doctrine-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.pilot-choice{gap:12px;padding:15px}#overlay .pilot-choice h3{margin:0 25px 0 0;font-size:16px;min-height:34px}.pilot-choice small{color:#b2c7ca;font-size:12px}.pilot-choice>button:last-child{margin-top:auto;width:100%}
+.pilot-ship-link{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:#b4c3ca;padding:14px 0;border-top:1px solid #5e788545;margin-top:14px}
+#quickMenu{position:fixed;top:77px;right:13px;display:flex;gap:6px;z-index:6}
+#quickMenu button{min-height:36px;padding:7px 12px;color:#d7e3e4;background:#0b1a25e8;border:1px solid #76989d88;border-radius:5px;font:600 12px system-ui;cursor:pointer}
+#quickMenu button:focus-visible{outline:2px solid #ffe0ad;outline-offset:3px}#quickMenu kbd{font:10px system-ui;color:#a5b9c0;margin-left:8px}
+.system-dialog{width:min(94vw,590px);max-height:calc(100dvh - 24px);padding:22px;overscroll-behavior:contain;overflow:auto}
+.system-dialog::backdrop,.credits-dialog::backdrop{background:#01070cd9;backdrop-filter:blur(7px)}
+.system-head{justify-content:space-between}.system-head h2{font-size:26px}#systemClose{font-size:24px;padding:4px 13px;align-self:flex-start}
+.system-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.system-shortcuts button{min-height:48px;border-color:#90bab98c;background:linear-gradient(130deg,#29404a,#14262e);text-align:left}
+.settings-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;border-bottom:1px solid #607b8270;padding-bottom:9px}
+.settings-tabs button[aria-selected="true"]{background:#4b4438;color:#ffe4bb;border-color:#d9b68b}
+#gameMenuDialog #audioControls{position:static;display:block;max-width:none;margin:0;padding:0;background:none}
+.settings-pane{padding:18px 0 2px;min-height:235px}.settings-pane[hidden]{display:none!important}
+#gameMenuDialog :is(#audioMixer,#controlSettings){display:block;max-width:none;width:100%;margin:12px 0 0;border:0;background:transparent;box-shadow:none;position:static;color:#d3dfe0}
+#gameMenuDialog :is(#audioMixer,#controlSettings)>summary{display:none}
+#gameMenuDialog :is(.audio-mixer-body,.control-settings-body){position:static;max-height:none;overflow:visible;width:auto;padding:0;border:0;box-shadow:none;background:transparent;gap:16px}
+#gameMenuDialog .audio-mixer-body label{font-size:14px;gap:8px}#gameMenuDialog .audio-mixer-body input{min-height:26px;accent-color:#9dc8bf}
+#gameMenuDialog .audio-mixer-body small{font-size:12px;color:#a5b9c1}
+#gameMenuDialog .control-settings-body p{font-size:13px;color:#b8c8ce;line-height:1.45}
+#gameMenuDialog #controlsBindingMessage{background:#13272f;border-color:#496673;top:0;font-size:12px}
+#gameMenuDialog #controlsBindingList{grid-template-columns:1fr 1fr;gap:6px 20px}
+#gameMenuDialog .control-binding-row{min-height:42px;font-size:12px}.control-binding-row button{min-width:64px}
+.system-help{margin:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}.system-help>div{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #7188924a;font-size:12px}
+.system-help dt{color:#b0c4cb}.system-help dd{margin:0;color:#f0dec0;font-weight:600}.system-footer{bottom:-22px;font-size:12px;color:#a4c1b7;padding-bottom:2px}.system-footer>span::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#9ccbb6;margin-right:8px}
+#overlay .map-dialog{padding:18px}.map-heading{gap:12px}.map-heading>div:first-child{position:relative;padding-right:40px}.map-heading>div:first-child>.menu-info{position:absolute;right:0;top:12px}
+#overlay .map-heading h2{font-size:26px;color:var(--screen-ink)!important;margin-bottom:4px}.map-kicker{color:#c7ad8c}
+#overlay .map-heading-actions button{font-size:12px;min-height:40px;padding:9px 11px}.map-heading-actions>span{color:#b1c4c9}
+#overlay .map-view-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:12px 0}
+#overlay .map-view-switch button{min-height:44px;background:#12232d}
+#overlay .map-view-switch button[aria-pressed="true"]{background:#4b4438;border-color:#d9b68b;color:#ffe4bb}
+.map-mode-targets .map-canvas{display:none}.map-mode-targets .map-shell{grid-template-columns:1fr}.map-mode-targets .map-side{max-height:none;overflow:visible}
+.map-mode-targets .map-contact-list{grid-template-columns:repeat(2,minmax(0,1fr))}.map-contact{background:#10212c;border-color:#6d87946b}.map-contact.selected{background:#313b36;border-color:#ccb28b}
+.map-objective{background:#10212b;border-color:#4c6e7d8c;border-left-color:#81aca9}.map-side h3{color:#d8dcd1;font-size:15px}.map-active-route{background:#30352f;border-color:#988a6977}
+.map-discovery-lead{font-size:12px;background:#142c34;border-left-color:#9fc4b9}.map-discovery-lead>summary{cursor:pointer;min-height:24px;line-height:24px;color:#c6d8d6}
+.map-world-details>summary{font-size:13px}.map-world-details .map-objective{margin:10px 0}.map-cancel-contract summary{font-size:12px;cursor:pointer;color:#cfb9a0;padding:7px 0}.map-foot{color:#a9bfc7;line-height:1.5}
+#overlay .run-confirm{position:fixed;z-index:42;top:50%;left:50%;transform:translate(-50%,-50%);max-height:calc(100dvh - 24px);overflow:auto;width:min(92vw,580px);padding:23px;border-color:#bda17c;background:#111f28;box-shadow:0 0 0 100vmax #000b,0 20px 100px #000}
+#overlay .departure-confirm{background:#12212b;color:var(--screen-ink);border-radius:10px;border-color:#bba37d}
+#overlay .departure-confirm h3{color:#f0d9b5}.credits-dialog{padding:24px}.credits-head{border-bottom-color:#75909966}.credits-kicker{color:#d2b18b}.credits-dialog a{color:#a4d9d3}
+#mobileLaunch .mobile-launch-card{background:radial-gradient(ellipse at 100% 0,#81bfc324,transparent 60%),linear-gradient(135deg,#23333c,#101a22);border-color:#8b9f9b8c;box-shadow:0 25px 100px #000a}
+#mobileLaunch .mobile-launch-label{color:#d5b78e}#mobileLaunch button{border-radius:5px}#mobileLaunch #mobileFullscreenBtn{background:#b8d1c5;color:#15272c;border-color:#d0e9dc}
+@media(max-width:800px){
+ #quickMenu{top:109px;right:8px}#quickMenu kbd{display:none}
+ #overlay :is(.screen-dialog,.pilot-dialog){padding:18px}.screen-footer{bottom:-18px}.pilot-skill-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #overlay .map-heading-actions{flex-wrap:wrap}.map-heading-actions>span{font-size:11px}
+ .screen-head{gap:12px;padding-bottom:12px;margin-bottom:12px}.screen-emblem{width:48px;height:48px}.screen-kicker{font-size:9px}
+ .screen-choice{padding:14px}.screen-choices{gap:10px}.screen-choices.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #overlay .screen-choice h3{font-size:16px}.screen-metrics b{font-size:18px}
+ .pilot-doctrine-grid{grid-template-columns:1fr}.pilot-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.pilot-choice h3{grid-row:1;min-height:0!important}.pilot-choice small{grid-column:1}.pilot-choice>button:last-child{grid-column:2;grid-row:1/3;margin-right:32px;width:auto}
+}
+@media(pointer:coarse){#quickMenu{top:104px}#quickMenu button{min-height:40px}.system-dialog button,#overlay .screen-dialog button,#overlay .pilot-dialog button{min-height:44px}.system-dialog #controlSettings{display:block}}
+@media(max-width:520px){
+ .screen-choices,.screen-choices.three{grid-template-columns:1fr}.screen-choice{display:grid;grid-template-columns:42px 1fr;gap:4px 10px;padding:12px}.screen-choice>.menu-symbol{grid-column:1;grid-row:1/3;margin:2px 0}.screen-choice h3{grid-column:2;padding-right:20px}.screen-choice p{grid-column:2;margin:0 0 6px!important}.screen-choice .screen-reward{grid-column:1/-1;margin:6px 0}.screen-choice>button:last-child{grid-column:1/-1;margin-top:7px!important}
+ .screen-metrics{gap:6px}.screen-metrics>span{padding:10px 8px}.screen-metrics b{font-size:16px}.screen-footer{gap:9px}.screen-primary{width:100%}.screen-primary button{width:100%}.screen-secondary{order:0}.screen-footer .screen-secondary:empty{display:none}
+ .pilot-skill-grid{grid-template-columns:1fr}.pilot-ship-link{align-items:stretch;flex-direction:column}.pilot-status{gap:8px 14px;font-size:12px}
+ #gameMenuDialog #controlsBindingList,.system-help,.map-mode-targets .map-contact-list{grid-template-columns:1fr}.system-dialog{padding:16px}.system-footer{bottom:-16px}.system-footer>span{display:none}#systemResume{width:100%}
+}
+@media(max-height:580px) and (min-width:600px){
+ #overlay :is(.screen-dialog,.pilot-dialog){padding:14px 18px}.screen-head{padding-bottom:9px;margin-bottom:10px}.screen-emblem{width:42px;height:42px}.screen-head h2{font-size:23px!important}.screen-kicker{font-size:9px;margin-bottom:4px}
+ .screen-metrics{margin:10px 0}.screen-metrics>span{padding:8px 12px}.screen-metrics b{font-size:18px}.screen-footer{bottom:-14px;margin-top:12px;padding-top:10px}.screen-choice{padding:12px}.screen-choice>.menu-symbol{width:28px;height:28px;margin:0 0 6px}#overlay .screen-warning{padding:8px 12px;margin:10px 0}
+ .system-dialog{padding:14px 18px}.system-head{padding-bottom:10px;margin-bottom:10px}.system-shortcuts{margin:10px 0}.settings-pane{min-height:0;padding-top:12px}.system-footer{bottom:-14px;margin-top:10px}
+ .pilot-status{margin:8px 0}.pilot-skill-title{min-height:36px}.pilot-skill{padding:12px}.pilot-doctrines{margin:10px 0}
+}
+@media(prefers-reduced-motion:reduce){#overlay :is(.screen-dialog,.pilot-dialog){animation:none}#overlay :is(.screen-dialog,.pilot-dialog,.map-dialog) button,.system-dialog button{transition:none}}
+@media(max-height:580px) and (min-width:600px){
+ #overlay .opening-choice .screen-choice>.menu-symbol{display:none}
+ #overlay .opening-choice .screen-choice{padding:10px 12px}
+ #overlay .opening-choice .screen-choice h3{font-size:16px;margin-bottom:5px}
+ #overlay .opening-choice .screen-choice p{font-size:12px;margin-bottom:8px}
+ #overlay .opening-choice .screen-reward{font-size:11px;margin-bottom:9px}
+ #overlay .opening-choice>.screen-note{margin:7px 0;font-size:11px}
+}
+.map-heading-actions{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:7px;max-width:65%}
+.map-heading-actions>span{flex-basis:100%;text-align:right}
+@media(max-width:700px){.map-heading-actions{max-width:none}.map-heading-actions>span{flex-basis:auto;text-align:left}.map-heading{align-items:flex-start}}
+@media(min-width:801px){.pilot-skill-grid:has(>:last-child:nth-child(2)){grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+@media(pointer:coarse){#overlay :is(.screen-dialog,.pilot-dialog,.map-dialog) .menu-info{width:44px;height:44px;min-width:44px;min-height:44px}.pilot-skill-title{padding-right:38px}#overlay .screen-choice h3{margin-right:40px}}
