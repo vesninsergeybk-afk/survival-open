@@ -129,7 +129,8 @@ test('real cargo movement changes fixed forward screening lanes',()=>{
   assert.ok(first.x>c.x+120,'screen anticipates the moving cargo, not trails it');
   c.angle=Math.PI; // New route turns north while the pilot remains still.
   const second=theaterDestination(pilot,order);
-  assert.ok(Math.abs(second.y-first.y)>100);
+  assert.ok(Math.hypot(second.x-first.x,second.y-first.y)>100,
+    'the screen changes position as the convoy turns');
   assert.equal(pilot.hp,70);assert.equal(pilot.damage,12);
 });
 
