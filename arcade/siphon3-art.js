@@ -11,6 +11,7 @@ export const SIPHON3_WORLD_SIZE=84;
 let sprite=null;
 let rigImage=null;
 let rig=null;
+let cargoHalo=null;
 
 const MASTER_WIDTH=1254,PADDING=112,RIG_TILE=512;
 const factor=RIG_TILE/(MASTER_WIDTH+PADDING*2);
@@ -37,6 +38,7 @@ const PARTS={
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const smooth=(a,b,t)=>{const u=clamp((t-a)/(b-a));return u*u*(3-2*u);};
+const TAU=Math.PI*2;
 
 // The mechanical pose is derived directly from game phase + progress. No
 // per-frame accumulation, no detached joints, no sudden change of silhouette.
@@ -54,17 +56,32 @@ export function siphon3Pose(phase,progress,time,seed=0,reducedMotion=false){
  }else{
   spread=.20+.65*smooth(.68,1,p);
  }
- const flutter=reducedMotion?0:
-  Math.sin(t*(phase==='gather'?17:phase==='back'?7:9)+seed*.43)*
-  (phase==='gather'?3.8:phase==='back'?1.6:2.8);
+ const pace=phase==='gather'?15:phase==='back'?7.5:10.5;
+ const activity=phase==='gather'?5.5:phase==='back'?3.3:5;
+ const wing=(offset,rate)=>reducedMotion?0:
+  Math.sin(t*pace*rate+seed*.43+offset)*activity;
  return {
   spread,
+  // The body and every hinge share the same transform, so no limb detaches.
+  bob:reducedMotion?0:Math.sin(t*(phase==='gather'?11:6.8)+seed*.17)*
+   (phase==='gather'?.022:.015),
+  tilt:reducedMotion?0:Math.sin(t*(phase==='gather'?9:5.2)+seed*.31)*
+   (phase==='gather'?.044:.032),
   angles:{
-   dorsal:(spread-.5)*43+flutter,
-   ventralRight:-(spread-.5)*41-flutter*.75,
-   ventralLeft:(spread-.5)*38+flutter*.85,
+   dorsal:(spread-.5)*43+wing(0,1),
+   ventralRight:-(spread-.5)*41+wing(2.1,.83),
+   ventralLeft:(spread-.5)*38+wing(4.15,1.16),
   },
  };
+}
+
+// The real simulation stores gathering progress in 0...0.24, and a full
+// cargo stays with a harvester throughout the whole return journey.
+export function siphon3EnergyState(phase,progress,time=0,seed=0,reducedMotion=false){
+ const p=clamp(Number.isFinite(progress)?progress:0);
+ const load=phase==='back'?1:phase==='gather'?smooth(.025,.24,p):0;
+ const wave=reducedMotion?0:Math.sin((Number.isFinite(time)?time:0)*8+seed*.37);
+ return {load,pulse:load*(.93+.07*wave),carrying:phase==='back'};
 }
 
 export function siphon3AtlasUrl(){
@@ -121,6 +138,19 @@ function readyRig(){
 
 export function siphon3RigReady(){return Boolean(readyRig());}
 
+function readyCargoHalo(){
+ if(cargoHalo||typeof document==='undefined')return cargoHalo;
+ const canvas=document.createElement('canvas');canvas.width=192;canvas.height=192;
+ const c=canvas.getContext('2d');if(!c)return null;
+ const gradient=c.createRadialGradient(96,96,12,96,96,94);
+ gradient.addColorStop(0,'rgba(255,221,137,.78)');
+ gradient.addColorStop(.3,'rgba(255,171,61,.52)');
+ gradient.addColorStop(.62,'rgba(255,120,34,.21)');
+ gradient.addColorStop(1,'rgba(255,117,35,0)');
+ c.fillStyle=gradient;c.fillRect(0,0,192,192);
+ cargoHalo=canvas;return cargoHalo;
+}
+
 function readySprite(){
  if(!sprite&&typeof Image==='function'){
   sprite=new Image();sprite.decoding='async';sprite.src=siphon3AtlasUrl();
@@ -149,20 +179,25 @@ export function drawSiphon3(c,{
  if(!movingRig&&(!atlas?.complete||atlas.naturalWidth<SIPHON3_ATLAS_COLUMNS*SIPHON3_TILE||
   atlas.naturalHeight<SIPHON3_ATLAS_ROWS*SIPHON3_TILE))return false;
  const pulse=reducedMotion?0:Math.sin(time*8+seed*2.1);
+ const pose=siphon3Pose(phase,progress,time,seed,reducedMotion);
+ const energy=siphon3EnergyState(phase,progress,time,seed,reducedMotion);
 
- c.save();c.translate(x,y);c.rotate(angle);
+ c.save();c.translate(x,y);c.rotate(angle);c.translate(0,size*pose.bob);c.rotate(pose.tilt);
  // These cues are tied to the actual game's phases, not to a simulated cargo.
- if(phase==='back'){
-  c.shadowColor='#ffb45e';c.shadowBlur=reducedMotion?0:14;
-  c.fillStyle='rgba(255,171,65,.27)';c.beginPath();
-  c.arc(-size*.16,0,size*(.19+.015*pulse),0,Math.PI*2);c.fill();
-  c.shadowBlur=0;
- } else if(phase==='gather'){
+ if(energy.load>0){
+  // Cached radial light makes the entire laden worker readable at 30–84 px.
+  const halo=readyCargoHalo(),radius=size*(.6+.025*energy.pulse);
+  c.save();c.globalAlpha=Math.min(1,energy.pulse*.92);
+  if(halo)c.drawImage(halo,-size*.14-radius,-size*.035-radius,radius*2,radius*2);
+  else {c.fillStyle='rgba(255,172,65,.28)';c.beginPath();
+   c.arc(-size*.14,-size*.035,radius,0,TAU);c.fill();}
+  c.restore();
+ }
+ if(phase==='gather'){
   c.strokeStyle='rgba(89,250,241,.68)';c.lineWidth=Math.max(1.2,size*.026);
   c.beginPath();c.arc(size*.27,-size*.03,size*(.09+.016*pulse),-.8,1.75);c.stroke();
  }
  if(movingRig){
-  const pose=siphon3Pose(phase,progress,time,seed,reducedMotion);
   c.save();c.scale(size/RIG_TILE,size/RIG_TILE);c.translate(-RIG_TILE/2,-RIG_TILE/2);
   c.drawImage(movingRig.base,0,0);
   for(const [name,spec] of Object.entries(PARTS)){
@@ -180,13 +215,41 @@ export function drawSiphon3(c,{
   c.drawImage(atlas,sx,sy,SIPHON3_TILE,SIPHON3_TILE,-size/2,-size/2,size,size);
  }
 
- // A visible trail makes full and empty trips distinct at gameplay scale.
- if(phase==='back'){
-  c.fillStyle='#ffe3a2';c.shadowColor='#ffbf65';c.shadowBlur=reducedMotion?0:7;
-  c.beginPath();c.arc(-size*.38,size*.06,size*.043,0,Math.PI*2);c.fill();
- } else if(phase==='gather'){
-  c.fillStyle='rgba(126,255,239,.8)';
-  c.beginPath();c.arc(size*.38,-size*.03,size*(.024+.008*Math.abs(pulse)),0,Math.PI*2);c.fill();
+ // Rotating gold arcs and sparks are unmistakable cargo cues, drawn over the
+ // painted armour without changing any of its pixels or geometry.
+ if(energy.carrying){
+  c.save();c.globalAlpha=.65+.25*energy.pulse;
+  c.strokeStyle='#ffcc72';c.lineWidth=Math.max(1.15,size*.017);
+  for(let i=0;i<2;i++){
+   const offset=(reducedMotion?0:time*.9)+seed*.13+i*Math.PI;
+   c.beginPath();c.arc(-size*.14,-size*.03,size*(.37+i*.045),offset,offset+1.17);
+   c.stroke();
+  }
+  for(let i=0;i<3;i++){
+   const theta=(reducedMotion?0:time*1.5)+seed*.2+i*TAU/3;
+   const sx=-size*.14+Math.cos(theta)*size*.39;
+   const sy=-size*.03+Math.sin(theta)*size*.32;
+   c.fillStyle=i===0?'#fff6cd':'#ffcd65';c.beginPath();
+   c.arc(sx,sy,Math.max(1.15,size*(i===0?.028:.019)),0,TAU);c.fill();
+  }
+  for(let i=0;i<3;i++){
+   const spread=i*.1;
+   const wave=reducedMotion?0:Math.sin(time*11-i*1.6+seed*.4)*size*.035;
+   c.globalAlpha=.58-i*.15;c.fillStyle='#ffcd73';c.beginPath();
+   c.arc(-size*(.47+spread),size*.025+wave,Math.max(1,size*(.034-i*.007)),0,TAU);
+   c.fill();
+  }
+  c.restore();
+ }else if(phase==='gather'){
+  // Packets travel from the forward siphon to the inner storage chamber.
+  c.save();c.fillStyle='#a1fff0';
+  for(let i=0;i<3;i++){
+   const travel=reducedMotion?i/3:(time*1.6+i/3)%1;
+   c.globalAlpha=.42+.56*(1-travel);c.beginPath();
+   c.arc(size*(.38-travel*.49),size*(.012+.045*Math.sin(travel*TAU+i)),
+    Math.max(1,size*.018),0,TAU);c.fill();
+  }
+  c.restore();
  }
  c.restore();
  return true;
