@@ -30,25 +30,17 @@ test('ship fitting opens with a ship and one clear action, not a catalogue or st
  assert.match(html,/<details class="hg-more-frames"><summary>Развитие корпуса/);
 });
 
-test('selecting a node reveals available modules before locked future ones; choosing a module reveals its details',()=>{
- const loadout=createLoadout(),session=new HangarSession(),ctx={...state({ore:100}),loadout};
- session.begin(loadout);
- session.dispatch({act:'hgSlot',id:'1'},ctx);
+test('selecting a node offers one-click installation and on-demand descriptions',()=>{
+ const loadout=createLoadout(),session=new HangarSession(),ctx={...state({ore:100}),loadout,baseActive:true};
+ session.begin(loadout);session.dispatch({act:'hgSlot',id:'1'},ctx);
  let html=renderShipHangar({...ctx,hangarSession:session},session);
- assert.match(html,/hg-layout-editing/);
- assert.match(html,/class="hg-arsenal"/);
- assert.doesNotMatch(html,/class="hg-inspector"/);
- assert.match(html,/Пока недоступно ·/);
- assert.ok(html.indexOf('data-act="hgSelect" data-id="plasma"')<html.indexOf('hg-future-weapons'));
- session.dispatch({act:'hgSelect',id:'plasma'},ctx);
- html=renderShipHangar({...ctx,hangarSession:session},session);
- assert.match(html,/class="hg-inspector"/);
- assert.match(html,/<details class="hg-stat-details"><summary>Подробные характеристики/);
- session.dispatch({act:'hgInstall'},ctx);
- html=renderShipHangar({...ctx,hangarSession:session},session);
- assert.match(html,/Предварительная сборка/);
- assert.match(html,/data-act="hgApply"/);
- assert.doesNotMatch(html,/class="hg-arsenal"/);
+ assert.match(html,/hg-layout-editing/);assert.match(html,/class="hg-arsenal"/);
+ assert.ok(html.indexOf('data-act="hgEquip" data-id="plasma"')<html.indexOf('hg-future-weapons'));
+ assert.match(html,/data-help-only/);assert.doesNotMatch(html,/class="hg-inspector"/);
+ const result=session.dispatch({act:'hgEquip',id:'plasma'},ctx);
+ assert.equal(result.loadout.slots[1],'plasma');assert.equal(result.ore,76);
+ html=renderShipHangar({...ctx,loadout:result.loadout,ore:result.ore,hangarSession:session},session);
+ assert.doesNotMatch(html,/data-act="hgApply"/);assert.doesNotMatch(html,/class="hg-arsenal"/);
 });
 
 test('a closed hardpoint explains its lock instead of opening an unusable weapon picker',()=>{
@@ -70,7 +62,7 @@ test('free field trial is selected directly from the station, without searching 
  assert.match(opened,/Выберите одно пробное оружие/);
  assert.match(opened,/data-act="loanField" data-role="ion">Выбрать ионный/);
  assert.match(opened,/data-act="loanField" data-role="resonator">Выбрать резонатор/);
- assert.match(opened,/там останется применить сборку/);
+ assert.match(opened,/модуль установится сразу/);
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(game,/this\.fieldTrialPickerOpen=!this\.fieldTrialPickerOpen/);
  assert.match(game,/this\.fieldTrialPickerOpen=false;\s*this\.baseTab='hangar'/);
@@ -127,7 +119,7 @@ test('empty weapon node explains how to get another gun without misleading stock
  const html=renderShipHangar({...state({loadout,firstHardwareReward:null}),baseActive:true},session);
  assert.match(html,/На складе пока нет второго орудия/);
  assert.match(html,/После первого сданного полевого заказа/);
- assert.match(html,/Ещё одно орудие: 24 сплава/);
+ assert.match(html,/Купить · 24 сплава/);
  assert.doesNotMatch(html,/На складе: 0 · установлено: 1/);
 });
 

@@ -126,7 +126,7 @@ test('changing from a filtered ordinary node to H resets the incompatible filter
  session.dispatch({act:'hgFilter',id:'manual'},ctx);session.dispatch({act:'hgSlot',id:'5'},ctx);
  assert.equal(session.filter,'all');
  const html=renderShipHangar({...ctx,level:14},session);
- assert.match(html,/data-act="hgSelect" data-id="howitzer"/);
+ assert.match(html,/data-act="hgEquip" data-id="howitzer"/);
 });
 test('a blueprint with foreign module ids is ignored and text remains escaped',()=>{
  const bad={version:1,items:[{slots:['<img onerror=alert(1)>',null,null,null,null,null]}]};

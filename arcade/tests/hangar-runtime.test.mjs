@@ -55,9 +55,9 @@ test('taking an ion loan on a rail-only ship does not install an unusable manual
  assert.ok(g.fieldLoan);assert.equal(g.weaponProfile.ion,false);
  assert.ok(!g.hangarSession.draft.slots.includes('ion'),'no plasma means no valid automatic suggestion');
 });
-test('a loan suggests a valid draft but the live ship changes only on Apply',()=>{
+test('a loan immediately fills a free node without spending extra resources',()=>{
  const g=game();g.baseAction('loanIon','');
- assert.equal(g.weaponProfile.ion,false,'taking a module must not skip confirmation');
+ assert.equal(g.weaponProfile.ion,true,'a free node is fitted without another confirmation');
  assert.equal(g.hangarSession.draft.slots[1],'ion');
  g.hangarAction({act:'hgApply'});assert.equal(g.weaponProfile.ion,true);
  assert.equal(g.player.ore,400,'the first trial remains free');
