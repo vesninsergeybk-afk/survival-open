@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#081422">
+<meta name="robots" content="noindex, nofollow">
+<title>Сифон-3 · испытание добытчика · Выживший</title>
+<style>
+:root{color-scheme:dark;font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#e2eefb;background:#06111e;--muted:#9eb6cc;--line:#2b4960;--teal:#78e4db;--amber:#ffd68e}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 78% -20%,#183550 0%,transparent 42%),#06111e}
+a{color:#8edee3}button,input{font:inherit}button{cursor:pointer;border:1px solid #4b6b82;background:#1c344b;color:#eaf5ff;border-radius:9px;padding:9px 13px;font-weight:650}
+button:hover{background:#284a65}button:focus-visible,input:focus-visible,canvas:focus-visible,a:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+button.primary{background:#165f66;border-color:#64c6cb}button.danger{border-color:#ae665b;background:#5a2c39}button:disabled{opacity:.5;cursor:default}
+header{max-width:1640px;margin:auto;padding:22px 28px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+header .eyebrow{font-size:11px;letter-spacing:.16em;color:#9ab9cc;font-weight:800}h1{margin:3px 0 0;font-size:clamp(24px,3vw,36px);letter-spacing:.025em}h1 span{color:#7ce3de}
+.back{display:inline-flex;gap:8px;align-items:center;text-decoration:none;color:#cae6f3;border:1px solid #355268;border-radius:10px;padding:8px 13px}.back:hover{background:#1b3447}
+main{max-width:1640px;margin:auto;padding:0 24px 26px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:15px;align-items:start}
+.stage{border:1px solid #2d5066;background:#081725;border-radius:15px;overflow:hidden;box-shadow:0 18px 65px #0005}
+.stage-head{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 16px;background:#102436;border-bottom:1px solid #2b4960}
+.stage-head strong{font-size:13px;letter-spacing:.03em}.status-light{display:inline-block;width:7px;height:7px;background:#76e7cd;border-radius:50%;box-shadow:0 0 12px #68e5cc;margin-right:8px}
+.stage-head small{color:#93b2c9}.canvas-wrap{position:relative}canvas{display:block;width:100%;height:auto;aspect-ratio:1200/680;cursor:crosshair;touch-action:manipulation;background:#050e19}
+.overlay-hint{position:absolute;bottom:11px;left:13px;font-size:12px;color:#bed3e2;background:#071522d0;border:1px solid #25435b;border-radius:7px;padding:6px 10px;pointer-events:none}
+.stage-footer{display:flex;gap:18px;flex-wrap:wrap;padding:10px 15px;border-top:1px solid #2b4960;color:#a9c2d6;font-size:12px;background:#0d2032}
+.sidebar{display:grid;gap:12px}.card{border:1px solid var(--line);border-radius:13px;background:linear-gradient(165deg,#122a3d,#0d2032);padding:15px}
+.card h2{font-size:16px;margin:0 0 11px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.metric{background:#081b2a;border:1px solid #29445b;border-radius:9px;padding:10px}.metric b{display:block;font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:-.025em;color:#a3f5e8}.metric span{font-size:11px;color:#9cb8ce}
+.meter{height:7px;border-radius:20px;background:#19384b;overflow:hidden;margin-top:12px}.meter>i{display:block;height:100%;background:linear-gradient(90deg,#298f99,#7dece1);width:75%;transition:width .2s}
+.meter-label{display:flex;justify-content:space-between;color:#9fb9ce;font-size:12px;margin-top:5px;font-variant-numeric:tabular-nums}
+.controls{display:grid;gap:11px}.control{display:block}.control .line{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#bdd4e5}.control output{color:#93ece6;font-weight:700;font-variant-numeric:tabular-nums}
+input[type=range]{display:block;width:100%;margin-top:6px;accent-color:#60cfce}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.notice{border:1px solid #3a5066;border-radius:10px;padding:9px 11px;color:#bdd5e7;font-size:12px;background:#101f32}
+.selected{font-size:12px;color:#b7d0e0;line-height:1.65}.selected b{color:#f3f7ff}.selected .cargo{font-variant-numeric:tabular-nums;color:#75e8d9}
+.guide{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.guide>div{background:#0e2233;border:1px solid #24465b;border-radius:11px;padding:13px}.guide strong{display:block;font-size:13px;margin-bottom:4px}.guide p{margin:0;color:#a6c0d1;font-size:12px}
+.disclaimer{grid-column:1/-1;color:#8ca9c1;font-size:12px;padding:0 3px}.disclaimer strong{color:#d0e4f2}
+@media(max-width:1000px){main{grid-template-columns:1fr}.sidebar{grid-template-columns:repeat(2,minmax(0,1fr))}.guide{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){header{padding:15px}main{padding:0 9px 20px;gap:9px}.sidebar{grid-template-columns:1fr}.guide{grid-template-columns:1fr 1fr;gap:7px}.guide>div{padding:10px}.stage-head{padding:8px 10px}.overlay-hint{font-size:10px;bottom:5px;left:5px}.stage-footer{gap:8px;font-size:11px}}
+</style>
+<script type="module" src="./siphon3-lab.js?v=1"></script>
+</head>
+<body>
+<header>
+ <div><div class="eyebrow">ВЫЖИВШИЙ / МАСТЕРСКАЯ КОНЦЕПЦИЙ / ИСПЫТАНИЕ 01</div><h1>Сифон-3 <span>· живая добыча</span></h1></div>
+ <a class="back" href="./">← Все концепции</a>
+</header>
+<main>
+ <section class="stage" aria-label="Игровое испытание добытчиков">
+  <div class="stage-head"><strong><i class="status-light"></i>Захваченный энергетический треугольник</strong><small id="sceneState">Подготовка...</small></div>
+  <div class="canvas-wrap"><canvas id="scene" width="1200" height="680" tabindex="0" role="img" aria-label="Три станции образуют защищённый треугольник. Добытчики летят к огненной воронке, наполняют накопители и доставляют энергию обратно."></canvas><div class="overlay-hint">Нажмите на добытчика, чтобы наблюдать за его грузом</div></div>
+  <div class="stage-footer"><span id="fps">FPS: —</span><span id="activeCount">В работе: —</span><span id="shipScale">Масштаб: —</span><span>Отдельный игровой прототип</span></div>
+ </section>
+ <aside class="sidebar">
+  <section class="card"><h2>Энергия и рейсы</h2><div class="stats"><div class="metric"><b id="delivered">0</b><span>Доставлено</span></div><div class="metric"><b id="trips">0</b><span>Завершено рейсов</span></div><div class="metric"><b id="harvested">0</b><span>Извлечено</span></div><div class="metric"><b id="inTransit">0</b><span>В накопителях</span></div></div><div class="meter"><i id="sourceFill"></i></div><div class="meter-label"><span>Энергия источника</span><span id="sourceText">—</span></div></section>
+  <section class="card"><h2>Условия испытания</h2><div class="controls">
+   <label class="control"><span class="line">Количество добытчиков <output id="countValue">3</output></span><input id="count" type="range" min="1" max="24" step="1" value="3"></label>
+   <label class="control"><span class="line">Размер в игре <output id="sizeValue">62 px</output></span><input id="size" type="range" min="28" max="110" step="2" value="62"></label>
+   <label class="control"><span class="line">Скорость движения <output id="speedValue">1×</output></span><input id="speed" type="range" min="50" max="250" step="10" value="100"></label>
+   <label class="control"><span class="line">Ёмкость накопителя <output id="capacityValue">38</output></span><input id="capacity" type="range" min="15" max="100" step="5" value="40"></label>
+   <div class="buttons"><button class="primary" id="pause" type="button">Пауза</button><button id="step" type="button">+1 с</button><button id="reset" type="button">Сначала</button><button class="danger" id="threat" type="button">Налёт!</button></div>
+  </div></section>
+  <section class="card"><h2>Выбранный добытчик</h2><div class="selected" id="selected" aria-live="polite">Нажмите на существо в сцене. Можно проследить весь рейс: полёт, прикрепление, добычу и разгрузку.</div></section>
+  <div class="notice" id="event" role="status">Источник восстанавливает энергию. Перевозчики делят общий запас.</div>
+ </aside>
+ <section class="guide" aria-label="Что проверять">
+  <div><strong>1. Узнаваемость</strong><p>Уменьшите спрайт до 28–48 пикселей. Различимы ли тело, всасывающий орган и направление полёта?</p></div>
+  <div><strong>2. Цикл доставки</strong><p>Следите, чтобы груз возникал при добыче, исчезал после разгрузки, а счётчик станции рос.</p></div>
+  <div><strong>3. Реакция на угрозу</strong><p>Нажмите «Налёт!». Добытчики должны прервать сбор и вернуться к станциям с уже добытой энергией.</p></div>
+  <div><strong>4. Нагрузка</strong><p>Установите 12–24 существа и посмотрите на FPS на своём устройстве. Это нагрузка стенда, не всей игры.</p></div>
+ </section>
+ <div class="disclaimer"><strong>Важно:</strong> здесь настоящие кадры «Сифона-3», но маршруты, скорость, запас источника, налёт и экономика специально смоделированы для проверки идеи. В основной игре эти параметры пока не изменены.</div>
+</main>
+</body>
+</html>
