@@ -77,6 +77,19 @@ test('pressure differs visibly by player action but never affects distant region
  assert.deepEqual(openingArcPressure(base,b,610,far,home),base);
 });
 
+test('active crisis holds back ambient swarms; rescue completion immediately removes relief',()=>{
+ const base={cap:9,interval:5,groupSize:3,types:['scout','fighter']};
+ const a=arc();beginOpeningArc(a,'rescue',22);
+ const active=openingArcPressure(base,a,63,home,home);
+ assert.ok(active.interval>base.interval);
+ assert.ok(active.cap<base.cap);
+ assert.deepEqual(openingArcPressure(base,a,63,{x:15000,y:0},home),base);
+ a.status='complete';a.alarmUntil=163;
+ const result=openingArcPressure(base,a,64,home,home);
+ assert.ok(result.interval<base.interval,'rescue consequence must be a real alarm');
+ assert.ok(result.cap>base.cap);
+});
+
 test('short recovery windows punctuate the first ten minutes without disabling danger',()=>{
  const base={cap:20,interval:4,groupSize:3,types:['scout','fighter']};
  const quiet=openingArcPressure(base,null,115,{x:0,y:0},home);
@@ -122,8 +135,8 @@ test('game rescue is a genuine sustained action with a consequence and one payou
  const a=arc();beginOpeningArc(a,'rescue',20);
  const g=Object.create(RuntimeHarness.prototype);
  Object.assign(g,{time:30,openingArc:a,openingRepairing:true,
-  visuals:{capitalDamageQA:false},world:{home},waypoint:{id:'opening-rescue'},
-  enemies:[],player:{x:a.rescueX,y:a.rescueY,hp:110,ore:3,shield:0},
+  visuals:{capitalDamageQA:false},world:{home:{...home,id:'0:0'}},waypoint:{id:'opening-rescue'},
+  enemies:[],player:{x:a.rescueX,y:a.rescueY,hp:30,maxHp:110,ore:3,shield:0},
   firstHardwareReward:null,cockpit:{resourceGain:()=>{}},notice:()=>{},
   endInteraction:()=>{},showOpeningReward:()=>{g.rewardShown=true;}});
  g.updateOpeningArc(1.5);assert.equal(a.status,'active');assert.equal(g.player.ore,3);
@@ -133,6 +146,7 @@ test('game rescue is a genuine sustained action with a consequence and one payou
  assert.equal(a.status,'complete');assert.equal(a.alarmUntil,130);
  assert.equal(g.player.ore,3+OPENING_ARC.rescueRewardOre);
  assert.equal(g.player.shield,OPENING_ARC.rescueShield);
+ assert.equal(g.waypoint.id,'0:0','a wounded survivor gets a real return route');
  assert.equal(g.rewardShown,true);
  g.updateOpeningArc(10);assert.equal(g.player.ore,3+OPENING_ARC.rescueRewardOre);
 });
@@ -140,6 +154,7 @@ test('game rescue is a genuine sustained action with a consequence and one payou
 test('opening hardware claim immediately fits a module and rejects a duplicate',()=>{
  const g=Object.create(RuntimeHarness.prototype),events=[];
  Object.assign(g,{shipLoadout:createLoadout(),firstHardwareReward:'pending',
+  player:{hp:25,maxHp:110},
   overlay:{dataset:{mode:'opening-reward'}},hangarSession:{dirty:()=>false,begin:()=>{}},
   syncShipLoadout:()=>{},dismiss:()=>{},heritage:{ui:()=>{}},
   notice:t=>events.push(t)});
@@ -150,4 +165,5 @@ test('opening hardware claim immediately fits a module and rejects a duplicate',
  g.claimOpeningReward('flak');
  assert.equal(g.shipLoadout.owned.flak,undefined);
  assert.equal(events.length,2);
+ assert.match(events[0],/ремонта/,'critical hull prompts a meaningful next action');
 });

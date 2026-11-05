@@ -2,7 +2,7 @@
    The local radar is deliberately bounded to 1.1km and redraws <=5 times/sec. */
 import {miningSignal} from './mining.js?v=arcade-extraction-risk-34';
 import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2';
-import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-1';
+import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-2';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 export const hullCondition = (hp,maxHp) => {

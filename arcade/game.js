@@ -23,7 +23,7 @@ import {ArcadeVisuals} from './visuals.js?v=regions-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1';
@@ -47,12 +47,12 @@ import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogist
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
- openingArcActive,openingArcPressure,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-1';
+ openingArcActive,openingArcPressure,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-2';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -652,8 +652,11 @@ export class ArcadeGame {
   if(!preserveDraft)this.hangarSession?.begin(this.shipLoadout);
   this.syncShipLoadout();this.dismiss();
   this.heritage.ui('upgrade');
+  const criticalHull=this.player?.maxHp>0&&this.player.hp/this.player.maxHp<.45;
   this.notice(reward.installed?
-   'ОРУЖИЕ УСТАНОВЛЕНО: '+MODULES[id].name+'. Попробуйте его в следующем бою!':
+   'ОРУЖИЕ УСТАНОВЛЕНО: '+MODULES[id].name+'. '+
+    (criticalHull?'Корпус повреждён — возвращайтесь к доку для ремонта!':
+     'Попробуйте его в следующем бою!'):
    'Орудие на складе. Освободите узел в ангаре и примените сборку.',6);
  }
  updateOpeningArc(dt){
@@ -696,6 +699,10 @@ export class ArcadeGame {
    this.cockpit.resourceGain(OPENING_ARC.rescueRewardOre,this.time);
    this.player.shield=Math.max(this.player.shield,OPENING_ARC.rescueShield);
    this.spawnClock=Math.max(this.spawnClock,9);
+   if(!this.waypoint&&this.player.hp/this.player.maxHp<.45){
+    const dock=this.world.home;
+    this.waypoint={id:dock.id,x:dock.x,y:dock.y,label:'Вернуться на ремонт'};
+   }
    this.notice('Эвакуация завершена: +'+OPENING_ARC.rescueRewardOre+
     ' сплава и аварийный щит. Враг получил сигнал: патрули участятся.',6);
   }
