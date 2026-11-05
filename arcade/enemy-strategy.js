@@ -7,7 +7,8 @@
  */
 export const THEATER=Object.freeze({
   tick:1.05,link:510,orderAge:2.3,maxCargoCells:2,maxSiteCells:2,
-  maxLines:3,noticeGap:6,contactAge:2.6,threatRadius:430
+  maxLines:3,noticeGap:6,contactAge:2.6,threatRadius:430,
+  meshResponseRange:920,commitSeconds:9
 });
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -122,7 +123,11 @@ export function planTheater(cells,world,now,mesh=null){
     if(!free.includes(cell.leader)||free.length<2)continue;
     for(const item of assets){
       const d=distance(cell.leader,item.asset);
-      if(d>THEATER.link)continue;
+      // Distant reinforcements need a delivered, asset-specific alarm. A
+      // global list of factories alone cannot authorize a remote sortie.
+      const networkAlarm=mesh?.alarmFor?.(cell,item.id,now)||null;
+      if(d>THEATER.link&&
+         (!networkAlarm||d>THEATER.meshResponseRange))continue;
       const incident=cell.incident;
       const witnessed=!!(incident&&now-incident.at>=0&&
         now-incident.at<=6.2&&
@@ -132,16 +137,21 @@ export function planTheater(cells,world,now,mesh=null){
       const contact=freshContact(cell,item.asset,now);
       // An alarm received through the mesh protects an asset, but never
       // grants the defender a live target position.
-      const networkAlarm=mesh?.alarmFor?.(cell,item.id,now)||null;
       const warning=mesh?.bestForCell?.(cell,now)||null;
       const alarm=witnessed||!!contact||!!networkAlarm;
       // Do not pull a squad away from an actual nearby engagement simply to
       // patrol a peaceful factory at the other edge of its radio cell.
       if(!alarm&&cell.intel&&!cell.intel.estimated&&
          now-cell.intel.at>=0&&now-cell.intel.at<=THEATER.contactAge)continue;
-      const previous=cell.theaterAssignment?.assetId===item.id?11:0;
+      const prior=cell.theaterAssignment;
+      const continuing=prior?.assetId===item.id;
+      const commitment=continuing&&now-(prior.startedAt??prior.at)<
+        THEATER.commitSeconds;
+      const previous=continuing?11+(commitment?24:0):0;
+      // A genuine new alarm can interrupt routine escort duty.
+      const emergency=networkAlarm&&!continuing?27:0;
       candidates.push({cell,item,score:item.importance-d/24+
-        (alarm?36:0)+previous,alarm,contact,warning,networkAlarm});
+        (alarm?36:0)+previous+emergency,alarm,contact,warning,networkAlarm});
     }
   }
   candidates.sort((a,b)=>b.score-a.score||
@@ -163,8 +173,11 @@ export function planTheater(cells,world,now,mesh=null){
     // production. A delivered warning is required; remote station state
     // is not read as global knowledge by a disconnected squad.
     const wide=c.warning?.kind==='area';
+    const prior=c.cell.theaterAssignment;
     const entry={asset:c.item.asset,assetId:c.item.id,
-      role,kind:c.item.kind,at:now,spread:wide?1.25:1,
+      role,kind:c.item.kind,at:now,
+      startedAt:prior?.assetId===c.item.id?(prior.startedAt??prior.at):now,
+      spread:wide?1.25:1,
       ...(c.contact?{
         contact:{x:c.contact.x,y:c.contact.y,at:c.contact.at}}:{}),
       reason:c.networkAlarm?'Сеть сообщает о нападении на объект. Усилить охрану!':

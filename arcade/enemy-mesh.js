@@ -100,7 +100,9 @@ export class EnemyMesh{
         tacticalJammingConfirmed(game,nodePoint(from),nodePoint(to));
         continue;
       }
-      const received={...item.packet,hops:item.packet.hops+1};
+      // Receipt time is local to this node; the original eyewitness time
+      // stays unchanged and still controls the packet's expiry.
+      const received={...item.packet,hops:item.packet.hops+1,receivedAt:now};
       if(received.hops>ENEMY_MESH.maxHops)continue;
       to.known.set(received.id,received);
       this.prune(to,now);

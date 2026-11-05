@@ -61,7 +61,8 @@ export function createEnemySquadPlan(cell,mode,threat,now){
        e.type!=='healer'&&!e.protect).length<2)return null;
   const modes=counterSequences[threat?.kind]||sequences[mode];
   return {id:(cell.planSerial=(cell.planSerial||0)+1),
-    baseMode:modes[0],basis:basis(threat),observedAt:threat?.lastAt??cell.intel.at,
+    baseMode:modes[0],basis:basis(threat),
+    observedAt:(threat?.mesh?threat.receivedAt:null)??threat?.lastAt??cell.intel.at,
     goal:goals[modes[0]],modes,
     phase:0,phaseAt:now,startedAt:now,
     until:now+ENEMY_SQUAD_PLANS.horizon,confirmed:false,
@@ -80,7 +81,9 @@ export function squadPlanObsolete(plan,threat,now,members=null,intel=null){
     if(role!=='reserve'&&(!members.includes(member)||member.hp<=0||
        member.converted))return true;
   }
-  const newest=threat?.lastAt??-Infinity;
+  // A delayed radio report can be *new to this squad* even if the weapon
+  // was seen earlier. Never change the original observation timestamp.
+  const newest=(threat?.mesh?threat.receivedAt:null)??threat?.lastAt??-Infinity;
   return basis(threat)!==plan.basis&&newest>plan.observedAt+.15;
 }
 
