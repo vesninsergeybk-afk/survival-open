@@ -5,7 +5,8 @@ import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from 
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
 import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-3';
-import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1';
+import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1';
+import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
 import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
@@ -398,8 +399,10 @@ export function updateEnemy(e,game,dt){
         // zone is a fallible counter: the player can pursue or change guns.
         const away=norm(e.x-reported.x,e.y-reported.y);
         const ring=e.type==='gunship'?340:300;
-        goalX=reported.x+away.x*ring-away.y*radio.side*105;
-        goalY=reported.y+away.y*ring+away.x*radio.side*105;
+        const flankSide=radio.role==='left'?-1:
+          radio.role==='right'?1:radio.side;
+        goalX=reported.x+away.x*ring-away.y*flankSide*105;
+        goalY=reported.y+away.y*ring+away.x*flankSide*105;
       }else{
         const flank=radio.threat?.kind==='maneuver'&&
           radio.threat.motion==='turning'?112:76;
@@ -426,8 +429,10 @@ export function updateEnemy(e,game,dt){
       }
     }else if(radio.mode==='press'){
       const finish=radio.threat?.kind==='weak';
-      goalX+=heading.x*(finish?79:34)-heading.y*radio.side*(finish?43:22);
-      goalY+=heading.y*(finish?79:34)+heading.x*radio.side*(finish?43:22);
+      const flankSide=radio.role==='left'?-1:
+        radio.role==='right'?1:radio.side;
+      goalX+=heading.x*(finish?79:34)-heading.y*flankSide*(finish?43:22);
+      goalY+=heading.y*(finish?79:34)+heading.x*flankSide*(finish?43:22);
     }else if(radio.mode==='close'){
       // Real short-distance advance; the existing speed limit still applies.
       const margin=e.type==='gunship'?210:145;
@@ -443,8 +448,17 @@ export function updateEnemy(e,game,dt){
       goalX=radio.medic.x+toward.x*105-toward.y*radio.side*35;
       goalY=radio.medic.y+toward.y*105+toward.x*radio.side*35;
     }
+    // Once the commander has assigned complementary roles, a wingman aims
+    // for its own bounded lane. Unseen players and rough incident sectors
+    // never become live coordinates through this formation logic.
+    if(!intel.estimated&&!['close','weak'].includes(radio.threat?.kind)){
+      const destination=squadRoleDestination(e,radio,reported);
+      if(destination){goalX=destination.x;goalY=destination.y;}
+    }
     e._commsIntent={x:goalX,y:goalY,mode:radio.mode,
-      leader:radio.leader,at:game.time};
+      leader:radio.leader,at:game.time,
+      planId:radio.planId??null,planPhase:radio.planPhase??null,
+      role:radio.role||null};
   }else if(radio&&targetingPlayer&&radioOrderCapable(e,game.time,radio.threat)&&
     e.type==='scout'&&tactical===packTactic&&
     packTactic.radioApplied&&packTactic.radioMode===radio.mode){
@@ -452,7 +466,9 @@ export function updateEnemy(e,game,dt){
     // or lead in response to this message. Do not claim obedience for scouts
     // whose cover/break animation took priority instead.
     e._commsIntent={x:goalX,y:goalY,mode:radio.mode,
-      leader:radio.leader,at:game.time};
+      leader:radio.leader,at:game.time,
+      planId:radio.planId??null,planPhase:radio.planPhase??null,
+      role:radio.role||null};
   }
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   let extraX=avoid.x*speed*1.3,extraY=avoid.y*speed*1.3;

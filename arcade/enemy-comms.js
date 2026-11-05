@@ -1,10 +1,14 @@
-/** Short-range enemy radio. Messages carry actual local observations, and
+import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
+  squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
+  squadRoleFor,squadRoleLabel} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
+
+/** Bounded enemy radio. Messages carry actual local observations, and
  * decisions use votes from several pilots. Visual pulses are message receipts,
  * never decorative lines drawn between arbitrary nearby sprites. */
 export const ENEMY_COMMS=Object.freeze({
-  range:285,cellSize:7,tick:.62,sightAge:2.6,
-  breakSeconds:2.1,decisionSeconds:2.9,broadcastInterval:1.55,
-  pulseSeconds:.76,maxEvents:68,maxDrawn:16,
+  range:510,cellSize:7,tick:.36,sightAge:2.6,
+  breakSeconds:2.1,decisionSeconds:2.3,broadcastInterval:.85,
+  pulseSeconds:.86,maxEvents:68,maxDrawn:16,
   attackMemory:13,attackFresh:7,maxAttackReports:12,
   interceptRange:560,estimatedIntelAge:6.4,
   witnessRange:190,lossMemory:8,maxLossReports:8,
@@ -334,6 +338,7 @@ export class EnemyComms {
         if(!cell.brokenUntil){
           cell.brokenUntil=now+ENEMY_COMMS.breakSeconds;
           cell.mode=null;cell.intel=null;cell.proposals=new Map();
+          cell.plan=null;
           cell.attackReports=[];cell.lossReports=[];cell.threat=null;
           cell.incident=null;cell.motionReports=[];
           cell.pendingDecision=null;cell.lastReportedTactic=null;
@@ -347,7 +352,7 @@ export class EnemyComms {
         }
         if(now>=cell.brokenUntil){
           cell.leader=elect(cell.members);cell.brokenUntil=0;
-          cell.holdUntil=0;cell.mode=null;
+          cell.holdUntil=0;cell.mode=null;cell.plan=null;
         }
       }
       for(const e of cell.members)claimed.add(e);
@@ -394,7 +399,8 @@ export class EnemyComms {
 
     for(const cell of this.cells){
       for(const e of cell.members)e._commsCell=cell;
-      if(cell.members.length<2||cell.brokenUntil)continue;
+      if(cell.members.length<2){cell.mode=null;cell.plan=null;continue;}
+      if(cell.brokenUntil)continue;
       const leader=cell.leader;
       if(!cell.proposals)cell.proposals=new Map();
       cell.attackReports??=[];
@@ -502,24 +508,36 @@ export class EnemyComms {
             at:cell.incident.at,estimated:true,incident:true}:null;
       }
       if(!intelFresh(cell.intel,now)){
-        cell.intel=null;cell.mode=null;continue;
+        cell.intel=null;cell.mode=null;cell.plan=null;continue;
       }
       // Only proposals actually transmitted to this caller can influence the
       // result; a disconnected ship's private state never enters the ballot.
       const accepted=[...cell.proposals.values()]
         .filter(v=>now-v.at<4.0).map(v=>v.choice);
-      if(accepted.length<2){cell.mode=null;continue;}
+      if(accepted.length<2){cell.mode=null;cell.plan=null;continue;}
       // A group's voters can include repair units, but an announced combat
       // order requires a real recipient able to alter its course.
       if(!cell.members.some(e=>e!==leader&&radioOrderCapable(e,now,cell.threat))){
-        cell.mode=null;continue;
+        cell.mode=null;cell.plan=null;continue;
       }
       const outcome=tallyVotes(accepted,cell.intel,hasMedic,cell.threat);
+      const previousPlan=cell.plan;
+      const failedPlan=squadPhaseExpired(previousPlan,cell,now);
+      const stalePlan=squadPlanObsolete(previousPlan,cell.threat,now,
+        cell.members,cell.intel)||
+        failedPlan;
+      const fallback=failedPlan&&!cell.threat&&
+        ['pincer','intercept'].includes(outcome.mode)?'press':outcome.mode;
+      if(stalePlan)cell.plan=createEnemySquadPlan(cell,fallback,
+        cell.threat,now);
+      const phaseChanged=!stalePlan&&
+        advanceEnemySquadPlan(cell.plan,cell,now);
+      const desiredMode=squadPlanMode(cell.plan)||outcome.mode;
       const urgent=!!(distress&&cell.mode&&
         ((outcome.mode==='screen'&&outcome.votes.screen>outcome.votes[cell.mode])||
          (cell.threat?.kind==='loss'&&outcome.mode==='scatter')));
-      const canChange=now>=cell.holdUntil||urgent;
-      const changed=canChange&&cell.mode!==outcome.mode;
+      const canChange=now>=cell.holdUntil||urgent||phaseChanged||stalePlan;
+      const changed=canChange&&cell.mode!==desiredMode;
       // A pilot may already be intercepting when the group learns that the
       // player holds a straight course. The stronger lead is still a *new*
       // tactical decision worth explaining once it is really flown.
@@ -529,25 +547,29 @@ export class EnemyComms {
         cell.lastReportedTactic!==tactic;
       if(canChange){
         cell.votes=outcome.votes;
-        cell.mode=outcome.mode;
+        cell.mode=desiredMode;
         cell.holdUntil=now+ENEMY_COMMS.decisionSeconds;
-        if(changed){cell.lastDecisionAt=now;this.decisions++;}
+        if(changed||phaseChanged){cell.lastDecisionAt=now;this.decisions++;}
       }
-      if((contact||changed||distress||now>=cell.nextBroadcast)&&cell.mode){
+      if((contact||changed||phaseChanged||distress||
+        now>=cell.nextBroadcast)&&cell.mode){
         cell.nextBroadcast=now+ENEMY_COMMS.broadcastInterval;
         let delivered=false;
         for(const e of cell.members)if(e!==leader&&
           this.send(leader,e,changed?'order':'relay',now)){
           e._commsOrder={cellId:cell.id,mode:cell.mode,
             intel:{...cell.intel},threat:cell.threat?{...cell.threat}:null,
-            at:now};
+            at:now,
+            planId:cell.plan?.id??null,planPhase:cell.plan?.phase??null,
+            role:squadRoleFor(cell.plan,e)};
           if(radioOrderCapable(e,now,cell.threat))delivered=true;
         }
         // A sent order is only a *proposal* for a subtitle. We confirm actual
         // steering after the AI loop before declaring it a tactical reaction.
-        if((changed||newTactic)&&delivered)
+        if((changed||phaseChanged||newTactic)&&delivered)
           cell.pendingDecision={at:now,mode:cell.mode,
-            threat:cell.threat?{...cell.threat}:null};
+            threat:cell.threat?{...cell.threat}:null,
+            planId:cell.plan?.id??null,planPhase:cell.plan?.phase??null};
       }
     }
   }
@@ -555,11 +577,18 @@ export class EnemyComms {
   confirmExecution(game){
     const now=game.time;
     for(const cell of this.cells){
+      if(cell.plan&&!cell.brokenUntil&&cell.members.some(e=>
+        e._commsIntent?.planId===cell.plan.id&&
+        e._commsIntent?.planPhase===cell.plan.phase&&
+        e._commsIntent?.at===now))cell.plan.confirmed=true;
       const pending=cell.pendingDecision;
       if(!pending||now-pending.at>1.1){cell.pendingDecision=null;continue;}
       if(pending.mode!==cell.mode){cell.pendingDecision=null;continue;}
       const executed=cell.members.some(e=>e!==cell.leader&&
-        e._commsIntent?.mode===pending.mode&&e._commsIntent.at===now);
+        e._commsIntent?.mode===pending.mode&&e._commsIntent.at===now&&
+        (pending.planId==null||
+          e._commsIntent.planId===pending.planId&&
+          e._commsIntent.planPhase===pending.planPhase));
       if(!executed)continue;
       cell.pendingDecision=null;
       if(pending.threat?.kind==='maneuver')
@@ -567,7 +596,9 @@ export class EnemyComms {
       if(pending.threat?.kind==='weak')cell.lastReportedTactic='weak';
       if(!game.playerCanInterceptEnemyRadio?.(cell.leader)&&
         !game.playerCanInspectEnemyIntent?.(cell.leader))continue;
-      const message=enemyOrderMessage(cell.mode,pending.threat??cell.threat);
+      const message=pending.planPhase>0&&cell.plan?.id===pending.planId?
+        squadPlanPhaseMessage(cell.plan):
+        enemyOrderMessage(cell.mode,pending.threat??cell.threat);
       if(!message)continue;
       const item={at:now,until:now+3.4,mode:cell.mode,message,
         leader:cell.leader,cellId:cell.id};
@@ -595,14 +626,20 @@ export class EnemyComms {
     const received=e===cell.leader?null:e._commsOrder;
     if(e!==cell.leader&&(!received||received.cellId!==cell.id||
        received.mode!==cell.mode||now-received.at>2.5||
-       !intelFresh(received.intel,now)))return null;
+       !intelFresh(received.intel,now)||
+       cell.plan&&(received.planId!==cell.plan.id||
+         received.planPhase!==cell.plan.phase)))return null;
     const position=cell.members.indexOf(e);
     return {mode:cell.mode,side:position%2?1:-1,
       leader:cell.leader,intel:received?.intel||cell.intel,
       medic:cell.members.find(a=>a.type==='healer'&&a.hp>0)||null,
-      // A follower can act only on the threat it actually received. The
-      // commander learning something new must not rewrite old radio packets.
-      threat:e===cell.leader?cell.threat:received.threat??null};
+      // Recipients act on their own delivered threat snapshot. New reports
+      // cannot retroactively alter a wingman's last message.
+      threat:e===cell.leader?cell.threat:received.threat??null,
+      planId:cell.plan?.id??null,
+      planPhase:cell.plan?.phase??null,
+      role:received?.role||squadRoleFor(cell.plan,e),
+      objective:cell.plan?.goal||null};
   }
 
   intercepted(now){
@@ -678,6 +715,28 @@ export class EnemyComms {
         ctx.fillStyle=cue.kind==='contact'?'#d1b7ff':'#ffe0a3';
         ctx.fillText(label,e.x,e.y-(e.r||14)-38,175);
         observationPoints.push(e);observations++;
+      }
+    }
+    // A squad's longer plan is readable only through roles that its pilots
+    // really execute, and only for individually visible ships. Cap text and
+    // avoid repeating a role beside clustered craft on narrow screens.
+    let roleCues=0;const rolePoints=[];
+    if(game?.playerCanInspectEnemyIntent)for(const cell of this.cells){
+      if(roleCues>=(fps<28?1:2))break;
+      if(!cell.plan?.confirmed||!cell.mode||cell.brokenUntil)continue;
+      for(const e of cell.members){
+        if(roleCues>=(fps<28?1:2))break;
+        const intent=e._commsIntent;
+        if(!intent||intent.at!==now||intent.planId!==cell.plan.id||
+           intent.planPhase!==cell.plan.phase||!legal(e)||
+           !isVisible(e,cam,20)||!game.playerCanInspectEnemyIntent(e)||
+           rolePoints.some(p=>distance(p,e)<140))continue;
+        const label=squadRoleLabel(intent.role,intent.mode);
+        if(!label||intent.role==='reserve')continue;
+        ctx.globalAlpha=.78;ctx.fillStyle='#dac4ff';
+        ctx.font='bold 9px system-ui';ctx.textAlign='center';
+        ctx.fillText(label,e.x,e.y-(e.r||14)-55,150);
+        rolePoints.push(e);roleCues++;
       }
     }
     // The actual transmitted command becomes a brief, world-anchored speech

@@ -75,20 +75,25 @@ test('a real radio majority counters observed straight and turning flight differ
  assert.notEqual(net.cells[0].threat?.kind,'maneuver',
   'one delivered sighting cannot establish a movement pattern');
  const original=net.cells[0].mode;
+ const heard=[];game.notice=message=>heard.push(message);
+ game.playerCanInterceptEnemyRadio=()=>true;
  a._learningObservation={context:'straight'};
  net.reportSight(a,game.player,1.4);
  game.time=1.5;net.update(game);
  assert.equal(net.cells[0].threat?.motion,'straight');
+ game.time=1.55;execute(game);
+ assert.ok(net.intercepts.some(item=>item.message.includes('наперерез')),
+  'faster radio must produce an executed counter as soon as corroboration arrives');
  game.time=3.7;net.update(game);
  assert.equal(net.cells[0].mode,'intercept');
  assert.match(enemyOrderMessage('intercept',net.cells[0].threat),/наперерез/);
- const heard=[];game.notice=message=>heard.push(message);
- game.playerCanInterceptEnemyRadio=()=>true;
  game.time=3.75;execute(game);
  assert.ok(net.intercepts.some(item=>item.message.includes('наперерез')),
   'the player hears the instruction only after an actual steering change');
+ assert.ok(net.intercepts.some(item=>item.at===1.55),
+  'the first genuine intercepted order must remain in the transcript');
  assert.ok(heard.some(message=>message.includes('Радиоперехват')),
-  'the maneuver is legible without opening the tactical map');
+  'the executed change must be readable without opening the map');
  assert.notEqual(original,null);
  // No hard-coded omniscient observation: only the stored sightings vote.
  assert.ok(net.cells[0].motionReports.length>=2);
@@ -134,12 +139,12 @@ test('a new confirmed tactic is announced even if its maneuver name stays the sa
  assert.equal(net.reportSight(a,game.player,1.65),true);
  game.time=1.95;net.update(game);
  assert.equal(net.cells[0].threat?.motion,'straight');
+ assert.ok(net.cells[0].pendingDecision,
+  'a faster radio needs no additional multi-second wait for an already known course');
+ game.time=2.0;execute(game);
+ assert.equal(net.cells[0].lastReportedTactic,'straight');
  game.time=3.7;net.update(game);
  assert.equal(net.cells[0].mode,'intercept');
- assert.ok(net.cells[0].pendingDecision,
-  'a newly learned lead angle must be eligible for a fresh announcement');
- game.time=3.75;execute(game);
- assert.equal(net.cells[0].lastReportedTactic,'straight');
  assert.ok(net.intercepts.some(item=>item.message.includes('наперерез')));
  assert.ok(heard.some(message=>message.includes('наперерез')));
 });
@@ -167,6 +172,9 @@ test('witnessed hull damage invites a finite finishing push, but repair cancels 
  net.reportSight(a,game.player,1.4);
  game.time=1.5;net.update(game);
  assert.equal(net.cells[0].threat?.kind,'weak');
+ game.time=1.55;execute(game);
+ assert.ok(net.intercepts.some(entry=>/повреждён корпус/.test(entry.message)),
+  'the new faster radio should execute the finishing order promptly');
  game.time=3.7;net.update(game);
  assert.equal(net.cells[0].mode,'press');
  game.time=3.75;execute(game);
@@ -365,11 +373,13 @@ test('unseen player coordinates cannot leak into radio through the global game o
  game.enemyComms.update(game);
  game.time=.8;game.enemyComms.update(game);
  assert.equal(game.enemyComms.directiveFor(a,game.time),null);
- assert.equal(game.enemyComms.events.length,0);
+ assert.equal(game.enemyComms.events.filter(e=>
+  e.kind==='contact'||e.kind==='order'||e.kind==='relay').length,0,
+  'a longer-lived vote pulse is harmless; there must be no contact or order');
 });
 
-test('no transmission, shared target or collective attack passes beyond radio range',()=>{
- const scout=ship(1,'scout',0),fighter=ship(2,'fighter',430);
+test('no transmission, shared target or collective attack passes beyond the extended radio range',()=>{
+ const scout=ship(1,'scout',0),fighter=ship(2,'fighter',ENEMY_COMMS.range+120);
  const game=scene([scout,fighter]),net=game.enemyComms;
  net.update(game);net.reportSight(scout,game.player,.1);
  game.time=.7;net.update(game);
