@@ -14,13 +14,17 @@ export function updateEnemyGunnery(e,game,target){
   const profile=ENEMY_GUNNERY[e?.type],now=game?.time;
   if(!profile||!Number.isFinite(now))return false;
   // A hit or a message containing only a rough sector never grants the
-  // perfect tracking required for a gun solution. Mission escorts may shoot
-  // only once they themselves see the player.
+  // perfect tracking required for a gun solution. A friendly craft is a
+  // legitimate target only when this pilot sees it directly.
+  const attackingPlayer=target===game.player;
+  const directContact=target?.hp>0&&
+    (attackingPlayer?!!e._enemyLearningSaw:
+      typeof game.enemyCanSee==='function'&&game.enemyCanSee(e,target));
   if(e.hp<=0||e.converted||e.boss||(e.missionStructure&&!e.openingCommander)||
      e.relayAssault||e.interceptCargo||
      typeof game.enemyShot!=='function'||
      e.signalIntel&&e.signalIntel.mode!=='engaged'||
-     !e._enemyLearningSaw||target!==game.player||
+     !directContact||
      !['hunt','flank','intercept','guard','standoff'].includes(e.state)||
      distance(e,target)>profile.range){
     e._gunAiming=null;return false;
@@ -28,6 +32,10 @@ export function updateEnemyGunnery(e,game,target){
   if(e._gunNextAt===undefined)
     e._gunNextAt=now+.36+(Math.abs(e.serial||0)%5)*.12;
   const aim=e._gunAiming;
+  if(aim&&aim.target!==target){
+    e._gunAiming=null;e._gunNextAt=Math.max(now,e._gunNextAt||0);
+    return false;
+  }
   if(!aim){
     if(now<e._gunNextAt)return false;
     // Lock a bounded prediction. The marker does not follow a subsequent
@@ -35,7 +43,7 @@ export function updateEnemyGunnery(e,game,target){
     const lead=clamp(distance(e,target)/profile.speed*.29,.08,.31);
     e._gunAiming={x:target.x+clamp((target.vx||0)*lead,-55,55),
       y:target.y+clamp((target.vy||0)*lead,-55,55),
-      started:now,until:now+profile.charge};
+      started:now,until:now+profile.charge,target};
     return false;
   }
   if(now<aim.until)return false;

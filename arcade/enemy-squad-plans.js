@@ -95,7 +95,12 @@ export function squadPhaseProgress(plan,cell,now){
        intent.planPhase!==plan.phase||now-intent.at>.8)continue;
     const moved=distance(e,origin),initial=distance(origin,intent),
       remaining=distance(e,intent);
-    if(moved>=52&&initial-remaining>=27)
+    // Crossing a few pixels at the start of a 1,000-unit approach is not
+    // executing a trap. Require meaningful relative progress as well as
+    // displacement; short flanking lanes still use their absolute minimum.
+    if(moved>=Math.max(52,Math.min(145,initial*.36))&&
+       initial-remaining>=Math.max(27,initial*.30)&&
+       remaining<=Math.max(90,initial*.62))
       progressed.add(squadRoleFor(plan,e));
   }
   const mode=squadPlanMode(plan);

@@ -3,7 +3,7 @@ import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js
 import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2';
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
-  squadRoleFor,squadRoleLabel} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
+  squadRoleFor,squadRoleLabel} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1';
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 
 /** Bounded enemy radio. Messages carry actual local observations, and

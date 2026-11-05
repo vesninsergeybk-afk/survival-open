@@ -1,0 +1,27 @@
+import {contactOnCircle} from './impact-geometry.js?v=arcade-impact-51';
+
+/** Resolve an enemy bolt against both kinds of friendly ships. The game
+ * processes asteroid cover first; a single bolt can hit at most one hull. */
+export function hitFriendlyShip(game,shot){
+  if(!shot?.alive)return false;
+  for(const mission of game.support?.missions||[]){
+    const craft=mission.craft?.find(c=>c.hp>0&&
+      Math.hypot(shot.x-c.x,shot.y-c.y)<shot.r+c.r);
+    if(!craft)continue;
+    shot.alive=false;craft.hp-=shot.damage;craft.hit=.18;
+    if(craft.hp<=0)game.heritage.vfx.shipExplosion(craft.x,craft.y,24,'#80d9ff');
+    else {
+      const point=contactOnCircle(craft.x,craft.y,craft.r,shot.x,shot.y);
+      game.heritage.vfx.hullImpact(point?.x??craft.x,point?.y??craft.y,false,point);
+    }
+    return true;
+  }
+  for(const ally of game.allies||[]){
+    if(ally.hp<=0||Math.hypot(shot.x-ally.x,shot.y-ally.y)>=shot.r+ally.r)
+      continue;
+    shot.alive=false;
+    game.hitAlly(ally,shot.damage*(1-(game.network?.armor||0)*.07));
+    return true;
+  }
+  return false;
+}
