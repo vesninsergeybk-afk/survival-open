@@ -2,7 +2,7 @@ import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1
 import {activeContourTransition,fieldIsNew} from './contour-dynamics.js?v=contour-dynamics-2';
 import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {drawContourVortexArt} from './contour-vortex-art.js?v=contour-vortex-80frames-1';
-import {drawSiphon3,SIPHON3_WORLD_SIZE} from './siphon3-art.js?v=siphon3-rig-2';
+import {drawSiphon3,SIPHON3_WORLD_SIZE} from './siphon3-art.js?v=siphon3-rig-3';
 
 const visible=(p,cam,r=200)=>p.x>=cam.x-r&&p.x<=cam.x+cam.w+r&&
  p.y>=cam.y-r&&p.y<=cam.y+cam.h+r;
@@ -218,12 +218,12 @@ export function drawContourWorld(game,c,cam){
   const t=h.phase==='out'?Math.min(1,h.progress):h.phase==='back'?1-Math.min(1,h.progress):1;
   const x=field.anchor.x+(field.center.x-field.anchor.x)*t;
   const y=field.anchor.y+(field.center.y-field.anchor.y)*t;
-  if(!visible({x,y},cam,Math.ceil(SIPHON3_WORLD_SIZE*.6)))continue;
+  if(!visible({x,y},cam,Math.ceil(SIPHON3_WORLD_SIZE*1.08)))continue;
   if(h.phase==='gather'){
    c.save();c.strokeStyle='rgba(255,221,138,.8)';c.lineWidth=2;
    c.beginPath();c.arc(x,y,11+(calm?0:3*Math.sin(now*8)),0,Math.PI*2);c.stroke();c.restore();
   }
-  // The live unit uses the same fixed-pivot 80-frame animation as the QA lab.
+  // The live unit shares the same hinged, energy-reactive model as the QA lab.
   // Keep the former low-cost icon only if the texture is still loading.
   const direction=Math.atan2(field.center.y-field.anchor.y,field.center.x-field.anchor.x)+
    (h.phase==='back'?Math.PI:0);
