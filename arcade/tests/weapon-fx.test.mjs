@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
 import {WEAPON_FX_KINDS,WEAPON_FX_CAP,emitWeaponFx,updateWeaponFx,drawWeaponFx} from '../weapon-fx.js';
 import {ArcadeHeritage} from '../heritage.js';
-import {updateHowitzer,fireAimedRail} from '../ship-weapons.js';
+import {updateHowitzer,updateFlakPellets,fireAimedRail} from '../ship-weapons.js';
 import {createFieldLoan} from '../field-weapons.js';
 import {damageTarget} from '../combat-targets.js';
 import {loadoutProfile} from '../ship-loadout.js';
@@ -90,10 +90,12 @@ test('actual plasma, rail, flak fire records differentiated paths, without the o
  for(const kind of ['plasma','rail','flak']){
   const g=game();install(g,kind);const t=enemy(150,10);g.grid.insert(t);
   g.updateShipWeapons(.02);
+  if(kind==='flak')updateFlakPellets(g,.2);
   assert.ok(t.hp<500,`${kind} did no damage`);
   assert.equal(g.weaponFx[0].kind,kind);
   assert.equal(g.flashes.length,0,'the old generic beam was double-rendered');
-  assert.ok(g.weaponFx[0].x2<t.x,'the mark ends on the hull surface');
+  assert.ok(g.weaponFx[0].x2<t.x,'the trace never extends beyond the target');
+  if(kind==='flak')assert.equal(g.weaponFx[0].impact,false,'muzzle does not fake an instant hit');
  }
 });
 
@@ -125,6 +127,7 @@ test('second flak mount aims its muzzle at the surviving target, not the first d
  const muzzles=[];g.heritage.vfx=new Proxy({},
   {get:(_,key)=>key==='muzzle'?(...args)=>muzzles.push(args):()=>{}});
  g.updateShipWeapons(.02);
+ updateFlakPellets(g,.2);
  assert.ok(a.hp<=0);assert.ok(b.hp<500);
  assert.equal(muzzles.length,2);
  const [x,y,angle]=muzzles[1];
@@ -172,7 +175,9 @@ test('real rocket, manual rail and heavy artillery display only an executed shot
  heavy.heavyCharge={x:270,y:0,total:1.25,remaining:.01};
  updateHowitzer(heavy,.02);
  assert.equal(heavy.weaponFx[0].kind,'howitzer');
- assert.equal(heavy.weaponFx[0].x2,270);
+ assert.ok(heavy.weaponFx[0].x2<100,'the launch does not draw a fictitious hit 270 m away');
+ assert.equal(heavy.weaponFx[0].impact,false);
+ assert.equal(heavy.heavyShells.length,1);
 });
 
 test('real ion chain and real resonance transfer use their own signatures',()=>{
@@ -239,6 +244,7 @@ test('visual laboratory is discoverable and uses production effects, not its own
   assert.match(html,new RegExp('id="'+key+'"'));
  assert.match(js,/import \{emitWeaponFx,updateWeaponFx,drawWeaponFx\} from '\.\.\/weapon-fx\.js'/);
  assert.match(js,/import \{drawSeekingMissile\} from '\.\.\/combat-feedback\.js'/);
+ assert.match(js,/import \{launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons\} from '\.\.\/ballistic-weapons\.js'/);
  assert.match(js,/import \{drawFieldEffects\} from '\.\.\/field-weapons\.js'/);
  assert.match(js,/import \{WorldVFX\} from '\.\.\/\.\.\/src\/world-vfx\.js'/);
  for(const id of WEAPON_FX_KINDS)assert.match(js,new RegExp("id:'"+id+"'"));

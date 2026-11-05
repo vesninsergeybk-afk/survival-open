@@ -5,7 +5,7 @@ import {createLoadout,cloneLoadout,FRAME_STEPS,SHIP_ART,MODULES,slotOpen,quoteLo
  applyLoadout,upgradeFrame,loadoutProfile,moduleStats,createThermal,coolWeapons,
  heatWeapons,HangarSession,BLUEPRINT_KEY,PREVIEW_BLUEPRINT_KEY,mountPosition} from '../ship-loadout.js';
 import {renderShipHangar} from '../hangar-panel.js';
-import {shipTargets,updateAuxiliaryWeapons,planHowitzer,updateHowitzer} from '../ship-weapons.js';
+import {shipTargets,updateAuxiliaryWeapons,updateFlakPellets,planHowitzer,updateHowitzer} from '../ship-weapons.js';
 import {CORRIDOR_OPERATION} from '../operations.js';
 import {drawEvolvedHero} from '../../src/hero-evolution.js';
 
@@ -248,12 +248,17 @@ test('penetrating rail damages its target beyond a rock, while ordinary rail sto
  assert.equal(rockHits,2);
 });
 test('wide flak branch hits four enemies instead of three at lower per-target damage',()=>{
- const enemies=[70,80,90,100,110].map(x=>enemy(x));
+ const enemies=[-55,-20,20,55,100].map(y=>enemy(y===100?190:180,y));
  const game=combat(enemies);game.weaponProfile={rail:0,flak:1};
  game.shipLoadout.slots=['flak',null,null,null,null,null];
  game.shipLoadout.specializations={flak:{path:'sweep',rank:1}};
  updateAuxiliaryWeapons(game,1,true);
- assert.deepEqual(game.hits,[11,11,11,11]);
+ assert.equal(game.hits.length,0,'pellets must not damage instantly at launch');
+ assert.equal(game.flakPellets.length,12);
+ updateFlakPellets(game,.2);
+ for(const e of enemies.slice(0,4))assert.ok(Math.abs(e.hp-289)<1e-6,
+  'all four separated targets should receive their own three pellets');
+ assert.equal(enemies[4].hp,300,'the fifth target remains outside the burst budget');
 });
 test('duplicate auxiliary modules emit visible shots from both mounted positions',()=>{
  const e=enemy(300),game=combat([e]);game.shipLoadout.slots[1]='rail';game.weaponProfile.rail=2;
@@ -267,8 +272,11 @@ test('howitzer requires H and a real target, telegraphs a fixed point and waits 
  game.weaponProfile.howitzer=true;const plan=planHowitzer(game);assert.equal(plan.ok,true);
  game.heavyCharge=plan.charge;assert.equal(game.heavyCharge.x,500);
  updateHowitzer(game,1);assert.equal(game.hits.length,0);
- updateHowitzer(game,.26);assert.deepEqual(game.hits,[180]);
- assert.equal(game.heavyCooldown,12);assert.equal(game.weaponThermal.current,70);
+ updateHowitzer(game,.26);assert.deepEqual(game.hits,[]);
+ assert.equal(game.heavyShells.length,1,'the shell must travel after charging');
+ updateHowitzer(game,.8);assert.deepEqual(game.hits,[180]);
+ assert.ok(game.heavyCooldown<=12&&game.heavyCooldown>11,'cooldown continues during shell travel');
+ assert.equal(game.weaponThermal.current,70);
  assert.equal(planHowitzer(game).ok,false);
  game.heavyCooldown=0;game.weaponThermal.locked=true;assert.equal(planHowitzer(game).ok,false);
  const moving=combat([enemy(400)]);moving.weaponProfile.howitzer=true;moving.heavyCharge=planHowitzer(moving).charge;
