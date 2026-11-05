@@ -1,6 +1,7 @@
 import {REGIONS} from './regions.js?v=regions-1';
+import {commandStateValid} from './strategic-command.js?v=campaign-1';
 import {createCentralIndustry,advanceCentralIndustry,interceptCentralCargo,centralIndustryValid,CENTRAL_INDUSTRY,centralEvent} from './central-industry.js?v=living-world-1-home-conflict-1';
-import {createFrontierIndustry,advanceFrontierIndustry,interceptFrontierCargo,frontierIndustryValid,captureFrontierStation} from './frontier-industry.js?v=living-world-3-radio-shadow-1';
+import {createFrontierIndustry,advanceFrontierIndustry,interceptFrontierCargo,interceptFrontierRepair,frontierIndustryValid,captureFrontierStation} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
 export const SUPPLY=Object.freeze({mineId:'28:5',militaryId:'4:-32',
  production:.2,capacity:24,cargoCost:12,dispatchPeriod:90,speed:220,
  assembly:28,raidPeriod:95,warning:10,oreReward:12,dataReward:15});
@@ -77,6 +78,7 @@ export function advanceRegionalSupply(world,time){
  return events.concat(advanceCentralIndustry(world,time),advanceFrontierIndustry(world,time));
 }
 export function interceptSupply(world,cargo,time){
+ if(cargo.frontierRepair)return interceptFrontierRepair(world,cargo,time);
  if(cargo.frontierCargo)return interceptFrontierCargo(world,cargo,time);
  if(cargo.centralCargo)return interceptCentralCargo(world,cargo,time);
  const s=world.regionalSupply;
@@ -113,6 +115,7 @@ export function strategicCapture(world,base,time){
 export function regionalSupplyValid(s,time){
  const num=(n,min,max)=>Number.isFinite(n)&&n>=min&&n<=max;
  return !!s&&s.version===1&&Number.isInteger(s.clock)&&num(s.clock,0,time)&&
+  commandStateValid(s.command,time)&&
   (s.central===undefined||centralIndustryValid(s.central,time))&&
   (s.frontier===undefined||frontierIndustryValid(s.frontier,time))&&
   num(s.ore,0,SUPPLY.capacity)&&num(s.nextDispatch,0,1e9)&&

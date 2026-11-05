@@ -1,10 +1,11 @@
-import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1';
-import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1';
-import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1';
-import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2';
-import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1';
+import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
+import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
+import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1';
+import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2-campaign-1';
+import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-campaign-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
-import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-3';
+import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
+import {stationRaidValid} from './strategic-command.js?v=campaign-1';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
@@ -131,7 +132,8 @@ export function validateCheckpoint(data){
   !(s.shipLoadout.owned?.[s.firstHardwareReward]>0))return false;
  for(const k of ['enemies','allies','drops','shots','missiles','flashes','zones','hacks'])
   if(!Array.isArray(s[k])||s[k].length>2000)return false;
- if(s.enemies.length>512||s.allies.length>64||!Array.isArray(s.support.missions))return false;
+ if(s.enemies.length>512||s.allies.length>64||!Array.isArray(s.support.missions)||
+  s.enemies.some(e=>!stationRaidValid(e.stationRaid,s.time)))return false;
  if([...s.enemies,...s.allies].some(u=>!object(u)||!finite(u.x)||!finite(u.y)||!finite(u.hp,0,1e6)))return false;
  if(!Array.isArray(w.stations)||w.stations.length>10000||!Array.isArray(w.rocks)||w.rocks.length>8000||
   !Array.isArray(w.discovered))return false;
@@ -142,6 +144,9 @@ export function validateCheckpoint(data){
   if(!object(b)||b.id!==pair[0]||!['dock','arsenal','lab','carrier'].includes(b.type)||
    !finite(b.x)||!finite(b.y)||typeof b.active!=='boolean'||typeof b.enemy!=='boolean'||
    !Array.isArray(b.turrets))return false;
+  if((b.suppressed!==undefined&&typeof b.suppressed!=='boolean')||
+   (b.suppressedUntil!==undefined&&!finite(b.suppressedUntil,0,s.time+14))||
+   (b.suppressed===true&&b.suppressedUntil===undefined))return false;
   if(b.defense!==undefined&&(!object(b.defense)||
    !Number.isInteger(b.defense.charges)||b.defense.charges<0||b.defense.charges>2||
    !finite(b.defense.rechargeAt,0,1e9)||!finite(b.defense.interceptAt,0,1e9)||
@@ -154,6 +159,8 @@ export function validateCheckpoint(data){
  }
  if(!home||!dock?.active||dock.enemy||Math.hypot(p.x-dock.x,p.y-dock.y)>210||
   w.discovered.some(id=>!ids.has(id)))return false;
+ if(s.enemies.some(e=>e.stationRaid&&!ids.has(e.stationRaid.stationId))||
+   w.regionalSupply?.command?.reports.some(r=>!ids.has(r.stationId)))return false;
  for(const pair of w.rocks){
   if(!Array.isArray(pair)||pair.length!==2||!cell(pair[0])||!Array.isArray(pair[1]))return false;
   for(const r of pair[1])if(!object(r)||typeof r.id!=='string'||!r.id.startsWith(pair[0]+'/')||
@@ -183,6 +190,7 @@ export function restoreCheckpoint(game,data){
  world.discovered=new Set(data.world.discovered);
  world.ensureRegionalStations();
  world.regionalSupply=data.world.regionalSupply||createRegionalSupply(data.state.time);
+ for(const b of world.stations.values())if(b.suppressed&&b.suppressedUntil<=data.state.time)b.suppressed=false;
  for(const [key,patches] of data.world.rocks){
   const [x,y]=key.split(':').map(Number),list=world.rockCell(x,y);
   for(const patch of patches){

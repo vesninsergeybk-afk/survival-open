@@ -27,8 +27,10 @@ test('rescue requires actual held interaction in range and persists partial effo
  assert.equal(advanceOpeningArc(a,27,1.5,{repairing:true,withinRange:true}),'active');
  assert.equal(advanceOpeningArc(a,28,1,{repairing:false,withinRange:true}),'active');
  assert.equal(a.repair,1.5);
+ assert.equal(a.rescuePulseUsed,false);
  assert.equal(advanceOpeningArc(a,32,2,{repairing:true,withinRange:true}),'rescue-complete');
  assert.equal(a.status,'complete');
+ assert.equal(a.rescuePulseUsed,true,'the one-time defensive pulse is earned by actual work');
  assert.equal(a.alarmUntil,32+OPENING_ARC.rescueAlarm);
  assert.equal(advanceOpeningArc(a,33,2,{repairing:true,withinRange:true}),'idle',
   'no repeated award after completion');
@@ -84,6 +86,22 @@ test('real ship selection spawns one marked pilot and two escorts, with one prio
  assert.equal(g.waypoint.id,'opening-intercept');
  assert.deepEqual(a.returnWaypoint,{id:'0:0',x:360,y:-85,label:'Док'});
  assert.equal(events.length,1);
+});
+
+test('intercept arrow follows the living commander but respects a new player waypoint',()=>{
+ const a=arc();beginOpeningArc(a,'intercept',16);a.commanderSerial=12;
+ const enemy={serial:12,x:115,y:230,hp:100};
+ const g=Object.create(RuntimeHarness.prototype);
+ Object.assign(g,{openingArc:a,time:30,visuals:{capitalDamageQA:false},enemies:[enemy],
+  player:{x:0,y:0},waypoint:{id:'opening-intercept',x:a.interceptX,y:a.interceptY},
+  world:{home},openingRepairing:false});
+ g.updateOpeningArc(.05);
+ assert.equal(g.waypoint.x,115);assert.equal(g.waypoint.y,230);
+ enemy.x=290;enemy.y=-81;g.updateOpeningArc(.05);
+ assert.equal(g.waypoint.x,290);assert.equal(g.waypoint.y,-81);
+ g.waypoint={id:'player-choice',x:800,y:900};enemy.x=300;
+ g.updateOpeningArc(.05);
+ assert.equal(g.waypoint.x,800,'the opening mission does not hijack a later chosen route');
 });
 
 test('the opening choice does not obscure an already accepted station contract',()=>{
@@ -143,6 +161,9 @@ test('short recovery windows punctuate the first ten minutes without disabling d
 test('timers, labels and invalid checkpoint data are bounded',()=>{
  const a=arc();beginOpeningArc(a,'rescue',20);
  assert.match(openingArcObjective(a,50),/ЭВАКУАЦИЯ/);
+ assert.match(openingArcObjective(a,50,true),/держите «Действие»/,
+  'a touch user must see the actual on-screen control, not a keyboard key');
+ assert.doesNotMatch(openingArcObjective(a,50,true),/удерживайте E/);
  assert.equal(openingWaypointCue({id:'opening-intercept'},1026.3),'НАВОДЧИК · 1026 М');
  assert.equal(openingWaypointCue({id:'opening-rescue'},150),'КАПСУЛА · 150 М');
  assert.equal(openingWaypointCue({id:'0:0'},150),'');
@@ -151,6 +172,17 @@ test('timers, labels and invalid checkpoint data are bounded',()=>{
  assert.equal(validateOpeningArc({...a,commanderSerial:-2}),false);
  assert.equal(validateOpeningArc({...a,returnWaypoint:{id:'n',x:NaN,y:0}}),false);
  assert.equal(validateOpeningArc({...a,status:'unknown'}),false);
+});
+
+test('opening rescue briefing names the touch action without inventing a keyboard',()=>{
+ const a=arc(),notices=[],g=Object.create(RuntimeHarness.prototype);
+ Object.assign(g,{openingArc:a,time:16,isTouchLayout:true,
+  overlay:{dataset:{mode:'opening-choice'}},waypoint:null,dismiss:()=>{},
+  notice:t=>notices.push(t)});
+ g.chooseOpeningRoute('rescue');
+ assert.equal(a.kind,'rescue');assert.equal(g.waypoint.id,'opening-rescue');
+ assert.match(notices[0],/«Действие»/);
+ assert.doesNotMatch(notices[0],/Удерживайте E/);
 });
 
 test('game grants interceptor payout and relief once, then offers an actual module',()=>{
@@ -194,6 +226,34 @@ test('game rescue is a genuine sustained action with a consequence and one payou
  assert.equal(g.waypoint.id,'0:0','a wounded survivor gets a real return route');
  assert.equal(g.rewardShown,true);
  g.updateOpeningArc(10);assert.equal(g.player.ore,3+OPENING_ARC.rescueRewardOre);
+});
+
+test('capsule emits one shielding pulse halfway, clears nearby bullets, and cannot be farmed',()=>{
+ const a=arc();beginOpeningArc(a,'rescue',20);
+ const close={x:a.rescueX+100,y:a.rescueY,alive:true};
+ const far={x:a.rescueX+400,y:a.rescueY,alive:true};
+ const effects=[],notes=[];
+ const g=Object.create(RuntimeHarness.prototype);
+ Object.assign(g,{time:28,openingArc:a,openingRepairing:true,visuals:{capitalDamageQA:false},
+  world:{home},waypoint:{id:'opening-rescue'},
+  player:{x:a.rescueX,y:a.rescueY,hp:110,maxHp:110,ore:0,shield:0},
+  shots:[close,far],enemies:[],heritage:{vfx:{nova:(...args)=>effects.push(args)},play:()=>{}},
+  cockpit:{resourceGain:()=>{}},notice:t=>notes.push(t),endInteraction:()=>{},
+  showOpeningReward:()=>{g.rewardShown=true;}});
+ g.updateOpeningArc(1.8);
+ assert.equal(a.status,'active');assert.equal(a.rescuePulseUsed,true);
+ assert.equal(g.player.shield,OPENING_ARC.rescuePulseShield);
+ assert.equal(close.alive,false);assert.equal(far.alive,true);
+ assert.equal(effects.length,1);assert.match(notes[0],/Защитный импульс/);
+ g.player.shield=0;g.openingRepairing=false;g.updateOpeningArc(.5);
+ assert.equal(g.player.shield,0,'interrupting and returning cannot retrigger the shield');
+ g.openingRepairing=true;g.updateOpeningArc(1.8);
+ assert.equal(a.status,'complete');assert.equal(g.player.shield,OPENING_ARC.rescueShield);
+ assert.equal(effects.length,1);assert.equal(g.rewardShown,true);
+ assert.ok(validateOpeningArc(a),'a pulse-marked rescue remains checkpoint-safe');
+ assert.equal(validateOpeningArc({...a,rescuePulseUsed:'yes'}),false);
+ const old=arc();delete old.rescuePulseUsed;
+ assert.equal(validateOpeningArc(old),true,'old saves lacking the new flag remain valid');
 });
 
 test('opening hardware claim immediately fits a module and rejects a duplicate',()=>{

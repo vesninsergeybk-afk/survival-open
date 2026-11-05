@@ -152,6 +152,9 @@ test('new artwork is lightweight and every path is present in the actual Pages g
 });
 
 test('published entry points invalidate the entire changed ES-module import chain',()=>{
+ const check=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(check,/game\.js\?v=[^"']*theater-audit-1/);
+
  const source=relative=>readFileSync(new URL('../'+relative,import.meta.url),'utf8');
  const game=source('game.js'),base=source('base-panel.js');
  const preview=source('hangar-preview.js');

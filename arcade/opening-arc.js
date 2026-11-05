@@ -6,12 +6,14 @@ export const OPENING_ARC=Object.freeze({
  interceptRewardData:27,interceptRewardOre:8,
  rescueRewardOre:28,rescueShield:35,
  interceptRelief:120,rescueAlarm:100,
+ rescuePulseProgress:.5,rescuePulseRadius:300,rescuePulseShield:18,
  localRadius:2600
 });
 
 export function createOpeningArc(home){
  return {version:1,status:'offer',kind:null,startedAt:0,expiresAt:0,
   commanderSerial:null,commanderDefeated:false,commanderDefeatedAt:null,repair:0,
+  rescuePulseUsed:false,
   rescueX:home.x-755,rescueY:home.y+670,
   interceptX:home.x+625,interceptY:home.y-500,
   reliefUntil:0,alarmUntil:0,returnWaypoint:null};
@@ -48,6 +50,11 @@ export function advanceOpeningArc(arc,now,dt,{commanderDefeated=false,repairing=
  }else if(arc.kind==='rescue'){
   if(repairing&&withinRange)arc.repair=Math.min(OPENING_ARC.repairSeconds,
    arc.repair+Math.max(0,dt));
+  // Halfway through extraction the capsule releases its one emergency
+  // shielding pulse. The flag survives interruptions and checkpoints.
+  if(repairing&&withinRange&&!arc.rescuePulseUsed&&
+    arc.repair>=OPENING_ARC.repairSeconds*OPENING_ARC.rescuePulseProgress)
+   arc.rescuePulseUsed=true;
   if(arc.repair>=OPENING_ARC.repairSeconds){
    arc.status='complete';arc.alarmUntil=now+OPENING_ARC.rescueAlarm;
    return 'rescue-complete';
@@ -89,7 +96,7 @@ export function openingArcPressure(director,arc,now,player,home){
  return result;
 }
 
-export function openingArcObjective(arc,now){
+export function openingArcObjective(arc,now,touch=false){
  if(arc?.reliefUntil>now)return 'ПАТРУЛИ ПОТЕРЯЛИ НАВЕДЕНИЕ · '+
   Math.ceil(arc.reliefUntil-now)+' с реже';
  if(arc?.alarmUntil>now)return 'ТРЕВОГА ПОСЛЕ СПАСЕНИЯ · '+
@@ -97,7 +104,7 @@ export function openingArcObjective(arc,now){
  if(!openingArcActive(arc))return '';
  const seconds=Math.max(0,Math.ceil(arc.expiresAt-now));
  if(arc.kind==='intercept')return 'ПЕРЕХВАТ · уничтожьте наводчика · '+seconds+' с';
- return 'ЭВАКУАЦИЯ · удерживайте E у капсулы · '+
+ return 'ЭВАКУАЦИЯ · '+(touch?'держите «Действие»':'удерживайте E у капсулы')+' · '+
   Math.round(arc.repair/OPENING_ARC.repairSeconds*100)+'% · '+seconds+' с';
 }
 
@@ -118,6 +125,8 @@ export function validateOpeningArc(arc){
   (arc.commanderSerial!==null&&(!Number.isInteger(arc.commanderSerial)||arc.commanderSerial<1)))return false;
  if(arc.commanderDefeated!==undefined&&typeof arc.commanderDefeated!=='boolean')return false;
  if(arc.commanderDefeated&&arc.kind!=='intercept')return false;
+ if(arc.rescuePulseUsed!==undefined&&typeof arc.rescuePulseUsed!=='boolean')return false;
+ if(arc.rescuePulseUsed&&arc.kind!=='rescue')return false;
  if(arc.commanderDefeatedAt!==undefined&&arc.commanderDefeatedAt!==null&&
   (!Number.isFinite(arc.commanderDefeatedAt)||arc.commanderDefeatedAt<0||
    arc.commanderDefeatedAt>1e9||!arc.commanderDefeated))return false;

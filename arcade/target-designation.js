@@ -1,5 +1,5 @@
 import {combatTargets,targetDistance,targetRadius,clearLine}
-  from './combat-targets.js?v=living-world-2';
+  from './combat-targets.js?v=living-world-2-expedition-1-campaign-1';
 
 export const TARGET_DESIGNATION=Object.freeze({duration:14,tapRadius:34,maxDistance:900});
 
@@ -7,6 +7,7 @@ export const TARGET_DESIGNATION=Object.freeze({duration:14,tapRadius:34,maxDista
 // facing names must describe what was actually selected on the canvas.
 export function designationLabel(item){
  const t=item?.target;if(!t)return 'Цель';
+ if(t.frontierRepair)return 'Вражеский ремонтный корабль';
  if(t.frontierCargo)return t.frontierNetwork==='azure'?'Энерготранспорт':'Транспорт запчастей';
  if(t.centralCargo)return 'Местный грузовой транспорт';
  if(t.regionalCargo)return 'Рудный транспорт';

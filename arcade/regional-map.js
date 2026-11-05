@@ -1,7 +1,7 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
-import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1';
+import {SUPPLY,SUPPLY_ROUTE,supplyStatus} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1';
-import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1';
+import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
@@ -18,7 +18,7 @@ const REGION_BRIEF=Object.freeze({
  azure:{goal:'Остановить перевозку батарей и ослабить вражеские перехватчики.',
   danger:'Электрические бури усиливают перехватчики и угрожают кораблю.',
   preparation:'Полезны ионное вооружение и скорость для выхода из кольца бури.',
-  result:'Перехват батарей предотвращает усиление одного будущего патруля.'},
+  result:'Перехват батарей предотвращает усиление одного патруля; подавление сети надолго ослабляет регион.'},
  lilac:{goal:'Найти военный узел и остановить тяжёлые подкрепления.',
   danger:'Тяжёлые корабли и защищённая военная инфраструктура.',
   preparation:'Рекомендуются улучшенный корпус, щит и дальнобойное оружие.',
@@ -26,7 +26,7 @@ const REGION_BRIEF=Object.freeze({
  teal:{goal:'Нарушить сбор обломков и снабжение ремонтной верфи.',
   danger:'Группы с ремонтниками; залежи и рабочие требуют выбора цели.',
   preparation:'Полезны прицельный огонь по ремонтникам и прочный корпус.',
-  result:'Перехват запчастей предотвращает появление одного ремонтника в патруле.'}
+  result:'Перехват запчастей предотвращает появление одного ремонтника; подавление сети надолго ослабляет регион.'}
 });
 export function renderRegionAtlas(game){
  const world=game.world,s=world.regionalSupply;if(!s)return '';
@@ -44,8 +44,11 @@ export function renderRegionAtlas(game){
    (route?'✓ Маршрут выбран · изменить':'Построить маршрут к ориентиру')+'</button></details>';
  }).join('');
  const cargo=[...s.convoys,...(s.central?.convoys||[]),
-  ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[])].filter(c=>c.seen).map(c=>{
-   const label=c.frontierCargo?(c.frontierNetwork==='azure'?'Энерготранспорт':'Ремонтный груз'):
+  ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[]),
+  s.frontier?.azure?.repairExpedition,s.frontier?.teal?.repairExpedition]
+  .filter(c=>c?.seen).map(c=>{
+   const label=c.frontierRepair?'Ремонтный корабль':
+    c.frontierCargo?(c.frontierNetwork==='azure'?'Энерготранспорт':'Ремонтный груз'):
     (c.centralCargo?'Местный груз':'Рудный транспорт');
    return '<button type="button" data-act="waypoint" data-id="'+c.id+'" data-x="'+c.x+'" data-y="'+c.y+'" data-label="'+label+'">Перехватить '+label.toLowerCase()+'</button>';
   }).join('');
@@ -77,7 +80,12 @@ export function renderRegionAtlas(game){
     ', сборка — '+known(depot)+'. Замечено грузов: '+net.convoys.filter(c=>c.seen).length+
     '. Резервов: '+(depot?.discovered?net.reserves:'неизвестно')+'. '+
     (id==='azure'?'Разряды бурь заряжают перехватчиков.':'Сборщики разбирают ограниченные залежи металла.')+
-    tactics+'</p><p>Перехвачено поставок: '+net.intercepted+'. Каждая доставленная партия позволяет добавить '+
+    tactics+(source?.discovered||depot?.discovered?
+     ' Ремонтные экспедиции: отправлено '+(net.repairsLaunched||0)+
+     ', доставлено '+(net.repairsCompleted||0)+', перехвачено '+(net.repairsIntercepted||0)+
+     (net.repairExpedition?'. Сейчас ремонтный корабль направляется к '+
+      (net.repairExpedition.targetKind==='source'?'источнику':'сборочной станции')+'.':'.'):'')+
+    '</p><p>Перехвачено поставок: '+net.intercepted+'. Каждая доставленная партия позволяет добавить '+
     (id==='azure'?'заряженного перехватчика':'ремонтника')+' к обычному патрулю. '+
     (depot?.discovered?'Уже отправлено усиленных патрулей: '+net.raids+'.':'Резервы пока неизвестны.')+'</p>';
   }).join('');
@@ -86,7 +94,7 @@ export function renderRegionAtlas(game){
   '<rect width="300" height="240" rx="12" fill="#08182b"/><path d="M 150 120 L 300 0 V 240 Z" fill="#ffbb7015"/>'+
   '<path d="M 150 120 L 0 0 H 300 Z" fill="#dfa1e315"/><path d="M 150 120 L 0 240 H 300 Z" fill="#82e8ff15"/>'+
   '<path d="M 150 120 L 0 0 V 240 Z" fill="#88e6c815"/><circle cx="150" cy="120" r="53" fill="#24233c" stroke="#caa0ff"/>'+labels+
-  '<circle cx="'+Math.max(5,Math.min(295,player.x))+'" cy="'+Math.max(5,Math.min(235,player.y))+'" r="4" fill="#ffffff"/></svg><p>Контуры условны. Точка разведки ведёт внутрь региона, но не раскрывает расположение неизвестных станций. Сначала изучите описание и подготовьте корабль.</p><p><b>Маршевый перелёт:</b> удерживайте курс к выбранному региону или разведанной дружественной станции. Через 2,2 с в спокойном пространстве корабль ускорится. Вблизи врагов, станций и бурь скорость станет обычной. Время полёта продолжается. В домашней области фоновая опасность ограничена; в дальних регионах она по-прежнему растёт.</p><div class="region-directions">'+buttons+'</div></details>'+
+  '<circle cx="'+Math.max(5,Math.min(295,player.x))+'" cy="'+Math.max(5,Math.min(235,player.y))+'" r="4" fill="#ffffff"/></svg><p>Контуры условны. Точка разведки ведёт внутрь региона, но не раскрывает расположение неизвестных станций. Сначала изучите описание и подготовьте корабль.</p><p><b>Маршевый перелёт:</b> удерживайте курс к выбранному региону или разведанной дружественной станции. Через 2,2 с в спокойном пространстве корабль ускорится. Вблизи врагов, станций и бурь скорость станет обычной. Время полёта продолжается. В разведанных регионах фоновая опасность ограничена. Остановка снабжения или захват сборки уменьшает местный натиск; готовые отряды остаются опасными.</p><div class="region-directions">'+buttons+'</div></details>'+
   (mine?.discovered?'<p>'+enc(supplyStatus(world))+'</p><p>Рудных грузов перехвачено: '+s.intercepted+'. '+
    (world.stations.get(SUPPLY.militaryId)?.discovered?'Тяжёлых подкреплений вышло: '+s.raids+'. Резервов в узле: '+s.reserves+'.':
     'Оставшийся запас военного узла неизвестен.')+'</p>'+history:
@@ -128,11 +136,12 @@ export function regionalMapOverlay(game,point,visible){
   }
  }
  for(const c of [...s.convoys,...(s.central?.convoys||[]),
-   ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[])].filter(c=>c.seen)){
+   ...(s.frontier?.azure?.convoys||[]),...(s.frontier?.teal?.convoys||[]),
+   s.frontier?.azure?.repairExpedition,s.frontier?.teal?.repairExpedition].filter(c=>c?.seen)){
   const q=point(c);if(!visible(q))continue;
-  const color=c.frontierCargo?(c.frontierNetwork==='azure'?'#90dcff':'#9fe9bb'):
+  const color=c.frontierRepair?'#ffc78b':c.frontierCargo?(c.frontierNetwork==='azure'?'#90dcff':'#9fe9bb'):
    c.centralCargo?'#83efcd':'#ffc481';
-  const label=c.frontierCargo?(c.screened?'УСИЛЕННЫЙ ГРУЗ':
+  const label=c.frontierRepair?'РЕМОНТНЫЙ КОРАБЛЬ':c.frontierCargo?(c.screened?'УСИЛЕННЫЙ ГРУЗ':
    (c.frontierNetwork==='azure'?'ЭНЕРГОТРАНСПОРТ':'РЕМОНТНЫЙ ГРУЗ')):
    c.centralCargo?'МЕСТНЫЙ ГРУЗ':'РУДНЫЙ ТРАНСПОРТ';
   out+='<g><rect x="'+(q.x-5)+'" y="'+(q.y-5)+'" width="10" height="10" fill="'+color+'"/><text x="'+(q.x+9)+'" y="'+(q.y-9)+'" fill="#ffdbad" font-size="11">'+label+'</text></g>';

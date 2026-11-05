@@ -149,7 +149,7 @@ test('civilian station prices ignore captured enemy installations',()=>{
 
 test('the scheduled wave director responds to nearby enemy control and capture',()=>{
  const world=new World(20261102);
- const enemy=world.nearbyStations(25000,0,4000,true).find(b=>b.enemy);
+ const enemy=world.nearbyStations(80000,0,4000,true).find(b=>b.enemy);
  assert.ok(enemy);
  const i=gameSource.indexOf(' sectorDirector(director){');
  const j=gameSource.indexOf('\n spawnGroup(',i);

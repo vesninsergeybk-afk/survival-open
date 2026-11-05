@@ -1,9 +1,11 @@
 /* Survivor cockpit HUD: presentation only. World state and combat stay in game.js.
    The local radar is deliberately bounded to 1.1km and redraws <=5 times/sec. */
 import {miningSignal} from './mining.js?v=arcade-extraction-risk-34';
-import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2';
-import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-3';
-import {homeConflictCue} from './home-conflict.js?v=home-conflict-1';
+import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
+import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-5';
+import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1';
+import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1';
+import {stationInterdictionCue} from './strategic-command.js?v=campaign-1';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 export const hullCondition = (hp,maxHp) => {
@@ -90,16 +92,22 @@ export class CockpitDisplay {
    display(n.interactionCue,'E · '+label+(focus.kind==='station'?'':' · удерживать'));
   }
   const op=game.operation,c=game.contract,tracker=n.contractObjective;
-  const opening=openingArcObjective(game.openingArc,game.time);
-  const unclaimedWeapon=game.firstHardwareReward==='pending'&&
-   game.openingArc?.status==='complete'?'БЕСПЛАТНОЕ ОРУЖИЕ · выберите модуль на станции':'';
-  const regional=homeConflictCue(game);
+  const opening=openingArcObjective(game.openingArc,game.time,this.compactHud);
+  // A standard station contract also unlocks the first free module. Never
+  // hide that reward just because the optional opening dilemma was skipped.
+  const unclaimedWeapon=game.firstHardwareReward==='pending'?
+   'БЕСПЛАТНОЕ ОРУЖИЕ · выберите модуль на станции':'';
+  const attack=stationInterdictionCue(game);
+  const regional=campaignProgress(game.world).complete?campaignCue(game):homeConflictCue(game)||campaignCue(game);
   if(tracker){
-   tracker.hidden=!(op||c||opening||unclaimedWeapon||regional);
-   this.root.classList.toggle('has-objective',!!(op||c||opening||unclaimedWeapon||regional));
-   tracker.classList.toggle('ready',!op&&!!c&&c.progress>=c.goal);
-   display(tracker,op?missionHudText(game):openingArcActive(game.openingArc)?opening:
-    c?missionHudText(game):opening||unclaimedWeapon||regional);
+   // Time-limited opening tasks remain readable even when the player picks up
+   // another station assignment during the crisis.
+   const urgent=openingArcActive(game.openingArc);
+   const objective=attack||(urgent?opening:(op||c)?missionHudText(game):opening||unclaimedWeapon||regional);
+   tracker.hidden=!objective;
+   this.root.classList.toggle('has-objective',!!objective);
+   tracker.classList.toggle('ready',!attack&&!urgent&&!op&&!!c&&c.progress>=c.goal);
+   display(tracker,objective);
   }
   const extracting=!!game.mining?.active,repairing=!!game.probeRepairing;
   const noise=miningSignal(game.miningNoise||0);

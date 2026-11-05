@@ -104,3 +104,54 @@ test('station section changes keep the same top and desktop width instead of rec
  assert.match(css,/width:min\(calc\(100vw - 36px\),1160px\)/);
  assert.match(css,/max-height:calc\(100dvh - 36px\)/);
 });
+
+test('accepted special operation does not claim a sortie has already begun',()=>{
+ const operation={id:'silent-corridor',baseId:home.id,hp:150,phase:'attack'};
+ const operations=panel(renderBasePanel(home,state({operation,baseTab:'operations'})),'operations');
+ assert.match(operations,/ОПЕРАЦИЯ ПРИНЯТА/);
+ assert.doesNotMatch(operations,/ВЫЛЕТ НАЧАТ/);
+});
+
+test('mission choices say what can be accepted and where the reward comes from',()=>{
+ const operations=panel(renderBasePanel(home,state({baseTab:'operations'})),'operations');
+ assert.match(operations,/Куда отправимся\?/);
+ assert.match(operations,/Особая операция · Глухой коридор/);
+ assert.match(operations,/Награда: 16 сплава · 15 данных/);
+ assert.doesNotMatch(operations,/Небольшие заказы|ОСНОВНОЕ ПОРУЧЕНИЕ/);
+});
+
+test('empty weapon node explains how to get another gun without misleading stock counts',()=>{
+ const loadout=createLoadout(),session=new HangarSession();
+ session.begin(loadout);
+ session.dispatch({act:'hgSlot',id:'1'},{...state({loadout}),baseActive:true});
+ const html=renderShipHangar({...state({loadout,firstHardwareReward:null}),baseActive:true},session);
+ assert.match(html,/На складе пока нет второго орудия/);
+ assert.match(html,/После первого сданного полевого заказа/);
+ assert.match(html,/Ещё одно орудие: 24 сплава/);
+ assert.doesNotMatch(html,/На складе: 0 · установлено: 1/);
+});
+
+test('advanced station risk decisions are behind an explicit disclosure',()=>{
+ const network=renderBasePanel(home,state({baseTab:'network'})).split('id="base-panel-network"')[1];
+ assert.match(network,/<details class="base-secondary-info base-defense-choice-details"><summary>Изменить перехват орбитальных ударов/);
+ assert.match(network,/data-act="toggleMeteorDefense"/);
+ assert.match(network,/ПВО действует автоматически/);
+});
+
+test('published module addresses invalidate the station and hangar caches',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ const base=readFileSync(new URL('../base-panel.js',import.meta.url),'utf8');
+ assert.match(html,/game\.js\?v=[^"]*station-clarity-1/);
+ assert.match(game,/base-panel\.js\?v=[^']*station-clarity-1/);
+ assert.match(base,/hangar-panel\.js\?v=[^']*station-clarity-1/);
+});
+
+test('an accepted special operation stays compact until its details are opened',()=>{
+ const operation={id:'silent-corridor',baseId:home.id,hp:150,phase:'attack'};
+ const operations=panel(renderBasePanel(home,state({operation,baseTab:'operations'})),'operations');
+ assert.match(operations,/Текущие задания/);
+ assert.match(operations,/<details class="base-mission-details"><summary>Особая операция · Глухой коридор · В работе/);
+ assert.doesNotMatch(operations,/<details class="base-mission-details" open/);
+ assert.match(operations,/Нажмите на особую операцию, чтобы увидеть подробности/);
+});

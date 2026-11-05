@@ -1,3 +1,4 @@
+import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1';
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
   squadRoleFor,squadRoleLabel} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
@@ -17,7 +18,7 @@ export const ENEMY_COMMS=Object.freeze({
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const legal=e=>!!e&&e.hp>0&&!e.converted&&!e.boss&&
-  !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&
+  !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&!e.stationRaid&&
   (!e.signalIntel||e.signalIntel.mode!=='withdraw');
 const rank=e=>({gunship:7,fighter:6,flanker:5,scout:4,
   berserker:3,healer:2})[e.type]||1;
@@ -245,6 +246,7 @@ export class EnemyComms {
     this.cells=[];this.events=[];this.nextTick=0;
     this.serial=0;this.messages=0;this.decisions=0;
     this.intercepts=[];
+    this.theater=new EnemyTheaterStrategy();
   }
 
   reportSight(e,player,now){
@@ -572,9 +574,11 @@ export class EnemyComms {
             planId:cell.plan?.id??null,planPhase:cell.plan?.phase??null};
       }
     }
+    this.theater.update(game,this);
   }
 
   confirmExecution(game){
+    this.theater.confirmExecution(game,this);
     const now=game.time;
     for(const cell of this.cells){
       if(cell.plan&&!cell.brokenUntil&&cell.members.some(e=>
@@ -615,6 +619,8 @@ export class EnemyComms {
       }
     }
   }
+
+  strategicDirectiveFor(e,now){return this.theater.directiveFor(e,now);}
 
   directiveFor(e,now){
     const cell=e?._commsCell;
@@ -772,6 +778,7 @@ export class EnemyComms {
       }
       labelCenters.push(e);cues++;
     }
+    this.theater.render(ctx,cam,now,game,fps);
     ctx.restore();return drawn;
   }
 }

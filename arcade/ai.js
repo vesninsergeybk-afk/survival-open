@@ -1,3 +1,4 @@
+import {theaterDestination} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1';
 import {stormSeek} from './regional-storms.js?v=regions-1';
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20';
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2';
@@ -5,7 +6,7 @@ import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from 
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
 import {updateEnemyAwareness,enemyPursuitTarget} from './enemy-awareness.js?v=enemy-world-response-1-enemy-audit-3';
-import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1';
+import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1';
 import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
@@ -199,7 +200,7 @@ export function updateEnemy(e,game,dt){
     return;
   }
   // Every visible intent must be renewed by real steering this frame.
-  e._commsIntent=null;
+  e._commsIntent=null;e._theaterIntent=null;
   if(stormSeek(e,game,dt)){e._gunAiming=null;return;}
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;
@@ -469,6 +470,20 @@ export function updateEnemy(e,game,dt){
       leader:radio.leader,at:game.time,
       planId:radio.planId??null,planPhase:radio.planPhase??null,
       role:radio.role||null};
+  }
+  // Strategy changes the actual waypoint of a free pilot. Escort, rescue,
+  // repair and scripted combat objectives remain in charge of their ships.
+  // No location for the player is inferred here from the world economy.
+  const strategic=game.enemyComms?.strategicDirectiveFor?.(e,game.time);
+  if(targetingPlayer&&strategic&&
+     ['hunt','flank','standoff'].includes(e.state)){
+    const dest=theaterDestination(e,strategic);
+    if(dest){
+      goalX=dest.x;goalY=dest.y;
+      e._commsIntent=null; // Do not display a tactical vector we overrode.
+      e._theaterIntent={at:game.time,assetId:strategic.assetId,
+        mode:strategic.role,x:goalX,y:goalY};
+    }
   }
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   let extraX=avoid.x*speed*1.3,extraY=avoid.y*speed*1.3;

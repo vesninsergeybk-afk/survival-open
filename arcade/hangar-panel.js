@@ -1,7 +1,7 @@
-import {WEAPON_SPECIALIZATIONS,specializationState,quoteSpecialization} from './weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2';
-import {loadoutAnalysis} from './loadout-analysis.js?v=weapons-cycle-2';
+import {WEAPON_SPECIALIZATIONS,specializationState,quoteSpecialization} from './weapon-specializations.js?v=weapons-cycle-2';
+import {loadoutAnalysis} from './loadout-analysis.js?v=weapons-cycle-2-campaign-1';
 import {MODULES,FRAME_STEPS,BLUEPRINT_NAMES,SHIP_ART,HangarSession,createLoadout,
- frameSpec,slotOpen,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-weapon-mechanics-2';
+ frameSpec,slotOpen,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>typeof n==='number'?Number(n.toFixed(2)).toLocaleString('ru-RU'):n;
@@ -99,16 +99,26 @@ export function renderShipHangar(state,session=state.hangarSession){
  const future=available.filter(item=>!!moduleLock(item.id,context));
  const weaponChoice=item=>{
   const reason=moduleLock(item.id,context),stock=moduleStock(current,draft,context,item.id);
+  const availability=reason||(old===item.id?'Выбрано для этого узла':stock.free?
+   'На складе: '+stock.free+' · установлено: '+stock.installed:
+   item.cost===null?'Прокат':stock.owned?'Ещё одно орудие: '+item.cost+' сплава':'Изготовить: '+item.cost+' сплава');
   return '<button type="button" data-act="hgSelect" data-id="'+item.id+'" class="hg-weapon'+(session.inspect&&id===item.id?' selected':'')+
    (reason?' unavailable':'')+'" style="--module-color:'+item.color+'" aria-pressed="'+(session.inspect&&id===item.id)+'">'+icon(item.id)+
    '<span><strong>'+item.name+'</strong><small>'+item.role+' · '+(item.kind==='auto'?'автоогонь':item.kind==='heavy'?'F':'Space')+'</small><em>'+
-   esc(reason||(stock.owned?'На складе: '+stock.free+' · установлено: '+stock.installed:(item.cost===null?'Прокат':item.cost+' сплава за модуль')))+'</em></span></button>';
+   esc(availability)+'</em></span></button>';
  };
+ const noFreeStock=!old&&slot!==5&&accessible.length>0&&
+  accessible.every(item=>moduleStock(current,draft,context,item.id).free===0);
+ const stockGuide=noFreeStock?'<p class="hg-note hg-stock-guidance">'+
+  (context.firstHardwareReward==='pending'?'Бесплатное оружие уже заработано. Вернитесь в «Задания», выберите награду и затем установите её здесь.':
+   context.firstHardwareReward===null?'На складе пока нет второго орудия. После первого сданного полевого заказа Вы получите новое оружие бесплатно. Или изготовьте доступный модуль за сплав.':
+   'Свободного оружия на складе нет. Изготовьте доступный модуль за сплав или освободите другой узел.')+'</p>':'';
  const catalog='<aside class="hg-arsenal"><div class="hg-section-head"><div><span class="hg-eyebrow">МОДУЛЬНЫЙ АРСЕНАЛ</span><h3>Вооружение для узла '+labelFor(slot)+'</h3></div>'+button('hgShip','← К схеме','','','hg-back-ship')+'</div>'+
   (old?'<div class="hg-slot-current">В узле: '+MODULES[old].name+' · '+button('hgRemove','Снять оружие')+'</div>':'')+
   '<div class="hg-filters" role="group" aria-label="Фильтр оружия">'+
   [['all','Все'],['auto','Авто'],['manual','Ручное']].filter(([key])=>slot!==5||key==='all').map(([key,name])=>
    button('hgFilter',name,key,false,session.filter===key?'selected':'')).join('')+'</div>'+
+  stockGuide+
   '<div class="hg-catalog-list">'+accessible.map(weaponChoice).join('')+
   (accessible.length?'':'<p class="hg-empty-weapons">Пока нет доступного оружия с этим фильтром.</p>')+'</div>'+
   (future.length?'<details class="hg-future-weapons"><summary>Пока недоступно · '+future.length+'</summary><div class="hg-catalog-list">'+

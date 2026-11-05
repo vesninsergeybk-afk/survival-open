@@ -1,5 +1,5 @@
 import {CENTRAL_INDUSTRY,centralCargoRemaining,centralCargoSpeed,centralRoute} from './central-industry.js?v=home-conflict-1';
-import {labLogisticsIntel} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1';
+import {labLogisticsIntel} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1';
 
 export const HOME_CONFLICT=Object.freeze({radius:10500,offerAt:150,backgroundCap:14,raidShips:3});
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -11,7 +11,8 @@ export function homeIndustryState(world){
  if(!s)return null;
  const {source,depot}=localStations(world);
  const working=!!source?.enemy&&s.worker?.hp>0&&s.worker.phase!=='evacuated';
- const payload=s.convoys.some(c=>c.hp>0)||s.reserves>0||!!s.pendingRaid;
+ const payload=s.convoys.some(c=>c.hp>0)||s.reserves>0||!!s.pendingRaid||
+  !!source?.enemy&&s.ore>=CENTRAL_INDUSTRY.cargoCost+(s.strategy?.screened?2:0);
  return {s,source,depot,working,payload,
   outcome:!depot?.enemy?'captured':!working&&!payload?'starved':null};
 }
@@ -152,5 +153,8 @@ export function renderHomeConflict(game,{compact=false}={}){
   '<span class="base-kicker">ЦЕЛЬ РЕГИОНА</span><h3>'+(outcome?'Домашний сектор: преимущество достигнуто':'Остановить налёты в домашнем секторе')+'</h3>'+
   '<p>'+enc(status+stock)+'</p>'+(cue?'<p class="home-conflict-live">'+enc(cue)+'</p>':'')+
   (known?'<p class="home-conflict-result">Перехвачено грузов: '+s.intercepted+' · доставлено: '+s.delivered+' · вышло отрядов: '+s.raids+'</p>':'')+
-  choices+tools+(outcome?'<p>Вернитесь на активную станцию, чтобы закрепить результат в контрольной точке. Дальше можно исследовать снабжение других регионов.</p>':'')+'</section>';
+  choices+tools+(outcome?'<p>'+(compact?
+   (game.world.regionalSupply?.command?.victoryAt!=null?'Все промышленные сети подавлены. Можно продолжать исследование.':
+    'Выберите следующую цель прохождения ниже.'):
+   'Стыковка с активной станцией закрепляет результат в контрольной точке. Дальше можно исследовать снабжение других регионов.')+'</p>':'')+'</section>';
 }

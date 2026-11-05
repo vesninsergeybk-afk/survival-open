@@ -1,17 +1,19 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-weapon-mechanics-2';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
-import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1';
+import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
-import {CARRIER_INTERCEPTION,carrierOffer} from './carrier-interception.js?v=carrier-intercept-2';
-import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1';
-import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2';
-import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1';
-import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1';
-import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1';
-import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1';
+import {CARRIER_INTERCEPTION,carrierOffer,autonomousStrikeCarrier} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
+import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1';
+import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
+import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
+import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1';
+import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1';
+import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1';
+import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1';
+import {renderStationThreats} from './strategic-command.js?v=campaign-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -158,9 +160,9 @@ export function baseOffer(base,state){
   drones:!base.active?'Сначала включите станцию':
    droneDamage<=0?'Дроны исправны':shortfall(droneRepairCost,ore),
   supply:!base.active?'Сначала включите станцию':
-   !connected?'Нужна связь с сетью':
+   !connected&&!autonomousStrikeCarrier(base)?'Нужна связь с сетью':
    base.type!=='carrier'?'Снаряжение доступно на авианосце':
-   (state.network.strikePower||0)<1?'Сначала улучшите авиационную связь':
+   (state.network.strikePower||0)<1&&!autonomousStrikeCarrier(base)?'Сначала улучшите авиационную связь':
    state.charges>=2?'Два вылета уже снаряжены':shortfall(chargeCost,ore),
   service:!base.active?'Сначала включите станцию':
    !localService?'Нет местной услуги':
@@ -219,11 +221,11 @@ const contractPanel=(o,state)=>{
    action('baseMap','Посмотреть маршрут')+'</section>';
  }
  if(c.status==='available')return '<section class="base-contract-board"><div class="base-contract-copy">'+
-  '<span class="base-kicker">ПОЛЕВЫЕ ЗАКАЗЫ</span><strong>Небольшие заказы</strong>'+
-  '<small>Можно взять один обычный заказ. Особая операция выполняется независимо от него.</small></div>'+
+  '<span class="base-kicker">НА ВЫБОР</span><strong>Возьмите один заказ</strong>'+
+  '<small>Можно взять один. Награду получите после возвращения сюда.</small></div>'+
   '<div class="base-contract-choices">'+o.contractOptions.map(choice=>
-   '<article class="base-contract-choice"><span>'+choice.tag+'</span><strong>'+choice.name+'</strong>'+
-   '<small>'+choice.desc+'</small><em>'+choice.ore+' сплава · '+choice.data+' данных</em>'+
+   '<article class="base-contract-choice"><strong>'+choice.name+'</strong>'+
+   '<small>'+choice.desc+'</small><em>Награда: '+choice.ore+' сплава · '+choice.data+' данных</em>'+
    action('acceptContract','Принять заказ','',choice.id)+'</article>').join('')+
   '</div></section>';
  const summary={
@@ -267,7 +269,7 @@ const corridorPanel=(base,state,compact=false)=>{
   '<div><span>ИЗМЕНЕНИЕ МИРА</span><b>Разведка +350 м · патрули реже</b></div></div>';
  return '<article class="base-featured-op mission-corridor '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ДОК</span><span>'+
-  (done?'КОРИДОР ОТКРЫТ':returning?'ОСТАЛОСЬ ВЕРНУТЬСЯ':active?'ВЫЛЕТ НАЧАТ':'РАЗВЕДКА ПОД ПОМЕХАМИ')+'</span></div>'+
+  (done?'КОРИДОР ОТКРЫТ':returning?'ОСТАЛОСЬ ВЕРНУТЬСЯ':active?'ОПЕРАЦИЯ ПРИНЯТА':'РАЗВЕДКА ПОД ПОМЕХАМИ')+'</span></div>'+
   '<strong>'+CORRIDOR_OPERATION.name+'</strong><p>'+body+'</p>'+
   (compact?'':facts)+
   (returning?'<small>Телеметрия получена. Награда и разведка откроются после возвращения в док.</small>':
@@ -550,7 +552,7 @@ function stationNextStep(base,state,o,regionalGoal=false){
 
 export function renderBasePanel(base,state){
  const o=baseOffer(base,state),active=!!base.active;
- const status=active?(o.connected?'СЕТЬ ПОДКЛЮЧЕНА':'АВТОНОМНЫЙ УЗЕЛ'):'СТАНЦИЯ ВЫКЛЮЧЕНА';
+ const status=base.suppressed?'СВЯЗЬ ПОДАВЛЕНА':active?(o.connected?'СЕТЬ ПОДКЛЮЧЕНА':'АВТОНОМНЫЙ УЗЕЛ'):'СТАНЦИЯ ВЫКЛЮЧЕНА';
  const activation=card('base-power'+(active?' connected':''),
   '01 · УЗЕЛ СЕТИ',active?'Станция активна':'Включить станцию',
   active?(o.connected?'Связь с домашним доком. Услуги сети доступны.':
@@ -711,7 +713,13 @@ export function renderBasePanel(base,state){
   action('loanField','Выбрать резонатор','','resonator')+'</div></div></section>':'';
  const regionalGoal=state.world&&state.position?renderHomeConflict({world:state.world,player:state.position,
   time:state.time,openingArc:state.openingArc},{compact:true}):'';
- const dashboard=stationNextStep(base,state,o,!!regionalGoal)+regionalGoal+
+ const campaign=state.world&&state.position?renderCampaignProgress({world:state.world,player:state.position,
+  time:state.time},{compact:true}):'';
+ const capturedWing=autonomousStrikeCarrier(base)?'<section class="home-conflict"><strong>Открыта трофейная авиагруппа</strong><p>Этот сборочный узел может снаряжать бомбардировщики без связи с домашним доком. Они поддержат штурм вражеской базы в пределах 9800 м отсюда. Один вылет стоит '+o.chargeCost+' сплава; запас — до двух.</p>'+
+  action('supply','Снарядить авиаудар · '+o.chargeCost+' сплава',o.reasons.supply)+'</section>':'';
+ const suppression=base.suppressed?'<section class="home-conflict"><strong>Связь станции подавлена</strong><p>Радиоперехват, перелёты и услуги сети временно недоступны. Местный ремонт работает. Отстыкуйтесь и уничтожьте носитель помех или дождитесь восстановления в полёте. Меню останавливает игровое время.</p></section>':'';
+ const threats=state.world?renderStationThreats({world:state.world,enemies:state.enemies||[],time:state.time,player:state.position}):'';
+ const dashboard=stationNextStep(base,state,o,!!(regionalGoal||campaign))+threats+suppression+regionalGoal+campaign+capturedWing+
   '<div class="base-quick-services">'+
   '<section class="base-quick-service"><span class="base-kicker">КОРАБЛЬ</span><h3>Ремонт и оснащение</h3>'+
   '<p>'+repairHint+(base.type==='dock'?' Вблизи дока корпус также восстанавливается бесплатно, если не получать урон.':'')+'</p>'+
@@ -736,13 +744,19 @@ export function renderBasePanel(base,state){
   (firstRewardPromise?'<div class="base-quiet-promise">'+
    'Первый сданный заказ даст бесплатное оружие на выбор.</div>':'')+
   (stationPromise?'<div class="base-quiet-promise">'+stationPromise+'</div>':'');
- const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ЗАДАЧИ И ПОСЛЕДСТВИЯ</span><strong>Выберите, что изменить в секторе</strong>'+
-  '<p>Полевой заказ даёт сплав и данные после возвращения на станцию, где его взяли. Особая операция меняет мир и имеет свои условия завершения.</p></div></div>'+
+ const localOperation=state.operation?.baseId===base.id;
+ const hasAcceptedWork=localOperation||o.contract.status==='active'||o.contract.status==='ready';
+ const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ВАШИ ЗАДАНИЯ</span><strong>'+
+  (hasAcceptedWork?'Текущие задания':'Куда отправимся?')+'</strong>'+
+  '<p>'+(localOperation?'Нажмите на особую операцию, чтобы увидеть подробности. ':hasAcceptedWork?'':
+   'Можно выполнить одну особую операцию и один полевой заказ одновременно. ')+
+  'Условия завершения и получения награды указаны у каждого задания.</p></div></div>'+
   firstReward+
   (o.contract.status==='ready'?'<h3 class="base-section-title">Готовая награда</h3>'+contractPanel(o,state):'')+
-  (specialOffer(base,state)?'<details class="base-mission-details"'+
-   (state.operation?.baseId===base.id&&o.contract.status!=='ready'?' open':'')+'><summary>Особая операция · '+
-   (baseNames[base.type]||'Станция')+'</summary>'+specialPanel(base,state)+'</details>':'')+
+  (specialOffer(base,state)?'<details class="base-mission-details"><summary>Особая операция · '+
+   (specialOffer(base,state)?.name||(baseNames[base.type]||'Станция'))+
+   (localOperation?' · '+(state.operation.phase==='return'?'Вернуться за наградой':'В работе'):'')+
+   '</summary>'+specialPanel(base,state)+'</details>':'')+
   (o.contract.status==='ready'?'':'<h3 class="base-section-title">Полевые заказы</h3>'+contractPanel(o,state))+'</div>';
  const localMission=specialOffer(base,state),hullPercent=Math.round(state.hp/state.maxHp*100);
  const missionForPreparation=state.operation||localMission;
@@ -806,14 +820,15 @@ export function renderBasePanel(base,state){
   (base.relayBoost||o.reasons.antenna?antenna:'');
  const network='<div class="base-operations"><section class="base-network-simple">'+
   '<span class="base-kicker">ОБОРОНА СТАНЦИИ</span><h3>Защитные заряды · '+protection.charges+'/'+protection.capacity+'</h3>'+
-  '<p class="base-defense-summary">ПВО действует автоматически: в бирюзовом круге станция тратит заряд на опасный снаряд или разрешённый к перехвату орбитальный удар. Орбитальные удары сейчас '+
+  '<p class="base-defense-summary">ПВО действует автоматически: станция тратит заряды на опасные снаряды поблизости. Орбитальные удары сейчас '+
   (protection.meteorEnabled?'перехватываются':'пропускаются')+'. '+
-  (protection.stasis?'Стазис тоже автоматический: импульс сработает, только если рядом с вами и станцией окажутся не менее двух обычных врагов. Кнопки запуска нет.':
-   'Стазис станет доступен после соединения двух станций.')+'</p>'+
+  (protection.stasis?'Стазис тоже автоматический: сработает при группе врагов рядом со станцией. Кнопки запуска нет.':
+   'Стазис откроется после соединения двух станций.')+'</p>'+
+  '<details class="base-secondary-info base-defense-choice-details"><summary>Изменить перехват орбитальных ударов</summary>'+
   '<p class="base-defense-tradeoff" role="note">'+(protection.meteorEnabled?
    'Если пропускать орбитальные удары, они смогут поражать врагов и астероиды, но также могут повредить Ваш корабль.':
    'Перехват отключён: орбитальные удары могут поражать врагов, астероиды и Ваш корабль.')+'</p>'+
-  '<div class="base-defense-choice">'+meteorChoice+'</div>'+
+  '<div class="base-defense-choice">'+meteorChoice+'</div></details>'+
   '<details class="base-secondary-info base-defense-rules"><summary>Точные условия ПВО и стазиса</summary><div class="base-secondary-body">'+
   '<p class="base-defense-status">'+protectionText+'.</p>'+
   '<p>ПВО отражает одну угрозу за заряд. Между перехватами проходит не меньше 0,7 с; снаряды остаются под защитой и при пропуске орбитальных ударов.</p>'+
@@ -850,7 +865,7 @@ export function renderBasePanel(base,state){
   (baseNames[base.type]||'Станция')+'</h2><p>Сплав <b>'+o.ore+'</b> · Данные <b>'+(state.data||0)+'</b> (опыт) · Корпус <b>'+Math.ceil(state.hp)+'/'+state.maxHp+'</b> · В сети '+
   state.connectedBases+' · Дроны '+state.allies+'/'+o.cap+(base.type==='carrier'?' · Вылеты '+state.charges:'')+'</p></div>'+
   '<span class="base-pill '+(o.connected?'online':'offline')+'">'+status+'</span></header>'+
-  (active&&!o.connected?'<p class="base-network-warning">Работает локально. Для сетевых услуг подключите промежуточные станции.</p>':'')+
+  (active&&!o.connected&&!base.suppressed?'<p class="base-network-warning">Работает локально. Для сетевых услуг подключите промежуточные станции.</p>':'')+
   opening+'<footer class="base-foot">'+
   (!active||state.checkpointNote?'<small>'+(!active?'После подключения откроются услуги станции.':'')+
   (state.checkpointNote?'<span role="status">'+state.checkpointNote+'</span>':'')+'</small>':'')+
