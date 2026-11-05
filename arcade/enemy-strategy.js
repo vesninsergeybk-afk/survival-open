@@ -1,22 +1,22 @@
 /**
- * Local theater strategy for the hostile machine economy.
+ * The machine economy assigns jobs to existing nearby flights.
  *
- * The industrial network owns installations and moving shipments. Nearby
- * radio cells get finite jobs protecting those assets; autonomous pilots
- * execute the jobs with ordinary steering and remain vulnerable to damage.
- * No player position, HP, weapon or RNG is read here. Enemy sightings remain
- * exclusively in the verified squad-radio channel.
+ * Only real stations, shipments, production and *delivered* sightings matter.
+ * No live player state, hidden attacker location, extra enemies or combat
+ * multipliers are consulted. Local flights receive orders over real radio.
  */
 export const THEATER=Object.freeze({
-  tick:1.05,link:510,orderAge:2.3,maxCargoCells:2,maxSiteCells:1,
-  maxLines:3,noticeGap:6
+  tick:1.05,link:510,orderAge:2.3,maxCargoCells:2,maxSiteCells:2,
+  maxLines:3,noticeGap:6,contactAge:2.6,threatRadius:430
 });
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const eligible=e=>!!e&&e.hp>0&&!e.converted&&!e.boss&&
   !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&!e.stationRaid&&
   !e.openingCommander&&!e.protect&&
   (!e.signalIntel||e.signalIntel.mode==='engaged')&&
-  e.type!=='healer'&&['scout','fighter','flanker','gunship','berserker'].includes(e.type);
+  e.type!=='healer'&&['scout','fighter','flanker','gunship','berserker'].includes(e.type)&&
+  ['hunt','flank','standoff'].includes(e.state);
 const active=a=>a&&Number.isFinite(a.x)&&Number.isFinite(a.y)&&
   (a.hp==null||a.hp>0)&&!a.captured;
 const cargoes=s=>[
@@ -25,45 +25,86 @@ const cargoes=s=>[
   ...(s?.frontier?.teal?.convoys||[])
 ];
 const label=role=>({
-  escort:'СОПРОВОЖДЕНИЕ',screen:'ПРИКРЫТЬ ТРАНСПОРТ',
-  defend:'ОХРАНА УЗЛА',reinforce:'УСИЛИТЬ ОБОРОНУ'
+  escort:'СОПРОВОЖДЕНИЕ',screen:'ЗАСЛОН У ТРАНСПОРТА',
+  defend:'ОХРАНА УЗЛА',reinforce:'УСИЛИТЬ ОБОРОНУ',
+  repel:'ОТТЕСНИТЬ НАПАДАВШЕГО'
 })[role]||'ОХРАНА';
-const reason=(role,asset)=>role==='escort'?
-  'Сопровождать груз. Не дать сорвать доставку!':
-  role==='screen'?'Транспорт под угрозой. Занять передний заслон!':
-  role==='reinforce'?'Промышленный узел под угрозой. Усилить оборону!':
-  'Приоритет — сохранить производственный узел. Держать периметр!';
+function reason(role,item){
+  if(role==='escort')return 'Сопровождать груз. Сохранить доставку!';
+  if(role==='screen')return item.fundedScreen?
+    'Защитный конвой подготовлен. Прикрыть груз с флангов!':
+    'Транспорт под угрозой. Выставить передний заслон!';
+  if(role==='repel')return 'Контакт подтверждён. Оттеснить от объекта!';
+  if(role==='reinforce')return 'Промышленный узел под угрозой. Усилить оборону!';
+  return item.reserves>0?
+    'На складе есть резервы. Защищать сборочный пост!':
+    'Приоритет — сохранить производственный узел. Держать периметр!';
+}
+const destinationId=c=>c.centralCargo?'industry:depot':
+  c.frontierCargo&&['azure','teal'].includes(c.frontierNetwork)?
+    'frontier:'+c.frontierNetwork+':depot':
+    c.regionalCargo?'4:-32':null;
+function cargoUseful(world,c){
+  const id=destinationId(c);
+  if(!id)return true;
+  const depot=world.stations?.get?.(id);
+  // An omitted installation in a small test world is not proof of capture.
+  // In the actual game these industrial stations are always instantiated.
+  return !depot||!!depot.enemy&&!depot.captured&&depot.hp>0;
+}
+function paidScreen(world,c,now){
+  const s=world.regionalSupply;
+  if(c.centralCargo)return s?.central?.strategy?.screened===true;
+  if(c.frontierCargo){
+    const node=s?.frontier?.[c.frontierNetwork];
+    return (node?.strategy?.screenUntil||0)>now;
+  }
+  return false;
+}
+function stationReserves(s,role){
+  if(role==='military')return s?.reserves||0;
+  if(role==='central-depot')return s?.central?.reserves||0;
+  if(role==='frontier-azure-depot')return s?.frontier?.azure?.reserves||0;
+  if(role==='frontier-teal-depot')return s?.frontier?.teal?.reserves||0;
+  return 0;
+}
 
-/** Only existing, living industrial objects can become strategic assets.
- * World state is consulted as the object's own inventory, not player intel. */
-export function theaterAssets(world){
+/** The strategy cannot defend an already captured depot's useless cargo or
+ * an imaginary station. It evaluates economic value, not just sprite count. */
+export function theaterAssets(world,now=0){
   if(!world)return [];
   const state=world.regionalSupply,items=[];
-  for(const a of cargoes(state))if(active(a)&&a.id){
-    items.push({asset:a,id:String(a.id),kind:'cargo',importance:80,max:THEATER.maxCargoCells});
+  for(const a of cargoes(state))if(active(a)&&a.id&&cargoUseful(world,a)){
+    const fundedScreen=paidScreen(world,a,now);
+    items.push({asset:a,id:String(a.id),kind:'cargo',
+      fundedScreen,importance:80+(fundedScreen?9:0),max:THEATER.maxCargoCells});
   }
   for(const a of world.stations?.values?.()||[]){
-    if(!active(a)||!a.enemy||!a.id||a.hp<=0||
-       !(a.strategicRole||a.rank>=2))continue;
-    const role=String(a.strategicRole||'');
-    const depot=/military|depot/.test(role)||a.type==='carrier';
-    const reserves=role==='military'?state?.reserves:
-      role==='central-depot'?state?.central?.reserves:
-      role==='frontier-azure-depot'?state?.frontier?.azure?.reserves:
-      role==='frontier-teal-depot'?state?.frontier?.teal?.reserves:0;
-    items.push({asset:a,id:String(a.id),kind:'station',
-      importance:(depot?52:37)+(reserves>0?10:0),
+    // Generic high-level stations have no explicit logistics dependency:
+    // they already have local turrets and should not steal the theater budget.
+    if(!active(a)||!a.enemy||!a.id||a.hp<=0||!a.strategicRole)continue;
+    const role=String(a.strategicRole);
+    const depot=/military|depot/.test(role);
+    const reserves=stationReserves(state,role);
+    items.push({asset:a,id:String(a.id),kind:'station',reserves,
+      importance:(depot?52:39)+Math.min(2,reserves)*6,
       max:THEATER.maxSiteCells});
   }
   return items;
 }
+const freshContact=(cell,asset,now)=>{
+  const intel=cell.intel;
+  return intel&&!intel.estimated&&Number.isFinite(intel.at)&&
+    now-intel.at>=0&&now-intel.at<=THEATER.contactAge&&
+    Number.isFinite(intel.x)&&Number.isFinite(intel.y)&&
+    distance(intel,asset)<=THEATER.threatRadius?intel:null;
+};
 
-/** Select complementary jobs for different nearby squads. Local command range
- * is a hard gate: a remote cell does not know about a distant shipment.
- * An escort is never reclassified as a raider simply because it sees a player.
- */
+/** A bounded theater auction assigns complementary jobs to local flights.
+ * The second flight can repel a *confirmed* attacker while the first guards.
+ * An unobserved player cannot be pursued from the economic state alone. */
 export function planTheater(cells,world,now){
-  const assets=theaterAssets(world),candidates=[];
+  const assets=theaterAssets(world,now),candidates=[];
   for(const cell of cells||[]){
     if(!cell||cell.brokenUntil||cell.leader?.hp<=0||
        !Array.isArray(cell.members)||!cell.members.includes(cell.leader))continue;
@@ -73,13 +114,20 @@ export function planTheater(cells,world,now){
       const d=distance(cell.leader,item.asset);
       if(d>THEATER.link)continue;
       const incident=cell.incident;
-      const witnessed=incident&&now-incident.at<=6.2&&
+      const witnessed=!!(incident&&now-incident.at>=0&&
+        now-incident.at<=6.2&&
         (incident.assetId===item.id||
          (item.kind==='station'&&incident.kind!=='convoy'&&
-          distance(incident,item.asset)<230));
+          distance(incident,item.asset)<230)));
+      const contact=freshContact(cell,item.asset,now);
+      const alarm=witnessed||!!contact;
+      // Do not pull a squad away from an actual nearby engagement simply to
+      // patrol a peaceful factory at the other edge of its radio cell.
+      if(!alarm&&cell.intel&&!cell.intel.estimated&&
+         now-cell.intel.at>=0&&now-cell.intel.at<=THEATER.contactAge)continue;
       const previous=cell.theaterAssignment?.assetId===item.id?11:0;
       candidates.push({cell,item,score:item.importance-d/24+
-        (witnessed?32:0)+previous,alarm:!!witnessed});
+        (alarm?36:0)+previous,alarm,contact});
     }
   }
   candidates.sort((a,b)=>b.score-a.score||
@@ -88,33 +136,62 @@ export function planTheater(cells,world,now){
   for(const c of candidates){
     if(usedCells.has(c.cell))continue;
     const n=counts.get(c.item.id)||0;
-    if(n>=c.item.max)continue;
-    const role=c.item.kind==='cargo'?(n===0?'escort':'screen'):
-      c.alarm?'reinforce':'defend';
+    const max=c.item.kind==='station'&&!c.alarm?1:c.item.max;
+    if(n>=max)continue;
+    let role;
+    if(c.item.kind==='cargo')
+      role=n===0?(c.alarm||c.item.fundedScreen?'screen':'escort'):
+        (c.contact?'repel':'screen');
+    else
+      role=c.alarm?(n>0&&c.contact?'repel':'reinforce'):'defend';
     const entry={asset:c.item.asset,assetId:c.item.id,
-      role,kind:c.item.kind,at:now,reason:reason(role,c.item.asset)};
+      role,kind:c.item.kind,at:now,
+      ...(c.contact?{
+        contact:{x:c.contact.x,y:c.contact.y,at:c.contact.at}}:{}),
+      reason:reason(role,c.item)};
     result.set(c.cell,entry);
     counts.set(c.item.id,n+1);usedCells.add(c.cell);
   }
   return result;
 }
 
-/** A command gives a waypoint around a real asset. It never teleports units,
- * raises stats, predicts the player's unseen position or changes shot rules. */
+/** Stable, different formation lanes. A fast convoy is intercepted *ahead*
+ * along its current route, rather than chased forever by slower fighters.
+ * A counterattack remains near the defended site, using a delivered snapshot. */
 export function theaterDestination(e,order){
   if(!eligible(e)||!order||!active(order.asset)||
      String(order.asset.id)!==order.assetId)return null;
-  const a=order.asset,s=e.serial||0,side=s%2?1:-1;
+  const a=order.asset,s=Math.abs(Math.trunc(e.serial||0)),side=s%2?1:-1;
+  if(order.role==='repel'){
+    if(!order.contact)return null;
+    const dx=order.contact.x-a.x,dy=order.contact.y-a.y;
+    const d=Math.hypot(dx,dy)||1,limited=Math.min(340,d);
+    const x=a.x+dx/d*limited,y=a.y+dy/d*limited;
+    return {x:x-dy/d*side*48,y:y+dx/d*side*48,
+      mode:order.role,asset:a};
+  }
+  if(order.kind==='cargo'&&Number.isFinite(a.angle)){
+    const heading=a.angle-Math.PI/2;
+    const ux=Math.cos(heading),uy=Math.sin(heading);
+    const lead=order.role==='screen'?165:82;
+    const offset=order.role==='screen'?120:83;
+    return {x:a.x+ux*lead-uy*side*offset,
+      y:a.y+uy*lead+ux*side*offset,
+      mode:order.role,asset:a};
+  }
+  if(order.kind==='station'){
+    let angle=(s%6)*Math.PI/3-Math.PI/2;
+    if(order.role==='reinforce'&&order.contact){
+      angle=Math.atan2(order.contact.y-a.y,order.contact.x-a.x)+side*.29;
+    }
+    const radius=order.role==='reinforce'?145:180;
+    return {x:a.x+Math.cos(angle)*radius,y:a.y+Math.sin(angle)*radius,
+      mode:order.role,asset:a};
+  }
+  // Legacy shipments without a route angle retain a bounded escort position.
   const dx=a.x-e.x,dy=a.y-e.y,d=Math.hypot(dx,dy)||1;
   const ux=dx/d,uy=dy/d;
-  const distToAsset=order.role==='screen'?164:
-    order.role==='escort'?115:
-    order.role==='reinforce'?155:185;
-  const lateral=side*(order.role==='screen'?100:68);
-  // Moving cargo does not need hidden player coordinates. The orbit is
-  // bounded and its center follows only the visible, known transport.
-  return {x:a.x-ux*distToAsset-uy*lateral,
-    y:a.y-uy*distToAsset+ux*lateral,
+  return {x:a.x-ux*115-uy*side*68,y:a.y-uy*115+ux*side*68,
     mode:order.role,asset:a};
 }
 
@@ -129,15 +206,31 @@ export class EnemyTheaterStrategy{
     for(const cell of net.cells){
       const chosen=choices.get(cell),prior=cell.theaterAssignment;
       cell.theaterAssignment=chosen||null;
-      if(!chosen){for(const e of cell.members)e._theaterOrder=null;continue;}
+      if(!chosen){
+        cell.pendingTheater=null;
+        for(const e of cell.members)e._theaterOrder=null;
+        continue;
+      }
       const changed=!prior||prior.assetId!==chosen.assetId||
         prior.role!==chosen.role;
+      let recipients=0;
       for(const e of cell.members){
         if(!eligible(e)){e._theaterOrder=null;continue;}
         const delivered=e===cell.leader||
           net.send(cell.leader,e,changed?'strategy':'relay',now);
-        if(delivered)e._theaterOrder={...chosen,cellId:cell.id,
-          leader:cell.leader,receivedAt:now};
+        if(delivered){
+          e._theaterOrder={...chosen,cellId:cell.id,
+            leader:cell.leader,receivedAt:now};
+          if(e!==cell.leader)recipients++;
+        }else e._theaterOrder=null;
+      }
+      if(!recipients){
+        // A commander's private waypoint is not a collective operation.
+        cell.theaterAssignment=null;
+        this.assignments.delete(cell);
+        cell.pendingTheater=null;
+        for(const e of cell.members)e._theaterOrder=null;
+        continue;
       }
       if(changed)cell.pendingTheater={...chosen,at:now};
     }
@@ -150,7 +243,9 @@ export class EnemyTheaterStrategy{
        cell.brokenUntil||cell.leader?.hp<=0||
        !cell.members.includes(e)||now-order.receivedAt>THEATER.orderAge||
        distance(e,cell.leader)>THEATER.link||
-       !active(order.asset))return null;
+       !active(order.asset)||
+       (order.role==='repel'&&
+        (!order.contact||now-order.contact.at>THEATER.contactAge)))return null;
     return order;
   }
   confirmExecution(game,net){
@@ -163,14 +258,18 @@ export class EnemyTheaterStrategy{
          pending.role!==cell.theaterAssignment.role){
         cell.pendingTheater=null;continue;
       }
-      const pilot=cell.members.find(e=>e._theaterIntent?.at===now&&
+      // A spoken squad order requires a *recipient* flying it, never the
+      // commander's own movement or a stale intent from an earlier order.
+      const pilot=cell.members.find(e=>e!==cell.leader&&
+        this.directiveFor(e,now)&&e._theaterIntent?.at===now&&
         e._theaterIntent.assetId===pending.assetId&&
         e._theaterIntent.mode===pending.role);
       if(!pilot)continue;
       cell.pendingTheater=null;
       if(!game.playerCanInterceptEnemyRadio?.(cell.leader)&&
          !game.playerCanInspectEnemyIntent?.(cell.leader))continue;
-      const item={at:now,until:now+3.2,mode:'screen',
+      const item={at:now,until:now+3.2,
+        mode:pending.role==='repel'?'intercept':'screen',
         message:pending.reason,leader:cell.leader,cellId:cell.id};
       net.intercepts.push(item);
       if(net.intercepts.length>8)net.intercepts.shift();
@@ -186,9 +285,10 @@ export class EnemyTheaterStrategy{
     let drawn=0;
     for(const cell of this.assignments.keys()){
       if(drawn>=THEATER.maxLines)return;
-      const a=cell.theaterAssignment?.asset;
-      const pilot=cell.members.find(e=>e._theaterIntent?.at===now&&
-        e._theaterIntent.assetId===cell.theaterAssignment?.assetId&&
+      const order=cell.theaterAssignment,a=order?.asset;
+      const pilot=cell.members.find(e=>e!==cell.leader&&
+        this.directiveFor(e,now)&&e._theaterIntent?.at===now&&
+        e._theaterIntent.assetId===order.assetId&&
         game.playerCanInspectEnemyIntent(e));
       if(!pilot||!a||!game.playerCanInspectEnemyIntent(a)||
          pilot.x<cam.x-30||pilot.x>cam.x+cam.w+30||
@@ -201,7 +301,7 @@ export class EnemyTheaterStrategy{
       ctx.setLineDash([]);
       ctx.font='bold 9px system-ui';ctx.fillStyle='#a8f2ce';
       ctx.textAlign='center';
-      ctx.fillText(label(cell.theaterAssignment.role),pilot.x,
+      ctx.fillText(label(order.role),pilot.x,
         pilot.y-(pilot.r||14)-40,152);
       drawn++;
     }
