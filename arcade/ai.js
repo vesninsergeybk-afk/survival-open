@@ -474,7 +474,7 @@ export function updateEnemy(e,game,dt){
   // Strategy changes the actual waypoint of a free pilot. Escort, rescue,
   // repair and scripted combat objectives remain in charge of their ships.
   // No location for the player is inferred here from the world economy.
-  const strategic=game.enemyComms?.strategicDirectiveFor(e,game.time);
+  const strategic=game.enemyComms?.strategicDirectiveFor?.(e,game.time);
   if(targetingPlayer&&strategic&&
      ['hunt','flank','standoff'].includes(e.state)){
     const dest=theaterDestination(e,strategic);
