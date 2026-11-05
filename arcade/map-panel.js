@@ -253,7 +253,7 @@ export function renderWorldMap(game){
   '<details class="map-objective map-radio-log" open><summary>Перехваченные приказы · '+
   intercepted.length+'</summary><ul>'+intercepted.slice(0,3).map(order=>
    '<li><span>'+enc(({press:'Нажим',pincer:'Обход',intercept:'Перехват',
-    screen:'Прикрытие',close:'Сближение',scatter:'Рассредоточение'})[order.mode]||'Манёвр')+
+    screen:'Прикрытие',close:'Сближение',scatter:'Рассредоточение',network:'Сетевое донесение'})[order.mode]||'Манёвр')+
    '</span> '+enc(order.message)+'</li>').join('')+'</ul></details>':'';
  const intelContacts=intel.contacts.map(c=>'<article class="map-contact">'+
   '<div><strong>'+enc(c.label)+'</strong><small>'+enc(c.detail)+'</small></div>'+

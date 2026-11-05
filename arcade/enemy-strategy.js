@@ -113,7 +113,7 @@ const freshContact=(cell,asset,now)=>{
 /** A bounded theater auction assigns complementary jobs to local flights.
  * The second flight can repel a *confirmed* attacker while the first guards.
  * An unobserved player cannot be pursued from the economic state alone. */
-export function planTheater(cells,world,now){
+export function planTheater(cells,world,now,mesh=null){
   const assets=theaterAssets(world,now),candidates=[];
   for(const cell of cells||[]){
     if(!cell||cell.brokenUntil||cell.leader?.hp<=0||
@@ -130,14 +130,18 @@ export function planTheater(cells,world,now){
          (item.kind==='station'&&incident.kind!=='convoy'&&
           distance(incident,item.asset)<230)));
       const contact=freshContact(cell,item.asset,now);
-      const alarm=witnessed||!!contact;
+      // An alarm received through the mesh protects an asset, but never
+      // grants the defender a live target position.
+      const networkAlarm=mesh?.alarmFor?.(cell,item.id,now)||null;
+      const warning=mesh?.bestForCell?.(cell,now)||null;
+      const alarm=witnessed||!!contact||!!networkAlarm;
       // Do not pull a squad away from an actual nearby engagement simply to
       // patrol a peaceful factory at the other edge of its radio cell.
       if(!alarm&&cell.intel&&!cell.intel.estimated&&
          now-cell.intel.at>=0&&now-cell.intel.at<=THEATER.contactAge)continue;
       const previous=cell.theaterAssignment?.assetId===item.id?11:0;
       candidates.push({cell,item,score:item.importance-d/24+
-        (alarm?36:0)+previous,alarm,contact});
+        (alarm?36:0)+previous,alarm,contact,warning,networkAlarm});
     }
   }
   candidates.sort((a,b)=>b.score-a.score||
@@ -150,7 +154,8 @@ export function planTheater(cells,world,now){
     if(n>=max)continue;
     let role;
     if(c.item.kind==='cargo')
-      role=n===0?(c.alarm||c.item.fundedScreen?'screen':'escort'):
+      role=n===0?(c.alarm||c.item.fundedScreen||
+        ['long','area'].includes(c.warning?.kind)?'screen':'escort'):
         (c.contact?'repel':'screen');
     else
       role=c.alarm?(n>0&&c.contact?'repel':'reinforce'):'defend';
@@ -158,7 +163,12 @@ export function planTheater(cells,world,now){
       role,kind:c.item.kind,at:now,
       ...(c.contact?{
         contact:{x:c.contact.x,y:c.contact.y,at:c.contact.at}}:{}),
-      reason:reason(role,c.item)};
+      reason:c.networkAlarm?'Сеть сообщает о нападении на объект. Усилить охрану!':
+        role==='screen'&&c.warning?.kind==='long'?
+          'Сеть предупреждает о дальнобойном оружии. Занять заслон!':
+        role==='screen'&&c.warning?.kind==='area'?
+          'Сеть предупреждает о площадном оружии. Рассредоточить охрану!':
+        reason(role,c.item)};
     result.set(c.cell,entry);
     counts.set(c.item.id,n+1);usedCells.add(c.cell);
   }
@@ -211,7 +221,7 @@ export class EnemyTheaterStrategy{
     const now=game.time;
     if(now<this.nextTick)return;
     this.nextTick=now+THEATER.tick;
-    const choices=planTheater(net.cells,game.world,now);
+    const choices=planTheater(net.cells,game.world,now,net.mesh);
     this.assignments=choices;
     for(const cell of net.cells){
       const chosen=choices.get(cell),prior=cell.theaterAssignment;
