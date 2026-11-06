@@ -1,6 +1,6 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1';
-import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1';
-import {developmentTab} from './development-panel.js?v=menu-rebuild-1';
+import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3';
+import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess} from './game-menu.js?v=all-menus-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
@@ -425,9 +425,25 @@ export class ArcadeGame {
    if(act==='pilotMap'){this.openMap();return;}
    if(act==='pilotSkills'){this.skills();return;}
    if(act==='openDevelopment'||act==='developmentTab'){
-    this.openDevelopment(b.dataset.id,b.dataset.focus);return;
+    this.openDevelopment(b.dataset.id,b.dataset.focus,b.dataset.upgrade);return;
+   }
+   if(act==='focusPilotBranch'){
+    if(this.overlay.dataset.mode==='base'&&this.baseTab==='development'&&this.developmentCategory==='pilot'&&
+     ['Корабль','Технологии','Добыча'].includes(b.dataset.id)){
+     const section=this.overlay.querySelector('[data-pilot-branch="'+b.dataset.id+'"]');
+     if(section){section.setAttribute('tabindex','-1');section.scrollIntoView?.({block:'start'});section.focus?.({preventScroll:true});}
+    }
+    return;
+   }
+   if(act==='focusDoctrine'){
+    if(this.overlay.dataset.mode==='base'&&this.baseTab==='development'&&this.developmentCategory==='pilot'){
+     const panel=this.overlay.querySelector('.development-content .pilot-doctrines');
+     if(panel){panel.open=true;panel.scrollIntoView?.({block:'nearest'});panel.querySelector?.('summary')?.focus?.({preventScroll:true});}
+    }
+    return;
    }
    if(act==='fitWeapon'){this.focusFittingWeapon(b.dataset.id);return;}
+   if(act==='fitTactic'){this.focusTacticalFitting(b.dataset.id);return;}
    if(act==='runContinue'){this.continueRun();return;}
    if(act==='conflictPlan'){this.chooseConflictPlan(b.dataset.role);return;}
    if(act==='campaignFront'){
@@ -1340,7 +1356,7 @@ export class ArcadeGame {
    if(waypoint)this.heritage.world('contract');
    if(this.dismiss()!==false)this.notice(message,4);
   }
- openDevelopment(category='weapons',focus=''){
+ openDevelopment(category='weapons',focus='',upgrade=''){
   if(this.dead||!this.docked?.active)return;
   this.developmentCategory=developmentTab(category);this.baseTab='development';
   if(this.developmentCategory==='weapons'&&Object.hasOwn(MODULES,focus))this.hangarSession.focusWeapon=focus;
@@ -1348,6 +1364,20 @@ export class ArcadeGame {
   this.paused=true;this.pausedRenderPending=true;this.mapReturnToBase=false;
   this.overlay.hidden=false;this.overlay.dataset.mode='base';this.heritage.pause('base');
   this.heritage.ui('tab');this.renderDock();
+  // Shortcuts target the actual buyable node, not merely its broad category.
+  // Check the rendered button's state in case progression changed meanwhile.
+  if(upgrade){
+   const action=this.developmentCategory==='pilot'?'skill':'hgUpgrade';
+   const known=this.developmentCategory==='pilot'?SKILLS.some(s=>s.id===upgrade&&!SHIP_UPGRADES.has(s.id)):
+    SHIP_UPGRADES.has(upgrade);
+   if(known){
+    const trigger=this.overlay.querySelector('[data-act="'+action+'"][data-id="'+upgrade+'"]');
+    const node=!trigger?.disabled?trigger?.closest?.('.dev-node'):null;
+    if(node){
+     node.setAttribute('tabindex','-1');node.scrollIntoView?.({block:'nearest'});node.focus?.({preventScroll:true});return;
+    }
+   }
+  }
   this.overlay.querySelector('.development-tabs [aria-pressed="true"]')?.focus({preventScroll:true});
  }
  focusFittingWeapon(id){
@@ -1363,6 +1393,14 @@ export class ArcadeGame {
   this.hangarSession.dispatch({act:'hgFocusWeapon',id},this.baseState());
   this.hangarSession.catalog=true;this.heritage.ui('tab');this.renderDock();
   this.overlay.querySelector('.hg-weapon-inspector')?.scrollIntoView({block:'nearest'});
+ }
+ focusTacticalFitting(id){
+  if(this.dead||!this.docked?.active||!Object.hasOwn(TACTICAL_DEVICES,id))return;
+  this.baseTab='hangar';this.hangarView='tactics';this.hangarSession.focusTactic=id;
+  this.mapReturnToBase=false;this.overlay.hidden=false;this.overlay.dataset.mode='base';
+  this.paused=true;this.pausedRenderPending=true;this.heritage.pause('base');
+  this.heritage.ui('tab');this.renderDock();
+  this.overlay.querySelector('.hg-tactic-detail')?.scrollIntoView({block:'nearest'});
  }
  skills(){
   if(this.dead)return;

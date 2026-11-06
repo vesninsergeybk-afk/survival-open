@@ -13,20 +13,39 @@ export function renderPilotContent({player:p,ranks,doctrine,skills,doctrines,bra
    '<button type="button" data-act="doctrine" data-id="'+d.id+'"'+(!doctrineReady?' disabled':'')+'>'+ (doctrine===d.id?'Установлено':'Выбрать · 1 очко')+'</button></article>').join('')+'</div></details>';
  const entries=skills.filter(s=>(allBranches||s.branch===current)&&!SHIP_UPGRADES.has(s.id)).map(s=>{
   const rank=ranks[s.id]||0,mastered=rank>=s.max,prereq=s.requires?skills.find(x=>x.id===s.requires):null;
-  const reason=mastered?'Максимум':p.level<s.from?'Нужен уровень '+s.from:prereq&&!ranks[prereq.id]?'Сначала '+prereq.title:p.points<=0?'Нужно 1 очко':'';
-  const html='<article class="pilot-skill '+(reason?'locked':'ready')+'">'+menuInfo('О навыке: '+s.title,s.desc)+
+  const hasPrereq=!prereq||!!ranks[prereq.id],eligible=!mastered&&p.level>=s.from&&hasPrereq;
+  const reason=mastered?'Максимум':p.level<s.from?'Нужен уровень '+s.from:!hasPrereq?'Сначала '+prereq.title:p.points<=0?'Нужно 1 очко':'';
+  const status=mastered?'mastered':eligible?(p.points>0?'ready':'waiting'):'locked';
+  const effect=mastered?'Изучено полностью':nextEffect(s.id,rank,ranks);
+  const ranksHtml='<span class="dev-rank-track" aria-label="Изучено '+rank+' из '+s.max+'">'+Array.from({length:s.max},(_,i)=>'<i'+(i<rank?' class="filled"':'')+'></i>').join('')+'</span>';
+  const html='<article class="pilot-skill dev-node '+(reason?'locked':'ready')+'" data-state="'+status+'">'+menuInfo('О навыке: '+s.title,s.desc)+
    '<div class="pilot-skill-title">'+menuSymbol(s.branch==='Технологии'?'signal':s.branch==='Добыча'?'rescue':'skills')+'<h3 data-help="'+esc(s.desc)+'">'+esc(s.title)+'</h3><b>'+rank+'/'+s.max+'</b></div>'+
-   '<p class="pilot-next-effect">'+esc(mastered?'Изучено полностью':nextEffect(s.id,rank,ranks))+'</p>'+
+   ranksHtml+(prereq?'<small class="dev-prerequisite">После «'+esc(prereq.title)+'»</small>':'')+
+   '<p class="pilot-next-effect">'+esc(effect)+'</p>'+
    '<button type="button" class="skill-node '+(reason?'locked':'ready')+'" data-act="skill" data-id="'+s.id+'"'+(reason?' disabled':'')+'>'+esc(reason||'Изучить · 1 очко')+'</button></article>';
-  return {html,rank,ready:!reason,from:s.from};
+  return {html,id:s.id,title:s.title,effect,rank,ready:!reason,eligible,from:s.from,branch:s.branch,requires:s.requires};
  });
- const currentEntries=entries.filter(s=>s.ready||s.rank>0);
- const future=entries.filter(s=>!s.ready&&!s.rank).sort((a,b)=>a.from-b.from);
  const grid=list=>'<div class="pilot-skill-grid">'+list.map(s=>s.html).join('')+'</div>';
+ const ready=allBranches&&p.points>0?entries.filter(s=>s.ready).slice(0,3):[];
+ const quick=ready.length?'<section class="dev-pilot-ready" aria-label="Навыки для улучшения сейчас">'+
+  '<div class="dev-tree-caption"><h3>Можно улучшить сейчас</h3><span>Каждый навык · 1 очко</span></div>'+
+  '<div class="dev-pilot-ready-list">'+ready.map(s=>'<button type="button" data-act="openDevelopment" data-id="pilot" data-focus="'+s.id+'" data-upgrade="'+s.id+'">'+
+   '<strong>'+esc(s.title)+'</strong><small>'+esc(s.branch)+' · '+s.rank+' → '+(s.rank+1)+'</small><small class="dev-pilot-ready-effect">'+esc(s.effect)+'</small><span>Найти в дереве →</span></button>').join('')+'</div></section>':'';
+ const doctrineCue=allBranches&&doctrineReady&&doctrines.length?'<div class="dev-doctrine-cue"><span><strong>Открыт выбор стиля боя</strong> · доктрина стоит 1 очко и меняет возможности пилота.</span>'+
+  '<button type="button" data-act="focusDoctrine">Посмотреть стили →</button></div>':'';
  const cards=allBranches?
-  (currentEntries.length?grid(currentEntries):'<p class="development-empty">Пока нет доступных навыков. Следующий уровень даст очко развития.</p>')+
-  (future.length?'<h3 class="development-next-title">Следующий навык</h3>'+grid(future.slice(0,1)):'')+
-  (future.length>1?'<details class="pilot-future" data-hangar-section="pilot-future"><summary>Ещё навыки · '+(future.length-1)+'</summary>'+grid(future.slice(1))+'</details>':''):
+  '<nav class="dev-pilot-branch-nav" aria-label="Переход к направлению подготовки">'+branches.map(([id,label])=>{
+   const available=entries.filter(s=>s.branch===id&&s.ready).length;
+   return '<button type="button" data-act="focusPilotBranch" data-id="'+id+'">'+esc(label)+
+    (available&&p.points>0?' · '+available+' доступно':'')+'</button>';
+  }).join('')+'</nav>'+doctrineCue+quick+
+  '<p class="dev-summary">Изученные ступени отмечены золотым, доступные — голубым. Под каждой ступенью указан эффект следующего ранга.</p>'+
+  branches.map(([id,label])=>{
+   const list=entries.filter(s=>s.branch===id);
+   if(!list.length)return '';
+   return '<section class="dev-pilot-branch" data-pilot-branch="'+id+'" aria-label="'+esc(label)+'"><div class="dev-tree-caption"><h3>'+esc(label)+'</h3><span>'+list.filter(s=>s.eligible).length+' открыто по условиям</span></div>'+
+    grid(list)+'</section>';
+  }).join(''):
   grid(entries);
  return (allBranches?'':'<nav class="skill-branch-tabs" aria-label="Выберите ветвь развития">'+branches.map(([id,label])=>'<button type="button" data-act="skillBranch" data-id="'+id+'" aria-pressed="'+(id===current)+'">'+label+'</button>').join('')+'</nav>')+
   cards+doctrinePanel;

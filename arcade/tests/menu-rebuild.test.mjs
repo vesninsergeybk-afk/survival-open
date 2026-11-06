@@ -43,7 +43,7 @@ test('a ready reward and first weapon choice can both be completed from the home
 
 test('all five development categories open their actual content, without a category landing page',()=>{
  const {g,base}=station();
- for(const [category,content] of [['weapons','Плазменный луч'],['ship','Следующее улучшение'],['tactics','Инерционный импульс'],['pilot','Уклонение'],['station','Специализация']]){
+ for(const [category,content] of [['weapons','Плазменный луч'],['ship','Защита и двигатель'],['tactics','Инерционный импульс'],['pilot','Уклонение'],['station','Специализация']]){
   const state={...g.baseState(),baseTab:'development',developmentCategory:category};
   const html=renderBasePanel(base,state);
   assert.match(html,new RegExp('data-development="'+category+'"'));
@@ -107,12 +107,35 @@ test('pilot purchases on the station remain on development, while fitting shortc
  assert.equal(g.player.ore,ore);assert.equal(JSON.stringify(g.shipLoadout),loadout);
 });
 
+test('an available pilot doctrine is visible before the long skill branches, without selecting it',()=>{
+ const {g,base}=station();g.baseTab='development';g.developmentCategory='pilot';
+ g.player.level=5;g.player.points=1;
+ const html=renderBasePanel(base,g.baseState());
+ assert.match(html,/dev-doctrine-cue/);
+ assert.match(html,/data-act="focusDoctrine"/);
+ assert.ok(html.indexOf('dev-doctrine-cue')<html.indexOf('dev-pilot-ready'),
+  'players should see the doctrine option before a full list of skills');
+ assert.equal(g.doctrine,null);assert.equal(g.player.points,1);
+});
+
 test('repair controls disappear for an intact ship, and station specializations keep their confirmation path',()=>{
  const {base,state}=station();
  const services=renderBasePanel(base,{...state,baseTab:'hangar',hangarView:'services'});
  assert.match(services,/Корпус исправен/);assert.doesNotMatch(services,/data-act="repair"|data-act="repairDrones"/);
  const growth=renderBasePanel(base,{...state,baseTab:'development',developmentCategory:'station',ore:100});
  assert.match(growth,/data-act="installModule"/);assert.match(growth,/потребуется подтверждение/);
+});
+
+test('an already specialized station shows the installed module and hides unavailable alternatives',()=>{
+ const {base,state}=station();base.module='workshop';
+ const html=renderBasePanel(base,{...state,baseTab:'development',developmentCategory:'station',ore:100,
+  network:{armor:2,engine:0,armament:0,strikePower:0}});
+ assert.match(html,/dev-station-currency/);
+ assert.match(html,/value="2" max="6"/);
+ assert.match(html,/Ремонтные манипуляторы/);
+ assert.match(html,/dev-station-equipped/);
+ assert.match(html,/Другие варианты · уже недоступны/);
+ assert.doesNotMatch(html,/data-act="installModule"/,'a finalized specialization must not offer purchases');
 });
 
 test('changing a doctrine costs once, returns one point and keeps the pilot on the same development page',()=>{

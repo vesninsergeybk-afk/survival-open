@@ -37,7 +37,8 @@ test('the hangar exposes an actual, gated specialization choice without adding c
  session.dispatch({act:'hgSlot',id:'0'},context({loadout:current,activeBases:3,points:3}));
  session.dispatch({act:'hgSelect',id:'plasma'},context({loadout:current,activeBases:3,points:3}));
  const view=renderShipHangar({...context({loadout:current,activeBases:3,points:3}),skillRanks:{},developmentMode:true,developmentCategory:'weapons'},session);
- assert.match(view,/Ветки развития/);
+ assert.match(view,/Специализация · два пути/);
+ assert.match(view,/dev-branch-pair/);
  assert.match(view,/data-act="hgSpec"/);
  assert.match(view,/plasma:furnace/);
  assert.match(view,/plasma:focus/);

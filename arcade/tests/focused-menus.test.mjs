@@ -64,11 +64,33 @@ test('tactical inspection shows only the chosen branches and preserves equipment
  assert.equal(JSON.stringify(g.hangarSession.draft),draft);
  const html=renderShipHangar({...g.baseState(),developmentMode:true,developmentCategory:'tactics'},g.hangarSession);
  assert.equal((html.match(/data-act="hgFocusTactic"/g)||[]).length,4);
- assert.match(html,/data-act="hgTacticUnlock" data-id="jam" disabled/);
- assert.match(html,/Широкий диапазон/);assert.match(html,/Долгая тишина/);
+ assert.match(html,/Устройство пока не получено/);
+ assert.match(html,/data-act="fitTactic" data-id="jam"/);
+ assert.doesNotMatch(html,/data-act="hgTacticUpgrade"/,'an unowned device cannot open a purchasable branch');
  assert.doesNotMatch(html,/Защитная оболочка|Сборщик патрулей/);
  assert.match(html,/Сейчас установлено: <b>Импульс<\/b>/);
  g.hangarAction({act:'hgFocusTactic',id:'fabricated'});assert.equal(g.hangarSession.focusTactic,'jam');
+});
+
+test('tactical acquisition shortcut opens the precise fitting without buying or discarding a draft',()=>{
+ const g=dockedGame();g.baseTab='development';g.hangarSession.draft.slots[1]='rail';
+ const snapshot=JSON.stringify(g.hangarSession.draft),tactical=JSON.stringify(g.tactical),ore=g.player.ore;
+ g.focusTacticalFitting('jam');
+ assert.equal(g.baseTab,'hangar');assert.equal(g.hangarView,'tactics');
+ assert.equal(g.hangarSession.focusTactic,'jam');
+ assert.equal(JSON.stringify(g.tactical),tactical);assert.equal(g.player.ore,ore);
+ assert.equal(JSON.stringify(g.hangarSession.draft),snapshot);
+ g.focusTacticalFitting('fabricated');assert.equal(g.hangarSession.focusTactic,'jam');
+});
+
+test('owned tactical equipment can be developed before equipping, with a fitting shortcut',()=>{
+ const g=dockedGame();g.tactical.owned.push('decoy');g.hangarSession.focusTactic='decoy';
+ const html=renderShipHangar({...g.baseState(),developmentMode:true,developmentCategory:'tactics'},g.hangarSession);
+ assert.match(html,/Получено · сейчас установлено другое устройство/);
+ assert.match(html,/data-act="hgTacticUpgrade" data-id="decoy:lure"/);
+ assert.match(html,/data-act="fitTactic" data-id="decoy"/);
+ assert.match(html,/Радиус: 590 → 700 м/);
+ assert.doesNotMatch(html,/data-act="hgTacticUnlock"/);
 });
 
 test('the tactical cooldown describes the selected upgraded device, including when another device is equipped',()=>{

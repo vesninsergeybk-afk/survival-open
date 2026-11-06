@@ -1,5 +1,5 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1';
-import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3';
+import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3';
 import {readableKey,DEFAULT_CONTROLS} from './control-layout.js?v=unified-controls-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
@@ -649,15 +649,20 @@ export function renderBasePanel(base,state){
   '<section class="base-transit"><div class="base-transit-head"><b>06 · МАРШРУТЫ СЕТИ</b><small>Между включёнными станциями можно перелететь за сплав. Сопровождающие дроны следуют за вами.</small></div><div class="base-transit-routes">'+
   o.transfers.map(t=>action('transfer',(baseNames[t.type]||'Станция')+' · '+t.distance+' м · '+t.cost+' сплава',shortfall(t.cost,o.ore),t.id)).join('')+
   '</div></section>':'';
+ const moduleOption=m=>'<div class="base-module-option'+(base.module===m.key?' selected':'')+'"><strong>'+m.name+'</strong><small>'+m.desc+'</small>'+
+  (base.module===m.key?'<span class="base-module-installed">✓ УСТАНОВЛЕНО</span>':
+   base.module?'<span class="dev-station-unavailable">Другой модуль уже выбран</span>':
+   action('installModule','Установить · '+m.cost+' сплава',m.reason,m.key))+'</div>';
+ const installedOption=base.module?o.moduleOptions.find(m=>m.key===base.module):null;
  const modules=active?'<section class="base-modules"><div class="base-modules-heading"><span class="base-kicker">СПЕЦИАЛИЗАЦИЯ СТАНЦИИ</span><strong>'+
   (base.module?'Модуль установлен':'Выберите одно оснащение')+'</strong><small>'+
-  (base.module?'Модуль закреплён за этой станцией: при следующей стыковке заменить его нельзя.':
+  (base.module?'Выбор закреплён за этой станцией до конца прохождения.':
    'Можно установить только один модуль. После установки заменить его в этом прохождении нельзя; перед покупкой потребуется подтверждение.')+
-  '</small></div><div class="base-module-options">'+o.moduleOptions.map(m=>
-  '<div class="base-module-option'+(base.module===m.key?' selected':'')+'"><strong>'+m.name+'</strong><small>'+m.desc+'</small>'+
-  (base.module===m.key?'<span class="base-module-installed">✓ УСТАНОВЛЕНО</span>':
-   action('installModule','Установить · '+m.cost+' сплава',m.reason,m.key))+'</div>').join('')+
-  '</div></section>':'';
+  '</small></div><div class="base-module-options'+(base.module?' dev-station-equipped':'')+'">'+
+  (base.module?installedOption?moduleOption(installedOption):'<p class="dev-station-unavailable">Установленный модуль сохранён; данные о нём недоступны.</p>':
+   o.moduleOptions.map(moduleOption).join(''))+'</div>'+
+  (base.module&&o.moduleOptions.length>1?'<details class="dev-station-alternatives"><summary>Другие варианты · уже недоступны</summary><div class="base-module-options">'+
+   o.moduleOptions.filter(m=>m.key!==base.module).map(moduleOption).join('')+'</div></details>':'')+'</section>':'';
  const antenna=active?card('base-service base-antenna',
   'СВЯЗЬ · РЕТРАНСЛЯТОР',base.relayBoost?'Антенна усилена':'Усилить антенну',
   'Стандартная связь '+RELAY_RANGE+' м. Усиление добавляет '+RELAY_EXTENSION+' м к дальности узла. '+
@@ -914,6 +919,9 @@ export function renderBasePanel(base,state){
   '<p>Стазис действует только в сети с домашним доком. Два обычных врага должны одновременно находиться не дальше 235 м от станции и 185 м от вас. Импульс останавливает до трёх на 2,6 с, затем восстанавливается 26 с. На боссов и цели операций не действует.</p>'+
   '<p>Пропуск орбитальных ударов позволяет использовать их против врагов и астероидов, но опасен и для вас.</p></div></details></section>';
  const stationDevelopment='<section class="base-station-development" aria-label="Развитие станции"><h3>'+menuIcon('upgrades')+'Развитие станции</h3>'+
+  '<p class="dev-station-currency">Улучшения станции оплачиваются сплавом. Очки развития пилота здесь не расходуются.</p>'+
+  '<div class="dev-station-level" aria-label="Развитие технологии сети"><strong>'+o.tech.name+'</strong><span>Уровень '+o.level+' из 6</span>'+
+  '<progress value="'+o.level+'" max="6" aria-label="Изучено уровней технологии"></progress></div>'+
   (instantUpgrades?'<h4>Доступно сейчас</h4><div class="base-grid">'+instantUpgrades+'</div>':'')+
   (futureUpgrades?'<div class="base-network-future"><h4>Следующие улучшения · стоимость и условия</h4><div class="base-grid">'+futureUpgrades+'</div></div>':'')+'</section>'+
   (modules?'<section class="base-network-direct" aria-label="Оснащение станции"><h3>'+
