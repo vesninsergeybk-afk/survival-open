@@ -95,9 +95,14 @@ test('a local trial automatically spawns its waves and unlocks flux once',()=>{
  assert.equal(g.contourTrial.phase,'wave');
  assert.equal(g.enemies.length,2);
  assert.ok(g.enemies.every(e=>e.trialId===entries[0].id&&e.expAwarded));
+ assert.equal(g.enemies.filter(e=>e._trialDiveEnabled).length,1,
+  'one of two new-field IRIS scouts must telegraph aggressive dives');
+ g.zones.push({x:g.player.x,y:g.player.y,r:66,fuse:2,trialId:entries[0].id});
  for(const e of g.enemies)e.hp=0;
  updateContourTrials(g,.1);
  assert.equal(g.contourTrial,null);
+ assert.equal(g.zones.filter(z=>z.trialId===entries[0].id).length,0,
+  'orbital shells cannot fall after the victory announcement');
  assert.equal(w.contours.trials.completed,1);
  assert.match(g.lastReward,/Воронка открыта/);
  assert.equal(pendingContourTrials(w).length,0);
