@@ -15,13 +15,18 @@ const labelFor=i=>i===5?'H':String(i+1);
 // The blueprint needs inline path geometry for its own SVG transforms.
 const icon=(id,blueprint=false)=>menuIcon(id,blueprint?'hg-module-icon-inline':'hg-module-icon');
 const info=(name,description)=>'<button type="button" class="menu-info" data-help-only data-help="'+esc(description)+'" aria-label="Подробнее: '+esc(name)+'">i</button>';
+const weaponDescription=(item,controls)=>item.desc
+ .replace('Space / «Ион»',readableKey(controls.field)+' / «Ион»')
+ .replace('Клавиша полевого устройства (по умолчанию пробел)',readableKey(controls.field))
+ .replace('R по умолчанию',readableKey(controls.railMode))
+ .replace('F по умолчанию',readableKey(controls.howitzer));
 function specializationPanel(id,context){
  const branches=WEAPON_SPECIALIZATIONS[id];if(!branches)return '';
  const current=specializationState(context.loadout,id);
  const heading=current?'Выбрана: '+branches[current.path]?.name+' · '+(current.rank===2?'мастерство':'первая ступень'):
   'Выберите один из двух путей';
  return '<section class="hg-upgrades hg-branches" data-hangar-section="branches"><h4>Ветки развития · '+esc(heading)+'</h4>'+
-  '<p class="hg-note">Первая ступень: уровень 7 и 2 активированные станции. Мастерство: уровень 11 и 3 станции. Выбор сохраняется до конца вылета.</p>'+
+  '<p class="hg-note">Первая ступень: уровень 7 и 2 активированные станции. Мастерство: уровень 11 и 3 станции. Выбор сохраняется до конца прохождения.</p>'+
   '<div class="hg-upgrade-grid">'+Object.entries(branches).map(([path,branch])=>{
    const quote=quoteSpecialization(context.loadout,id,path,context),chosen=current?.path===path;
    const label=quote.ok?(chosen?'Усилить мастерство · 1 очко':'Выбрать · 1 очко'):quote.reason;
@@ -44,7 +49,7 @@ function tacticalPanel(context,session){
    '" aria-pressed="'+(id===key)+'">'+menuIcon(key)+'<strong>'+esc(item.short)+'</strong><small>'+
   (active?'Установлено':has?'В наличии':item.bases+' станции · '+item.cost+' сплава')+'</small></button>';
  }).join('');
- const upgrade='<div class="hg-tactic-branches"><h4>Ветки развития</h4><p class="hg-note">Одна ветка на устройство до конца вылета. Каждая ступень стоит 1 очко развития.</p><div class="hg-upgrade-grid">'+Object.entries(TACTICAL_BRANCHES[id]).map(([path,branch])=>{
+ const upgrade='<div class="hg-tactic-branches"><h4>Ветки развития</h4><p class="hg-note">Одна ветка на устройство до конца прохождения. Каждая ступень стоит 1 очко развития.</p><div class="hg-upgrade-grid">'+Object.entries(TACTICAL_BRANCHES[id]).map(([path,branch])=>{
    const q=tacticalQuote(state,'upgrade',id,{...context,path});
    const rank=chosen?.path===path?chosen.rank:0;
    return '<article><div><strong>'+esc(branch.name)+'</strong><b>'+rank+'/2</b></div><p>'+esc(branch.desc)+'</p>'+
@@ -85,7 +90,7 @@ function shipScene(context,session){
   '<svg class="hg-wiring" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke-width=".22">'+lines+'</g>'+guns+'</svg>'+nodes+'</div>';
 }
 export function renderShipHangar(state,session=state.hangarSession){
- const context={...state,fieldLoan:state.fieldLoan||state.ionLoan,level:state.level||1,ore:state.ore||0,baseActive:state.baseActive!==false,
+ const context={...state,controls:{...DEFAULT_CONTROLS,...state.controls},fieldLoan:state.fieldLoan||state.ionLoan,level:state.level||1,ore:state.ore||0,baseActive:state.baseActive!==false,
   loadout:state.loadout||createLoadout(),ranks:state.skillRanks||state.ranks||{}};
  session=session||new HangarSession();if(!session.draft)session.begin(context.loadout);
  const current=context.loadout,draft=session.draft,frame=frameSpec(current),slot=session.slot,
@@ -110,7 +115,7 @@ export function renderShipHangar(state,session=state.hangarSession){
     (slotOpen(current,i)?(item?MODULES[item].short:'пусто'):'закрыт')+'</span>').join('')+'</div>'+
   '<details class="hg-thermal-plan hg-thermal-details"><summary>Охлаждение · '+(rate>14?'возможен перегрев':'в норме')+'</summary><strong>Общее охлаждение · 14 ед/с</strong><span>Автооружие: до '+fmt(rate)+' ед/с при непрерывном огне</span>'+
   '<small>'+(rate>14?'При долгой стрельбе эта сборка перегреется. На 100% огонь блокируется до остывания к 35%.':
-   'Охлаждение справляется с непрерывным автоогнём этой сборки.')+' C отключает автоогонь и ускоряет охлаждение до 25 ед/с.</small></details></section>';
+   'Охлаждение справляется с непрерывным автоогнём этой сборки.')+' '+esc(readableKey(context.controls.cease))+' отключает автоогонь и ускоряет охлаждение до 25 ед/с.</small></details></section>';
  const available=Object.values(MODULES).filter(item=>(slot===5?item.kind==='heavy':item.kind!=='heavy')&&
   (session.filter==='all'||item.kind===session.filter));
  const canBorrow=item=>item.kind==='manual'&&!context.fieldLoan&&!!fieldLoanOffer(context.station,context,item.id);
@@ -126,7 +131,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   const reason=dirty?'Сначала примените или отмените загруженную схему':
    moduleLock(item.id,context)&&!borrowing?moduleLock(item.id,context):fit.ok?'':fit.reason;
   const stats=moduleStats(item.id,context.ranks,specializationState(current,item.id));
-  const help=item.name+'\n'+item.desc+'\nДальность: '+stats.range+' м · нагрев: '+item.heat+
+  const help=item.name+'\n'+weaponDescription(item,context.controls)+'\nДальность: '+stats.range+' м · нагрев: '+item.heat+
    ' · интервал: '+fmt(stats.interval)+' с\nУрон: '+fmt(stats.damage)+' · целей: '+stats.targets+
    '\n'+(reason||equipped?'':borrowing?'Прокат до конца задания. 3 заряда. ':'')+
    (reason||(equipped?'Уже установлено.':'Для установки в узел '+labelFor(slot)+' нажмите кнопку установки. Просмотр не меняет оснащение и не тратит сплав.'));
@@ -201,11 +206,12 @@ export function renderShipHangar(state,session=state.hangarSession){
  const affected={plasma:['beam','double','range'],rail:['beam'],flak:['beam'],rocket:['beam','rocket'],ion:['beam'],resonator:[],howitzer:[]};
  const related=(state.hangarUpgrades||[]).filter(s=>affected[focusedId].includes(s.id));
  const inspector='<aside class="hg-weapon-inspector" aria-label="Развитие выбранного оружия">'+
+  (session.catalog&&open?'<div class="hg-inspector-tools">'+button('hgCatalog','← К списку оружия','','','hg-back-list')+'</div>':'')+
   '<div class="hg-section-head"><div><span class="hg-eyebrow">ХАРАКТЕРИСТИКИ И РАЗВИТИЕ</span><h3>'+esc(focused.name)+'</h3></div>'+info(focused.name,focusedOffer.help)+'</div>'+
   (session.catalog&&open?'':'<div class="hg-weapon-picks" role="group" aria-label="Выберите оружие для просмотра">'+Object.values(MODULES).map(item=>
    '<button type="button" data-act="hgFocusWeapon" data-id="'+item.id+'" aria-pressed="'+(focusedId===item.id)+'" class="hg-focus-pick'+
    (focusedId===item.id?' selected':'')+'">'+icon(item.id)+esc(item.short)+'</button>').join('')+'</div>')+
-  '<p class="hg-weapon-description">'+esc(focused.desc)+'</p>'+
+  '<p class="hg-weapon-description">'+esc(weaponDescription(focused,context.controls))+'</p>'+
   '<div class="hg-focused-stats"><span>Дальность <b>'+focusedStats.range+' м</b></span><span>Нагрев <b>'+focused.heat+'</b></span>'+
   '<span>Роль <b>'+esc(focused.role)+'</b></span></div>'+
   (session.catalog&&open?fitting:'<p class="hg-weapon-availability">'+(installed?'✓ Установлено на корабле.':
@@ -215,7 +221,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   (related.length?'<section class="hg-related-upgrades"><h4>Общие улучшения, влияющие на это оружие</h4><div class="hg-upgrade-grid">'+
    related.map(upgradeCard).join('')+'</div></section>':'')+'</aside>';
  const savedBlueprints=session.blueprints.filter(Boolean).length;
- const blueprints='<details class="hg-presets" data-hangar-section="blueprints"><summary>Схемы оснащения · сохранено '+savedBlueprints+' из 3</summary><p class="hg-note">Есть три ячейки для сохранения сборок на этом устройстве. Сплав потребуется только для изготовления при применении. При новом вылете оружие и узлы нужно открыть заново.</p><div>'+BLUEPRINT_NAMES.map((name,i)=>
+ const blueprints='<details class="hg-presets" data-hangar-section="blueprints"><summary>Схемы оснащения · сохранено '+savedBlueprints+' из 3</summary><p class="hg-note">Есть три ячейки для сохранения сборок на этом устройстве. Сплав потребуется только для изготовления при применении. При новом прохождении оружие и узлы нужно открыть заново.</p><div>'+BLUEPRINT_NAMES.map((name,i)=>
   '<article><b>'+name+'</b><small>'+(session.blueprints[i]?'Сохранена':'Пустая ячейка')+'</small>'+button('hgLoad','Загрузить',String(i),!session.blueprints[i])+button('hgSave','Записать',String(i),!blueprintQuote.ok)+'</article>').join('')+'</div></details>';
  const compareNow=report.ranges.map((range,i)=>'<span><small>'+range+' м</small><b>'+fmt(report.dps[i])+'</b></span>').join('');
  const draftCount=draft.slots.filter((item,i)=>item&&slotOpen(current,i)).length;
@@ -225,7 +231,8 @@ export function renderShipHangar(state,session=state.hangarSession){
   (slotOpen(current,i)?item?'filled':'empty':'locked')+'"><b>'+labelFor(i)+'</b><span>'+
   esc(slotOpen(current,i)?item?MODULES[item].short:'Свободен':'Закрыт')+'</span></button>').join('')+'</div>';
  const pendingApply=dirty?'<div class="hg-apply-bar has-changes" role="region" aria-label="Подтверждение оснащения"><div><strong>● Предварительная сборка · '+draftCount+' узл.</strong><span>'+
-  (quote.cost?'Изготовление: '+quote.cost+' сплава · останется '+Math.max(0,context.ore-quote.cost):'Модули в наличии · замена бесплатна')+'</span>'+
+  (quote.cost?'Изготовление: '+quote.cost+' сплава'+(context.ore>=quote.cost?' · останется '+(context.ore-quote.cost):' · не хватает '+(quote.cost-context.ore)):
+   quote.ok?'Модули в наличии · замена бесплатна':'Применение схемы недоступно. Проверьте условия ниже.')+'</span>'+
   (!quote.ok?'<small class="hg-error">'+esc(quote.reason)+'</small>':'')+'</div><div>'+
   button('hgReset','Отменить')+button('hgApply',quote.cost?'Изготовить и применить':'Применить','',!quote.ok,'hg-primary')+'</div></div>':
   '<div class="hg-current-bar" role="status">'+(editing?'Выберите оружие для узла '+labelFor(slot)+'. Просмотр не меняет оснащение и не тратит сплав.':

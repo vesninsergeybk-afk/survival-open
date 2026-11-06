@@ -3,9 +3,18 @@
 const FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 const inertBackground=new WeakMap();
 
-const visible=element=>!!element&&!element.disabled&&
- !element.closest?.('[hidden],[inert]')&&
- (typeof element.getClientRects!=='function'||element.getClientRects().length>0);
+const visible=element=>{
+ if(!element||element.disabled||element.closest?.('[hidden],[inert]'))return false;
+ // Chromium can still return layout rectangles for descendants of a closed
+ // details element. Only its own summary belongs to the live menu.
+ for(let parent=element.parentElement;parent;parent=parent.parentElement){
+  if(parent.tagName==='DETAILS'&&!parent.open){
+   const summary=[...parent.children].find(child=>child.tagName==='SUMMARY');
+   if(!summary||(summary!==element&&!summary.contains?.(element)))return false;
+  }
+ }
+ return typeof element.getClientRects!=='function'||element.getClientRects().length>0;
+};
 
 export function activeMenuDialog(overlay){
  return overlay?.querySelector?.('.run-confirm')||overlay?.querySelector?.('.departure-confirm')||
@@ -13,7 +22,8 @@ export function activeMenuDialog(overlay){
 }
 
 export function menuFocusables(dialog){
- return dialog?[...dialog.querySelectorAll(FOCUSABLE)].filter(visible):[];
+ return dialog?[...dialog.querySelectorAll(FOCUSABLE)].filter(element=>
+  visible(element)&&!(Number(element.getAttribute?.('tabindex'))<0)):[];
 }
 
 export function focusMenu(overlay,selector=''){
@@ -37,6 +47,7 @@ export function keepTabInMenu(event,overlay){
  const next=index<0?(event.shiftKey?items.length-1:0):
   (index+(event.shiftKey?-1:1)+items.length)%items.length;
  items[next].focus?.({preventScroll:true});
+ items[next].scrollIntoView?.({block:'nearest',inline:'nearest'});
  return true;
 }
 

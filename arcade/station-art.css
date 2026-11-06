@@ -196,6 +196,11 @@
  #overlay .base-head h2{font-size:25px;margin-bottom:7px}
  #overlay .base-head .base-system-label{font-size:8px;margin-bottom:4px}
 }
+@media(max-width:440px){
+ #overlay .base-dialog .base-head{flex-wrap:wrap}
+ .base-identity{flex-basis:100%}
+ #overlay .base-head .base-pill{margin:0 0 0 65px;max-width:none}
+}
 @media(max-height:580px){
  #overlay .base-dialog .base-head{min-height:57px;padding:4px 3px 7px}
  .base-identity{gap:10px}.base-emblem{width:38px;height:38px}

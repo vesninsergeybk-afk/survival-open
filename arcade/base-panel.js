@@ -1,6 +1,6 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1';
 import {readableKey,DEFAULT_CONTROLS} from './control-layout.js?v=unified-controls-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
@@ -16,7 +16,7 @@ import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
 import {CONTOURS,contourFields} from './territory-system.js?v=contours-1';
-import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1-menu-focus-1';
+import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
@@ -512,13 +512,13 @@ function territorySummary(base,state){
  const safeName=node=>node.discovered||node.active||node.strategicRole?
   (baseNames[node.type]||'Станция'):'Неизвестный узел';
  let guidance='Включите три соседние станции и соедините их линиями на карте контуров. Замкнутый контур создаёт территорию и воронку.';
- if(base.suppressed)guidance='Передатчик подавлен. Восстановите станцию в полёте, чтобы снова питать её линии и территорию.';
+ if(base.suppressed)guidance='Передатчик подавлен. Отстыкуйтесь: связь восстановится в полёте. Уничтожьте носитель помех, чтобы он не подавил станцию снова. В меню игровое время остановлено.';
  else if(next){
   const destination=safeName(next.node)+' · '+Math.round(next.distance)+' м';
   guidance=next.preview.ok?(next.preview.areaGain>1?
    'Можно замкнуть территорию: соедините эту станцию с «'+destination+'» на карте контуров.':
    'Доступна новая линия к «'+destination+'». После соединения замкните три или больше узлов, чтобы получить территорию.'):
-   'Следующий кандидат: «'+destination+'». Сначала разведайте и включите станцию, затем соедините её с сетью на карте контуров.';
+   'Следующий кандидат: «'+destination+'». '+contourCandidateInstruction(next.node);
  }else if(localLines)guidance='У станции уже есть линии. Новых допустимых соединений поблизости сейчас нет; проверьте соседние узлы на карте контуров.';
  const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  return '<section class="base-territory-summary" aria-label="Связь и территория"><h3>'+menuIcon('network')+'Связь и территория</h3>'+
