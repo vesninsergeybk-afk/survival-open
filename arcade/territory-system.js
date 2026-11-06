@@ -196,7 +196,7 @@ export function contourFields(world){
  // Disconnected nested loops may exist. Their interiors are already owned;
  // a second loop cannot mint land or production inside the same polygon.
  const unique=faces.filter(f=>!faces.some(g=>g!==f&&g.area>f.area+EPS&&
-  f.polygon.every(p=>insidePolygon(p,g.polygon))));
+  insidePolygon(f.center,g.polygon)&&f.polygon.every(p=>insidePolygon(p,g.polygon))));
  // The minimum territory size applies to a contiguous piece of land, not
  // each face of its triangulation. Otherwise a newly powered interior node
  // can split a valid field into three smaller faces and erase all its flux.
