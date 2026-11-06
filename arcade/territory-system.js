@@ -80,6 +80,37 @@ export function autoConnectContours(world){
  }
  candidates.sort((a,b)=>a.length-b.length||edgeKey(a.a,a.b).localeCompare(edgeKey(b.a,b.b)));
  const added=[];
+ // In an unclaimed sector, connecting the nearest pairs first can complete
+ // tiny loops that block a larger, viable triangle. Seed one valid face before
+ // filling the rest of the mesh. Keep this bounded: established, busy sectors
+ // retain the cheaper incremental nearest-neighbour pass below.
+ if(stations.length>=3&&stations.length<=48&&!contourFields(world).length){
+  const triangles=[];
+  for(let i=0;i<stations.length;i++)for(let j=i+1;j<stations.length;j++)
+   for(let k=j+1;k<stations.length;k++){
+    const a=stations[i],b=stations[j],c=stations[k],
+     ab=d(a,b),bc=d(b,c),ca=d(c,a);
+    if(Math.min(ab,bc,ca)<150||Math.max(ab,bc,ca)>CONTOURS.maxLength)continue;
+    const area=Math.abs(cross(a,b,c))/2;
+    if(area>=CONTOURS.minFaceArea)triangles.push({edges:[
+     {a:a.id,b:b.id,length:ab},{a:b.id,b:c.id,length:bc},
+     {a:c.id,b:a.id,length:ca}].sort((x,y)=>x.length-y.length),area,
+     key:a.id+'|'+b.id+'|'+c.id});
+   }
+  triangles.sort((a,b)=>b.area-a.area||a.key.localeCompare(b.key));
+  for(const triangle of triangles){
+   const projected={stations:world.stations,contours:{links:[...world.contours.links]}};
+   const missing=[];
+   for(const {a,b} of triangle.edges){
+    if(projected.contours.links.some(pair=>edgeKey(...pair)===edgeKey(a,b)))continue;
+    if(!connectContour(projected,a,b).ok){missing.length=0;break;}
+    missing.push([a,b]);
+   }
+   if(!missing.length||!contourFields(projected).length)continue;
+   for(const [a,b] of missing)if(connectContour(world,a,b).ok)added.push([a,b]);
+   break;
+  }
+ }
  for(const {a,b} of candidates){
   if(world.contours.links.length>=CONTOURS.maxLinks)break;
   if(world.contours.links.some(pair=>edgeKey(...pair)===edgeKey(a,b)))continue;
@@ -157,7 +188,7 @@ export function contourFields(world){
   if(!closed||vertices.length<3)continue;
   const polygon=vertices.map(id=>world.stations.get(id));
   const area=polygonArea(polygon);
-  if(area<CONTOURS.minFaceArea)continue; // Excludes exterior clockwise face.
+  if(area<=EPS)continue; // Excludes the exterior clockwise face and degenerate loops.
   const center=centerInside(polygon);
   const anchor=polygon.reduce((best,p)=>d(p,center)<d(best,center)?p:best);
   faces.push({id:vertices.slice().sort().join('~'),vertices,polygon,area,center,anchor});
@@ -166,7 +197,33 @@ export function contourFields(world){
  // a second loop cannot mint land or production inside the same polygon.
  const unique=faces.filter(f=>!faces.some(g=>g!==f&&g.area>f.area+EPS&&
   f.polygon.every(p=>insidePolygon(p,g.polygon))));
- geometryCache.set(world,{signature,fields:unique});return unique;
+ // The minimum territory size applies to a contiguous piece of land, not
+ // each face of its triangulation. Otherwise a newly powered interior node
+ // can split a valid field into three smaller faces and erase all its flux.
+ // Only faces sharing an actual border qualify together; distant tiny loops
+ // cannot combine their areas to create a fictitious productive territory.
+ const owners=new Map(),adjacent=unique.map(()=>new Set());
+ unique.forEach((face,index)=>face.vertices.forEach((id,i)=>{
+  const key=edgeKey(id,face.vertices[(i+1)%face.vertices.length]);
+  const other=owners.get(key);
+  if(other===undefined)owners.set(key,index);
+  else{adjacent[index].add(other);adjacent[other].add(index);}
+ }));
+ const kept=new Set(),visited=new Set();
+ for(let i=0;i<unique.length;i++){
+  if(visited.has(i))continue;
+  const component=[],queue=[i];visited.add(i);
+  while(queue.length){
+   const index=queue.pop();component.push(index);
+   for(const neighbor of adjacent[index])if(!visited.has(neighbor)){
+    visited.add(neighbor);queue.push(neighbor);
+   }
+  }
+  if(component.reduce((sum,index)=>sum+unique[index].area,0)+EPS>=CONTOURS.minFaceArea)
+   for(const index of component)kept.add(index);
+ }
+ const fields=unique.filter((_,index)=>kept.has(index));
+ geometryCache.set(world,{signature,fields});return fields;
 }
 export function contourArea(fields){return fields.reduce((sum,f)=>sum+f.area,0);}
 export function contourProduction(fields){

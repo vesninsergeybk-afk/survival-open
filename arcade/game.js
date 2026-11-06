@@ -81,7 +81,7 @@ import {recordWorldFeedback,recordContourFeedback,advanceWorldFeedback,drawWorld
 import {regionalCampaignPressure,campaignDestination,strongholdThreat} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1-stronghold-1-territory-war-1';
 import {updateStationInterdiction,interruptStationInterdiction,threatenedStations} from './strategic-command.js?v=campaign-1-repair-qa-1-tactical-balance-1-world-feedback-1-flux-reserve-1-flux-offense-1-territory-war-1';
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
-import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1';
+import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-1';
 import {launchFluxSortie,advanceFluxSortie,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {recordIndustrialBreachHit,advanceIndustrialBreaches,INDUSTRIAL_BREACH} from './industrial-breach.js?v=territory-war-1-territory-war-1-breach-fix-1';
 import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from './contour-cover.js?v=territory-war-2-territory-war-1-topology-fix-1';

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createContours,autoConnectContours,contourFields,contourArea,validContours} from '../territory-system.js';
+import {createContours,autoConnectContours,contourFields,contourArea,validContours,CONTOURS} from '../territory-system.js';
 import {syncContourDynamics,activeContourTransition,resumeContourTransition} from '../contour-dynamics.js';
 import {renderWorldMap} from '../map-panel.js';
 import {game} from './weapons-scene.mjs';
@@ -26,6 +26,43 @@ test('activating the third suitable station closes the triangle without a map ac
  assert.equal(contourArea(contourFields(world)),770000);
  assert.deepEqual(autoConnectContours(world),[],'repeat updates must not create duplicate links');
  assert.equal(world.contours.flux,0,'closing a triangle never invents a resource payment or free flux');
+ assert.equal(validContours(world.contours,[...world.stations]),true);
+});
+
+test('powering a fourth station inside a valid triangle cannot erase the existing territory',()=>{
+ const stations=[node('A',0,0,true),node('B',1000,0,true),
+  node('C',500,1000,true),node('D',500,333,false)];
+ const world={stations:new Map(stations.map(s=>[s.id,s])),contours:createContours()};
+ autoConnectContours(world);
+ assert.equal(contourFields(world).length,1);
+ assert.equal(contourArea(contourFields(world)),500000);
+ world.stations.get('D').active=true;
+ assert.equal(autoConnectContours(world).length,3);
+ assert.equal(contourFields(world).length,3);
+ assert.equal(contourArea(contourFields(world)),500000,
+  'subdividing existing land must not destroy its production or claim area');
+ assert.equal(validContours(world.contours,[...world.stations]),true);
+});
+
+test('separate undersized loops cannot pool their land to unlock flux',()=>{
+ const sites=[node('A',0,0,true),node('B',600,0,true),node('C',300,400,true),
+  node('D',5000,0,true),node('E',5600,0,true),node('F',5300,400,true)];
+ const world={stations:new Map(sites.map(s=>[s.id,s])),contours:createContours()};
+ autoConnectContours(world);
+ assert.equal(world.contours.links.length,6);
+ assert.equal(contourFields(world).length,0,
+  'two unrelated 120000 m² triangles each remain below the minimum area');
+});
+
+test('automatic connections prefer a viable triangle over competing short dead-end links',()=>{
+ const stations=[node('A',2576,261,true),node('B',3866,815,true),
+  node('C',4594,3346,true),node('D',4384,2207,true),node('E',4464,2873,true)];
+ const world={stations:new Map(stations.map(s=>[s.id,s])),contours:createContours()};
+ const links=autoConnectContours(world);
+ assert.ok(links.length>=3);
+ assert.ok(contourArea(contourFields(world))>=CONTOURS.minFaceArea,
+  'three mutually reachable stations must not be defeated by shorter unusable loops');
+ assert.deepEqual(autoConnectContours(world),[]);
  assert.equal(validContours(world.contours,[...world.stations]),true);
 });
 
