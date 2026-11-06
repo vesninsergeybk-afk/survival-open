@@ -1,0 +1,106 @@
+/* Station terminal art v1. Presentation-only: no DOM changes or gameplay hooks. */
+#overlay .base-dialog {
+  background-image:
+    url('./studio/menu-kit/art/ui/terminal-frame.svg'),
+    radial-gradient(ellipse at 100% 0%,var(--station-accent-soft),transparent 52%),
+    linear-gradient(135deg,#18242c 0%,#101a22 34%,#0b141c 78%,#15232b);
+  background-position:center,center,center;
+  background-size:100% 100%,cover,cover;
+  background-repeat:no-repeat;
+}
+
+/* The station image belongs to the header only; text stays in the HTML layer. */
+@media (min-width:701px) and (min-height:581px) {
+  #overlay .base-dialog.station-dock .base-head::before {
+    background:linear-gradient(90deg,#101b23f9 0%,#101b23e8 34%,#101b23a0 59%,#101b2375 100%),
+      url('./studio/menu-kit/art/stations/dock.webp') right 48%/cover no-repeat;
+  }
+  #overlay .base-dialog.station-lab .base-head::before {
+    background:linear-gradient(90deg,#101b23f9 0%,#101b23e8 34%,#101b23a0 59%,#101b2375 100%),
+      url('./studio/menu-kit/art/stations/lab.webp') right 52%/cover no-repeat;
+  }
+  #overlay .base-dialog.station-arsenal .base-head::before {
+    background:linear-gradient(90deg,#101b23f9 0%,#101b23e8 34%,#101b23a0 59%,#101b2375 100%),
+      url('./studio/menu-kit/art/stations/arsenal.webp') right 52%/cover no-repeat;
+  }
+  #overlay .base-dialog.station-carrier .base-head::before {
+    background:linear-gradient(90deg,#101b23f9 0%,#101b23e8 34%,#101b23a0 59%,#101b2375 100%),
+      url('./studio/menu-kit/art/stations/carrier.webp') right 52%/cover no-repeat;
+  }
+}
+
+/* Fine mechanical texture: subdued and limited to secondary information cards. */
+#overlay .base-dialog .base-card:not(.reward):not(.inactive),
+#overlay .base-dialog .base-dashboard-main {
+  background-image:url('./studio/menu-kit/art/ui/panel-hatch.svg'),
+    linear-gradient(135deg,#1c2e37,#12212b);
+  background-position:right center,center;
+  background-size:auto 100%,cover;
+  background-repeat:no-repeat;
+}
+
+/* The existing tab and action button elements keep their text, focus and click target. */
+#overlay .base-dialog .base-tabs button::before,
+#overlay .base-dialog [data-act="repair"]::before,
+#overlay .base-dialog [data-act="hire"]::before,
+#overlay .base-dialog [data-act="baseMap"]::before,
+#overlay .base-dialog [data-act="close"]::before {
+  background-color:currentColor;
+  -webkit-mask-position:center;
+  mask-position:center;
+  -webkit-mask-size:contain;
+  mask-size:contain;
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+}
+#overlay .base-dialog .base-tabs [data-role="summary"]::before {
+  -webkit-mask-image:url('./studio/menu-kit/art/ui/nav-summary.svg');
+  mask-image:url('./studio/menu-kit/art/ui/nav-summary.svg');
+}
+#overlay .base-dialog .base-tabs [data-role="operations"]::before {
+  -webkit-mask-image:url('./studio/menu-kit/art/ui/nav-missions.svg');
+  mask-image:url('./studio/menu-kit/art/ui/nav-missions.svg');
+}
+#overlay .base-dialog .base-tabs [data-role="hangar"]::before {
+  -webkit-mask-image:url('./studio/menu-kit/art/ui/nav-ship.svg');
+  mask-image:url('./studio/menu-kit/art/ui/nav-ship.svg');
+}
+#overlay .base-dialog .base-tabs [data-role="network"]::before {
+  -webkit-mask-image:url('./studio/menu-kit/art/ui/nav-station.svg');
+  mask-image:url('./studio/menu-kit/art/ui/nav-station.svg');
+}
+#overlay .base-dialog [data-act="repair"]::before {
+  -webkit-mask-image:url('./studio/menu-kit/art/ui/act-repair.svg');
+  mask-image:url('./studio/menu-kit/art/ui/act-repair.svg');
+}
+#overlay .base-dialog [data-act="hire"]::before {
+  -webkit-mask-image:url('./studio/menu-kit/art/ui/act-hire.svg');
+  mask-image:url('./studio/menu-kit/art/ui/act-hire.svg');
+}
+#overlay .base-dialog [data-act="baseMap"]::before {
+  -webkit-mask-image:url('./studio/menu-kit/art/ui/nav-map.svg');
+  mask-image:url('./studio/menu-kit/art/ui/nav-map.svg');
+}
+#overlay .base-dialog [data-act="close"]::before {
+  -webkit-mask-image:url('./studio/menu-kit/art/ui/act-launch.svg');
+  mask-image:url('./studio/menu-kit/art/ui/act-launch.svg');
+}
+
+/* Icon outlines have the station's restrained equipment colour. */
+#overlay .base-dialog .hg-module-icon.station-weapon-icon {
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.7;
+  stroke-linejoin:round;
+  stroke-linecap:round;
+}
+@media (max-width:700px),(max-height:580px) {
+  #overlay .base-dialog {background-image:
+    radial-gradient(ellipse at 100% 0%,var(--station-accent-soft),transparent 52%),
+    linear-gradient(135deg,#18242c 0%,#101a22 34%,#0b141c 78%,#15232b)}
+  #overlay .base-dialog .base-card:not(.reward):not(.inactive),
+  #overlay .base-dialog .base-dashboard-main {background-image:linear-gradient(135deg,#1c2e37,#12212b)}
+}
+@media (prefers-reduced-motion:reduce) {
+  #overlay .base-dialog .station-weapon-icon {animation:none;transition:none}
+}

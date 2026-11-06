@@ -26,6 +26,10 @@ const paths={
  upgrades:'M16 3l10 10h-6v15h-8V13H6z',
  weapons:'M8 27l5-10 M19 17l5 10 M12 4h8v13h-8z M16 1v9'
 };
+const stationWeaponArtwork=new Set(['plasma','rail','flak','rocket','resonator','ion','howitzer']);
 export function menuIcon(id,css='menu-symbol'){
+ if(css==='hg-module-icon'&&stationWeaponArtwork.has(id)){
+  return '<svg class="'+css+' station-weapon-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="./studio/menu-kit/art/ui/icons.svg#weapon-'+id+'"/></svg>';
+ }
  return '<svg class="'+css+'" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="'+(paths[id]||paths.upgrades)+'"/></svg>';
 }

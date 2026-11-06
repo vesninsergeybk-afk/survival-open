@@ -4,7 +4,7 @@ import {WEAPON_SPECIALIZATIONS,specializationState,quoteSpecialization} from './
 import {loadoutAnalysis} from './loadout-analysis.js?v=weapons-cycle-2-campaign-1';
 import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalSpec,tacticalQuote} from './tactical-fields.js?v=tactical-field-2';
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1';
-import {menuIcon} from './menu-icons.js?v=menu-focus-1';
+import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {MODULES,FRAME_STEPS,BLUEPRINT_NAMES,SHIP_ART,HangarSession,createLoadout,
  frameSpec,slotOpen,equipModule,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-flow-2-menu-focus-1';
 
@@ -12,7 +12,8 @@ const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;
 const fmt=n=>typeof n==='number'?Number(n.toFixed(2)).toLocaleString('ru-RU'):n;
 const button=(act,label,id='',disabled=false,cls='')=>'<button type="button" class="'+cls+'" data-act="'+act+'" data-id="'+id+'"'+(disabled?' disabled':'')+'>'+label+'</button>';
 const labelFor=i=>i===5?'H':String(i+1);
-const icon=id=>menuIcon(id,'hg-module-icon');
+// The blueprint needs inline path geometry for its own SVG transforms.
+const icon=(id,blueprint=false)=>menuIcon(id,blueprint?'hg-module-icon-inline':'hg-module-icon');
 const info=(name,description)=>'<button type="button" class="menu-info" data-help-only data-help="'+esc(description)+'" aria-label="Подробнее: '+esc(name)+'">i</button>';
 function specializationPanel(id,context){
  const branches=WEAPON_SPECIALIZATIONS[id];if(!branches)return '';
@@ -72,7 +73,7 @@ function shipScene(context,session){
   guns+='<circle cx="'+x*100+'" cy="'+y*100+'" r="'+(selected?1.5:1)+'" fill="'+color+'"/>';
   if(open&&id){
    guns+='<g transform="translate('+(x*100-2)+' '+(y*100-3)+') scale(.125)" stroke="'+color+'" stroke-width="2.2" fill="#122639">'+
-    icon(id).replace(/<svg[^>]*>|<\/svg>/g,'')+'</g>';
+    icon(id,true).replace(/<svg[^>]*>|<\/svg>/g,'')+'</g>';
   }
   nodes+='<button type="button" data-act="hgSlot" data-id="'+i+'" class="hg-node'+(selected?' selected':'')+(open?'':' locked')+
    '" style="left:'+bx+'%;top:'+by+'%;--module-color:'+color+'" aria-label="Узел '+labelFor(i)+': '+
