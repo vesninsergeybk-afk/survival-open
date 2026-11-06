@@ -28,12 +28,14 @@ test('special operation and normal assignments offer acceptance immediately on t
  assert.ok(html.indexOf('data-act="acceptOperation"')<html.indexOf('base-task-group regular'));
 });
 
-test('one weapon selection shows both branches and relevant upgrades without disclosures',()=>{
+test('installed weapons show upgrade paths; absent weapons show installation only',()=>{
  const current=createLoadout(),session=new HangarSession();session.begin(current);
  const context=state({baseActive:true,loadout:current,hangarSession:session,developmentMode:true,developmentCategory:'weapons'});
  const first=renderShipHangar(context,session);
  assert.match(first,/data-act="hgFocusWeapon" data-id="rail"/);
- assert.match(first,/class="hg-weapon-inspector"/);
+ assert.match(first,/class="hg-weapon-inspector dev-weapon-inspector"/);
+ assert.match(first,/class="dev-weapon-layout"/);
+ assert.match(first,/<details class="dev-other-weapons">/);
  assert.match(first,/data-act="hgSpec" data-id="plasma:furnace"/);
  assert.match(first,/data-act="hgSpec" data-id="plasma:focus"/);
  assert.match(first,/data-act="hgUpgrade" data-id="beam"/);
@@ -41,8 +43,12 @@ test('one weapon selection shows both branches and relevant upgrades without dis
  session.dispatch({act:'hgFocusWeapon',id:'rail'},{loadout:current});
  const next=renderShipHangar(context,session);
  assert.match(next,/<h3>Рельсовое орудие<\/h3>/);
- assert.match(next,/data-act="hgSpec" data-id="rail:breaker" disabled/);
- assert.match(next,/Сначала установите это оружие на корабль/);
+ assert.match(next,/Это оружие ещё не установлено/);
+ assert.match(next,/<details class="dev-other-weapons" open>/);
+ assert.match(next,/data-act="fitWeapon" data-id="rail"/);
+ assert.doesNotMatch(next,/data-act="hgSpec"/,'an absent weapon must not open its upgrade tree');
+ assert.doesNotMatch(next,/data-act="hgUpgrade"/,'global upgrades must not appear in the absent module detail');
+ assert.doesNotMatch(next,/class="hg-focused-stats"/);
  assert.doesNotMatch(next,/data-act="hgSpec" data-id="plasma:furnace"/);
  assert.equal(current.slots[0],'plasma','inspecting must not equip or buy');
 });
