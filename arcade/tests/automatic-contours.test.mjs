@@ -66,6 +66,16 @@ test('automatic connections prefer a viable triangle over competing short dead-e
  assert.equal(validContours(world.contours,[...world.stations]),true);
 });
 
+test('a tiny interior subface is not discarded as a nested overlapping territory',()=>{
+ const sites=[node('A',807,3144,true),node('B',1086,3440,true),
+  node('C',4738,310,true),node('D',230,804,true),node('E',947,3128,true)];
+ const world={stations:new Map(sites.map(s=>[s.id,s])),contours:createContours()};
+ autoConnectContours(world);
+ assert.equal(contourArea(contourFields(world)),241034,
+  'adjacent 191368 m² and 49666 m² faces together retain the outer triangle');
+ assert.ok(contourFields(world).some(f=>f.vertices.includes('E')));
+});
+
 test('distant stations do not mint a field; a fourth nearby station completes one',()=>{
  const world=network();world.stations.get('B').active=true;
  const c=world.stations.get('C');c.active=true;c.y=3700;
