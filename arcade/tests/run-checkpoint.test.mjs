@@ -103,6 +103,22 @@ test('an early pass-two checkpoint with free home milestones recovers its XP cap
  assert.equal(restored.player.xp,g.player.xp);
  assert.equal(restored.player.level,g.player.level);
 });
+test('a legacy save with three powered stations closes its missing triangle on load without duplicated rewards',()=>{
+ const old=scene(),w=old.world;
+ for(const [x,y] of [[1,0],[0,-1]]){
+  const node=w.station(x,y);node.active=true;node.enemy=false;node.discovered=true;
+  w.discovered.add(node.id);
+ }
+ w.contours.links=[['0:0','1:0'],['1:0','0:-1']];
+ const snapshot=unpackRun(packRun(captureCheckpoint(old,old.docked)));
+ assert.ok(validateCheckpoint(snapshot));
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ assert.equal(restored.world.contours.links.length,3);
+ assert.equal(restored.world.contours.flux,0);
+ assert.equal(restored.player.xp,old.player.xp);
+ assert.equal(restored.player.level,old.player.level);
+ assert.equal(restored.player.strategicXp.firstContour,true);
+});
 test('enemy territorial investments survive docking without spending twice, and old checkpoints load',()=>{
  const g=scene(),w=g.world;
  w.regionalSupply.central.ore=14;
@@ -339,6 +355,22 @@ test('a claimed field contract is credited to its completed flight and saved exa
  assert.equal(fresh.player.ore,36);assert.equal(fresh.sortieReports[0].ore,16);
  assert.equal(fresh.sortieReports[0].details.oreContracts,16);
 });
+test('a completed contract gives a return route only when the pilot has no route',()=>{
+ const g=scene(),b=g.docked;
+ g.contract={baseId:b.id,kind:'rich',goal:1,progress:0,choiceId:'alternate',
+  name:'Геологические сведения',ore:10,data:24};
+ g.advanceContract('mine',{rich:true});
+ assert.equal(g.waypoint?.id,b.id);
+ assert.match(g.waypoint?.label,/Награда/);
+ const other=scene();other.contract={...g.contract,progress:0};
+ other.waypoint={id:'mission',x:300,y:400,label:'Текущая цель'};
+ other.advanceContract('mine',{rich:true});
+ assert.equal(other.waypoint.id,'mission','a selected mission must not be replaced');
+ const pinned=scene();pinned.contract={...g.contract,progress:0};
+ pinned.manualWaypoint={id:'personal',x:500,y:500,label:'Моя точка'};
+ pinned.advanceContract('mine',{rich:true});
+ assert.equal(pinned.waypoint,undefined,'a personal map marker takes priority');
+});
 test('the first claimed contract gives one free early weapon, installs it and survives a checkpoint',()=>{
  const g=scene();g.heritage.ui=noop;g.renderDock=noop;g.firstHardwareReward=null;
  g.contract={baseId:g.docked.id,kind:'kill',goal:1,progress:1,choiceId:'standard',
@@ -430,7 +462,7 @@ test('departing via the station map arms one sortie, but an in-flight map does n
  assert.equal(g.sortieReports[0].seconds,85);
  assert.equal(g.sortieReports[0].ore,26);
 });
-test('a paid network transfer creates one accounted flight and credits its original contract',()=>{
+test('returning from a paid transfer automatically pays its original contract once',()=>{
  const g=scene(),home=g.docked,target=g.world.station(0,-1);
  target.active=true;g.activeBases=2;g.player.ore=86;
  assert.ok(g.world.networkTopology().linked.has(target.id));
@@ -456,14 +488,16 @@ test('a paid network transfer creates one accounted flight and credits its origi
  g.player.x=home.x+55;g.player.y=home.y+30;
  g.dock(home);
  assert.equal(g.sortieReports.length,1);
- assert.equal(g.sortieReports[0].ore,12);
- assert.equal(g.sortieReports[0].data,8);
+ assert.equal(g.sortieReports[0].ore,22);
+ assert.equal(g.sortieReports[0].data,32);
  assert.equal(g.sortieReports[0].hull,-9);
- g.baseAction('claimContract','');
  assert.equal(g.player.ore,86-price+12+10);
+ assert.equal(g.contract,null,'no manual reward-claim action is required');
  assert.equal(g.sortieReports[0].ore,22);
  assert.equal(g.sortieReports[0].details.oreContracts,10);
  assert.equal(g.lastContractReceipt.credited,true);
+ g.baseAction('claimContract','');
+ assert.equal(g.player.ore,86-price+12+10,'the reward cannot be claimed twice');
  assert.equal(g.economyExpenses.travel,price);
  assert.equal(g.sortieStart,null);
 });
@@ -629,6 +663,22 @@ test('continuation renders the restored sector and terrain before the dock pause
  g.continueRun();assert.ok(rendered);assert.equal(g.pendingCheckpoint,null);
  assert.equal(g.heritage.dead,false);assert.equal(g.enemyComms.nextTick,0);
  assert.equal(g.designatedTarget,null);
+});
+test('continuing at a dock pays an old unclaimed order exactly once',()=>{
+ const original=scene(),b=original.docked;
+ original.contract={baseId:b.id,kind:'rich',goal:1,progress:1,
+  choiceId:'alternate',name:'Геологические сведения',ore:10,data:24};
+ const saved=unpackRun(packRun(captureCheckpoint(original,b)));
+ const g=scene();g.pendingCheckpoint=saved;g.vw=1200;g.vh=800;
+ g.visuals={updateSky:noop};g.heritage.pause=noop;
+ g.hangarSession={begin:noop};g.renderDock=noop;
+ g.continueRun();
+ assert.equal(g.contract,null);
+ assert.equal(g.player.ore,30);
+ assert.equal(g.player.data,54);
+ assert.equal(g.lastContractReceipt.ore,10);
+ g.baseAction('claimContract','');
+ assert.equal(g.player.ore,30,'restoring the checkpoint cannot pay the order twice');
 });
 
 

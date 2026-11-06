@@ -151,5 +151,5 @@ test('the first contour guide and selected-station panel give one route to the s
  const {g}=station();g.mapView='territory';g.contourRegion='amethyst';g.contourSelection=g.contourFirst=g.docked.id;
  const html=renderWorldMap(g);
  assert.equal((html.match(/>Отметить маршрут к станции<\/button>/g)||[]).length,1);
- assert.match(html,/План первого энергетического контура/);assert.match(html,/СЛЕДУЮЩЕЕ ДЕЙСТВИЕ/);
+ assert.match(html,/План первого энергетического контура/);assert.match(html,/СЕТЬ РАБОТАЕТ САМА/);
 });

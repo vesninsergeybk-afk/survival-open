@@ -2,13 +2,13 @@ import {menuInfo} from './menu-screens.js?v=all-menus-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {baseNames} from './balance.js?v=arcade-network-20';
 import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt,contourReserveEligible} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
-import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1';
+import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
 import {labLogisticsUnlocked} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from './contour-cartography.js?v=living-atlas-3-map-ux-1-map-art-1';
-import {syncContourDynamics,activeContourTransition,fieldIsNew,enemyContourThreats} from './contour-dynamics.js?v=contour-dynamics-2';
+import {syncContourDynamics,activeContourTransition,fieldIsNew,enemyContourThreats} from './contour-dynamics.js?v=contour-dynamics-2-auto-1';
 import {knownEnemyFields,enemyExpansionPlan} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {firstContourPlan} from './contour-plan.js?v=map-ux-1';
@@ -110,26 +110,22 @@ function proposedContourArtwork(plan,center,scale){
 
 function firstContourGuide(plan,showNext=true){
  if(!plan)return '';
- const ready=plan.edges.filter(e=>e.built).length;
  const list=plan.stations.map((b,i)=>{
   const working=b.active&&!b.enemy&&!b.suppressed;
   const known=b.active||b.discovered||b.strategicRole;
   const caption=working?'Включена':!known?'Нужно разведать':'Нужно включить';
   return `<li class="${working?'done':''}"><span>${i+1}. ${esc(name(b))}</span><small>${caption}</small></li>`;
  }).join('');
- const actions=plan.edges.filter(e=>!e.built&&e.ready).map(e=>
-  `<button data-act="contourPlanLink" data-from="${esc(e.a.id)}" data-id="${esc(e.b.id)}">Соединить: ${esc(name(e.a))} — ${esc(name(e.b))}</button>`).join('');
  return `<section class="contour-first-guide" aria-label="План первого энергетического контура">
   <b>ПЕРВЫЙ ЭНЕРГЕТИЧЕСКИЙ КОНТУР</b>
-  <div class="contour-first-progress">Станции ${plan.active}/3 · линии ${ready}/3</div>
-  <p>Янтарный треугольник — возможная территория; бирюзовый пунктир — линия, которую можно провести сейчас.</p>
+  <div class="contour-first-progress">Работают ${plan.active} из 3 станций</div>
+  <p>Включите три отмеченные станции. Как только они смогут образовать треугольник, линии соединятся сами, территория заполнится энергией и появится воронка.</p>
   <button class="contour-plan-focus" data-act="mapFocusPlan" data-ids="${plan.stations.map(b=>esc(b.id)).join(',')}">Показать треугольник целиком</button>
   <ol>${list}</ol>
   ${plan.uncertain?'<small>Неизвестные станции пока только кандидаты. Их принадлежность выяснится после разведки.</small>':''}
-  ${actions?`<div class="contour-first-actions">${actions}</div>`:''}
   ${showNext?(plan.next?`<p>Следующий шаг: ${esc(contourCandidateInstruction(plan.next))}</p>${route(plan.next)}`:
-   !actions?'<p>Все станции работают. Выберите оставшиеся линии на карте.</p>':''):''}
-  <small>Площадь будущего поля: ${(plan.area/1000000).toFixed(2)} усл. км². Дальность каждой линии — до ${CONTOURS.maxLength} м.</small>
+   '<p>Все три станции работают. Проверьте, не мешают ли связи расстояние и соседние узлы.</p>'):''}
+  <small>Площадь будущего поля: ${(plan.area/1000000).toFixed(2)} усл. км². Максимальная длина связи — ${CONTOURS.maxLength} м.</small>
  </section>`;
 }
 
@@ -253,12 +249,12 @@ function incidentArtwork(game,region,center,scale){
  }).join('');
 }
 
-function selectedPanel(game,selected,source,choices,region){
- const lead='<div class="contour-guide-kicker">СЛЕДУЮЩЕЕ ДЕЙСТВИЕ</div>';
+function selectedPanel(game,selected,choices,region){
+ const lead='<div class="contour-guide-kicker">СЕТЬ РАБОТАЕТ САМА</div>';
  if(!region){
   const first=!contourFields(game.world).length;
   return `<section class="contour-guide">${lead}<h3>${first?'Начните первый контур':'Выберите регион'}</h3>
-   <p>${first?'Три подходящие станции образуют поле только после того, как вы проведёте между ними все три линии. Карта покажет возможный треугольник и расстояния.':
+   <p>${first?'Включите или захватите три достаточно близкие станции. Их связи появятся автоматически, а замкнутый треугольник станет вашей территорией.':
     'На большой карте показаны все пять областей. Нажмите область, чтобы увидеть станции и линии.'}</p>
    ${first?`<button class="contour-choice" data-act="contourRegion" data-id="${regionAt(game.player.x,game.player.y).id}">Показать первые станции ↗</button>`:''}</section>`;
  }
@@ -266,7 +262,7 @@ function selectedPanel(game,selected,source,choices,region){
   const own=[...game.world.stations.values()].filter(b=>b.active&&!b.enemy&&
    Math.hypot(b.x-region.survey.x,b.y-region.survey.y)<5300);
   return `<section class="contour-guide">${lead}<h3>${own.length?'Выберите свою станцию':'Найдите первую станцию'}</h3>
-   <p>${own.length?'Светящиеся бирюзовые узлы уже работают. Выберите один, чтобы увидеть возможные соединения.':
+   <p>${own.length?'Светящиеся бирюзовые узлы уже работают. Выберите станцию, чтобы проверить её связи и соседей.':
     'В этом участке пока нет работающего узла. Выберите станцию на карте и проложите к ней маршрут.'}</p></section>`;
  }
  const title=esc(name(selected));
@@ -275,24 +271,13 @@ function selectedPanel(game,selected,source,choices,region){
   return `<section class="contour-guide">${lead}<h3>${title}</h3><span class="contour-guide-state blocked">${esc(state(selected))}</span>
    <p>${reason}</p>${route(selected)}</section>`;
  }
- const suggestions=source&&choices.ready.slice(0,3).map(({node,preview},index)=>{
-  const closes=preview.areaGain>1;
-  const extra=closes?'Замкнёт поле · +'+digits(preview.areaGain/1000000)+' усл. км² · +'+digits(preview.productionGain)+' флюкса / 3 мин':
-   'Новая связь · территория появится после замыкания';
-  return `<button class="contour-choice${closes?' closing':''}" data-act="contourConnect" data-from="${esc(source.id)}" data-id="${esc(node.id)}">
-   <span><b>${index+1}. ${esc(name(node))}</b><small>${extra}</small></span><span aria-hidden="true">↗</span></button>`;
- }).join('');
- if(suggestions)return `<section class="contour-guide">${lead}<h3>${title}</h3>
-  <p>Выберите вторую станцию на карте или нажмите подходящее соединение:</p><div class="contour-choices">${suggestions}</div>
-  <button class="contour-cancel" data-act="contourCancel">Снять выбор</button></section>`;
- if(source){
-  const next=choices.next[0]?.node;
-  const linked=(game.world.contours?.links||[]).filter(pair=>pair.includes(source.id)).length;
-  return `<section class="contour-guide">${lead}<h3>Нужна ещё одна станция</h3>
-   <p>Новых допустимых соединений сейчас нет. ${linked?'У выбранной станции уже проведено линий: '+linked+'.':''} ${next?'Ближайший кандидат отмечен янтарным кольцом. '+esc(contourCandidateInstruction(next)):'Проверьте соседние узлы и дальность связи — '+CONTOURS.maxLength+' м.'}</p>
-   ${next?route(next):''}<button class="contour-cancel" data-act="contourCancel">Снять выбор</button></section>`;
- }
- return `<section class="contour-guide">${lead}<h3>${title}</h3><p>Станция включена. Выберите её, чтобы начать соединение.</p>${route(selected)}</section>`;
+ const linked=(game.world.contours?.links||[]).filter(pair=>pair.includes(selected.id)).length;
+ const next=choices.next[0]?.node;
+ return `<section class="contour-guide">${lead}<h3>${title}</h3>
+  <p>Связей: ${linked}. ${linked?'Станция включена в территориальную сеть.':'Пока рядом нет подходящей работающей опоры.'}
+  Новые линии появятся сами при включении соседних узлов в пределах ${CONTOURS.maxLength} м.</p>
+  ${next?`<p>Ближайшая цель: ${esc(name(next))}. ${esc(contourCandidateInstruction(next))}</p>${route(next)}`:route(selected)}
+  </section>`;
 }
 
 export function renderContourMap(game){
@@ -332,10 +317,10 @@ export function renderContourMap(game){
   <small>Захват станции и радиопомехи разрывают соединение. Архивные сведения не содержат текущего положения корабля.</small></details>`:'';
  const inside=fieldAt(world,game.player.x,game.player.y,fields);
  const pulseReady=inside&&world.contours.flux>=5&&game.time>=(world.contours.pulseReadyAt||0)&&game.player.shield<42;
- const source=world.stations.get(game.contourFirst),selected=world.stations.get(game.contourSelection)||source;
- const choices=source&&region?contourConnectionChoices(world,source.id,[...map.values()]):{ready:[],next:[]};
+ const selected=world.stations.get(game.contourSelection);
+ const choices=selected&&region?contourConnectionChoices(world,selected.id,[...map.values()]):{ready:[],next:[]};
  const planIds=new Set(plan?.stations.map(s=>s.id)||[]);
- const best=choices.ready[0],goals=source&&!choices.ready.length?choices.next.slice(0,1):[];
+ const goals=selected&&!choices.ready.length?choices.next.slice(0,1):[];
  // Label only the strongest proposals; a thicket of labels would hide the map.
  const readyIds=new Set(choices.ready.slice(0,4).map(c=>c.node.id));
  const goalIds=new Set(goals.map(c=>c.node.id));
@@ -344,18 +329,15 @@ export function renderContourMap(game){
   const healthy=x.active&&y.active&&!x.enemy&&!y.enemy&&!x.suppressed&&!y.suppressed;
   return `<path d="${pathLine(x,y,center,scale)}" class="${healthy?'contour-live-link':'contour-broken-link'}"/>`;
  }).join('');
- const prospects=source&&region?choices.ready.slice(0,4).map((c,i)=>
-  `<path d="${pathLine(source,c.node,center,scale)}" class="${i===0?'contour-best-link':'contour-possible-link'}"/>`).join('')+
-  goals.map(c=>`<path d="${pathLine(source,c.node,center,scale)}" class="contour-goal-link"/>`).join(''):'';
- const ghost=best?.preview.areaGain>1?best.preview.newFields.map(f=>
-  `<path d="${svgPath(f.polygon,center,scale)}" class="contour-future-field"/>`).join(''):'';
+ const prospects=selected&&region?goals.map(c=>
+  `<path d="${pathLine(selected,c.node,center,scale)}" class="contour-goal-link"/>`).join(''):'';
  const player=at(game.player,center,scale),visiblePlayer=player.x>14&&player.x<666&&player.y>14&&player.y<466;
  const regions='<button data-act="contourRegion" data-id="all" aria-pressed="'+!region+'">Вся карта</button>'+
   REGIONS.map(r=>'<button data-act="contourRegion" data-id="'+r.id+'" aria-pressed="'+(region?.id===r.id)+'">'+r.number+' · '+esc(r.name)+'</button>').join('');
  const stage=transition?.kind==='claim'?'Контур замкнут · энергия заполняет новую территорию':
   transition?.kind==='loss'?'Связь потеряна · границы поля отступают':
-  area>0?'Поле действует · сборщики перевозят флюкс':source?'Выберите вторую станцию или цель для разведки':
-  plan?'Соедините три отмеченные станции · '+plan.active+'/3 включены':
+  area>0?'Поле действует · сборщики перевозят флюкс':
+  plan?'Включите три отмеченные станции · '+plan.active+'/3 работают':
   region?'Выберите станцию на карте':'Выберите регион, чтобы приблизить карту';
  const feedback=game.contourFeedback;
  const flash=feedback&&game.time-feedback.at<15?`<div class="contour-feedback" role="status"><b>${esc(feedback.title)}</b><span>${esc(feedback.text)}</span></div>`:'';
@@ -364,10 +346,6 @@ export function renderContourMap(game){
   const x=world.stations.get(a),y=world.stations.get(b);
   return !x?.active||!y?.active||x.enemy||y.enemy||x.suppressed||y.suppressed;
  }).length;
- const links=selected?world.contours.links.filter(pair=>pair.includes(selected.id)).map(pair=>
-  world.stations.get(pair.find(id=>id!==selected.id))).filter(Boolean):[];
- const extra=links.length?`<details class="contour-links"><summary>Связи узла (${links.length})</summary>${links.map(b=>
-  `<div><span>${esc(name(b))}</span><button data-act="contourUnlink" data-id="${esc(b.id)}" data-from="${esc(selected.id)}">Разорвать</button></div>`).join('')}</details>`:'';
  const activeSource=selected&&selected.active&&!selected.enemy&&!selected.suppressed;
  const reserve=world.contours.reserve,reservedNode=reserve&&world.stations.get(reserve.stationId);
  const reserveEligible=selected&&contourReserveEligible(world,selected.id);
@@ -457,7 +435,7 @@ export function renderContourMap(game){
  }).join('');
  return `<div class="dialog map-dialog contour-dialog" role="dialog" aria-modal="true" aria-labelledby="map-menu-title">
   <header class="map-heading"><div><span class="map-kicker">СТРАТЕГИЧЕСКАЯ СЕТЬ</span><h2 id="map-menu-title">Контуры территорий</h2>
-  ${menuInfo('Как пользоваться контурами','При открытии региона действующая станция выбирается автоматически для подсказки. Нажмите предложенное соединение или второй работающий узел, чтобы построить линию. Можно выбрать другую исходную станцию. Неизвестный кандидат сначала требует разведки и включения. Подробные правила — под картой.')}</div>
+  ${menuInfo('Как пользоваться контурами','Захватывайте и включайте станции. Подходящие соседние станции соединяются автоматически. Три замкнутых узла образуют территорию и создают энергетическую воронку. Нажатие на станцию показывает её состояние и ближайшие цели; на карте можно поставить путевую метку. Линии вручную строить не нужно.')}</div>
   <div class="map-heading-actions"><span class="contour-wallet">Флюкс <b>${digits(world.contours.flux)}</b> / ${CONTOURS.fluxCap}</span>
   ${game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':''}<button data-act="close">Продолжить полёт</button></div></header>
   <nav class="map-view-switch" aria-label="Режим карты"><button data-act="mapView" data-id="map">${menuIcon('map')}Рядом</button>
@@ -473,9 +451,9 @@ export function renderContourMap(game){
   ${region?enemyDomainArtwork(world,enemyFields,enemyPlan,center,scale,region,game.time)+
    fieldArtwork(fields,world,center,scale,transition)+enemyThreatArtwork(threats.filter(t=>{
     const p=at(t.target,center,scale);return p.x>=20&&p.x<=660&&p.y>=20&&p.y<=460;
-   }),center,scale)+proposedContourArtwork(plan,center,scale)+ghost+paths+prospects+
-   (source?`<circle class="contour-reach-ring" cx="${digits(at(source,center,scale).x)}" cy="${digits(at(source,center,scale).y)}" r="${digits(CONTOURS.maxLength*scale)}"/>`:'')+
-   stationMarks(nodes,center,scale,selected?.id,source?.id,readyIds,goalIds,
+   }),center,scale)+proposedContourArtwork(plan,center,scale)+paths+prospects+
+   (selected?.active&&!selected.enemy?`<circle class="contour-reach-ring" cx="${digits(at(selected,center,scale).x)}" cy="${digits(at(selected,center,scale).y)}" r="${digits(CONTOURS.maxLength*scale)}"/>`:'')+
+   stationMarks(nodes,center,scale,selected?.id,null,readyIds,goalIds,
     (game.manualWaypoint||game.waypoint)&&at(game.manualWaypoint||game.waypoint,center,scale),planIds)+
    incidentArtwork(game,region,center,scale):overviewStations(world,center,scale)+
    enemyDomainArtwork(world,enemyFields,enemyPlan,center,scale,null,game.time)+
@@ -486,7 +464,7 @@ export function renderContourMap(game){
   ${chartFrame(center,scale,{overview:!region})}</svg>
   ${mapTools(game)}</div>
   <div class="contour-legend"><span><i class="contour-key mine"></i> Своя</span><span><i class="contour-key unknown"></i> Не разведана</span><span><i class="contour-key dormant"></i> Не включена</span>
-  <span><i class="contour-key hostile"></i> Враг</span><span><i class="contour-key available"></i> Возможная связь</span><span><i class="contour-key vortex"></i> Воронка</span>
+  <span><i class="contour-key hostile"></i> Враг</span><span><i class="contour-key available"></i> Будущая связь</span><span><i class="contour-key vortex"></i> Воронка</span>
   ${physical.visibleRelays?'<span><i class="contour-key relay"></i> Ретрансляторы</span>':''}
   ${physical.visibleStorms?'<span><i class="contour-key storm"></i> Буря</span>':''}
   ${physical.visibleCargo?'<span><i class="contour-key cargo"></i> Замеченный груз</span>':''}
@@ -498,7 +476,7 @@ export function renderContourMap(game){
   ${enemyFields.length?'<span><i class="contour-key enemy-land"></i> Поле машин</span>':''}
   ${enemyPlan?.seen.length?'<span><i class="contour-key enemy-plan"></i> Намеченный контур</span>':''}
   ${region?'<span><i class="contour-key incident"></i> Замеченное событие</span>':''}</div>
-  <div class="contour-context">${esc(current.name)} · ${esc(stage)}${source?'<button data-act="contourCancel">Снять выбор</button>':''}</div>
+  <div class="contour-context">${esc(current.name)} · ${esc(stage)}</div>
   </div><aside class="map-side contour-side"><div class="contour-summary" aria-label="Итоги сети">
   <div><small>ТЕРРИТОРИИ</small><strong>${fields.length}</strong></div><div><small>ДОБЫЧА / 3 МИН</small><strong>${digits(production)}</strong></div>
   <div><small>СБОРЩИКИ В ПУТИ</small><strong>${world.contours.harvesters.length}</strong></div></div>
@@ -506,7 +484,7 @@ export function renderContourMap(game){
   ${!flash&&game.contourInfo?`<p class="contour-info" role="status">${esc(game.contourInfo)}</p>`:''}
   ${enemyThreatPanel(threats)}
   ${enemyExpansionPanel(enemyPlan&&(!region||enemyPlan.region===region.id)?enemyPlan:null)}
-  ${selectedPanel(game,selected,source,choices,region)}
+  ${selectedPanel(game,selected,choices,region)}
   ${offensePanel}
   ${reservePanel}
   ${firstContourGuide(plan,!selected)}
@@ -516,8 +494,7 @@ export function renderContourMap(game){
    <button data-act="contourPulse"${pulseReady?'':' disabled'}>${(world.contours.pulseReadyAt||0)>game.time?'Импульс через '+Math.ceil(world.contours.pulseReadyAt-game.time)+' с':
    'Защитный импульс · 5 флюкса · +22 щита'}</button><small>Доступен, когда корабль находится внутри поля и щит ниже 42.</small></div>`:''}
   ${broken?`<p class="contour-warning">⚠ Нарушено связей: ${broken}. Красный пунктир показывает линии без питания.</p>`:''}
-  ${activeSource?extra:''}
   ${renderWorldFeedbackMap(game)}
-  <details class="contour-rules"><summary>Как устроена сеть</summary><p>Соединяйте только работающие станции. Линия не длиннее ${CONTOURS.maxLength} м; на один узел приходится не более ${CONTOURS.maxDegree} связей. Замкните три или более узлов — область станет вашей, а внутри появится воронка. Линии не должны пересекаться.</p><p>Если станция подавлена или захвачена, связанные с ней линии перестают питать поле. Восстановите узел, чтобы вернуть территорию.</p></details>
+  <details class="contour-rules"><summary>Как устроена сеть</summary><p>После включения или захвата станции сеть автоматически прокладывает допустимые связи: до ${CONTOURS.maxLength} м, не более ${CONTOURS.maxDegree} на узел и без пересечений. Три станции, образовавшие замкнутую область, сразу создают территорию и воронку. Никаких подтверждений на карте не требуется.</p><p>Если станция подавлена или захвачена врагом, её связи временно не питают поле. После восстановления станции территория возвращается сама.</p></details>
   </aside></section></div>`;
 }

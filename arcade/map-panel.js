@@ -14,7 +14,7 @@ import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './stat
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=menu-rebuild-territory-war-20261106';
 import {renderStationThreats} from './strategic-command.js?v=menu-rebuild-territory-war-20261106';
-import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1';
+import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
@@ -121,6 +121,13 @@ export function renderWorldMap(game){
    '" stroke="#77e2d3" opacity=".52" stroke-width="2" stroke-dasharray="7 5"/>';
  }).join('');
  const enemyOrders=enemyIntentMapPaths(game,(x,y)=>point(x,y,center,scale),visible);
+ const parasiteEchoes=(game.fieldEvolution?.reveals||[])
+  .filter(e=>e.until>game.time).map(e=>{
+   const q=point(e.x,e.y,center,scale);
+   return visible(q)?'<g><circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+    '" r="10" fill="#57f8ca21" stroke="#6af9d7" stroke-width="1.5" stroke-dasharray="3 3"/>'+
+    '<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="3" fill="#c5fff2"/></g>':'';
+  }).join('');
  const readyStation=(game.operation?.id==='silent-corridor'||game.operation?.id===CARRIER_INTERCEPTION.id)&&game.operation.phase==='return'?
    world.stations.get(game.operation.baseId):contractReturnStation(game.contract,world);
  const defenseZone=contractDefenseZone(game.contract,world);
@@ -325,12 +332,13 @@ export function renderWorldMap(game){
   '<section class="map-shell"><div class="map-canvas">'+routeSummary+'<div class="map-plot"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   chartBackdrop(world.seed,center,scale)+atlasStars(world.seed,center,scale,false)+
   '<circle cx="'+pilot.x.toFixed(1)+'" cy="'+pilot.y.toFixed(1)+'" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
-  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+intelMarks+marks+operationMark+enemyOrders+
+  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+intelMarks+marks+operationMark+enemyOrders+parasiteEchoes+
   pilotGlyph(pilot.x,pilot.y)+chartFrame(center,scale,{local:true})+
   '<text x="'+(pilot.x+11).toFixed(1)+'" y="'+(pilot.y+26).toFixed(1)+'" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
   mapTools(game)+'</div>'+
   '<div class="map-legend"><span><i class="local-key pilot"></i>Вы</span><span><i class="local-key active"></i>Включена</span><span><i class="local-key inactive"></i>Выключена</span>'+
   '<span><i class="local-key hostile"></i>Противник</span><span><i class="local-key maneuver"></i>Манёвр</span><span><i class="local-key signal">?</i>Сигнал</span><span><i class="local-key operation"></i>Операция</span>'+
+  (parasiteEchoes?'<span>◌ бирюзовые метки — живые сигналы паразита-передатчика</span>':'')+
   (intel.unlocked?'<span>Бирюзовый круг — промышленный сигнал · янтарный квадрат — радиометка груза</span>':'')+
   (known.some(b=>b.active&&!b.enemy)?'<span>бирюзовый круг — ПВО корабля · фиолетовый — радиус станции для стазиса (нужны 2 врага рядом с вами)</span>':'')+'</div>'+
   '</div>'+

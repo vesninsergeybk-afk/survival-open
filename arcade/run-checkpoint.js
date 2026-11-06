@@ -5,11 +5,12 @@ import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-menu-focus-1';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2-campaign-1';
 import {createTactical,validTactical} from './tactical-fields.js?v=tactical-field-2';
+import {validFieldEvolution} from './field-evolution.js?v=field-evolution-1';
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-campaign-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
 import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-flux-offense-1-territory-war-1';
-import {createContours,validContours} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
+import {createContours,validContours,autoConnectContours} from './territory-system.js?v=automatic-contours-1';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
 
@@ -25,7 +26,7 @@ const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal m
  'contract operation geoScanUntil overchargeUntil fieldLoan fieldTrialTaken fieldReturnAt ionMasteryAwarded '+
  'holdFire beamClock rocketClock zoneClock stationary lastX lastY hacks activeBases enemySerial '+
  'allySerial groupSerial heavyPortalShown lastEncounter lastEncounterLabelAt amberBeltSeen ionFieldSeen '+
- 'waypoint manualWaypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc').split(' ');
+ 'waypoint manualWaypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc fieldEvolution').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const cell=validStationId;
@@ -135,6 +136,7 @@ export function validateCheckpoint(data){
  if(s.economyExpenses!==undefined&&!validEconomyExpenses(s.economyExpenses))return false;
  if(s.openingArc!==undefined&&!validateOpeningArc(s.openingArc))return false;
  if(s.tactical!==undefined&&!validTactical(s.tactical,s.time))return false;
+ if(s.fieldEvolution!==undefined&&!validFieldEvolution(s.fieldEvolution,s.time))return false;
  if(s.firstHardwareReward!==undefined&&s.firstHardwareReward!==null&&
   !['pending','rail','flak','plasma'].includes(s.firstHardwareReward))return false;
  if(['rail','flak','plasma'].includes(s.firstHardwareReward)&&
@@ -231,6 +233,9 @@ export function restoreCheckpoint(game,data){
   }
  }
  // Commit only after the complete world has been reconstructed successfully.
+ // Older saves may contain three powered nodes but only two manually drawn
+ // links. Complete the mesh now, without awarding retroactive rewards.
+ autoConnectContours(world);
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
  // Convert older saves only once, retaining every already earned skill point.

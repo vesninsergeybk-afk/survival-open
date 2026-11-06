@@ -4,6 +4,13 @@
 #overlay .base-tab-panel[hidden]{display:none!important}
 .base-home-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:14px;align-items:start;margin:14px 0}
 .base-home-tasks,.base-home-development{min-width:0;border:1px solid #728c9466;border-radius:7px;padding:15px;background:linear-gradient(135deg,#1a303b,#10232c)}
+.base-auto-contract-receipt{display:flex;align-items:center;flex-wrap:wrap;gap:5px 14px;
+ margin:0 0 12px;padding:12px 17px;border:1px solid #92c9b0a8;border-left:4px solid #85efd0;
+ border-radius:7px;background:linear-gradient(110deg,#163e38,#17313b);color:#e6fff3}
+.base-auto-contract-receipt .base-kicker{font-size:10px;letter-spacing:.12em;color:#9de3ca}
+.base-auto-contract-receipt strong{font-size:17px}
+.base-auto-contract-values{margin-left:auto;color:#c2f9e6;font-size:13px;font-weight:700}
+@media(max-width:700px){.base-auto-contract-values{margin-left:0;width:100%}}
 .base-home-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
 .base-home-heading h3{display:flex;align-items:center;gap:8px;margin:0;color:#ece8da;font-size:19px}
 .base-home-heading>b{white-space:nowrap;color:#f1cf93;font-size:13px}
