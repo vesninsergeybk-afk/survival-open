@@ -403,12 +403,12 @@ export function renderContourMap(game){
   `<section class="contour-economy contour-offense" aria-label="Наступательная вылазка">
    <b>Постановщик помех в пути</b>
    <p>Цель: <strong>${esc(name(sortieTarget))}</strong> · до цели ${Math.ceil(Math.hypot(sortie.x-sortieTarget.x,sortie.y-sortieTarget.y))} м.</p>
-   <small>Корабль можно перехватить. Если он долетит, связь пропадёт на ${FLUX_SORTIE.duration} с. В это время повредите турели поста и остановите выпуск новых грузов.</small></section>`:
+   <small>Корабль можно перехватить. Если он долетит, связь пропадёт на ${FLUX_SORTIE.duration} с. В это время бейте по турелям, а после их уничтожения — по корпусу поста, чтобы остановить новые грузы.</small></section>`:
   offensiveOffer||activeJam?`<section class="contour-economy contour-offense" aria-label="Наступательная вылазка">
    <b>Нарушить снабжение противника</b>
    <p>${esc(name(selected))}${activeBreach?` · <strong>грузы остановлены до ${Math.ceil(selected.fluxBreachUntil-game.time)} с</strong>`:
     activeJam?` · <strong>радиопомехи ещё ${Math.ceil(selected.fluxJamUntil-game.time)} с</strong>`:''}</p>
-   ${activeJam&&!activeBreach?`<p class="contour-offense-intel">ПРОРЫВ: повредите турели поста своим оружием (${breachProgress}/110 урона), пока действуют помехи.</p>`:''}
+   ${activeJam&&!activeBreach?`<p class="contour-offense-intel">ПРОРЫВ: нанесите ${110-breachProgress} урона лично своим оружием по турелям или открытому корпусу поста (${breachProgress}/110), пока действуют помехи.</p>`:''}
    ${activeBreach?'<p class="contour-offense-intel">Диверсия удалась. Для досрочного ремонта врагу придётся потратить промышленное сырьё. Уже отправленные конвои остаются в пути.</p>':''}
    ${sortieTiming}
    ${offensiveOffer?.ok?
@@ -425,7 +425,7 @@ export function renderContourMap(game){
     const offer=fluxSortieOffer(world,f.depot.id,game.time);
     const label=f.depot.id===sortie?.targetId?'Постановщик в пути':
      (f.depot.fluxBreachUntil||0)>game.time?'Производство остановлено':
-     (f.depot.fluxJamUntil||0)>game.time?'Помехи · атакуйте турели':
+     (f.depot.fluxJamUntil||0)>game.time?'Помехи · атакуйте пост':
      offer.ok?'В досягаемости':offer.distance>FLUX_SORTIE.maxRange?'Вне зоны вылета':'Проверить условия';
     return `<button data-act="contourTarget" data-id="${esc(f.depot.id)}"${f.depot.id===selected?.id?' aria-current="true"':''}>
      <span>${esc(name(f.depot))}</span><small>${esc(label)}</small></button>`;

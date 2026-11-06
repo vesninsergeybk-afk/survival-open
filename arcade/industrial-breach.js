@@ -1,5 +1,6 @@
 // A territorial jammer opens a short window for the PILOT to sabotage a
-// physical industrial depot. Supply already in flight is never removed.
+// physical industrial depot. Damaging exposed depot machinery counts when
+// allies have already destroyed the turrets. Supply in flight is never removed.
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 
 export const INDUSTRIAL_BREACH=Object.freeze({
@@ -11,9 +12,11 @@ export function industrialBreachActive(depot,time){
  return !!depot?.enemy&&(depot.fluxBreachUntil||0)>time;
 }
 
-export function recordIndustrialBreachHit(world,turret,damage,time){
+export function recordIndustrialBreachHit(world,target,damage,time){
  if(!Number.isFinite(damage)||damage<=0||!Number.isFinite(time))return null;
- const front=warFronts(world).find(f=>f.depot?.enemy&&f.depot?.turrets.includes(turret));
+ const front=warFronts(world).find(f=>f.depot?.enemy&&
+  (f.depot.turrets.includes(target)||f.depot===target&&
+   f.depot.turrets.every(t=>t.hp<=0)));
  const depot=front?.depot;
  if(!depot||industrialBreachActive(depot,time)||!(depot.fluxJamUntil>time))return null;
  depot.fluxBreachProgress=Math.min(INDUSTRIAL_BREACH.damageRequired,

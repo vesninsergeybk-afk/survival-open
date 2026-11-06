@@ -78,8 +78,8 @@ import {updateStationInterdiction,interruptStationInterdiction,threatenedStation
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {connectContour,disconnectContour,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
 import {launchFluxSortie,advanceFluxSortie,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
-import {recordIndustrialBreachHit,advanceIndustrialBreaches,INDUSTRIAL_BREACH} from './industrial-breach.js?v=territory-war-1-territory-war-1';
-import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from './contour-cover.js?v=territory-war-2-territory-war-1';
+import {recordIndustrialBreachHit,advanceIndustrialBreaches,INDUSTRIAL_BREACH} from './industrial-breach.js?v=territory-war-1-territory-war-1-breach-fix-1';
+import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from './contour-cover.js?v=territory-war-2-territory-war-1-topology-fix-1';
 import {territoryTech,TERRITORY_TECH} from './territory-tech.js?v=territory-war-1-territory-war-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1';
@@ -3045,6 +3045,18 @@ export class ArcadeGame {
   if(this.flashes.length>=90)this.flashes.shift();
   this.flashes.push({x,y,x2,y2,color,ttl:.16});
  }
+ announceIndustrialBreach(breach){
+  if(breach?.kind!=='breach')return;
+  const depot=breach.depot;
+  this.heritage.vfx.nova(depot.x,depot.y,200,'cyan');
+  this.heritage.play('capturedBase',.26,{x:depot.x,y:depot.y});
+  this.notice('ПРОРЫВ СВЯЗИ! Промышленный пост остановлен до ремонта. Враг потратит сырьё на восстановление.',7);
+  recordWorldFeedback(this,{key:'industrial-breach:'+depot.id+':'+Math.floor(this.time),
+   kind:'industry',label:'ПРОМЫШЛЕННАЯ ДИВЕРСИЯ',
+   cause:'Вы повредили турели или открытый корпус поста под прикрытием радиопомех',
+   effect:'Выход новых грузов остановлен; досрочный ремонт потребует настоящего сырья',
+   x:depot.x,y:depot.y,notify:true});
+ }
  hitTurret(t,damage,contact=null,source='player'){
   if(t.hp<=0)return;
   const dealt=Math.min(t.hp,Math.max(0,damage));
@@ -3060,17 +3072,7 @@ export class ArcadeGame {
   this.heritage.play('armorHit',.35,{x:t.x,y:t.y});
   if(source==='player'){
    const breach=recordIndustrialBreachHit(this.world,t,dealt,this.time);
-   if(breach?.kind==='breach'){
-    const depot=breach.depot;
-    this.heritage.vfx.nova(depot.x,depot.y,200,'cyan');
-    this.heritage.play('capturedBase',.26,{x:depot.x,y:depot.y});
-    this.notice('ПРОРЫВ СВЯЗИ! Промышленный пост остановлен до ремонта. Враг потратит сырьё на восстановление.',7);
-    recordWorldFeedback(this,{key:'industrial-breach:'+depot.id+':'+Math.floor(this.time),
-     kind:'industry',label:'ПРОМЫШЛЕННАЯ ДИВЕРСИЯ',
-     cause:'Вы повредили охрану поста под прикрытием радиопомех',
-     effect:'Выход новых грузов остановлен; досрочный ремонт потребует настоящего сырья',
-     x:depot.x,y:depot.y,notify:true});
-   }
+   this.announceIndustrialBreach?.(breach);
   }
   if(t.hp<=0){this.heritage.vfx.shipExplosion(t.x,t.y,21,'#ff6974');
    this.heritage.play('explosion',.25,{x:t.x,y:t.y});}
@@ -3099,7 +3101,12 @@ export class ArcadeGame {
    }
    return;
   }
+  const dealt=Math.min(base.hp,Math.max(0,damage));
   base.hp-=damage;
+  if(source==='player'){
+   const breach=recordIndustrialBreachHit(this.world,base,dealt,this.time);
+   this.announceIndustrialBreach?.(breach);
+  }
   if(base.hp<=0){
    const precisionUnlockedHere=base.type==='arsenal'&&!precisionRailUnlocked(this.world);
    const labUnlockedHere=base.type==='lab'&&!labLogisticsUnlocked(this.world);
@@ -3405,7 +3412,7 @@ export class ArcadeGame {
     event.kind==='sortieLost'?'Враги перехватили постановщик помех':
     event.kind==='sortieAborted'?'Вражеский пост уже выведен из строя':
     'Рейс завершился без доставки';
-   const effect=arrived?'Связь поста «'+title+'» нарушена на '+FLUX_SORTIE.duration+' с. Повредите его турели, чтобы остановить выпуск грузов дольше':
+   const effect=arrived?'Связь поста «'+title+'» нарушена на '+FLUX_SORTIE.duration+' с. Повредите турели или открытый корпус поста, чтобы остановить выпуск грузов дольше':
     'Уже оплаченный флюкс потрачен; новый рейс потребует ресурсов';
    recordWorldFeedback(this,{key:'flux-sortie:'+event.kind+':'+event.targetId+':'+Math.floor(this.time),
     kind:arrived?'industry':'loss',label:arrived?'РАДИОУЗЕЛ ЗАГЛУШЕН':'РЕЙС ПРЕРВАН',
