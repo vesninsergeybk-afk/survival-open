@@ -119,11 +119,12 @@ test('regular jobs are visible before long optional mission description',()=>{
 });
 
 test('an active special mission from another station points back to the map',()=>{
- const operation={id:'silent-corridor',baseId:home.id,kind:'corridor',phase:'attack',x:1300,y:80};
+ const operation={id:'silent-corridor',name:'Глухой коридор',baseId:home.id,kind:'corridor',phase:'attack',hp:100,maxHp:150,x:1300,y:80};
  const html=renderBasePanel(lab,state({operation}));
  const summary=visiblePanel(html);
- assert.match(summary,/Вы приняли операцию на другой станции/);
- assert.match(summary,/data-act="baseMap">Показать цель на карте/);
+ assert.match(summary,/«Глухой коридор»/);
+ assert.match(summary,/Найдите отмеченный глушитель/);
+ assert.match(summary,/data-act="baseMap">Показать глушитель/);
  assert.doesNotMatch(summary,/data-act="acceptOperation"/);
 });
 
@@ -133,7 +134,7 @@ test('unspent pilot points are actionable inside a dock, even after a level-up a
  assert.match(html,/class="base-home-pilot-status" role="status"/);
  assert.match(html,/Пилот · ур. 2/);
  assert.match(html,/Новый уровень!/);
- assert.match(html,/1 очк\./);
+ assert.match(html,/очки <b>1<\/b>/);
  assert.match(html,/data-act="openDevelopment" data-id="pilot"/);
  assert.doesNotMatch(html,/Данные <b>0<\/b> \(опыт\)/);
  const spent=renderBasePanel(home,state({level:2,points:0,xp:0,nextXp:68}));

@@ -1,5 +1,5 @@
 import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,completeContourTrial,
- planContourTrial} from './contour-trials.js';
+ planContourTrial} from './contour-trials.js?v=clarity-pass-1';
 import {contourFields,fieldAt} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js';
 import {ENEMY_TYPES} from './ai.js';
@@ -8,6 +8,7 @@ import {recordWorldFeedback} from './world-feedback.js';
 const nearby=(a,b,r)=>dist(a,b)<r;
 function available(game,entry){
  if(game.paused||game.dead||!nearby(game.player,entry,CONTOUR_TRIALS.engageRadius))return false;
+ if((game.contourTrialRetryAt||0)>game.time)return false;
  if(game.operation?.id==='relay-defense'&&game.operation.phase!=='complete')return false;
  if(game.operation?.id==='carrier-interception'&&game.operation.phase!=='complete')return false;
  return !!fieldAt(game.world,entry.x,entry.y);
@@ -16,13 +17,18 @@ function available(game,entry){
 function spawnTrialWave(game,event){
  const wave=event.plan.waves[event.waveIndex+1];
  if(!wave)return false;
- // An already crowded battlefield postpones the next wave. Do not bypass
- // the overall enemy budget or bury a low-end mobile GPU under extra ships.
- if(game.enemies.filter(e=>e.hp>0).length>Math.min(46,RULES.maxEnemies-18))return false;
- event.waveIndex++;
  const total=Object.values(wave).reduce((n,value)=>n+value,0);
+ // Remote enemies elsewhere in the sector must not block a local scripted
+ // wave forever. Preserve a stricter budget in the player's visible battle.
+ const nearbyEnemies=game.enemies.filter(e=>e.hp>0&&dist(e,game.player)<1550).length;
+ if(nearbyEnemies>48||game.enemies.length+total>RULES.maxEnemies){
+  event.waitingForSpace=true;return false;
+ }
+ event.waitingForSpace=false;
+ event.waveIndex++;
  const group=++game.groupSerial,cam=game.camera();let i=0,scoutCount=0;
- event.waveIds=[];event.defeatedIds??=new Set();
+ event.waveIds=[];event.waveTemplates=new Map();event.defeatedIds??=new Set();
+ event.waveStartedAt=game.time;
  const pincer=event.plan.variants.some(v=>v.id==='pincer');
  const rear=event.plan.variants.some(v=>v.id==='elite');
  const angle=game.player.angle||0;
@@ -49,12 +55,13 @@ function spawnTrialWave(game,event){
    _patrolRoute:null};
   game.enemies.push(enemy);i++;
   event.waveIds.push(enemy.serial);
+  event.waveTemplates.set(enemy.serial,{...enemy});
  }
  event.phase='wave';
  if(!Number.isFinite(event.nextStrikeAt))
   event.nextStrikeAt=game.time+3.6;
- game.notice?.('КОНТРАТАКА НА НОВЫЙ ТРЕУГОЛЬНИК · волна '+
-  (event.waveIndex+1)+'/'+event.plan.waves.length+' · '+total+' целей.'+
+ game.notice?.('ОБОРОНА ТРЕУГОЛЬНИКА · волна '+
+  (event.waveIndex+1)+' из '+event.plan.waves.length+' · '+total+' целей · '+event.plan.variants.map(v=>v.name).join(', ')+'.'+
   (scoutCount?' Зрачки готовят резкие таранные рывки!':' Уклоняйтесь от орбитального огня!'),4.5);
  game.heritage?.play?.('orbitalWarning',.9,game.player);
  return true;
@@ -81,6 +88,7 @@ function disengage(game,event,reason){
  game.zones=game.zones.filter(z=>z.trialId!==event.entry.id);
  game.zoneClock=Math.max(game.zoneClock||0,5);
  game.contourTrial=null;
+ game.contourTrialRetryAt=game.time+18;
  game.notice?.(reason,4.5);
 }
 
@@ -95,7 +103,7 @@ function finishTrial(game,event){
  const gained=14+event.plan.tier*7;
  game.awardExperience?.(gained);
  game.contourFeedback={title:'Территория стабилизирована',
-  text:'Испытание '+event.plan.tier+'/12 пройдено. Воронка и доставка флюкса запущены.',
+  text:'Все '+event.plan.waves.length+' волны отражены. Воронка и доставка флюкса запущены.',
   at:game.time};
  game.rewardNotice?.('КОНТУР СТАБИЛИЗИРОВАН · +'+gained+
   ' опыта. Воронка открыта, добыча флюкса начинается!',previousLevel,6);
@@ -134,9 +142,9 @@ export function updateContourTrials(game,dt){
    waveIndex:-1,nextWaveAt:game.time+CONTOUR_TRIALS.warningSeconds,
    nextStrikeAt:Infinity,outsideFor:0};
   game.contourTrial=event;
-  game.notice?.('КОНТУР ЗАМКНУТ · вражеская сеть засекла энергетический всплеск! '+
-   'Контратака '+entry.tier+'/12 · рекомендован уровень '+
-   event.plan.recommendedLevel+'+. Защитите новую территорию!',5);
+  game.notice?.('КОНТУР ЗАМКНУТ · противник обнаружил новый треугольник! '+
+   'Оборона: '+event.plan.waves.length+' '+(event.plan.waves.length===1?'волна':'волны')+
+   ' · рекомендован уровень '+event.plan.recommendedLevel+'+. Отразите нападение!',5);
   game.heritage?.vfx?.nova?.(entry.x,entry.y,120,'red');
   game.heritage?.play?.('orbitalWarning',1.2,entry);
   return;
@@ -150,27 +158,48 @@ export function updateContourTrials(game,dt){
   disengage(game,event,'Вы отошли от контура. Станции сохранены; испытание можно повторить позже.');return;
  }
  if(event.phase==='warning'||event.phase==='rest'){
-  if(game.time>=event.nextWaveAt&&!spawnTrialWave(game,event))
+  if(game.time>=event.nextWaveAt&&!spawnTrialWave(game,event)){
    event.nextWaveAt=game.time+1.2;
+   if(!event.lastCrowdNotice||game.time-event.lastCrowdNotice>15){
+    event.lastCrowdNotice=game.time;
+    game.notice?.('Оборона треугольника: слишком много врагов рядом. Расчистите подходы — новая волна уже готова.',4);
+   }
+  }
   return;
  }
  if(event.phase!=='wave')return;
  if(game.time>=event.nextStrikeAt)scheduleTrialStrike(game,event);
- // Never count a ship that vanished past the camera as a kill. The ordinary
- // enemy culler may remove it during retreat; only an actual death or a
- // successful conversion clears a wave target.
+ // Never count a ship culled beyond the camera as a kill. Restore a lost
+ // participant to the approach instead of silently restarting the *entire*
+ // defence and throwing away the previous completed waves.
  for(const serial of event.waveIds||[]){
   if(event.defeatedIds.has(serial))continue;
   const enemy=game.enemies.find(e=>e.serial===serial&&e.trialId===event.entry.id);
   if(!enemy){
-   disengage(game,event,'Противник вышел из боя. Контур остался нестабильным — вернитесь для новой попытки.');
-   return;
+   const original=event.waveTemplates?.get(serial);
+   if(!original)continue;
+   const cam=game.camera(),side=(serial+event.entry.id)%4;
+   const pos=spawnOutside(cam,side,.2+((serial*7)%11)/18,125);
+   game.enemies.push({...original,...pos,vx:0,vy:0,hp:original.maxHp,
+    think:.15,fire:.65,state:'hunt',entryPortalPending:false});
+   continue;
   }
   if(enemy.hp<=0||enemy.converted)event.defeatedIds.add(serial);
  }
- if((event.waveIds||[]).some(serial=>!event.defeatedIds.has(serial)))return;
+ const waveIds=event.waveIds||[],defeated=waveIds.filter(id=>event.defeatedIds.has(id)).length;
+ const enough=defeated>=Math.ceil(waveIds.length*.75);
+ const timeout=game.time-event.waveStartedAt>=CONTOUR_TRIALS.maxWaveSeconds;
+ if(!enough&&!timeout)return;
+ if(timeout&&defeated<Math.ceil(waveIds.length*.5)){
+  disengage(game,event,'Противник удержал контур. Оборона завершилась неудачей — новая попытка через 18 секунд.');
+  return;
+ }
+ // Remaining ships disengage after heavy losses or a bounded battle. They
+ // never award unearned combat resources or experience.
+ game.enemies=game.enemies.filter(e=>e.trialId!==event.entry.id);
  if(event.waveIndex+1>=event.plan.waves.length){finishTrial(game,event);return;}
  event.phase='rest';event.nextWaveAt=game.time+event.plan.intermission;
- game.notice?.('Волна отражена! Следующее нападение через '+
+ game.notice?.('Волна '+(event.waveIndex+1)+' из '+event.plan.waves.length+
+  ' отражена! Оставшиеся противники отступили. Следующее нападение через '+
   Math.ceil(event.plan.intermission)+' с.',event.plan.intermission);
 }

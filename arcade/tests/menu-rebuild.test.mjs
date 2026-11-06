@@ -41,14 +41,14 @@ test('a ready reward and first weapon choice can both be completed from the home
  g.baseAction('claimFirstModule','rail');assert.equal(g.firstHardwareReward,'rail');
 });
 
-test('all five development categories open their actual content, without a category landing page',()=>{
+test('four pilot development categories open directly; local station upgrades live in the network tab',()=>{
  const {g,base}=station();
- for(const [category,content] of [['weapons','Плазменный луч'],['ship','Защита и двигатель'],['tactics','Инерционный импульс'],['pilot','Уклонение'],['station','Специализация']]){
+ for(const [category,content] of [['weapons','Плазменный луч'],['ship','Защита и двигатель'],['tactics','Инерционный импульс'],['pilot','Уклонение']]){
   const state={...g.baseState(),baseTab:'development',developmentCategory:category};
   const html=renderBasePanel(base,state);
   assert.match(html,new RegExp('data-development="'+category+'"'));
   assert.ok(html.includes(content),category);
-  assert.equal((html.match(/data-act="developmentTab"/g)||[]).length,5);
+  assert.equal((html.match(/data-act="developmentTab"/g)||[]).length,4);
   assert.match(html,/id="base-panel-hangar"[^>]* hidden><\/section>/);
  }
 });
@@ -122,13 +122,13 @@ test('repair controls disappear for an intact ship, and station specializations 
  const {base,state}=station();
  const services=renderBasePanel(base,{...state,baseTab:'hangar',hangarView:'services'});
  assert.match(services,/Корпус исправен/);assert.doesNotMatch(services,/data-act="repair"|data-act="repairDrones"/);
- const growth=renderBasePanel(base,{...state,baseTab:'development',developmentCategory:'station',ore:100});
+ const growth=renderBasePanel(base,{...state,baseTab:'network',ore:100});
  assert.match(growth,/data-act="installModule"/);assert.match(growth,/потребуется подтверждение/);
 });
 
 test('an already specialized station shows the installed module and hides unavailable alternatives',()=>{
  const {base,state}=station();base.module='workshop';
- const html=renderBasePanel(base,{...state,baseTab:'development',developmentCategory:'station',ore:100,
+ const html=renderBasePanel(base,{...state,baseTab:'network',ore:100,
   network:{armor:2,engine:0,armament:0,strikePower:0}});
  assert.match(html,/dev-station-currency/);
  assert.match(html,/value="2" max="6"/);

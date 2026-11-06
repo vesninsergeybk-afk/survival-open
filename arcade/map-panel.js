@@ -318,6 +318,14 @@ export function renderWorldMap(game){
  const unapplied=game.mapReturnToBase&&game.hangarSession?.dirty(game.shipLoadout);
  const routeSummary='<div class="map-active-route"><b>Текущая цель:</b> '+(navigator?enc(navigator.label)+
    ' · '+distance(navigator,p)+' м':'маршрут не задан')+clear+'</div>';
+ const activeMission=operation?'<div class="map-operation-cue" role="status"><div><small>ПРИНЯТАЯ ОСОБАЯ ОПЕРАЦИЯ</small><strong>'+enc(operation.name)+
+  (operation.phase==='return'?' · сдача результатов':' · цель на карте')+'</strong><span>'+
+  (operation.phase==='return'?'Вернитесь на станцию, где приняли операцию.':
+   operation.id===PROBE_OPERATION.id?'Подлетите к зонду и удерживайте E для ремонта.':
+   operation.id===RELAY_DEFENSE.id?'Подлетите к передатчику и отразите три волны.':
+   operation.id===CARRIER_INTERCEPTION.id?'Перехватите груз до выхода из сектора.':
+   'Отключите глушитель и вернитесь с телеметрией.')+'</span></div>'+
+  '<button type="button" data-act="operationWaypoint">'+(operation.phase==='return'?'Проложить путь обратно':'Проложить курс к цели')+'</button></div>':'';
  return '<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
   '<span class="map-kicker">НАВИГАЦИОННЫЙ КОМПЛЕКС</span><h2 id="map-menu-title">Карта сектора</h2>'+
   menuInfo('Как пользоваться картой','Выберите станцию или сигнал и постройте маршрут. Связь действует на 1450 м; каждая усиленная антенна добавляет 500 м. Неизвестные сигналы указаны приблизительно.')+
@@ -328,6 +336,7 @@ export function renderWorldMap(game){
   '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">'+menuIcon('map')+'Рядом</button>'+
   '<button type="button" data-act="mapView" data-id="territory">'+menuIcon('network')+'Контуры</button>'+
   '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">'+menuIcon('navigation')+'Список · '+(known.length+signals.length)+'</button></nav>'+
+  activeMission+
   (discoveryLead||intelLead?'<details class="map-discovery-lead"><summary>Что можно открыть на станциях</summary>'+discoveryLead+intelLead+'</details>':'')+
   '<section class="map-shell"><div class="map-canvas">'+routeSummary+'<div class="map-plot"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   chartBackdrop(world.seed,center,scale)+atlasStars(world.seed,center,scale,false)+

@@ -79,11 +79,11 @@ test('station network exposes territory and development before defence, with opt
  assert.match(network,/Защитные заряды · 1\/1/);
  assert.match(network,/Если пропускать орбитальные удары, они смогут поражать врагов/);
  assert.match(network,/<details class="base-secondary-info base-defense-rules"><summary>Точные условия ПВО и стазиса/);
- const growth=renderBasePanel(home,state({baseTab:'development',developmentCategory:'station'}));
+ const growth=renderBasePanel(home,state({baseTab:'network'}));
  assert.match(growth,/<div class="base-network-future"><h4>Следующие улучшения/);
  assert.match(network,/<details class="base-secondary-info base-network-advanced"[^>]*><summary>Радиосвязь услуг/);
- assert.ok(network.indexOf('Связь и территория')<network.indexOf('Развитие станции'));
- assert.ok(network.indexOf('Развитие станции')<network.indexOf('ОБОРОНА СТАНЦИИ'));
+ assert.ok(network.indexOf('Связь и территория')<network.indexOf('Технология всего флота'));
+ assert.ok(network.indexOf('Технология всего флота')<network.indexOf('ОБОРОНА СТАНЦИИ'));
  assert.match(network,/data-act="toggleMeteorDefense"/);
  const withoutInterception=renderBasePanel({...home,defense:{charges:1,meteorEnabled:false}},state({baseTab:'network'}));
  assert.match(withoutInterception,/Перехват отключён: орбитальные удары могут поражать врагов, астероиды и Ваш корабль/);

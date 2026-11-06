@@ -238,12 +238,12 @@ test('dock emergency shield can be bought once, without double-spending',()=>{
 
 test('antenna is a real station purchase with visible network reach',()=>{
  const dock=base('dock',{active:true});
- const before=baseOffer(dock,state({baseTab:'development',developmentCategory:'station',ore:40,relayGain:2}));
+ const before=baseOffer(dock,state({baseTab:'network',ore:40,relayGain:2}));
  assert.equal(before.antennaCost,34);
  assert.equal(before.reasons.antenna,'');
- const html=renderBasePanel(dock,state({baseTab:'development',developmentCategory:'station',ore:40,relayGain:2}));
+ const html=renderBasePanel(dock,state({baseTab:'network',ore:40,relayGain:2}));
  assert.match(html,/data-act="antenna"/);
  assert.match(html,/Сейчас подключит ещё 2/);
- const installed=baseOffer({...dock,relayBoost:true},state({baseTab:'development',developmentCategory:'station',ore:40}));
+ const installed=baseOffer({...dock,relayBoost:true},state({baseTab:'network',ore:40}));
  assert.match(installed.reasons.antenna,/уже усилена/);
 });

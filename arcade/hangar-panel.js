@@ -49,6 +49,7 @@ function tacticalPanel(context,session,development=false){
   spec=tacticalSpec({...state,equipped:id}),loan=context.fieldLoan,
   overridden=loan&&context.loadout.slots.includes(loan.moduleId||'ion');
  const fieldKey=esc(readableKey((context.controls||DEFAULT_CONTROLS).field));
+ const unlockHelp='<p class="hg-tactical-unlock-help">Условия «2, 3, 4 станции» означают <b>общее количество включённых дружественных станций</b>, а не уровни одной станции. Сейчас включено: <b>'+(context.activeBases||0)+'</b>. Новое устройство покупается за сплав; развитие его ветки стоит 1 очко пилота.</p>';
  const quote=tacticalQuote(state,owned?'equip':'unlock',id,context),chosen=state.branches[id];
  const caption=equipped?'Установлено':owned?'Установить бесплатно':'Получить · '+device.cost+' сплава';
  const picks=Object.entries(TACTICAL_DEVICES).map(([key,item])=>{
@@ -89,7 +90,7 @@ function tacticalPanel(context,session,development=false){
    '<p class="dev-gate-requirement">Условия: '+device.bases+' станции · '+device.cost+' сплава. '+
    (quote.ok?'Можно получить сейчас.':esc(quote.reason)+'.')+'</p>'+fitting+'</div></div>';
   return '<section class="hg-tactical dev-tactical" aria-label="Развитие тактики"><p class="hg-tactical-equipped">'+
-   'Сейчас установлено: <b>'+esc(current.short)+'</b> · '+fieldKey+'</p><div class="dev-tactical-layout">'+
+   'Сейчас установлено: <b>'+esc(current.short)+'</b> · '+fieldKey+'</p>'+unlockHelp+'<div class="dev-tactical-layout">'+
    '<section class="dev-tactical-sidebar" aria-label="Выбор устройства">'+selector+
    '<div class="dev-tactical-profile"><span class="hg-eyebrow">ВЫБРАННОЕ УСТРОЙСТВО</span><h3>'+menuIcon(id)+esc(device.name)+'</h3>'+
    '<p class="dev-tactic-status">'+status+'</p><p>'+esc(device.role)+' · перезарядка '+spec.cooldown+' с</p>'+
@@ -98,7 +99,7 @@ function tacticalPanel(context,session,development=false){
    (owned?upgrade:gate)+'</div></div></section>';
  }
  return '<section class="hg-tactical" aria-label="Тактические устройства"><p class="hg-tactical-equipped">'+
-  'Сейчас установлено: <b>'+esc(current.short)+'</b> · '+fieldKey+'</p>'+
+  'Сейчас установлено: <b>'+esc(current.short)+'</b> · '+fieldKey+'</p>'+unlockHelp+
   '<div class="hg-tactic-selector" role="group" aria-label="Выбор устройства для просмотра">'+picks+'</div>'+
   '<section class="hg-tactic-detail" aria-label="Выбранное устройство"><div class="hg-section-head"><h3>'+menuIcon(id)+esc(device.name)+'</h3>'+info(device.name,device.desc+'\nРадиус: '+spec.radius+' м · длительность: '+fmt(spec.duration)+' с.\nУправление: '+readableKey((context.controls||DEFAULT_CONTROLS).field)+'.')+'</div>'+
   '<p>'+esc(device.role)+' · перезарядка <b>'+spec.cooldown+' с</b></p><p>'+esc(device.desc)+'</p>'+

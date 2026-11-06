@@ -35,7 +35,9 @@ test('development entry identifies points and offers direct playstyle routes',()
  assert.match(html,/data-id="ship" data-focus="hull" data-upgrade="hull"/);
  assert.match(html,/data-id="pilot" data-focus="magnet" data-upgrade="magnet"/);
  assert.match(html,/class="dev-choice-effect">\+55 м/);
- assert.equal((html.match(/data-act="developmentTab"/g)||[]).length,5);
+ assert.equal((html.match(/data-act="developmentTab"/g)||[]).length,4);
+ assert.match(html,/До уровня 9 осталось/);
+ assert.doesNotMatch(html,/data-act="developmentTab" data-id="station"/);
  const noPoints=renderDevelopmentPanel({...s,points:0,developmentCategory:'weapons'});
  assert.match(noPoints,/Свободных очков пока нет/);
  assert.doesNotMatch(noPoints,/Сильнее атаковать/);

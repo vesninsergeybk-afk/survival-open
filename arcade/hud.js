@@ -81,7 +81,7 @@ export class CockpitDisplay {
   n.xpmeter.setAttribute('aria-valuemax',String(nextXp));
   display(n.xpValue,count(p.xp)+' / '+count(nextXp));
   display(n.level,p.level);
-  display(n.points,p.points>0?' · '+p.points+' очк.':'');
+  display(n.points,' · '+p.points+' очк.');
   display(n.shield,p.shield>0?Math.ceil(p.shield):'—');
   const shieldCap=Math.max(30,16+(game.skillRanks?.shield||0)*24,p.shield);
   const shieldFill=clamp01(p.shield/shieldCap);

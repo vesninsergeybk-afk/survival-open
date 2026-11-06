@@ -319,3 +319,27 @@
  .dev-pilot-ready-list{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){.development-content .dev-node[data-state=ready],.dev-points-badge.has-points{box-shadow:none}}
+
+/* Progress and task direction stay above the dense upgrade/catalog grids. */
+.base-home-xp,.dev-xp-status{display:grid;gap:7px;margin:9px 0 12px}
+.base-home-xp span{font-size:12px;font-weight:700;color:#d3f3ee}
+.base-home-xp progress,.dev-xp-status progress{width:100%;height:10px;accent-color:#7be5d6}
+.dev-xp-status{padding:12px 15px;border:1px solid #72b7ab85;border-radius:7px;background:#132f37}
+.dev-xp-status>div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.dev-xp-status strong{color:#dcfcf0;font-size:14px}
+.dev-xp-status span{color:#e7d3a9;font-size:12px}
+.dev-xp-status small{color:#afcbd0;font-size:11px;line-height:1.4}
+.dev-points-history{border-top:1px solid #6f9b9b64;padding-top:7px;color:#c2e9de;font-size:12px}
+.dev-points-history summary{cursor:pointer;width:fit-content;font-weight:700}
+.dev-points-history ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:5px 18px;margin:9px 0 1px;padding-left:18px}
+.base-credits .base-pilot-xp{color:#d6f7f2;font-weight:700;padding:3px 8px;border:1px solid #68bca562;border-radius:4px;background:#163e43}
+.base-active-mission{margin:0 0 13px}
+.base-active-mission .base-next-step{border-color:#d0ad70a3;background:linear-gradient(120deg,#3c342b,#18323c)}
+.hg-tactical-unlock-help{padding:10px 12px;border-left:3px solid #8dd3cf;border-radius:4px;background:#17323e;color:#d3e5e8;font-size:12px;line-height:1.45}
+.map-operation-cue{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 15px;border:1px solid #ca9fc77d;border-left:3px solid #e6aeeb;border-radius:7px;background:#2a233b;color:#e9e8f3}
+.map-operation-cue>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.map-operation-cue small{font-size:10px;color:#d6b3ec;letter-spacing:.08em}
+.map-operation-cue strong{font-size:15px;color:#ffe4f3}
+.map-operation-cue span{font-size:12px;line-height:1.4;color:#cbd7e4}
+#overlay .map-operation-cue button{flex-shrink:0;margin:0;padding:10px 14px;min-height:43px;background:#4c3d59;border-color:#bd9ed0;color:#fff0ff}
+@media(max-width:650px){.map-operation-cue{flex-wrap:wrap}.map-operation-cue>div{flex-basis:100%}#overlay .map-operation-cue button{width:100%}}

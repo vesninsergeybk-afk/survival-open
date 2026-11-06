@@ -1,10 +1,12 @@
-import {renderShipHangar} from './hangar-panel.js?v=menu-rebuild-1-development-tree-1-devux-3';
+import {renderShipHangar} from './hangar-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1';
 import {renderPilotContent} from './pilot-menu.js?v=menu-rebuild-1-development-tree-1-devux-3';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
+import {developmentPointLedger} from './experience.js?v=progression-clarity-1';
+import {TACTICAL_DEVICES} from './tactical-fields.js?v=clarity-pass-1';
 
 export const DEVELOPMENT_TABS=Object.freeze([
  ['weapons','Оружие','weapons'],['ship','Корабль','hull'],
- ['tactics','Тактика','pulse'],['pilot','Пилот','navigation'],['station','Станция','network']
+ ['tactics','Тактические устройства','pulse'],['pilot','Пилот','navigation']
 ]);
 export const developmentTab=id=>DEVELOPMENT_TABS.some(([key])=>key===id)?id:'weapons';
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -36,9 +38,21 @@ export function availableDevelopmentChoices(state){
 
 // Every shortcut opens the same cards and transactions as this page. The
 // navigation never grants an unlock, spends currency or resets a loadout draft.
-export function renderDevelopmentPanel(state,stationContent=''){
+export function renderDevelopmentPanel(state){
  const category=developmentTab(state.developmentCategory);
  const points=state.points||0,level=state.level||1;
+ const xp=Math.max(0,Math.floor(state.xp||0)),nextXp=Math.max(1,state.nextXp||1);
+ const ledger=developmentPointLedger(state);
+ const purchased=Object.entries(state.skillRanks||{}).filter(([,rank])=>rank>0).map(([id,rank])=>
+  [state.pilotSkills?.find(s=>s.id===id)?.title||id,rank]);
+ for(const [id,branch] of Object.entries(state.tactical?.branches||{}))if(branch?.rank>0)
+  purchased.push(['Устройство: '+(TACTICAL_DEVICES[id]?.short||id),branch.rank]);
+ const weaponNames={plasma:'Плазменное орудие',rail:'Рельсовое орудие',flak:'Перехватчик',rocket:'Ракетный модуль'};
+ for(const [id,branch] of Object.entries(state.loadout?.specializations||{}))if(branch?.rank>0)
+  purchased.push(['Оружие: '+(weaponNames[id]||id),branch.rank]);
+ if(state.doctrine)purchased.push(['Доктрина: '+(state.pilotDoctrines?.find(d=>d.id===state.doctrine)?.title||state.doctrine),1]);
+ const history=purchased.length?'<details class="dev-points-history"><summary>Куда потрачены '+ledger.spent+' '+pointsWord(ledger.spent)+'</summary><ul>'+
+  purchased.map(([name,rank])=>'<li>'+esc(name)+' · '+rank+' '+pointsWord(rank)+'</li>').join('')+'</ul></details>':'';
  const choices=points?availableDevelopmentChoices(state):[];
  const navigation='<nav class="development-tabs" aria-label="Виды развития">'+DEVELOPMENT_TABS.map(([id,label,icon])=>
   '<button type="button" data-act="developmentTab" data-id="'+id+'" aria-pressed="'+(id===category)+'" tabindex="'+(id===category?0:-1)+'"'+
@@ -49,11 +63,13 @@ export function renderDevelopmentPanel(state,stationContent=''){
   ranks:state.skillRanks||{},doctrine:state.doctrine,skills:state.pilotSkills||[],
   doctrines:state.pilotDoctrines||[],nextEffect:state.nextSkillEffect||(()=>''),allBranches:true
  });
- else if(category==='station')content=stationContent;
  else content=renderShipHangar({...state,developmentCategory:category,developmentMode:true});
  return '<section class="development-panel" aria-label="Развитие">'+
   '<header class="development-heading"><div><span class="base-kicker">СИСТЕМА РАЗВИТИЯ</span><h2>Развитие</h2></div>'+
-  '<p>Пилот · ур. '+level+' <b class="dev-points-badge'+(points?' has-points':'')+'">'+points+' '+pointsWord(points)+'</b></p></header>'+navigation+
+  '<p>Пилот · ур. '+level+' <b class="dev-points-badge'+(points?' has-points':'')+'">'+points+' '+pointsWord(points)+'</b></p></header>'+
+  '<div class="dev-xp-status" role="group" aria-label="Прогресс пилота"><div><strong>Опыт: '+xp+' / '+nextXp+'</strong><span>До уровня '+(level+1)+' осталось '+Math.max(0,nextXp-xp)+' опыта</span></div>'+
+  '<progress value="'+Math.min(xp,nextXp)+'" max="'+nextXp+'" aria-label="Опыт до следующего уровня"></progress><small>Очки: '+ledger.earned+' получено за уровни · '+ledger.spent+' потрачено на известные улучшения · '+ledger.free+' свободно. '+
+  (ledger.unaccounted?'Часть расходов в сохранении не удалось восстановить. ':'')+'Новый уровень даст ещё одно очко.</small>'+history+'</div>'+navigation+
   '<div class="dev-onboarding" role="note"><div class="dev-onboarding-message"><strong>'+
   (points?'У вас '+points+' '+pointsWord(points)+' развития':'Свободных очков пока нет')+'</strong><span>'+
   (points?(choices.length?'Ниже — доступные сейчас варианты под разные стили игры. Выберите цель, затем улучшение.':'Пока нет улучшений, доступных по условиям. Очки сохранятся.'):

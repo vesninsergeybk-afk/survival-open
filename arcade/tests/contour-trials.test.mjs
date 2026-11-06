@@ -135,9 +135,31 @@ test('enemies disappearing outside the camera cannot grant an automatic victory'
  assert.equal(g.enemies.length,2);
  // The game's normal distance culler may remove live ships mid-flight.
  g.enemies=[];g.time+=1;updateContourTrials(g,.1);
- assert.equal(g.contourTrial,null);
+ assert.equal(g.contourTrial.phase,'wave');
+ assert.equal(g.enemies.length,2,'lost attackers rejoin this wave, not restart the entire trial');
  assert.equal(w.contours.trials.completed,0);
  assert.equal(pendingContourTrials(w).length,1);
+});
+
+test('each wave has a finite resolution: battered enemies retreat; inaction fails, never autowins',()=>{
+ const setup=()=>{
+  const g=game(),w=territory(),entry=claim(w)[0];
+  g.world=w;g.contourTrial=null;g.operation=null;g.heavyPortalShown=false;
+  g.player.x=entry.x;g.player.y=entry.y;
+  g.camera=()=>({x:g.player.x-300,y:g.player.y-250,w:600,h:500});
+  g.zones=[];g.enemies=[];g.time=20;
+  updateContourTrials(g,.1);g.time+=6;updateContourTrials(g,.1);
+  return {g,w,entry};
+ };
+ const defended=setup();defended.g.enemies[0].hp=0;
+ defended.g.time+=71;updateContourTrials(defended.g,.1);
+ assert.equal(defended.w.contours.trials.completed,1);
+ assert.equal(defended.g.contourTrial,null);
+ const inactive=setup();inactive.g.time+=71;updateContourTrials(inactive.g,.1);
+ assert.equal(inactive.g.contourTrial,null);
+ assert.equal(inactive.w.contours.trials.completed,0);
+ inactive.g.time+=1;updateContourTrials(inactive.g,.1);
+ assert.equal(inactive.g.contourTrial,null,'failure has a short retry pause');
 });
 
 test('two-wave defence warns before the stronger second wave and strikes are telegraphed',()=>{

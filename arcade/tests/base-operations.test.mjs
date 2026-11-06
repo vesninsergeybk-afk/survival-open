@@ -107,7 +107,7 @@ test('an unfinished assignment may be abandoned without locking progression',()=
  Actions.prototype.baseAction.call(game,'acceptContract','alternate');
  assert.equal(game.contract.choiceId,'alternate');
  const abandonStart=gameSource.indexOf('  abandonContract(){');
- const abandonEnd=gameSource.indexOf('\n  openMap(){',abandonStart);
+ const abandonEnd=gameSource.indexOf('\n  openMap(',abandonStart);
  assert.ok(abandonStart>=0&&abandonEnd>abandonStart);
  const Cancel=RuntimeHarness;
  game.overlay={dataset:{mode:'base'}};

@@ -1,6 +1,6 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1';
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3';
-import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3';
+import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess} from './game-menu.js?v=all-menus-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
@@ -12,7 +12,7 @@ import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expeditio
 import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {disableCentralWorker} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1-territory-war-1';
-import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifiesForDirectCombatXp,XP_CURVE_VERSION} from './experience.js?v=early-experience-1-xp-feedback-pass1-1';
+import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifiesForDirectCombatXp,XP_CURVE_VERSION} from './experience.js?v=early-experience-1-xp-feedback-pass1-1-clarity-pass-1';
 import {createStrategicExperience,claimStationActivation,claimStationCapture,claimExploration,
  claimContourExpansion,claimFirstFluxDelivery,claimGeologicalSurvey,claimStrategicSabotage} from './strategic-experience.js?v=strategic-xp-pass2-1';
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
@@ -40,7 +40,7 @@ import {ArcadeVisuals} from './visuals.js?v=regions-1-campaign-1-counterattack-1
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed} from './control-layout.js?v=unified-controls-1';
 import {manualWeapons,selectedManual,cycleManual,manualClick} from './manual-weapon-controls.js?v=unified-controls-1';
@@ -49,9 +49,9 @@ import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
@@ -89,9 +89,9 @@ import {territoryTech,TERRITORY_TECH} from './territory-tech.js?v=territory-war-
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1-auto-1-contour-trials-1-counterattack-1';
 import {syncContourDynamics,resumeContourTransition} from './contour-dynamics.js?v=contour-dynamics-3-auto-1';
-import {registerContourTrials,productiveContourFields,pendingContourTrials} from './contour-trials.js?v=contour-trials-1';
-import {updateContourTrials} from './contour-trial-director.js?v=contour-trials-1-counterattack-1';
-import {drawContourTrialHUD} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1';
+import {registerContourTrials,productiveContourFields,pendingContourTrials} from './contour-trials.js?v=contour-trials-1-clarity-pass-1';
+import {updateContourTrials} from './contour-trial-director.js?v=contour-trials-1-counterattack-1-clarity-pass-1';
+import {drawContourTrialHUD} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1-clarity-pass-1';
 import {drawContourIrisCharge} from './contour-trial-iris.js?v=contour-counterattack-1';
 
 const $=id=>document.getElementById(id);
@@ -630,7 +630,26 @@ export class ArcadeGame {
     focusContourRegion(this,region.id,this.docked.id);
     this.openMap();return;
    }
-    if(act==='baseMap')this.openMap();
+    if(act==='baseMap'){
+     // A mission route must open the navigational chart. The player's last
+     // map tab may be the territory atlas, which has no operation marker.
+     this.mapView='map';
+     const op=this.operation;
+     const returnBase=op?.phase==='return'?this.world.stations.get(op.baseId):null;
+     const focus=returnBase||op||
+      (this.contract?.progress>=this.contract?.goal?this.world.stations.get(this.contract.baseId):null);
+     this.openMap(focus);return;
+    }
+   if(act==='operationWaypoint'&&this.operation&&this.overlay.dataset.mode==='map'){
+    const op=this.operation,base=op.phase==='return'?this.world.stations.get(op.baseId):null;
+    const destination=base||op;
+    if(!Number.isFinite(destination?.x)||!Number.isFinite(destination?.y))return;
+    const waypoint={id:base?.id||op.id,x:destination.x,y:destination.y,
+     label:base?'Сдать операцию: '+(baseNames[base.type]||'станция'):
+      'Операция: '+op.name};
+    this.requestWaypointDeparture(waypoint,'Курс проложен: '+waypoint.label);
+    return;
+   }
    if(act==='toggleMeteorDefense'&&this.docked?.active){
     const base=this.docked;
     const linked=defenseLinked(base,this.world.networkTopology());
@@ -1283,11 +1302,20 @@ export class ArcadeGame {
   const dialog=this.overlay.querySelector('.dialog');if(dialog)dialog.inert=false;
   focusMenu(this.overlay,'[data-act="runContinue"]');
  }
-  openMap(){
+  openMap(focus=null){
    if(this.dead)return;
    this.endInteraction();
    if(!this.overlay.hidden&&this.overlay.dataset.mode==='map'){this.dismiss();return;}
    this.mapPointers.clear();this.mapMarkMode=false;delete this.mapViewports.local;
+   if(focus&&Number.isFinite(focus.x)&&Number.isFinite(focus.y)){
+    const dx=Math.abs(focus.x-this.player.x),dy=Math.abs(focus.y-this.player.y);
+    const scale=Math.max(.025,Math.min(.16,580/Math.max(850,dx),400/Math.max(650,dy)));
+    // Keep nearby pilot + target on screen; centre on distant objectives when
+    // the local chart cannot contain both at its supported minimum zoom.
+    const both=dx*scale<=580&&dy*scale<=400;
+    this.mapViewports.local={center:both?{x:(focus.x+this.player.x)/2,y:(focus.y+this.player.y)/2}:
+     {x:focus.x,y:focus.y},scale};
+   }
    this.mapReturnToBase=!this.overlay.hidden&&!!this.docked&&(this.overlay.dataset.mode==='base'||this.stationExitArmed);
    this.paused=true;this.pausedRenderPending=true;this.heritage.pause('map');
    this.overlay.dataset.mode='map';this.overlay.hidden=false;
@@ -1358,6 +1386,10 @@ export class ArcadeGame {
   }
  openDevelopment(category='weapons',focus='',upgrade=''){
   if(this.dead||!this.docked?.active)return;
+  if(category==='station'){
+   this.baseTab='network';this.paused=true;this.pausedRenderPending=true;
+   this.overlay.hidden=false;this.overlay.dataset.mode='base';this.renderDock();return;
+  }
   this.developmentCategory=developmentTab(category);this.baseTab='development';
   if(this.developmentCategory==='weapons'&&Object.hasOwn(MODULES,focus))this.hangarSession.focusWeapon=focus;
   if(this.developmentCategory==='tactics'&&Object.hasOwn(TACTICAL_DEVICES,focus))this.hangarSession.focusTactic=focus;

@@ -148,11 +148,10 @@ test('station functions explain automatic service radio and automatic territoria
  assert.match(html,/Контурные линии появляются сами/);
  assert.match(html,/Линий у станции <b>0<\/b>/);
  assert.match(html,/data-act="baseContours">Открыть контуры этой станции/);
- assert.ok(html.indexOf('Связь и территория')<html.indexOf('Развитие станции'));
- assert.ok(html.indexOf('Развитие станции')<html.indexOf('ОБОРОНА СТАНЦИИ'));
- assert.match(html,/data-act="openDevelopment" data-id="station"/);
- const growth=renderBasePanel(g.docked,{...g.baseState(),baseTab:'development',developmentCategory:'station'});
- assert.match(growth,/Специализация · необратимый выбор/);
+ assert.ok(html.indexOf('Связь и территория')<html.indexOf('Технология всего флота'));
+ assert.ok(html.indexOf('Технология всего флота')<html.indexOf('ОБОРОНА СТАНЦИИ'));
+ assert.match(html,/Технология всего флота/);
+ assert.match(html,/Местный модуль · выбор для этой станции/);
 });
 
 test('map destination counts are labelled as a list rather than a number of missions',()=>{

@@ -4,6 +4,21 @@ import {expForNext, legacyExpForNext} from './balance.js?v=xp-feedback-pass1-1';
 export const XP_CURVE_VERSION = 2;
 export const FIRST_RICH_ASTEROID_XP = 18;
 
+// Every permanent rank or doctrine consumes exactly one level point. This is
+// presentation/audit only: old saves must not be silently granted or charged
+// points when some historical purchases cannot be reconstructed.
+export function developmentPointLedger(state={}){
+ const earned=Math.max(0,Math.floor(state.level||1)-1);
+ const rankSum=entries=>Object.values(entries||{}).reduce((sum,value)=>
+  sum+(Number.isInteger(value)&&value>0?value:0),0);
+ const branchSum=entries=>Object.values(entries||{}).reduce((sum,choice)=>
+  sum+(Number.isInteger(choice?.rank)&&choice.rank>0?choice.rank:0),0);
+ const spent=rankSum(state.skillRanks)+branchSum(state.tactical?.branches)+
+  branchSum(state.loadout?.specializations)+(state.doctrine?1:0);
+ const free=Math.max(0,Math.floor(state.points||0));
+ return {earned,spent,free,unaccounted:earned-spent-free};
+}
+
 export function experienceFromPickup(item){
  return item?.type === 'data' && item.xpGranted !== true && Number.isFinite(item.value)
   ? Math.max(0,item.value) : 0;

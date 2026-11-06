@@ -14,7 +14,7 @@ const stationState={ore:84,data:12,hp:110,maxHp:110,shield:30,allies:0,
  loadout:createLoadout(),skillRanks:{},level:1,points:1,operation:null,time:0};
 
 test('station menus retain real action handlers and make module consequences explicit',()=>{
- const html=renderBasePanel(base,{...stationState,baseTab:'development',developmentCategory:'station'});
+ const html=renderBasePanel(base,{...stationState,baseTab:'network'});
  assert.match(html,/ВЫЖИВШИЙ \/ ТЕРМИНАЛ СТАНЦИИ/);
  assert.match(html,/station-dock/);
  assert.match(html,/После установки заменить его в этом прохождении нельзя/);

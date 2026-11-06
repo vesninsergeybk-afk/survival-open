@@ -3,7 +3,7 @@ import {insidePolygon} from './territory-system.js';
 // One completed territorial expansion earns one trial. A change to the
 // triangulation of land already owned never creates another challenge.
 export const CONTOUR_TRIALS=Object.freeze({maxTier:12,maxEntries:256,engageRadius:990,
- retreatRadius:1650,warningSeconds:5,retreatSeconds:7});
+ retreatRadius:1650,warningSeconds:5,retreatSeconds:7,maxWaveSeconds:70});
 
 export const TRIAL_VARIANTS=Object.freeze([
  {id:'orbital',name:'Орбитальная наводка',minTier:1},

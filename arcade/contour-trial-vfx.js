@@ -1,4 +1,4 @@
-import {pendingContourTrials,trialBlockingField} from './contour-trials.js';
+import {CONTOUR_TRIALS,pendingContourTrials,trialBlockingField,planContourTrial} from './contour-trials.js?v=clarity-pass-1';
 
 // The unstable core is visible in the physical world before the real
 // vortex can start producing flux. Follows the field across camera movement.
@@ -24,7 +24,7 @@ export function drawUnstableContour(c,game,field,now){
  c.fillStyle=event?'#ffe1ec':'#ffd69d';c.font='bold 17px system-ui';c.textAlign='center';
  c.textBaseline='middle';c.fillText('!',0,1);
  c.font='bold 10px system-ui';
- c.fillText(event?'КОНТРАТАКА '+pending.tier+'/12':'ПОЛЕ ОБНАРУЖЕНО '+pending.tier+'/12',0,-r-14);
+ c.fillText(event?'ОБОРОНА КОНТУРА':'ТРЕУГОЛЬНИК НЕСТАБИЛЕН',0,-r-14);
  c.restore();
  if(event){
   // Illuminate up to three ACTUAL supporting stations: the event belongs
@@ -48,23 +48,35 @@ export function drawUnstableContour(c,game,field,now){
 // dodging. Keeps the wave count visible even when ordinary notices expire.
 export function drawContourTrialHUD(c,game){
  const event=game.contourTrial;
- if(!event||game.dead)return;
+ if(game.dead)return;
+ if(!event){
+  const result=game.contourFeedback;
+  if(!result||game.time-result.at>5)return;
+  const vw=game.vw||1200,w=Math.min(356,vw-26),x=(vw-w)/2,y=20;
+  c.save();c.fillStyle='rgba(9,42,39,.94)';c.strokeStyle='#8ef0d4';c.lineWidth=1.6;
+  c.beginPath();c.roundRect(x,y,w,62,10);c.fill();c.stroke();
+  c.textAlign='center';c.fillStyle='#c6ffe6';c.font='bold 14px system-ui';
+  c.fillText('КОНТУР ЗАЩИЩЁН · ПОБЕДА',vw/2,y+25,w-18);
+  c.font='bold 11px system-ui';c.fillText('Воронка запущена · флюкс поступает в сеть',vw/2,y+45,w-18);
+  c.restore();return;
+ }
  const vw=game.vw||1200,w=Math.min(356,vw-26),x=(vw-w)/2,y=20;
  const phase=event.phase;
- const remaining=phase==='wave'?game.enemies.filter(e=>
-  e.trialId===event.entry.id&&e.hp>0&&!e.converted).length:0;
  const irisRush=phase==='wave'&&game.enemies.some(e=>e.trialId===event.entry.id&&
   e.hp>0&&e._trialDive?.phase==='rush');
  const defeatedInWave=event.waveIds?.filter(id=>event.defeatedIds?.has(id)).length||0;
- const subtitle=phase==='warning'?'ВРАГ ЗАСЁК ПОЛЕ · АТАКА ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С':
-  phase==='rest'?'ПОДКРЕПЛЕНИЕ ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С':
-  'ВОЛНА '+(event.waveIndex+1)+'/'+event.plan.waves.length+' · ЦЕЛЕЙ '+remaining+
+ const waveTotal=event.waveIds?.length||0;
+ const secondsLeft=Math.max(0,Math.ceil(CONTOUR_TRIALS.maxWaveSeconds-(game.time-(event.waveStartedAt||game.time))));
+ const subtitle=event.waitingForSpace?'ВОЛНА ГОТОВА · СНАЧАЛА РАСЧИСТИТЕ ПОДХОДЫ':
+  phase==='warning'?'ВСЕГО '+event.plan.waves.length+' ВОЛН · АТАКА ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С':
+  phase==='rest'?'ВОЛНА '+(event.waveIndex+1)+' ИЗ '+event.plan.waves.length+' ОТРАЖЕНА · ПАУЗА '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С':
+  'ВОЛНА '+(event.waveIndex+1)+' ИЗ '+event.plan.waves.length+' · ПОДАВЛЕНО '+defeatedInWave+'/'+waveTotal+' · '+secondsLeft+' С'+
   (irisRush?' · РЫВОК!':'');
  c.save();
  c.fillStyle='rgba(8,20,33,.91)';c.strokeStyle='rgba(255,182,115,.72)';
  c.lineWidth=1.4;c.beginPath();c.roundRect(x,y,w,60,10);c.fill();c.stroke();
  c.fillStyle='#ffe7c2';c.font='bold 12px system-ui';c.textAlign='center';
- c.fillText('ВРАЖЕСКАЯ КОНТРАТАКА · УГРОЗА '+event.plan.tier+'/12',vw/2,y+21,w-12);
+ c.fillText('ОБОРОНА НОВОГО ТРЕУГОЛЬНИКА',vw/2,y+21,w-12);
  c.fillStyle='#ffbe8b';c.font='bold 11px system-ui';
  c.fillText(subtitle,vw/2,y+39,w-12);
  const fraction=phase==='wave'?(event.waveIndex+
@@ -79,9 +91,11 @@ export function pendingTrialMapArtwork(world,center,scale,atlasPoint){
  return pendingContourTrials(world).map(e=>{
   const p=atlasPoint(e,center,scale);
   if(p.x<12||p.x>668||p.y<12||p.y>468)return '';
-  return `<g class="contour-pending-trial" role="img" aria-label="Нестабильный контур. Испытание ${e.tier} из 12" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})">
+  const count=planContourTrial(e.tier,e.id).waves.length;
+  const wording=count===1?'одну волну':count===2?'две волны':'три волны';
+  return `<g class="contour-pending-trial" role="img" aria-label="Нестабильный контур. Отразите ${wording}" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})">
    <circle r="17" fill="#321c24ee" stroke="#ffba74" stroke-width="2" stroke-dasharray="5 4"/>
    <text text-anchor="middle" y="5" fill="#ffe8cc" font-size="14" font-weight="900">!</text>
-   <title>Враг обнаружил новый треугольник. Контратака ${e.tier}/12: подлетите к полю и отразите нападение, чтобы запустить добычу.</title></g>`;
+   <title>Враг обнаружил новый треугольник. Подлетите к полю и отразите ${wording}, чтобы запустить добычу.</title></g>`;
  }).join('');
 }

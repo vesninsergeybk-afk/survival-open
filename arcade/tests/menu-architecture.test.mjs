@@ -95,10 +95,10 @@ test('inspecting and switching sections preserves unfinished weapon blueprints',
 test('station module choice and network transit no longer require expanding another menu',()=>{
  const friend={id:'1:0',type:'lab',x:800,y:100,active:true};
  const network=renderBasePanel(dock,state({baseTab:'network',connectedBases:2,transfers:[friend]}));
- const growth=renderBasePanel(dock,state({baseTab:'development',developmentCategory:'station'}));
- assert.match(growth,/<section class="base-network-direct" aria-label="Оснащение станции">/);
- assert.match(growth,/data-act="installModule"/);
- assert.match(network,/data-act="openDevelopment" data-id="station"/);
+ assert.match(network,/<section class="base-network-direct" aria-label="Оснащение станции">/);
+ assert.match(network,/data-act="installModule"/);
+ assert.match(network,/Технология всего флота/);
+ assert.doesNotMatch(network,/data-act="openDevelopment" data-id="station"/);
  assert.match(network,/<section class="base-network-direct" data-hangar-section="transit">/);
  assert.match(network,/data-act="transfer" data-role="1:0"/);
 });
