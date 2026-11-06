@@ -1,7 +1,7 @@
 import {REGIONS} from './regions.js?v=regions-1';
-import {commandStateValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
-import {createCentralIndustry,advanceCentralIndustry,interceptCentralCargo,centralIndustryValid,CENTRAL_INDUSTRY,centralEvent} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1';
-import {createFrontierIndustry,advanceFrontierIndustry,interceptFrontierCargo,interceptFrontierRepair,frontierIndustryValid,captureFrontierStation} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1';
+import {commandStateValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
+import {createCentralIndustry,advanceCentralIndustry,interceptCentralCargo,centralIndustryValid,CENTRAL_INDUSTRY,centralEvent} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
+import {createFrontierIndustry,advanceFrontierIndustry,interceptFrontierCargo,interceptFrontierRepair,frontierIndustryValid,captureFrontierStation} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1-territory-war-1';
 export const SUPPLY=Object.freeze({mineId:'28:5',militaryId:'4:-32',
  production:.2,capacity:24,cargoCost:12,dispatchPeriod:90,speed:220,
  assembly:28,raidPeriod:95,warning:10,oreReward:12,dataReward:15});
@@ -124,7 +124,7 @@ export function advanceRegionalSupply(world,time){
   // Two ready reserves are the store's limit; a pending sortie has already
   // spent its reserve. Do not waste ore on cargo without a receiving slot.
   const commitments=s.reserves+s.convoys.length;
-  if(mine?.enemy&&military?.enemy&&s.ore+1e-8>=cargoCost&&
+  if(mine?.enemy&&military?.enemy&&!(military.fluxBreachUntil>t)&&s.ore+1e-8>=cargoCost&&
      t>=s.nextDispatch&&s.convoys.length<2&&
      commitments<SUPPLY_RESPONSE.reserveCommitments){
    s.ore=Math.max(0,s.ore-cargoCost);s.nextDispatch=t+SUPPLY.dispatchPeriod;

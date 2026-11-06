@@ -1,4 +1,5 @@
-import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-supply-stronghold-1';
+import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
+import {TERRITORY_TECH} from './territory-tech.js?v=territory-war-1-territory-war-1';
 import {regionAt,REGIONS,REGION_LIMIT} from './regions.js?v=regions-audit-1';
 
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -116,7 +117,8 @@ export function renderCampaignProgress(game,{compact=false}={}){
  const rows=p.fronts.map(f=>{
   const target=campaignDestination(game,f.key);
   // A regional survey point is public geography, never a hidden station.
-  return '<article class="campaign-front"><div><strong>'+enc(f.name)+'</strong><small>'+enc(status(f))+'</small></div>'+
+  return '<article class="campaign-front"><div><strong>'+enc(f.name)+'</strong><small>'+enc(status(f))+
+   (f.outcome==='captured'&&TERRITORY_TECH[f.key]?'<br>★ '+enc(TERRITORY_TECH[f.key].name)+': '+enc(TERRITORY_TECH[f.key].description):'')+'</small></div>'+
    (f.outcome?'<span>✓</span>':'<button type="button" data-act="campaignFront" data-role="'+f.key+'">'+
     (target?.id.startsWith('region-')?'Разведать регион':target?.id===f.depotId?'К сборочному узлу':'К источнику снабжения')+'</button>')+'</article>';
  }).join('');

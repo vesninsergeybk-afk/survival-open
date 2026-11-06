@@ -298,7 +298,7 @@ export function advanceFrontierIndustry(world,time){
     tealWorkerTick(world,s,t);
    }
    updateStrategy(s,id,src,depot,t,emit);
-   if(src?.enemy&&depot?.enemy&&s.resource>=cfg.cost&&
+   if(src?.enemy&&depot?.enemy&&!(depot.fluxBreachUntil>t)&&s.resource>=cfg.cost&&
       t>=s.nextDispatch&&s.convoys.length===0&&s.reserves<2){
     const st=strategyOf(s,t);
     const screened=t<st.screenUntil&&

@@ -1,9 +1,9 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1';
 import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1';
 import {readableKey,DEFAULT_CONTROLS} from './control-layout.js?v=unified-controls-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
-import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1';
+import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-territory-war-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
 import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
@@ -14,8 +14,8 @@ import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contrac
 import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
 import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1-direct-fit-2-menu-focus-1';
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
-import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
-import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
+import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1';
+import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {CONTOURS,contourFields} from './territory-system.js?v=contours-1';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
@@ -642,7 +642,7 @@ export function renderBasePanel(base,state){
    action('service','Применить · '+o.localService.cost+' сплава',o.reasons.service),
    o.reasons.service):'';
  const supply=base.type==='carrier'?
-  '<div class="base-support"><div><b>✧ УДАРНАЯ ЭСКАДРИЛЬЯ</b><small>Снарядите до двух вылетов. Нажмите B у вражеской базы: бомбардировщики появятся на время и уйдут. Перезарядка 35 с.</small></div>'+
+  '<div class="base-support"><div><b>✧ УДАРНАЯ ЭСКАДРИЛЬЯ</b><small>Снарядите до двух вылетов. B: удар у вражеской базы или прикрытие при угрозе внутри своего контура с авианосцем. В поле можно перехватывать конвои. Перезарядка 35 с.</small></div>'+
   action('supply','Снарядить · '+o.chargeCost+' сплава',o.reasons.supply)+
   '<span>Зарядов: '+state.charges+' / 2</span></div>':'';
  const transit=o.connected&&state.connectedBases>=2&&o.transfers.length?

@@ -20,7 +20,7 @@ export const backbonePair=(a,b)=>BACKBONE_LINKS.some(([x,y])=>
 export const backbonePeers=id=>BACKBONE_LINKS.flatMap(([a,b])=>
  a===id?[b]:b===id?[a]:[]);
 const live=(s,game)=>s?.enemy&&!s.captured&&!s.suppressed&&s.hp>0&&
- finite(s.x)&&finite(s.y)&&(s.fluxJamUntil||0)<=(game?.time??0)&&
+ finite(s.x)&&finite(s.y)&&Math.max(s.fluxJamUntil||0,s.fluxBreachUntil||0)<=(game?.time??0)&&
  !tacticalRadioJammed(game,s);
 export const backboneActive=(a,b,game)=>!!a&&!!b&&
  backbonePair(a.id,b.id)&&distance(a,b)<=BACKBONE.maxDistance&&

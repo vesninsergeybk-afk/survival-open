@@ -1,6 +1,6 @@
-import {CENTRAL_INDUSTRY,centralExtractionAvailable} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-stronghold-1';
-import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2';
-import {FRONTIERS,FRONTIER_REPAIR} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1';
+import {CENTRAL_INDUSTRY,centralExtractionAvailable} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
+import {SUPPLY} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-territory-war-1';
+import {FRONTIERS,FRONTIER_REPAIR} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1-territory-war-1';
 
 export const FRONT_KEYS=Object.freeze(['home','north','azure','teal']);
 // Read existing production state. No second economy or duplicate ownership.

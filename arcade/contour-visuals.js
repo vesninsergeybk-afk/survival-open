@@ -1,4 +1,4 @@
-import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1-flux-offense-1';
+import {contourFields,fieldAt} from './territory-system.js?v=contours-1-world-feedback-1-flux-offense-1';
 import {activeContourTransition,fieldIsNew} from './contour-dynamics.js?v=contour-dynamics-2';
 import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {drawContourVortexArt} from './contour-vortex-art.js?v=contour-vortex-80frames-1';
@@ -29,9 +29,13 @@ export function drawContourWorld(game,c,cam){
  const enemyLinks=game.world.enemyExpansion?.links||[];
  const transition=activeContourTransition(game);
  const fluxSortie=game.world.contours?.sortie;
- const liveJammers=[...game.world.stations.values()].filter(b=>(b.fluxJamUntil||0)>now);
+ const liveJammers=[],liveBreaches=[];
+ for(const b of game.world.stations.values()){
+  if((b.fluxJamUntil||0)>now)liveJammers.push(b);
+  if(b.enemy&&(b.fluxBreachUntil||0)>now)liveBreaches.push(b);
+ }
  if(!fields.length&&!links.length&&!transition&&!enemyFields.length&&!enemyLinks.length&&
-  !fluxSortie&&!liveJammers.length)return;
+  !fluxSortie&&!liveJammers.length&&!liveBreaches.length)return;
  const calm=!!game.visuals?.reducedMotion,lowFps=game.fps<34;
  const elapsed=transition?Math.max(0,now-transition.at):Infinity;
  const energyEdges=new Set(transition?.kind==='claim'?transition.current
@@ -276,8 +280,54 @@ export function drawContourWorld(game,c,cam){
   if(!visible(b,cam,125))continue;
   c.save();c.strokeStyle='#94f5ea';c.lineWidth=3;c.setLineDash([7,8]);
   c.beginPath();c.arc(b.x,b.y,135,0,Math.PI*2);c.stroke();c.setLineDash([]);
+  if((b.fluxBreachProgress||0)>0&&!(b.fluxBreachUntil>now)){
+   c.strokeStyle='#ffd08b';c.lineWidth=7;c.lineCap='round';
+   c.beginPath();c.arc(b.x,b.y,135,-Math.PI/2,
+    -Math.PI/2+Math.PI*2*Math.min(1,b.fluxBreachProgress/110));c.stroke();
+   c.fillStyle='#ffe2a7';c.textAlign='center';c.font='bold 11px system-ui';
+   c.fillText('ПРОРЫВ '+Math.round(b.fluxBreachProgress)+'/110',b.x,b.y-171);
+  }
   c.textAlign='center';c.fillStyle='#bafff4';c.font='bold 12px system-ui';
   c.fillText('РАДИОПОМЕХИ · '+Math.ceil(b.fluxJamUntil-now)+' с',b.x,b.y-155);c.restore();
+ }
+ // The second act of the assault is deliberately a different visual state:
+ // broken amber circuitry, stationary cargo docks and energy escaping through
+ // gaps. The ring exists at the real depot, never as a screen-space HUD cue.
+ for(const b of liveBreaches){
+  if(!visible(b,cam,230))continue;
+  c.save();c.translate(b.x,b.y);c.lineWidth=4.5;c.strokeStyle='#ffc16c';
+  if(!calm&&!lowFps){c.shadowColor='#ff9d45';c.shadowBlur=15;}
+  const angle=calm?0:now*.55;
+  for(let i=0;i<4;i++){
+   const a=angle+i*Math.PI/2;
+   c.beginPath();c.arc(0,0,145,a,a+.84);c.stroke();
+  }
+  c.shadowBlur=0;c.strokeStyle='rgba(245,116,87,.82)';c.lineWidth=2;
+  for(let i=0;i<3;i++){
+   const a=i*Math.PI*2/3+(calm?0:now*.18),r=109+(calm?0:6*Math.sin(now*3+i));
+   c.beginPath();c.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+   c.lineTo(Math.cos(a+.26)*(r+16),Math.sin(a+.26)*(r+16));c.stroke();
+  }
+  c.fillStyle='#ffe4bb';c.textAlign='center';c.font='bold 12px system-ui';
+  c.fillText('СНАБЖЕНИЕ ОСТАНОВЛЕНО',0,-165);
+  c.font='11px system-ui';c.fillText('РЕМОНТ ИЛИ '+Math.ceil(b.fluxBreachUntil-now)+' С',0,-149);
+  c.restore();
+ }
+ const cover=game.support?.missions?.find(m=>m.mode==='cover'&&m.craft?.some(c=>c.hp>0));
+ if(cover&&fieldAt(game.world,game.player.x,game.player.y,fields)&&visible(game.player,cam,160)){
+  const p=game.player;
+  c.save();c.translate(p.x,p.y);
+  const strength=calm? .36 : .62+Math.sin(now*8)*.14;
+  c.strokeStyle=`rgba(139,250,243,${strength})`;c.lineWidth=2.5;
+  c.setLineDash([23,12]);if(!calm)c.lineDashOffset=-now*27%35;
+  c.beginPath();c.arc(0,0,160,0,Math.PI*2);c.stroke();c.setLineDash([]);
+  if(!lowFps&&!calm)for(let i=0;i<3;i++){
+   const a=now*.85+i*Math.PI*2/3;
+   c.fillStyle='#c0fff3';c.beginPath();c.arc(Math.cos(a)*160,Math.sin(a)*160,3.5,0,Math.PI*2);c.fill();
+  }
+  c.font='bold 11px system-ui';c.textAlign='center';c.fillStyle='#c8fff8';
+  c.fillText('АВИАКРЫЛО СЕТИ',0,-177);
+  c.restore();
  }
  // A delivery is acknowledged at the actual receiving station, not at an
  // arbitrary world-space point. The player's common flux purse is unchanged.
