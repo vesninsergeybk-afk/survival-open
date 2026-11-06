@@ -102,6 +102,16 @@ test('implanting a spy costs a stored core, requires deliberate priority and exp
  updateFieldEvolution(g,.5);
  assert.deepEqual(g.fieldEvolution.reveals.map(r=>r.serial).sort(),[1,2]);
  assert.ok(target.parasiteSpyUntil>g.time);
+ g.time+=.1;
+ updateFieldEvolution(g,.1);
+ assert.equal(g.fieldEvolution.spySerial,target.serial,
+  'spy implant must persist between successive scan ticks');
+ g.time+=.41;
+ updateFieldEvolution(g,.41);
+ assert.deepEqual(g.fieldEvolution.reveals.map(r=>r.serial).sort(),[1,2]);
+ g.time=target.parasiteSpyUntil;
+ updateFieldEvolution(g,.1);
+ assert.equal(g.fieldEvolution.spySerial,null);
 });
 
 test('an emergency core only intercepts serious hits, and stasis is local',()=>{

@@ -185,7 +185,7 @@ export function fieldWeaponImpact(game,e){
  const marked=game.designatedTarget?.target===e&&game.designatedTarget.expiresAt>game.time;
  if(game.skillRanks.signal&&game.skillRanks.parasite&&marked&&s.charge>0&&
   e.hp>e.maxHp*.48&&!(e.parasiteSpyUntil>game.time)&&e.type!=='gunship'&&
-  !e.boss&&!e.missionStructure&&(!s.spySerial||s.spyUntil<=game.time)){
+  !e.boss&&!e.missionStructure&&(s.spySerial===null||s.spyUntil<=game.time)){
   s.charge--;s.spySerial=e.serial;s.spyUntil=game.time+16;
   e.parasiteSpyUntil=s.spyUntil;
   game.heritage?.vfx?.nova?.(e.x,e.y,44,'green');
@@ -204,13 +204,17 @@ export function updateFieldEvolution(game,dt){
  s.wrecks=s.wrecks.filter(w=>w.alive);
  s.reveals=s.reveals.filter(r=>r.until>game.time);
  const spy=game.enemies.find(e=>e.serial===s.spySerial&&e.hp>0&&!e.converted);
- if(spy&&game.time<s.spyUntil&&game.time>=s.nextScanAt){
-  s.nextScanAt=game.time+.4;
-  const nearby=game.enemies.filter(e=>e.hp>0&&!e.converted&&e!==spy&&
-   Math.hypot(e.x-spy.x,e.y-spy.y)<650).slice(0,6);
-  s.reveals=[{x:spy.x,y:spy.y,serial:spy.serial,until:game.time+1.2},
-   ...nearby.map(e=>({x:e.x,y:e.y,serial:e.serial,until:game.time+1.2}))];
- }else if(s.spySerial!==null){s.spySerial=null;s.spyUntil=0;}
+ if(s.spySerial!==null){
+  if(!spy||game.time>=s.spyUntil){
+   s.spySerial=null;s.spyUntil=0;
+  }else if(game.time>=s.nextScanAt){
+   s.nextScanAt=game.time+.4;
+   const nearby=game.enemies.filter(e=>e.hp>0&&!e.converted&&e!==spy&&
+    Math.hypot(e.x-spy.x,e.y-spy.y)<650).slice(0,6);
+   s.reveals=[{x:spy.x,y:spy.y,serial:spy.serial,until:game.time+1.2},
+    ...nearby.map(e=>({x:e.x,y:e.y,serial:e.serial,until:game.time+1.2}))];
+  }
+ }
 }
 
 export function updateParasitizedEnemy(e,game,dt){
