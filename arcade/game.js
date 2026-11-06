@@ -16,6 +16,11 @@ import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifi
 import {createStrategicExperience,claimStationActivation,claimStationCapture,claimExploration,
  claimContourExpansion,claimFirstFluxDelivery,claimGeologicalSurvey,claimStrategicSabotage} from './strategic-experience.js?v=strategic-xp-pass2-1';
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
+import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,offerLevelCrystals,refreshEvolutionOffers,
+ enemyFieldReward,collectParasiteCore,absorbParasiteImpact,markDashPass,fieldWeaponImpact,
+ updateFieldEvolution} from './field-evolution.js?v=field-evolution-1';
+import {drawEvolutionEnvironment,drawParasiteCore,drawEvolutionEnemy,
+ drawEvolutionConnections,drawEvolutionPlayer} from './field-evolution-vfx.js?v=field-evolution-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=xp-feedback-pass1-1';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1-supply-stronghold-1-flux-reserve-1-flux-offense-1-territory-war-1';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
@@ -100,7 +105,8 @@ const SKILLS=[
  {id:'mining',branch:'Добыча',title:'Геологическая подготовка',max:4,from:2,desc:'Усиливает экстрактор; первый ранг уменьшает шум добычи на 16%, каждый второй добавляет сплав. Каждый ранг даёт +2 опыта за новое далёкое месторождение (до шести участков).'},
  {id:'extractor',branch:'Добыча',title:'Дуговой экстрактор',max:3,from:3,requires:'mining',desc:'Экстрактор быстрее расщепляет астероиды и отделяет больше сплава'},
  {id:'radar',branch:'Технологии',title:'Навигационный радар',max:2,from:3,desc:'Обнаруживает станции раньше; каждый ранг добавляет +2 опыта за первую разведку новой станции (не более 18 станций).'},
- {id:'tactics',branch:'Технологии',title:'Боевой протокол',max:3,from:5,desc:'Союзники быстрее выбирают опасные цели'}
+ {id:'tactics',branch:'Технологии',title:'Боевой протокол',max:3,from:5,desc:'Союзники быстрее выбирают опасные цели'},
+ ...FIELD_EVOLUTION_SKILLS
 ];
 
 const DOCTRINES=[
@@ -145,6 +151,11 @@ function nextSkillEffect(id,rank,levels={}){
     ' · опыт за новую станцию: +'+(6+rank*2)+' → +'+(6+n*2);
   case 'tactics':return 'Решения ведомых: чаще на '+(Math.round(n*.2*100))+
     '% относительно базового темпа';
+  case 'parasite':return 'После каждого третьего личного уничтожения: энергетическое ядро · запас до 2';
+  case 'conduit':return 'Рывок оставляет метки на 4 с · точное попадание удерживает до 3 целей на 1,25 с';
+  case 'wreck':return 'До 3 обломков-укрытий после побед · 19 с · 48 прочности';
+  case 'capture':return 'Отмеченный добитый дрон на вашей стороне 16 с · требуется ядро · перезарядка 22 с';
+  case 'signal':return 'Ядро внедряется при попадании по отмеченной цели · разведка звена 16 с';
   default:return '';
  }
 }
@@ -185,6 +196,7 @@ export class ArcadeGame {
     ore:0,data:0,invul:0,angle:0,
      burstRemaining:0,burstCooldown:0,burstX:0,burstY:-1};
   this.skillRanks=Object.fromEntries(SKILLS.map(s=>[s.id,0]));
+  this.fieldEvolution=createFieldEvolution();
   this.shipLoadout=createLoadout();
   this.firstHardwareReward=null;
   let hangarStorage=null;try{hangarStorage=window.localStorage;}catch{}
@@ -341,11 +353,22 @@ export class ArcadeGame {
   this.controls||={...DEFAULT_CONTROLS};
   window.addEventListener('resize',()=>this.resize());
   this.bindControlSettings();mountSystemMenu(this);
+  $('evolutionPrompt')?.addEventListener('click',event=>{
+   const button=event.target.closest?.('[data-evolution]');
+   if(!button)return;
+   if(button.dataset.evolution==='later'){this.deferEvolution();return;}
+   this.chooseEvolution(button.dataset.evolution);
+  });
   document.addEventListener('keydown',e=>{
    const launchOpen=document.getElementById?.('mobileLaunch')?.hidden===false;
    if(document.getElementById?.('gameMenuDialog')?.open||document.getElementById?.('creditsDialog')?.open)return;
    if(!launchOpen&&!this.overlay.hidden&&keepTabInMenu(e,this.overlay))return;
    if(launchOpen)return;
+   if(this.overlay.hidden&&this.fieldEvolution?.offers.length&&
+    ['Digit1','Digit2','Digit3'].includes(e.code)&&!e.repeat&&
+    !e.target?.closest?.('input,textarea,select,button')){
+    e.preventDefault();this.chooseEvolution(this.fieldEvolution.offers[Number(e.code.slice(-1))-1]);return;
+   }
    if(!this.overlay.hidden&&this.overlay.dataset.mode==='run-start'){
     if(e.code==='Escape'&&this.overlay.querySelector('.run-confirm')){e.preventDefault();this.cancelRunAction();}
     return;
@@ -1351,6 +1374,41 @@ export class ArcadeGame {
   this.presentMenu();
   restoreMenuControl(this.overlay,focusIdentity,'.skill-branch-tabs [aria-pressed="true"]');
  }
+ syncEvolutionPrompt(){
+  const panel=$('evolutionPrompt');if(!panel)return;
+  const state=this.fieldEvolution;
+  if(!state?.offers?.length||this.player.points<=0||this.dead){panel.hidden=true;panel.innerHTML='';return;}
+  const cards=state.offers.map((id,index)=>{
+   const skill=SKILLS.find(s=>s.id===id);
+   if(!skill)return '';
+   const role=skill.id==='capture'?'ПЕРЕХВАТ':skill.id==='signal'?'РАЗВЕДКА':
+    skill.id==='conduit'?'МАНЁВР':skill.id==='wreck'?'УКРЫТИЕ':'ЭВОЛЮЦИЯ';
+   return '<button type="button" class="evolution-choice" data-evolution="'+id+'">'+
+    '<span class="evolution-crystal">'+(index+1)+'</span><span class="evolution-choice-copy">'+
+    '<small>'+role+'</small><strong>'+skill.title+'</strong><span>'+skill.desc+'</span></span></button>';
+  }).join('');
+  panel.innerHTML='<div class="evolution-heading"><span>✦ НОВЫЙ УРОВЕНЬ · '+this.player.level+
+   '</span><strong>Выберите кристалл</strong><small>1 очко развития · можно подобрать кораблём или выбрать здесь</small></div>'+
+   '<div class="evolution-choices">'+cards+'</div><button type="button" class="evolution-later" '+
+   'data-evolution="later">Позже · сохранить очко для меню развития</button>';
+  panel.hidden=false;
+ }
+ chooseEvolution(id){
+  if(!id||!this.fieldEvolution?.offers.includes(id)||this.player.points<1)return false;
+  const spent=this.buySkill(id);
+  if(spent){
+   this.heritage.vfx.nova(this.player.x,this.player.y,82,'green');
+   this.heritage.play('doctrine',.28,{x:this.player.x,y:this.player.y});
+   this.syncEvolutionPrompt();
+  }
+  return !!spent;
+ }
+ deferEvolution(){
+  this.fieldEvolution.pending=0;
+  this.fieldEvolution.offers=[];this.fieldEvolution.crystals=[];
+  this.syncEvolutionPrompt();
+  this.notice('Очко развития сохранено — потратьте его в меню пилота',3);
+ }
  buyDoctrine(id){
   if(this.dead||this.doctrine||this.player.level<4||this.player.points<1||
     !DOCTRINES.some(d=>d.id===id))return;
@@ -1364,8 +1422,12 @@ export class ArcadeGame {
   const skill=SKILLS.find(s=>s.id===id),p=this.player;
   if(SHIP_UPGRADES.has(id)&&(!this.docked?.active||this.overlay.hidden||this.overlay.dataset.mode!=='base'||!['hangar','development'].includes(this.baseTab)))return;
   if(!skill||p.points<=0||p.level<skill.from||
-    (skill.requires&&!this.skillRanks[skill.requires])||this.skillRanks[id]>=skill.max)return;
-  this.skillRanks[id]++;p.points--;
+    (skill.requires&&!this.skillRanks[skill.requires])||(this.skillRanks[id]||0)>=skill.max)return false;
+  this.skillRanks[id]=(this.skillRanks[id]||0)+1;p.points--;
+  if(this.fieldEvolution?.pending>0){
+   this.fieldEvolution.pending--;
+   refreshEvolutionOffers(this,SKILLS);
+  }
   if(id==='hull'){p.maxHp+=22;p.hp=Math.min(p.maxHp,p.hp+32);}
   if(id==='shield')p.shield+=18;
   let moduleSuggested=false;
@@ -1384,7 +1446,9 @@ export class ArcadeGame {
    else this.overlay.querySelector('[data-act="hgUpgrade"][data-id="'+id+'"]')?.focus({preventScroll:true});
   }else if(this.overlay.dataset.mode==='base'){
    this.hangarSession.message='Изучено: '+skill.title+' · потрачено 1 очко развития';this.renderDock();
-  }else this.renderSkills();
+  }else if(this.overlay.hidden){this.hud();this.syncEvolutionPrompt();}
+  else this.renderSkills();
+  return true;
  }
 
  advanceContract(kind,subject=null){
@@ -2636,6 +2700,7 @@ export class ArcadeGame {
   this.hud();return true;
  }
  weaponHit(item,dealt,source,manual=false){
+  if(item.kind==='enemy'&&dealt>0)fieldWeaponImpact(this,item.target);
   if(item.kind==='enemy'&&dealt>0&&(source==='ion'||source==='rail'&&manual))
    interruptStationInterdiction(this,item.target,source==='ion'?'ion':'precision');
   if(source==='beam'&&this.fieldLoan&&this.weaponProfile.ion){
@@ -2839,6 +2904,8 @@ export class ArcadeGame {
  hurt(damage,source=null){
   const p=this.player;if(p.invul>0)return;
   if(this.nearDockField||this.nearArsenalDefense)damage*=.82;
+  damage=absorbParasiteImpact(this,damage);
+  if(damage<=0){p.invul=.28;this.lastDamageAt=this.time;return;}
   const absorbed=Math.min(p.shield,damage);p.shield-=absorbed;
   const remaining=Math.max(0,damage-absorbed);
   const previousHp=p.hp;
@@ -3265,6 +3332,12 @@ export class ArcadeGame {
  }
  damageRock(rock,damage,sourceX,sourceY,kind='auto',showImpact=true,contact=null){
   if(!rock?.alive)return;
+  if(rock.evolutionWreck){
+   rock.hp=Math.max(0,rock.hp-Math.max(0,damage));
+   if(showImpact)this.heritage.vfx.hullImpact(contact?.x??rock.x,contact?.y??rock.y,damage>30,contact);
+   if(rock.hp<=0){rock.alive=false;this.heritage.vfx.nova(rock.x,rock.y,rock.r,'cyan');}
+   return;
+  }
   const destroyed=impactRock(rock,damage,sourceX,sourceY,kind);
   // Emit noise as the ore fractures so the player can judge danger in time.
   if(kind==='extract'&&damage>0){
@@ -3331,9 +3404,15 @@ export class ArcadeGame {
   const gained=grantExperience(this.player,amount);
   if(gained){
    this.heritage.play('levelUp',.4);
-   this.notice((gained>1?'Получено уровней: '+gained+'. ':'Новый уровень! ')+
-    (this.isTouchLayout?'Откройте «Развитие» в меню.':'Навыки пилота — '+this.controlLabel('skills')+'.')+
-    ' Оружие и системы — в ангаре.',4.2);
+   if(this.fieldEvolution){
+    this.fieldEvolution.levelAt=this.time;
+    offerLevelCrystals(this,gained,SKILLS);
+    this.syncEvolutionPrompt();
+   }
+   this.heritage.vfx.nova(this.player.x,this.player.y,105,'cyan');
+   this.notice((gained>1?'Получено уровней: '+gained+'. ':'НОВЫЙ УРОВЕНЬ! ')+
+    (this.fieldEvolution?.offers.length?'Выберите один из кристаллов или сохраните очко.':
+     'Очко развития ждёт вас в меню пилота.'),4.2);
   }
   return gained;
  }
@@ -3343,6 +3422,7 @@ export class ArcadeGame {
  }
  collect(item){
   const p=this.player;
+  if(item.type==='parasiteCore')return collectParasiteCore(this);
   if(item.type==='fieldCell'){
    const spec=this.fieldLoan&&fieldWeapon(this.fieldLoan);
    if(!spec||this.fieldLoan.charges>=spec.capacity)return false;
@@ -3364,6 +3444,7 @@ export class ArcadeGame {
  }
  update(dt){
   const p=this.player;this.time+=dt;this.visuals.updateSky(p.x,p.y);
+  updateFieldEvolution(this,dt);
   if(this.enemyLearning?.dirty&&this.time>=this.enemyLearning.nextSave)
    this.enemyLearning.flush(this.time);
   updateFieldEffects(this);
@@ -3449,7 +3530,9 @@ export class ArcadeGame {
   p.vy+=(targetY-p.vy)*response;
   p.burstRemaining=Math.max(0,p.burstRemaining-dt);
   p.burstCooldown=Math.max(0,p.burstCooldown-dt);
+  const previousX=p.x,previousY=p.y;
   p.x+=p.vx*dt;p.y+=p.vy*dt;
+  if(boosting)markDashPass(this,previousX,previousY);
   // Cull decorative effects at creation, not only when painting the frame.
   this.heritage.vfx.setViewport(this.camera());
   if(length(p.vx,p.vy)>9)p.angle=Math.atan2(p.vy,p.vx)+Math.PI/2;
@@ -3512,6 +3595,7 @@ export class ArcadeGame {
    updateRockMotion(rock,dt);
    if(rock.alive&&rock.r>=34)this.rockGrid.insert(rock);
   }
+  for(const wreck of this.fieldEvolution?.wrecks||[])if(wreck.alive)this.rockGrid.insert(wreck);
   if(!this.amberBeltSeen&&nearAmberBelt(p.x,p.y)){
    this.amberBeltSeen=true;
    this.heritage.world('amber');
@@ -3702,6 +3786,7 @@ export class ArcadeGame {
     // should never become a safe, automatic source of alloy.
     if(salvage&&!(this.nearDock&&dist(this.nearDock,p)<180))
      this.addDrop('ore',e.x+10,e.y-9,salvage,{source:'salvage',life:24});
+    enemyFieldReward(this,e,directXp);
    }
   }
   this.enemies=this.enemies.filter(e=>{
@@ -3801,6 +3886,15 @@ export class ArcadeGame {
    if(m<27&&this.collect(d)!==false)d.life=-1;
   }
   this.drops=this.drops.filter(d=>d.life>0);
+  if(this.fieldEvolution?.crystals.length&&this.player.points>0&&!this.dead){
+   for(const crystal of [...this.fieldEvolution.crystals]){
+    // A level crystal waits near the place of the achievement. It remains
+    // available through the on-screen choice if the player flies away.
+    if(this.time-crystal.born>.85&&Math.hypot(p.x-crystal.x,p.y-crystal.y)<28){
+     this.chooseEvolution(crystal.id);break;
+    }
+   }
+  }
   for(const f of this.flashes)f.ttl-=dt;
   this.flashes=this.flashes.filter(f=>f.ttl>0);
   updateWeaponFx(this,dt);
@@ -4123,6 +4217,7 @@ export class ArcadeGame {
     c.stroke();c.restore();
    }
   }
+  drawEvolutionEnvironment(c,this,cam);
   if(this.mining.target?.alive && !outsideCamera(this.mining.target.x,this.mining.target.y,cam,50))
    drawExtraction(c,p,this.mining.target,this.time,this.skillRanks.extractor||0,this.mining.active);
   // A brief field pulse connects the intercepted emission with its source.
@@ -4163,6 +4258,9 @@ export class ArcadeGame {
   this.drawOpeningBeacon(c,cam);
   for(const d of this.drops){
    if(outsideCamera(d.x,d.y,cam,20))continue;
+   if(d.type==='parasiteCore'){
+    drawParasiteCore(c,d,this.time,this.fps);continue;
+   }
    if(d.hot){c.fillStyle='#ff96323d';c.beginPath();c.arc(d.x,d.y,12,0,TAU);c.fill();}
    c.fillStyle=d.type==='fieldCell'?'#d5a1f0':d.type==='ore'?(d.hot?'#ffd296':'#efbb70'):'#69e7ec';
    c.beginPath();c.arc(d.x,d.y,d.type==='fieldCell'?7:d.type==='ore'?6:4,0,TAU);c.fill();
@@ -4182,6 +4280,7 @@ export class ArcadeGame {
   this.drawProbe(c,cam);
   this.heritage.vfx.beginSurfaceLights();
   const chosenTarget=activeDesignatedTarget(this);
+  drawEvolutionConnections(c,this,cam);
   if(this.cruising){
    c.save();c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle='#9afce5';
    c.fillText('МАРШЕВЫЙ ПЕРЕЛЁТ ×'+EXPEDITION_CRUISE.multiplier,p.x,p.y+56);c.restore();
@@ -4284,6 +4383,7 @@ export class ArcadeGame {
     c.fillStyle='#e77e7e';c.fillRect(e.x-15,e.y-e.r-14,30*clamp(e.hp/e.maxHp,0,1),3);
    }
    if(e.healFlash>0){c.fillStyle='#b4ffbd';c.font='bold 12px system-ui';c.fillText('+',e.x+20,e.y-18);}
+   drawEvolutionEnemy(c,e,this.time,this.fps,this.visuals.reducedMotion);
   }
   for(const a of this.allies){
    if(outsideCamera(a.x,a.y,cam,50))continue;
@@ -4341,6 +4441,7 @@ export class ArcadeGame {
   if(!this.dead&&p.shield>0){
    c.strokeStyle='#73dffc77';c.lineWidth=3;c.beginPath();c.arc(p.x,p.y,37,0,TAU);c.stroke();
   }
+  drawEvolutionPlayer(c,this);
   for(const f of this.flashes)drawEnergyFlash(c,f,this.fps);
   drawWeaponFx(c,this.weaponFx,this.fps,this.visuals.reducedMotion,cam);
   this.heritage.vfx.render(c,'front',
@@ -4379,6 +4480,11 @@ export class ArcadeGame {
   advanceWorldFeedback(this);
   this.cockpit.update(this,expForNext(this.player.level),burstStats(this.skillRanks.engine).cooldown);
   this.syncControlUI();
+  const panel=$('evolutionPrompt');
+  if(panel){
+   const key=this.fieldEvolution?.pending+'|'+this.fieldEvolution?.offers.join('|')+'|'+this.player.points+'|'+this.dead;
+   if(panel.dataset.state!==key){panel.dataset.state=key;this.syncEvolutionPrompt();}
+  }
  }
  loop(now){
   const frameMs=clamp(now-this.last,0,220);this.last=now;

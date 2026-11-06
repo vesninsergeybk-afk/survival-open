@@ -5,6 +5,7 @@ import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-menu-focus-1';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2-campaign-1';
 import {createTactical,validTactical} from './tactical-fields.js?v=tactical-field-2';
+import {validFieldEvolution} from './field-evolution.js?v=field-evolution-1';
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-campaign-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
@@ -25,7 +26,7 @@ const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal m
  'contract operation geoScanUntil overchargeUntil fieldLoan fieldTrialTaken fieldReturnAt ionMasteryAwarded '+
  'holdFire beamClock rocketClock zoneClock stationary lastX lastY hacks activeBases enemySerial '+
  'allySerial groupSerial heavyPortalShown lastEncounter lastEncounterLabelAt amberBeltSeen ionFieldSeen '+
- 'waypoint manualWaypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc').split(' ');
+ 'waypoint manualWaypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc fieldEvolution').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const cell=validStationId;
@@ -135,6 +136,7 @@ export function validateCheckpoint(data){
  if(s.economyExpenses!==undefined&&!validEconomyExpenses(s.economyExpenses))return false;
  if(s.openingArc!==undefined&&!validateOpeningArc(s.openingArc))return false;
  if(s.tactical!==undefined&&!validTactical(s.tactical,s.time))return false;
+ if(s.fieldEvolution!==undefined&&!validFieldEvolution(s.fieldEvolution,s.time))return false;
  if(s.firstHardwareReward!==undefined&&s.firstHardwareReward!==null&&
   !['pending','rail','flak','plasma'].includes(s.firstHardwareReward))return false;
  if(['rail','flak','plasma'].includes(s.firstHardwareReward)&&
