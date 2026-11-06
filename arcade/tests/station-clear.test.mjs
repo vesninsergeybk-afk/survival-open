@@ -20,8 +20,8 @@ const section=(html,id)=>html.split('id="base-panel-'+id+'"')[1]?.split('<sectio
 test('regional plans cannot replace or bury routine station actions',()=>{
  const {home,state}=fixture();
  state.world.regionalSupply.central.conflict={offeredAt:150,plan:null,outcome:null};
- const html=renderBasePanel(home,state),summary=section(html,'summary'),tasks=section(html,'operations');
- assert.match(summary,/Что делать сейчас/);
+ const html=renderBasePanel(home,state),summary=section(html,'summary'),tasks=section(renderBasePanel(home,{...state,baseTab:'operations'}),'operations');
+ assert.match(summary,/Задания на главной/);
  assert.match(summary,/data-act="repair"/);
  assert.doesNotMatch(summary,/class="campaign-progress"|aria-label="Цель домашнего региона"|data-act="conflictPlan"/);
  assert.match(tasks,/data-hangar-section="region-plans"/);

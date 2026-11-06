@@ -410,7 +410,7 @@ test('map and station terminal show actual protection, without adding a menu',()
  assert.match(map,/узел сети · ПВО и стазис/);
  assert.match(map,/stroke="#b790f0"/);
  assert.match(map,/бирюзовый круг — ПВО/);
- assert.equal((panelLinked.match(/role="tab"/g)||[]).length,4);
+ assert.equal((panelLinked.match(/role="tab"/g)||[]).length,5);
 });
 
 test('flight readout stays beside the protection ring, clear of the top mission bar',()=>{

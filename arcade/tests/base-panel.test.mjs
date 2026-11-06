@@ -92,7 +92,7 @@ test('instant repair price follows actual missing hull and explains free dock he
  assert.match(panel,/Через 4 с без попаданий/);
  assert.match(panel,/Бесплатно:/);
  assert.match(panel,/Платный ремонт возвращает до 9 ед. сразу/);
- assert.match(panel,/Корпус · 4 сплава/);
+ assert.match(panel,/Починить корпус · 4 сплава/);
 });
 
 test('airstrike supply is a finite consumable locked to connected carrier',()=>{
@@ -110,15 +110,15 @@ test('transit is useful only between connected relays and has a visible cost',()
  const origin=base('dock',{active:true});
  const destination={id:'1:0',x:1250,y:0,type:'lab'};
  assert.equal(transitCost(origin,destination),28);
- const one=renderBasePanel(origin,state({ore:100,activeBases:1,
+ const one=renderBasePanel(origin,state({baseTab:'network',ore:100,activeBases:1,
   connected:true,connectedBases:1,transfers:[destination]}));
  assert.doesNotMatch(one,/МАРШРУТЫ СЕТИ/);
- const two=renderBasePanel(origin,state({ore:100,activeBases:2,
+ const two=renderBasePanel(origin,state({baseTab:'network',ore:100,activeBases:2,
   connected:true,connectedBases:2,transfers:[destination]}));
  assert.match(two,/МАРШРУТЫ СЕТИ/);
  assert.match(two,/Лаборатория.*28 сплава/);
  assert.match(two,/data-act="transfer" data-role="1:0"/);
- const poor=renderBasePanel(origin,state({ore:4,activeBases:2,
+ const poor=renderBasePanel(origin,state({baseTab:'network',ore:4,activeBases:2,
   connected:true,connectedBases:2,transfers:[destination]}));
  assert.match(poor,/data-act="transfer" data-role="1:0" disabled/);
 });
@@ -238,12 +238,12 @@ test('dock emergency shield can be bought once, without double-spending',()=>{
 
 test('antenna is a real station purchase with visible network reach',()=>{
  const dock=base('dock',{active:true});
- const before=baseOffer(dock,state({ore:40,relayGain:2}));
+ const before=baseOffer(dock,state({baseTab:'development',developmentCategory:'station',ore:40,relayGain:2}));
  assert.equal(before.antennaCost,34);
  assert.equal(before.reasons.antenna,'');
- const html=renderBasePanel(dock,state({ore:40,relayGain:2}));
+ const html=renderBasePanel(dock,state({baseTab:'development',developmentCategory:'station',ore:40,relayGain:2}));
  assert.match(html,/data-act="antenna"/);
  assert.match(html,/Сейчас подключит ещё 2/);
- const installed=baseOffer({...dock,relayBoost:true},state({ore:40}));
+ const installed=baseOffer({...dock,relayBoost:true},state({baseTab:'development',developmentCategory:'station',ore:40}));
  assert.match(installed.reasons.antenna,/уже усилена/);
 });

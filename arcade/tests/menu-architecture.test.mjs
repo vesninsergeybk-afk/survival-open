@@ -30,7 +30,7 @@ test('special operation and normal assignments offer acceptance immediately on t
 
 test('one weapon selection shows both branches and relevant upgrades without disclosures',()=>{
  const current=createLoadout(),session=new HangarSession();session.begin(current);
- const context=state({baseActive:true,loadout:current,hangarSession:session});
+ const context=state({baseActive:true,loadout:current,hangarSession:session,developmentMode:true,developmentCategory:'weapons'});
  const first=renderShipHangar(context,session);
  assert.match(first,/data-act="hgFocusWeapon" data-id="rail"/);
  assert.match(first,/class="hg-weapon-inspector"/);
@@ -52,17 +52,19 @@ test('ship destinations separate tactical devices, system upgrades and repair se
  const shared=state({baseTab:'hangar',hangarSession:session});
  const weapons=renderShipHangar(shared,session);
  const tactics=renderShipHangar({...shared,hangarView:'tactics'},session);
- const upgrades=renderShipHangar({...shared,hangarView:'upgrades'},session);
+ const upgrades=renderBasePanel(dock,{...shared,baseTab:'development',developmentCategory:'ship'});
+ const tacticalGrowth=renderBasePanel(dock,{...shared,baseTab:'development',developmentCategory:'tactics'});
  const services=panel(renderBasePanel(dock,{...shared,hangarView:'services'}),'hangar');
- for(const html of [weapons,tactics,upgrades,services]){
+ for(const html of [weapons,tactics,services]){
   assert.match(html,/data-act="hgView" data-id="weapons"/);
   assert.match(html,/data-act="hgView" data-id="tactics"/);
-  assert.match(html,/data-act="hgView" data-id="upgrades"/);
+  assert.doesNotMatch(html,/data-act="hgView" data-id="upgrades"/);
   assert.match(html,/data-act="hgView" data-id="services"/);
  }
  assert.doesNotMatch(weapons,/data-act="hgTacticUnlock"/);
  assert.match(tactics,/data-act="hgFocusTactic" data-id="decoy"/);
- assert.match(tactics,/data-act="hgTacticUpgrade"/);
+ assert.doesNotMatch(tactics,/data-act="hgTacticUpgrade"/);
+ assert.match(tacticalGrowth,/data-act="hgTacticUpgrade"/);
  assert.doesNotMatch(tactics,/<details class="hg-tactic-upgrade-details"/);
  assert.match(upgrades,/data-act="hgFrame"/);
  assert.match(upgrades,/data-act="hgUpgrade" data-id="hull"/);
@@ -75,9 +77,9 @@ test('inspecting and switching sections preserves unfinished weapon blueprints',
  const loadout=createLoadout(),session=new HangarSession();session.begin(loadout);
  session.draft.slots[1]='rail';
  session.dispatch({act:'hgFocusWeapon',id:'rocket'},{loadout});
- const upgradeHtml=renderShipHangar(state({loadout,hangarSession:session,hangarView:'upgrades'}),session);
+ const upgradeHtml=renderBasePanel(dock,state({loadout,hangarSession:session,baseTab:'development',developmentCategory:'ship'}));
  const weaponsHtml=renderShipHangar(state({loadout,hangarSession:session}),session);
- assert.match(upgradeHtml,/Предварительная сборка/);
+ assert.match(upgradeHtml,/В ангаре есть неприменённая сборка/);
  assert.match(weaponsHtml,/Предварительная сборка/);
  assert.match(weaponsHtml,/<h3>Самонаводящиеся ракеты<\/h3>/);
  assert.equal(session.draft.slots[1],'rail');
@@ -87,8 +89,10 @@ test('inspecting and switching sections preserves unfinished weapon blueprints',
 test('station module choice and network transit no longer require expanding another menu',()=>{
  const friend={id:'1:0',type:'lab',x:800,y:100,active:true};
  const network=renderBasePanel(dock,state({baseTab:'network',connectedBases:2,transfers:[friend]}));
- assert.match(network,/<section class="base-network-direct" aria-label="Оснащение станции">/);
- assert.match(network,/data-act="installModule"/);
+ const growth=renderBasePanel(dock,state({baseTab:'development',developmentCategory:'station'}));
+ assert.match(growth,/<section class="base-network-direct" aria-label="Оснащение станции">/);
+ assert.match(growth,/data-act="installModule"/);
+ assert.match(network,/data-act="openDevelopment" data-id="station"/);
  assert.match(network,/<section class="base-network-direct" data-hangar-section="transit">/);
  assert.match(network,/data-act="transfer" data-role="1:0"/);
 });

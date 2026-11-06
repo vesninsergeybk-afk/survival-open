@@ -27,7 +27,7 @@ test('completed contract at its origin offers a direct, prominent reward action'
  assert.match(summary,/\+15 опыта/);
  assert.match(summary,/data-act="claimContract">Забрать награду/);
  assert.ok(summary.indexOf('data-act="claimContract"')<summary.indexOf('base-quick-services'));
- assert.doesNotMatch(summary,/base-featured-op/,'detailed special mission must not obscure the reward');
+ assert.ok(summary.indexOf('data-act="claimContract"')<summary.indexOf('base-featured-op'),'the reward must precede other available missions');
 });
 
 test('both offered and completed contracts disclose the full experience reward',()=>{
@@ -74,8 +74,8 @@ test('first weapon award has one clear continuation and three real choices',()=>
  const html=renderBasePanel(home,state({firstHardwareReward:'pending'}));
  const summary=visiblePanel(html);
  assert.match(summary,/Вы получили новое оружие/);
- assert.match(summary,/data-act="baseTab" data-role="operations">Выбрать оружие/);
- assert.doesNotMatch(summary,/claimFirstModule/);
+ assert.match(summary,/data-act="claimFirstModule"/);
+ assert.doesNotMatch(summary,/data-act="baseTab" data-role="operations">Выбрать оружие/);
  assert.equal((html.match(/data-act="claimFirstModule"/g)||[]).length,3);
  const result=renderBasePanel(home,state({firstHardwareReward:'rail',
   lastContractReceipt:{ore:16,data:15,firstHardwareReward:'rail'}}));
@@ -104,7 +104,7 @@ test('regular jobs are visible before long optional mission description',()=>{
  assert.match(html,/<section class="base-task-group regular" aria-label="Полевые заказы"><h3>Полевые заказы<\/h3>/);
  assert.match(html,/data-act="acceptOperation">Принять операцию/);
  assert.match(html,/data-act="acceptContract"/);
- assert.match(html,/data-act="showFieldTrial"/,'the starter weapon trial stays discoverable');
+ assert.match(renderBasePanel(home,state()),/data-act="showFieldTrial"/,'the starter weapon trial stays directly accessible on home');
  assert.match(html,/role="tab"[^>]*>Задания<\/button>/);
 });
 
@@ -120,11 +120,12 @@ test('an active special mission from another station points back to the map',()=
 test('unspent pilot points are actionable inside a dock, even after a level-up at claim',()=>{
  const html=renderBasePanel(home,state({level:2,points:1,xp:0,nextXp:68,
   lastContractReceipt:{ore:16,data:15,levelsGained:1}}));
- assert.match(html,/class="base-pilot-progress" role="status"/);
- assert.match(html,/ПИЛОТ · УР. 2/);
- assert.match(html,/Новый уровень! · 1 очко развития/);
- assert.match(html,/data-act="pilotSkills">Выбрать навык/);
+ assert.match(html,/class="base-home-pilot-status" role="status"/);
+ assert.match(html,/Пилот · ур. 2/);
+ assert.match(html,/Новый уровень!/);
+ assert.match(html,/1 очк\./);
+ assert.match(html,/data-act="openDevelopment" data-id="pilot"/);
  assert.doesNotMatch(html,/Данные <b>0<\/b> \(опыт\)/);
  const spent=renderBasePanel(home,state({level:2,points:0,xp:0,nextXp:68}));
- assert.doesNotMatch(spent,/class="base-pilot-progress"/);
+ assert.doesNotMatch(spent,/Есть очки для улучшений/);
 });

@@ -73,5 +73,6 @@ test('the ordinary slot catalog includes free trial weapons beside owned and pur
  g.hangarSession.dispatch({act:'hgFocusWeapon',id:'rail'},{loadout:g.shipLoadout});
  const html=renderBasePanel(g.docked,{...g.baseState(),baseTab:'hangar'});
  const rail=html.split('data-act="hgEquip" data-id="rail"')[1].split('</button>')[0];
- assert.match(rail,/disabled>Закрыто/);assert.doesNotMatch(rail,/Установить · бесплатно/);
+ assert.match(rail,/disabled>Купить и установить · 36 сплава/);
+ assert.match(html,/Нужен уровень 3/);assert.doesNotMatch(rail,/Установить · бесплатно/);
 });

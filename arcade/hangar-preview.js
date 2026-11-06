@@ -1,7 +1,7 @@
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
 import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-direct-fit-2-menu-flow-2-menu-focus-1';
-import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2';
-import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1-tactical-field-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-menu-reaudit-1';
+import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-menu-rebuild-1';
+import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1-tactical-field-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-menu-reaudit-1-menu-rebuild-1';
 import {createTactical,applyTacticalChoice} from './tactical-fields.js?v=tactical-field-2';
 
 let context,session;
@@ -20,7 +20,7 @@ function setup(advanced){
 }
 function render(){
  const root=document.getElementById('hangar'),view=captureHangarView(root);
- root.innerHTML=renderShipHangar(context,session)+
+ root.innerHTML=(context.developmentMode?'<button type="button" data-act="previewFitting">← К оснащению</button>':'')+renderShipHangar(context,session)+
   (context.hangarView==='services'?'<p class="hg-view-note">Это стенд оснащения. Ремонт, дроны и услуги доступны на действующей станции в игре.</p>':'')+
   (context.hangarView==='upgrades'?'<p class="hg-view-note">Здесь можно испытать расширение корпуса. Остальные навыки развития зависят от уровня пилота в игре.</p>':'');
  restoreHangarView(root,view);menuHints(root);
@@ -28,6 +28,8 @@ function render(){
 document.addEventListener('click',e=>{
  const mode=e.target.closest('[data-preview]');if(mode){setup(mode.dataset.preview==='advanced');return;}
  const b=e.target.closest('button[data-act]');if(!b||b.disabled)return;
+ if(b.dataset.act==='openDevelopment'){context.developmentMode=true;context.developmentCategory=b.dataset.id;render();return;}
+ if(b.dataset.act==='previewFitting'||b.dataset.act==='fitWeapon'){context.developmentMode=false;render();return;}
  if(b.dataset.act==='hgView'){
   if(['weapons','tactics','upgrades','services'].includes(b.dataset.id)){
    context.hangarView=b.dataset.id;render();
@@ -45,6 +47,7 @@ document.addEventListener('click',e=>{
   render();return;
  }
  const result=session.dispatch(b.dataset,{...context,ranks:context.skillRanks});
+ if(b.dataset.act==='hgSlot'&&session.draft.slots[session.slot])session.catalog=false;
  if(result?.ok){context.loadout=result.loadout;context.ore=result.ore;
   if(result.type==='specialization')context.points=result.points;}
  render();

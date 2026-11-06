@@ -42,7 +42,8 @@ test('first contract advertises free hardware, then offers one clear choice loca
  const intro=renderBasePanel(dock,state({loadout:createLoadout(),firstHardwareReward:null}));
  assert.match(intro,/Первый сданный заказ даст бесплатное оружие на выбор/);
  const ready=renderBasePanel(dock,state({loadout:createLoadout(),firstHardwareReward:'pending'}));
- assert.match(ready,/data-act="baseTab" data-role="operations">Выбрать оружие/);
+ assert.match(ready,/Вы получили новое оружие/);
+ assert.doesNotMatch(ready,/data-act="baseTab" data-role="operations">Выбрать оружие/);
  assert.equal((ready.match(/data-act="claimFirstModule"/g)||[]).length,3,
   'one choice location avoids duplicated award buttons');
  for(const id of ['rail','flak','plasma'])assert.match(ready,new RegExp('data-act="claimFirstModule" data-role="'+id+'"'));

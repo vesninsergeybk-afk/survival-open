@@ -95,8 +95,10 @@ test('station and map exits protect an unapplied hangar draft, including Escape 
 
 test('pilot can return from the map confirmation to the same staged loadout',()=>{
  const s=stagedExit('map');
+ s.game.hangarView='services';
  s.game.dismiss();s.game.returnToHangar();
  assert.equal(s.game.baseTab,'hangar');
+ assert.equal(s.game.hangarView,'weapons','return to the page that contains the pending design');
  assert.equal(s.overlay.dataset.mode,'base');
  assert.equal(s.overlay.hidden,false);
  assert.equal(s.discardCount,0);
