@@ -95,7 +95,7 @@ test('machine radio trunks are a separate opt-in map layer with earned knowledge
  assert.match(html,/Оборвана/);
 });
 
-test('the atlas shows next actions, selected route, links, income and reversible controls',()=>{
+test('the atlas shows automatic links, selected route and territory income without manual connection controls',()=>{
  const game=harness(),world=game.world;
  game.contourRegion='amethyst';
  const stations=world.nearbyStations(0,0,2200,false).slice(0,3);
@@ -104,7 +104,8 @@ test('the atlas shows next actions, selected route, links, income and reversible
  const html=renderWorldMap(game);
  assert.match(html,/Отметить маршрут к станции/);
  assert.match(html,/Как устроена сеть/);
- assert.match(html,/СЛЕДУЮЩЕЕ ДЕЙСТВИЕ/);
+ assert.match(html,/СЕТЬ РАБОТАЕТ САМА/);
+ assert.doesNotMatch(html,/data-act="contourConnect"|data-act="contourUnlink"|data-act="contourPlanLink"/);
  assert.match(html,/contour-map-caption/);
  game.mapReturnToBase=true;game.docked=world.home;
  assert.match(renderWorldMap(game),/data-act="baseBack"/);
@@ -176,7 +177,7 @@ test('the atlas offers a visible, range-checked offensive sortie only for a char
  assert.doesNotMatch(html,/data-act="contourSortie"/);
 });
 
-test('a planned final line previews real area and production without touching live territory',()=>{
+test('a possible final link remains an internal forecast; map does not ask players to build it',()=>{
  const game=harness(),world=game.world;
  const stations=[
   ['0:0',0,0],['B',1600,0],['C',900,1200]
@@ -195,19 +196,18 @@ test('a planned final line previews real area and production without touching li
  assert.equal(choices.ready[0].node.id,'0:0');
  game.contourRegion='amethyst';game.contourFirst='C';game.contourSelection='C';
  const view=renderWorldMap(game);
- assert.match(view,/contour-future-field/);
- assert.match(view,/Замкнёт поле/);
- assert.match(view,/data-act="contourConnect"/);
+ assert.match(view,/Новые линии появятся сами/);
+ assert.doesNotMatch(view,/data-act="contourConnect"|data-act="contourUnlink"/);
 });
 
-test('a player with one working station sees a specific next exploration target',()=>{
+test('a player with one working station sees a route to the next site, not a line-building task',()=>{
  const game=harness(),world=game.world;
  world.home.active=true;
  game.contourRegion='amethyst';game.contourFirst=world.home.id;
  game.contourSelection=world.home.id;
  const html=renderWorldMap(game);
- assert.match(html,/Нужна ещё одна станция/);
- assert.match(html,/Новых допустимых соединений сейчас нет/);
+ assert.match(html,/Пока рядом нет подходящей работающей опоры/);
+ assert.match(html,/Новые линии появятся сами/);
  assert.equal((html.match(/class="contour-goal-link"/g)||[]).length,1);
  assert.match(html,/contour-goal-link/);
  assert.match(html,/Отметить маршрут к станции/);

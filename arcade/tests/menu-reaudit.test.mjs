@@ -88,7 +88,7 @@ for(const [label,extra,expected] of [
  const station=renderBasePanel(home,{...g.baseState(),baseTab:'network'}).split('aria-label="Связь и территория"')[1].split('<details')[0];
  assert.match(station,expected);
  g.mapView='territory';g.contourRegion='amethyst';g.contourFirst=g.contourSelection=home.id;
- const map=renderWorldMap(g).split('СЛЕДУЮЩЕЕ ДЕЙСТВИЕ')[1];
+ const map=renderWorldMap(g).split('СЕТЬ РАБОТАЕТ САМА')[1];
  assert.match(map,expected);
  if(!extra.discovered){
   assert.doesNotMatch(station,/Захватите|вражеск/i);assert.doesNotMatch(map,/Захватите|вражеск/i);

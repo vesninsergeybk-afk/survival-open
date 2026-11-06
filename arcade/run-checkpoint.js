@@ -9,7 +9,7 @@ import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-camp
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
 import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-flux-offense-1-territory-war-1';
-import {createContours,validContours} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
+import {createContours,validContours,autoConnectContours} from './territory-system.js?v=automatic-contours-1';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
 
@@ -231,6 +231,9 @@ export function restoreCheckpoint(game,data){
   }
  }
  // Commit only after the complete world has been reconstructed successfully.
+ // Older saves may contain three powered nodes but only two manually drawn
+ // links. Complete the mesh now, without awarding retroactive rewards.
+ autoConnectContours(world);
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
  // Convert older saves only once, retaining every already earned skill point.

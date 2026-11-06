@@ -1,5 +1,5 @@
-// Strategic territorial contours are player-authored. They do not replace the
-// automatic short-range radio tree used for station defence and fast travel.
+// Territorial links appear automatically between powered friendly stations.
+// They remain distinct from the shorter-range radio tree for station services.
 export const CONTOURS=Object.freeze({maxLength:2800,maxDegree:5,maxLinks:160,
  minFaceArea:200000,launchInterval:45,cycleSeconds:180,fluxCap:30,
  reserveCost:6,reserveArmSeconds:12});
@@ -63,6 +63,29 @@ export function disconnectContour(world,a,b){
  const index=links.findIndex(pair=>edgeKey(...pair)===edgeKey(a,b));
  if(index<0)return false;
  links.splice(index,1);return true;
+}
+
+/** Extend the saved planar mesh whenever the player gains a working station.
+ * Existing links are retained (including temporarily jammed ones), so a
+ * jammer cannot permanently destroy the network or change its layout.
+ * Stable ordering makes the result independent of map visits and frame rate.
+ */
+export function autoConnectContours(world){
+ if(!world?.contours?.links||!world.stations)return [];
+ const stations=[...world.stations.values()].filter(active).sort((a,b)=>a.id.localeCompare(b.id));
+ const candidates=[];
+ for(let i=0;i<stations.length;i++)for(let j=i+1;j<stations.length;j++){
+  const a=stations[i],b=stations[j],length=d(a,b);
+  if(length>=150&&length<=CONTOURS.maxLength)candidates.push({a:a.id,b:b.id,length});
+ }
+ candidates.sort((a,b)=>a.length-b.length||edgeKey(a.a,a.b).localeCompare(edgeKey(b.a,b.b)));
+ const added=[];
+ for(const {a,b} of candidates){
+  if(world.contours.links.length>=CONTOURS.maxLinks)break;
+  if(world.contours.links.some(pair=>edgeKey(...pair)===edgeKey(a,b)))continue;
+  if(connectContour(world,a,b).ok)added.push([a,b]);
+ }
+ return added;
 }
 
 const polygonArea=points=>points.reduce((sum,p,i)=>{

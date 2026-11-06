@@ -17,7 +17,7 @@ import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {CONTOURS,contourFields} from './territory-system.js?v=contours-1';
-import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1';
+import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
@@ -514,19 +514,18 @@ function territorySummary(base,state,compact=false){
  const next=choices.ready[0]||choices.next[0];
  const safeName=node=>node.discovered||node.active||node.strategicRole?
   (baseNames[node.type]||'Станция'):'Неизвестный узел';
- let guidance='Включите три соседние станции и соедините их линиями на карте контуров. Замкнутый контур создаёт территорию и воронку.';
+ let guidance='Включите или захватите три соседние станции. Если расстояния позволяют, связи замкнутся автоматически и появится воронка.';
  if(base.suppressed)guidance='Передатчик подавлен. Отстыкуйтесь: связь восстановится в полёте. Уничтожьте носитель помех, чтобы он не подавил станцию снова. В меню игровое время остановлено.';
  else if(next){
   const destination=safeName(next.node)+' · '+Math.round(next.distance)+' м';
-  guidance=next.preview.ok?(next.preview.areaGain>1?
-   'Можно замкнуть территорию: соедините эту станцию с «'+destination+'» на карте контуров.':
-   'Доступна новая линия к «'+destination+'». После соединения замкните три или больше узлов, чтобы получить территорию.'):
+  guidance=next.preview.ok?
+   'Соседняя работающая станция «'+destination+'» будет подключена автоматически. Если три узла замкнут область, появится воронка.':
    'Следующий кандидат: «'+destination+'». '+contourCandidateInstruction(next.node);
- }else if(localLines)guidance='У станции уже есть линии. Новых допустимых соединений поблизости сейчас нет; проверьте соседние узлы на карте контуров.';
+ }else if(localLines)guidance='Станция связана с соседними узлами. Дальнейшее расширение сети происходит само при включении или захвате новых станций.';
  const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  return '<section class="base-territory-summary" aria-label="Связь и территория"><h3>'+menuIcon('network')+'Связь и территория</h3>'+
   '<div class="base-territory-stats"><span>Линий у станции <b>'+localLines+'</b></span><span>Контуров в мире <b>'+fields.length+'</b></span></div>'+
-  '<p>'+esc(guidance)+'</p>'+(compact?'':'<p class="base-network-distinction">Линии контура строятся вручную, до '+CONTOURS.maxLength+' м. Радиосвязь услуг подключается автоматически и сама по себе территорию не создаёт.</p>')+
+  '<p>'+esc(guidance)+'</p>'+(compact?'':'<p class="base-network-distinction">Контурные линии появляются сами, если расстояние между станциями не больше '+CONTOURS.maxLength+' м. Радиосвязь услуг действует на меньшей дальности и обслуживает другие системы.</p>')+
   action('baseContours','Открыть контуры этой станции')+
   (compact?'':'<details class="base-secondary-info base-network-advanced" data-hangar-section="radio-details"><summary>Радиосвязь услуг · в сети дока '+(state.connectedBases||0)+' '+stationNoun(state.connectedBases||0)+'</summary>'+networkPreview(base,state)+'</details>')+'</section>';
 }

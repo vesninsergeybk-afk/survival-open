@@ -71,7 +71,7 @@ test('the live startup constellation has a safe suggested first contour',()=>{
  assert.match(html,/map-nav-tools/);
  assert.match(html,/ПКМ — маршрут/);
  assert.match(html,/ПЕРВЫЙ ЭНЕРГЕТИЧЕСКИЙ КОНТУР/);
- assert.match(html,/Станции 1\/3 · линии 0\/3/);
+ assert.match(html,/Работают 1 из 3 станций/);
  assert.match(html,/contour-plan-area/);
  assert.match(html,/contour-reach-ring/);
 });
