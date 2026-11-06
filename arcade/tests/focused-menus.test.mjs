@@ -98,12 +98,13 @@ test('region entry immediately suggests a legal starting station without buildin
  const g=dockedGame(),world=g.world;
  const before=JSON.stringify(world.contours),known=[...world.discovered],ore=g.player.ore;
  const source=focusContourRegion(g,'amethyst');
- assert.equal(source.id,world.home.id);assert.equal(g.contourFirst,world.home.id);
+ assert.equal(source.id,world.home.id);assert.equal(g.contourFirst,null);
+ assert.equal(g.contourSelection,world.home.id);
  assert.equal(JSON.stringify(world.contours),before);assert.deepEqual([...world.discovered],known);assert.equal(g.player.ore,ore);
  const nodes=contourRegionNodes(world,REGIONS[0]),choices=contourConnectionChoices(world,source.id,nodes);
  assert.ok(choices.next.length);
  g.mapView='territory';const html=renderWorldMap(g);
- assert.match(html,/Нужна ещё одна станция/);assert.match(html,/Отметить маршрут к станции/);
+ assert.match(html,/Пока рядом нет подходящей работающей опоры/);assert.match(html,/Отметить маршрут к станции/);
  assert.doesNotMatch(html,/aria-label="Неизвестный узел, вражеская станция"/);
  focusContourRegion(g,'all');assert.equal(g.contourFirst,null);
 });
@@ -120,9 +121,9 @@ test('automatic suggestions prefer closing a real field, exclude suppressed sour
  assert.notEqual(focusContourRegion(g,'amethyst','s').id,'s');
 });
 
-test('station functions distinguish automatic service radio from manually built territorial lines',()=>{
+test('station functions explain automatic service radio and automatic territorial links separately',()=>{
  const g=dockedGame(),html=renderBasePanel(g.docked,{...g.baseState(),baseTab:'network'}).split('id="base-panel-network"')[1];
- assert.match(html,/Радиосвязь услуг подключается автоматически/);
+ assert.match(html,/Контурные линии появляются сами/);
  assert.match(html,/Линий у станции <b>0<\/b>/);
  assert.match(html,/data-act="baseContours">Открыть контуры этой станции/);
  assert.ok(html.indexOf('Связь и территория')<html.indexOf('Развитие станции'));

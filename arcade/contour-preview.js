@@ -11,10 +11,10 @@ export function contourCandidateInstruction(node){
  if(!node)return 'Выберите станцию на карте.';
  const known=node.discovered||node.active||node.strategicRole;
  if(!known)return 'Разведайте станцию. После сближения станет ясно, нужно ли её включить или захватить.';
- if(node.enemy)return 'Захватите станцию в полёте, затем соедините её со своей сетью.';
+ if(node.enemy)return 'Захватите станцию в полёте. Связи с соседними станциями появятся сами.';
  if(node.suppressed)return 'Дождитесь восстановления передатчика в полёте. Уничтожьте носитель помех, чтобы он не подавил станцию снова.';
- if(!node.active)return 'Включите станцию в полёте, затем проведите к ней линию на карте контуров.';
- return 'Станция работает. Проверьте доступные соединения на карте контуров.';
+ if(!node.active)return 'Включите станцию в полёте. Если рядом есть другие работающие станции, связь появится автоматически.';
+ return 'Станция работает. Подходящие связи строятся автоматически.';
 }
 
 // A proposed link is evaluated against a throwaway graph. Previewing must
@@ -63,7 +63,7 @@ export function contourRegionNodes(world,region,viewport=null){
  });
 }
 
-// Select a starting point for suggestions only. Never construct a line, spend
+// Select a station to inspect only. Never construct a line, spend
 // resources, change ownership or reveal an unvisited station here.
 export function focusContourRegion(game,id,preferredId=null){
  const region=REGIONS.find(r=>r.id===id);
@@ -79,6 +79,6 @@ export function focusContourRegion(game,id,preferredId=null){
   Number(!b.choices.ready.length&&b.choices.next.length>0)-Number(!a.choices.ready.length&&a.choices.next.length>0)||
   distance(a.node,game.player)-distance(b.node,game.player));
  const source=preferred||proposals[0]?.node;
- if(source)game.contourFirst=game.contourSelection=source.id;
+ if(source)game.contourSelection=source.id;
  return source||null;
 }

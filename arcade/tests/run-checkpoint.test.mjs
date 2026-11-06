@@ -103,6 +103,22 @@ test('an early pass-two checkpoint with free home milestones recovers its XP cap
  assert.equal(restored.player.xp,g.player.xp);
  assert.equal(restored.player.level,g.player.level);
 });
+test('a legacy save with three powered stations closes its missing triangle on load without duplicated rewards',()=>{
+ const old=scene(),w=old.world;
+ for(const [x,y] of [[1,0],[0,-1]]){
+  const node=w.station(x,y);node.active=true;node.enemy=false;node.discovered=true;
+  w.discovered.add(node.id);
+ }
+ w.contours.links=[['0:0','1:0'],['1:0','0:-1']];
+ const snapshot=unpackRun(packRun(captureCheckpoint(old,old.docked)));
+ assert.ok(validateCheckpoint(snapshot));
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ assert.equal(restored.world.contours.links.length,3);
+ assert.equal(restored.world.contours.flux,0);
+ assert.equal(restored.player.xp,old.player.xp);
+ assert.equal(restored.player.level,old.player.level);
+ assert.equal(restored.player.strategicXp.firstContour,true);
+});
 test('enemy territorial investments survive docking without spending twice, and old checkpoints load',()=>{
  const g=scene(),w=g.world;
  w.regionalSupply.central.ore=14;

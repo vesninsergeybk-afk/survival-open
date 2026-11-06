@@ -38,7 +38,16 @@ export function syncContourDynamics(game){
 
 export function activeContourTransition(game){
  const t=game?.contourDynamics?.transition;
- return t&&Number.isFinite(game.time)&&game.time-t.at<6&&realTime()-t.realAt<6500? t:null;
+ return t&&Number.isFinite(game.time)&&game.time-t.at<6&&
+  (t.pendingResume&&game.paused||realTime()-t.realAt<6500)?t:null;
+}
+
+// Station activation takes place in a paused dock menu. Keep the one-time
+// formation animation waiting until the player returns to the actual world.
+export function resumeContourTransition(game){
+ const t=game?.contourDynamics?.transition;
+ if(!t?.pendingResume)return false;
+ t.pendingResume=false;t.at=game.time;t.realAt=realTime();return true;
 }
 
 // A face can grow around an old field while keeping its centre inside it.
