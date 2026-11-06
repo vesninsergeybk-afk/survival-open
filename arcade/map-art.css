@@ -89,6 +89,8 @@
 .map-dialog .map-foot{color:#8aa6b4;font-size:10px}
 #overlay .map-dialog button:focus-visible,.map-dialog summary:focus-visible{outline:2px solid #f6d59c;outline-offset:3px}
 #overlay .map-dialog .menu-info{min-width:40px;min-height:40px}
+.map-dialog.map-mode-targets .map-shell{grid-template-columns:minmax(0,1fr)}
+.map-dialog.map-mode-targets .map-side{max-height:none;overflow:visible}
 @media(min-width:901px) and (min-height:581px){
  .map-dialog .contour-chart{max-height:min(62dvh,max(320px,calc(100dvh - 395px)))}
  .map-dialog .local-chart{max-height:min(62dvh,max(300px,calc(100dvh - 440px)))}
