@@ -1,0 +1,136 @@
+/* Station terminal: act on the home page; fit and improve on separate pages. */
+#overlay .base-dialog .base-tabs{grid-template-columns:repeat(5,minmax(0,1fr));top:0}
+#overlay .base-tabs [data-role="development"]::before{content:"";display:inline-block;flex:0 0 18px;width:18px;height:18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='none' stroke='black' stroke-width='2' d='M16 3 26 13H20V28H12V13H6Z'/%3E%3C/svg%3E") center/contain no-repeat}
+#overlay .base-tab-panel[hidden]{display:none!important}
+.base-home-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:14px;align-items:start;margin:14px 0}
+.base-home-tasks,.base-home-development{min-width:0;border:1px solid #728c9466;border-radius:7px;padding:15px;background:linear-gradient(135deg,#1a303b,#10232c)}
+.base-home-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.base-home-heading h3{display:flex;align-items:center;gap:8px;margin:0;color:#ece8da;font-size:19px}
+.base-home-heading>b{white-space:nowrap;color:#f1cf93;font-size:13px}
+#overlay .base-home-heading>button{margin:0;min-height:40px;padding:7px 12px;font-size:12px}
+.base-home-tasks .base-featured-op{margin:0 0 10px}
+.base-home-tasks .base-featured-op>strong{padding-right:45px}
+.base-home-tasks .base-featured-op>.menu-info{position:absolute;right:10px;top:40px}
+.base-home-contract-caption{font-size:12px;color:#bed1d8;margin:8px 0}
+.base-home-tasks .base-contract-board,.base-home-tasks .base-contract{margin:0}
+.base-home-tasks .base-contract-copy{margin-bottom:7px}
+.base-home-tasks .base-contract-copy>strong{font-size:15px}
+.base-home-tasks .base-contract-choices{grid-template-columns:1fr}
+.base-home-tasks .base-contract-choice{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px}
+.base-home-tasks .base-contract-choice>strong,.base-home-tasks .base-contract-choice>small,.base-home-tasks .base-contract-choice>em{grid-column:1}
+#overlay .base-home-tasks .base-contract-choice>button{grid-column:2;grid-row:1/4;min-height:44px;margin:0;padding:9px 12px}
+.base-home-strategy{display:grid;gap:12px;min-width:0}
+.base-home-development>p{font-size:13px;line-height:1.5;color:#c3d1d5;margin:0 0 12px}
+.base-home-strategy .base-territory-summary{margin:0;padding:15px}
+.base-home-strategy .base-territory-summary>p{font-size:13px}
+.base-development-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#overlay .base-development-shortcuts button{display:flex;align-items:center;gap:7px;min-width:0;min-height:44px;margin:0;padding:9px 12px;text-align:left}
+.base-development-shortcuts button:last-child{grid-column:1/-1}
+#overlay .base-dialog .base-quick-services{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#overlay .base-dialog .base-quick-service{padding:10px 14px;gap:4px}
+#overlay .base-dialog .base-quick-service h3{font-size:16px;margin:0}
+.base-quick-service .base-kicker{display:none}
+#overlay .base-quick-service p{margin:0;flex:none}
+.base-quick-buttons{margin-top:0}
+.base-home-tasks .base-featured-op{padding:12px}
+.base-home-tasks .base-op-summary{margin:6px 0}
+.development-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 12px}
+.development-heading h2{margin:4px 0;color:#f3ebd9;font-size:26px}
+.development-heading p{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px 14px;margin:0;color:#c1d3d8;font-size:13px}
+.development-heading b{color:#f0cf97}
+.development-tabs{position:sticky;top:58px;z-index:11;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;background:#101d26f7;padding:7px 0;margin-bottom:12px}
+#overlay .development-tabs button{display:flex;justify-content:center;align-items:center;gap:7px;min-width:0;min-height:44px;margin:0;padding:9px 5px;font-size:13px}
+#overlay .development-tabs button[aria-pressed="true"]{border-color:#c8aa79;background:#3a3c30;color:#ffe7bf;box-shadow:inset 0 -2px #d5b478}
+.development-content{min-width:0}
+.development-hangar .hg-weapon-inspector{border:1px solid #718c9666;border-radius:7px;padding:18px;background:linear-gradient(135deg,#142f3b,#0f212b)}
+.development-hangar .hg-weapon-picks{grid-template-columns:repeat(7,minmax(0,1fr));margin:12px 0}
+#overlay .development-hangar .hg-weapon-picks button{min-height:44px;font-size:12px}
+.development-hangar .hg-related-upgrades{margin-top:16px}
+.development-hangar .hg-weapon-inspector .hg-upgrade-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.development-hangar .hg-branches .hg-note{max-width:78ch}
+.development-content .pilot-skill-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.development-content .pilot-skill{position:relative;min-width:0;padding:14px;border:1px solid #6e879466;background:#142a36;border-radius:6px}
+.development-content .pilot-skill h3{font-size:15px;margin:0}
+.development-content .pilot-skill .menu-info{float:right}
+.development-content .pilot-skill-title{display:flex;align-items:center;gap:7px;padding-right:34px}
+.development-content .pilot-skill-title>b{margin-left:auto;white-space:nowrap;font-size:12px}
+.development-content .pilot-next-effect{font-size:13px;line-height:1.5;min-height:3em;color:#c9d8df}
+.development-content .pilot-doctrines{margin-top:14px}
+.development-content .pilot-future{margin:14px 0;padding:0 12px;border:1px solid #6e879466;border-radius:6px;background:#112532}
+.development-content .pilot-future>summary{cursor:pointer;padding:13px 0;font-size:14px;color:#c9dce2}
+.development-content .pilot-future>.pilot-skill-grid{padding-bottom:12px}
+.development-next-title{margin:18px 0 9px;font-size:17px;color:#e6dbc2}
+.development-empty{font-size:14px;line-height:1.5;color:#c0d2d9}
+#overlay .development-content .pilot-skill>button.skill-node{width:100%;min-height:44px;margin:0}
+#overlay .development-shortcut{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;margin:7px 0;padding:10px 14px;border-color:#b69c6f;color:#f0d9ae}
+.hg-inspector-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.hg-view-nav{grid-template-columns:repeat(3,minmax(0,1fr));top:58px}
+#overlay .hg-fit-action{border-color:#c1ae74;background:linear-gradient(130deg,#21483d,#1c3a3a)}
+#overlay .hg-fit-action>button{min-height:48px}
+#overlay .base-dialog .menu-info{min-width:44px;min-height:44px}
+.hg-upgrade-action{align-items:center}
+.hg-upgrade-action .menu-info{flex:none}
+.development-tabs,.development-heading,.hg-weapon-inspector,.hg-tactic-detail{scroll-margin-top:126px}
+#overlay .base-dialog{scroll-padding-block:126px 76px}
+@media(min-width:1100px){
+ #overlay .base-dialog .base-quick-service{display:grid;grid-template-columns:minmax(0,1fr) auto;align-content:center}
+ .base-quick-service>h3{grid-column:1;grid-row:1}
+ .base-quick-service>p{grid-column:1;grid-row:2}
+ .base-quick-service>.base-quick-buttons{grid-column:2;grid-row:1/3;margin:0 48px 0 8px}
+ #overlay .base-quick-buttons button{min-height:44px;margin:0;padding:9px 12px}
+ .base-quick-service>.base-quick-reason,.base-quick-service>.base-trial-picker{grid-column:1/-1}
+ .base-home-tasks .base-contract-choices{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .base-home-tasks .base-contract-choice{display:flex;flex-direction:column;align-items:stretch;gap:5px}
+ .base-home-tasks .base-contract-choice>small{flex:1}
+ #overlay .base-home-tasks .base-contract-choice>button{margin-top:4px}
+}
+@media(max-width:760px){
+ .base-home-layout{grid-template-columns:1fr;gap:10px}
+ .base-home-strategy{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .base-home-tasks{padding:12px}
+ .development-content .pilot-skill-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .development-hangar .hg-weapon-picks{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .development-tabs{top:58px;gap:4px}
+ #overlay .development-tabs button{flex-direction:column;gap:4px;font-size:12px;padding:7px 3px;min-height:58px}
+ .hg-view-nav{top:58px}
+}
+@media(max-width:600px){
+ .development-tabs,.hg-view-nav{top:64px}
+ #overlay .base-dialog{scroll-padding-top:148px}
+ #overlay .base-dialog .base-tabs button{flex-direction:column;gap:3px;min-height:56px;padding:6px 2px!important;font-size:11px!important;letter-spacing:0;flex-wrap:nowrap}
+ #overlay .base-dialog .base-tabs button[data-notice]::after{position:absolute;right:4px;top:4px;content:"";width:6px;height:6px;min-height:0;padding:0;margin:0;border-radius:50%}
+ #overlay .base-dialog .base-quick-services{grid-template-columns:1fr 1fr;gap:7px}
+ #overlay .base-dialog .base-quick-service{padding:10px;min-width:0}
+ #overlay .base-dialog .base-quick-service h3{font-size:14px;padding-right:26px}
+ #overlay .base-dialog .base-quick-service .menu-info{min-width:44px;min-height:44px;width:44px;height:44px;right:4px;top:5px}
+ .base-quick-service p{font-size:12px}
+ .base-quick-buttons{display:flex;flex-direction:column;align-items:stretch;gap:5px}
+ #overlay .base-quick-buttons button{min-height:44px;margin:0;padding:8px;font-size:12px}
+ .base-home-strategy{grid-template-columns:1fr}
+ .base-home-tasks .base-contract-choice{grid-template-columns:1fr}
+ #overlay .base-home-tasks .base-contract-choice>button{grid-column:1;grid-row:auto;width:100%;margin-top:4px}
+ .base-home-tasks .base-featured-foot{gap:8px}
+ .base-home-tasks .base-featured-foot>div{display:flex;flex-wrap:wrap;gap:6px}
+ .base-home-tasks .base-featured-foot button{flex:1;min-height:44px}
+ .development-heading{align-items:flex-start}
+ .development-heading h2{font-size:23px}
+ .development-heading p{max-width:120px;font-size:12px;gap:5px}
+ .development-hangar .hg-weapon-inspector{padding:12px}
+ .development-hangar .hg-weapon-inspector .hg-upgrade-grid,.development-content .pilot-skill-grid{grid-template-columns:1fr}
+ .development-hangar .hg-weapon-picks{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .development-tabs .menu-symbol{width:19px;height:19px}
+ .development-content .pilot-next-effect{min-height:0}
+ #overlay .base-dialog .hg-view-nav button{font-size:12px;min-height:44px}
+}
+@media(max-height:580px) and (min-width:601px){
+ #overlay .base-dialog .base-head{min-height:0;padding:5px 3px}
+ #overlay .base-dialog .base-head .base-emblem,#overlay .base-dialog .base-head .base-system-label{display:none}
+ #overlay .base-dialog .base-head h2{font-size:17px;margin:0 0 4px}
+ #overlay .base-dialog .base-tabs{margin-top:0;padding-top:0}
+ .development-heading{margin:4px 0}
+ .development-heading .base-kicker{display:none}
+ .development-tabs{top:48px}
+ .hg-view-nav{top:48px}
+ .base-home-layout{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+}
+@media(prefers-reduced-motion:reduce){.base-tab-panel:not([hidden]){animation:none}}

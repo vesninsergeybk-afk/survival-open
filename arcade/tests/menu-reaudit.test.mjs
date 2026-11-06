@@ -54,7 +54,7 @@ test('hangar instructions use the actual control assignments and the correct lif
  const controls={...DEFAULT_CONTROLS,field:'KeyG',cease:'KeyH',railMode:'KeyJ',howitzer:'KeyK'};
  const state=context({level:14,ore:400,controls}),session=new HangarSession();session.begin(state.loadout);
  let html=renderShipHangar(state,session);
- assert.match(html,/H отключает автоогонь/);assert.match(html,/до конца прохождения/);
+ assert.match(html,/H отключает автоогонь/);assert.match(renderShipHangar({...state,developmentMode:true,developmentCategory:'weapons'},session),/до конца прохождения/);
  assert.doesNotMatch(html,/до конца вылета|новом вылете|C отключает/);
  for(const [id,label] of [['ion','G'],['resonator','G'],['rail','J'],['howitzer','K']]){
   session.dispatch({act:'hgFocusWeapon',id},state);html=renderShipHangar(state,session);
@@ -62,7 +62,7 @@ test('hangar instructions use the actual control assignments and the correct lif
   assert.match(description,new RegExp('(^|[^A-Z])'+label+'([^A-Z]|$)'));
   assert.doesNotMatch(description,/Space|по умолчанию/);
  }
- const tactical=renderShipHangar({...state,hangarView:'tactics'},session);
+ const tactical=renderShipHangar({...state,developmentMode:true,developmentCategory:'tactics'},session);
  assert.match(tactical,/до конца прохождения/);
 });
 

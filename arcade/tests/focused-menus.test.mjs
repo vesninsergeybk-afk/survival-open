@@ -62,7 +62,7 @@ test('tactical inspection shows only the chosen branches and preserves equipment
  g.hangarAction({act:'hgFocusTactic',id:'jam'});
  assert.equal(JSON.stringify(g.tactical),before);assert.equal(g.player.ore,money);
  assert.equal(JSON.stringify(g.hangarSession.draft),draft);
- const html=renderShipHangar(g.baseState(),g.hangarSession);
+ const html=renderShipHangar({...g.baseState(),developmentMode:true,developmentCategory:'tactics'},g.hangarSession);
  assert.equal((html.match(/data-act="hgFocusTactic"/g)||[]).length,4);
  assert.match(html,/data-act="hgTacticUnlock" data-id="jam" disabled/);
  assert.match(html,/Широкий диапазон/);assert.match(html,/Долгая тишина/);
@@ -127,7 +127,9 @@ test('station functions distinguish automatic service radio from manually built 
  assert.match(html,/data-act="baseContours">Открыть контуры этой станции/);
  assert.ok(html.indexOf('Связь и территория')<html.indexOf('Развитие станции'));
  assert.ok(html.indexOf('Развитие станции')<html.indexOf('ОБОРОНА СТАНЦИИ'));
- assert.ok(html.indexOf('ОБОРОНА СТАНЦИИ')<html.indexOf('Специализация ·'));
+ assert.match(html,/data-act="openDevelopment" data-id="station"/);
+ const growth=renderBasePanel(g.docked,{...g.baseState(),baseTab:'development',developmentCategory:'station'});
+ assert.match(growth,/Специализация · необратимый выбор/);
 });
 
 test('map destination counts are labelled as a list rather than a number of missions',()=>{

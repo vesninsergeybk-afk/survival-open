@@ -14,7 +14,7 @@ const stationState={ore:84,data:12,hp:110,maxHp:110,shield:30,allies:0,
  loadout:createLoadout(),skillRanks:{},level:1,points:1,operation:null,time:0};
 
 test('station menus retain real action handlers and make module consequences explicit',()=>{
- const html=renderBasePanel(base,{...stationState,baseTab:'network'});
+ const html=renderBasePanel(base,{...stationState,baseTab:'development',developmentCategory:'station'});
  assert.match(html,/ВЫЖИВШИЙ \/ ТЕРМИНАЛ СТАНЦИИ/);
  assert.match(html,/station-dock/);
  assert.match(html,/После установки заменить его в этом прохождении нельзя/);
@@ -94,7 +94,7 @@ test('the loadout summary and costs precede large artwork and carry real range e
 test('unfinished hangar changes are shown on every station tab and never described as saved',()=>{
  const session=new HangarSession(),current=createLoadout();session.begin(current);
  session.draft.slots[0]=null;
- for(const tab of ['summary','operations','hangar','network']){
+ for(const tab of ['summary','operations','hangar','development','network']){
   const html=renderBasePanel(base,{...stationState,baseTab:tab,loadout:current,hangarSession:session});
   assert.match(html,/В ангаре есть неприменённая сборка/,tab);
   assert.match(html,/В полёт · сборка не применена/,tab);

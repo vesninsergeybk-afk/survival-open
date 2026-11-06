@@ -170,10 +170,10 @@ test('station UI exposes a briefing, route, equipment, and network independently
  assert.match(html,/435 м/);
   assert.match(html,/Принять заказ/);
   assert.doesNotMatch(html,/\d+ целей/);
- const underway=renderBasePanel(b,state({operation:createCorridorOperation(b)}));
+ const underway=renderBasePanel(b,state({baseTab:'operations',operation:createCorridorOperation(b)}));
  assert.match(underway,/Отложить · сохранить повреждения/);
  const homebound=createCorridorOperation(b);homebound.phase='return';homebound.hp=0;
- const delivery=renderBasePanel(b,state({operation:homebound}));
+ const delivery=renderBasePanel(b,state({baseTab:'operations',operation:homebound}));
  assert.match(delivery,/ОСТАЛОСЬ ВЕРНУТЬСЯ/);
  assert.match(delivery,/Награда и разведка откроются после возвращения/);
  const done=renderBasePanel({...b,corridorSecured:true},st);

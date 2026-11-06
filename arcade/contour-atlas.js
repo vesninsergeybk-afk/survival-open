@@ -107,7 +107,7 @@ function proposedContourArtwork(plan,center,scale){
   </g>`;
 }
 
-function firstContourGuide(plan){
+function firstContourGuide(plan,showNext=true){
  if(!plan)return '';
  const ready=plan.edges.filter(e=>e.built).length;
  const list=plan.stations.map((b,i)=>{
@@ -126,8 +126,8 @@ function firstContourGuide(plan){
   <ol>${list}</ol>
   ${plan.uncertain?'<small>Неизвестные станции пока только кандидаты. Их принадлежность выяснится после разведки.</small>':''}
   ${actions?`<div class="contour-first-actions">${actions}</div>`:''}
-  ${plan.next?`<p>Следующий шаг: ${esc(contourCandidateInstruction(plan.next))}</p>${route(plan.next)}`:
-   !actions?'<p>Все станции работают. Выберите оставшиеся линии на карте.</p>':''}
+  ${showNext?(plan.next?`<p>Следующий шаг: ${esc(contourCandidateInstruction(plan.next))}</p>${route(plan.next)}`:
+   !actions?'<p>Все станции работают. Выберите оставшиеся линии на карте.</p>':''):''}
   <small>Площадь будущего поля: ${(plan.area/1000000).toFixed(2)} усл. км². Дальность каждой линии — до ${CONTOURS.maxLength} м.</small>
  </section>`;
 }
@@ -370,7 +370,7 @@ export function renderContourMap(game){
  const activeSource=selected&&selected.active&&!selected.enemy&&!selected.suppressed;
  const reserve=world.contours.reserve,reservedNode=reserve&&world.stations.get(reserve.stationId);
  const reserveEligible=selected&&contourReserveEligible(world,selected.id);
- const reservePanel=fields.length?`<section class="contour-economy contour-reserve" aria-label="Флюксовый резерв">
+ const reservePanel=fields.length&&(activeSource||reserve?.stationId===selected?.id)?`<section class="contour-economy contour-reserve" aria-label="Флюксовый резерв">
   <b>Опора для вылазки</b>
   ${reserve?`<p>Ложный маяк: <strong>${esc(reservedNode?name(reservedNode):reserve.stationId)}</strong> · ${reserve.readyAt>game.time?
     'готов через '+Math.ceil(reserve.readyAt-game.time)+' с':'готов к налёту'}.</p>
@@ -409,7 +409,7 @@ export function renderContourMap(game){
     `<button data-act="contourSortie" data-id="${esc(selected.id)}">Отправить постановщик помех · ${FLUX_SORTIE.cost} флюкса</button>
      <small>Из контура до цели: ${Math.ceil(offensiveOffer.distance)} м · полёт около ${Math.ceil(offensiveOffer.distance/FLUX_SORTIE.speed)} с.</small>`:
     `<small>${esc(offensiveOffer?.reason||'Пост уже подавлен')}</small>`}
-   <small>На ${FLUX_SORTIE.duration} с задержит новые подкрепления и разорвёт радиосвязь поста. Поставщик уязвим на маршруте. Урон самому посту и находящимся в пути кораблям не наносится.</small></section>`:'';
+   <small>На ${FLUX_SORTIE.duration} с задержит новые подкрепления и разорвёт радиосвязь поста. Постановщик уязвим на маршруте. Урон самому посту и находящимся в пути кораблям не наносится.</small></section>`:'';
  const chartedDepots=warFronts(world).filter(f=>f.depot?.enemy&&f.depot.discovered);
  const offenseTargets=fields.length&&chartedDepots.length?
   `<details class="contour-offense-targets"${chartedDepots.some(f=>f.depot.id===selected?.id)||sortie?' open':''}>
@@ -486,13 +486,13 @@ export function renderContourMap(game){
   <div><small>СБОРЩИКИ В ПУТИ</small><strong>${world.contours.harvesters.length}</strong></div></div>
   ${flash}${game.contourError?`<p class="contour-error" role="status">${esc(game.contourError)}</p>`:''}
   ${!flash&&game.contourInfo?`<p class="contour-info" role="status">${esc(game.contourInfo)}</p>`:''}
-  ${firstContourGuide(plan)}
   ${enemyThreatPanel(threats)}
   ${enemyExpansionPanel(enemyPlan&&(!region||enemyPlan.region===region.id)?enemyPlan:null)}
   ${selectedPanel(game,selected,source,choices,region)}
-  ${offenseTargets}
   ${offensePanel}
   ${reservePanel}
+  ${firstContourGuide(plan,!selected)}
+  ${offenseTargets}
   ${trunkPanel}
   ${fields.length?`<div class="contour-economy"><b>Воронки работают</b><p>Флюкс доставлен: ${digits(world.contours.delivered)} · потери сборщиков: ${world.contours.lost}. Желтые точки возвращаются с грузом, бирюзовые летят к воронке.</p>
    <button data-act="contourPulse"${pulseReady?'':' disabled'}>${(world.contours.pulseReadyAt||0)>game.time?'Импульс через '+Math.ceil(world.contours.pulseReadyAt-game.time)+' с':

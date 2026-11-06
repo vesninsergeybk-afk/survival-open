@@ -26,8 +26,8 @@ test('ship fitting opens with the ship and a directly accessible weapon developm
  assert.match(html,/Текущее вооружение установлено/);
  assert.doesNotMatch(html,/class="hg-arsenal"/);
  assert.match(html,/class="hg-weapon-inspector"/);
- assert.match(html,/data-act="hgFocusWeapon" data-id="plasma"/);
- assert.match(html,/data-act="hgView" data-id="upgrades"/);
+ assert.match(html,/data-act="openDevelopment" data-id="weapons" data-focus="plasma"/);
+ assert.doesNotMatch(html,/data-act="hgUpgrade"|data-act="hgSpec"/);
  assert.doesNotMatch(html,/data-act="hgApply"/);
  assert.match(html,/<details class="hg-combat-details"><summary>Урон, нагрев/);
  assert.doesNotMatch(html,/<details class="hg-more-frames">/);
@@ -53,7 +53,7 @@ test('a closed hardpoint explains its lock instead of opening an unusable weapon
  session.dispatch({act:'hgSlot',id:'2'},ctx);
  const html=renderShipHangar({...ctx,hangarSession:session},session);
  assert.match(html,/Узел 3 ещё закрыт/);
- assert.match(html,/Развитие корпуса/);
+ assert.match(html,/Условия открытия/);
  assert.match(html,/hg-layout-centered/);
  assert.doesNotMatch(html,/class="hg-arsenal"/);
 });
@@ -79,7 +79,8 @@ test('station network exposes territory and development before defence, with opt
  assert.match(network,/Защитные заряды · 1\/1/);
  assert.match(network,/Если пропускать орбитальные удары, они смогут поражать врагов/);
  assert.match(network,/<details class="base-secondary-info base-defense-rules"><summary>Точные условия ПВО и стазиса/);
- assert.match(network,/<div class="base-network-future"><h4>Следующие улучшения/);
+ const growth=renderBasePanel(home,state({baseTab:'development',developmentCategory:'station'}));
+ assert.match(growth,/<div class="base-network-future"><h4>Следующие улучшения/);
  assert.match(network,/<details class="base-secondary-info base-network-advanced"[^>]*><summary>Радиосвязь услуг/);
  assert.ok(network.indexOf('Связь и территория')<network.indexOf('Развитие станции'));
  assert.ok(network.indexOf('Развитие станции')<network.indexOf('ОБОРОНА СТАНЦИИ'));

@@ -1,5 +1,6 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1';
-import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1';
+import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1';
+import {developmentTab} from './development-panel.js?v=menu-rebuild-1';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess} from './game-menu.js?v=all-menus-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
@@ -43,18 +44,18 @@ import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 
-import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1';
+import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1';
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
-import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2';
+import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2-menu-rebuild-1';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1-all-menus-1-menu-reaudit-1';
 import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1-expedition-1-campaign-1-opening-tactics-1-weapon-mechanics-2-unified-controls-1';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1-supply-stronghold-1';
@@ -417,9 +418,13 @@ export class ArcadeGame {
     this.notice('Новый вылет. Прогресс сохраняется на активных станциях.',4);return;
    }
    if(act==='pilotStation'){this.returnToStation();return;}
-   if(act==='pilotHangar'){this.baseTab='hangar';this.returnToStation();return;}
+   if(act==='pilotHangar'){this.baseTab='hangar';this.hangarView='weapons';this.returnToStation();return;}
    if(act==='pilotMap'){this.openMap();return;}
    if(act==='pilotSkills'){this.skills();return;}
+   if(act==='openDevelopment'||act==='developmentTab'){
+    this.openDevelopment(b.dataset.id,b.dataset.focus);return;
+   }
+   if(act==='fitWeapon'){this.focusFittingWeapon(b.dataset.id);return;}
    if(act==='runContinue'){this.continueRun();return;}
    if(act==='conflictPlan'){this.chooseConflictPlan(b.dataset.role);return;}
    if(act==='campaignFront'){
@@ -600,7 +605,7 @@ export class ArcadeGame {
    if(act==='returnHangar'){this.returnToHangar();return;}
    if(act==='discardDeparture'){this.confirmDeparture();return;}
    if(act==='close'){this.dismiss();return;}
-    if(act==='baseTab'&&['summary','operations','hangar','network'].includes(b.dataset.role)){
+    if(act==='baseTab'&&BASE_TABS.includes(b.dataset.role)){
      this.baseTab=b.dataset.role;this.heritage.ui('tab');this.renderDock();
      this.overlay.querySelector('.base-tabs [aria-selected="true"]')?.focus({preventScroll:true});}
    if(act==='showFieldTrial'&&this.docked?.id==='0:0'&&
@@ -715,9 +720,16 @@ export class ArcadeGame {
    if(e.target.matches?.('.contour-node,.contour-region')&&(e.key==='Enter'||e.key===' ')){
     e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));return;
    }
+   const secondary=e.target.closest('.development-tabs button,.hg-view-nav button');
+   if(secondary&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
+    const buttons=[...secondary.parentElement.querySelectorAll('button')],current=buttons.indexOf(secondary);
+    const next=e.key==='Home'?0:e.key==='End'?buttons.length-1:
+     (current+(e.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;
+    e.preventDefault();buttons[next].click();return;
+   }
    const button=e.target.closest('.base-tabs button[role="tab"]');
    if(!button||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
-   const tabs=['summary','operations','hangar','network'];
+   const tabs=BASE_TABS;
    const current=tabs.indexOf(button.dataset.role);
    const next=e.key==='Home'?0:e.key==='End'?tabs.length-1:
     (current+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
@@ -932,9 +944,10 @@ export class ArcadeGame {
   returnToHangar(){
    this.cancelDeparture();
    if(!this.docked)return;
-   this.baseTab='hangar';this.mapReturnToBase=false;
+   this.baseTab='hangar';this.hangarView='weapons';this.mapReturnToBase=false;
    this.overlay.dataset.mode='base';this.heritage.pause('base');this.renderDock();
    focusMenu(this.overlay,'[data-act="hgReset"]:not([disabled])');
+   this.revealLoadoutApply();
   }
   confirmDeparture(){
    if(!this.overlay.querySelector?.('.departure-confirm'))return false;
@@ -1324,9 +1337,34 @@ export class ArcadeGame {
    if(waypoint)this.heritage.world('contract');
    if(this.dismiss()!==false)this.notice(message,4);
   }
+ openDevelopment(category='weapons',focus=''){
+  if(this.dead||!this.docked?.active)return;
+  this.developmentCategory=developmentTab(category);this.baseTab='development';
+  if(this.developmentCategory==='weapons'&&Object.hasOwn(MODULES,focus))this.hangarSession.focusWeapon=focus;
+  if(this.developmentCategory==='tactics'&&Object.hasOwn(TACTICAL_DEVICES,focus))this.hangarSession.focusTactic=focus;
+  this.paused=true;this.pausedRenderPending=true;this.mapReturnToBase=false;
+  this.overlay.hidden=false;this.overlay.dataset.mode='base';this.heritage.pause('base');
+  this.heritage.ui('tab');this.renderDock();
+  this.overlay.querySelector('.development-tabs [aria-pressed="true"]')?.focus({preventScroll:true});
+ }
+ focusFittingWeapon(id){
+  if(this.dead||!this.docked?.active||!Object.hasOwn(MODULES,id))return;
+  const heavy=MODULES[id].kind==='heavy';
+  const matches=(value,i)=>slotOpen(this.shipLoadout,i)&&(i===5)===heavy;
+  const same=this.shipLoadout.slots.findIndex((value,i)=>value===id&&matches(value,i));
+  const free=this.shipLoadout.slots.findIndex((value,i)=>!value&&matches(value,i));
+  const slot=same>=0?same:free>=0?free:heavy?5:0;
+  this.baseTab='hangar';this.hangarView='weapons';this.mapReturnToBase=false;
+  this.overlay.dataset.mode='base';this.overlay.hidden=false;this.paused=true;
+  this.hangarSession.dispatch({act:'hgSlot',id:String(slot)},this.baseState());
+  this.hangarSession.dispatch({act:'hgFocusWeapon',id},this.baseState());
+  this.hangarSession.catalog=true;this.heritage.ui('tab');this.renderDock();
+  this.overlay.querySelector('.hg-weapon-inspector')?.scrollIntoView({block:'nearest'});
+ }
  skills(){
   if(this.dead)return;
   this.endInteraction();
+  if(this.docked?.active&&this.stationExitArmed){this.openDevelopment('pilot');return;}
   if(!this.overlay.hidden&&this.overlay.dataset.mode==='skills'){this.dismiss();return;}
   this.paused=true;this.pausedRenderPending=true;
   this.heritage.pause('skills');
@@ -1350,11 +1388,12 @@ export class ArcadeGame {
   this.player.points--;this.doctrine=id;
   this.notice('Доктрина: '+DOCTRINES.find(d=>d.id===id).title,3);
   this.heritage.play('doctrine');
-  this.renderSkills();
+  if(this.hangarSession)this.hangarSession.message='Выбрана доктрина: '+DOCTRINES.find(d=>d.id===id).title;
+  if(this.overlay.dataset.mode==='base')this.renderDock();else this.renderSkills();
  }
  buySkill(id){
   const skill=SKILLS.find(s=>s.id===id),p=this.player;
-  if(SHIP_UPGRADES.has(id)&&(!this.docked?.active||this.overlay.hidden||this.overlay.dataset.mode!=='base'||this.baseTab!=='hangar'))return;
+  if(SHIP_UPGRADES.has(id)&&(!this.docked?.active||this.overlay.hidden||this.overlay.dataset.mode!=='base'||!['hangar','development'].includes(this.baseTab)))return;
   if(!skill||p.points<=0||p.level<skill.from||
     (skill.requires&&!this.skillRanks[skill.requires])||this.skillRanks[id]>=skill.max)return;
   this.skillRanks[id]++;p.points--;
@@ -1370,9 +1409,12 @@ export class ArcadeGame {
   if(SHIP_UPGRADES.has(id)){
    this.hangarSession.message=moduleSuggested?'Ракетный модуль добавлен в предварительную сборку. Нажмите «Применить».':
     id==='rocket'&&this.skillRanks.rocket===1?'Ракетный модуль получен. Выберите узел, установите его и примените сборку.':'Улучшение изучено: '+skill.title;
+   if(moduleSuggested){this.baseTab='hangar';this.hangarView='weapons';}
    this.renderDock();
    if(moduleSuggested)this.revealLoadoutApply();
    else this.overlay.querySelector('[data-act="hgUpgrade"][data-id="'+id+'"]')?.focus({preventScroll:true});
+  }else if(this.overlay.dataset.mode==='base'){
+   this.hangarSession.message='Изучено: '+skill.title+' · потрачено 1 очко развития';this.renderDock();
   }else this.renderSkills();
  }
 
@@ -1867,9 +1909,12 @@ export class ArcadeGame {
  }
  hangarAction(data){
   if(this.dead||!this.paused||this.overlay.hidden||this.overlay.dataset.mode!=='base'||
-   this.baseTab!=='hangar'||!this.docked?.active)return;
+   !['hangar','development'].includes(this.baseTab)||!this.docked?.active)return;
+  if(this.baseTab==='development'&&!['hgFocusWeapon','hgFocusTactic','hgFrame','hgUpgrade','hgSpec','hgTacticEquip','hgTacticUnlock','hgTacticUpgrade'].includes(data.act))return;
+  if(data.act==='hgSlot'&&!slotOpen(this.shipLoadout,Number(data.id))){this.openDevelopment('ship');return;}
   if(data.act==='hgView'){
    if(!['weapons','tactics','upgrades','services'].includes(data.id))return;
+   if(data.id==='upgrades'){this.openDevelopment('ship');return;}
    this.hangarView=data.id;this.hangarSession.message='';this.heritage.ui('tab');this.renderDock();
    this.overlay.querySelector('.hg-view-nav [aria-pressed="true"]')?.focus({preventScroll:true});
    return;
@@ -1919,6 +1964,7 @@ export class ArcadeGame {
    this.syncShipLoadout();
    this.heritage.ui('upgrade');
   }else this.heritage.ui('tab');
+  if(data.act==='hgSlot'&&this.hangarSession.draft.slots[this.hangarSession.slot])this.hangarSession.catalog=false;
   this.renderDock();
   const selector='[data-act="'+data.act+'"]'+(data.id?'[data-id="'+data.id+'"]':'');
   const focus=this.overlay.querySelector(selector);
@@ -1994,7 +2040,8 @@ export class ArcadeGame {
    allies:this.allies.length,droneRoles:this.allies.map(a=>a.role),network:this.network,doctrine:this.doctrine,
    droneDamage:this.allies.reduce((sum,a)=>sum+Math.max(0,a.maxHp-a.hp),0),
    charges:this.support.charges,contract:this.contract,operation:this.operation,baseTab:this.baseTab,
-   hangarView:this.hangarView||'weapons',
+   hangarView:this.hangarView||'weapons',developmentCategory:this.developmentCategory||'weapons',
+   pilotSkills:SKILLS,pilotDoctrines:DOCTRINES,nextSkillEffect,
    sortieReports:this.sortieReports,economyExpenses:this.economyExpenses,
    lastContractReceipt:this.lastContractReceipt,
     fieldLoan:this.fieldLoan,fieldTrialTaken:this.fieldTrialTaken,fieldTrialPickerOpen:!!this.fieldTrialPickerOpen,
@@ -2015,9 +2062,12 @@ export class ArcadeGame {
   if(this.fieldLoan?.returnDue)this.returnBorrowedWeapon();
   this.syncShipLoadout();
   const view=captureHangarView(this.overlay);
+  this.stationViews||={};
+  if(view.tab)this.stationViews[view.tab+':'+(view.section||'')]=view;
   const checkpointNote=this.saveAtStation();
   this.overlay.innerHTML=renderBasePanel(this.docked,{...this.baseState(),checkpointNote});
-  restoreHangarView(this.overlay,view);
+  const key=this.baseTab+':'+(this.baseTab==='development'?(this.developmentCategory||'weapons'):this.baseTab==='hangar'?(this.hangarView||'weapons'):'');
+  restoreHangarView(this.overlay,this.stationViews[key]||{tab:this.baseTab,section:'',scroll:0,expanded:[]});
   this.presentMenu();
   restoreMenuControl(this.overlay,focusIdentity,'[data-act="baseTab"][aria-selected="true"]');
   this.hud();
@@ -2255,7 +2305,7 @@ export class ArcadeGame {
   this.endInteraction();
   this.hangarSession?.begin(this.shipLoadout);
   this.fieldTrialPickerOpen=false;
-  this.docked=b;this.baseTab='summary';this.hangarView='weapons';this.paused=true;this.pausedRenderPending=true;
+  this.docked=b;this.stationViews={};this.baseTab='summary';this.hangarView='weapons';this.paused=true;this.pausedRenderPending=true;
   this.stationExitArmed=true;
   this.heritage.pause('base');
   this.overlay.dataset.mode='base';this.overlay.hidden=false;
@@ -2366,7 +2416,7 @@ export class ArcadeGame {
    this.waypoint={id:this.operation.id,x:returning?b.x:this.operation.x,y:returning?b.y:this.operation.y,
     label:returning?(carrier?'Вернуться на авианосец':'Вернуться с телеметрией в док'):
      corridor?'Вражеский глушитель':probe?'Аварийный зонд':relay?'Боевой ретранслятор':'Район перехвата груза'};
-   this.baseTab='operations';
+   if(this.baseTab!=='summary')this.baseTab='operations';
    if(returning){if(carrier)this.deliverCarrierInterception();else this.deliverCorridor();
     this.pausedRenderPending=true;this.renderDock();return;}
    this.heritage.station('acceptContract',b.type);
@@ -2452,8 +2502,7 @@ export class ArcadeGame {
    p.ore-=12;this.doctrine=null;p.points++;
    recordEconomyExpense(this,'services',12);
    this.heritage.station('respec',b.type);
-   this.heritage.pause('skills');
-   this.overlay.dataset.mode='skills';this.renderSkills();return;
+   this.openDevelopment('pilot');return;
   }
   if(act==='activate'){
    if(o.reasons.activate){this.notice(o.reasons.activate,2);return;}
