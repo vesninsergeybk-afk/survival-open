@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" fill="none">
+  <!-- Non-interactive edge treatment; can be layered over an HTML panel. -->
+  <path d="M22 1H1166L1199 34V687L1166 719H35L1 685V34Z" stroke="#8aa9ae" stroke-opacity=".30" stroke-width="2"/>
+  <path d="M1 72V33L34 1H152M1048 719h118l33-33v-43" stroke="#d4ad80" stroke-opacity=".86" stroke-width="3"/>
+  <path d="M118 9h70M1012 711h70" stroke="#c8a377" stroke-opacity=".35"/>
+  <path d="M12 88v62m1176 414v65M57 12h58m977 696h53" stroke="#94c8cd" stroke-opacity=".38"/>
+  <path d="M28 20h40M20 28v40m1160 624h-40m40-8v-40" stroke="#f1e1c5" stroke-opacity=".33"/>
+</svg>

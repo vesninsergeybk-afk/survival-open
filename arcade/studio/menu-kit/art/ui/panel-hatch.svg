@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="300" viewBox="0 0 800 300" fill="none">
+  <!-- Subtle technical treatment, deliberately not a geographical map or telemetry. -->
+  <path d="M480 0 800 0v300H380z" fill="#77b6b9" fill-opacity=".018"/>
+  <path d="M514 0 800 280M588 0 800 195M666 0 800 120" stroke="#a0b7b3" stroke-opacity=".080"/>
+  <path d="M465 298h333m-292-28h292M549 242h249M605 214h193" stroke="#91adb3" stroke-opacity=".075"/>
+  <path d="m595 38 126 0 42 42v110l-51 50h-117l-40-40V79z" stroke="#b2c8c8" stroke-opacity=".080" stroke-width="1.2"/>
+  <circle cx="658" cy="141" r="47" stroke="#b3caca" stroke-opacity=".085"/>
+  <circle cx="658" cy="141" r="32" stroke="#b3caca" stroke-opacity=".048"/>
+  <path d="M643 141h30m-15-15v30" stroke="#b3caca" stroke-opacity=".065"/>
+  <path d="M490 286h64M751 26h46" stroke="#c9a77d" stroke-opacity=".24" stroke-width="2"/>
+</svg>
