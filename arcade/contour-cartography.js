@@ -31,14 +31,14 @@ export function atlasGeography(center,scale){
  ];
  const fills=sectors.map(s=>{
   const region=REGIONS.find(item=>item.id===s.id);
-  return `<path d="${poly(s.points,center,scale)}" fill="${region.color}" fill-opacity=".12"/>`;
+  return `<path d="${poly(s.points,center,scale)}" fill="${region.color}" fill-opacity=".015"/>`;
  }).join('');
  const home=REGIONS[0];
  return `<g class="contour-world-geography" aria-hidden="true">
   <defs><clipPath id="contour-survey-limit"><circle cx="${fmt(origin.x)}" cy="${fmt(origin.y)}" r="${fmt(r)}"/></clipPath></defs>
   <g clip-path="url(#contour-survey-limit)">${fills}</g>
-  <path d="${poly(centralOutline(),center,scale)}" fill="${home.color}" fill-opacity=".105" stroke="${home.color}" stroke-opacity=".34" stroke-width="1.5"/>
-  <circle cx="${fmt(origin.x)}" cy="${fmt(origin.y)}" r="${fmt(r)}" fill="none" stroke="#7db1c7" stroke-opacity=".18" stroke-dasharray="5 9"/>
+  <path d="${poly(centralOutline(),center,scale)}" fill="${home.color}" fill-opacity=".025" stroke="${home.color}" stroke-opacity=".2" stroke-width=".8"/>
+  <circle cx="${fmt(origin.x)}" cy="${fmt(origin.y)}" r="${fmt(r)}" fill="none" stroke="#7db1c7" stroke-opacity=".14" stroke-width=".6" stroke-dasharray="2 9"/>
   </g>`;
 }
 
@@ -68,7 +68,7 @@ export function atlasNebulae(seed,center,scale,overview){
 
 // Each star is a genuine point of the flight renderer's deterministic grid:
 // at strategic zoom we select a bounded subset instead of drawing millions.
-export function atlasStars(seed,center,scale,overview){
+export function atlasStars(seed=0,center,scale,overview){
  const step=overview?24:3,grid=260;
  const spanX=ATLAS_WIDTH/(2*scale),spanY=ATLAS_HEIGHT/(2*scale);
  const startX=Math.floor((center.x-spanX)/(grid*step))-1;
@@ -85,7 +85,8 @@ export function atlasStars(seed,center,scale,overview){
   const p=atlasPoint({x:(gx+hash(gx*9,gy,seed))*grid,
    y:(gy+hash(gx,gy*9,seed+7))*grid},center,scale);
   if(!visible(p))continue;
-  stars.push(`<circle cx="${fmt(p.x)}" cy="${fmt(p.y)}" r="${overview?'.95':'1.25'}"/>`);
+  const bright=hash(gx,gy,seed+83);
+  stars.push(`<circle cx="${fmt(p.x)}" cy="${fmt(p.y)}" r="${fmt((overview?.4:.5)+bright*(overview?.8:.95))}" opacity="${fmt(.25+bright*.65)}"/>`);
  }
  return `<g class="contour-world-stars" aria-hidden="true">${stars.join('')}</g>`;
 }

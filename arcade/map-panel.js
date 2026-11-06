@@ -14,9 +14,11 @@ import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './stat
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=menu-rebuild-territory-war-20261106';
 import {renderStationThreats} from './strategic-command.js?v=menu-rebuild-territory-war-20261106';
-import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1';
+import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
+import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
+import {atlasStars} from './contour-cartography.js?v=living-atlas-3-map-ux-1-map-art-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -129,6 +131,7 @@ export function renderWorldMap(game){
    '<text x="'+q.x.toFixed(1)+'" y="'+(q.y-r-6).toFixed(1)+
    '" text-anchor="middle" fill="#b8fff0" font-size="11">ЗОНА ЗАЩИТЫ · 650 М</text></g>';
  })():'';
+ const nearestFriendly=known.find(b=>!b.enemy);
  const marks=known.map(b=>{
   const q=point(b.x,b.y,center,scale);if(!visible(q))return '';
   const color=b.suppressed?'#eda1ff':b.enemy?'#ff777d':b.active?'#84ead2':'#ffca84';
@@ -146,8 +149,9 @@ export function renderWorldMap(game){
    '" r="17" fill="#ffd27e1a" stroke="#ffd27e" stroke-width="2.5"/>'+
    '<text x="'+q.x.toFixed(1)+'" y="'+(q.y-20).toFixed(1)+
    '" text-anchor="middle" fill="#ffe2a0" font-size="17" font-weight="700">!</text>':'')+
-   (b.relayBoost?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="12" fill="none" stroke="#6fffee" stroke-width="1.5"/>':'')+dot(q.x,q.y,color,b.active?8:6,b.enemy?'square':'circle')+
-   '<text x="'+(q.x+11).toFixed(1)+'" y="'+(q.y-9).toFixed(1)+
+   (b.relayBoost?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="16" fill="none" stroke="#6fffee" stroke-width="1.5"/>':'')+
+   '<g transform="translate('+q.x.toFixed(1)+' '+q.y.toFixed(1)+')">'+stationGlyph(b.type,{color,active:b.active&&!b.enemy,hostile:b.enemy})+'</g>'+
+   '<text class="local-station-label" data-mobile-label="'+(selected||returnCue||b.id===nearestFriendly?.id)+'" x="'+(q.x+17).toFixed(1)+'" y="'+(q.y-12).toFixed(1)+
    '" fill="#e3f4f4" font-size="11">'+enc(baseNames[b.type]||'Станция')+'</text></g>';
  }).join('');
  const echoes=signals.map(s=>{
@@ -305,6 +309,8 @@ export function renderWorldMap(game){
   '<span class="map-intel-compact">Нажмите «Список», чтобы выбрать маршрут.</span>':'';
  const view=game.mapView==='targets'?'targets':'map';
  const unapplied=game.mapReturnToBase&&game.hangarSession?.dirty(game.shipLoadout);
+ const routeSummary='<div class="map-active-route"><b>Текущая цель:</b> '+(navigator?enc(navigator.label)+
+   ' · '+distance(navigator,p)+' м':'маршрут не задан')+clear+'</div>';
  return '<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
   '<span class="map-kicker">НАВИГАЦИОННЫЙ КОМПЛЕКС</span><h2 id="map-menu-title">Карта сектора</h2>'+
   menuInfo('Как пользоваться картой','Выберите станцию или сигнал и постройте маршрут. Связь действует на 1450 м; каждая усиленная антенна добавляет 500 м. Неизвестные сигналы указаны приблизительно.')+
@@ -316,20 +322,18 @@ export function renderWorldMap(game){
   '<button type="button" data-act="mapView" data-id="territory">'+menuIcon('network')+'Контуры</button>'+
   '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">'+menuIcon('navigation')+'Список · '+(known.length+signals.length)+'</button></nav>'+
   (discoveryLead||intelLead?'<details class="map-discovery-lead"><summary>Что можно открыть на станциях</summary>'+discoveryLead+intelLead+'</details>':'')+
-  '<section class="map-shell"><div class="map-canvas"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
-  '<rect width="680" height="480" rx="15" fill="#071b2c"/>'+
+  '<section class="map-shell"><div class="map-canvas">'+routeSummary+'<div class="map-plot"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
+  chartBackdrop(world.seed,center,scale)+atlasStars(world.seed,center,scale,false)+
   '<circle cx="'+pilot.x.toFixed(1)+'" cy="'+pilot.y.toFixed(1)+'" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
   grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+intelMarks+marks+operationMark+enemyOrders+
-  '<g><circle cx="'+pilot.x.toFixed(1)+'" cy="'+pilot.y.toFixed(1)+'" r="13" fill="none" stroke="#8affff"/>'+
-  dot(pilot.x,pilot.y,'#9bf9ff',5)+'</g>'+
+  pilotGlyph(pilot.x,pilot.y)+chartFrame(center,scale,{local:true})+
   '<text x="'+(pilot.x+11).toFixed(1)+'" y="'+(pilot.y+26).toFixed(1)+'" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
-  mapTools(game)+
-  '<div class="map-legend"><span>● вы</span><span>● активна</span><span>● выключена</span>'+
-  '<span>◈ противник</span><span>⇢ согласованный манёвр</span><span>? сигнал</span><span>◎ операция</span>'+
+  mapTools(game)+'</div>'+
+  '<div class="map-legend"><span><i class="local-key pilot"></i>Вы</span><span><i class="local-key active"></i>Включена</span><span><i class="local-key inactive"></i>Выключена</span>'+
+  '<span><i class="local-key hostile"></i>Противник</span><span><i class="local-key maneuver"></i>Манёвр</span><span><i class="local-key signal">?</i>Сигнал</span><span><i class="local-key operation"></i>Операция</span>'+
   (intel.unlocked?'<span>Бирюзовый круг — промышленный сигнал · янтарный квадрат — радиометка груза</span>':'')+
   (known.some(b=>b.active&&!b.enemy)?'<span>бирюзовый круг — ПВО корабля · фиолетовый — радиус станции для стазиса (нужны 2 врага рядом с вами)</span>':'')+'</div>'+
-  '<div class="map-active-route"><b>Текущая цель:</b> '+(navigator?enc(navigator.label)+
-    ' · '+distance(navigator,p)+' м':'маршрут не задан')+clear+'</div></div>'+
+  '</div>'+
   '<aside class="map-side">'+
   renderStationThreats(game)+
   (view==='targets'?'<div class="map-active-route"><b>Текущая цель:</b> '+(navigator?enc(navigator.label)+' · '+distance(navigator,p)+' м':'маршрут не задан')+clear+'</div>':'')+
