@@ -49,7 +49,7 @@ import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
@@ -1459,8 +1459,13 @@ export class ArcadeGame {
   c.progress++;
   if(c.progress===c.goal){
    c.completedSortieId=this.sortieStart?.id??null;
+   if(station&&Number.isFinite(station.x)&&Number.isFinite(station.y)&&
+    !this.waypoint&&!this.manualWaypoint)
+    this.waypoint={id:station.id,x:station.x,y:station.y,
+     label:'Награда: '+(baseNames[station.type]||'исходная станция')};
    this.notice('Задание выполнено! '+
-    'Вернитесь на '+(station?baseNames[station.type]:'станцию')+' за наградой. Золотая отметка покажет её на карте.',4.5);
+    'Вернитесь на '+(station?baseNames[station.type]:'станцию')+'. Награда начислится при стыковке.'+
+    (this.waypoint?.id===station?.id?' Маршрут отмечен.':''),4.5);
   }
  }
 
@@ -2143,7 +2148,9 @@ export class ArcadeGame {
   this.pendingCheckpoint=null;this.syncShipLoadout();this.hangarSession.begin(this.shipLoadout);
   this.baseTab='summary';this.overlay.dataset.mode='base';this.overlay.hidden=false;
   this.stationExitArmed=true;
-  this.heritage.pause('base');this.renderDock();
+  this.heritage.pause('base');
+  if(contractReadyAtStation(this.contract,this.docked))this.baseAction('claimContract','');
+  else this.renderDock();
   this.notice('Вылет продолжен с последней стыковки.',4);
  }
  saveAtStation(){
@@ -2343,7 +2350,8 @@ export class ArcadeGame {
   this.heritage.pause('base');
   this.overlay.dataset.mode='base';this.overlay.hidden=false;
   this.heritage.ui('dock');
-  this.renderDock();
+  if(contractReadyAtStation(this.contract,b))this.baseAction('claimContract','');
+  else this.renderDock();
  }
  askStationModule(role){
   this.pendingStationModule=null;
@@ -2507,6 +2515,7 @@ export class ArcadeGame {
    this.lastContractReceipt={ore:c.ore,data:c.data,levelsGained,
     credited:this.sortieReports.some(r=>r.id===c.completedSortieId&&r.details?.oreContracts>=c.ore)||
      (c.completedSortieId==null&&this.sortieReports.some(r=>r.baseId===b.id))};
+   if(this.waypoint?.id===b.id&&this.waypoint.label?.startsWith('Награда:'))this.waypoint=null;
    if(this.firstHardwareReward==null)this.firstHardwareReward='pending';
    this.baseTab='summary';
    this.rewardNotice('Поручение выполнено: +'+c.ore+' сплава · +'+c.data+

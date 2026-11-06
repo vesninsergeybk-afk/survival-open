@@ -113,6 +113,10 @@ export const contractOffer=(base,state)=>{
  if(remaining>0)return {...chosen,status:'cooldown',remaining,progress:0};
  return {...choices[0],status:base.active?'available':'locked',progress:0};
 };
+// A finished field order is paid at its issuing station without another click.
+export const contractReadyAtStation=(contract,station)=>!!contract&&!!station?.active&&
+ !station.enemy&&contract.baseId===station.id&&Number.isFinite(contract.goal)&&
+ contract.goal>0&&Number.isFinite(contract.progress)&&contract.progress>=contract.goal;
 export const strikeCost=level=>40+Math.max(0,level-1)*5;
 // Only the home dock starts for free. Remote relays consume material and are
 // worth powering because they unlock a reusable travel network.
