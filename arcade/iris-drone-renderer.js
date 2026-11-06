@@ -297,6 +297,17 @@ export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
     }
   }else ctx.drawImage(body,(frame%3)*CELL,Math.floor(frame/3)*CELL,
     CELL,CELL,-side/2,-side/2,side,side);
+  // During territorial counterattacks the familiar IRIS lens heats from
+  // violet to bright rose. The approved body atlas stays unchanged.
+  const trialDiving=enemy._trialDive?.phase;
+  if(trialDiving==='windup'||trialDiving==='rush'){
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    const ramp=trialDiving==='rush'?1:
+      clamp((now-enemy._trialDive.started)/.78,0,1);
+    ctx.fillStyle=`rgba(255,95,155,${.3+.47*ramp})`;
+    ctx.beginPath();ctx.arc(0,0,side*(.085+.035*ramp),0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
   const activePackStrike=now<(enemy._irisPackCueUntil||0)&&
     enemy._irisPackPhase==='strike'&&enemy._irisPackRole&&
     enemy._irisPackRole!=='reserve'&&

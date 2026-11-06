@@ -2,7 +2,7 @@ import {contourFields,fieldAt} from './territory-system.js?v=contours-1-world-fe
 import {activeContourTransition,fieldIsNew} from './contour-dynamics.js?v=contour-dynamics-2-auto-1';
 import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {drawContourVortexArt} from './contour-vortex-art.js?v=contour-vortex-80frames-1';
-import {drawUnstableContour} from './contour-trial-vfx.js?v=contour-trials-1';
+import {drawUnstableContour} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1';
 import {trialBlockingField} from './contour-trials.js?v=contour-trials-1';
 import {drawSiphon3,SIPHON3_WORLD_SIZE} from './siphon3-art.js?v=siphon3-rig-3';
 

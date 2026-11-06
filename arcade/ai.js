@@ -6,6 +6,7 @@ import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
+import {contourIrisDirective,contourIrisRushContacts} from './contour-trial-iris.js?v=contour-counterattack-1';
 import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2';
 import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1';
@@ -517,20 +518,27 @@ export function updateEnemy(e,game,dt){
     goalX=transit.x;goalY=transit.y;
     speed=ENEMY_TYPES[e.type].speed;
   }
+  // Counterattack scouts briefly abandon their normal pack orbit for a
+  // visibly warned dive. The ordinary physics solver and hitboxes remain.
+  const trialDive=e.type==='scout'?contourIrisDirective(e,game):null;
+  if(trialDive){
+    goalX=trialDive.x;goalY=trialDive.y;speed=trialDive.speed;
+    e._commsIntent=null;e._theaterIntent=null;
+  }
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   const detour=enemyRockDetour(e,game,goalX,goalY);
   let extraX=(avoid.x*1.3+detour.x)*speed,
     extraY=(avoid.y*1.3+detour.y)*speed;
   if(e.type==='scout'){
-    const burst=irisBurstJink(e,game.time),heading=norm(goalX-e.x,goalY-e.y);
+    const burst=trialDive?0:irisBurstJink(e,game.time),heading=norm(goalX-e.x,goalY-e.y);
     extraX-=heading.y*speed*burst;
     extraY+=heading.x*speed*burst;
-    if(packTactic){
+    if(packTactic&&!trialDive){
       const separate=irisPackSeparation(e,game);
       extraX+=separate.x*speed*.56;extraY+=separate.y*speed*.56;
     }
   }
-  if(e.state==='hunt'&&!e.boss&&!e.missionStructure&&!search){
+  if(e.state==='hunt'&&!e.boss&&!e.missionStructure&&!search&&!trialDive){
     if(e.type==='scout'){
       const jink=scoutSteering(e,game,p,speed);
       const sway=packTactic?.26:(orbit?.42:1);
@@ -543,10 +551,11 @@ export function updateEnemy(e,game,dt){
       extraY+=heading.x*speed*.17*sweep;
     }
   }
+  const beforeX=e.x,beforeY=e.y;
   steer(e,goalX,goalY,speed,dt,{x:extraX,y:extraY});
   e.healFlash=Math.max(0,(e.healFlash||0)-dt);
   updateEnemyGunnery(e,game,selected);
-  if(e.type==='scout'&&!search&&
+  if(e.type==='scout'&&!search&&trialDive?.phase!=='rush'&&
      (localContact||(selected!==game.player&&game.enemyCanSee?.(e,selected))))
     scoutAttack(e,game,selected,
     e._irisScanMode==='acquire'&&game.time<(e._irisScanUntil||0));
@@ -561,7 +570,17 @@ export function updateEnemy(e,game,dt){
     p.hp-=e.damage*dt*1.4;
     if(p.hp<=0)game.heritage.vfx.shipExplosion(p.x,p.y,24,'#9aefff');
   }
-  if(dist(e,game.player)<e.r+game.player.r&&game.player.invul<=0){
+  const playerContact=trialDive?.phase==='rush'?
+    contourIrisRushContacts(beforeX,beforeY,e,game.player):
+    dist(e,game.player)<e.r+game.player.r;
+  if(playerContact&&e.type==='scout'&&
+     e._trialDive?.phase==='rush'){
+    // A real, dodgeable ram ends the dive. Brief invulnerability protects
+    // the player as usual, but the scout still breaks apart on contact.
+    if(game.player.invul<=0)game.hurt(Math.min(23,13+(e._trialDiveTier||1)),
+      {x:e.x,y:e.y});
+    e.hp=0;
+  }else if(playerContact&&game.player.invul<=0){
     const prior=game.player.hp+game.player.shield;
     game.hurt(e.type==='berserker'&&e.state==='charge'?29:e.damage,{x:e.x,y:e.y});
     game.enemyLearning?.dealt(game.enemyLearning.shotToken(e),

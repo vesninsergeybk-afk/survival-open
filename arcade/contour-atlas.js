@@ -16,7 +16,7 @@ import {fluxSortieOffer,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-te
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
 import {productiveContourFields,pendingContourTrials,trialBlockingField} from './contour-trials.js?v=contour-trials-1';
-import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=contour-trials-1';
+import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -340,8 +340,8 @@ export function renderContourMap(game){
  const player=at(game.player,center,scale),visiblePlayer=player.x>14&&player.x<666&&player.y>14&&player.y<466;
  const regions='<button data-act="contourRegion" data-id="all" aria-pressed="'+!region+'">Вся карта</button>'+
   REGIONS.map(r=>'<button data-act="contourRegion" data-id="'+r.id+'" aria-pressed="'+(region?.id===r.id)+'">'+r.number+' · '+esc(r.name)+'</button>').join('');
- const stage=trials.length?'Нестабильных полей: '+trials.length+
-  ' · подлетите к восклицательному знаку, чтобы защитить территорию':
+ const stage=trials.length?'Враг обнаружил новые территории: '+trials.length+
+  ' · подлетите к знаку «!», чтобы отбить контратаку и открыть воронку':
   transition?.kind==='claim'?'Контур замкнут · энергия заполняет новую территорию':
   transition?.kind==='loss'?'Связь потеряна · границы поля отступают':
   area>0?'Поле действует · сборщики перевозят флюкс':

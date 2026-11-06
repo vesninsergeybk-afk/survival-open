@@ -21,7 +21,7 @@ function spawnTrialWave(game,event){
  if(game.enemies.filter(e=>e.hp>0).length>Math.min(46,RULES.maxEnemies-18))return false;
  event.waveIndex++;
  const total=Object.values(wave).reduce((n,value)=>n+value,0);
- const group=++game.groupSerial,cam=game.camera();let i=0;
+ const group=++game.groupSerial,cam=game.camera();let i=0,scoutCount=0;
  event.waveIds=[];event.defeatedIds??=new Set();
  const pincer=event.plan.variants.some(v=>v.id==='pincer');
  const rear=event.plan.variants.some(v=>v.id==='elite');
@@ -30,6 +30,9 @@ function spawnTrialWave(game,event){
   (Math.cos(angle)>0?0:1):(Math.sin(angle)>0?2:3);
  for(const [type,count] of Object.entries(wave))for(let j=0;j<count;j++){
   const def=ENEMY_TYPES[type];if(!def)continue;
+  // A small subset of IRIS scouts answer the new field's EM pulse with
+  // panicked high-speed dives; ordinary patrol scouts never inherit it.
+  const dive=type==='scout'&&scoutCount++<Math.min(3,1+Math.floor((event.plan.tier-1)/5));
   const side=rear?rearSide:pincer?(i%2===0?0:1):
    (event.waveIndex+i+event.entry.id)%4;
   const xy=spawnOutside(cam,side,.18+((i*7+event.entry.id)%13)/20,150+i*8);
@@ -41,6 +44,7 @@ function spawnTrialWave(game,event){
    // Trial rewards are paid once on victory. Retreating and restarting waves
    // must not become an infinite source of combat XP or free alloy.
    expAwarded:true,trialId:event.entry.id,scenario:'contour-trial',protect:null,
+   _trialDiveEnabled:dive,_trialDiveTier:tier,
    entryPortalPending:type==='gunship'&&!game.heavyPortalShown,
    _patrolRoute:null};
   game.enemies.push(enemy);i++;
@@ -49,8 +53,9 @@ function spawnTrialWave(game,event){
  event.phase='wave';
  if(!Number.isFinite(event.nextStrikeAt))
   event.nextStrikeAt=game.time+3.6;
- game.notice?.('КОНТУР · волна '+(event.waveIndex+1)+'/'+event.plan.waves.length+
-  ' · '+total+' целей. Держитесь в движении!',3.8);
+ game.notice?.('КОНТРАТАКА НА НОВЫЙ ТРЕУГОЛЬНИК · волна '+
+  (event.waveIndex+1)+'/'+event.plan.waves.length+' · '+total+' целей.'+
+  (scoutCount?' Зрачки готовят резкие таранные рывки!':' Уклоняйтесь от орбитального огня!'),4.5);
  game.heritage?.play?.('orbitalWarning',.9,game.player);
  return true;
 }
@@ -83,6 +88,9 @@ function finishTrial(game,event){
  if(!completeContourTrial(game.world,event.entry.id)){
   game.contourTrial=null;return;
  }
+ // Nothing hostile should explode AFTER the victory banner and the
+ // reopening of the vortex; the current encounter has actually ended.
+ game.zones=game.zones.filter(zone=>zone.trialId!==event.entry.id);
  const previousLevel=game.player.level;
  const gained=14+event.plan.tier*7;
  game.awardExperience?.(gained);
@@ -95,6 +103,10 @@ function finishTrial(game,event){
  if(field){
   game.contourBirths=[...(game.contourBirths||[]).filter(b=>b.id!==field.id),
    {id:field.id,x:core.x,y:core.y,at:game.time}];
+  for(const id of field.vertices.slice(0,3)){
+   const station=game.world.stations.get(id);
+   if(station)game.flash?.(station.x,station.y,core.x,core.y,'#a6ffeb');
+  }
  }
  if(dist(core,event.entry)>65)game.flash?.(event.entry.x,event.entry.y,core.x,core.y,'#a6ffeb');
  game.heritage?.vfx?.nova?.(core.x,core.y,175,'cyan');
@@ -118,12 +130,13 @@ export function updateContourTrials(game,dt){
   const entry=pendingContourTrials(game.world).find(e=>available(game,e));
   if(!entry)return;
   event={entry,plan:planContourTrial(entry.tier,entry.id),phase:'warning',
+   startedAt:game.time,
    waveIndex:-1,nextWaveAt:game.time+CONTOUR_TRIALS.warningSeconds,
    nextStrikeAt:Infinity,outsideFor:0};
   game.contourTrial=event;
-  game.notice?.('ВНИМАНИЕ · поле нестабильно! Испытание '+entry.tier+
-   '/12 · рекомендован уровень '+event.plan.recommendedLevel+
-   '+. Приготовьтесь отражать атаку.',5);
+  game.notice?.('КОНТУР ЗАМКНУТ · вражеская сеть засекла энергетический всплеск! '+
+   'Контратака '+entry.tier+'/12 · рекомендован уровень '+
+   event.plan.recommendedLevel+'+. Защитите новую территорию!',5);
   game.heritage?.vfx?.nova?.(entry.x,entry.y,120,'red');
   game.heritage?.play?.('orbitalWarning',1.2,entry);
   return;
