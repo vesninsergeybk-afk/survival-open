@@ -1,7 +1,9 @@
-import {contourFields,fieldAt} from './territory-system.js?v=contours-1-world-feedback-1-flux-offense-1';
+import {contourFields,fieldAt} from './territory-system.js?v=contours-1-world-feedback-1-flux-offense-1-contour-trials-1';
 import {activeContourTransition,fieldIsNew} from './contour-dynamics.js?v=contour-dynamics-2-auto-1';
 import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {drawContourVortexArt} from './contour-vortex-art.js?v=contour-vortex-80frames-1';
+import {drawUnstableContour} from './contour-trial-vfx.js?v=contour-trials-1';
+import {trialBlockingField} from './contour-trials.js?v=contour-trials-1';
 import {drawSiphon3,SIPHON3_WORLD_SIZE} from './siphon3-art.js?v=siphon3-rig-3';
 
 const visible=(p,cam,r=200)=>p.x>=cam.x-r&&p.x<=cam.x+cam.w+r&&
@@ -107,7 +109,8 @@ export function drawContourWorld(game,c,cam){
   c.restore();
  }
  for(const field of fields){
-  if(!visible(field.center,cam,950))continue;
+  const unstable=trialBlockingField(game.world,field);
+  if(!visible(field.center,cam,950)&&!(unstable&&visible(unstable,cam,180)))continue;
   const animating=transition?.kind==='claim'&&!calm&&elapsed<2.5;
   if(animating){
    // The old/new intersection must stay visible throughout the fill.
@@ -136,6 +139,7 @@ export function drawContourWorld(game,c,cam){
   c.strokeStyle='rgba(79,235,198,.22)';c.lineWidth=4;c.setLineDash([34,28]);c.stroke();c.setLineDash([]);
   c.restore();
   if(forming&&elapsed<2.5&&!calm)continue;
+  if(drawUnstableContour(c,game,field,now))continue;
   c.save();
   const {x,y}=field.center,phase=now*.72+field.area*.000001;
   const pulse=1+.085*Math.sin(now*1.55+field.area*.00001),r=64*pulse;

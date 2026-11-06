@@ -10,7 +10,8 @@ import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-camp
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
 import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-flux-offense-1-territory-war-1';
-import {createContours,validContours,autoConnectContours} from './territory-system.js?v=automatic-contours-1';
+import {createContours,validContours,autoConnectContours} from './territory-system.js?v=automatic-contours-1-contour-trials-1';
+import {ensureTrialLedger} from './contour-trials.js?v=contour-trials-1';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
 
@@ -236,6 +237,12 @@ export function restoreCheckpoint(game,data){
  // Older saves may contain three powered nodes but only two manually drawn
  // links. Complete the mesh now, without awarding retroactive rewards.
  autoConnectContours(world);
+ // Existing checkpoints never required territory battles. Their already
+ // claimed land stays productive; only future expansions create trials.
+ if(!world.contours.trials){
+  const ledger=ensureTrialLedger(world);
+  ledger.completed=Math.min(12,Object.keys(world.contours.launches||{}).length);
+ }
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
  // Convert older saves only once, retaining every already earned skill point.
@@ -257,7 +264,7 @@ export function restoreCheckpoint(game,data){
  game.contourVisualAt=-Infinity;game.contourVisualFields=null;
  game.enemyContourVisualAt=-Infinity;game.enemyContourVisualFields=null;
  game.lastContourNoticeAt=-Infinity;game.contourFirst=null;game.contourSelection=null;game.contourError='';
- game.contourFeedback=null;game.contourBirths=[];game.contourDynamics=null;
+ game.contourFeedback=null;game.contourBirths=[];game.contourDynamics=null;game.contourTrial=null;
  game.docked=world.stations.get(data.baseId);game.dead=false;game.paused=true;game.pausedRenderPending=true;
  game.cruiseCharge=0;game.cruising=false;
  return game.docked;

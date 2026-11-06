@@ -1,3 +1,5 @@
+import {newTrialLedger,productiveContourFields,validContourTrials} from './contour-trials.js';
+
 // Territorial links appear automatically between powered friendly stations.
 // They remain distinct from the shorter-range radio tree for station services.
 export const CONTOURS=Object.freeze({maxLength:2800,maxDegree:5,maxLinks:160,
@@ -19,7 +21,8 @@ const properCross=(a,b,c,e)=>{
 };
 
 export const createContours=()=>({links:[],flux:0,launches:{},harvesters:[],delivered:0,lost:0,
- nextLaunchAt:0,pulseReadyAt:0,reserve:null,sortie:null,nextSortieAt:0});
+ nextLaunchAt:0,pulseReadyAt:0,reserve:null,sortie:null,nextSortieAt:0,
+ trials:newTrialLedger()});
 
 export function contourLinkOffer(world,firstId,secondId){
  const state=world.contours,a=world.stations.get(firstId),b=world.stations.get(secondId);
@@ -262,7 +265,7 @@ export function consumeContourReserve(world,stationId,time){
 
 export function advanceContours(world,time,dt,enemies=[],player=null){
  const state=world.contours;if(!state||dt<=0)return [];
- const fields=contourFields(world),byId=new Map(fields.map(f=>[f.id,f]));
+ const fields=productiveContourFields(world,contourFields(world)),byId=new Map(fields.map(f=>[f.id,f]));
  const area=contourArea(fields),production=contourProduction(fields),events=[];
  if(state.reserve){
   const base=world.stations.get(state.reserve.stationId);
@@ -318,6 +321,7 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
 
 export function validContours(state,stations){
  if(!state||typeof state!=='object'||!Array.isArray(state.links)||state.links.length>CONTOURS.maxLinks||
+  !validContourTrials(state.trials)||
   !Number.isFinite(state.flux)||state.flux<0||state.flux>CONTOURS.fluxCap||
   !Number.isFinite(state.delivered)||state.delivered<0||
   !Number.isInteger(state.lost)||state.lost<0||

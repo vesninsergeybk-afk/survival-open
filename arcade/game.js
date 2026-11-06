@@ -51,7 +51,7 @@ import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
@@ -69,7 +69,7 @@ import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESI
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -81,14 +81,17 @@ import {recordWorldFeedback,recordContourFeedback,advanceWorldFeedback,drawWorld
 import {regionalCampaignPressure,campaignDestination,strongholdThreat} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1-stronghold-1-territory-war-1';
 import {updateStationInterdiction,interruptStationInterdiction,threatenedStations} from './strategic-command.js?v=campaign-1-repair-qa-1-tactical-balance-1-world-feedback-1-flux-reserve-1-flux-offense-1-territory-war-1';
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
-import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-2';
+import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-2-contour-trials-1';
 import {launchFluxSortie,advanceFluxSortie,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {recordIndustrialBreachHit,advanceIndustrialBreaches,INDUSTRIAL_BREACH} from './industrial-breach.js?v=territory-war-1-territory-war-1-breach-fix-1';
 import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from './contour-cover.js?v=territory-war-2-territory-war-1-topology-fix-1';
 import {territoryTech,TERRITORY_TECH} from './territory-tech.js?v=territory-war-1-territory-war-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
-import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1-auto-1';
+import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1-auto-1-contour-trials-1';
 import {syncContourDynamics,resumeContourTransition} from './contour-dynamics.js?v=contour-dynamics-3-auto-1';
+import {registerContourTrials,productiveContourFields,pendingContourTrials} from './contour-trials.js?v=contour-trials-1';
+import {updateContourTrials} from './contour-trial-director.js?v=contour-trials-1';
+import {drawContourTrialHUD} from './contour-trial-vfx.js?v=contour-trials-1';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -226,7 +229,7 @@ export class ArcadeGame {
   this.hangarView='weapons';this.mapReturnToBase=false;
   this.mapView='territory';this.contourRegion='all';this.contourFirst=null;this.contourSelection=null;this.contourError='';this.contourInfo='';this.enemyBackboneMap=false;
   this.mapViewports={};this.mapPointers=new Map();this.mapDraggedUntil=0;this.lastMapPanRender=0;this.mapMarkMode=false;
-  this.contourFeedback=null;this.contourBirths=[];this.contourDynamics=null;
+  this.contourFeedback=null;this.contourBirths=[];this.contourDynamics=null;this.contourTrial=null;
   this.openingArc=createOpeningArc(this.world.home);this.openingRepairing=false;
   this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
   this.lastContractReceipt=null;
@@ -1226,7 +1229,8 @@ export class ArcadeGame {
   if(!added.length)return false;
   const after=contourFields(this.world);
   const gain=Math.max(0,contourArea(after)-oldArea);
-  const fluxGain=Math.max(0,contourProduction(after)-oldProduction);
+  const newTrials=registerContourTrials(this.world,oldFields,after,gain);
+  const fluxGain=Math.max(0,contourProduction(productiveContourFields(this.world,after))-oldProduction);
   this.cachedWorldLinks=[];this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
   syncContourDynamics(this);
   if(this.paused&&gain>1&&this.contourDynamics?.transition?.kind==='claim')
@@ -1235,9 +1239,13 @@ export class ArcadeGame {
    const previousLevel=this.player.level;
    const strategicXp=this.awardStrategicExperience(claimContourExpansion(this.player,after,gain));
    this.contourFeedback={title:'Треугольник замкнулся автоматически',text:'Новая территория: +'+
-    (gain/1000000).toFixed(1)+' усл. км². Добыча: +'+fluxGain.toFixed(1)+' флюкса за 3 минуты.'+
+    (gain/1000000).toFixed(1)+' усл. км². '+(newTrials.length?
+    'Поле нестабильно: впереди испытание '+newTrials[0].tier+'/12.':
+    'Добыча: +'+fluxGain.toFixed(1)+' флюкса за 3 минуты.')+
     (strategicXp?' +'+strategicXp+' опыта за новую территорию.':''),at:this.time};
-   this.rewardNotice('СТАНЦИИ СОЕДИНИЛИСЬ! Территория создана автоматически. Добыча флюкса запущена.'+
+   this.rewardNotice('СТАНЦИИ СОЕДИНИЛИСЬ! Территория создана автоматически. '+
+    (newTrials.length?'Защитите поле в испытании — после победы откроется добыча.':
+     'Добыча флюкса продолжается.')+
     (strategicXp?' +'+strategicXp+' опыта.':''),previousLevel,6);
    // The centre of a new outer face can coincide with old territory.
    // Vortex arrival follows the fill, rather than appearing on click.
@@ -1247,7 +1255,8 @@ export class ArcadeGame {
    recordWorldFeedback(this,{key:'contour-auto:'+this.time+':'+added[0][0],
     kind:'industry',label:'КОНТУР ЗАМКНУЛСЯ',
     cause:'Три работающие станции автоматически образовали территориальную сеть',
-    effect:'Новое поле добывает флюкс: +'+fluxGain.toFixed(1)+' за 3 минуты. Враг может атаковать его опорные узлы',
+    effect:newTrials.length?'Вражеская контратака: защитите новое поле, чтобы открыть добычу флюкса':
+     'Новое поле добывает флюкс: +'+fluxGain.toFixed(1)+' за 3 минуты. Враг может атаковать его опорные узлы',
     x:anchor?.x,y:anchor?.y});
    if(anchor)this.heritage?.vfx?.nova?.(anchor.x,anchor.y,145,'cyan');
   }else this.contourFeedback={title:'Связи установлены автоматически',
@@ -3532,6 +3541,7 @@ export class ArcadeGame {
    this.refreshAutomaticContours();
   }
   syncContourDynamics(this);
+  updateContourTrials(this,dt);
   const contourEvents=advanceContours(this.world,this.time,dt,this.enemies,this.player);
   recordContourFeedback(this,contourEvents);
   this.contourDeliveryFX=(this.contourDeliveryFX||[])
@@ -3593,13 +3603,13 @@ export class ArcadeGame {
   if(length(p.x-this.lastX,p.y-this.lastY)>120){
    this.lastX=p.x;this.lastY=p.y;this.stationary=0;
   }else this.stationary+=dt;
-  if(this.time>55&&this.stationary>8){
+  if(!this.contourTrial&&this.time>55&&this.stationary>8){
    this.stationary=0;this.zones.push({x:p.x+35,y:p.y-25,r:85,fuse:1.8,fuseStart:1.8,ttl:.3});
    this.heritage.play('orbitalWarning',1.3,{x:p.x+35,y:p.y-25});
    this.notice('Орбитальная наводка — уходите из круга!',2);
   }
-  this.zoneClock-=dt;
-  if(this.zoneClock<=0){
+  if(!this.contourTrial)this.zoneClock-=dt;
+  if(!this.contourTrial&&this.zoneClock<=0){
    this.zoneClock=Math.max(12,28-this.time/110);
    const a=Math.random()*TAU;
    const zone={x:p.x+Math.cos(a)*135,y:p.y+Math.sin(a)*110,
@@ -3727,7 +3737,8 @@ export class ArcadeGame {
   }
   this.spawnClock-=dt;
   if(this.spawnClock<=0){
-   if((this.operation?.id===RELAY_DEFENSE.id&&this.operation.phase!=='approach')||
+   if(this.contourTrial||
+       (this.operation?.id===RELAY_DEFENSE.id&&this.operation.phase!=='approach')||
        carrierInFlight(this.operation)){
     // The authored assault replaces ambient patrols; cap combat pressure.
     this.spawnClock=4.5;
@@ -3749,7 +3760,7 @@ export class ArcadeGame {
   updateTactical(this);
   for(const e of this.enemies){
    if(!e.interceptCargo&&!updateStationInterdiction(this,e,dt))updateEnemy(e,this,dt);
-   if(e.hp>0&&patrolCanLeave(e,this)){
+   if(e.hp>0&&!e.trialId&&patrolCanLeave(e,this)){
     e.hp=0;e.expAwarded=true;
    }
    if(e.entryPortalPending){
@@ -3808,6 +3819,8 @@ export class ArcadeGame {
   for(const e of this.enemies){
    e.hit=Math.max(0,(e.hit||0)-dt);
    if(e.hp>0)continue;
+   if(e.trialId!==undefined&&e.trialId===this.contourTrial?.entry?.id)
+    this.contourTrial.defeatedIds?.add(e.serial);
    rememberCargoEscort(e);
    recordOpeningCommanderDefeat(this.openingArc,e,this.time);
    if(!e.visualDeath){
@@ -4236,7 +4249,10 @@ export class ArcadeGame {
    this.cachedWorldLinks=topology.links.filter(([a,b])=>
     Math.min(dist(a,p),dist(b,p))<2600);
    const mission=this.contract;
-   this.cachedTarget=this.manualWaypoint||this.waypoint||this.operation||(mission&&mission.progress>=mission.goal?
+   const nextTrial=pendingContourTrials(this.world)[0];
+   const trialRoute=nextTrial&&!this.operation&&!mission&&this.waypoint?.id===this.world.home?.id?
+    {...nextTrial,label:'Испытание контура'}:null;
+   this.cachedTarget=this.manualWaypoint||trialRoute||this.waypoint||this.operation||(mission&&mission.progress>=mission.goal?
     this.world.stations.get(mission.baseId):null);
   }
   for(const [a,b] of this.cachedWorldLinks){
@@ -4494,6 +4510,7 @@ export class ArcadeGame {
   this.heritage.vfx.render(c,'front',
    {worldX:cam.x,worldY:cam.y,width:cam.w,height:cam.h});
   c.restore();
+  drawContourTrialHUD(c,this);
   // Directional station indicator is screen-fixed and never covers the ship.
   const target=this.cachedTarget;
   if(target){
