@@ -20,7 +20,8 @@ export const backbonePair=(a,b)=>BACKBONE_LINKS.some(([x,y])=>
 export const backbonePeers=id=>BACKBONE_LINKS.flatMap(([a,b])=>
  a===id?[b]:b===id?[a]:[]);
 const live=(s,game)=>s?.enemy&&!s.captured&&!s.suppressed&&s.hp>0&&
- finite(s.x)&&finite(s.y)&&!tacticalRadioJammed(game,s);
+ finite(s.x)&&finite(s.y)&&(s.fluxJamUntil||0)<=(game?.time??0)&&
+ !tacticalRadioJammed(game,s);
 export const backboneActive=(a,b,game)=>!!a&&!!b&&
  backbonePair(a.id,b.id)&&distance(a,b)<=BACKBONE.maxDistance&&
  live(a,game)&&live(b,game);
@@ -42,7 +43,7 @@ export function archiveReport(station,packet,now){
  const observedAt=doctrine?packet.sourceAt:packet?.at;
  // A relayed archive is evidence of an earlier sighting, not a new sighting.
  // Preserve the original time and never count its echoes as corroboration.
- if(!live(station,null)||!kinds.has(kind)||
+ if(!live(station,{time:now})||!kinds.has(kind)||
     (doctrine&&!weapons.has(kind))||!finite(observedAt)||
     observedAt>now||observedAt<0||now-observedAt>BACKBONE.archiveAge||
     (doctrine&&(!finite(packet.at)||packet.at<observedAt||

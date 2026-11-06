@@ -6,6 +6,7 @@ import {connectContour,armContourReserve,CONTOURS} from '../territory-system.js'
 import {previewContourConnection,contourConnectionChoices} from '../contour-preview.js';
 import {drawContourWorld} from '../contour-visuals.js';
 import {recordWorldFeedback} from '../world-feedback.js';
+import {FLUX_SORTIE,launchFluxSortie} from '../flux-offense.js';
 import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from '../contour-cartography.js';
 import {readFileSync} from 'node:fs';
 
@@ -129,6 +130,50 @@ test('the territory atlas offers an actual funded reserve on a selected critical
  assert.match(html,/готов через 12 с/);
  assert.match(html,/contour-reserve-pin/);
  assert.doesNotMatch(html,/data-act="contourReserve"/,'a purchased one-use order is not duplicated by opening the map');
+});
+
+test('the atlas offers a visible, range-checked offensive sortie only for a charted enemy depot',()=>{
+ const g=harness(),w=g.world,target=w.stations.get('industry:depot');
+ g.contourRegion='amethyst';g.contourSelection=target.id;
+ assert.doesNotMatch(renderWorldMap(g),/data-act="contourSortie"/,
+  'unknown machine bases are not actionable');
+ target.discovered=true;w.discovered.add(target.id);
+ let html=renderWorldMap(g);
+ assert.match(html,/Нарушить снабжение противника/);
+ assert.doesNotMatch(html,/data-act="contourSortie"/);
+ const nodes=[[5100,800],[5500,2300],[6300,1000]].map(([x,y],i)=>({
+  id:'101:'+i,x,y,type:'dock',turrets:[],active:true,enemy:false,
+  suppressed:false,discovered:true
+ }));
+ for(const n of nodes)w.stations.set(n.id,n);
+ w.contours.links=[[nodes[0].id,nodes[1].id],[nodes[1].id,nodes[2].id],
+  [nodes[2].id,nodes[0].id]];
+ w.contours.flux=FLUX_SORTIE.cost;
+ html=renderWorldMap(g);
+ assert.match(html,/data-act="contourSortie" data-id="industry:depot"/);
+ assert.match(html,/Из контура до цели/);
+ w.home.type='lab';w.home.active=true;
+ w.regionalSupply.central.pendingRaid={announced:true,readyAt:2};
+ html=renderWorldMap(g);
+ assert.match(html,/может не успеть остановить этот вылет/,
+  'known raid timing should warn before spending flux on a late arrival');
+ w.regionalSupply.central.pendingRaid.readyAt=40;
+ assert.match(renderWorldMap(g),/может успеть перерезать связь/);
+ assert.equal(launchFluxSortie(w,target.id,g.time).ok,true);
+ html=renderWorldMap(g);
+ assert.match(html,/Постановщик помех в пути/);
+ assert.match(html,/contour-sortie-pin/);
+ assert.doesNotMatch(html,/data-act="contourSortie"/);
+ w.contours.sortie=null;
+ target.fluxJamUntil=25;
+ g.player.x=target.x;g.player.y=target.y;
+ g.mapViewports={'region:amethyst':{center:{x:target.x,y:target.y},scale:.055}};
+ html=renderWorldMap(g);
+ assert.match(html,/радиопомехи ещё 25 с/);
+ assert.match(html,/contour-jam-pin/);
+ assert.match(html,/data-act="contourTarget" data-id="industry:depot"/,
+  'a known industrial post can be selected even outside the original map viewport');
+ assert.doesNotMatch(html,/data-act="contourSortie"/);
 });
 
 test('a planned final line previews real area and production without touching live territory',()=>{

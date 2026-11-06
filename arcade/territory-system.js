@@ -19,7 +19,7 @@ const properCross=(a,b,c,e)=>{
 };
 
 export const createContours=()=>({links:[],flux:0,launches:{},harvesters:[],delivered:0,lost:0,
- nextLaunchAt:0,pulseReadyAt:0,reserve:null});
+ nextLaunchAt:0,pulseReadyAt:0,reserve:null,sortie:null,nextSortieAt:0});
 
 export function contourLinkOffer(world,firstId,secondId){
  const state=world.contours,a=world.stations.get(firstId),b=world.stations.get(secondId);
@@ -243,6 +243,8 @@ export function validContours(state,stations){
   !Number.isInteger(state.lost)||state.lost<0||
   !Number.isFinite(state.nextLaunchAt??0)||(state.nextLaunchAt??0)<0||
   !Number.isFinite(state.pulseReadyAt??0)||(state.pulseReadyAt??0)<0||
+  !Number.isFinite(state.nextSortieAt??0)||(state.nextSortieAt??0)<0||
+  (state.nextSortieAt??0)>1e9||
   !state.launches||typeof state.launches!=='object'||Array.isArray(state.launches)||
   Object.keys(state.launches).length>256||!Array.isArray(state.harvesters)||state.harvesters.length>320)return false;
  const ids=new Set(stations.map(([id])=>id)),unique=new Set();
@@ -251,6 +253,19 @@ export function validContours(state,stations){
    typeof state.reserve.stationId!=='string'||!ids.has(state.reserve.stationId)||
    !Number.isFinite(state.reserve.readyAt)||state.reserve.readyAt<0||
    state.reserve.readyAt>1e9))return false;
+ if(state.sortie!==undefined&&state.sortie!==null){
+  const s=state.sortie;
+  if(!s||typeof s!=='object'||Array.isArray(s)||
+   !['home','north','azure','teal'].includes(s.front)||
+   typeof s.originId!=='string'||!ids.has(s.originId)||
+   typeof s.targetId!=='string'||!ids.has(s.targetId)||
+   !Number.isFinite(s.x)||!Number.isFinite(s.y)||
+   Math.abs(s.x)>1e9||Math.abs(s.y)>1e9||
+   !Number.isFinite(s.hp)||s.hp<=0||s.hp>2||
+   !Number.isFinite(s.launchedAt)||s.launchedAt<0||s.launchedAt>1e9||
+   !Number.isFinite(s.expiresAt)||s.expiresAt<s.launchedAt||
+   s.expiresAt>s.launchedAt+55)return false;
+ }
  for(const pair of state.links){
   if(!Array.isArray(pair)||pair.length!==2||!pair.every(id=>typeof id==='string'&&ids.has(id))||
    pair[0]===pair[1]||unique.has(edgeKey(...pair)))return false;

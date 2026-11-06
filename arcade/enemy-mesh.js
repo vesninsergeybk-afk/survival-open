@@ -9,7 +9,7 @@
  */
 import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-2';
 import {BACKBONE,backbonePeers,backboneActive,backboneDelay,
-  archiveReport,archivedWeapon} from './enemy-backbone.js?v=enemy-backbone-2';
+  archiveReport,archivedWeapon} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1';
 export const ENEMY_MESH=Object.freeze({
   tick:.72,flight:.66,shipLink:510,stationLink:1050,backboneLink:1450,
   bucket:1550,maxHops:12,maxTransfers:36,maxPending:112,
@@ -30,7 +30,8 @@ const valid=(p,now)=>!!p&&typeof p.id==='string'&&p.id.length<=192&&
   Number.isInteger(p.hops)&&p.hops>=0&&p.hops<=ENEMY_MESH.maxHops&&
   (p.assetId==null||typeof p.assetId==='string'&&p.assetId.length<=100);
 const nodeAlive=(n,now)=>n.kind==='station'?
-  !!n.ref?.enemy&&!n.ref.captured&&!n.ref.suppressed&&n.ref.hp>0:
+  !!n.ref?.enemy&&!n.ref.captured&&!n.ref.suppressed&&n.ref.hp>0&&
+    (n.ref.fluxJamUntil||0)<=now:
   !!n.ref?.leader&&n.ref.leader.hp>0&&!n.ref.brokenUntil;
 const linkLimit=(a,b)=>a.kind==='station'&&b.kind==='station'?
   ENEMY_MESH.backboneLink:
@@ -39,7 +40,8 @@ const linkLimit=(a,b)=>a.kind==='station'&&b.kind==='station'?
 const nodePoint=node=>node.kind==='station'?node.ref:node.ref.leader;
 const keyFor=(x,y)=>Math.floor(x/ENEMY_MESH.bucket)+':'+
   Math.floor(y/ENEMY_MESH.bucket);
-const stationEligible=a=>a?.enemy&&!a.captured&&!a.suppressed&&a.hp>0&&
+const stationEligible=(a,now)=>a?.enemy&&!a.captured&&!a.suppressed&&a.hp>0&&
+  (a.fluxJamUntil||0)<=now&&
   (a.strategicRole||a.type==='carrier')&&finite(a.x)&&finite(a.y);
 const cellEligible=c=>c?.leader?.hp>0&&!c.brokenUntil&&
   finite(c.leader.x)&&finite(c.leader.y);
@@ -82,7 +84,7 @@ export class EnemyMesh{
     };
     for(const c of cells||[])if(cellEligible(c))add('c:'+c.id,'cell',c);
     for(const s of game?.world?.stations?.values?.()||[])
-      if(stationEligible(s))add('s:'+s.id,'station',s);
+      if(stationEligible(s,now))add('s:'+s.id,'station',s);
     this.nodes=next;
     this.events=this.events.filter(x=>now-x.at<1.1);
     // One hop must finish before the next begins. A lost transmitter, captured

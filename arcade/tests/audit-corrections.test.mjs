@@ -54,6 +54,25 @@ test('a heavy delivery adds one real heavy ship; a full director cap does not co
  assert.ok(heavy.hp>100);
  assert.equal(s.raids,1);
 });
+test('industrial radio interference delays funded raids in the northern and frontier networks without deleting their stock',()=>{
+ for(const id of ['azure','teal']){
+  const {g,s}=encounter(id),depot=g.world.stations.get(FRONTIERS[id].depotId);
+  depot.fluxJamUntil=540;
+  assert.equal(spawnFrontierRaid(g,director),false,`${id}: disrupted radio cannot dispatch a funded ship`);
+  assert.ok(s.pendingRaid?.announced);assert.equal(s.raids,0);
+  assert.equal(g.enemies.length,0);
+  g.time=541;
+  assert.ok(spawnFrontierRaid(g,director),`${id}: cargo-paid ship can depart when the radio returns`);
+  assert.equal(s.pendingRaid,null);assert.equal(s.raids,1);
+ }
+ const {g,s}=encounter(),military=g.world.stations.get(SUPPLY.militaryId);
+ military.fluxJamUntil=540;
+ assert.equal(spawnRegionalRaid(g,director),false);
+ assert.equal(s.pendingRaid.readyAt,490);assert.equal(s.raids,0);
+ g.time=541;
+ assert.ok(spawnRegionalRaid(g,director));
+ assert.equal(s.pendingRaid,null);assert.equal(s.raids,1);
+});
 test('all cargo, workers and salvage get actual player-facing target labels',()=>{
  assert.equal(designationLabel({kind:'enemy',target:{regionalCargo:true,type:'fighter'}}),'Рудный транспорт');
  assert.equal(designationLabel({kind:'enemy',target:{centralCargo:true,type:'fighter'}}),'Местный грузовой транспорт');

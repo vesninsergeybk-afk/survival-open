@@ -1,11 +1,11 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
-import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1';
+import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1';
 import {regionAt,centralOutline,centralBoundary} from './regions.js?v=regions-audit-1';
 import {SUPPLY,supplyRoute,advanceRegionalSupply,interceptSupply,supplyEvent,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2-supply-stronghold-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-renewal-1';
 import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-renewal-1';
 import {updateHomeConflict,HOME_CONFLICT} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
-import {updateStrategicCommand,assignStationInterdiction,drawStationInterdiction} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
+import {updateStrategicCommand,assignStationInterdiction,drawStationInterdiction} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-flux-offense-1';
 import {stormPhase} from './regional-storms.js?v=regions-1';
 import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1-supply-stronghold-1';
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
@@ -296,6 +296,9 @@ export function spawnFrontierRaid(game,director){
  const region=regionAt(game.player.x,game.player.y).id;
  const cfg=FRONTIERS[region],s=game.world.regionalSupply?.frontier?.[region];
  if(!cfg||!s||!game.world.stations.get(cfg.depotId)?.enemy)return false;
+ // The sortie still exists and is still paid for; radio silence delays its
+ // dispatch without eating the accumulated cargo or producing free units.
+ if((game.world.stations.get(cfg.depotId)?.fluxJamUntil||0)>game.time)return false;
  const emergency=s.strategy?.emergency;
  const emergencyReady=emergency?.announced&&game.time>=emergency.readyAt&&
   distance(game.player,cfg.source)<=13500;
@@ -341,7 +344,7 @@ export function spawnCentralRaid(game,director){
  const origin=game.world.stations.get(CENTRAL_INDUSTRY.depotId);
  const limit=Math.min(RULES.maxEnemies,director.cap+HOME_CONFLICT.raidShips);
  const ambientRoom=Math.max(0,Math.min(director.groupSize||0,director.cap-game.enemies.length));
- if(!raid?.announced||!origin?.enemy||game.time<raid.readyAt||
+ if(!raid?.announced||!origin?.enemy||(origin.fluxJamUntil||0)>game.time||game.time<raid.readyAt||
   distance(game.player,origin)>11000||
   director.cap<4||!director.types?.length||!game.spawnGroup||
   game.enemies.length+ambientRoom+HOME_CONFLICT.raidShips>limit)return false;
@@ -368,7 +371,9 @@ export function spawnCentralRaid(game,director){
 // and spend one delivered cargo. A warning precedes every arrival.
 export function spawnRegionalRaid(game,director){
  const s=game.world.regionalSupply,raid=s?.pendingRaid;
- if(!raid?.announced||game.time<raid.readyAt||Math.hypot(game.player.x,game.player.y)>70000||
+ if(!raid?.announced||game.time<raid.readyAt||
+  (game.world.stations.get(SUPPLY.militaryId)?.fluxJamUntil||0)>game.time||
+  Math.hypot(game.player.x,game.player.y)>70000||
   !['amethyst','amber'].includes(regionAt(game.player.x,game.player.y).id)||
   !director.types?.length||!game.spawnGroup||
   game.enemies.length+Math.max(1,director.groupSize||0)+1>Math.min(RULES.maxEnemies,director.cap))return false;
