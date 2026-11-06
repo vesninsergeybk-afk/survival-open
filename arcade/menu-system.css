@@ -1135,6 +1135,9 @@
 }
 
 /* Focused menus: one item to inspect, two fitting areas, visible next steps. */
+#overlay .dialog{scroll-padding-block:120px 76px}
+.hg-arsenal{scroll-margin-top:120px}
+.dialog .ship-hangar button.hg-back-list{display:none}
 .menu-symbol{display:inline-block;width:23px;height:23px;flex:none;vertical-align:middle;
  fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .hg-view-nav button,.map-view-switch button{display:inline-flex;align-items:center;justify-content:center;gap:7px}
@@ -1198,6 +1201,7 @@
  .hg-weapon-picks{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media(max-width:760px){
+ .dialog .ship-hangar button.hg-back-list{display:inline-flex;align-items:center;margin:0 0 12px;min-height:44px}
  #overlay .ship-hangar .hg-layout-editing,.preview-dialog .ship-hangar .hg-layout-editing{display:block}
  .hg-fitting-strip{grid-template-columns:repeat(3,minmax(0,1fr))}
  .hg-catalog-open .hg-catalog-list{grid-template-columns:repeat(2,minmax(0,1fr))}

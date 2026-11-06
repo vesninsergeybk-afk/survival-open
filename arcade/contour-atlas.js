@@ -2,7 +2,7 @@ import {menuInfo} from './menu-screens.js?v=all-menus-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {baseNames} from './balance.js?v=arcade-network-20';
 import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt,contourReserveEligible} from './territory-system.js?v=contours-2-operational-reserve-1';
-import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1-menu-focus-1';
+import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
 import {labLogisticsUnlocked} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
@@ -124,7 +124,7 @@ function firstContourGuide(plan){
   <ol>${list}</ol>
   ${plan.uncertain?'<small>Неизвестные станции пока только кандидаты. Их принадлежность выяснится после разведки.</small>':''}
   ${actions?`<div class="contour-first-actions">${actions}</div>`:''}
-  ${plan.next?`<p>Следующий шаг: ${plan.next.discovered?'включить':'найти и разведать'} отмеченный узел.</p>${route(plan.next)}`:
+  ${plan.next?`<p>Следующий шаг: ${esc(contourCandidateInstruction(plan.next))}</p>${route(plan.next)}`:
    !actions?'<p>Все станции работают. Выберите оставшиеся линии на карте.</p>':''}
   <small>Площадь будущего поля: ${(plan.area/1000000).toFixed(2)} усл. км². Дальность каждой линии — до ${CONTOURS.maxLength} м.</small>
  </section>`;
@@ -268,11 +268,7 @@ function selectedPanel(game,selected,source,choices,region){
  }
  const title=esc(name(selected));
  if(!selected.active||selected.enemy||selected.suppressed){
-  const unknown=!selected.discovered&&!selected.strategicRole&&!selected.active;
-  const reason=unknown?'Подлетите к узлу, чтобы выяснить, работает ли он и кому принадлежит.':
-   selected.suppressed?'Восстановите передатчик, чтобы вернуть его связи.':
-   selected.enemy?'Захватите станцию в полёте, прежде чем соединять её со своей сетью.':
-   'Доберитесь до станции и включите её. Только после этого от неё можно проводить линии.';
+  const reason=contourCandidateInstruction(selected);
   return `<section class="contour-guide">${lead}<h3>${title}</h3><span class="contour-guide-state blocked">${esc(state(selected))}</span>
    <p>${reason}</p>${route(selected)}</section>`;
  }
@@ -290,7 +286,7 @@ function selectedPanel(game,selected,source,choices,region){
   const next=choices.next[0]?.node;
   const linked=(game.world.contours?.links||[]).filter(pair=>pair.includes(source.id)).length;
   return `<section class="contour-guide">${lead}<h3>Нужна ещё одна станция</h3>
-   <p>Новых допустимых соединений сейчас нет. ${linked?'У выбранной станции уже проведено линий: '+linked+'.':''} ${next?'Ближайший кандидат отмечен янтарным кольцом. Сначала разведайте и включите его.':'Проверьте соседние узлы и дальность связи — '+CONTOURS.maxLength+' м.'}</p>
+   <p>Новых допустимых соединений сейчас нет. ${linked?'У выбранной станции уже проведено линий: '+linked+'.':''} ${next?'Ближайший кандидат отмечен янтарным кольцом. '+esc(contourCandidateInstruction(next)):'Проверьте соседние узлы и дальность связи — '+CONTOURS.maxLength+' м.'}</p>
    ${next?route(next):''}<button class="contour-cancel" data-act="contourCancel">Снять выбор</button></section>`;
  }
  return `<section class="contour-guide">${lead}<h3>${title}</h3><p>Станция включена. Выберите её, чтобы начать соединение.</p>${route(selected)}</section>`;

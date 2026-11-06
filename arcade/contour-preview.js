@@ -5,6 +5,18 @@ import {mapViewport} from './map-navigation.js?v=map-ux-1';
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 
+// Describe only states the pilot can know. An unvisited enemy remains an
+// unknown candidate until reconnaissance reveals its ownership.
+export function contourCandidateInstruction(node){
+ if(!node)return 'Выберите станцию на карте.';
+ const known=node.discovered||node.active||node.strategicRole;
+ if(!known)return 'Разведайте станцию. После сближения станет ясно, нужно ли её включить или захватить.';
+ if(node.enemy)return 'Захватите станцию в полёте, затем соедините её со своей сетью.';
+ if(node.suppressed)return 'Дождитесь восстановления передатчика в полёте. Уничтожьте носитель помех, чтобы он не подавил станцию снова.';
+ if(!node.active)return 'Включите станцию в полёте, затем проведите к ней линию на карте контуров.';
+ return 'Станция работает. Проверьте доступные соединения на карте контуров.';
+}
+
 // A proposed link is evaluated against a throwaway graph. Previewing must
 // never change the production clock, the saved lines, or the active fields.
 export function previewContourConnection(world,from,to){
