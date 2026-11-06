@@ -1,14 +1,14 @@
 import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1';
 import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1';
-import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1';
-import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-domains-1-supply-stronghold-1';
+import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
+import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-domains-1-supply-stronghold-1-territory-war-1';
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-menu-focus-1';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2-campaign-1';
 import {createTactical,validTactical} from './tactical-fields.js?v=tactical-field-2';
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-campaign-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
-import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-flux-offense-1';
+import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-flux-offense-1-territory-war-1';
 import {createContours,validContours} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
@@ -165,7 +165,13 @@ export function validateCheckpoint(data){
   if((b.suppressed!==undefined&&typeof b.suppressed!=='boolean')||
    (b.suppressedUntil!==undefined&&!finite(b.suppressedUntil,0,s.time+14))||
    (b.suppressed===true&&b.suppressedUntil===undefined))return false;
-  if(b.fluxJamUntil!==undefined&&!finite(b.fluxJamUntil,0,s.time+42))return false;
+  if(b.fluxJamUntil!==undefined&&!finite(b.fluxJamUntil,0,s.time+105))return false;
+  if(b.fluxBreachProgress!==undefined&&!finite(b.fluxBreachProgress,0,110))return false;
+  if(b.fluxBreachUntil!==undefined&&!finite(b.fluxBreachUntil,0,s.time+270))return false;
+  if(b.fluxBreachRepairAt!==undefined&&!finite(b.fluxBreachRepairAt,0,s.time+150))return false;
+  if((b.fluxBreachProgress>0||b.fluxBreachUntil>0||b.fluxBreachRepairAt>0)&&
+   !['central-depot','military','frontier-azure-depot','frontier-teal-depot']
+    .includes(b.strategicRole))return false;
   if(b.defense!==undefined&&(!object(b.defense)||
    !Number.isInteger(b.defense.charges)||b.defense.charges<0||b.defense.charges>2||
    !finite(b.defense.rechargeAt,0,1e9)||!finite(b.defense.interceptAt,0,1e9)||

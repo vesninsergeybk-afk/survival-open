@@ -41,7 +41,7 @@ test('an offensive sortie has a strategic origin, an actual cost, a real target 
  assert.deepEqual(world.contours.sortie.originId,offer.source.id);
  assert.equal(launchFluxSortie(world,target.id,101).ok,false,'no duplicate launch');
  const next=world.contours.nextSortieAt;
- assert.equal(next,220);
+ assert.equal(next,100+FLUX_SORTIE.cooldown);
  world.contours.sortie=null;
  assert.match(fluxSortieOffer(world,target.id,115).reason,/через/);
  world.contours.nextSortieAt=0;
@@ -113,6 +113,13 @@ test('physical mesh and funded raid dispatch really wait while the industrial tr
  assert.ok(!mesh.nodes.has(stationId));
  mesh.update(g,[],243);
  assert.ok(mesh.nodes.has(stationId));
+ depot.fluxBreachUntil=300;
+ mesh.update(g,[],244);
+ assert.ok(!mesh.nodes.has(stationId),'a destroyed industrial transmitter remains offline after the jammer leaves');
+ assert.equal(backboneActive(frontSource(w),depot,{time:244}),false);
+ mesh.update(g,[],301);
+ assert.ok(mesh.nodes.has(stationId),'the same transmitter returns after recovery');
+ depot.fluxBreachUntil=0;
  const pool=w.regionalSupply.central;
  pool.pendingRaid={announced:true,readyAt:201};
  g.camera=()=>({x:g.player.x-600,y:g.player.y-400,w:1200,h:800});
@@ -131,6 +138,8 @@ test('physical mesh and funded raid dispatch really wait while the industrial tr
  assert.equal(spawnCentralRaid(g,director),false,'no double arrival');
 });
 
+function frontSource(world){return warFronts(world).find(f=>f.key==='home').source;}
+
 test('sortie and radio-jam expiry survive saving; invalid or forged state is rejected',()=>{
  const g=game(),{depot}=addLaunchContour(g.world);
  g.time=200;g.paused=true;g.player.x=g.docked.x;g.player.y=g.docked.y;
@@ -139,7 +148,7 @@ test('sortie and radio-jam expiry survive saving; invalid or forged state is rej
  assert.equal(validateCheckpoint(data),true);
  const restored=game();restoreCheckpoint(restored,data);
  assert.deepEqual(restored.world.contours.sortie,g.world.contours.sortie);
- assert.equal(restored.world.contours.nextSortieAt,320);
+ assert.equal(restored.world.contours.nextSortieAt,200+FLUX_SORTIE.cooldown);
  const bad=unpackRun(packRun(data));bad.world.contours.sortie.targetId='fake:base';
  assert.equal(validateCheckpoint(bad),false);
  assert.equal(validContours(bad.world.contours,bad.world.stations),false);

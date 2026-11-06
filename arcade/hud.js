@@ -4,8 +4,8 @@ import {miningSignal} from './mining.js?v=arcade-extraction-risk-34';
 import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-5';
 import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1-enemy-balance-2';
-import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1';
-import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
+import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1';
+import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
@@ -175,7 +175,7 @@ export class CockpitDisplay {
   n.hudHackSlot.classList.toggle('available',hasCode);
   n.hudStrikeSlot.classList.toggle('available',hasStrike);
   n.hudHackSlot.setAttribute('aria-label',hasCode?'Коды доступны: '+game.hacks.length:'Кодов нет');
-  n.hudStrikeSlot.setAttribute('aria-label',hasStrike?'Авиаудар: '+strikes:'Авиаудар недоступен');
+  n.hudStrikeSlot.setAttribute('aria-label',hasStrike?'Авиаудар или прикрытие внутри собственного контура: '+strikes:'Авиаудар недоступен');
   n.burstBtn.disabled=cd>0;
   const condition=hullCondition(p.hp,p.maxHp);
   if(condition!==this.lastCondition) {

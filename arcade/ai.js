@@ -660,7 +660,7 @@ export function updateAlly(a,game,dt){
       if(target===a.target)game.hitEnemyBase(a.target,(37+game.network.armament*6)*(
        game.doctrine==='command'&&dist(a,p)<240?1.25:1),'bomber');
       else game.hitTurret(target,(37+game.network.armament*6)*(
-       game.doctrine==='command'&&dist(a,p)<240?1.25:1));
+       game.doctrine==='command'&&dist(a,p)<240?1.25:1),null,'ally');
       game.flash(a.x,a.y,target.x,target.y,'#ffcf72');
       game.heritage.play('rocket',.48,{x:a.x,y:a.y});
     }

@@ -1,4 +1,4 @@
-import {warFronts,warFront,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2';
+import {warFronts,warFront,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {ensureStationDefense,defenseLinked} from './network-defense.js?v=network-defense-4';
 import {baseNames} from './balance.js?v=arcade-balanced-bases-30';
@@ -51,7 +51,7 @@ export function followUpInterdiction(game,ship){
  const front=o&&warFront(game.world,o.front),now=game.time;
  if(!o||o.redirected||!s||!front?.depot?.enemy||
     o.expiresAt-now<STATION_INTERDICTION.followUpMinTime)return false;
- const radio=[front.source,front.depot].filter(b=>b?.enemy&&(b.fluxJamUntil||0)<=now)
+ const radio=[front.source,front.depot].filter(b=>b?.enemy&&Math.max(b.fluxJamUntil||0,b.fluxBreachUntil||0)<=now)
   .some(b=>distance(b,ship)<=front.radio);
  if(!radio)return false;
  const reports=s.reports.filter(r=>r.stationId!==o.stationId&&
@@ -125,7 +125,7 @@ export function updateStrategicCommand(game){
   const e=enemies[(s.cursor+i)%enemies.length];
   if(e.hp<=0||e.converted||e.regionalCargo||e.interceptCargo||now<(e.stasisUntil||0))continue;
   const receiver=receivers.map(f=>({f,d:Math.min(...[f.source,f.depot]
-    .filter(b=>b?.enemy&&(b.fluxJamUntil||0)<=now).map(b=>distance(b,e)))}))
+    .filter(b=>b?.enemy&&Math.max(b.fluxJamUntil||0,b.fluxBreachUntil||0)<=now).map(b=>distance(b,e)))}))
    .filter(x=>x.d<=x.f.radio).sort((a,b)=>a.d-b.d)[0];
   if(!receiver)continue;
   const b=stations.filter(b=>distance(e,b)<=290&&canObserveStation(game,e,b))
@@ -153,7 +153,7 @@ export function assignStationInterdiction(game,ship,key){
    !scenarios[key]?.includes(ship.scenario)||!game.enemies.includes(ship)||
    (s.nextOrders[key]||0)>now||
    !(front.pool?.intercepted>0||front.source?.captured))return false;
- if(![front.source,front.depot].some(b=>b?.enemy&&(b.fluxJamUntil||0)<=now))return false;
+ if(![front.source,front.depot].some(b=>b?.enemy&&Math.max(b.fluxJamUntil||0,b.fluxBreachUntil||0)<=now))return false;
  const report=s.reports.filter(r=>validCommandReport(game.world,r,key,now))
   .sort((a,b)=>stationValue(game.world.stations.get(b.stationId))-
    stationValue(game.world.stations.get(a.stationId))||b.seenAt-a.seenAt)[0];

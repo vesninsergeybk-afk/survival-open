@@ -1,5 +1,5 @@
-import {CENTRAL_INDUSTRY,centralCargoRemaining,centralCargoSpeed,centralRoute,centralExtractionAvailable} from './central-industry.js?v=home-conflict-1-enemy-balance-2';
-import {cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2';
+import {CENTRAL_INDUSTRY,centralCargoRemaining,centralCargoSpeed,centralRoute,centralExtractionAvailable} from './central-industry.js?v=home-conflict-1-enemy-balance-2-territory-war-1';
+import {cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2-territory-war-1';
 import {labLogisticsIntel} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1';
 
 export const HOME_CONFLICT=Object.freeze({radius:10500,offerAt:150,backgroundCap:14,raidShips:3});

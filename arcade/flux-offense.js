@@ -2,10 +2,10 @@
 // It jams one KNOWN industrial dispatch station for a short window; it never
 // removes an already launched ship, consumes enemy stock, or deals damage.
 import {contourFields} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
-import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2';
+import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 
 export const FLUX_SORTIE=Object.freeze({cost:8,maxRange:3600,speed:210,
- duration:42,cooldown:120,expiry:55,hp:2,interceptRadius:72,witnessRange:1700});
+ duration:105,cooldown:145,expiry:55,hp:2,interceptRadius:72,witnessRange:1700});
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 
 export function fluxSortieOffer(world,targetId,now=0){
@@ -15,6 +15,7 @@ export function fluxSortieOffer(world,targetId,now=0){
  if(!front||!target?.enemy||target.hp<=0)return {ok:false,reason:'Нужен действующий промышленный пост противника'};
  if(!target.discovered)return {ok:false,reason:'Сначала разведайте вражеский пост'};
  if(state.sortie)return {ok:false,reason:'Постановщик помех уже в пути'};
+ if((target.fluxBreachUntil||0)>now)return {ok:false,reason:'Производство уже остановлено. Сначала дождитесь восстановления или выберите другую цель'};
  if((target.fluxJamUntil||0)>now)return {ok:false,reason:'Радиосвязь этого поста уже нарушена'};
  if(now<(state.nextSortieAt||0))return {ok:false,reason:'Новый рейс через '+Math.ceil(state.nextSortieAt-now)+' с'};
  const ids=new Set(contourFields(world).flatMap(f=>f.vertices));
@@ -59,6 +60,7 @@ export function advanceFluxSortie(world,now,dt,enemies=[],player=null){
  }
  if(dist(s,target)<=18){
   target.fluxJamUntil=now+FLUX_SORTIE.duration;
+  target.fluxBreachProgress=0;
   return end('sortieArrived');
  }
  return events;

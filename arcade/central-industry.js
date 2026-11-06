@@ -155,7 +155,7 @@ export function advanceCentralIndustry(world,time){
   if(strategy.screened&&strategy.losses>=2&&!strategy.rerouted&&!strategy.planUntil)
    strategy.planUntil=t+18;
   const cost=CENTRAL_INDUSTRY.cargoCost+(strategy.screened?2:0);
- if(mine?.enemy&&depot?.enemy&&s.ore+1e-8>=cost&&
+ if(mine?.enemy&&depot?.enemy&&!(depot.fluxBreachUntil>t)&&s.ore+1e-8>=cost&&
     t>=s.nextDispatch&&s.convoys.length<1&&s.reserves<2){
    s.ore=Math.max(0,s.ore-cost);
    s.nextDispatch=t+CENTRAL_INDUSTRY.dispatchPeriod;
