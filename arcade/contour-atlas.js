@@ -1,10 +1,10 @@
 import {menuInfo} from './menu-screens.js?v=all-menus-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {baseNames} from './balance.js?v=arcade-network-20';
-import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt,contourReserveEligible} from './territory-system.js?v=contours-2-operational-reserve-1';
+import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt,contourReserveEligible} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
 import {contourConnectionChoices} from './contour-preview.js?v=contour-visual-1-menu-focus-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1';
-import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2';
+import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1';
 import {labLogisticsUnlocked} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from './contour-cartography.js?v=living-atlas-3-map-ux-1';
@@ -12,6 +12,8 @@ import {syncContourDynamics,activeContourTransition,fieldIsNew,enemyContourThrea
 import {knownEnemyFields,enemyExpansionPlan} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {firstContourPlan} from './contour-plan.js?v=map-ux-1';
+import {fluxSortieOffer,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1';
+import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -386,6 +388,60 @@ export function renderContourMap(game){
    `<g class="contour-reserve-pin" transform="translate(${digits(q.x)} ${digits(q.y)})" role="img" aria-label="Ложный маяк: ${esc(name(reservedNode))}">
    <circle r="18"/><path d="M-5 2L0 -8L5 2L0 8Z"/><title>Ложный маяк: ${esc(name(reservedNode))}</title></g>`:'';
  })():'';
+ const sortie=world.contours.sortie,sortieTarget=sortie&&world.stations.get(sortie.targetId);
+ const offensiveOffer=selected&&selected.enemy&&selected.discovered?
+  fluxSortieOffer(world,selected.id,game.time):null;
+ const selectedFront=selected&&warFronts(world).find(f=>f.depotId===selected.id);
+ const knownRaid=labLogisticsUnlocked(world)&&selectedFront?.pool?.pendingRaid?.announced?
+  selectedFront.pool.pendingRaid:null;
+ const flightSeconds=offensiveOffer?.ok?Math.ceil(offensiveOffer.distance/FLUX_SORTIE.speed):0;
+ const raidForecast=knownRaid?Math.ceil(Math.max(0,knownRaid.readyAt-game.time)):null;
+ const sortieTiming=raidForecast===null?'':raidForecast<=flightSeconds?
+  `<p class="contour-offense-warning">Разведка сообщает: подкрепление уже готово или отправится в ближайшие ${raidForecast} с. Постановщик летит ${flightSeconds} с и может не успеть остановить этот вылет.</p>`:
+  `<p class="contour-offense-intel">Разведка: до ожидаемого вылета ${raidForecast} с. Постановщик может успеть перерезать связь.</p>`;
+ const activeJam=selected?.enemy&&selected.discovered&&(selected.fluxJamUntil||0)>game.time;
+ const offensePanel=sortie&&sortieTarget?
+  `<section class="contour-economy contour-offense" aria-label="Наступательная вылазка">
+   <b>Постановщик помех в пути</b>
+   <p>Цель: <strong>${esc(name(sortieTarget))}</strong> · до цели ${Math.ceil(Math.hypot(sortie.x-sortieTarget.x,sortie.y-sortieTarget.y))} м.</p>
+   <small>Корабль можно перехватить. Если он долетит, связь промышленного поста пропадёт на ${FLUX_SORTIE.duration} с. Ресурсы противника и уже выпущенные корабли сохранятся.</small></section>`:
+  offensiveOffer||activeJam?`<section class="contour-economy contour-offense" aria-label="Наступательная вылазка">
+   <b>Нарушить снабжение противника</b>
+   <p>${esc(name(selected))}${activeJam?` · <strong>радиопомехи ещё ${Math.ceil(selected.fluxJamUntil-game.time)} с</strong>`:''}</p>
+   ${sortieTiming}
+   ${offensiveOffer?.ok?
+    `<button data-act="contourSortie" data-id="${esc(selected.id)}">Отправить постановщик помех · ${FLUX_SORTIE.cost} флюкса</button>
+     <small>Из контура до цели: ${Math.ceil(offensiveOffer.distance)} м · полёт около ${Math.ceil(offensiveOffer.distance/FLUX_SORTIE.speed)} с.</small>`:
+    `<small>${esc(offensiveOffer?.reason||'Пост уже подавлен')}</small>`}
+   <small>На ${FLUX_SORTIE.duration} с задержит новые подкрепления и разорвёт радиосвязь поста. Поставщик уязвим на маршруте. Урон самому посту и находящимся в пути кораблям не наносится.</small></section>`:'';
+ const chartedDepots=warFronts(world).filter(f=>f.depot?.enemy&&f.depot.discovered);
+ const offenseTargets=fields.length&&chartedDepots.length?
+  `<details class="contour-offense-targets"${chartedDepots.some(f=>f.depot.id===selected?.id)||sortie?' open':''}>
+   <summary>Промышленные цели · ${chartedDepots.length}</summary>
+   <p>Налёт начинается из действующего контура. Выберите разведанный пост: карта переместится к нему и покажет условия запуска.</p>
+   ${chartedDepots.map(f=>{
+    const offer=fluxSortieOffer(world,f.depot.id,game.time);
+    const label=f.depot.id===sortie?.targetId?'Постановщик в пути':
+     (f.depot.fluxJamUntil||0)>game.time?'Связь нарушена':
+     offer.ok?'В досягаемости':offer.distance>FLUX_SORTIE.maxRange?'Вне зоны вылета':'Проверить условия';
+    return `<button data-act="contourTarget" data-id="${esc(f.depot.id)}"${f.depot.id===selected?.id?' aria-current="true"':''}>
+     <span>${esc(name(f.depot))}</span><small>${esc(label)}</small></button>`;
+   }).join('')}</details>`:'';
+ const sortiePin=sortie&&sortieTarget?(()=>{
+  const p=at(sortie,center,scale),q=at(sortieTarget,center,scale);
+  if(p.x<0||p.x>680||p.y<0||p.y>480)return '';
+  return `<g class="contour-sortie-pin" role="img" aria-label="Постановщик помех летит к ${esc(name(sortieTarget))}">
+   <path d="M${digits(p.x)} ${digits(p.y)}L${digits(q.x)} ${digits(q.y)}"/>
+   <circle class="contour-sortie-halo" cx="${digits(p.x)}" cy="${digits(p.y)}" r="11"/>
+   <path class="contour-sortie-ship" d="M${digits(p.x)} ${digits(p.y-7)}l6 12 -6 -3 -6 3Z"/>
+   <title>Корабль-постановщик в пути: ${esc(name(sortieTarget))}</title></g>`;
+ })():'';
+ const jamPins=[...world.stations.values()].filter(b=>b.enemy&&b.discovered&&(b.fluxJamUntil||0)>game.time).map(b=>{
+  const p=at(b,center,scale);
+  return p.x<0||p.x>680||p.y<0||p.y>480?'':
+   `<g class="contour-jam-pin" transform="translate(${digits(p.x)} ${digits(p.y)})" role="img" aria-label="Связь нарушена: ${esc(name(b))}">
+   <circle r="17"/><path d="M-8 0H8M0 -8V8"/><title>Помехи ещё ${Math.ceil(b.fluxJamUntil-game.time)} с</title></g>`;
+ }).join('');
  return `<div class="dialog map-dialog contour-dialog" role="dialog" aria-modal="true" aria-labelledby="map-menu-title">
   <header class="map-heading"><div><span class="map-kicker">СТРАТЕГИЧЕСКАЯ СЕТЬ</span><h2 id="map-menu-title">Контуры территорий</h2>
   ${menuInfo('Как пользоваться контурами','При открытии региона действующая станция выбирается автоматически для подсказки. Нажмите предложенное соединение или второй работающий узел, чтобы построить линию. Можно выбрать другую исходную станцию. Неизвестный кандидат сначала требует разведки и включения. Подробные правила — под картой.')}</div>
@@ -414,7 +470,7 @@ export function renderContourMap(game){
    fieldArtwork(fields,world,center,scale,transition,true)+paths+
    trunkLines+enemyThreatArtwork(threats,center,scale)+incidentArtwork(game,null,center,scale)+
    overview}
-  ${reservePin}${visiblePlayer?`<g class="contour-player-pin" transform="translate(${digits(player.x)} ${digits(player.y)})"><circle r="12" fill="#9dd9ff12" stroke="#d7faff" stroke-dasharray="3 3"/><path d="M0 -7L-5 5L0 2L5 5Z" fill="#fff"/><title>Ваш корабль</title></g>`:''}</svg>
+  ${reservePin}${sortiePin}${jamPins}${visiblePlayer?`<g class="contour-player-pin" transform="translate(${digits(player.x)} ${digits(player.y)})"><circle r="12" fill="#9dd9ff12" stroke="#d7faff" stroke-dasharray="3 3"/><path d="M0 -7L-5 5L0 2L5 5Z" fill="#fff"/><title>Ваш корабль</title></g>`:''}</svg>
   ${mapTools(game)}
   <div class="contour-legend"><span><i class="contour-key mine"></i> Своя</span><span><i class="contour-key unknown"></i> Не разведана</span><span><i class="contour-key dormant"></i> Не включена</span>
   <span><i class="contour-key hostile"></i> Враг</span><span><i class="contour-key available"></i> Возможная связь</span><span><i class="contour-key vortex"></i> Воронка</span>
@@ -423,6 +479,8 @@ export function renderContourMap(game){
   ${physical.visibleCargo?'<span><i class="contour-key cargo"></i> Замеченный груз</span>':''}
   ${threats.length?'<span><i class="contour-key enemy-threat"></i> Угроза узлу</span>':''}
   ${reserve?'<span><i class="contour-key reserve"></i> Ложный маяк</span>':''}
+  ${sortie?'<span><i class="contour-key sortie"></i> Постановщик помех</span>':''}
+  ${jamPins?'<span><i class="contour-key jammed"></i> Радиопомехи</span>':''}
   ${enemyFields.length?'<span><i class="contour-key enemy-land"></i> Поле машин</span>':''}
   ${enemyPlan?.seen.length?'<span><i class="contour-key enemy-plan"></i> Намеченный контур</span>':''}
   ${region?'<span><i class="contour-key incident"></i> Замеченное событие</span>':''}</div>
@@ -436,6 +494,8 @@ export function renderContourMap(game){
   ${enemyThreatPanel(threats)}
   ${enemyExpansionPanel(enemyPlan&&(!region||enemyPlan.region===region.id)?enemyPlan:null)}
   ${selectedPanel(game,selected,source,choices,region)}
+  ${offenseTargets}
+  ${offensePanel}
   ${reservePanel}
   ${trunkPanel}
   ${fields.length?`<div class="contour-economy"><b>Воронки работают</b><p>Флюкс доставлен: ${digits(world.contours.delivered)} · потери сборщиков: ${world.contours.lost}. Желтые точки возвращаются с грузом, бирюзовые летят к воронке.</p>

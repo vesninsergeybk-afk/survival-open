@@ -8,8 +8,8 @@ import {createTactical,validTactical} from './tactical-fields.js?v=tactical-fiel
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-campaign-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
-import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1';
-import {createContours,validContours} from './territory-system.js?v=contours-2-operational-reserve-1';
+import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-flux-offense-1';
+import {createContours,validContours} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
 
@@ -165,6 +165,7 @@ export function validateCheckpoint(data){
   if((b.suppressed!==undefined&&typeof b.suppressed!=='boolean')||
    (b.suppressedUntil!==undefined&&!finite(b.suppressedUntil,0,s.time+14))||
    (b.suppressed===true&&b.suppressedUntil===undefined))return false;
+  if(b.fluxJamUntil!==undefined&&!finite(b.fluxJamUntil,0,s.time+42))return false;
   if(b.defense!==undefined&&(!object(b.defense)||
    !Number.isInteger(b.defense.charges)||b.defense.charges<0||b.defense.charges>2||
    !finite(b.defense.rechargeAt,0,1e9)||!finite(b.defense.interceptAt,0,1e9)||

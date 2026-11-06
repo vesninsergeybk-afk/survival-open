@@ -1,4 +1,4 @@
-import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1';
+import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1-flux-offense-1';
 import {activeContourTransition,fieldIsNew} from './contour-dynamics.js?v=contour-dynamics-2';
 import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {drawContourVortexArt} from './contour-vortex-art.js?v=contour-vortex-80frames-1';
@@ -28,7 +28,10 @@ export function drawContourWorld(game,c,cam){
  const enemyFields=game.enemyContourVisualFields;
  const enemyLinks=game.world.enemyExpansion?.links||[];
  const transition=activeContourTransition(game);
- if(!fields.length&&!links.length&&!transition&&!enemyFields.length&&!enemyLinks.length)return;
+ const fluxSortie=game.world.contours?.sortie;
+ const liveJammers=[...game.world.stations.values()].filter(b=>(b.fluxJamUntil||0)>now);
+ if(!fields.length&&!links.length&&!transition&&!enemyFields.length&&!enemyLinks.length&&
+  !fluxSortie&&!liveJammers.length)return;
  const calm=!!game.visuals?.reducedMotion,lowFps=game.fps<34;
  const elapsed=transition?Math.max(0,now-transition.at):Infinity;
  const energyEdges=new Set(transition?.kind==='claim'?transition.current
@@ -244,6 +247,37 @@ export function drawContourWorld(game,c,cam){
    }
    c.restore();
   }
+ }
+ // An offensive siphon has a real world position. Its dotted approach line is
+ // visible only locally, while its target remains a normal hostile station.
+ if(fluxSortie){
+  const target=game.world.stations.get(fluxSortie.targetId);
+  if(target&&intersectsCamera([fluxSortie,target],cam,100)){
+   c.save();c.beginPath();c.moveTo(fluxSortie.x,fluxSortie.y);c.lineTo(target.x,target.y);
+   c.strokeStyle='rgba(142,250,228,.52)';c.lineWidth=2;c.setLineDash([8,12]);
+   if(!calm)c.lineDashOffset=-now*30%20;c.stroke();c.setLineDash([]);c.restore();
+  }
+  if(target&&visible(fluxSortie,cam,70)){
+   const angle=Math.atan2(target.y-fluxSortie.y,target.x-fluxSortie.x);
+   c.save();c.shadowColor='#b4fff0';c.shadowBlur=16;
+   c.strokeStyle='#a4ffef';c.lineWidth=2;
+   c.beginPath();c.arc(fluxSortie.x,fluxSortie.y,26+(calm?0:Math.sin(now*6)*3),0,Math.PI*2);c.stroke();c.restore();
+   if(!drawSiphon3(c,{x:fluxSortie.x,y:fluxSortie.y,angle,
+    phase:'out',progress:Math.min(1,(now-fluxSortie.launchedAt)/18),time:now,
+    seed:27,size:SIPHON3_WORLD_SIZE*1.18,reducedMotion:calm})){
+    c.save();c.translate(fluxSortie.x,fluxSortie.y);c.rotate(angle);
+    c.fillStyle='#aefff1';c.beginPath();c.ellipse(0,0,10,6,0,0,Math.PI*2);c.fill();c.restore();
+   }
+   c.save();c.font='bold 12px system-ui';c.textAlign='center';c.fillStyle='#ddfff8';
+   c.fillText('ПОСТАНОВЩИК ПОМЕХ',fluxSortie.x,fluxSortie.y-39);c.restore();
+  }
+ }
+ for(const b of liveJammers){
+  if(!visible(b,cam,125))continue;
+  c.save();c.strokeStyle='#94f5ea';c.lineWidth=3;c.setLineDash([7,8]);
+  c.beginPath();c.arc(b.x,b.y,135,0,Math.PI*2);c.stroke();c.setLineDash([]);
+  c.textAlign='center';c.fillStyle='#bafff4';c.font='bold 12px system-ui';
+  c.fillText('РАДИОПОМЕХИ · '+Math.ceil(b.fluxJamUntil-now)+' с',b.x,b.y-155);c.restore();
  }
  // A delivery is acknowledged at the actual receiving station, not at an
  // arbitrary world-space point. The player's common flux purse is unchanged.
