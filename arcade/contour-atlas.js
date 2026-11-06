@@ -7,13 +7,14 @@ import {menuIcon} from './menu-icons.js?v=menu-focus-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
 import {labLogisticsUnlocked} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
-import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from './contour-cartography.js?v=living-atlas-3-map-ux-1';
+import {atlasPoint,atlasGeography,atlasNebulae,atlasStars,atlasLiveObjects,atlasNavigation} from './contour-cartography.js?v=living-atlas-3-map-ux-1-map-art-1';
 import {syncContourDynamics,activeContourTransition,fieldIsNew,enemyContourThreats} from './contour-dynamics.js?v=contour-dynamics-2';
 import {knownEnemyFields,enemyExpansionPlan} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {firstContourPlan} from './contour-plan.js?v=map-ux-1';
 import {fluxSortieOffer,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
+import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -52,9 +53,11 @@ function regionOverview(world,center,scale,fields=[]){
   return `<g class="contour-region" role="button" tabindex="0" data-act="contourRegion" data-id="${r.id}" aria-label="${esc(r.name)}. Работает ${owned} из ${count} узлов" transform="translate(${digits(p.x)} ${digits(p.y)})">
    <circle class="contour-region-halo" r="49" fill="${r.color}06" stroke="${r.color}70" stroke-width="1.5"/>
    <circle r="26" fill="none" stroke="${r.color}50" stroke-dasharray="3 6" stroke-width="1.2"/>
+   <text class="contour-region-index" x="-44" y="-31">0${r.number}</text>
    <rect x="${badgeX}" y="${badgeY}" width="58" height="22" rx="10" fill="#071a2be8" stroke="${r.color}aa" stroke-width="1"/>
-   <text x="${badgeX+29}" y="${badgeY+15}" text-anchor="middle" fill="#f1faff" font-size="12" font-weight="800">${owned} / ${count}</text>
-   <text y="${labelY}" text-anchor="middle" fill="${r.color}" font-size="12" font-weight="700">${esc(r.name)}</text>
+   <text x="${badgeX+29}" y="${badgeY+15}" text-anchor="middle" fill="#f1faff" font-size="12" font-weight="800" class="contour-region-count">${owned} / ${count}</text>
+   <text y="${labelY}" text-anchor="middle" fill="${r.color}" font-size="12" font-weight="700" class="contour-region-name">${esc(r.name)}</text>
+   <text y="${labelY}" text-anchor="middle" fill="${r.color}" class="contour-region-short" aria-hidden="true">${({amethyst:'Аметист',amber:'Янтарь',azure:'Разлом',lilac:'Предел',teal:'Бездна'})[r.id]}</text>
    ${occupied?`<text y="${labelY===70?-57:72}" text-anchor="middle" class="contour-region-claims">Контуров: ${occupied}</text>`:''}
    <circle r="53" fill="transparent"/></g>`;
  }).join('');
@@ -79,19 +82,17 @@ function overviewStations(world,center,scale){
 function stationMarks(nodes,center,scale,selectedId,sourceId,readyIds,goalIds,waypoint=null,planIds=new Set()){
  return nodes.map(b=>{
   const p=at(b,center,scale),picked=b.id===selectedId||b.id===sourceId;
-  const ready=readyIds.has(b.id),goal=goalIds.has(b.id),known=b.discovered||b.active||b.strategicRole;
+  const ready=readyIds.has(b.id),goal=goalIds.has(b.id),known=!!(b.discovered||b.active||b.strategicRole);
   const fill=b.suppressed?'#cf95ec':b.enemy&&known?'#ff7786':b.active?'#86f5d7':
    known?'#edc783':'#9baebc';
   const ring=ready?'#7effd8':goal?'#ffcc85':picked?'#ffe5aa':planIds.has(b.id)?'#ffdb90':null;
-  const mark=b.enemy&&known?'<path d="M0 -7L7 0L0 7L-7 0Z" fill="'+fill+'"/>':
-   b.active?'<circle r="7" fill="'+fill+'"/><circle r="3" fill="#113f43"/>':
-   '<circle r="5.5" fill="'+fill+'" stroke="#102c3b" stroke-width="1.2"/>';
+  const mark=stationGlyph(b.type,{known,color:fill,hostile:known&&b.enemy,active:b.active&&!b.enemy});
   const labelWidth=name(b).length*6.5;
   const labelConflict=waypoint&&Math.abs(waypoint.y-(p.y-17))<22&&
    waypoint.x>=p.x+5&&waypoint.x<=p.x+labelWidth+28;
   const label=(picked||ready||goal||b.active)&&known?
    '<text x="'+digits(p.x+(labelConflict?-13:13))+'" y="'+digits(p.y-13)+
-   '" class="contour-map-label"'+(labelConflict?' text-anchor="end"':'')+'>'+esc(name(b))+'</text>':'';
+   '" data-label-priority="'+(picked?'selected':goal?'next':'node')+'" class="contour-map-label"'+(labelConflict?' text-anchor="end"':'')+'>'+esc(name(b))+'</text>':'';
   return `<g class="contour-node${picked?' selected':''}${ready?' connectable':''}${goal?' suggested':''}${planIds.has(b.id)?' planned':''}" transform="translate(${digits(p.x)} ${digits(p.y)})" tabindex="0" role="button" data-act="contourNode" data-id="${esc(b.id)}" aria-label="${esc(name(b)+', '+state(b))}">
    <circle r="19" fill="transparent" class="contour-hit"/>
    ${ring?'<circle class="contour-ring" r="13.5" fill="none" stroke="'+ring+'" stroke-width="2"'+(ready||goal?' stroke-dasharray="4 3"':'')+'/>':''}
@@ -348,7 +349,7 @@ export function renderContourMap(game){
   goals.map(c=>`<path d="${pathLine(source,c.node,center,scale)}" class="contour-goal-link"/>`).join(''):'';
  const ghost=best?.preview.areaGain>1?best.preview.newFields.map(f=>
   `<path d="${svgPath(f.polygon,center,scale)}" class="contour-future-field"/>`).join(''):'';
- const player=at(game.player,center,scale),visiblePlayer=region&&player.x>14&&player.x<666&&player.y>14&&player.y<466;
+ const player=at(game.player,center,scale),visiblePlayer=player.x>14&&player.x<666&&player.y>14&&player.y<466;
  const regions='<button data-act="contourRegion" data-id="all" aria-pressed="'+!region+'">Вся карта</button>'+
   REGIONS.map(r=>'<button data-act="contourRegion" data-id="'+r.id+'" aria-pressed="'+(region?.id===r.id)+'">'+r.number+' · '+esc(r.name)+'</button>').join('');
  const stage=transition?.kind==='claim'?'Контур замкнут · энергия заполняет новую территорию':
@@ -464,9 +465,8 @@ export function renderContourMap(game){
   <div class="contour-region-switch">${regions}</div>
   <section class="map-shell contour-shell"><div class="map-canvas contour-map-canvas">
   <div class="contour-map-caption"><span>${region?esc(region.name):'КАРТА ПЯТИ РЕГИОНОВ'}</span><small>${esc(stage)}</small></div>
-  <svg class="contour-chart" data-map-world="true" viewBox="0 0 680 480" role="group" aria-label="${region?'Выбор станций и линий':'Выбор региона'}">
-  <defs><radialGradient id="contourAtlasGlow"><stop offset="0" stop-color="#1a5064" stop-opacity=".45"/><stop offset="1" stop-color="#071a2b" stop-opacity="0"/></radialGradient></defs>
-  <rect width="680" height="480" rx="12" fill="#081a2a"/><circle cx="340" cy="240" r="300" fill="url(#contourAtlasGlow)"/>
+  <div class="map-plot"><svg class="contour-chart" data-map-world="true" viewBox="0 0 680 480" role="group" aria-label="${region?'Выбор станций и линий':'Выбор региона'}">
+  ${chartBackdrop(world.seed,center,scale,{overview:!region})}
   ${geography}${nebulae}${stars}
   <path d="M0 120H680M0 240H680M0 360H680M170 0V480M340 0V480M510 0V480" stroke="#5b9cb21a" stroke-dasharray="3 8"/>
   ${physical.backdrop}${physical.signals}${navigation}
@@ -482,8 +482,9 @@ export function renderContourMap(game){
    fieldArtwork(fields,world,center,scale,transition,true)+paths+
    trunkLines+enemyThreatArtwork(threats,center,scale)+incidentArtwork(game,null,center,scale)+
    overview}
-  ${reservePin}${sortiePin}${jamPins}${breachPins}${visiblePlayer?`<g class="contour-player-pin" transform="translate(${digits(player.x)} ${digits(player.y)})"><circle r="12" fill="#9dd9ff12" stroke="#d7faff" stroke-dasharray="3 3"/><path d="M0 -7L-5 5L0 2L5 5Z" fill="#fff"/><title>Ваш корабль</title></g>`:''}</svg>
-  ${mapTools(game)}
+  ${reservePin}${sortiePin}${jamPins}${breachPins}${visiblePlayer?`<g class="contour-player-pin">${pilotGlyph(player.x,player.y)}<title>Ваш корабль</title></g>`:''}
+  ${chartFrame(center,scale,{overview:!region})}</svg>
+  ${mapTools(game)}</div>
   <div class="contour-legend"><span><i class="contour-key mine"></i> Своя</span><span><i class="contour-key unknown"></i> Не разведана</span><span><i class="contour-key dormant"></i> Не включена</span>
   <span><i class="contour-key hostile"></i> Враг</span><span><i class="contour-key available"></i> Возможная связь</span><span><i class="contour-key vortex"></i> Воронка</span>
   ${physical.visibleRelays?'<span><i class="contour-key relay"></i> Ретрансляторы</span>':''}

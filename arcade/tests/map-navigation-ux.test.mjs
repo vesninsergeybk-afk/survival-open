@@ -115,7 +115,7 @@ test('panned local navigation projects player and route in the same coordinates'
  const html=renderWorldMap(g);
  assert.match(html,/class="local-chart" data-map-world="true"/);
  assert.match(html,/M 240\.0 240\.0 L 390\.0 240\.0/);
- assert.match(html,/cx="240\.0" cy="240\.0" r="13"/);
+ assert.match(html,/class="chart-pilot" transform="translate\(240\.0 240\.0\)"/);
  assert.match(html,/Моя метка/);
  assert.match(html,/data-act="mapClearWaypoint"/);
 });

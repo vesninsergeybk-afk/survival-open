@@ -1,0 +1,51 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Карта: визуальное состояние</title>
+<link rel="stylesheet" href="../arcade/style.css"><link rel="stylesheet" href="../arcade/menu-system.css"><link rel="stylesheet" href="../arcade/all-menus.css"><link rel="stylesheet" href="../arcade/station-art.css"><link rel="stylesheet" href="../arcade/menu-rebuild.css"><link rel="stylesheet" href="../arcade/map-art.css">
+<style>body{background:#06101a}#overlay{display:flex;position:fixed;inset:0;overflow:hidden}#overlay .map-dialog{margin:auto}</style><main id="overlay"></main>
+<script type="module">
+import {World} from '../arcade/world.js';
+import {renderWorldMap} from '../arcade/map-panel.js';
+import {REGIONS} from '../arcade/regions.js';
+import {firstContourPlan} from '../arcade/contour-plan.js';
+import {connectContour} from '../arcade/territory-system.js';
+import {focusContourRegion} from '../arcade/contour-preview.js';
+import {mapViewport,mapViewSpec,zoomMap,pointerOnMap,worldAtMapPoint,insideMap} from '../arcade/map-navigation.js';
+import {menuHints} from '../arcade/menu-hints.js';
+const mode=new URLSearchParams(location.search).get('mode')||'overview';
+const world=new World(20261102),home=world.home;
+home.active=true;home.enemy=false;home.discovered=true;
+for(const r of REGIONS)world.nearbyStations(r.survey.x,r.survey.y,5100,true);
+const local=world.nearbyStations(0,0,5300,true);
+const game={world,player:{x:330,y:80,shield:0},time:120,paused:true,enemies:[],nearRocks:[],
+ mapView:['local','targets'].includes(mode)?mode==='local'?'map':'targets':'territory',
+ contourRegion:mode==='network'?'amethyst':'all',contourFirst:mode==='network'?home.id:null,
+ contourSelection:mode==='network'?home.id:null,mapViewports:{},enemyBasesUnlocked:()=>true};
+if(mode!=='overview'){
+ for(const [i,node] of [...world.stations.values()].entries())if(i%6===0||node.strategicRole)node.discovered=true;
+ const plan=firstContourPlan(world,local,home.id,game.player);
+ if(plan){
+  for(const node of plan.stations){node.active=true;node.enemy=false;node.discovered=true;}
+  for(const edge of plan.edges)connectContour(world,edge.a.id,edge.b.id);
+ }
+ world.contours.flux=18;
+ game.manualWaypoint={id:'map:manual',x:1800,y:-1100,label:'Точка разведки'};
+}
+const root=document.querySelector('#overlay');
+const render=()=>{root.innerHTML=renderWorldMap(game);menuHints(root);};
+root.addEventListener('click',e=>{
+ const node=e.target.closest('[data-act]');
+ if(!node){const svg=e.target.closest('[data-map-world]');if(svg&&game.mapMarkMode){const pixel=pointerOnMap(svg,e.clientX,e.clientY);if(insideMap(pixel)){const q=worldAtMapPoint(mapViewport(game),pixel);game.manualWaypoint={id:'map:manual',...q,label:'Моя метка'};render();}}return;}
+ const {act,id}=node.dataset;
+ if(act==='mapView')game.mapView=id;
+ else if(act==='contourRegion')focusContourRegion(game,id);
+ else if(act==='contourNode'){game.contourSelection=id;const b=world.stations.get(id);if(b?.active&&!b.enemy)game.contourFirst=id;}
+ else if(act==='contourCancel'){game.contourSelection=null;game.contourFirst=null;}
+ else if(act==='mapZoom'){const view=mapViewport(game);game.mapViewports[view.key]=zoomMap(view,{x:340,y:240},id==='in'?1.25:.8,mapViewSpec(game).limits);}
+ else if(act==='mapCenter')delete game.mapViewports[mapViewSpec(game).key];
+ else if(act==='mapMarkMode')game.mapMarkMode=!game.mapMarkMode;
+ else if(act==='mapClearWaypoint')game.manualWaypoint=null;
+ else if(act==='waypoint')game.manualWaypoint={id,x:Number(node.dataset.x),y:Number(node.dataset.y),label:node.dataset.label};
+ else return;
+ render();
+});
+render();
+</script></html>
