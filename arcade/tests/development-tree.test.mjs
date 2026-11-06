@@ -148,7 +148,8 @@ test('pilot shows all unlocked-by-level skills even when no point is currently a
  for(const name of ['Уклонение','Магнитный захват','Геологическая подготовка','Дуговой экстрактор','Радар'])
   assert.match(html,new RegExp(name));
  assert.equal((html.match(/data-act="skill"/g)||[]).length,5);
- assert.doesNotMatch(html,/<details class="pilot-future"/);
+ assert.match(html,/<details class="pilot-future"><summary>Будущие навыки/);
+ assert.ok(html.indexOf('data-id="magnet"')<html.indexOf('data-id="extractor"'),'available skills precede prerequisite-locked future skills');
  assert.equal((html.match(/data-act="focusPilotBranch"/g)||[]).length,3);
  assert.doesNotMatch(html,/dev-pilot-ready-list/,'no point must not imply a purchasable skill');
  const ready=renderPilotContent({player:{level:8,points:1},ranks:{mining:0},skills,doctrines:[],nextEffect:()=>'+1',allBranches:true});

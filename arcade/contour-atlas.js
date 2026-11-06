@@ -1,3 +1,4 @@
+import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
 import {menuInfo} from './menu-screens.js?v=all-menus-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {baseNames} from './balance.js?v=arcade-network-20';
@@ -15,8 +16,8 @@ import {firstContourPlan} from './contour-plan.js?v=map-ux-1';
 import {fluxSortieOffer,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
-import {productiveContourFields,pendingContourTrials,trialBlockingField} from './contour-trials.js?v=contour-trials-1';
-import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1';
+import {productiveContourFields,pendingContourTrials,trialBlockingField} from './contour-trials.js?v=contour-trials-1-first-loops-1';
+import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1-first-loops-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -121,7 +122,7 @@ function firstContourGuide(plan,showNext=true){
  return `<section class="contour-first-guide" aria-label="План первого энергетического контура">
   <b>ПЕРВЫЙ ЭНЕРГЕТИЧЕСКИЙ КОНТУР</b>
   <div class="contour-first-progress">Работают ${plan.active} из 3 станций</div>
-  <p>Включите три отмеченные станции. Как только они смогут образовать треугольник, линии соединятся сами, территория заполнится энергией и появится воронка.</p>
+  <p>Включите три отмеченные станции. Как только они смогут образовать треугольник, линии соединятся сами. Подлетите к знаку ! и отразите нападение. После победы откроется контурный щит и заработает воронка.</p>
   <button class="contour-plan-focus" data-act="mapFocusPlan" data-ids="${plan.stations.map(b=>esc(b.id)).join(',')}">Показать треугольник целиком</button>
   <ol>${list}</ol>
   ${plan.uncertain?'<small>Неизвестные станции пока только кандидаты. Их принадлежность выяснится после разведки.</small>':''}
@@ -448,6 +449,7 @@ export function renderContourMap(game){
   ${game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':''}<button data-act="close">Продолжить полёт</button></div></header>
   <nav class="map-view-switch" aria-label="Режим карты"><button data-act="mapView" data-id="map">${menuIcon('map')}Рядом</button>
   <button data-act="mapView" data-id="territory" aria-pressed="true">${menuIcon('network')}Контуры</button><button data-act="mapView" data-id="targets">${menuIcon('navigation')}Список</button></nav>
+  ${renderTerritoryProgress(world,player,{map:true})}
   <div class="contour-region-switch">${regions}</div>
   <section class="map-shell contour-shell"><div class="map-canvas contour-map-canvas">
   <div class="contour-map-caption"><span>${region?esc(region.name):'КАРТА ПЯТИ РЕГИОНОВ'}</span><small>${esc(stage)}</small></div>
@@ -503,6 +505,6 @@ export function renderContourMap(game){
    'Защитный импульс · 5 флюкса · +22 щита'}</button><small>Доступен, когда корабль находится внутри поля и щит ниже 42.</small></div>`:''}
   ${broken?`<p class="contour-warning">⚠ Нарушено связей: ${broken}. Красный пунктир показывает линии без питания.</p>`:''}
   ${renderWorldFeedbackMap(game)}
-  <details class="contour-rules"><summary>Как устроена сеть</summary><p>После включения или захвата станции сеть автоматически прокладывает допустимые связи: до ${CONTOURS.maxLength} м, не более ${CONTOURS.maxDegree} на узел и без пересечений. Три станции, образовавшие замкнутую область, сразу создают территорию и воронку. Никаких подтверждений на карте не требуется.</p><p>Если станция подавлена или захвачена врагом, её связи временно не питают поле. После восстановления станции территория возвращается сама.</p></details>
+  <details class="contour-rules"><summary>Как устроена сеть</summary><p>После включения или захвата станции сеть автоматически прокладывает допустимые связи: до ${CONTOURS.maxLength} м, не более ${CONTOURS.maxDegree} на узел и без пересечений. Три станции, образовавшие замкнутую область, создают территорию. Подлетите к её знаку !: начнётся оборона. После победы открываются сетевые способности и запускается добыча флюкса. Никаких подтверждений на карте не требуется.</p><p>Если станция подавлена или захвачена врагом, её связи временно не питают поле. После восстановления станции территория возвращается сама.</p></details>
   </aside></section></div>`;
 }

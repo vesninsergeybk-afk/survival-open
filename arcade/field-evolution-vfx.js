@@ -111,8 +111,12 @@ export function drawEvolutionPlayer(c,game){
   for(let i=0;i<s.charge;i++){
    const a=(reduced?0:t*1.7)+i*Math.PI;
    const x=p.x+Math.cos(a)*43,y=p.y+Math.sin(a)*43;
-   diamond(c,x,y,6,a,'#248d8e','#b9ffed');
+   c.fillStyle='#b7fff2';c.shadowColor='#62ffe2';c.shadowBlur=9;
+   c.beginPath();c.arc(x,y,6,0,TAU);c.fill();c.shadowBlur=0;
+   c.strokeStyle='#1b6f78';c.beginPath();c.moveTo(x+1,y-4);c.lineTo(x-2,y);c.lineTo(x+2,y);c.lineTo(x-1,y+4);c.stroke();
   }
+  c.font='bold 10px system-ui';c.textAlign='center';c.fillStyle='#b7fff2';
+  c.fillText('ЯДРА '+s.charge+'/2',p.x,p.y+64);
   c.restore();
  }
  if(t-s.levelAt<2.5&&t>=s.levelAt){

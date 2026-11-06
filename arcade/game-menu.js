@@ -1,4 +1,4 @@
-import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1';
+import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1-first-loops-1';
 const states=new WeakMap();
 export function restoreSystemMenu(game,doc=globalThis.document){
  const prior=states.get(game);if(!prior)return false;

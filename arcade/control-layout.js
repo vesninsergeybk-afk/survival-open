@@ -49,3 +49,10 @@ export function changeControl(bindings,action,code){
  return {ok:true,bindings:{...bindings,[action]:code}};
 }
 export const isPressed=(pressed,bindings,action)=>pressed.has((bindings||DEFAULT_CONTROLS)[action]);
+
+// UI copy inherited from mission descriptions uses E as its interaction token.
+export function interactionCopy(text,controls=DEFAULT_CONTROLS){
+ const code=controls?.interact;
+ const key=readableKey(allowedCode(code)?code:DEFAULT_CONTROLS.interact);
+ return String(text).replace(/\bE\b/g,key);
+}

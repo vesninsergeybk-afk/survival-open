@@ -151,7 +151,7 @@ test('each wave has a finite resolution: battered enemies retreat; inaction fail
   updateContourTrials(g,.1);g.time+=6;updateContourTrials(g,.1);
   return {g,w,entry};
  };
- const defended=setup();defended.g.enemies[0].hp=0;
+ const defended=setup();for(const enemy of defended.g.enemies)enemy.hp=0;
  defended.g.time+=71;updateContourTrials(defended.g,.1);
  assert.equal(defended.w.contours.trials.completed,1);
  assert.equal(defended.g.contourTrial,null);

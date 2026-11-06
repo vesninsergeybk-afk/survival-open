@@ -7,7 +7,7 @@ export const SIGNAL_AI=Object.freeze({
 // Automatic weapons ignore a patrol still investigating an unconfirmed signal.
 // This rule is shared by the player's beam, missiles and autonomous escorts.
 export function canAutoTarget(enemy){
-  return !enemy?.signalIntel||enemy.signalIntel.mode==='engaged';
+  return !enemy?.trialRetreatUntil&&(!enemy?.signalIntel||enemy.signalIntel.mode==='engaged');
 }
 export function createSignalIntel(x,y,time){
   return {mode:'investigate',sourceX:x,sourceY:y,

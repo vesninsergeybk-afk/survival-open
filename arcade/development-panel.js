@@ -1,5 +1,5 @@
 import {renderShipHangar} from './hangar-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1';
-import {renderPilotContent} from './pilot-menu.js?v=menu-rebuild-1-development-tree-1-devux-3';
+import {renderPilotContent} from './pilot-menu.js?v=menu-rebuild-1-development-tree-1-devux-3-first-loops-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {developmentPointLedger} from './experience.js?v=progression-clarity-1';
 import {TACTICAL_DEVICES} from './tactical-fields.js?v=clarity-pass-1';
@@ -70,14 +70,14 @@ export function renderDevelopmentPanel(state){
   '<div class="dev-xp-status" role="group" aria-label="Прогресс пилота"><div><strong>Опыт: '+xp+' / '+nextXp+'</strong><span>До уровня '+(level+1)+' осталось '+Math.max(0,nextXp-xp)+' опыта</span></div>'+
   '<progress value="'+Math.min(xp,nextXp)+'" max="'+nextXp+'" aria-label="Опыт до следующего уровня"></progress><small>Очки: '+ledger.earned+' получено за уровни · '+ledger.spent+' потрачено на известные улучшения · '+ledger.free+' свободно. '+
   (ledger.unaccounted?'Часть расходов в сохранении не удалось восстановить. ':'')+'Новый уровень даст ещё одно очко.</small>'+history+'</div>'+navigation+
-  '<div class="dev-onboarding" role="note"><div class="dev-onboarding-message"><strong>'+
+  '<details class="dev-onboarding"><summary>Как потратить очки'+(points?' · доступно '+points:'')+'</summary><div class="dev-onboarding-message"><strong>'+
   (points?'У вас '+points+' '+pointsWord(points)+' развития':'Свободных очков пока нет')+'</strong><span>'+
   (points?(choices.length?'Ниже — доступные сейчас варианты под разные стили игры. Выберите цель, затем улучшение.':'Пока нет улучшений, доступных по условиям. Очки сохранятся.'):
    'Новый уровень принесёт ещё одно очко. Золотые ступени на схемах уже изучены.')+
-  '</span></div>'+
+   '</span></div>'+
   (choices.length?'<div class="dev-available-choices" role="group" aria-label="Что можно улучшить за очко">'+choices.map(c=>
    '<button type="button" data-act="openDevelopment" data-id="'+c.category+'" data-focus="'+c.focus+'" data-upgrade="'+c.upgrade+'" class="dev-choice" title="'+esc(c.effect||c.skill)+'">'+
-   '<strong>'+esc(c.intent)+'</strong><span>'+esc(c.skill)+'</span><span class="dev-choice-effect">'+esc(c.effect||'')+'</span><small>Перейти к улучшению →</small></button>').join('')+'</div>':'')+'</div>'+
+   '<strong>'+esc(c.intent)+'</strong><span>'+esc(c.skill)+'</span><span class="dev-choice-effect">'+esc(c.effect||'')+'</span><small>Перейти к улучшению →</small></button>').join('')+'</div>':'')+'</details>'+
   '<div class="dev-tree-legend" aria-label="Обозначения на схеме"><span class="ready">Открыто по условиям</span><span class="mastered">Уже изучено</span><span class="locked">Пока закрыто</span></div>'+
   '<div class="development-content" data-development="'+category+'">'+content+'</div>'+
   (['pilot','station'].includes(category)&&state.hangarSession?.message?'<p class="hg-message" role="status" aria-live="polite">'+

@@ -1,0 +1,75 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Проверка первых игровых циклов</title>
+<style>body{margin:0;background:#14232c;color:#d8e8e6;font:13px system-ui}nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px}button{background:#24434a;color:#e1fff0;border:1px solid #608b8d;padding:9px;cursor:pointer}p{margin:0 12px 8px}iframe{display:block;width:100%;height:calc(100dvh - 130px);max-width:100%;margin:auto;border:0;background:#071322}output{display:block;margin:7px 12px;min-height:16px;color:#b1edc8;font-size:12px}</style>
+<nav><button data-scene="level">Новый уровень</button><button data-scene="next">Следующий уровень</button><button data-scene="dock">Станция</button><button data-scene="trial">Первая оборона</button><button data-scene="win">Завершить волну</button><button data-scene="territory">Своя территория</button></nav>
+<nav><button data-size="full">Всё окно</button><button data-size="412">412 × 915</button><button data-size="915">915 × 412</button><button data-scene="inspect">Проверить состояние</button></nav>
+<p>Стенд использует настоящую игру. Прогресс игрока не читается и не записывается. «Завершить волну» имитирует победу над её противниками.</p><output id="state" aria-live="polite">Игра загружается.</output><iframe title="Проверочная аркада" src="../index.html?qa=first-loops"></iframe>
+<script type="module">
+import {firstContourPlan} from '../contour-plan.js';
+import {createContours} from '../territory-system.js';
+import {updateContourTrials} from '../contour-trial-director.js';
+import {createFieldEvolution} from '../field-evolution.js';
+import {updateTerritoryBenefits} from '../territory-benefits.js';
+import {expForNext} from '../balance.js';
+const frame=document.querySelector('iframe'),out=document.querySelector('output');
+const current=()=>frame.contentWindow.__survivorFirstLoops;
+function prepare(g){
+ g.dead=false;g.openingArc.status='skipped';g.openingArc.commanderSerial=null;
+ g.endInteraction();g.operation=null;g.contract=null;g.enemies=[];g.shots=[];g.zones=[];
+ g.spawnClock=99999;g.zoneClock=99999;g.player.invul=99999;
+ g.player.hp=g.player.maxHp;g.player.vx=0;g.player.vy=0;
+ g.overlay.hidden=true;g.paused=false;g.stationExitArmed=false;g.docked=null;g.releaseMenu();g.heritage.resume();
+ g.waypoint=null;g.manualWaypoint=null;
+}
+function status(g){
+ const learned=Object.entries(g.skillRanks).filter(([id,rank])=>rank>0).map(([id,rank])=>id+':'+rank).join(', ')||'нет';
+ out.textContent='Время '+g.time.toFixed(1)+' с · уровень '+g.player.level+' · очки '+g.player.points+' · навыки '+learned+' · ядра '+(g.fieldEvolution?.charge||0)+'/2 · сплав '+g.player.ore+' · щит '+Math.round(g.player.shield)+' · оборон пройдено '+(g.world.contours?.trials?.completed||0)+' · '+(g.contourTrial?.phase||'боя нет');
+}
+document.querySelectorAll('nav').forEach(nav=>nav.addEventListener('click',e=>{
+ const size=e.target.dataset.size;
+ if(size){frame.style.width=size==='full'?'100%':size+'px';frame.style.height=size==='full'?'calc(100dvh - 130px)':size==='412'?'915px':'412px';return;}
+ const scene=e.target.dataset.scene,g=current();if(!g){out.textContent='Игра ещё не готова.';return;}
+ if(scene==='level'){
+  prepare(g);g.skillRanks=Object.fromEntries(Object.keys(g.skillRanks).map(id=>[id,0]));
+  g.fieldEvolution=createFieldEvolution();g.player.level=1;g.player.xp=0;g.player.points=0;
+  g.awardExperience(expForNext(1));g.openEvolution();
+ }
+ if(scene==='next'){prepare(g);g.awardExperience(expForNext(g.player.level)-g.player.xp);g.openEvolution();}
+ if(scene==='dock'){
+  prepare(g);const base=g.world.home;base.active=true;base.enemy=false;base.discovered=true;
+  g.world.discovered.add(base.id);g.player.x=base.x;g.player.y=base.y;g.player.ore=80;
+  g.activeBases=Math.max(1,g.activeBases);g.docked=base;g.stationExitArmed=true;
+  g.paused=true;g.overlay.dataset.mode='base';g.overlay.hidden=false;g.baseTab='summary';
+  g.hangarSession.begin(g.shipLoadout);g.renderDock();
+ }
+ if(scene==='trial'){
+  prepare(g);g.world=new g.world.constructor(g.seed);g.world.contours=createContours();
+  const base=g.world.home;base.active=true;base.discovered=true;g.world.discovered.add(base.id);
+  const nearby=g.world.nearbyStations(base.x,base.y,3100,true);
+  const plan=firstContourPlan(g.world,nearby,base.id,base);
+  if(!plan){out.textContent='Не удалось подготовить треугольник.';return;}
+  for(const node of plan.stations){node.active=true;node.enemy=false;node.discovered=true;g.world.discovered.add(node.id);}
+  g.activeBases=plan.stations.length;g.contourTrial=null;g.contourTrialRetryAt=0;
+  g.refreshAutomaticContours();const entry=g.world.contours.trials.entries[0];
+  if(!entry){out.textContent='Новая территория не зарегистрирована.';return;}
+  g.player.x=entry.x;g.player.y=entry.y;g.player.level=Math.max(2,g.player.level);
+  g.time=Math.max(30,g.time);updateContourTrials(g,.1);g.hud();
+ }
+ if(scene==='win'){
+  const event=g.contourTrial;if(event){
+   g.paused=false;if(event.phase==='warning'||event.phase==='rest'){
+    g.time=Math.max(g.time,event.nextWaveAt+.1);updateContourTrials(g,.1);
+   }
+   for(const enemy of g.enemies)if(enemy.trialId===event.entry.id)enemy.hp=0;
+   updateContourTrials(g,.1);g.hud();
+  }
+ }
+ if(scene==='territory'){
+  g.overlay.hidden=true;g.paused=false;g.lastDamageAt=-1000;
+  const entry=g.world.contours.trials.entries.find(e=>e.status==='complete');
+  if(entry){g.player.x=entry.x;g.player.y=entry.y;g.player.shield=0;updateTerritoryBenefits(g,.1);g.hud();}
+ }
+ status(g);
+}));
+frame.addEventListener('load',()=>{const g=current();if(g){prepare(g);status(g);}else out.textContent='Игра загружена без диагностического режима.';});
+setInterval(()=>{const g=current();if(g)status(g);},500);
+</script></html>

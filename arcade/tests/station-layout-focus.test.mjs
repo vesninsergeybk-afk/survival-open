@@ -116,7 +116,7 @@ test('mission choices say what can be accepted and where the reward comes from',
  assert.match(operations,/Куда отправимся\?/);
  assert.match(operations,/aria-label="Особая операция"/);
  assert.match(operations,/Глухой коридор/);
- assert.match(operations,/Награда: 16 сплава · 15 данных/);
+ assert.match(operations,/Награда: 16 сплава · 15 опыта/);
  assert.doesNotMatch(operations,/Небольшие заказы|ОСНОВНОЕ ПОРУЧЕНИЕ/);
 });
 
