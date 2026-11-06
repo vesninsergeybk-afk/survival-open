@@ -46,7 +46,7 @@ import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
@@ -78,8 +78,8 @@ import {updateStationInterdiction,interruptStationInterdiction,threatenedStation
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {connectContour,disconnectContour,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
 import {launchFluxSortie,advanceFluxSortie,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
-import {recordIndustrialBreachHit,advanceIndustrialBreaches,INDUSTRIAL_BREACH} from './industrial-breach.js?v=territory-war-1-territory-war-1';
-import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from './contour-cover.js?v=territory-war-2-territory-war-1';
+import {recordIndustrialBreachHit,advanceIndustrialBreaches,INDUSTRIAL_BREACH} from './industrial-breach.js?v=territory-war-1-territory-war-1-breach-fix-1';
+import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from './contour-cover.js?v=territory-war-2-territory-war-1-topology-fix-1';
 import {territoryTech,TERRITORY_TECH} from './territory-tech.js?v=territory-war-1-territory-war-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1';
@@ -3045,6 +3045,18 @@ export class ArcadeGame {
   if(this.flashes.length>=90)this.flashes.shift();
   this.flashes.push({x,y,x2,y2,color,ttl:.16});
  }
+ announceIndustrialBreach(breach){
+  if(breach?.kind!=='breach')return;
+  const depot=breach.depot;
+  this.heritage.vfx.nova(depot.x,depot.y,200,'cyan');
+  this.heritage.play('capturedBase',.26,{x:depot.x,y:depot.y});
+  this.notice('ПРОРЫВ СВЯЗИ! Промышленный пост остановлен до ремонта. Враг потратит сырьё на восстановление.',7);
+  recordWorldFeedback(this,{key:'industrial-breach:'+depot.id+':'+Math.floor(this.time),
+   kind:'industry',label:'ПРОМЫШЛЕННАЯ ДИВЕРСИЯ',
+   cause:'Вы повредили турели или открытый корпус поста под прикрытием радиопомех',
+   effect:'Выход новых грузов остановлен; досрочный ремонт потребует настоящего сырья',
+   x:depot.x,y:depot.y,notify:true});
+ }
  hitTurret(t,damage,contact=null,source='player'){
   if(t.hp<=0)return;
   const dealt=Math.min(t.hp,Math.max(0,damage));
@@ -3060,17 +3072,7 @@ export class ArcadeGame {
   this.heritage.play('armorHit',.35,{x:t.x,y:t.y});
   if(source==='player'){
    const breach=recordIndustrialBreachHit(this.world,t,dealt,this.time);
-   if(breach?.kind==='breach'){
-    const depot=breach.depot;
-    this.heritage.vfx.nova(depot.x,depot.y,200,'cyan');
-    this.heritage.play('capturedBase',.26,{x:depot.x,y:depot.y});
-    this.notice('ПРОРЫВ СВЯЗИ! Промышленный пост остановлен до ремонта. Враг потратит сырьё на восстановление.',7);
-    recordWorldFeedback(this,{key:'industrial-breach:'+depot.id+':'+Math.floor(this.time),
-     kind:'industry',label:'ПРОМЫШЛЕННАЯ ДИВЕРСИЯ',
-     cause:'Вы повредили охрану поста под прикрытием радиопомех',
-     effect:'Выход новых грузов остановлен; досрочный ремонт потребует настоящего сырья',
-     x:depot.x,y:depot.y,notify:true});
-   }
+   this.announceIndustrialBreach?.(breach);
   }
   if(t.hp<=0){this.heritage.vfx.shipExplosion(t.x,t.y,21,'#ff6974');
    this.heritage.play('explosion',.25,{x:t.x,y:t.y});}
@@ -3099,7 +3101,12 @@ export class ArcadeGame {
    }
    return;
   }
+  const dealt=Math.min(base.hp,Math.max(0,damage));
   base.hp-=damage;
+  if(source==='player'){
+   const breach=recordIndustrialBreachHit(this.world,base,dealt,this.time);
+   this.announceIndustrialBreach?.(breach);
+  }
   if(base.hp<=0){
    const precisionUnlockedHere=base.type==='arsenal'&&!precisionRailUnlocked(this.world);
    const labUnlockedHere=base.type==='lab'&&!labLogisticsUnlocked(this.world);
@@ -3405,7 +3412,7 @@ export class ArcadeGame {
     event.kind==='sortieLost'?'Враги перехватили постановщик помех':
     event.kind==='sortieAborted'?'Вражеский пост уже выведен из строя':
     'Рейс завершился без доставки';
-   const effect=arrived?'Связь поста «'+title+'» нарушена на '+FLUX_SORTIE.duration+' с. Повредите его турели, чтобы остановить выпуск грузов дольше':
+   const effect=arrived?'Связь поста «'+title+'» нарушена на '+FLUX_SORTIE.duration+' с. Повредите турели или открытый корпус поста, чтобы остановить выпуск грузов дольше':
     'Уже оплаченный флюкс потрачен; новый рейс потребует ресурсов';
    recordWorldFeedback(this,{key:'flux-sortie:'+event.kind+':'+event.targetId+':'+Math.floor(this.time),
     kind:arrived?'industry':'loss',label:arrived?'РАДИОУЗЕЛ ЗАГЛУШЕН':'РЕЙС ПРЕРВАН',

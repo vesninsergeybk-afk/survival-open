@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World} from '../world.js';
+import {contourFields} from '../territory-system.js';
 import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from '../contour-cover.js';
 import {territoryTech} from '../territory-tech.js';
 import {INDUSTRIAL_BREACH,recordIndustrialBreachHit,advanceIndustrialBreaches,
@@ -34,6 +35,46 @@ test('a paid wing can cover a threatened pilot only inside a field anchored by a
  carrier.suppressed=true;
  assert.equal(contourCoverOffer(w,ship,[enemy],1,0).ok,false,'contour fails without its carrier');
  assert.equal(CONTOUR_COVER.shots,4);
+});
+
+test('a disconnected distant field cannot borrow a carrier from another field',()=>{
+ const w=new World();contourWithCarrier(w);
+ const x=50000;
+ const nodes=[{id:'distant:1',x,y:0},{id:'distant:2',x:x+1100,y:0},
+  {id:'distant:3',x:x+400,y:1200}];
+ for(const node of nodes)w.stations.set(node.id,{...w.home,...node,
+  type:'dock',active:true,enemy:false,suppressed:false,turrets:[]});
+ w.contours.links.push([nodes[0].id,nodes[1].id],
+  [nodes[1].id,nodes[2].id],[nodes[2].id,nodes[0].id]);
+ const pilot={x:x+480,y:330},enemy={x:x+510,y:340,hp:90};
+ assert.equal(contourFields(w).length,2);
+ assert.equal(contourCoverOffer(w,pilot,[enemy],1,0).ok,false,
+  'a carrier in a separate operational network is not local support');
+});
+
+test('adjacent linked fields can use a shared carrier through their real network',()=>{
+ const w=new World();contourWithCarrier(w);
+ const nodes=[{id:'adjacent:1',x:3400,y:0},{id:'adjacent:2',x:2800,y:1300}];
+ for(const node of nodes)w.stations.set(node.id,{...w.home,...node,
+  type:'lab',active:true,enemy:false,suppressed:false,turrets:[]});
+ w.contours.links.push(['100:1',nodes[0].id],
+  [nodes[0].id,nodes[1].id],[nodes[1].id,'100:1']);
+ const pilot={x:2700,y:350},enemy={x:2730,y:350,hp:90};
+ assert.equal(contourFields(w).length,2);
+ assert.equal(contourCoverOffer(w,pilot,[enemy],1,0).carrier.id,'100:0',
+  'a connected field should keep access to the paid carrier');
+});
+
+test('a dangling carrier link does not replace the requirement to close its field',()=>{
+ const w=new World(),{carrier}=contourWithCarrier(w);
+ carrier.type='dock';
+ const remote={...w.home,id:'carrier:dangling',x:3000,y:800,
+  type:'carrier',active:true,enemy:false,suppressed:false,turrets:[]};
+ w.stations.set(remote.id,remote);
+ w.contours.links.push(['100:1',remote.id]);
+ const pilot={x:1100,y:500},enemy={x:1160,y:510,hp:80};
+ assert.equal(contourCoverOffer(w,pilot,[enemy],1,0).ok,false,
+  'a carrier must be a vertex of a functioning closed territory');
 });
 
 test('a liberated industrial depot remains a real local carrier, never a global spawn',()=>{
@@ -79,6 +120,25 @@ test('only real pilot turret damage while jamming opens the industrial breach',(
  assert.equal(depot.fluxBreachUntil,11+INDUSTRIAL_BREACH.duration);
  assert.ok(industrialBreachActive(depot,200));
  assert.equal(recordIndustrialBreachHit(w,t,500,13),null,'cannot stack a permanent lock');
+});
+
+test('allied turret destruction cannot prevent the pilot sabotaging an exposed depot core',()=>{
+ const g=game(),front=warFronts(g.world).find(f=>f.key==='home');
+ const depot=front.depot;
+ depot.fluxJamUntil=g.time+100;
+ assert.equal(recordIndustrialBreachHit(g.world,depot,110,g.time),null,
+  'an armored depot cannot be sabotaged directly through living turrets');
+ for(const turret of depot.turrets)g.hitTurret(turret,turret.hp,null,'ally');
+ assert.equal(depot.fluxBreachProgress||0,0,'allied shots never fulfill a personal sabotage');
+ g.hitEnemyBase(depot,40,'bomber');
+ assert.equal(depot.fluxBreachProgress||0,0,'bomber damage to the core is not credited');
+ g.hitEnemyBase(depot,60,'player');
+ assert.equal(depot.fluxBreachProgress,60);
+ g.time+=1;
+ g.hitEnemyBase(depot,50,'player');
+ assert.ok(depot.fluxBreachUntil>g.time,'a valid pilot strike completes the sabotage');
+ assert.equal(g.worldFeedback.history[0].label,'ПРОМЫШЛЕННАЯ ДИВЕРСИЯ');
+ assert.equal(depot.enemy,true,'a temporary outage does not pretend to capture the base');
 });
 
 test('breach stops new cargo but preserves stock, cargo already in flight and paid raid',()=>{
