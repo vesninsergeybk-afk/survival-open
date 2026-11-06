@@ -1,4 +1,4 @@
-import {CONTOUR_TRIALS,pendingContourTrials,trialBlockingField,planContourTrial} from './contour-trials.js?v=clarity-pass-1';
+import {CONTOUR_TRIALS,pendingContourTrials,trialBlockingField,planContourTrial,trialQuota} from './contour-trials.js?v=clarity-pass-1-first-loops-1';
 
 // The unstable core is visible in the physical world before the real
 // vortex can start producing flux. Follows the field across camera movement.
@@ -39,6 +39,9 @@ export function drawUnstableContour(c,game,field,now){
    c.beginPath();c.moveTo(station.x,station.y);c.lineTo(x,y);c.stroke();
    if(++count>=3)break;
   }
+  c.strokeStyle=event.outsideFor?'rgba(255,106,122,.6)':'rgba(255,183,113,.28)';
+  c.lineWidth=3;c.setLineDash([24,18]);
+  c.beginPath();c.arc(x,y,CONTOUR_TRIALS.retreatRadius,0,Math.PI*2);c.stroke();
   c.restore();
  }
  return true;
@@ -49,42 +52,44 @@ export function drawUnstableContour(c,game,field,now){
 export function drawContourTrialHUD(c,game){
  const event=game.contourTrial;
  if(game.dead)return;
+ const virtualWidth=game.vw||1200,vw=game.canvas?.clientWidth||virtualWidth;
+ const uiScale=virtualWidth/vw,w=Math.min(470,vw-26),x=(vw-w)/2;
+ const y=game.isTouchLayout?76:20;
  if(!event){
   const result=game.contourFeedback;
-  if(!result||game.time-result.at>5)return;
-  const vw=game.vw||1200,w=Math.min(356,vw-26),x=(vw-w)/2,y=20;
-  c.save();c.fillStyle='rgba(9,42,39,.94)';c.strokeStyle='#8ef0d4';c.lineWidth=1.6;
-  c.beginPath();c.roundRect(x,y,w,62,10);c.fill();c.stroke();
+  if(!result?.victory||game.time-result.at>7)return;
+  c.save();c.scale(uiScale,uiScale);c.fillStyle='rgba(9,42,39,.94)';c.strokeStyle='#8ef0d4';c.lineWidth=1.6;
+  c.beginPath();c.roundRect(x,y,w,79,10);c.fill();c.stroke();
   c.textAlign='center';c.fillStyle='#c6ffe6';c.font='bold 14px system-ui';
-  c.fillText('КОНТУР ЗАЩИЩЁН · ПОБЕДА',vw/2,y+25,w-18);
-  c.font='bold 11px system-ui';c.fillText('Воронка запущена · флюкс поступает в сеть',vw/2,y+45,w-18);
+  c.fillText('ТРЕУГОЛЬНИК ЗАЩИЩЁН',vw/2,y+23,w-18);
+  c.font='bold 12px system-ui';c.fillText('+'+result.alloy+' сплава · +'+result.xp+' опыта',vw/2,y+44,w-18);
+  c.fillText(result.unlocked?'Открыто: '+result.unlocked:'Территория сетевых способностей расширена',vw/2,y+64,w-18);
   c.restore();return;
  }
- const vw=game.vw||1200,w=Math.min(356,vw-26),x=(vw-w)/2,y=20;
  const phase=event.phase;
- const irisRush=phase==='wave'&&game.enemies.some(e=>e.trialId===event.entry.id&&
-  e.hp>0&&e._trialDive?.phase==='rush');
- const defeatedInWave=event.waveIds?.filter(id=>event.defeatedIds?.has(id)).length||0;
- const waveTotal=event.waveIds?.length||0;
- const secondsLeft=Math.max(0,Math.ceil(CONTOUR_TRIALS.maxWaveSeconds-(game.time-(event.waveStartedAt||game.time))));
- const subtitle=event.waitingForSpace?'ВОЛНА ГОТОВА · СНАЧАЛА РАСЧИСТИТЕ ПОДХОДЫ':
-  phase==='warning'?'ВСЕГО '+event.plan.waves.length+' ВОЛН · АТАКА ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С':
-  phase==='rest'?'ВОЛНА '+(event.waveIndex+1)+' ИЗ '+event.plan.waves.length+' ОТРАЖЕНА · ПАУЗА '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С':
-  'ВОЛНА '+(event.waveIndex+1)+' ИЗ '+event.plan.waves.length+' · ПОДАВЛЕНО '+defeatedInWave+'/'+waveTotal+' · '+secondsLeft+' С'+
-  (irisRush?' · РЫВОК!':'');
- c.save();
- c.fillStyle='rgba(8,20,33,.91)';c.strokeStyle='rgba(255,182,115,.72)';
- c.lineWidth=1.4;c.beginPath();c.roundRect(x,y,w,60,10);c.fill();c.stroke();
+ const irisRush=phase==='wave'&&game.enemies.some(e=>e.trialId===event.entry.id&&e.hp>0&&e._trialDive?.phase==='rush');
+ const defeated=event.waveIds?.filter(id=>event.defeatedIds?.has(id)).length||0;
+ const total=event.waveIds?.length||0;
+ const quota=event.required??trialQuota(total,event.plan.tier);
+ const seconds=Math.max(0,Math.ceil(CONTOUR_TRIALS.maxWaveSeconds-(game.time-(event.waveStartedAt??game.time))));
+ const subtitle=event.outsideFor>0?'ВЕРНИТЕСЬ В ЗОНУ · '+Math.max(0,Math.ceil(CONTOUR_TRIALS.retreatSeconds-event.outsideFor))+' С':
+  event.waitingForSpace?'ДРУГОЙ БОЙ ЗАНИМАЕТ СЕКТОР · НАПАДЕНИЕ ОЖИДАЕТ':
+  phase==='warning'?'АТАКА ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С · ВСЕГО ВОЛН: '+event.plan.waves.length:
+  phase==='rest'?'ВОЛНА ОТРАЖЕНА · СЛЕДУЮЩАЯ ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С':
+  'ВОЛНА '+(event.waveIndex+1)+' ИЗ '+event.plan.waves.length+' · ПОБЕДИТЬ '+Math.min(defeated,quota)+' / '+quota+' · '+seconds+' С';
+ const hint=phase==='wave'?(irisRush?'Зрачок бросается по красной линии — уйдите поперёк неё':
+  'Уничтожайте отмеченных врагов. Покинуть зону можно на 7 секунд.'):
+  'Победа даст сплав и усилит вашу территорию. Станции при отходе сохранятся.';
+ c.save();c.scale(uiScale,uiScale);c.fillStyle='rgba(8,20,33,.94)';c.strokeStyle=event.outsideFor?'#ff7e85':'#ffb673';
+ c.lineWidth=1.4;c.beginPath();c.roundRect(x,y,w,81,10);c.fill();c.stroke();
  c.fillStyle='#ffe7c2';c.font='bold 12px system-ui';c.textAlign='center';
- c.fillText('ОБОРОНА НОВОГО ТРЕУГОЛЬНИКА',vw/2,y+21,w-12);
- c.fillStyle='#ffbe8b';c.font='bold 11px system-ui';
- c.fillText(subtitle,vw/2,y+39,w-12);
- const fraction=phase==='wave'?(event.waveIndex+
-   defeatedInWave/Math.max(1,event.waveIds?.length||1))/event.plan.waves.length:
+ c.fillText('ВРАГ ОБНАРУЖИЛ НОВЫЙ ТРЕУГОЛЬНИК',vw/2,y+19,w-16);
+ c.fillStyle='#ffbe8b';c.font='bold 12px system-ui';c.fillText(subtitle,vw/2,y+39,w-16);
+ c.fillStyle='#cee0e5';c.font='11px system-ui';c.fillText(hint,vw/2,y+58,w-16);
+ const fraction=phase==='wave'?(event.waveIndex+Math.min(1,defeated/Math.max(1,quota)))/event.plan.waves.length:
   phase==='rest'?(event.waveIndex+1)/event.plan.waves.length:0;
- c.fillStyle='rgba(255,190,126,.15)';c.fillRect(x+12,y+49,w-24,3);
- c.fillStyle='#ffa66d';c.fillRect(x+12,y+49,(w-24)*fraction,3);
- c.restore();
+ c.fillStyle='#ffbe7e26';c.fillRect(x+12,y+70,w-24,3);
+ c.fillStyle='#ffa66d';c.fillRect(x+12,y+70,(w-24)*fraction,3);c.restore();
 }
 
 export function pendingTrialMapArtwork(world,center,scale,atlasPoint){

@@ -2,7 +2,7 @@
 // dropped by ordinary kills are expendable combat resources, not experience.
 export const FIELD_EVOLUTION_SKILLS=[
  {id:'parasite',branch:'Технологии',title:'Энергетический паразит',max:1,from:2,
-  desc:'Каждый третий лично побеждённый дрон оставляет энергетическое ядро. Два заряда можно сохранить для захвата или защитного импульса.'},
+  desc:'При изучении получите первый защитный заряд. Каждый третий лично побеждённый дрон оставляет энергоядро. Запас до двух зарядов: один автоматически поглощает до 25 ед. сильного удара.'},
  {id:'conduit',branch:'Корабль',title:'Разрядный проход',max:1,from:2,
   desc:'Рывок прошивает врагов электрическими метками. Попадите по помеченному кораблю — разряд на миг обездвижит его соседей.'},
  {id:'wreck',branch:'Технологии',title:'Обломки-укрытия',max:1,from:2,
@@ -44,10 +44,8 @@ export function refreshEvolutionOffers(game,skills){
  const s=game.fieldEvolution;if(!s)return [];
  if(s.pending<=0||game.player.points<=0){s.offers=[];s.crystals=[];return [];}
  s.offers=chooseEvolutionOffers(game.player.level,game.skillRanks,skills);
- const angle=game.time*.37;
- s.crystals=s.offers.map((id,index)=>({id,x:game.player.x+Math.cos(angle+index*Math.PI*2/Math.max(1,s.offers.length))*118,
-  y:game.player.y+Math.sin(angle+index*Math.PI*2/Math.max(1,s.offers.length))*118,
-  born:game.time}));
+ // A saved field remains readable; movement can no longer buy a skill.
+ s.crystals=[];
  return s.offers;
 }
 
@@ -76,7 +74,7 @@ export function validFieldEvolution(s,time){
   (s.spySerial===null||Number.isInteger(s.spySerial)&&s.spySerial>=0);
 }
 
-const eligibleVictim=e=>e&&e.hp<=0&&!e.converted&&!e.boss&&!e.missionStructure&&
+const eligibleVictim=e=>e&&e.hp<=0&&!e.converted&&!e.trialRetreatUntil&&!e.boss&&!e.missionStructure&&
  !e.interceptCargo&&!e.regionalCargo&&!e.centralWorker&&!e.frontierWorker&&
  !e.openingCommander&&!e.relayAssault&&['scout','fighter','flanker','healer','berserker','gunship'].includes(e.type);
 

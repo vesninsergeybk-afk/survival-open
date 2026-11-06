@@ -1,6 +1,9 @@
 import {menuInfo} from './menu-screens.js?v=all-menus-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1';
-import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1';
+import {DEFAULT_CONTROLS,readableKey,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
+import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
+import {pendingContourTrials} from './contour-trials.js?v=first-loops-1';
+import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=first-loops-1';
 import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
 import {corridorPosition,probePosition,isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
@@ -14,7 +17,7 @@ import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './stat
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=menu-rebuild-territory-war-20261106';
 import {renderStationThreats} from './strategic-command.js?v=menu-rebuild-territory-war-20261106';
-import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1-contour-trials-1-counterattack-1';
+import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1-contour-trials-1-counterattack-1-first-loops-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
@@ -326,7 +329,7 @@ export function renderWorldMap(game){
    operation.id===CARRIER_INTERCEPTION.id?'Перехватите груз до выхода из сектора.':
    'Отключите глушитель и вернитесь с телеметрией.')+'</span></div>'+
   '<button type="button" data-act="operationWaypoint">'+(operation.phase==='return'?'Проложить путь обратно':'Проложить курс к цели')+'</button></div>':'';
- return '<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
+ return interactionCopy('<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
   '<span class="map-kicker">НАВИГАЦИОННЫЙ КОМПЛЕКС</span><h2 id="map-menu-title">Карта сектора</h2>'+
   menuInfo('Как пользоваться картой','Выберите станцию или сигнал и постройте маршрут. Связь действует на 1450 м; каждая усиленная антенна добавляет 500 м. Неизвестные сигналы указаны приблизительно.')+
   '</div><div class="map-heading-actions"><span>В сети <b>'+topology.count+'</b> · Открыто <b>'+known.length+
@@ -336,12 +339,13 @@ export function renderWorldMap(game){
   '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">'+menuIcon('map')+'Рядом</button>'+
   '<button type="button" data-act="mapView" data-id="territory">'+menuIcon('network')+'Контуры</button>'+
   '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">'+menuIcon('navigation')+'Список · '+(known.length+signals.length)+'</button></nav>'+
-  activeMission+
+  activeMission+(pendingContourTrials(world).length?renderTerritoryProgress(world,p,{map:true}):'')+
   (discoveryLead||intelLead?'<details class="map-discovery-lead"><summary>Что можно открыть на станциях</summary>'+discoveryLead+intelLead+'</details>':'')+
   '<section class="map-shell"><div class="map-canvas">'+routeSummary+'<div class="map-plot"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   chartBackdrop(world.seed,center,scale)+atlasStars(world.seed,center,scale,false)+
   '<circle cx="'+pilot.x.toFixed(1)+'" cy="'+pilot.y.toFixed(1)+'" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
   grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+intelMarks+marks+operationMark+enemyOrders+parasiteEchoes+
+  pendingTrialMapArtwork(world,center,scale,(entry,c,s)=>point(entry.x,entry.y,c,s))+
   pilotGlyph(pilot.x,pilot.y)+chartFrame(center,scale,{local:true})+
   '<text x="'+(pilot.x+11).toFixed(1)+'" y="'+(pilot.y+26).toFixed(1)+'" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
   mapTools(game)+'</div>'+
@@ -378,5 +382,5 @@ export function renderWorldMap(game){
   '</details></aside></section><footer class="map-foot">'+
   enc(readableKey((game.controls||DEFAULT_CONTROLS).map))+' — карта · '+
   enc(readableKey((game.controls||DEFAULT_CONTROLS).skills))+' — развитие · '+
-  (game.mapReturnToBase?'Esc — к станции.':'Esc — продолжить полёт.')+' Дистанции до сигналов приблизительные.</footer></div>';
+  (game.mapReturnToBase?'Esc — к станции.':'Esc — продолжить полёт.')+' Дистанции до сигналов приблизительные.</footer></div>',game.controls);
 }

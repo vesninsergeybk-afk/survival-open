@@ -1,8 +1,10 @@
+import {recordSortieIncome} from './sortie-ledger.js';
 import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,completeContourTrial,
- planContourTrial} from './contour-trials.js?v=clarity-pass-1';
+ planContourTrial,trialQuota} from './contour-trials.js?v=clarity-pass-1-first-loops-1';
+import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1';
 import {contourFields,fieldAt} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js';
-import {ENEMY_TYPES} from './ai.js';
+import {ENEMY_TYPES} from './ai.js?v=first-loops-1';
 import {recordWorldFeedback} from './world-feedback.js';
 
 const nearby=(a,b,r)=>dist(a,b)<r;
@@ -22,12 +24,15 @@ function spawnTrialWave(game,event){
  // wave forever. Preserve a stricter budget in the player's visible battle.
  const nearbyEnemies=game.enemies.filter(e=>e.hp>0&&dist(e,game.player)<1550).length;
  if(nearbyEnemies>48||game.enemies.length+total>RULES.maxEnemies){
+  event.blockedSince??=game.time;
   event.waitingForSpace=true;return false;
  }
+ delete event.blockedSince;
  event.waitingForSpace=false;
  event.waveIndex++;
  const group=++game.groupSerial,cam=game.camera();let i=0,scoutCount=0;
  event.waveIds=[];event.waveTemplates=new Map();event.defeatedIds??=new Set();
+ event.required=trialQuota(total,event.plan.tier);
  event.waveStartedAt=game.time;
  const pincer=event.plan.variants.some(v=>v.id==='pincer');
  const rear=event.plan.variants.some(v=>v.id==='elite');
@@ -61,7 +66,7 @@ function spawnTrialWave(game,event){
  if(!Number.isFinite(event.nextStrikeAt))
   event.nextStrikeAt=game.time+3.6;
  game.notice?.('ОБОРОНА ТРЕУГОЛЬНИКА · волна '+
-  (event.waveIndex+1)+' из '+event.plan.waves.length+' · '+total+' целей · '+event.plan.variants.map(v=>v.name).join(', ')+'.'+
+  (event.waveIndex+1)+' из '+event.plan.waves.length+' · подавите '+event.required+' из '+total+' кораблей.'+
   (scoutCount?' Зрачки готовят резкие таранные рывки!':' Уклоняйтесь от орбитального огня!'),4.5);
  game.heritage?.play?.('orbitalWarning',.9,game.player);
  return true;
@@ -84,7 +89,12 @@ function scheduleTrialStrike(game,event){
 }
 
 function disengage(game,event,reason){
- game.enemies=game.enemies.filter(e=>e.trialId!==event.entry.id);
+ game.enemies=game.enemies.filter(e=>{
+  if(e.trialId!==event.entry.id)return true;
+  if(e.converted){delete e.trialId;return true;}
+  return false;
+ });
+ if(game.shots)game.shots=game.shots.filter(s=>s.trialId!==event.entry.id);
  game.zones=game.zones.filter(z=>z.trialId!==event.entry.id);
  game.zoneClock=Math.max(game.zoneClock||0,5);
  game.contourTrial=null;
@@ -101,12 +111,23 @@ function finishTrial(game,event){
  game.zones=game.zones.filter(zone=>zone.trialId!==event.entry.id);
  const previousLevel=game.player.level;
  const gained=14+event.plan.tier*7;
+ const alloy=20+event.plan.tier*4;
+ game.player.ore=(game.player.ore||0)+alloy;
+ recordSortieIncome(game,'ore','operation',alloy);
+ game.cockpit?.resourceGain?.(alloy,game.time);
  game.awardExperience?.(gained);
+ const unlocked=TERRITORY_BENEFITS[game.world.contours.trials.completed-1];
+ updateTerritoryBenefits(game,0);
+ // The first field immediately demonstrates its new defensive ability.
+ if(game.territorySupport.inside)
+  game.player.shield=Math.max(game.player.shield||0,18);
  game.contourFeedback={title:'Территория стабилизирована',
-  text:'Все '+event.plan.waves.length+' волны отражены. Воронка и доставка флюкса запущены.',
+  victory:true,alloy,xp:gained,unlocked:unlocked?.name||'',text:'+'+alloy+' сплава · +'+gained+' опыта. '+
+   (unlocked?'Открыто: '+unlocked.name+'. '+unlocked.effect:'Защищённая территория расширена. Воронка и доставка флюкса запущены.'),
   at:game.time};
- game.rewardNotice?.('КОНТУР СТАБИЛИЗИРОВАН · +'+gained+
-  ' опыта. Воронка открыта, добыча флюкса начинается!',previousLevel,6);
+ game.rewardNotice?.('КОНТУР ЗАЩИЩЁН · +'+alloy+' сплава · +'+gained+
+  ' опыта. '+(unlocked?unlocked.name+' теперь действует в своей территории. ':'')+
+  'Воронка открыта, добыча флюкса начинается!',previousLevel,7);
  const field=fieldAt(game.world,event.entry.x,event.entry.y),core=field?.center||event.entry;
  if(field){
   game.contourBirths=[...(game.contourBirths||[]).filter(b=>b.id!==field.id),
@@ -159,6 +180,9 @@ export function updateContourTrials(game,dt){
  }
  if(event.phase==='warning'||event.phase==='rest'){
   if(game.time>=event.nextWaveAt&&!spawnTrialWave(game,event)){
+   if(game.time-(event.blockedSince??game.time)>=CONTOUR_TRIALS.maxWaitSeconds){
+    disengage(game,event,'Нападение отложено: сектор занят другим боем. Станции сохранены; вернитесь позже.');return;
+   }
    event.nextWaveAt=game.time+1.2;
    if(!event.lastCrowdNotice||game.time-event.lastCrowdNotice>15){
     event.lastCrowdNotice=game.time;
@@ -187,16 +211,24 @@ export function updateContourTrials(game,dt){
   if(enemy.hp<=0||enemy.converted)event.defeatedIds.add(serial);
  }
  const waveIds=event.waveIds||[],defeated=waveIds.filter(id=>event.defeatedIds.has(id)).length;
- const enough=defeated>=Math.ceil(waveIds.length*.75);
+ const enough=defeated>=(event.required??trialQuota(waveIds.length,event.plan.tier));
  const timeout=game.time-event.waveStartedAt>=CONTOUR_TRIALS.maxWaveSeconds;
  if(!enough&&!timeout)return;
- if(timeout&&defeated<Math.ceil(waveIds.length*.5)){
+ if(timeout&&!enough){
   disengage(game,event,'Противник удержал контур. Оборона завершилась неудачей — новая попытка через 18 секунд.');
   return;
  }
  // Remaining ships disengage after heavy losses or a bounded battle. They
  // never award unearned combat resources or experience.
- game.enemies=game.enemies.filter(e=>e.trialId!==event.entry.id);
+ if(game.shots)game.shots=game.shots.filter(s=>s.trialId!==event.entry.id);
+ for(const enemy of game.enemies.filter(e=>e.trialId===event.entry.id)){
+  if(enemy.converted){delete enemy.trialId;continue;}
+  if(enemy.hp<=0)continue;
+  enemy.trialRetreatUntil=game.time+3;
+  enemy.trialRetreatFrom={x:event.entry.x,y:event.entry.y};
+  enemy._trialDiveEnabled=false;enemy.expAwarded=true;
+  enemy.damage=0;enemy.fire=999;
+ }
  if(event.waveIndex+1>=event.plan.waves.length){finishTrial(game,event);return;}
  event.phase='rest';event.nextWaveAt=game.time+event.plan.intermission;
  game.notice?.('Волна '+(event.waveIndex+1)+' из '+event.plan.waves.length+

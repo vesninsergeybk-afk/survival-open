@@ -59,13 +59,14 @@ export class CockpitDisplay {
    rewardXp:el('rewardXp'),rewardLevel:el('rewardLevel'),
    miningStatus:el('miningStatus'),miningPercent:el('miningPercent'),
    miningLabel:el('miningLabel'),
-   contractObjective:el('contractObjective'),interactionCue:el('interactionCue')};
+   contractObjective:el('contractObjective'),interactionCue:el('interactionCue'),territoryStatus:el('territoryStatus')};
   this.reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   this.compactHud=window.matchMedia('(pointer: coarse)').matches;
   this.drawRadarShell();
  }
  update(game,nextXp,boostCooldown) {
   const p=game.player,n=this.n;
+  this.root.classList.toggle('has-contour-trial',!!game.contourTrial||!!(game.contourFeedback?.victory&&game.time-game.contourFeedback.at<7));
   if(n.survivalClock)display(n.survivalClock,'ВЫЛЕТ '+runClock(game.time)+
    ' · РЕКОРД '+runClock(Math.max(game.bestFlight||0,game.time)));
   const health=clamp01(p.hp/Math.max(1,p.maxHp));
@@ -104,12 +105,18 @@ export class CockpitDisplay {
    cover?'Прикрывают корабль: '+cover+'; '+liveAllies+' дронов в строю':
    liveAllies+' из 2 дронов в строю');
   const focus=game.actionHeld||game.interactionFocus;
-  n.interactionCue.hidden=!focus||game.paused||game.dead||!game.overlay.hidden;
+  n.interactionCue.hidden=!focus||game.paused||game.dead||!game.overlay.hidden||
+   !!game.contourTrial&&!['station','repair','opening-repair'].includes(focus?.kind);
   if(!n.interactionCue.hidden) {
    const label=focus.kind==='station'?'Открыть станцию':
     focus.kind==='repair'?'Ремонт зонда':
     focus.kind==='opening-repair'?'Эвакуация капсулы':'Добыча породы';
-   display(n.interactionCue,'E · '+label+(focus.kind==='station'?'':' · удерживать'));
+   display(n.interactionCue,(game.controlLabel?.('interact')||'E')+' · '+label+(focus.kind==='station'?'':' · удерживать'));
+  }
+  if(n.territoryStatus){
+   const support=game.territorySupport;
+   n.territoryStatus.hidden=!support?.inside||game.dead||game.paused;
+   if(!n.territoryStatus.hidden)display(n.territoryStatus,'СВОЯ ТЕРРИТОРИЯ · ЩИТ +18'+(support.dashRate>1?' · РЫВОК ×1,3':'')+(support.magnetBonus?' · СБОР +60 м':''));
   }
   const op=game.operation,c=game.contract,tracker=n.contractObjective;
   const opening=openingArcObjective(game.openingArc,game.time,this.compactHud);

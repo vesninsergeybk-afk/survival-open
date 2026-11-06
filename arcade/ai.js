@@ -1,8 +1,8 @@
 import {theaterDestination} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2-mesh-strategy-v2-1';
-import {updateParasitizedEnemy} from './field-evolution.js?v=field-evolution-1';
+import {updateParasitizedEnemy} from './field-evolution.js?v=field-evolution-1-first-loops-1';
 import {stormSeek} from './regional-storms.js?v=regions-1';
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20';
-import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2';
+import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
@@ -202,6 +202,14 @@ const pickTarget=(e,game)=>{
 };
 export function updateEnemy(e,game,dt){
   if(e.hp<=0)return;
+  if(e.trialRetreatUntil){
+    e._gunAiming=null;e._irisChargeStarted=null;e._commsIntent=null;
+    if(game.time>=e.trialRetreatUntil){e.hp=0;e.expAwarded=true;e.visualDeath=true;return;}
+    const from=e.trialRetreatFrom||game.player;
+    const dx=e.x-from.x,dy=e.y-from.y;
+    const dir=norm(dx||1,dy);
+    steer(e,e.x+dir.x*900,e.y+dir.y*900,330,dt);return;
+  }
   // A successfully hacked craft is friendly immediately, even if an earlier
   // hostile stasis pulse has not expired yet.
   if(e.converted){e._commsIntent=null;e._gunAiming=null;updateConverted(e,game,dt);return;}

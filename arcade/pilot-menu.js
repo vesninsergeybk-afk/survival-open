@@ -44,7 +44,8 @@ export function renderPilotContent({player:p,ranks,doctrine,skills,doctrines,bra
    const list=entries.filter(s=>s.branch===id);
    if(!list.length)return '';
    return '<section class="dev-pilot-branch" data-pilot-branch="'+id+'" aria-label="'+esc(label)+'"><div class="dev-tree-caption"><h3>'+esc(label)+'</h3><span>'+list.filter(s=>s.eligible).length+' открыто по условиям</span></div>'+
-    grid(list)+'</section>';
+    grid(list.filter(s=>s.eligible||s.rank>0))+
+    (list.some(s=>!s.eligible&&!s.rank)?'<details class="pilot-future"><summary>Будущие навыки · '+list.filter(s=>!s.eligible&&!s.rank).length+'</summary>'+grid(list.filter(s=>!s.eligible&&!s.rank))+'</details>':'')+'</section>';
   }).join(''):
   grid(entries);
  return (allBranches?'':'<nav class="skill-branch-tabs" aria-label="Выберите ветвь развития">'+branches.map(([id,label])=>'<button type="button" data-act="skillBranch" data-id="'+id+'" aria-pressed="'+(id===current)+'">'+label+'</button>').join('')+'</nav>')+

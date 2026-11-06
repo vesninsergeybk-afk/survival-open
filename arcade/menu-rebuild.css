@@ -343,3 +343,26 @@
 .map-operation-cue span{font-size:12px;line-height:1.4;color:#cbd7e4}
 #overlay .map-operation-cue button{flex-shrink:0;margin:0;padding:10px 14px;min-height:43px;background:#4c3d59;border-color:#bd9ed0;color:#fff0ff}
 @media(max-width:650px){.map-operation-cue{flex-wrap:wrap}.map-operation-cue>div{flex-basis:100%}#overlay .map-operation-cue button{width:100%}}
+
+.territory-progress{padding:14px 16px;background:linear-gradient(135deg,#153b3d,#152c3c);border:1px solid #6caa9d80;border-radius:8px;margin:0 0 12px}
+.territory-progress h3{margin:5px 0 8px;font-size:17px;color:#d8f4dc}
+.territory-progress p{margin:5px 0 12px;font-size:13px;line-height:1.5;color:#c2d9dc}
+.territory-progress>button{min-height:44px}
+.territory-unlocked{margin-top:12px;font-size:13px}.territory-unlocked summary{cursor:pointer;color:#a8dfcb}
+.map-dialog>.territory-progress{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:18px;margin:8px 0 12px}
+.map-dialog>.territory-progress>.base-kicker,.map-dialog>.territory-progress>h3,.map-dialog>.territory-progress>p{grid-column:1}
+.map-dialog>.territory-progress>button{grid-column:2;grid-row:1/4;align-self:center}
+.map-dialog>.territory-progress>.territory-unlocked{grid-column:1/-1}
+.dev-onboarding{display:block;margin:8px 0 12px;padding:0 12px}
+.dev-onboarding>summary{cursor:pointer;padding:10px 0;color:#b9d3d7;font-size:13px}
+.dev-onboarding .dev-onboarding-message{padding-bottom:10px}
+.dev-onboarding .dev-available-choices{margin-bottom:10px}
+.development-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pilot-future{margin-top:12px;border:1px solid #67848a66;border-radius:6px;padding:0 10px}
+.pilot-future>summary{cursor:pointer;padding:11px 0;font-size:13px;color:#a6bdc8}
+.pilot-future>.pilot-skill-grid{padding-bottom:10px}
+@media(max-width:680px){
+ .map-dialog>.territory-progress{display:block}
+ .map-dialog>.territory-progress>button{width:100%;margin:0}
+ .territory-progress{padding:12px}
+}

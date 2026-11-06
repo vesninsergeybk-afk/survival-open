@@ -23,7 +23,7 @@ test('completed contract at its origin offers a direct, prominent reward action'
  const summary=visiblePanel(html);
  assert.match(summary,/ЧТО СЕЙЧАС ВАЖНО/);
  assert.match(summary,/Заказ выполнен — заберите награду/);
- assert.match(summary,/\+16 сплава, \+15 данных и \+15 опыта/);
+ assert.match(summary,/\+16 сплава, \+15 опыта/);
  assert.match(summary,/\+15 опыта/);
  assert.match(summary,/data-act="claimContract">Забрать награду/);
  assert.ok(summary.indexOf('data-act="claimContract"')<summary.indexOf('base-quick-services'));
@@ -32,10 +32,10 @@ test('completed contract at its origin offers a direct, prominent reward action'
 
 test('both offered and completed contracts disclose the full experience reward',()=>{
  const available=renderBasePanel(home,state({baseTab:'operations'}));
- assert.match(available,/Награда: 16 сплава · 15 данных · 15 опыта/);
- assert.match(available,/Награда: 10 сплава · 24 данных · 24 опыта/);
+ assert.match(available,/Награда: 16 сплава · 15 опыта/);
+ assert.match(available,/Награда: 10 сплава · 24 опыта/);
  const ready=renderBasePanel(home,state({baseTab:'operations',contract:mission}));
- assert.match(ready,/Награда: 16 сплава · 15 данных · 15 опыта/);
+ assert.match(ready,/Награда: 16 сплава · 15 опыта/);
 });
 
 test('a different station cannot grant the reward and explains where to return',()=>{
@@ -43,7 +43,7 @@ test('a different station cannot grant the reward and explains where to return',
  const summary=visiblePanel(html);
  assert.match(summary,/Награда ждёт на другой станции/);
  assert.match(summary,/Вернитесь на Ремонтный док/);
- assert.match(summary,/data-act="baseMap">Показать станцию на карте/);
+ assert.match(summary,/data-act="baseMap" data-target="contract">Показать станцию на карте/);
  assert.doesNotMatch(summary,/data-act="claimContract"/);
  assert.match(html,/УЖЕ ЕСТЬ ЗАКАЗ/);
  assert.match(html,/Зачистка патрулей/);
@@ -53,7 +53,7 @@ test('an automatically received reward is clearly shown on the station home scre
  const summary=visiblePanel(renderBasePanel(home,state({lastContractReceipt:receipt})));
  assert.match(summary,/base-auto-contract-receipt" role="status"/);
  assert.match(summary,/Награда зачислена/);
- assert.match(summary,/\+10 сплава · \+24 данных · \+24 опыта/);
+ assert.match(summary,/\+10 сплава · \+24 опыта/);
  assert.doesNotMatch(summary,/data-act="claimContract"/);
  const old=visiblePanel(renderBasePanel(home,state()));
  assert.doesNotMatch(old,/base-auto-contract-receipt/,'there is no reward banner before earning one');

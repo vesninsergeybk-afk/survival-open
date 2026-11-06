@@ -1,6 +1,6 @@
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {canAutoTarget} from './signal-perception.js?v=arcade-perception-61';
+import {canAutoTarget} from './signal-perception.js?v=arcade-perception-61-first-loops-1';
 
 export const targetDistance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const targetRadius=item=>item.target.r||({jammer:30,turret:22,base:60}[item.kind])||18;

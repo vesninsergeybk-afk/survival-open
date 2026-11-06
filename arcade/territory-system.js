@@ -1,4 +1,4 @@
-import {newTrialLedger,productiveContourFields,validContourTrials} from './contour-trials.js';
+import {newTrialLedger,productiveContourFields,validContourTrials} from './contour-trials.js?v=first-loops-1';
 
 // Territorial links appear automatically between powered friendly stations.
 // They remain distinct from the shorter-range radio tree for station services.

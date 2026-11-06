@@ -26,9 +26,9 @@ test('level 2 presents three distinct permanent choices for the existing point',
  offerLevelCrystals(g,1,skills);
  assert.equal(g.fieldEvolution.pending,1);
  assert.deepEqual(g.fieldEvolution.offers,['parasite','conduit','wreck']);
- assert.equal(g.fieldEvolution.crystals.length,3);
+ assert.equal(g.fieldEvolution.crystals.length,0,'movement must never spend a level point');
  assert.equal(g.player.points,1);
- assert.equal(new Set(g.fieldEvolution.crystals.map(x=>x.id)).size,3);
+ assert.equal(new Set(g.fieldEvolution.offers).size,3);
  assert.ok(chooseEvolutionOffers(3,{parasite:1,conduit:1,wreck:1},skills).includes('capture'));
 });
 

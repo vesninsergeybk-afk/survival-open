@@ -64,3 +64,54 @@ body:has(#mobileLaunch:not([hidden])) .evolution-prompt{display:none}
  .evolution-choice-copy>span{max-height:42px;overflow:hidden}
 }
 @media (prefers-reduced-motion:reduce){.evolution-choice{transition:none}}
+
+/* Permanent skills are chosen deliberately; charge orbs remain consumables. */
+.evolution-prompt{top:12px;left:12px;bottom:auto;transform:none;width:auto;max-width:260px;padding:0;border:0;background:none;box-shadow:none;backdrop-filter:none;overflow:visible;max-height:none}
+.evolution-open{display:flex;flex-direction:column;gap:4px;min-height:48px;padding:9px 14px;border:1px solid #7cebd7a8;border-radius:10px;background:#0a2935ed;color:#e3fff5;text-align:left;cursor:pointer;box-shadow:0 4px 18px #0007}
+.evolution-open strong{font-size:14px}.evolution-open span{font-size:11px;color:#acdad5}
+#overlay .evolution-dialog{width:min(920px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:24px;box-sizing:border-box}
+#overlay .evolution-rule{font-size:14px;line-height:1.5;color:#c3dbe1}
+#overlay .evolution-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#overlay article.evolution-choice{padding:16px;min-height:0;display:block;border-color:#739caa;background:#133342;transform:none}
+#overlay .evolution-choice-copy{height:100%;gap:10px}
+#overlay .evolution-choice h3{font-size:18px;margin:0;color:#e6fff4}
+#overlay .evolution-choice p{font-size:14px;line-height:1.5;margin:0 0 8px;flex:1;color:#d0e3e5}
+#overlay .evolution-choice button{width:100%;min-height:46px;margin-top:auto;font-size:14px;background:#205746;border-color:#a0e6c4}
+#overlay .evolution-choice button small{color:inherit;font-size:11px}
+.evolution-installed{border-top:1px solid #6a969966;margin-top:20px;padding-top:14px}
+.evolution-installed h3,.evolution-core-help h3{font-size:16px;margin:0 0 10px;color:#b5efd8}
+.evolution-installed ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.evolution-installed li{display:flex;flex-direction:column;gap:5px;padding:12px;background:#173b3c;border-radius:8px}
+.evolution-installed li span,.evolution-installed p,.evolution-core-help p{font-size:13px;line-height:1.5;color:#bdd7db;margin:4px 0}
+.evolution-core-help{margin:16px 0;padding:12px 14px;border:1px solid #76bdb366;border-radius:8px;background:#0b292e}
+.evolution-receipt{display:flex;flex-direction:column;gap:5px;padding:13px 16px;background:#234b3e;border-left:4px solid #b3f2a8;margin:14px 0}
+.evolution-receipt strong{color:#dcffca}.evolution-receipt span{font-size:13px;color:#c4e4d0}
+.territory-status{position:fixed;bottom:190px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 30px);padding:6px 12px;border:1px solid #72e6c785;border-radius:7px;background:#092a29df;color:#aff5d5;font:700 11px system-ui;pointer-events:none;text-align:center}
+.territory-status[hidden]{display:none}
+body:has(#overlay:not([hidden])) .territory-status{display:none}
+@media(max-width:680px){
+ .evolution-prompt{top:8px;left:8px;max-width:220px;width:auto;padding:0}
+ .evolution-open{padding:7px 10px;min-height:44px}.evolution-open strong{font-size:12px}.evolution-open span{font-size:10px}
+ #overlay .evolution-dialog{padding:16px;width:calc(100vw - 12px);max-height:calc(100dvh - 12px)}
+ #overlay .evolution-choices,.evolution-installed ul{grid-template-columns:1fr}
+ #overlay .evolution-choice-copy>span{font-size:13px;max-height:none;overflow:visible}
+ #overlay .evolution-choice h3{font-size:17px}
+ .territory-status{bottom:160px;font-size:10px}
+}
+@media(max-height:480px) and (orientation:landscape){
+ #overlay .evolution-choices{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #overlay .evolution-dialog{padding:12px 18px}
+ #overlay .evolution-choice h3{font-size:15px}
+ #overlay .evolution-choice p{font-size:12px;line-height:1.4}
+ .territory-status{bottom:112px;font-size:10px}
+}
+#overlay .evolution-dialog{text-align:left}
+#overlay .evolution-rule,#overlay .evolution-choice p,#overlay .evolution-installed p,#overlay .evolution-installed h3,#overlay .evolution-installed li,#overlay .evolution-core-help p,#overlay .evolution-core-help h3{text-align:left}
+#overlay .evolution-dialog>.screen-footer{position:sticky;bottom:-24px;z-index:3;background:#0c2230f5;padding:12px 0;margin-bottom:0;box-shadow:0 -12px 16px #0c2230}
+@media(max-width:680px){#overlay .evolution-dialog>.screen-footer{bottom:-16px}}
+@media(max-height:480px) and (orientation:landscape){#overlay .evolution-dialog>.screen-footer{bottom:-12px}}
+#hud.cockpit-hud.has-contour-trial .flight-status,#hud.cockpit-hud.has-contour-trial .contract-objective{display:none}
+@media(max-width:760px){body:has(#hud.has-contour-trial) .evolution-prompt{top:auto;bottom:calc(22dvh + 16px)}}
+#hud.cockpit-hud.has-contour-trial #message{display:none}
+/* The archive is a statistic; only spendable alloy occupies the combat wallet. */
+#hud.cockpit-hud #dataResource,#hud.cockpit-hud #rewardData{display:none}

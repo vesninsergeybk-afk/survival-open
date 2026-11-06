@@ -1,7 +1,8 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1';
-import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1';
-import {readableKey,DEFAULT_CONTROLS} from './control-layout.js?v=unified-controls-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1';
+import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1';
+import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
+import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-territory-war-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
@@ -78,10 +79,10 @@ const CONTRACTS=Object.freeze({
 export const contractFor=type=>CONTRACTS[type]||CONTRACTS.dock;
 // A station offers two tasks; only one is active at a time. Rewards renew after a cooldown.
 const ALT_CONTRACTS=Object.freeze({
- dock:{kind:'rich',goal:1,ore:10,data:24,name:'Геологические сведения',desc:'Разберите один богатый астероид, удерживая E. Меньше сплава, зато больше данных.'},
- lab:{kind:'kill',goal:4,ore:31,data:9,name:'Очистка маршрута',desc:'Участвуйте в уничтожении 4 кораблей противника. Больше сплава, но мало исследовательских данных.'},
- arsenal:{kind:'intercept',goal:3,ore:18,data:35,name:'Охота на перехватчики',desc:'Участвуйте в уничтожении 3 боевых кораблей, кроме разведчиков. Меньше сплава, больше данных.'},
- carrier:{kind:'defend',goal:5,ore:28,data:45,name:'Оборона авианосца',desc:'Участвуйте в уничтожении 5 врагов в радиусе 650 м от авианосца. Меньше сплава, больше данных.'}
+ dock:{kind:'rich',goal:1,ore:10,data:24,name:'Геологические сведения',desc:'Разберите один богатый астероид, удерживая E. Меньше сплава, зато больше опыта.'},
+ lab:{kind:'kill',goal:4,ore:31,data:9,name:'Очистка маршрута',desc:'Участвуйте в уничтожении 4 кораблей противника. Больше сплава, но мало опыта.'},
+ arsenal:{kind:'intercept',goal:3,ore:18,data:35,name:'Охота на перехватчики',desc:'Участвуйте в уничтожении 3 боевых кораблей, кроме разведчиков. Меньше сплава, больше опыта.'},
+ carrier:{kind:'defend',goal:5,ore:28,data:45,name:'Оборона авианосца',desc:'Участвуйте в уничтожении 5 врагов в радиусе 650 м от авианосца. Меньше сплава, больше опыта.'}
 });
 export const contractChoices=(type,runs=0)=>[
  {id:'standard',tag:'Основное поручение',...contractFor(type)},
@@ -190,9 +191,9 @@ const card=(cls,kicker,title,description,control,reason='')=>
  '<section class="base-card '+cls+'"><span class="base-kicker">'+kicker+'</span>'+
  '<strong>'+title+'</strong><small>'+description+'</small>'+control+
  (reason?'<span class="base-reason">'+reason+'</span>':'')+'</section>';
-const action=(name,label,reason='',role='',help='')=>
+const action=(name,label,reason='',role='',help='',target='')=>
  '<button type="button" data-act="'+name+'"'+(help?' data-help="'+help.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))+'"':'')+(role?' data-role="'+role+'"':'')+
- (reason?' disabled':'')+'>'+label+'</button>';
+ (target?' data-target="'+target+'"':'')+(reason?' disabled':'')+'>'+label+'</button>';
 function firstContractRewardPanel(state){
  if(state.firstHardwareReward==='pending'){
   const draftDirty=!!state.hangarSession?.dirty?.(state.loadout);
@@ -238,7 +239,7 @@ const contractPanel=(o,state,compact=false)=>{
   '<div class="base-contract-choices">'+o.contractOptions.map(choice=>
    '<article class="base-contract-choice"><strong>'+choice.name+'</strong>'+
    '<small>'+choice.desc+'</small><em>Награда: '+choice.ore+' сплава · '+choice.data+
-   ' данных · '+choice.data+' опыта</em>'+
+   ' опыта</em>'+
    action('acceptContract','Принять заказ','',choice.id)+'</article>').join('')+
   '</div></section>';
  const summary={
@@ -258,7 +259,7 @@ const contractPanel=(o,state,compact=false)=>{
  return '<section class="base-contract '+c.status+'"><div class="base-contract-copy">'+
   '<span class="base-kicker">ПОЛЕВОЙ ЗАКАЗ</span><strong>'+c.name+'</strong>'+
   '<small>'+summary[c.status]+'</small><span class="base-contract-reward">Награда: '+
-  c.ore+' сплава · '+c.data+' данных · '+c.data+' опыта</span></div>'+contractActions+'</section>';
+  c.ore+' сплава · '+c.data+' опыта</span></div>'+contractActions+'</section>';
 };
 // Tactical station briefing. The mission is a world object, not a kill counter.
 const missionSummary=summary=>'<p class="base-op-summary">'+summary+'</p>';
@@ -295,7 +296,7 @@ const corridorPanel=(base,state,compact=false)=>{
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
   CORRIDOR_OPERATION.rewardOre+' сплава · +'+CORRIDOR_OPERATION.rewardData+
-  ' данных и столько же опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
+  ' опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
 };
 const probePanel=(base,state,compact=false)=>{
  const op=probeOffer(base,state.operation);
@@ -326,7 +327,7 @@ const probePanel=(base,state,compact=false)=>{
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
   PROBE_OPERATION.rewardOre+' сплава · +'+PROBE_OPERATION.rewardData+
-  ' данных и столько же опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
+  ' опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
 };
 const relayPanel=(base,state,compact=false)=>{
  const op=relayOffer(base,state.operation,state.time);
@@ -357,7 +358,7 @@ const relayPanel=(base,state,compact=false)=>{
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
   RELAY_DEFENSE.rewardOre+' сплава · +'+RELAY_DEFENSE.rewardData+
-  ' данных и столько же опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
+  ' опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
 };
 const carrierPanel=(base,state,compact=false)=>{
  const op=carrierOffer(base,state.operation,state.time);
@@ -393,7 +394,7 @@ const carrierPanel=(base,state,compact=false)=>{
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
    CARRIER_INTERCEPTION.rewardOre+' сплава · +'+CARRIER_INTERCEPTION.rewardData+
-   ' данных и столько же опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
+   ' опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
 };
 const specialOffer=(base,state)=>corridorOffer(base,state.operation)||
  probeOffer(base,state.operation)||relayOffer(base,state.operation,state.time)||
@@ -541,17 +542,18 @@ const tabPanel=(id,selected,body)=>'<section class="base-tab-panel" id="base-pan
 
 // The operation is run-wide: the pilot must see it even when docked at a
 // different station, whose local offer is a completely different mission.
-export function activeOperationStep(op,world,time=0){
+export function activeOperationStep(op,world,time=0,controls=DEFAULT_CONTROLS){
  if(!op)return null;
+ const interact=readableKey((controls||DEFAULT_CONTROLS).interact);
  const home=world?.stations?.get?.(op.baseId);
  const homeName=home?({dock:'в ремонтный док',lab:'в лабораторию',
   arsenal:'в военный арсенал',carrier:'на авианосец'}[home.type]||'на исходную станцию'):
   'на станцию, где приняли операцию';
  if(op.phase==='return')return {title:'«'+op.name+'» · возвращение',
-  description:'Цель выполнена. Вернитесь '+homeName+' и пристыкуйтесь (E), чтобы передать сведения и получить награду.',
+  description:'Цель выполнена. Вернитесь '+homeName+' и пристыкуйтесь ('+interact+'), чтобы передать сведения и получить награду.',
   button:'Показать станцию сдачи'};
  if(op.id===PROBE_OPERATION.id)return {title:'«Последний сигнал» · ремонт зонда',
-  description:'Зонд восстановлен на '+Math.round(op.repair||0)+'%. Доберитесь до маркера, удерживайте E для ремонта; отпускайте для стрельбы.',
+  description:'Зонд восстановлен на '+Math.round(op.repair||0)+'%. Доберитесь до маркера, удерживайте '+interact+' для ремонта; отпускайте для стрельбы.',
   button:'Показать зонд'};
  if(op.id===RELAY_DEFENSE.id)return {title:'«Оборона ретранслятора» · '+(op.wave?op.wave+'/3 волны':'начало обороны'),
   description:op.phase==='approach'?'Подлетите к ретранслятору: затем начнутся три короткие волны.':
@@ -575,20 +577,20 @@ function stationNextStep(base,state,o,regionalGoal=false){
  const origin=c&&!local?state.world?.stations?.get(c.baseId):null;
  const destination=origin?(baseNames[origin.type]||'исходную станцию'):'станцию, где Вы приняли заказ';
  const op=state.operation;
- const operationStep=activeOperationStep(op,state.world,state.time);
+ const operationStep=activeOperationStep(op,state.world,state.time,state.controls);
  let kind='standard',title='Выберите следующее задание';
  let description='Начните с небольшого заказа или особой операции. Награда и условия видны до принятия.';
  let buttons=action('baseTab','Посмотреть задания','','operations');
  if(ready){
   kind='reward';title='Заказ выполнен — заберите награду';
-  description=c.name+': +'+c.ore+' сплава, +'+c.data+' данных и +'+c.data+
+  description=c.name+': +'+c.ore+' сплава, +'+c.data+
    ' опыта. Награда ещё не зачислена.';
   buttons=action('claimContract','Забрать награду');
  }else if(c&&!local&&c.progress>=c.goal){
   kind='return';title='Награда ждёт на другой станции';
   description='Заказ «'+c.name+'» выполнен. Вернитесь на '+destination+
    ' и пристыкуйтесь. Здесь получить награду нельзя.';
-  buttons=action('baseMap','Показать станцию на карте');
+  buttons=action('baseMap','Показать станцию на карте','','','','contract');
  }else if(state.firstHardwareReward==='pending'){
   kind='reward';title='Вы получили новое оружие';
   description='Первый заказ уже оплачен. Осталось бесплатно выбрать один из трёх боевых модулей. Сплав не тратится.';
@@ -596,7 +598,7 @@ function stationNextStep(base,state,o,regionalGoal=false){
  }else if(operationStep){
   kind='active';title=operationStep.title;
   description=operationStep.description+(Number.isFinite(op.rewardOre)?
-   ' Награда: '+op.rewardOre+' сплава, '+op.rewardData+' в архив и '+op.rewardData+' опыта.':'');
+   ' Награда: '+op.rewardOre+' сплава, '+op.rewardData+' опыта.':'');
   buttons=action('baseMap',operationStep.button)+action('baseTab','Условия и награда','','operations');
  }else if(c){
   kind='active';title='Заказ в работе: '+c.progress+' из '+c.goal;
@@ -724,7 +726,7 @@ export function renderBasePanel(base,state){
    '</td><td>'+signed(r.hull)+'</td></tr>').join('')+'</tbody></table></div></details>';
  const claim=state.lastContractReceipt;
  const claimNote=claim?'<p class="base-economy-claim" role="status">Награда за полевой заказ получена: +'+
-  claim.ore+' сплава, +'+claim.data+' данных и +'+claim.data+' опыта. '+(claim.credited?
+  claim.ore+' сплава, +'+claim.data+' опыта. '+(claim.credited?
    'Она включена в отчёт того вылета, где выполнен заказ.':
    'В прежней истории нет подходящего отчёта; награда зачислена на счёт.')+'</p>':'';
  const breakdown=details?'<details class="base-economy-breakdown"><summary>Источники ресурсов и последствия боя</summary>'+
@@ -810,12 +812,12 @@ export function renderBasePanel(base,state){
  const suppression=base.suppressed?'<section class="home-conflict"><strong>Связь станции подавлена</strong><p>Связь восстановится в полёте. Уничтожьте носитель помех, чтобы он не повторил удар. Местный ремонт работает. Меню останавливает игровое время.</p></section>':'';
  const threats=state.world?renderStationThreats({world:state.world,enemies:state.enemies||[],time:state.time,player:state.position}):'';
  const homeTasks='<section class="base-home-tasks" aria-label="Задания на главной"><div class="base-home-heading"><h3>Задания</h3>'+action('baseTab','Все задания','','operations')+'</div>'+
-  (specialOffer(base,state)&&(!state.operation||state.operation.baseId===base.id)?specialPanel(base,state,true):'')+
+  (specialOffer(base,state)&&!state.operation?specialPanel(base,state,true):'')+
   (o.contract.status==='ready'?'':contractPanel(o,state,true))+'</section>';
- const ongoingOp=activeOperationStep(state.operation,state.world,state.time);
+ const ongoingOp=activeOperationStep(state.operation,state.world,state.time,state.controls);
  const ongoingOpPanel=ongoingOp?'<section class="base-next-step active" aria-label="Текущая особая операция">'+
   '<div><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ В РАБОТЕ</span><h3>'+ongoingOp.title+'</h3><p>'+ongoingOp.description+'</p></div>'+
-  '<div class="base-next-actions">'+action('baseMap',ongoingOp.button)+action('baseTab','Другие задания','','operations')+'</div></section>':'';
+  '<div class="base-next-actions">'+action('baseMap',ongoingOp.button)+action('abandonOperation','Отложить операцию')+'</div></section>':'';
  const xp=Math.max(0,Math.floor(state.xp||0)),nextXp=Math.max(1,state.nextXp||1);
  const homeDevelopment='<section class="base-home-development" aria-label="Быстрое развитие"><div class="base-home-heading"><h3>'+menuIcon('upgrades')+'Развитие пилота</h3><b>Свободные очки: '+ (state.points||0)+'</b></div>'+
   '<p class="base-home-pilot-status" role="status">Пилот · ур. '+(state.level||1)+(state.points&&state.lastContractReceipt?.levelsGained?' · Новый уровень!':'')+'</p>'+
@@ -833,7 +835,7 @@ export function renderBasePanel(base,state){
  const earnedReward=receipt&&!state.contract?'<section class="base-auto-contract-receipt" role="status" aria-label="Награда за заказ получена">'+
   '<span class="base-kicker">ЗАКАЗ ЗАВЕРШЁН</span><strong>Награда зачислена</strong>'+
   '<span class="base-auto-contract-values">+'+receipt.ore+' сплава · +'+receipt.data+
-  ' данных · +'+receipt.data+' опыта</span></section>':'';
+  ' опыта</span></section>':'';
  const dashboard=earnedReward+homeUrgent+(state.operation&&o.contract.status==='ready'?ongoingOpPanel:'')+suppression+
   (threats?'<aside class="base-alert" role="status"><span>Противник угрожает связи станций.</span>'+
    action('baseTab','Посмотреть угрозы','','network')+'</aside>':'')+
@@ -855,7 +857,7 @@ export function renderBasePanel(base,state){
   (state.droneDamage>0?action('repairDrones','Ремонт дронов · '+o.droneRepairCost+' сплава',o.reasons.drones):'')+
   action('hire',(o.replacing?'Заменить':'Нанять')+' · '+o.hireCost+' сплава',o.reasons.hire,o.drone.role)+
   '</div>'+(o.reasons.hire?'<small class="base-quick-reason">'+o.reasons.hire+'</small>':'')+
-  '</section></div>'+(capturedWing||supply)+'<div class="base-home-layout">'+homeTasks+'<div class="base-home-strategy">'+homeDevelopment+territorySummary(base,state,true)+'</div></div>'+
+  '</section></div>'+(capturedWing||supply)+'<div class="base-home-layout">'+homeTasks+'<div class="base-home-strategy">'+(state.points?homeDevelopment:'')+renderTerritoryProgress(state.world,state.position)+'</div></div>'+
   '<details class="base-secondary-info"><summary>Станция · '+brief[0]+' · карта и подробности</summary>'+
   '<div class="base-secondary-body"><p><b>'+brief[1]+'.</b> '+brief[2]+'</p>'+
   basePreview(base,state)+'</div></details>'+
@@ -869,7 +871,7 @@ export function renderBasePanel(base,state){
   '<p>'+(localOperation?'Особая операция уже принята. Её цель и маршрут показаны ниже. ':hasAcceptedWork?'':
    'Можно выполнить одну особую операцию и один полевой заказ одновременно. ')+
   'Выбирайте любое доступное задание прямо здесь.</p></div></div>'+
-  (state.operation?'<div class="base-active-mission">'+ongoingOpPanel+'</div>':'')+
+  (state.operation&&!localOperation?'<div class="base-active-mission">'+ongoingOpPanel+'</div>':'')+
   firstReward+
   '<div class="base-task-board">'+
   (o.contract.status==='ready'?'<section class="base-task-group reward"><h3>Готовая награда</h3>'+contractPanel(o,state)+'</section>':'')+
@@ -989,7 +991,7 @@ export function renderBasePanel(base,state){
   '<span>Маршруты между подключёнными узлами</span>'+
   (stationPromise?'<span class="base-technology-preview">'+stationPromise+'</span>':'')+
   '</div></div>';
- return '<div class="dialog base-dialog station-'+base.type+'" role="dialog" aria-modal="true" aria-label="Станция"><header class="base-head">'+
+ return interactionCopy('<div class="dialog base-dialog station-'+base.type+'" role="dialog" aria-modal="true" aria-label="Станция"><header class="base-head">'+
   '<div class="base-identity"><span class="base-emblem" aria-hidden="true">'+stationEmblem(base.type)+'</span><div>'+
   '<span class="base-system-label">ВЫЖИВШИЙ / ТЕРМИНАЛ СТАНЦИИ</span><h2>'+(baseNames[base.type]||'Станция')+'</h2>'+
   '<p class="base-credits"><span>Сплав <b>'+o.ore+'</b></span><span class="base-pilot-xp">Опыт <b>'+xp+' / '+nextXp+'</b> · ур. '+(state.level||1)+' · очки <b>'+ (state.points||0)+'</b></span>'+
@@ -1007,5 +1009,5 @@ export function renderBasePanel(base,state){
    '<span class="base-unapplied-note" role="status">В ангаре есть неприменённая сборка</span>':'')+
   '<div class="base-footer-actions">'+
   (active?action('baseMap','Карта сектора'):'')+
-  action('close',state.hangarSession?.dirty(state.loadout)?'В полёт · сборка не применена':'В полёт')+'</div></footer></div>';
+  action('close',state.hangarSession?.dirty(state.loadout)?'В полёт · сборка не применена':'В полёт')+'</div></footer></div>',state.controls);
 }
