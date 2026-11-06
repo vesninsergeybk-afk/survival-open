@@ -48,6 +48,16 @@ test('a different station cannot grant the reward and explains where to return',
  assert.match(html,/УЖЕ ЕСТЬ ЗАКАЗ/);
  assert.match(html,/Зачистка патрулей/);
 });
+test('an automatically received reward is clearly shown on the station home screen',()=>{
+ const receipt={ore:10,data:24,levelsGained:1,credited:true};
+ const summary=visiblePanel(renderBasePanel(home,state({lastContractReceipt:receipt})));
+ assert.match(summary,/base-auto-contract-receipt" role="status"/);
+ assert.match(summary,/Награда зачислена/);
+ assert.match(summary,/\+10 сплава · \+24 данных · \+24 опыта/);
+ assert.doesNotMatch(summary,/data-act="claimContract"/);
+ const old=visiblePanel(renderBasePanel(home,state()));
+ assert.doesNotMatch(old,/base-auto-contract-receipt/,'there is no reward banner before earning one');
+});
 
 test('claiming a completed contract stays more important than an unchosen earlier weapon reward',()=>{
  const local=visiblePanel(renderBasePanel(home,state({contract:mission,firstHardwareReward:'pending'})));

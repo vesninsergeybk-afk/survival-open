@@ -795,7 +795,12 @@ export function renderBasePanel(base,state){
   state.firstHardwareReward==='pending'?'<section class="base-home-reward"><h3>Вы получили новое оружие</h3>'+firstReward+'</section>':
   state.lastContractReceipt?.firstHardwareReward===state.firstHardwareReward&&Object.hasOwn(FIRST_CONTRACT_MODULES,state.firstHardwareReward)?
   stationNextStep(base,state,o):'';
- const dashboard=homeUrgent+suppression+
+ const receipt=state.lastContractReceipt;
+ const earnedReward=receipt&&!state.contract?'<section class="base-auto-contract-receipt" role="status" aria-label="Награда за заказ получена">'+
+  '<span class="base-kicker">ЗАКАЗ ЗАВЕРШЁН</span><strong>Награда зачислена</strong>'+
+  '<span class="base-auto-contract-values">+'+receipt.ore+' сплава · +'+receipt.data+
+  ' данных · +'+receipt.data+' опыта</span></section>':'';
+ const dashboard=earnedReward+homeUrgent+suppression+
   (threats?'<aside class="base-alert" role="status"><span>Противник угрожает связи станций.</span>'+
    action('baseTab','Посмотреть угрозы','','network')+'</aside>':'')+
   '<div class="base-quick-services">'+
