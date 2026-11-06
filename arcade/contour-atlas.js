@@ -1,7 +1,7 @@
 import {menuInfo} from './menu-screens.js?v=all-menus-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {baseNames} from './balance.js?v=arcade-network-20';
-import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt,contourReserveEligible} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
+import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt,contourReserveEligible} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1-contour-trials-1';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
@@ -15,6 +15,8 @@ import {firstContourPlan} from './contour-plan.js?v=map-ux-1';
 import {fluxSortieOffer,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
+import {productiveContourFields,pendingContourTrials,trialBlockingField} from './contour-trials.js?v=contour-trials-1';
+import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=contour-trials-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -154,6 +156,8 @@ function fieldArtwork(fields,world,center,scale,transition,overview=false){
  }).join('')}</g>`:'';
  const vortices=fields.map(f=>{
   const p=at(f.center,center,scale),a=at(f.anchor,center,scale);
+  const pending=trialBlockingField(world,f);
+  if(pending)return '';
   const size=overview ? .45 : 1,side=36*size;
   return `<g class="contour-vortex-map${fresh(f)?' contour-vortex-forming':''}">${overview?'':`<path d="M${digits(a.x)} ${digits(a.y)}L${digits(p.x)} ${digits(p.y)}" class="contour-harvest-route"/>`}
    <circle cx="${digits(p.x)}" cy="${digits(p.y)}" r="${digits(17*size)}" fill="#ff923010" stroke="#ee8e4666"/>
@@ -295,7 +299,9 @@ export function renderContourMap(game){
  if(region)for(const s of world.stations.values())if(s.active||s.discovered||s.strategicRole)map.set(s.id,s);
  const nodes=[...map.values()].filter(s=>{const p=at(s,center,scale);
   return p.x>18&&p.x<662&&p.y>18&&p.y<462;});
- const fields=contourFields(world),area=contourArea(fields),production=contourProduction(fields);
+ const fields=contourFields(world),area=contourArea(fields),
+  production=contourProduction(productiveContourFields(world,fields));
+ const trials=pendingContourTrials(world);
  const plan=region&&!fields.length?firstContourPlan(world,[...map.values()],
   game.contourFirst||game.contourSelection,game.player):null;
  // This also materializes the surveyed station locations for the full atlas.
@@ -334,7 +340,9 @@ export function renderContourMap(game){
  const player=at(game.player,center,scale),visiblePlayer=player.x>14&&player.x<666&&player.y>14&&player.y<466;
  const regions='<button data-act="contourRegion" data-id="all" aria-pressed="'+!region+'">Вся карта</button>'+
   REGIONS.map(r=>'<button data-act="contourRegion" data-id="'+r.id+'" aria-pressed="'+(region?.id===r.id)+'">'+r.number+' · '+esc(r.name)+'</button>').join('');
- const stage=transition?.kind==='claim'?'Контур замкнут · энергия заполняет новую территорию':
+ const stage=trials.length?'Нестабильных полей: '+trials.length+
+  ' · подлетите к восклицательному знаку, чтобы защитить территорию':
+  transition?.kind==='claim'?'Контур замкнут · энергия заполняет новую территорию':
   transition?.kind==='loss'?'Связь потеряна · границы поля отступают':
   area>0?'Поле действует · сборщики перевозят флюкс':
   plan?'Включите три отмеченные станции · '+plan.active+'/3 работают':
@@ -435,7 +443,7 @@ export function renderContourMap(game){
  }).join('');
  return `<div class="dialog map-dialog contour-dialog" role="dialog" aria-modal="true" aria-labelledby="map-menu-title">
   <header class="map-heading"><div><span class="map-kicker">СТРАТЕГИЧЕСКАЯ СЕТЬ</span><h2 id="map-menu-title">Контуры территорий</h2>
-  ${menuInfo('Как пользоваться контурами','Захватывайте и включайте станции. Подходящие соседние станции соединяются автоматически. Три замкнутых узла образуют территорию и создают энергетическую воронку. Нажатие на станцию показывает её состояние и ближайшие цели; на карте можно поставить путевую метку. Линии вручную строить не нужно.')}</div>
+  ${menuInfo('Как пользоваться контурами','Захватывайте и включайте станции. Подходящие соседние станции соединяются автоматически. Три замкнутых узла образуют территорию. Новое поле отмечено восклицательным знаком: подлетите к нему, отбейте нападение, и воронка начнёт добывать флюкс. Нажатие на станцию показывает её состояние и ближайшие цели; на карте можно поставить путевую метку. Линии вручную строить не нужно.')}</div>
   <div class="map-heading-actions"><span class="contour-wallet">Флюкс <b>${digits(world.contours.flux)}</b> / ${CONTOURS.fluxCap}</span>
   ${game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':''}<button data-act="close">Продолжить полёт</button></div></header>
   <nav class="map-view-switch" aria-label="Режим карты"><button data-act="mapView" data-id="map">${menuIcon('map')}Рядом</button>
@@ -460,7 +468,7 @@ export function renderContourMap(game){
    fieldArtwork(fields,world,center,scale,transition,true)+paths+
    trunkLines+enemyThreatArtwork(threats,center,scale)+incidentArtwork(game,null,center,scale)+
    overview}
-  ${reservePin}${sortiePin}${jamPins}${breachPins}${visiblePlayer?`<g class="contour-player-pin">${pilotGlyph(player.x,player.y)}<title>Ваш корабль</title></g>`:''}
+  ${pendingTrialMapArtwork(world,center,scale,at)}${reservePin}${sortiePin}${jamPins}${breachPins}${visiblePlayer?`<g class="contour-player-pin">${pilotGlyph(player.x,player.y)}<title>Ваш корабль</title></g>`:''}
   ${chartFrame(center,scale,{overview:!region})}</svg>
   ${mapTools(game)}</div>
   <div class="contour-legend"><span><i class="contour-key mine"></i> Своя</span><span><i class="contour-key unknown"></i> Не разведана</span><span><i class="contour-key dormant"></i> Не включена</span>
