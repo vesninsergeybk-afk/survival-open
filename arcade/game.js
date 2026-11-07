@@ -56,7 +56,7 @@ import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractR
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
- advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-3';
+ advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1';
@@ -180,9 +180,12 @@ const MODELS={
  allyscout:'../assets/space/ship_scout.png',
  allybomber:'../assets/space/ship_mage.png',
  fieldProps:'./assets/missions/field-props-v1.webp',
- relayStates:'./assets/missions/relay-states-v2.webp',
+ relayPoses:'./assets/missions/relay-poses-v3.webp',
+ relayRuined:'./assets/missions/relay-ruined-v1.webp',
  repairDrone:'./assets/missions/repair-drone-v1.webp',
  convoyHealth:'./assets/missions/convoy-health-v2.webp',
+ convoyWreck:'./assets/missions/convoy-wreck-v1.webp',
+ salvageCrate:'./assets/missions/salvage-crate-v1.webp',
  rock:'../assets/space/asteroid-ore.webp',
  rock2:'../assets/space/asteroid-realistic.webp'
 };

@@ -20,8 +20,9 @@ test('published module URLs expose the audited missions instead of cached statio
  const page=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(page,/src="\.\/game\.js\?v=[^"]*field-experience-1/);
+ assert.match(page,/src="\.\/game\.js\?v=[^"]*mission-art-5/);
  assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1-menu-prof-1'/);
- assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-3'/);
+ assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5'/);
 });
 
 test('illustrated objective props are drawn from one compact transparent sprite atlas',()=>{
@@ -48,20 +49,29 @@ const canvasRecorder=()=>{
  return {ctx,calls};
 };
 
-test('relay has actual dormant, opening and powered art without extra downloads per node',()=>{
- const relay=new URL('../assets/missions/relay-states-v2.webp',import.meta.url);
+test('relay has three real poses and a damaged convoy leaves its own wreck',()=>{
+ const relay=new URL('../assets/missions/relay-poses-v3.webp',import.meta.url);
+ const ruined=new URL('../assets/missions/relay-ruined-v1.webp',import.meta.url);
  const repair=new URL('../assets/missions/repair-drone-v1.webp',import.meta.url);
  const freighter=new URL('../assets/missions/convoy-health-v2.webp',import.meta.url);
+ const wreck=new URL('../assets/missions/convoy-wreck-v1.webp',import.meta.url);
+ const crate=new URL('../assets/missions/salvage-crate-v1.webp',import.meta.url);
  const gameSource=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.ok(statSync(relay).size<200_000);
+ assert.ok(statSync(ruined).size<90_000);
  assert.ok(statSync(repair).size<80_000);
  assert.ok(statSync(freighter).size<130_000);
- assert.match(gameSource,/relayStates:'\.\/assets\/missions\/relay-states-v2\.webp'/);
+ assert.ok(statSync(wreck).size<70_000);
+ assert.ok(statSync(crate).size<35_000);
+ assert.match(gameSource,/relayPoses:'\.\/assets\/missions\/relay-poses-v3\.webp'/);
+ assert.match(gameSource,/relayRuined:'\.\/assets\/missions\/relay-ruined-v1\.webp'/);
+ assert.match(gameSource,/convoyWreck:'\.\/assets\/missions\/convoy-wreck-v1\.webp'/);
+ assert.match(gameSource,/salvageCrate:'\.\/assets\/missions\/salvage-crate-v1\.webp'/);
  assert.match(gameSource,/repairDrone:'\.\/assets\/missions\/repair-drone-v1\.webp'/);
  assert.match(gameSource,/convoyHealth:'\.\/assets\/missions\/convoy-health-v2\.webp'/);
  const op=createFieldOperation('two-fronts',arsenal,world),game=fakeGame(op);
- const sprite={complete:true,naturalWidth:512,naturalHeight:256};
- game.images={relayStates:sprite};
+ const sprite={complete:true,naturalWidth:768,naturalHeight:256};
+ game.images={relayPoses:sprite};
  const {ctx,calls}=canvasRecorder();
  const cam={x:op.x,y:op.y,w:5000,h:5000};
  drawFieldOperation(game,ctx,cam);
@@ -69,9 +79,27 @@ test('relay has actual dormant, opening and powered art without extra downloads 
  op.nodes[0].progress=1.4;
  op.nodes[1].stabilized=true;op.nodes[1].fieldShield=40;
  calls.length=0;drawFieldOperation(game,ctx,cam);
- assert.equal(calls.filter(c=>c[0]==='drawImage'&&c[2]===256).length,2,
-  'charging and powered nodes use the second sprite in the same atlas');
+ assert.ok(calls.some(c=>c[0]==='drawImage'&&c[2]===256),
+  'the halfway pose fills the mechanical transition');
+ assert.ok(calls.some(c=>c[0]==='drawImage'&&c[2]===512),
+  'powered nodes use the third sprite, not an enlarged glow');
  assert.ok(calls.some(c=>c[0]==='lineTo'),'the raised shield has a faceted silhouette');
+ op.phase='failed';op.nodes.forEach(n=>n.hp=0);calls.length=0;
+ drawFieldOperation(game,ctx,cam);
+ assert.ok(calls.some(c=>c[0]==='drawImage'&&c[1]===sprite),
+  'failed nodes persist in the world until the sortie is cleared');
+ const ruinedSprite={complete:true,naturalWidth:256,naturalHeight:256};
+ game.images.relayRuined=ruinedSprite;game.time=6;op.nodes[0].fieldHullHitAt=5.88;
+ calls.length=0;drawFieldOperation(game,ctx,cam);
+ assert.ok(calls.some(c=>c[0]==='drawImage'&&c[1]===ruinedSprite),
+  'destroyed nodes crossfade to broken machinery');
+ assert.ok(calls.some(c=>c[0]==='drawImage'&&c[1]===sprite),
+  'the fatal transition keeps the old frame briefly');
+ game.time=7;calls.length=0;drawFieldOperation(game,ctx,cam);
+ assert.equal(calls.filter(c=>c[0]==='drawImage'&&c[1]===ruinedSprite).length,2,
+  'both destroyed nodes retain their real ruined frames');
+ assert.equal(calls.filter(c=>c[0]==='drawImage'&&c[1]===sprite).length,0,
+  'the intact art does not bleed through ruined machinery');
 });
 
 test('convoy only runs the engine while moving and shows a physical repair drone',()=>{
@@ -99,6 +127,72 @@ test('convoy only runs the engine while moving and shows a physical repair drone
  drawFieldOperation(game,ctx,cam);
  assert.equal(calls.filter(c=>c[0]==='drawImage'&&c[1]===hull).length,1,
   'after a successful repair the ship no longer shows painted holes');
+ game.images.fieldProps={complete:true,naturalWidth:1278,naturalHeight:1230};
+ game.fps=20;game.visuals={reducedMotion:true};op.artMoving=true;
+ calls.length=0;drawFieldOperation(game,ctx,cam);
+ assert.equal(calls.filter(c=>c[0]==='drawImage'&&c[1]===game.images.fieldProps).length,2,
+  'low FPS preserves two textured engine jets while the convoy moves');
+ game.player.x=op.x+400;game.player.y=op.y;
+ calls.length=0;drawFieldOperation(game,ctx,cam);
+ assert.ok(!calls.some(c=>c[0]==='drawImage'&&c[1]===sprite),
+  'the repair drone leaves when the pilot is outside the action radius');
+});
+
+test('destroyed convoy stays as a wreck with recoverable cargo instead of disappearing',()=>{
+ const op=createFieldOperation('broken-convoy',carrier,world),game=fakeGame(op);
+ const cue=[];game.heritage.play=kind=>cue.push(kind);
+ game.images={convoyWreck:{complete:true,naturalWidth:320,naturalHeight:160},
+  salvageCrate:{complete:true,naturalWidth:128,naturalHeight:128}};
+ op.phase='active';op.hp=0;game.time=9;
+ advanceFieldOperation(game,.1);
+ assert.equal(op.phase,'salvage');assert.equal(op.fieldDestroyedAt,9);
+ assert.deepEqual(cue,['explosion'],'wreck entry has exactly one real sound cue');
+ assert.ok(Math.abs(Math.hypot(op.crate.x-op.x,op.crate.y-op.y)-120)<.01);
+ const {ctx,calls}=canvasRecorder(),cam={x:op.x,y:op.y,w:4000,h:4000};
+ drawFieldOperation(game,ctx,cam);
+ assert.ok(calls.some(c=>c[0]==='drawImage'&&c[1]===game.images.convoyWreck));
+ assert.ok(calls.some(c=>c[0]==='drawImage'&&c[1]===game.images.salvageCrate),
+  'the cargo is visibly detachable and no longer merely an objective ring');
+ op.crate.progress=1.6;calls.length=0;drawFieldOperation(game,ctx,cam);
+ assert.match(fieldOperationCue(op,game),/ИЗВЛЕЧЕНИЕ 50%/);
+ assert.ok(calls.some(c=>c[0]==='arc'&&Math.abs(c[3]-37)<.01),
+  'halfway rescue fills half the progress circle around the visible crate');
+ op.phase='return';op.crate.done=true;calls.length=0;
+ drawFieldOperation(game,ctx,cam);
+ assert.ok(calls.some(c=>c[0]==='drawImage'&&c[1]===game.images.convoyWreck),
+  'salvaged wreck persists while the player returns to the base');
+ assert.ok(!calls.some(c=>c[0]==='drawImage'&&c[1]===game.images.salvageCrate),
+  'the recovered crate disappears after the action completes');
+});
+
+test('checkpoint preserves convoy wreck, salvage crate, and last heading without corrupting old saves',()=>{
+ const op=createFieldOperation('broken-convoy',carrier,world),game=fakeGame(op);
+ op.phase='active';op.hp=0;game.time=27;advanceFieldOperation(game,.1);
+ const saved=unpackRun(packRun({operation:op,station:{fieldMission:op},enemies:[]}));
+ assert.ok(validFieldOperation(saved.operation));
+ assert.equal(saved.operation.artHeading,op.artHeading);
+ assert.equal(saved.operation.fieldDestroyedAt,27);
+ assert.deepEqual(saved.operation.crate,op.crate);
+ const legacy={...saved.operation};delete legacy.artHeading;delete legacy.fieldDestroyedAt;
+ assert.ok(validFieldOperation(legacy),'older saves need no new art metadata');
+ assert.ok(!validFieldOperation({...legacy,crate:{...legacy.crate,x:Infinity}}),
+  'malformed salvage positions cannot be loaded');
+});
+
+test('convoy turns gradually and preserves its bearing when it reaches the station',()=>{
+ const op=createFieldOperation('broken-convoy',carrier,world),game=fakeGame(op);
+ op.phase='active';op.nextRaidAt=1000;
+ op.routeIndex=1;op.x=op.route[1].x;op.y=op.route[1].y;
+ game.player.x=op.x;game.player.y=op.y;
+ const oldHeading=op.artHeading;
+ advanceFieldOperation(game,.1);
+ const diff=Math.atan2(Math.sin(op.artHeading-oldHeading),Math.cos(op.artHeading-oldHeading));
+ assert.ok(Math.abs(diff)<=.18001,'the ship cannot instantly rotate at a waypoint');
+ op.phase='return';op.artMoving=true;
+ const {ctx,calls}=canvasRecorder();game.images={convoyHealth:{complete:true,naturalWidth:512,naturalHeight:157}};
+ drawFieldOperation(game,ctx,{x:op.x,y:op.y,w:4000,h:4000});
+ assert.ok(calls.some(c=>c[0]==='rotate'&&Math.abs(c[1]-op.artHeading)<.001));
+ assert.equal(calls.filter(c=>c[0]==='drawImage'&&c[1]===game.images.convoyHealth).length,1);
 });
 
 function fakeGame(op){
