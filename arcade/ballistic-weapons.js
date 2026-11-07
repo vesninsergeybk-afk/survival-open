@@ -1,4 +1,4 @@
-import {combatTargets,targetAlive,targetRadius,damageTarget,clearLine} from './combat-targets.js';
+import {combatTargets,targetAlive,targetRadius,damageTarget,clearLine} from './combat-targets.js?v=hit-feedback-1';
 import {firstRockImpact} from './terrain.js';
 import {contactAtPoint,contactOnCircle} from './impact-geometry.js';
 import {weaponDamageFactor} from './weapon-specializations.js';

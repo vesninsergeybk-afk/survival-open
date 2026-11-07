@@ -163,6 +163,8 @@ test('cover ends a shot on rock and an already killed target produces no second 
  const mark=blocked.weaponFx[0];
  assert.equal(mark.kind,'plasma');assert.equal(mark.blocked,true);
  assert.ok(mark.x2<190,'cover flash goes beyond the first rock');
+ assert.equal(blocked.combatHitFx?.length||0,0,
+  'a rock intercept must not fake a hull hit behind the cover');
  assert.ok(Math.abs(mark.profile.distance-
   Math.hypot(mark.x2-blocked.player.x,mark.y2-blocked.player.y))<1e-7,
   'a shot stopped by an asteroid must use the asteroid distance for damage and light');

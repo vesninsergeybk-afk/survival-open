@@ -2,9 +2,9 @@ import {weaponDamageFactor,penetrationFactor,plasmaBeamPower,rocketFlight} from 
 import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2-unified-controls-1-menu-focus-1-plasma-taper-1';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=rpg-precision-audit-1-expedition-1-campaign-1';
+import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=rpg-precision-audit-1-expedition-1-campaign-1-hit-feedback-1';
 import {emitWeaponFx} from './weapon-fx.js?v=plasma-taper-1';
-import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js';
+import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js?v=hit-feedback-1';
 
 export {updateFlakPellets,drawBallisticWeapons};
 
