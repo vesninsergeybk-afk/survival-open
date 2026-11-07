@@ -1,4 +1,4 @@
-import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1-menu-audit-1';
+import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1-menu-audit-1-plasma-taper-1';
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1';
 import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1';
@@ -49,9 +49,9 @@ import {manualWeapons,selectedManual,cycleManual,manualClick} from './manual-wea
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
-import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
+import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js?v=plasma-taper-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-plasma-taper-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
@@ -60,11 +60,12 @@ import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from '.
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 
-import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1';
+import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1-plasma-taper-1';
+import {plasmaFarRetention} from './weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2-plasma-taper-1';
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2-menu-rebuild-1-menu-audit-1';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1-all-menus-1-menu-reaudit-1-menu-audit-1';
-import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1-expedition-1-campaign-1-opening-tactics-1-weapon-mechanics-2-unified-controls-1';
+import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1-expedition-1-campaign-1-opening-tactics-1-weapon-mechanics-2-unified-controls-1-plasma-taper-1';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1-supply-stronghold-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2-expedition-1-campaign-1-first-loops-1';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3-expedition-1-campaign-1';
@@ -101,7 +102,7 @@ const TAU=Math.PI*2;
 const SKILLS=[
  {id:'beam',branch:'Оружие',title:'Калибровка орудий',max:5,from:2,desc:'Каждый ранг усиливает урон автоматических орудий и ионной цепи на 20%, темп автоогня на 8% от базового'},
  {id:'double',branch:'Оружие',title:'Разделение луча',max:2,from:4,requires:'beam',desc:'Делит плазменный залп между двумя или тремя ближайшими целями. По одиночной цели сохраняет всю мощность'},
- {id:'range',branch:'Оружие',title:'Фокусировка',max:3,from:3,desc:'Увеличивает рабочую дальность, не убирая спад силы'},
+ {id:'range',branch:'Оружие',title:'Фокусировка',max:3,from:3,desc:'Увеличивает дальность плазмы и уменьшает потерю силы вдали. Луч становится плотнее на всём протяжении.'},
  {id:'rocket',branch:'Оружие',title:'Авторакеты',max:3,from:5,desc:'Редкий сильный залп с полной дальнобойной силой'},
  {id:'hull',branch:'Корабль',title:'Укрепление корпуса',max:5,from:2,desc:'+22 к прочности и частичный ремонт'},
  {id:'engine',branch:'Корабль',title:'Импульсный форсаж',max:4,from:2,desc:'Ускоряет корабль и улучшает короткий рывок на Shift'},
@@ -130,8 +131,10 @@ function nextSkillEffect(id,rank,levels={}){
     ' · темп ×'+fmt(1+rank*.08)+' → ×'+fmt(1+n*.08)+' · тот же прирост урона ионной цепи';
   case 'double':return n===1?'Две цели получают по 60% залпа; одиночная — 100%':
     'Три цели получают по 45% залпа; две — по 60%; одиночная — 100%';
-  case 'range':return 'Дальность луча: '+moduleStats('plasma',{range:rank}).range+
-    ' → '+moduleStats('plasma',{range:n}).range+' м';
+  case 'range':return 'Плазма: дальность '+moduleStats('plasma',{range:rank}).range+
+    ' → '+moduleStats('plasma',{range:n}).range+' м · урон на пределе '+
+    Math.round(plasmaFarRetention(rank)*100)+'% → '+
+    Math.round(plasmaFarRetention(n)*100)+'%';
   case 'rocket':{
    const before=moduleStats('rocket',levels),after=moduleStats('rocket',{...levels,rocket:n});
    return rank===0?'Даст ракетный модуль: '+fmt(after.damage)+' урона каждые '+fmt(after.interval)+

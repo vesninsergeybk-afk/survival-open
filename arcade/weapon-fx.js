@@ -4,9 +4,11 @@
  * Every endpoint comes from a resolved shot in the combat code; rocket is a
  * launch-only mark because its missile already has a moving world sprite.
  *
- * No shadows, gradients, sprites or per-frame random numbers. Inexpensive
- * silhouettes remain visible at low FPS and with reduced motion enabled.
+ * No shadows, sprites or per-frame randomness. A short linear gradient makes
+ * plasma attenuation visible; the rest remains safe at low FPS.
  */
+import {plasmaBeamPower} from './weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2-plasma-taper-1';
+
 export const WEAPON_FX_KINDS=Object.freeze([
  'plasma','rail','flak','rocket','ion','resonator','howitzer'
 ]);
@@ -28,7 +30,14 @@ export function emitWeaponFx(game,kind,from,to,options={}){
   age:0,life:LIFE[kind],seed:seed%997,
   impact:kind==='rocket'?false:options.impact!==false,
   secondary:!!options.secondary,
-  blocked:!!options.blocked});
+  blocked:!!options.blocked,
+  profile:kind==='plasma'&&options.profile?{
+   distance:clamp(Number(options.profile.distance)||distance,0,2000),
+   range:clamp(Number(options.profile.range)||300,100,1000),
+   rangeRank:clamp(Number(options.profile.rangeRank)||0,0,3),
+   gain:clamp(Number(options.profile.gain)||1,.1,4),
+   spec:options.profile.spec?{path:options.profile.spec.path,
+    rank:options.profile.spec.rank}:null}:null});
  return true;
 }
 
@@ -68,24 +77,80 @@ function along(e,ux,uy,t,offset=0){
  const nx=-uy,ny=ux;
  return {x:e.x+(e.x2-e.x)*t+nx*offset,y:e.y+(e.y2-e.y)*t+ny*offset};
 }
+/** Readable energy at any point along the actual, already resolved trace. */
+export function plasmaVisualStrength(e,t){
+ const p=e.profile||{};
+ const length=p.distance??Math.hypot(e.x2-e.x,e.y2-e.y);
+ return plasmaBeamPower(length*clamp(t,0,1),p.range??300,p.rangeRank??0,p.spec);
+}
+function plasmaRibbon(c,e,ux,uy,widthAt,ink,alpha,steps){
+ const nx=-uy,ny=ux;
+ c.globalAlpha=alpha;c.fillStyle=ink;c.beginPath();
+ for(let i=0;i<=steps;i++){
+  const t=i/steps,r=widthAt(t)*.5;
+  const x=e.x+(e.x2-e.x)*t,y=e.y+(e.y2-e.y)*t;
+  if(i===0)c.moveTo(x+nx*r,y+ny*r);else c.lineTo(x+nx*r,y+ny*r);
+ }
+ for(let i=steps;i>=0;i--){
+  const t=i/steps,r=widthAt(t)*.5;
+  const x=e.x+(e.x2-e.x)*t,y=e.y+(e.y2-e.y)*t;
+  c.lineTo(x-nx*r,y-ny*r);
+ }
+ c.closePath?.();c.fill();
+}
+function plasmaTint(c,e,high,outer,endStrength){
+ const fallback=outer?'#53dbff':'#d2faff';
+ if(!high||typeof c.createLinearGradient!=='function')return fallback;
+ const gradient=c.createLinearGradient(e.x,e.y,e.x2,e.y2);
+ const tailAlpha=clamp(.17+.82*endStrength,.17,1);
+ if(outer){
+  gradient.addColorStop(0,'rgba(45,193,254,.85)');
+  gradient.addColorStop(1,`rgba(72,176,245,${(.85*tailAlpha).toFixed(3)})`);
+ }else{
+  gradient.addColorStop(0,'rgba(230,255,255,1)');
+  gradient.addColorStop(1,`rgba(138,229,255,${tailAlpha.toFixed(3)})`);
+ }
+ return gradient;
+}
 function drawPlasma(c,e,ux,uy,dist,fade,high,reducedMotion){
  const primary=e.blocked?'#ffc884':'#53dbff';
- if(high)line(c,e.x,e.y,e.x2,e.y2,e.secondary?9:18,primary,fade*.31);
- line(c,e.x,e.y,e.x2,e.y2,e.secondary?3.8:6.5,primary,fade*.94);
- if(high)line(c,e.x,e.y,e.x2,e.y2,1.8,'#ecffff',fade*.96);
- // Three packets give plasma its own rhythm at a glance. They travel only
- // along the already resolved hit segment and cannot strike another target.
+ const gain=Math.sqrt(clamp(e.profile?.gain??1,.1,4));
+ const strength=t=>clamp(plasmaVisualStrength(e,t),.12,1.5);
+ const thickness=t=>(.65+6.1*Math.pow(strength(t),1.25))*gain*(e.secondary?.67:1);
+ const endStrength=strength(1);
+ // A wide emitter and a single narrowing ribbon show where damage leaks
+ // away. Both thickness and brightness use the actual combat falloff.
+ plasmaRibbon(c,e,ux,uy,t=>thickness(t)*2.9,
+  e.blocked?'#ffbb81':plasmaTint(c,e,high,true,endStrength),fade*.28,high?10:6);
+ plasmaRibbon(c,e,ux,uy,thickness,
+  e.blocked?'#ffd6ae':plasmaTint(c,e,high,false,endStrength),fade*.91,high?10:6);
+ line(c,e.x,e.y,e.x2,e.y2,.72*gain,
+  e.blocked?'#fff1d4':plasmaTint(c,e,high,false,endStrength),fade*.72);
+ // Each fork represents energy lost from the main stream, not another hit.
+ // An upgraded focused beam keeps most of its power and makes fewer forks.
+ const lost=clamp(1-endStrength,0,1);
+ const forks=Math.min(high?5:2,Math.floor(lost*7));
+ for(let i=0;i<forks;i++){
+  const t=.42+i*.105,leak=clamp(1-strength(t),0,1);
+  const side=(i%2?1:-1)*(1+((e.seed+i*13)%3)*.11);
+  const root=along(e,ux,uy,t),joint=along(e,ux,uy,Math.min(.94,t+.055),side*(5+leak*10));
+  const tip=along(e,ux,uy,Math.min(.975,t+.11),side*(10+leak*22));
+  line(c,root.x,root.y,joint.x,joint.y,high?2.1:1.6,primary,fade*(.38+.28*leak));
+  line(c,joint.x,joint.y,tip.x,tip.y,high?1.2:.9,'#c8f6ff',fade*.54);
+ }
+ // Packets also thin along the beam; motion only changes their location.
  const shift=reducedMotion?0:clamp(e.age/e.life*.19,0,.19);
  for(let i=0;i<3;i++){
-  const p=along(e,ux,uy,.19+i*.29+shift);
-  if(high)orb(c,p.x,p.y,i===1?10:7.3,primary,fade*.26);
-  orb(c,p.x,p.y,high?4.3:3.3,'#dffeff',fade*.94);
+  const t=clamp(.15+i*.31+shift,0,.97),p=along(e,ux,uy,t),power=strength(t);
+  if(high)orb(c,p.x,p.y,(i===1?9:7)*power*gain,primary,fade*.22*power);
+  orb(c,p.x,p.y,(high?3.7:2.7)*power*gain,'#dffeff',fade*.9*power);
  }
- circle(c,e.x,e.y,high?10:7,2,'#92efff',fade);
- orb(c,e.x,e.y,high?5:4,'#b5f9ff',fade*.88);
+ circle(c,e.x,e.y,(high?10:7)*gain,2,'#92efff',fade);
+ orb(c,e.x,e.y,(high?5:4)*gain,'#b5f9ff',fade*.88);
  if(e.impact){
-  circle(c,e.x2,e.y2,high?15:9,2.4,primary,fade*.9);
-  orb(c,e.x2,e.y2,high?5:4,'#eaffff',fade*.9);
+  circle(c,e.x2,e.y2,(high?15:9)*Math.sqrt(endStrength)*gain,2.4,
+   primary,fade*.9*endStrength);
+  orb(c,e.x2,e.y2,(high?5:4)*endStrength*gain,'#eaffff',fade*.9*endStrength);
  }
 }
 function drawRail(c,e,ux,uy,dist,fade,high){

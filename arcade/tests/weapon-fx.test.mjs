@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
-import {WEAPON_FX_KINDS,WEAPON_FX_CAP,emitWeaponFx,updateWeaponFx,drawWeaponFx} from '../weapon-fx.js';
+import {WEAPON_FX_KINDS,WEAPON_FX_CAP,emitWeaponFx,updateWeaponFx,drawWeaponFx,plasmaVisualStrength} from '../weapon-fx.js';
 import {ArcadeHeritage} from '../heritage.js';
 import {updateHowitzer,updateFlakPellets,fireAimedRail} from '../ship-weapons.js';
 import {createFieldLoan} from '../field-weapons.js';
@@ -12,13 +12,14 @@ import {game} from './weapons-scene.mjs';
 
 const A={x:21,y:-19},B={x:281,y:57};
 function canvas(){
- const strokes=[],arcs=[];let path=[];
+ const strokes=[],arcs=[],fills=[];let path=[];
  const c={strokeStyle:null,lineWidth:0,globalAlpha:1,
-  save(){},restore(){},setLineDash(){},
+  save(){},restore(){},setLineDash(){},closePath(){},
   beginPath(){path=[];},moveTo(x,y){path.push({x,y});},lineTo(x,y){path.push({x,y});},
   arc(x,y,r){arcs.push({x,y,r});},
-  fill(){},stroke(){strokes.push({color:this.strokeStyle,width:this.lineWidth,alpha:this.globalAlpha,path:[...path]});}};
- return {c,strokes,arcs};
+  fill(){fills.push({color:this.fillStyle,alpha:this.globalAlpha,path:[...path]});},
+  stroke(){strokes.push({color:this.strokeStyle,width:this.lineWidth,alpha:this.globalAlpha,path:[...path]});}};
+ return {c,strokes,arcs,fills};
 }
 const enemy=(x,y=0)=>({x,y,r:15,hp:500,maxHp:500,type:'fighter',converted:false});
 const install=(g,id)=>{
@@ -72,6 +73,60 @@ test('reduced motion fixes animated anchors while normal mode advances them',()=
  }
 });
 
+test('plasma thins toward the real impact and each upgrade preserves more width',()=>{
+ const create=(rangeRank,spec=null)=>{
+  const g={time:3};
+  emitWeaponFx(g,'plasma',{x:0,y:0},{x:275,y:0},
+   {profile:{distance:300,range:300,rangeRank,spec,gain:1}});
+  const drawing=canvas();drawWeaponFx(drawing.c,g.weaponFx,60,true);
+  return {beam:g.weaponFx[0],drawing};
+ };
+ const basic=create(0),upgraded=create(3),focused=create(3,{path:'focus',rank:2});
+ assert.equal(plasmaVisualStrength(basic.beam,0),1);
+ assert.equal(plasmaVisualStrength(basic.beam,1),.28);
+ assert.equal(plasmaVisualStrength(upgraded.beam,1),.64);
+ assert.equal(plasmaVisualStrength(focused.beam,1),.90);
+ const ribbonWidths=value=>{
+  const path=value.drawing.fills[0].path,steps=(path.length-2)/2;
+  return {start:Math.abs(path[0].y-path.at(-1).y),
+   end:Math.abs(path[steps].y-path[steps+1].y)};
+ };
+ const a=ribbonWidths(basic),b=ribbonWidths(upgraded),c=ribbonWidths(focused);
+ assert.ok(a.start>a.end*2,'the first meter must look dramatically stronger than the tip');
+ assert.ok(a.end<b.end&&b.end<c.end,'the last meters remain visibly denser after upgrades');
+ const forks=result=>result.drawing.strokes.filter(stroke=>stroke.color==='#c8f6ff').length;
+ assert.ok(forks(basic)>forks(upgraded));
+ assert.ok(forks(upgraded)>forks(focused));
+});
+
+test('real plasma shots attach a frozen damage profile to their visual trace',()=>{
+ const g=game(),target=enemy(290);g.grid.insert(target);
+ g.skillRanks.range=2;
+ g.updateShipWeapons(.01);
+ const trace=g.weaponFx[0];
+ assert.equal(trace.kind,'plasma');
+ assert.equal(trace.profile.range,440);
+ assert.equal(trace.profile.rangeRank,2);
+ assert.ok(trace.profile.distance>275);
+ const actual=plasmaVisualStrength(trace,1);
+ const expected=(target.maxHp-target.hp)/(18*(g.skillRanks.beam*.2+1));
+ assert.ok(Math.abs(actual-expected)<1e-9,
+  'the far-end light density must match the actual applied falloff');
+});
+
+test('a stationary close target suffers more plasma damage than a distant one',()=>{
+ const fireAt=distance=>{
+  const g=game(),target=enemy(distance);g.grid.insert(target);
+  g.updateShipWeapons(.02);
+  return {damage:target.maxHp-target.hp,trace:g.weaponFx[0]};
+ };
+ const near=fireAt(85),far=fireAt(285);
+ assert.ok(near.damage>far.damage*2,'plasma must reward fighting close to the target');
+ assert.ok(near.trace.profile.distance<115);
+ assert.ok(far.trace.profile.distance>250);
+ assert.ok(plasmaVisualStrength(near.trace,1)>plasmaVisualStrength(far.trace,1));
+});
+
 test('missed rail does not invent a hit sparkle, rocket launch does not draw to target',()=>{
  const miss={time:1},hit={time:1},rocket={time:1};
  emitWeaponFx(miss,'rail',A,B,{impact:false});
@@ -108,6 +163,9 @@ test('cover ends a shot on rock and an already killed target produces no second 
  const mark=blocked.weaponFx[0];
  assert.equal(mark.kind,'plasma');assert.equal(mark.blocked,true);
  assert.ok(mark.x2<190,'cover flash goes beyond the first rock');
+ assert.ok(Math.abs(mark.profile.distance-
+  Math.hypot(mark.x2-blocked.player.x,mark.y2-blocked.player.y))<1e-7,
+  'a shot stopped by an asteroid must use the asteroid distance for damage and light');
  assert.equal(t.hp,500,'the visible cover cannot be bypassed');
 
  const multi=game(['rail','rail',null,null,null,null]);
@@ -240,9 +298,10 @@ test('visual laboratory is discoverable and uses production effects, not its own
  const js=readFileSync(new URL('../studio/weapon-fx-lab.js',import.meta.url),'utf8');
  const hub=readFileSync(new URL('../studio/index.html',import.meta.url),'utf8');
  assert.match(hub,/href="\.\/weapon-fx-lab\.html"/);
- for(const key of ['battle','families','fps','motion','sound','sequence'])
+ for(const key of ['battle','families','fps','motion','sound','sequence','plasmaRank','plasmaSpec','plasmaSummary'])
   assert.match(html,new RegExp('id="'+key+'"'));
- assert.match(js,/import \{emitWeaponFx,updateWeaponFx,drawWeaponFx\} from '\.\.\/weapon-fx\.js'/);
+ assert.match(js,/import \{emitWeaponFx,updateWeaponFx,drawWeaponFx\} from '\.\.\/weapon-fx\.js\?v=plasma-taper-1'/);
+ assert.match(js,/plasmaFarRetention/);
  assert.match(js,/import \{drawSeekingMissile\} from '\.\.\/combat-feedback\.js'/);
  assert.match(js,/import \{launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons\} from '\.\.\/ballistic-weapons\.js'/);
  assert.match(js,/import \{drawFieldEffects\} from '\.\.\/field-weapons\.js'/);

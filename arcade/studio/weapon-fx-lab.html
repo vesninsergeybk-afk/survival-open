@@ -25,6 +25,8 @@ canvas{display:block;width:100%;aspect-ratio:1060/560;touch-action:manipulation}
 .family:hover,.family:focus-visible{border-color:#8ca6ca}.family[aria-pressed="true"]{border-color:#8be2ff;background:#163950;box-shadow:inset 3px 0 #8be2ff;color:white}
 .family span{font:11px ui-monospace,monospace;color:#8ca2b8}
 .controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.plasma-controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:12px;padding:13px 15px;background:#0d2939;border:1px solid #356277;border-radius:11px}
+.plasma-controls[hidden]{display:none!important}.plasma-controls output{flex-basis:100%;color:#c8f6ff;font:12px/1.5 ui-monospace,monospace}
 button{cursor:pointer}button:focus-visible,a:focus-visible{outline:2px solid #83e5ff;outline-offset:3px}
 .button{background:#125279;color:#f2faff;border:1px solid #3c9dcb;padding:11px 16px;border-radius:9px;font-weight:700}
 .button.secondary{background:#162b41;border-color:#415f79;font-weight:600}
@@ -40,9 +42,9 @@ label{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#a9c1d
 <body>
 <main class="wrap">
  <header class="top">
-  <div><div class="eyebrow">Выживший / Боевая лаборатория / Проход 02</div>
+  <div><div class="eyebrow">Выживший / Боевая лаборатория / Проход 03</div>
   <h1>Почерк семи орудий</h1>
-  <p class="lead">У оружия разные световые следы и разные правила полёта. Сравните семь типов выстрелов и проверьте, как выглядят настоящие осколки и тяжёлый снаряд при низкой частоте кадров.</p></div>
+  <p class="lead">У оружия разные световые следы и разные правила полёта. Для плазмы можно сравнить, как меняются толщина, ветвление и настоящий дальний урон при улучшении корабля.</p></div>
   <a class="back" href="../index.html">← В действующую игру</a>
  </header>
  <section class="layout">
@@ -57,6 +59,11 @@ label{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#a9c1d
     <label><input type="checkbox" id="motion"> Без движения эффектов</label>
     <button class="button secondary" id="sound" aria-pressed="false">Звук выключен</button>
    </div>
+   <div class="plasma-controls" id="plasmaControls">
+    <label>Фокусировка <select id="plasmaRank"><option value="0">0 · 300 м</option><option value="1">I · 370 м</option><option value="2">II · 440 м</option><option value="3">III · 510 м</option></select></label>
+    <label>Специализация <select id="plasmaSpec"><option value="none">Обычный луч</option><option value="furnace1">Плазменный резак I</option><option value="furnace2">Плазменный резак II</option><option value="focus1">Дальний фокус I</option><option value="focus2">Дальний фокус II</option></select></label>
+    <output id="plasmaSummary" aria-live="polite">Урон на дальнем краю: 28% от ближнего</output>
+   </div>
    <div class="details"><div class="tag" id="role">Силуэт: связный световой импульс</div>
     <h2 id="name">Плазменный излучатель</h2><p id="desc">Световой импульс со сгустком энергии и читаемым контактом с целью.</p></div>
   </div>
@@ -66,6 +73,6 @@ label{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#a9c1d
  </section>
  <div class="caveat"><strong>Что здесь проверяется.</strong> Вспышки, осколочные снаряды и тяжёлый снаряд используют те же модули, что и основная игра. Ракета пользуется игровым изображением полёта, а взрывы — общим пулом эффектов. Корабли и мишени на стенде условные. Проверяется движение и столкновение с учебными целями; мир, задания, нагрев, опыт и полноценный боевой баланс запускаются только в самой игре.</div>
 </main>
-<script type="module" src="./weapon-fx-lab.js?v=weapon-mechanics-2"></script>
+<script type="module" src="./weapon-fx-lab.js?v=weapon-mechanics-2-plasma-taper-1"></script>
 </body>
 </html>

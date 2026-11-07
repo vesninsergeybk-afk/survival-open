@@ -1,6 +1,5 @@
-import {beamDamage} from './balance.js';
-import {MODULES,moduleStats,loadoutProfile} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-menu-focus-1';
-import {plasmaDamageFactor} from './weapon-specializations.js?v=weapons-cycle-2';
+import {MODULES,moduleStats,loadoutProfile} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-menu-focus-1-plasma-taper-1';
+import {plasmaBeamPower} from './weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2-plasma-taper-1';
 
 // One unarmored target, no cover or misses. Heat is reported separately, never
 // presented as a promise of sustained DPS. Additional flak targets aren't DPS
@@ -12,8 +11,8 @@ export function loadoutAnalysis(loadout,ranks={}){
   moduleStats(id,ranks,loadout.specializations?.[id])]));
  const damageAt=distance=>families.reduce((total,id)=>{
   const s=stats[id];if(!counts[id]||distance>s.range)return total;
-  const damage=id==='plasma'?beamDamage(s.damage,distance,115,s.range,.28)*
-   plasmaDamageFactor(loadout.specializations?.plasma,distance,s.range):s.damage;
+  const damage=id==='plasma'?s.damage*plasmaBeamPower(distance,s.range,
+   ranks.range||0,loadout.specializations?.plasma):s.damage;
   return total+damage*counts[id]/s.interval;
  },0);
  const heatRate=families.reduce((sum,id)=>sum+counts[id]*MODULES[id].heat/stats[id].interval,0);

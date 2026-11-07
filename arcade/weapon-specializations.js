@@ -3,7 +3,7 @@
 export const WEAPON_SPECIALIZATIONS=Object.freeze({
  plasma:Object.freeze({
   furnace:{name:'Плазменный резак',desc:'В пределах 150 м: +25% урона; мастерство +45%. Нужно держаться рядом с целью.'},
-  focus:{name:'Дальний фокус',desc:'На пределе дальности луч сохраняет 48% силы; мастерство — 60% вместо обычных 28%.'}
+  focus:{name:'Дальний фокус',desc:'На пределе дальности луч сохраняет 78% исходного урона, а с мастерством — 90%. Его световой сердечник дольше остаётся плотным.'}
  }),
  rail:Object.freeze({
   breaker:{name:'Охотник на тяжёлые цели',desc:'Урон по тяжёлым кораблям и ремонтникам +25%; мастерство +45%.'},
@@ -41,14 +41,30 @@ export function applySpecialization(loadout,id,path,context={}){
   specializations:{...loadout.specializations,[id]:{path,rank:quote.rank}}};
  return {...quote,loadout:upgraded,points:context.points-1,ore:context.ore};
 }
-export function plasmaDamageFactor(spec,d,range){
+export function plasmaDamageFactor(spec,d,range,baselineFloor=.28){
  if(!spec)return 1;
  if(spec.path==='furnace')return d<=150?(spec.rank>=2?1.45:1.25):1;
  if(spec.path==='focus'){
   const fraction=Math.max(0,Math.min(1,(d-115)/Math.max(1,range-115)));
-  return (1-(1-(spec.rank>=2?.60:.48))*fraction)/(1-.72*fraction);
+  return (1-(1-plasmaFarRetention(0,spec))*fraction)/
+   (1-(1-baselineFloor)*fraction);
  }
  return 1;
+}
+
+// One distance curve drives BOTH actual damage and the tapered beam artwork.
+// Range ranks improve reach and retention; the optional focus branch turns
+// plasma into a strong mid-range weapon without replacing the 700 m rail.
+export const plasmaFarRetention=(rangeRank=0,spec=null)=>{
+ if(spec?.path==='focus')return spec.rank>=2?.90:.78;
+ return [.28,.40,.52,.64][Math.max(0,Math.min(3,Math.floor(rangeRank)||0))];
+};
+export function plasmaBeamPower(distance,range=300,rangeRank=0,spec=null){
+ const t=Math.max(0,Math.min(1,(distance-115)/Math.max(1,range-115)));
+ const retention=plasmaFarRetention(rangeRank,spec);
+ const closeBonus=spec?.path==='furnace'&&distance<=150?
+  (spec.rank>=2?1.45:1.25):1;
+ return (1-(1-retention)*t)*closeBonus;
 }
 export function weaponDamageFactor(loadout,id,target){
  const spec=specializationState(loadout,id),type=target?.type;

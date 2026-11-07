@@ -1,10 +1,9 @@
-import {RULES,beamDamage} from './balance.js?v=arcade-balanced-bases-30';
-import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight} from './weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2';
-import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2-unified-controls-1-menu-focus-1';
+import {weaponDamageFactor,penetrationFactor,plasmaBeamPower,rocketFlight} from './weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2-plasma-taper-1';
+import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2-unified-controls-1-menu-focus-1-plasma-taper-1';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=rpg-precision-audit-1-expedition-1-campaign-1';
-import {emitWeaponFx} from './weapon-fx.js';
+import {emitWeaponFx} from './weapon-fx.js?v=plasma-taper-1';
 import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js';
 
 export {updateFlakPellets,drawBallisticWeapons};
@@ -44,12 +43,18 @@ function fireBeamFamily(game,id){
   for(let i=0;i<targets.length;i++){
    const item=targets[i],t=item.target,d=targetDistance(game.player,t);
    if(t.hp<=0)continue;
-   let damage=stats.damage*weaponDamageFactor(game.shipLoadout,id,t);
-   if(id==='plasma')damage=beamDamage(damage,d,RULES.nearBeam,stats.range,RULES.beamMinFactor)*
-    plasmaDamageFactor(game.shipLoadout.specializations?.plasma,d,stats.range)*weights[i]*
-    (game.doctrine==='assault'&&d<=180?1.22:1)*(game.nearArsenalBonus?1.18:1)*
-    (game.overchargeUntil>game.time?1.2:1);
    const {cover,point}=lineContact(game,from,item);
+   // A nearby asteroid is hit at its actual distance, not the distance of
+   // the distant enemy behind it. The visible taper follows the same path.
+   const impactDistance=id==='plasma'&&cover&&point?targetDistance(game.player,point):d;
+   let damage=stats.damage*weaponDamageFactor(game.shipLoadout,id,t),plasmaGain=1;
+   if(id==='plasma'){
+    plasmaGain=damage/18*weights[i]*
+     (game.doctrine==='assault'&&impactDistance<=180?1.22:1)*
+     (game.nearArsenalBonus?1.18:1)*(game.overchargeUntil>game.time?1.2:1);
+    damage=18*plasmaGain*plasmaBeamPower(impactDistance,stats.range,
+     game.skillRanks.range||0,game.shipLoadout.specializations?.plasma);
+   }
    if(cover){
     game.damageRock(cover.rock,damage*.85,from.x,from.y,'auto',true,point);
     const penetration=id==='rail'?penetrationFactor(game.shipLoadout):0;
@@ -64,7 +69,10 @@ function fireBeamFamily(game,id){
       {secondary:true,blocked:!!second});
     }
    }else damageTarget(game,item,damage,id==='plasma'?'beam':id,point);
-   emitWeaponFx(game,id,from,{x:point?.x??t.x,y:point?.y??t.y},{blocked:!!cover});
+   emitWeaponFx(game,id,from,{x:point?.x??t.x,y:point?.y??t.y},{blocked:!!cover,
+    profile:id==='plasma'?{distance:impactDistance,range:stats.range,
+     rangeRank:game.skillRanks.range||0,
+     spec:game.shipLoadout.specializations?.plasma||null,gain:plasmaGain}:undefined});
    firstFiredTarget??=t;
   }
   // A second mount may find the target already destroyed by the first.
