@@ -140,9 +140,24 @@ export function drawConvoyWreckArt(game,c,op,heading){
  }
  const age=op.fieldDestroyedAt===undefined?Infinity:
   Math.max(0,(game.time||0)-op.fieldDestroyedAt);
- if(age<1.2&&!quiet(game)){
-  const fade=1-age/1.2;
-  c.fillStyle='#ffbb74';c.globalAlpha=fade*.75;
+ if(age<1.85&&!quiet(game)){
+  const fade=clamp(1-age/1.85);
+  const debris=game.images?.convoyDebris;
+  if(ready(debris)&&debris.naturalWidth>=512&&debris.naturalHeight>=512){
+   // All four physical fragments come from the same painted hull. Deterministic
+   // trajectories make replay, pause and checkpoint restoration agree.
+   const fragments=[[-30,-22,-.88,-.72,-1,37],
+    [28,-18,.92,-.6,.8,49],[-30,22,-.95,.8,1.3,36],[31,20,1,.7,-1.1,43]];
+   const spread=age*55;
+   for(const [i,[x,y,dx,dy,spin,size]] of fragments.entries()){
+    c.save();c.translate(x+dx*spread,y+dy*spread);
+    c.rotate(spin*age*.75);c.globalAlpha=fade*.93;
+    c.drawImage(debris,(i%2)*256,Math.floor(i/2)*256,256,256,
+     -size/2,-size/2,size,size);c.restore();
+   }
+  }
+  // Residual incandescent metal: a short accent, never a second explosion.
+  c.fillStyle='#ffbb74';c.globalAlpha=fade*.65;
   for(let i=0;i<5;i++){
    const a=i*TAU/5+.35,r=23+age*(23+i*5);
    c.fillRect(25+Math.cos(a)*r,-4+Math.sin(a)*r,2.2,2.2);

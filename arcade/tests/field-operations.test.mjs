@@ -22,7 +22,7 @@ test('published module URLs expose the audited missions instead of cached statio
  assert.match(page,/src="\.\/game\.js\?v=[^"]*field-experience-1/);
  assert.match(page,/src="\.\/game\.js\?v=[^"]*mission-art-5/);
  assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1-menu-prof-1'/);
- assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5'/);
+ assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5-mission-av-1'/);
 });
 
 test('illustrated objective props are drawn from one compact transparent sprite atlas',()=>{
@@ -55,6 +55,7 @@ test('relay has three real poses and a damaged convoy leaves its own wreck',()=>
  const repair=new URL('../assets/missions/repair-drone-v1.webp',import.meta.url);
  const freighter=new URL('../assets/missions/convoy-health-v2.webp',import.meta.url);
  const wreck=new URL('../assets/missions/convoy-wreck-v1.webp',import.meta.url);
+ const debris=new URL('../assets/missions/convoy-debris-v1.webp',import.meta.url);
  const crate=new URL('../assets/missions/salvage-crate-v1.webp',import.meta.url);
  const gameSource=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.ok(statSync(relay).size<200_000);
@@ -62,10 +63,12 @@ test('relay has three real poses and a damaged convoy leaves its own wreck',()=>
  assert.ok(statSync(repair).size<80_000);
  assert.ok(statSync(freighter).size<130_000);
  assert.ok(statSync(wreck).size<70_000);
+ assert.ok(statSync(debris).size<75_000,'four painted fragments should stay inexpensive on mobile');
  assert.ok(statSync(crate).size<35_000);
  assert.match(gameSource,/relayPoses:'\.\/assets\/missions\/relay-poses-v3\.webp'/);
  assert.match(gameSource,/relayRuined:'\.\/assets\/missions\/relay-ruined-v1\.webp'/);
  assert.match(gameSource,/convoyWreck:'\.\/assets\/missions\/convoy-wreck-v1\.webp'/);
+ assert.match(gameSource,/convoyDebris:'\.\/assets\/missions\/convoy-debris-v1\.webp'/);
  assert.match(gameSource,/salvageCrate:'\.\/assets\/missions\/salvage-crate-v1\.webp'/);
  assert.match(gameSource,/repairDrone:'\.\/assets\/missions\/repair-drone-v1\.webp'/);
  assert.match(gameSource,/convoyHealth:'\.\/assets\/missions\/convoy-health-v2\.webp'/);
@@ -142,17 +145,23 @@ test('destroyed convoy stays as a wreck with recoverable cargo instead of disapp
  const op=createFieldOperation('broken-convoy',carrier,world),game=fakeGame(op);
  const cue=[];game.heritage.play=kind=>cue.push(kind);
  game.images={convoyWreck:{complete:true,naturalWidth:320,naturalHeight:160},
+  convoyDebris:{complete:true,naturalWidth:512,naturalHeight:512},
   salvageCrate:{complete:true,naturalWidth:128,naturalHeight:128}};
  op.phase='active';op.hp=0;game.time=9;
  advanceFieldOperation(game,.1);
  assert.equal(op.phase,'salvage');assert.equal(op.fieldDestroyedAt,9);
- assert.deepEqual(cue,['explosion'],'wreck entry has exactly one real sound cue');
+ assert.deepEqual(cue,['largeExplosion'],'wreck entry has exactly one heavy recorded sound cue');
  assert.ok(Math.abs(Math.hypot(op.crate.x-op.x,op.crate.y-op.y)-120)<.01);
  const {ctx,calls}=canvasRecorder(),cam={x:op.x,y:op.y,w:4000,h:4000};
  drawFieldOperation(game,ctx,cam);
  assert.ok(calls.some(c=>c[0]==='drawImage'&&c[1]===game.images.convoyWreck));
+ assert.equal(calls.filter(c=>c[0]==='drawImage'&&c[1]===game.images.convoyDebris).length,4,
+  'fatal wreck ejects four matching painted hull fragments');
  assert.ok(calls.some(c=>c[0]==='drawImage'&&c[1]===game.images.salvageCrate),
   'the cargo is visibly detachable and no longer merely an objective ring');
+ game.time=11.2;calls.length=0;drawFieldOperation(game,ctx,cam);
+ assert.ok(!calls.some(c=>c[0]==='drawImage'&&c[1]===game.images.convoyDebris),
+  'debris finishes its burst and does not persist as an infinite animated loop');
  op.crate.progress=1.6;calls.length=0;drawFieldOperation(game,ctx,cam);
  assert.match(fieldOperationCue(op,game),/ИЗВЛЕЧЕНИЕ 50%/);
  assert.ok(calls.some(c=>c[0]==='arc'&&Math.abs(c[3]-37)<.01),
@@ -163,6 +172,17 @@ test('destroyed convoy stays as a wreck with recoverable cargo instead of disapp
   'salvaged wreck persists while the player returns to the base');
  assert.ok(!calls.some(c=>c[0]==='drawImage'&&c[1]===game.images.salvageCrate),
   'the recovered crate disappears after the action completes');
+});
+
+test('a slow device retains the wreck but skips short-lived debris animation',()=>{
+ const op=createFieldOperation('broken-convoy',carrier,world),game=fakeGame(op);
+ op.phase='salvage';op.hp=0;op.fieldDestroyedAt=8;game.time=8.3;
+ game.fps=22;game.images={convoyWreck:{complete:true,naturalWidth:320,naturalHeight:160},
+  convoyDebris:{complete:true,naturalWidth:512,naturalHeight:512}};
+ const {ctx,calls}=canvasRecorder();
+ drawFieldOperation(game,ctx,{x:op.x,y:op.y,w:3000,h:3000});
+ assert.ok(calls.some(c=>c[0]==='drawImage'&&c[1]===game.images.convoyWreck));
+ assert.ok(!calls.some(c=>c[0]==='drawImage'&&c[1]===game.images.convoyDebris));
 });
 
 test('checkpoint preserves convoy wreck, salvage crate, and last heading without corrupting old saves',()=>{
@@ -372,6 +392,57 @@ test('one risky shield charge protects exactly one of two threatened nodes',()=>
  assert.ok(validFieldOperation(op));
  const copy=unpackRun(packRun({operation:op,station:{fieldMission:op},enemies:[]}));
  assert.equal(copy.operation.nodes[0].fieldShield,FIELD_TACTICS.shieldStrength-17);
+});
+
+test('mission strike plays shield, metal, and fatal impact recordings for the actual target',()=>{
+ const op=createFieldOperation('two-fronts',arsenal,world),game=fakeGame(op);
+ const target=op.nodes[0],sounds=[],effects=[];
+ game.heritage.play=kind=>sounds.push(kind);
+ game.heritage.vfx.nova=(...args)=>effects.push(args);
+ game.world={nearbyRocks:()=>[]};game.flash=()=>{};
+ const strike=(time)=>{
+  game.time=time;
+  const enemy={x:target.x+110,y:target.y,relayChargeUntil:time-1,
+   missionStrike:{range:200,charge:1,damage:17}};
+  RuntimeHarness.prototype.updateMissionStrike.call(game,enemy,target);
+ };
+ target.fieldShield=40;strike(2);
+ assert.equal(target.hp,100);assert.equal(sounds.at(-1),'shieldHit');
+ target.fieldShield=17;strike(4);
+ assert.equal(target.hp,100);assert.equal(sounds.at(-1),'shieldBreak');
+ strike(6);
+ assert.equal(target.hp,83);assert.equal(sounds.at(-1),'armorHit');
+ target.hp=10;strike(8);
+ assert.equal(target.hp,0);assert.equal(sounds.at(-1),'largeExplosion');
+ assert.ok(effects.some(e=>e[3]==='red'),'fatal relay hit visibly breaks the machinery');
+ assert.ok(!sounds.includes('damage'),'the player damage cue never fires on relay targets');
+});
+
+test('successful field actions trigger recorded cues and a short success flash',()=>{
+ const op=createFieldOperation('line-break',dock,world),game=fakeGame(op);
+ const sounds=[],effects=[];
+ game.heritage.play=kind=>sounds.push(kind);
+ game.heritage.vfx.nova=(...args)=>effects.push(args);
+ advanceFieldOperation(game,.1);
+ game.player.x=op.nodes[0].x;game.player.y=op.nodes[0].y;
+ game.actionHeld={kind:'field-work',target:op.nodes[0]};game.time=5.2;
+ advanceFieldOperation(game,5.2);
+ assert.ok(sounds.includes('fieldWork'));
+ assert.ok(sounds.includes('fieldRelayRepair'));
+ assert.ok(effects.some(e=>e[3]==='cyan'));
+ const beacon=createFieldOperation('false-call',lab,world),check=fakeGame(beacon);
+ const beaconCues=[];check.heritage.play=kind=>beaconCues.push(kind);
+ advanceFieldOperation(check,.1);
+ const wrong=beacon.beacons.find((b,i)=>i!==beacon.correct);
+ check.player.x=wrong.x;check.player.y=wrong.y;
+ check.actionHeld={kind:'field-work',target:wrong};check.time=2;
+ advanceFieldOperation(check,2);
+ assert.ok(beaconCues.includes('fieldBeaconAlarm'));
+ const right=beacon.beacons[beacon.correct];
+ check.player.x=right.x;check.player.y=right.y;
+ check.actionHeld={kind:'field-work',target:right};check.time=4;
+ advanceFieldOperation(check,2);
+ assert.ok(beaconCues.includes('fieldBeaconOk'));
 });
 
 test('claiming a field operation pays once, reduces repeats, and keeps station identity',()=>{

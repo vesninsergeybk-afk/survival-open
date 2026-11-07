@@ -1,5 +1,5 @@
 import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1';
-import {AudioEngine} from '../src/audio.js?v=foley-autofire-03';
+import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=foley-autofire-03';
 
@@ -13,13 +13,20 @@ const SOUND_IDS=Object.freeze({
  hit:'hit',
  explosion:'explosion_small',rocketImpact:'explosion_small',largeExplosion:'explosion_big',
  armorHit:'armor_hit',
+ shieldHit:'shield_hit',shieldBreak:'field_shield_break',
  pickup:'pickup',levelUp:'level_up',damage:'player_damage',
  death:'player_death',hack:'base_resonance_link',boss:'boss_spawn',
  boost:'engine',allyShot:'orbit',ramWarning:'boss_warning',
  strikeCall:'drone_swarm',orbitalWarning:'base_raid_warning',
  ionWarning:'boss_warning',carrierPulse:'world_ion',criticalHull:'boss_warning',
  droneDestroyed:'explosion_small',capturedBase:'base_resonance_link',
- upgrade:'upgrade_standard',doctrine:'unlock_tech_tier'
+ upgrade:'upgrade_standard',doctrine:'unlock_tech_tier',
+ fieldWork:'field_work',fieldShieldUp:'field_shield_up',
+ fieldRelayRepair:'field_relay_repair',fieldConvoyRepair:'field_convoy_repair',
+ fieldBeaconOk:'field_beacon_ok',fieldBeaconAlarm:'field_beacon_alarm',
+ fieldSalvage:'field_salvage',fieldCassette:'field_cassette',
+ fieldRaid:'field_raid',fieldScan:'field_scan',
+ fieldReactorCharge:'field_reactor_charge',fieldPulse:'field_pulse'
 });
 function storedVolumes(){
  try{

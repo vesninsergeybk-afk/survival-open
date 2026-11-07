@@ -4,7 +4,7 @@ import {ENEMY_TYPES} from './ai.js?v=field-operations-1';
 import {RULES} from './balance.js?v=field-operations-1';
 import {recordEconomyExpense} from './sortie-ledger.js?v=economy-ledger-1';
 import {drawRelayArt,drawConvoyEngineArt,drawConvoyHullArt,drawConvoySurfaceArt,
- drawConvoyWreckArt,drawSalvageCrateArt} from './field-operation-art.js?v=mission-art-5';
+ drawConvoyWreckArt,drawSalvageCrateArt} from './field-operation-art.js?v=mission-art-6';
 
 export const FIELD_TACTICS=Object.freeze({shieldStrength:40,shieldHold:2.8,
  convoyRepairCost:6,convoyRepairStrength:35,convoyRepairHold:4});
@@ -95,7 +95,7 @@ function beginConvoySalvage(game,op,message){
  op.crate={x:op.x+Math.cos(a)*120,y:op.y+Math.sin(a)*120,
   goal:3.2,progress:0,done:false};
  game.heritage.vfx.nova(op.x,op.y,90,'red');
- game.heritage.play('explosion',.28,{x:op.x,y:op.y});
+ game.heritage.play('largeExplosion',.28,{x:op.x,y:op.y});
  game.notice(message,5);
 }
 const validSite=(world,p,r=80)=>!world.nearbyRocks(p.x,p.y,r+70).some(rock=>
@@ -259,13 +259,17 @@ function advanceFieldWork(game,op,dt){
   op.id==='broken-convoy'&&op.phase==='active'?op.fieldRepair===target&&!target.used&&op.hp>0:
   op.id==='broken-convoy'?op.crate===target&&!target.done:false;
  if(!valid)return;
+ if(game.time-(op.lastWorkCueAt??-Infinity)>=1.1){
+  op.lastWorkCueAt=game.time;
+  game.heritage.play('fieldWork',.9,{x:target.x,y:target.y});
+ }
  target.progress=Math.min(target.goal,target.progress+dt);
  if(target.progress<target.goal)return;
  if(op.id==='two-fronts'){
   target.stabilized=true;target.fieldShield=FIELD_TACTICS.shieldStrength;
   target.fieldPoweredAt=game.time;
   op.shieldChargeUsed=true;
-  game.heritage.play('hack',.2,{x:target.x,y:target.y});
+  game.heritage.play('fieldShieldUp',.2,{x:target.x,y:target.y});
   game.heritage.vfx.nova(target.x,target.y,70,'cyan');
   game.notice('Резервный щит заряжен на одном узле. Второй остаётся без дополнительной защиты.',4.5);
  }else if(op.id==='broken-convoy'&&op.phase==='active'){
@@ -275,24 +279,34 @@ function advanceFieldWork(game,op,dt){
    recordEconomyExpense(game,'repairs',FIELD_TACTICS.convoyRepairCost);
    op.hp=Math.min(100,op.hp+FIELD_TACTICS.convoyRepairStrength);target.used=true;
    op.fieldRepairedAt=game.time;
-   game.heritage.play('upgrade',.2,{x:op.x,y:op.y});
+   game.heritage.play('fieldConvoyRepair',.2,{x:op.x,y:op.y});
    game.heritage.vfx.nova(op.x,op.y,80,'cyan');
    game.notice('Транспорт восстановил 35% корпуса. Ремонтный комплект израсходован. Продолжайте сопровождение.',5);}
  }else if(op.id==='false-call'){
   target.checked=true;op.checks++;
   const index=op.beacons.indexOf(target);
   if(index===op.correct){op.phase='return';op.partial=op.checks>1;
+   game.heritage.play('fieldBeaconOk',.2,{x:target.x,y:target.y});
+   game.heritage.vfx.nova(target.x,target.y,44,'violet');
    game.notice('Поддельный маяк раскрыт. '+(op.partial?'Тревога уже поднята. ':'')+'Вернитесь в лабораторию.',5);
   }else{
+   game.heritage.play('fieldBeaconAlarm',.2,{x:target.x,y:target.y});
+   game.heritage.vfx.nova(target.x,target.y,53,'red');
    spawnFieldEnemy(game,op,'scout',target);
    game.notice('Неверный позывной! Перехватчики получили сигнал тревоги. Сравните оставшиеся импульсы.',4);
    const next=op.beacons.find(b=>!b.checked);if(next){op.x=next.x;op.y=next.y;}
   }
  }else if(op.id==='broken-convoy'){
   target.done=true;op.partial=true;op.phase='return';
+  game.heritage.play('fieldSalvage',.2,{x:target.x,y:target.y});
+  game.heritage.vfx.nova(target.x,target.y,42,'gold');
   game.notice('Уцелевший контейнер спасён. Вернитесь на авианосец за частичной наградой.',5);
  }else{
   target.done=true;op.progress++;
+  game.heritage.play(op.id==='line-break'?'fieldRelayRepair':'fieldCassette',.2,
+   {x:target.x,y:target.y});
+  game.heritage.vfx.nova(target.x,target.y,op.id==='line-break'?47:32,
+   op.id==='line-break'?'cyan':'gold');
   if(op.id==='line-break'&&op.progress===1){
    op.guardsSent=true;
    spawnFieldEnemy(game,op,'fighter',op.nodes[1]);
@@ -395,16 +409,20 @@ export function advanceFieldOperation(game,dt){
   else op.resonance=Math.max(0,op.resonance-dt*5);
   if(op.resonance>=58&&!op.alerted){
    const enemy=spawnFieldEnemy(game,op,'flanker',miningSample||op);
-   if(enemy){op.alerted=true;game.notice('Резонанс заметили перехватчики! Продолжайте добычу или отступайте.',4);}
+   if(enemy){op.alerted=true;
+    game.heritage.play('fieldRaid',.2,{x:enemy.x,y:enemy.y});
+    game.notice('Резонанс заметили перехватчики! Продолжайте добычу или отступайте.',4);}
   }
   if(op.resonance>=90&&game.time>=op.nextPulse){
    op.nextPulse=game.time+5;op.pulseUntil=game.time+1.5;
+   game.heritage.play('fieldReactorCharge',.2,{x:op.x,y:op.y});
    game.notice('КРИТИЧЕСКИЙ РЕЗОНАНС: отойдите от залежи!',2.5);
   }
   if(op.pulseUntil>0&&game.time>=op.pulseUntil){
    op.pulseUntil=0;
    const source=op.samples.find(s=>!s.done)||op;
    game.heritage.vfx.nova(source.x,source.y,160,'violet');
+   game.heritage.play('fieldPulse',.2,{x:source.x,y:source.y});
    if(distance(game.player,source)<165)game.hurt(12,source);
    op.resonance=38;
   }
@@ -416,6 +434,7 @@ export function advanceFieldOperation(game,dt){
   op.x=enemy.x;op.y=enemy.y;
   if(game.time>=op.scanAt&&op.scanUntil<=game.time){
    op.scanUntil=game.time+1.6;op.scanAt=game.time+7.4;op.cycle++;
+   game.heritage.play('fieldScan',.2,{x:enemy.x,y:enemy.y});
    game.notice('ЗРАЧОК РАСКРЫВАЕТ СКАНЕР! Держитесь на дистанции 130–310 м.',2.7);
   }
   if(op.scanUntil>0&&game.time>=op.scanUntil){
@@ -442,6 +461,7 @@ export function advanceFieldOperation(game,dt){
     if(e)spawned.push(e.serial);
    }
    if(spawned.length){op.wave++;op.enemySerials.push(...spawned);op.nextWaveAt=Infinity;
+    game.heritage.play('fieldRaid',.2,{x:op.x,y:op.y});
     game.notice('ВОЛНА '+op.wave+'/'+wavesTotal+': перехватчики выходят к двум узлам. Смотрите направления залпов.',4.5);}
   }
   for(const enemy of game.enemies){
@@ -462,11 +482,13 @@ export function advanceFieldOperation(game,dt){
   const core=op.core||op;
   if(game.time>=op.pulseAt&&op.pulseUntil<=game.time){
    op.pulseUntil=game.time+1.6;op.pulseAt=game.time+8.4-.5*(op.threatTier||0);
+   game.heritage.play('fieldReactorCharge',.2,{x:core.x,y:core.y});
    game.notice('РЕАКТОР ЗАРЯЖАЕТСЯ! Выйдите за 270 м до выброса.',2.8);
   }
   if(op.pulseUntil>0&&game.time>=op.pulseUntil){
    op.pulseUntil=0;
    game.heritage.vfx.nova(core.x,core.y,270,'violet');
+   game.heritage.play('fieldPulse',.2,{x:core.x,y:core.y});
    if(distance(game.player,core)<270)game.hurt(15+4*(op.threatTier||0),core);
   }
  }else if(op.id==='broken-convoy'){
@@ -500,6 +522,7 @@ export function advanceFieldOperation(game,dt){
    const raid=spawnFieldEnemy(game,op,op.routeChoice==='fast'?'flanker':'fighter',op,op,op.escortSerials.length);
    if(raid){op.escortSerials.push(raid.serial);
     op.nextRaidAt=game.time+(op.routeChoice==='fast'?7:18)*(1-.12*(op.threatTier||0));
+    game.heritage.play('fieldRaid',.2,{x:raid.x,y:raid.y});
     game.notice('Нападение на конвой! Перехватите корабль до прицельного залпа.',4);}
   }
   for(const enemy of game.enemies)if(enemy.fieldOperation===op.id&&enemy.missionStrike&&

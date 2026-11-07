@@ -1,5 +1,5 @@
-import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03';
-import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03';
+import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03-mission-av-1';
+import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03-mission-av-1';
 import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
 import { MUSIC_TRACKS, MUSIC_POOLS, MusicRotation } from '../arcade/music-playlist.js?v=cinematic-rotation-01';
 
@@ -97,7 +97,11 @@ export class AudioEngine {
                 // Decode a few CC0 effects at a time; mobile startup must stay playable.
                 const priority = ['starter_soft','magic_wand','knife','explosion_small',
                     'explosion_big','hit','armor_hit','rock_chip','rock_break','pickup',
-                    'ui_tab','ui_open','player_damage','boss_warning','extractor_loop'];
+                    'ui_tab','ui_open','player_damage','boss_warning','extractor_loop',
+                    'shield_hit','field_shield_up','field_shield_break',
+                    'field_relay_repair','field_convoy_repair','field_beacon_ok',
+                    'field_beacon_alarm','field_salvage','field_cassette',
+                    'field_scan','field_reactor_charge','field_pulse','field_work','field_raid'];
                 const sounds = Object.entries(SOUND_CATALOG)
                     .sort(([a],[b]) => (priority.indexOf(a) < 0 ? 999 : priority.indexOf(a)) -
                         (priority.indexOf(b) < 0 ? 999 : priority.indexOf(b)));

@@ -142,7 +142,22 @@ export const AUX_SOUNDS = {
   ambient_siege: cue('Осадный фон','ambient',k('spaceEngineLarge_000'),.11,1,9500,4.2),
   rock_chip: cue('Крошка руды','impact',k('impactMining_001'),.16,1,85,.2),
   rock_break: cue('Разлом астероида','impact',k('impactMining_003'),.29,2,155,.55),
-  extractor_loop: cue('Работа экстрактора','ambient',k('engineCircular_000'),.12,1,500,.9)
+  extractor_loop: cue('Работа экстрактора','ambient',k('engineCircular_000'),.12,1,500,.9),
+  // Mission cues are recorded CC0 foley; each is attached to a real state
+  // transition, not to a frame of animation or an unread notice.
+  field_work: cue('Работа с оборудованием','structure',b('base_repair_pulse'),.11,1,900,.42),
+  field_shield_up: cue('Включение резервного щита','structure',b('base_shield_engage'),.29,3,900,1.15),
+  field_shield_break: cue('Разрушение щита узла','impact',b('base_shield_break'),.32,3,750,.85),
+  field_relay_repair: cue('Связь восстановлена','structure',b('base_resonance_link'),.28,3,600,1.0),
+  field_convoy_repair: cue('Восстановление корпуса конвоя','structure',b('base_repair_pulse'),.33,3,650,.85),
+  field_beacon_ok: cue('Найден поддельный маяк','ui',b('base_raid_success'),.23,3,750,.9),
+  field_beacon_alarm: cue('Маяк поднял тревогу','ui',b('base_raid_warning'),.24,4,1400,1.15),
+  field_salvage: cue('Уцелевший контейнер поднят','structure',k('doorOpen_002'),.24,3,500,.7),
+  field_cassette: cue('Кассета извлечена','structure',k('doorClose_001'),.19,2,350,.5),
+  field_raid: cue('Нападение на оборудование','ui',b('base_raid_warning'),.19,3,1400,1.0),
+  field_scan: cue('Опасный сканер раскрыт','ambient',k('computerNoise_001'),.23,3,1100,1.1),
+  field_reactor_charge: cue('Реактор готовится к выбросу','ambient',k('computerNoise_001'),.23,3,1300,1.1),
+  field_pulse: cue('Разряд аномалии','impact',k('forceField_002'),.29,3,750,.85)
 };
 
 AUX_SOUNDS.ui_slider.sampleUrls = [k('impactMetal_heavy_000'),k('impactMetal_heavy_001')];

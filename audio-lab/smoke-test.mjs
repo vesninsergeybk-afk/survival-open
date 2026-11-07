@@ -55,6 +55,12 @@ for(const name of ['ui_open','ui_tab','world_discover','scene_alert',
  'ambient_void','rock_chip','rock_break','extractor_loop']){
  assert(AUX_SOUNDS[name]?.sampleUrl,'Missing recorded environment/UI cue: '+name);
 }
+for(const name of ['field_work','field_shield_up','field_shield_break',
+ 'field_relay_repair','field_convoy_repair','field_beacon_ok','field_beacon_alarm',
+ 'field_salvage','field_cassette','field_raid','field_scan',
+ 'field_reactor_charge','field_pulse']){
+ assert(AUX_SOUNDS[name]?.sampleUrl,'Mission scene has no recorded cue: '+name);
+}
 assert.equal(Object.keys(BASE_SOUNDS).length,29);
 assert.equal(Object.keys(EVENT_SOUNDS).length,13);
 assert.equal(WEAPON_SOUNDS.starter_soft.sampleUrls.length,5);

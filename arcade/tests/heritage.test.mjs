@@ -62,6 +62,21 @@ test('rockets use the real sound catalog key instead of an absent weapon',()=>{
  assert.deepEqual(shots,['knife']);
 });
 
+test('field operation feedback maps to dedicated recorded sound events',()=>{
+ const h=new ArcadeHeritage(),events=[];
+ h.soundOn=true;
+ h.audio={playEvent:key=>events.push(key)};
+ for(const kind of ['shieldHit','shieldBreak','fieldShieldUp','fieldRelayRepair',
+  'fieldConvoyRepair','fieldBeaconAlarm','fieldBeaconOk','fieldSalvage',
+  'fieldCassette','fieldScan','fieldReactorCharge','fieldPulse','fieldWork','fieldRaid'])
+  assert.equal(h.play(kind,.1),true,'missing audio mapping for '+kind);
+ assert.deepEqual(events,['shield_hit','field_shield_break','field_shield_up',
+  'field_relay_repair','field_convoy_repair','field_beacon_alarm',
+  'field_beacon_ok','field_salvage','field_cassette','field_scan',
+  'field_reactor_charge','field_pulse','field_work','field_raid']);
+ assert.ok(!events.includes('player_damage'));
+});
+
 test('menu, discoveries and recorded motifs only play when audio is enabled',()=>{
  const h=new ArcadeHeritage(),calls=[];
  h.audio={playEvent:(key,options)=>calls.push({key,...options}),setMusicState:()=>{}};
