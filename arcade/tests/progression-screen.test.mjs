@@ -81,7 +81,10 @@ test('network nodes link to the existing station services; they do not pretend t
  const g=docked(),model=progressionModel(state(g,'network'));
  assert.equal(model.nodes.length,3);
  assert.ok(model.nodes.every(n=>n.action==='baseTab'&&n.actionId==='network'));
- assert.match(renderProgressionScreen(state(g,'network')),/data-act="baseTab" data-id="network" data-role="network"/);
+ const html=renderProgressionScreen(state(g,'network'));
+ assert.match(html,/data-act="baseTab" data-id="network" data-role="network"/);
+ assert.match(html,/Системы станции/);
+ assert.doesNotMatch(html,/0\/1 · доступно/);
 });
 
 test('special weapons with no purchase tree still have a real route to fitting',()=>{

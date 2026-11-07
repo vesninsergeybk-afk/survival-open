@@ -182,7 +182,7 @@ function networkNodes(state){
    description:'Связь с домашним доком, перелёты и сеть станций.',
    effect:'В радиосети дока сейчас '+linked+' станц.',
    activation:'Откройте раздел «Станция»: там указаны реальные маршруты и условия связи.'}
- ].map(n=>({...n,rank:0,max:1,status:'ready',reason:'',action:'baseTab',actionId:'network',
+ ].map(n=>({...n,kind:'navigation',rank:0,max:1,status:'ready',reason:'',action:'baseTab',actionId:'network',
   actionLabel:'Открыть раздел станции',canAct:true,cost:'По условиям станции'}));
 }
 
@@ -210,14 +210,14 @@ function nodeHtml(node,selected){
   ' aria-label="'+esc(node.title)+', '+esc(node.status==='mastered'?'изучено':node.reason||'доступно')+'">'+
   '<span class="prog-node-art"><img src="'+art('frames','node_'+(selected?.id===node.id?'selected':node.status==='mastered'?'mastered':node.status==='ready'||node.status==='info'?'ready':'locked'))+'" alt="" class="prog-node-frame">'+
   '<img src="'+esc(node.icon)+'" alt="" class="prog-node-glyph"></span>'+
-  '<strong>'+esc(node.title)+'</strong><small>'+(node.kind==='equipment'?(node.rank?'Установлено':'Оснащение'):node.rank+'/'+node.max+
+  '<strong>'+esc(node.title)+'</strong><small>'+(node.kind==='navigation'?'Открыть раздел':node.kind==='equipment'?(node.rank?'Установлено':'Оснащение'):node.rank+'/'+node.max+
    (node.status==='ready'?' · доступно':node.status==='mastered'?' · изучено':''))+'</small></button>';
 }
 
 function treeHtml(nodes,selected){
  const groups=new Map();for(const node of nodes){const level=node.level||1;if(!groups.has(level))groups.set(level,[]);groups.get(level).push(node);}
  return '<div class="prog-tree" aria-label="Настоящие навыки и условия развития"><svg class="prog-tree-links" aria-hidden="true"></svg>'+
-  [...groups].sort(([a],[b])=>a-b).map(([level,entries])=>'<section class="prog-tier"><h3>Уровень '+level+'</h3><div class="prog-tier-nodes">'+
+  [...groups].sort(([a],[b])=>a-b).map(([level,entries])=>'<section class="prog-tier"><h3>'+(entries.every(n=>n.kind==='navigation')?'Системы станции':'Уровень '+level)+'</h3><div class="prog-tier-nodes">'+
     entries.map(n=>nodeHtml(n,selected)).join('')+'</div></section>').join('')+'</div>';
 }
 
@@ -230,7 +230,7 @@ function detailHtml(node,domain,weapon,state){
  const fieldMounted=state.fieldLoan&&state.loadout?.slots?.includes(state.fieldLoan.moduleId||'ion');
  const fieldCollision=domain==='tactics'&&node.id.startsWith('tactic-')&&fieldMounted?
   'Сейчас клавиша '+key('field')+' занята установленным полевым оружием. Пока оно установлено, полевое устройство не запускается.':null;
- const status=node.status==='info'?'Оборудование':node.status==='mastered'?'Изучено':node.status==='ready'?'Доступно':
+ const status=node.kind==='navigation'?'Раздел станции':node.status==='info'?'Оборудование':node.status==='mastered'?'Изучено':node.status==='ready'?'Доступно':
   node.status==='exclusive'?'Другая ветка выбрана':node.status==='waiting'?'Ждёт ресурса':'Закрыто';
  const cta='<button type="button" class="prog-action" data-act="'+esc(node.action)+'"'+
   (node.actionId?' data-id="'+esc(node.actionId)+'"':'')+(node.action==='baseTab'?' data-role="network"':'')+
