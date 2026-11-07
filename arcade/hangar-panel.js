@@ -185,7 +185,8 @@ export function renderShipHangar(state,session=state.hangarSession){
   accessible.every(item=>moduleStock(current,draft,context,item.id).free===0);
  const stockGuide=noFreeStock?'<p class="hg-note hg-stock-guidance">'+
   (context.firstHardwareReward==='pending'?'Бесплатное оружие уже заработано. Вернитесь в «Задания», выберите награду и затем установите её здесь.':
-   context.firstHardwareReward===null?'На складе пока нет второго орудия. После первого сданного полевого заказа Вы получите новое оружие бесплатно. Или изготовьте доступный модуль за сплав.':
+   context.firstHardwareReward===null?'На складе пока нет второго постоянного орудия. Первый сданный полевой заказ даст оружие на выбор; другой модуль можно изготовить за сплав.'+
+    (context.fieldTrialTaken===false&&!context.fieldLoan?' Бесплатный пробный модуль доступен в «Обзоре» стартового дока.':''):
    'Свободного оружия на складе нет. Изготовьте доступный модуль за сплав или освободите другой узел.')+'</p>':'';
  const catalog='<aside class="hg-arsenal"><div class="hg-section-head"><div><span class="hg-eyebrow">МОДУЛЬНЫЙ АРСЕНАЛ</span><h3>Вооружение для узла '+labelFor(slot)+'</h3></div>'+button('hgShip','← К схеме','','','hg-back-ship')+'</div>'+
   (old?'<div class="hg-slot-current">В узле: '+MODULES[old].name+' · '+button('hgUnequip','Снять')+'</div>':'')+

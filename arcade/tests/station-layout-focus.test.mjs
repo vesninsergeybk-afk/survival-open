@@ -80,7 +80,7 @@ test('station network exposes territory and development before defence, with opt
  assert.match(network,/Если пропускать орбитальные удары, они смогут поражать врагов/);
  assert.match(network,/<details class="base-secondary-info base-defense-rules"><summary>Точные условия ПВО и стазиса/);
  const growth=renderBasePanel(home,state({baseTab:'network'}));
- assert.match(growth,/<div class="base-network-future"><h4>Следующие улучшения/);
+ assert.match(growth,/<details class="base-secondary-info base-network-future"><summary>Следующие улучшения/);
  assert.match(network,/<details class="base-secondary-info base-network-advanced"[^>]*><summary>Радиосвязь услуг/);
  assert.ok(network.indexOf('Связь и территория')<network.indexOf('Технология всего флота'));
  assert.ok(network.indexOf('Технология всего флота')<network.indexOf('ОБОРОНА СТАНЦИИ'));
@@ -125,8 +125,8 @@ test('empty weapon node explains how to get another gun without misleading stock
  session.begin(loadout);
  session.dispatch({act:'hgSlot',id:'1'},{...state({loadout}),baseActive:true});
  const html=renderShipHangar({...state({loadout,firstHardwareReward:null}),baseActive:true},session);
- assert.match(html,/На складе пока нет второго орудия/);
- assert.match(html,/После первого сданного полевого заказа/);
+ assert.match(html,/На складе пока нет второго постоянного орудия/);
+ assert.match(html,/Первый сданный полевой заказ даст оружие на выбор/);
  assert.match(html,/Купить и установить · 24 сплава/);
  assert.doesNotMatch(html,/На складе: 0 · установлено: 1/);
 });

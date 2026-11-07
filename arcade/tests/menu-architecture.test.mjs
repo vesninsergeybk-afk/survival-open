@@ -26,7 +26,7 @@ test('special operation and normal assignments offer acceptance immediately on t
  assert.match(html,/data-act="acceptOperation">Принять операцию/);
  assert.match(html,/data-act="acceptContract" data-role="standard">Принять заказ/);
  assert.doesNotMatch(html,/class="base-mission-details"/);
- assert.ok(html.indexOf('data-act="acceptOperation"')<html.indexOf('base-task-group regular'));
+ assert.ok(html.indexOf('base-task-group regular')<html.indexOf('data-act="acceptOperation"'));
 });
 
 test('ordinary contracts use the whole task board on desktop without breaking mobile stacking',()=>{
