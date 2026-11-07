@@ -3,6 +3,7 @@ import {insidePolygon} from './territory-system.js';
 // One completed territorial expansion earns one trial. A change to the
 // triangulation of land already owned never creates another challenge.
 export const CONTOUR_TRIALS=Object.freeze({maxTier:12,maxEntries:256,engageRadius:990,
+ activationRadius:175,activationSeconds:1.15,
  retreatRadius:1650,warningSeconds:5,retreatSeconds:7,maxWaveSeconds:70,maxWaitSeconds:12});
 
 export const trialQuota=(count,tier)=>tier<=3?count:Math.ceil(count*.75);
@@ -101,7 +102,7 @@ export function validContourTrials(trials){
 // The first three steps introduce threats in the agreed order. Higher steps
 // use a bounded mix of the ten encounter variants, never infinite enemy growth.
 const STAGES=[
- [{scout:2}],
+ [{scout:2},{scout:2},{scout:3}],
  [{scout:2},{scout:3}],
  [{scout:3},{fighter:2}],
  [{scout:2,fighter:2},{flanker:2,scout:2}],

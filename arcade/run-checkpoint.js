@@ -265,6 +265,7 @@ export function restoreCheckpoint(game,data){
  game.enemyContourVisualAt=-Infinity;game.enemyContourVisualFields=null;
  game.lastContourNoticeAt=-Infinity;game.contourFirst=null;game.contourSelection=null;game.contourError='';
  game.contourFeedback=null;game.contourBirths=[];game.contourDynamics=null;game.contourTrial=null;
+ game.contourCharge=null;
  game.docked=world.stations.get(data.baseId);game.dead=false;game.paused=true;game.pausedRenderPending=true;
  game.cruiseCharge=0;game.cruising=false;
  return game.docked;

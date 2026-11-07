@@ -122,7 +122,7 @@ function firstContourGuide(plan,showNext=true){
  return `<section class="contour-first-guide" aria-label="План первого энергетического контура">
   <b>ПЕРВЫЙ ЭНЕРГЕТИЧЕСКИЙ КОНТУР</b>
   <div class="contour-first-progress">Работают ${plan.active} из 3 станций</div>
-  <p>Включите три отмеченные станции. Как только они смогут образовать треугольник, линии соединятся сами. Подлетите к знаку ! и отразите нападение. После победы откроется контурный щит и заработает воронка.</p>
+  <p>Включите три отмеченные станции. Линии соединятся сами. Подлетите к знаку !, удерживайте действие для запуска сердцевины, затем отразите волны нападения. После победы откроется контурный щит и заработает воронка.</p>
   <button class="contour-plan-focus" data-act="mapFocusPlan" data-ids="${plan.stations.map(b=>esc(b.id)).join(',')}">Показать треугольник целиком</button>
   <ol>${list}</ol>
   ${plan.uncertain?'<small>Неизвестные станции пока только кандидаты. Их принадлежность выяснится после разведки.</small>':''}
@@ -341,8 +341,8 @@ export function renderContourMap(game){
  const player=at(game.player,center,scale),visiblePlayer=player.x>14&&player.x<666&&player.y>14&&player.y<466;
  const regions='<button data-act="contourRegion" data-id="all" aria-pressed="'+!region+'">Вся карта</button>'+
   REGIONS.map(r=>'<button data-act="contourRegion" data-id="'+r.id+'" aria-pressed="'+(region?.id===r.id)+'">'+r.number+' · '+esc(r.name)+'</button>').join('');
- const stage=trials.length?'Враг обнаружил новые территории: '+trials.length+
-  ' · подлетите к знаку «!», чтобы отбить контратаку и открыть воронку':
+ const stage=trials.length?'Ожидают запуска сердцевины: '+trials.length+
+  ' · подлетите к знаку «!» и удерживайте действие, затем отбейте нападение':
   transition?.kind==='claim'?'Контур замкнут · энергия заполняет новую территорию':
   transition?.kind==='loss'?'Связь потеряна · границы поля отступают':
   area>0?'Поле действует · сборщики перевозят флюкс':
@@ -444,7 +444,7 @@ export function renderContourMap(game){
  }).join('');
  return `<div class="dialog map-dialog contour-dialog" role="dialog" aria-modal="true" aria-labelledby="map-menu-title">
   <header class="map-heading"><div><span class="map-kicker">СТРАТЕГИЧЕСКАЯ СЕТЬ</span><h2 id="map-menu-title">Контуры территорий</h2>
-  ${menuInfo('Как пользоваться контурами','Захватывайте и включайте станции. Подходящие соседние станции соединяются автоматически. Три замкнутых узла образуют территорию. Новое поле отмечено восклицательным знаком: подлетите к нему, отбейте нападение, и воронка начнёт добывать флюкс. Нажатие на станцию показывает её состояние и ближайшие цели; на карте можно поставить путевую метку. Линии вручную строить не нужно.')}</div>
+  ${menuInfo('Как пользоваться контурами','Захватывайте и включайте станции. Подходящие соседние станции соединяются автоматически. Три замкнутых узла образуют территорию. Новое поле отмечено восклицательным знаком: подлетите к нему и удерживайте действие для запуска сердцевины. После запуска отразите волны нападения — тогда воронка начнёт добывать флюкс. Нажатие на станцию показывает её состояние и ближайшие цели; на карте можно поставить путевую метку. Линии вручную строить не нужно.')}</div>
   <div class="map-heading-actions"><span class="contour-wallet">Флюкс <b>${digits(world.contours.flux)}</b> / ${CONTOURS.fluxCap}</span></div></header>
   <nav class="map-view-switch" aria-label="Режим карты"><button data-act="mapView" data-id="map" aria-pressed="false">${menuIcon('map')}Рядом</button>
   <button data-act="mapView" data-id="territory" aria-pressed="true">${menuIcon('network')}Территории</button><button data-act="mapView" data-id="targets" aria-pressed="false">${menuIcon('navigation')}Цели</button></nav>
@@ -504,6 +504,6 @@ export function renderContourMap(game){
    'Защитный импульс · 5 флюкса · +22 щита'}</button><small>Доступен, когда корабль находится внутри поля и щит ниже 42.</small></div>`:''}
   ${broken?`<p class="contour-warning">⚠ Нарушено связей: ${broken}. Красный пунктир показывает линии без питания.</p>`:''}
   ${renderWorldFeedbackMap(game)}
-  <details class="contour-rules"><summary>Как устроена сеть</summary><p>После включения или захвата станции сеть автоматически прокладывает допустимые связи: до ${CONTOURS.maxLength} м, не более ${CONTOURS.maxDegree} на узел и без пересечений. Три станции, образовавшие замкнутую область, создают территорию. Подлетите к её знаку !: начнётся оборона. После победы открываются сетевые способности и запускается добыча флюкса. Никаких подтверждений на карте не требуется.</p><p>Если станция подавлена или захвачена врагом, её связи временно не питают поле. После восстановления станции территория возвращается сама.</p></details>
+  <details class="contour-rules"><summary>Как устроена сеть</summary><p>После включения или захвата станции сеть автоматически прокладывает допустимые связи: до ${CONTOURS.maxLength} м, не более ${CONTOURS.maxDegree} на узел и без пересечений. Три станции, образовавшие замкнутую область, создают территорию. Подлетите к знаку ! и удерживайте действие около секунды: запустится сердцевина и начнётся оборона. После победы откроются сетевые способности и начнётся добыча флюкса. На карте ничего подтверждать не нужно.</p><p>Если станция подавлена или захвачена врагом, её связи временно не питают поле. После восстановления станции территория возвращается сама.</p></details>
   </aside></section>${renderMapActions(game)}</div>`;
 }

@@ -52,7 +52,8 @@ document.querySelectorAll('nav').forEach(nav=>nav.addEventListener('click',e=>{
   g.refreshAutomaticContours();const entry=g.world.contours.trials.entries[0];
   if(!entry){out.textContent='Новая территория не зарегистрирована.';return;}
   g.player.x=entry.x;g.player.y=entry.y;g.player.level=Math.max(2,g.player.level);
-  g.time=Math.max(30,g.time);updateContourTrials(g,.1);g.hud();
+  g.time=Math.max(30,g.time);g.actionHeld={kind:'contour',target:entry};
+  updateContourTrials(g,1.2);g.actionHeld=null;g.hud();
  }
  if(scene==='win'){
   const event=g.contourTrial;if(event){

@@ -91,7 +91,7 @@ import {territoryTech,TERRITORY_TECH} from './territory-tech.js?v=territory-war-
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1-auto-1-contour-trials-1-counterattack-1-first-loops-1';
 import {syncContourDynamics,resumeContourTransition} from './contour-dynamics.js?v=contour-dynamics-3-auto-1';
-import {registerContourTrials,productiveContourFields,pendingContourTrials} from './contour-trials.js?v=contour-trials-1-clarity-pass-1-first-loops-1';
+import {CONTOUR_TRIALS,registerContourTrials,productiveContourFields,pendingContourTrials} from './contour-trials.js?v=contour-trials-1-clarity-pass-1-first-loops-1';
 import {updateContourTrials} from './contour-trial-director.js?v=contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1';
 import {drawContourTrialHUD} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1';
 import {drawContourIrisCharge} from './contour-trial-iris.js?v=contour-counterattack-1';
@@ -130,7 +130,8 @@ function nextSkillEffect(id,rank,levels={}){
     ' · темп ×'+fmt(1+rank*.08)+' → ×'+fmt(1+n*.08)+' · тот же прирост урона ионной цепи';
   case 'double':return n===1?'Две цели получают по 60% залпа; одиночная — 100%':
     'Три цели получают по 45% залпа; две — по 60%; одиночная — 100%';
-  case 'range':return 'Дальность луча: '+(435+rank*56)+' → '+(435+n*56);
+  case 'range':return 'Дальность луча: '+moduleStats('plasma',{range:rank}).range+
+    ' → '+moduleStats('plasma',{range:n}).range+' м';
   case 'rocket':{
    const before=moduleStats('rocket',levels),after=moduleStats('rocket',{...levels,rocket:n});
    return rank===0?'Даст ракетный модуль: '+fmt(after.damage)+' урона каждые '+fmt(after.interval)+
@@ -234,6 +235,7 @@ export class ArcadeGame {
   this.mapView='map';this.contourRegion='all';this.contourFirst=null;this.contourSelection=null;this.contourError='';this.contourInfo='';this.enemyBackboneMap=false;
   this.mapViewports={};this.mapPointers=new Map();this.mapDraggedUntil=0;this.lastMapPanRender=0;this.mapMarkMode=false;
   this.contourFeedback=null;this.contourBirths=[];this.contourDynamics=null;this.contourTrial=null;
+  this.contourCharge=null;
   this.openingArc=createOpeningArc(this.world.home);this.openingRepairing=false;
   this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
   this.lastContractReceipt=null;
@@ -2349,6 +2351,12 @@ export class ArcadeGame {
    Math.hypot(this.player.x-arc.rescueX,this.player.y-arc.rescueY)<=OPENING_ARC.repairRange)
    return {kind:'opening-repair',target:{x:arc.rescueX,y:arc.rescueY},
     label:'Эвакуация',hold:true};
+  const core=!this.contourTrial&&(this.contourTrialRetryAt||0)<=this.time&&
+   pendingContourTrials(this.world)
+   .filter(e=>dist(this.player,e)<=CONTOUR_TRIALS.activationRadius&&
+    fieldAt(this.world,e.x,e.y))
+   .sort((a,b)=>dist(this.player,a)-dist(this.player,b))[0];
+  if(core)return {kind:'contour',target:core,label:'Запуск ядра',hold:true};
   const probe=this.operation?.id===PROBE_OPERATION.id?this.operation:null;
   const rock=this.mining.target;
   const range=extractorStats(this.skillRanks.extractor||0,this.skillRanks.mining||0).range;
@@ -2368,7 +2376,8 @@ export class ArcadeGame {
  endInteraction(source=null){
   if(!this.actionHeld)return;
   if(source&&this.actionHeld.source!==source)return;
-  this.actionHeld=null;this.probeRepairing=false;this.openingRepairing=false;this.mining.active=false;
+  this.actionHeld=null;this.contourCharge=null;
+  this.probeRepairing=false;this.openingRepairing=false;this.mining.active=false;
   this.heritage.extraction(false);
  }
  toggleHoldFire(){
@@ -2384,12 +2393,14 @@ export class ArcadeGame {
   const button=$('actionBtn');
   if(button){
    const focus=this.actionHeld||this.interactionFocus;
-   const label=focus?.kind==='repair'?'Ремонт':focus?.kind==='mine'?'Добыча':
+   const label=focus?.kind==='contour'?'Запуск ядра':
+    focus?.kind==='repair'?'Ремонт':focus?.kind==='mine'?'Добыча':
     focus?.kind==='opening-repair'?'Эвакуация':
     focus?.kind==='station'?'Станция':'Действие';
    if(button.textContent!==label)button.textContent=label;
    button.disabled=!focus;
-   button.setAttribute('aria-label',focus?(focus.kind==='station'?'Открыть станцию':
+   button.setAttribute('aria-label',focus?(focus.kind==='contour'?'Удерживать для запуска энергетического ядра':
+    focus.kind==='station'?'Открыть станцию':
     focus.kind==='opening-repair'?'Удерживать для эвакуации капсулы':
     focus.kind==='repair'?'Удерживать для ремонта зонда':'Удерживать для добычи'):'Нет объектов для взаимодействия');
   }
@@ -2454,16 +2465,18 @@ export class ArcadeGame {
  drawInteractionFocus(c,cam){
   const held=this.actionHeld;
   const focus=held?
-   (held.kind==='mine'&&this.mining.target?.alive?
+   (held.kind==='contour'?held:
+    held.kind==='mine'&&this.mining.target?.alive?
     {kind:'mine',target:this.mining.target,label:'Добыча'}:
     held.kind==='opening-repair'&&openingArcActive(this.openingArc)?
      {kind:'opening-repair',target:{x:this.openingArc.rescueX,y:this.openingArc.rescueY},label:'Эвакуация'}:
     held.kind==='repair'&&this.operation?.id===PROBE_OPERATION.id?
      {kind:'repair',target:this.operation,label:'Ремонт'}:null):this.interactionFocus;
   if(!focus?.target||outsideCamera(focus.target.x,focus.target.y,cam,85))return;
-  const t=focus.target,r=focus.kind==='mine'?t.r+12:focus.kind==='station'?61:38;
+  const t=focus.target,r=focus.kind==='contour'?70:
+   focus.kind==='mine'?t.r+12:focus.kind==='station'?61:38;
   c.save();c.lineWidth=1.7;c.strokeStyle=['repair','opening-repair'].includes(focus.kind)?'#ffc678':
-   focus.kind==='station'?'#87f0cf':'#7de5f5';
+   focus.kind==='contour'?'#ff7777':focus.kind==='station'?'#87f0cf':'#7de5f5';
   c.setLineDash([7,6]);c.beginPath();c.arc(t.x,t.y,r,0,TAU);c.stroke();
   c.setLineDash([]);c.fillStyle='#c9f6f6';c.font='bold 12px system-ui';
   c.textAlign='center';

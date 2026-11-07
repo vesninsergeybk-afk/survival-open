@@ -43,7 +43,8 @@ function spawnTrialWave(game,event){
   const def=ENEMY_TYPES[type];if(!def)continue;
   // A small subset of IRIS scouts answer the new field's EM pulse with
   // panicked high-speed dives; ordinary patrol scouts never inherit it.
-  const dive=type==='scout'&&scoutCount++<Math.min(3,1+Math.floor((event.plan.tier-1)/5));
+  const dive=type==='scout'&&scoutCount++<Math.min(3,
+   (event.plan.tier===1?event.waveIndex:1+Math.floor((event.plan.tier-1)/5)));
   const side=rear?rearSide:pincer?(i%2===0?0:1):
    (event.waveIndex+i+event.entry.id)%4;
   const xy=spawnOutside(cam,side,.18+((i*7+event.entry.id)%13)/20,150+i*8);
@@ -68,6 +69,7 @@ function spawnTrialWave(game,event){
  game.notice?.('ОБОРОНА ТРЕУГОЛЬНИКА · волна '+
   (event.waveIndex+1)+' из '+event.plan.waves.length+' · подавите '+event.required+' из '+total+' кораблей.'+
   (scoutCount?' Зрачки готовят резкие таранные рывки!':' Уклоняйтесь от орбитального огня!'),4.5);
+ game.heritage?.vfx?.nova?.(event.entry.x,event.entry.y,125,'red');
  game.heritage?.play?.('orbitalWarning',.9,game.player);
  return true;
 }
@@ -156,16 +158,28 @@ export function updateContourTrials(game,dt){
  if(!ledger||game.dead||game.paused)return;
  let event=game.contourTrial;
  if(!event){
-  const entry=pendingContourTrials(game.world).find(e=>available(game,e));
-  if(!entry)return;
+  // Forming the triangle prepares a dormant core. The player deliberately
+  // ignites it with the same held interaction used for extraction; merely
+  // passing through the territory never starts an encounter.
+  const held=game.actionHeld;
+  const entry=held?.kind==='contour'&&pendingContourTrials(game.world)
+   .find(e=>e.id===held.target?.id&&available(game,e)&&
+    nearby(game.player,e,CONTOUR_TRIALS.activationRadius));
+  if(!entry){game.contourCharge=null;return;}
+  if(game.contourCharge?.entryId!==entry.id)
+   game.contourCharge={entryId:entry.id,elapsed:0};
+  game.contourCharge.elapsed+=Math.max(0,dt);
+  if(game.contourCharge.elapsed<CONTOUR_TRIALS.activationSeconds)return;
+  game.contourCharge=null;
+  game.actionHeld=null;
   event={entry,plan:planContourTrial(entry.tier,entry.id),phase:'warning',
    startedAt:game.time,
    waveIndex:-1,nextWaveAt:game.time+CONTOUR_TRIALS.warningSeconds,
    nextStrikeAt:Infinity,outsideFor:0};
   game.contourTrial=event;
-  game.notice?.('КОНТУР ЗАМКНУТ · противник обнаружил новый треугольник! '+
-   'Оборона: '+event.plan.waves.length+' '+(event.plan.waves.length===1?'волна':'волны')+
-   ' · рекомендован уровень '+event.plan.recommendedLevel+'+. Отразите нападение!',5);
+  game.notice?.('ЯДРО АКТИВИРОВАНО · красный импульс выдал вашу позицию! '+
+   'Впереди '+event.plan.waves.length+' волны атаки. Рекомендован уровень '+
+   event.plan.recommendedLevel+'+. Отразите нападение!',5);
   game.heritage?.vfx?.nova?.(entry.x,entry.y,120,'red');
   game.heritage?.play?.('orbitalWarning',1.2,entry);
   return;

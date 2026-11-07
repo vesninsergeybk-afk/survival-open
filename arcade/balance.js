@@ -9,7 +9,7 @@ export const RULES = Object.freeze({
   maxParticles: 240,
   maxShots: 220,
   nearBeam: 115,
-  beamRange: 435,
+  beamRange: 300,
   beamMinFactor: .28,
   asteroidRange: 245,
   baseInteract: 165,

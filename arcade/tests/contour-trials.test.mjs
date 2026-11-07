@@ -15,6 +15,14 @@ const claim=w=>{
  autoConnectContours(w);
  return registerContourTrials(w,before,contourFields(w),770000);
 };
+const ignite=(g,entry)=>{
+ g.actionHeld={kind:'contour',target:entry};
+ updateContourTrials(g,.6);
+ assert.equal(g.contourTrial,null,'a partial hold must not start the attack');
+ updateContourTrials(g,.6);
+ g.actionHeld=null;
+ assert.equal(g.contourTrial?.phase,'warning');
+};
 
 test('a new triangle queues one trial and pays no flux before victory',()=>{
  const world=territory(),created=claim(world);
@@ -52,7 +60,7 @@ test('a subdivision of the same land never adds a trial; a new neighbouring face
 
 test('first three stages contain the promised scout and fighter waves',()=>{
  const [a,b,c]=[1,2,3].map(tier=>planContourTrial(tier,tier));
- assert.deepEqual(a.waves,[{scout:2}]);
+ assert.deepEqual(a.waves,[{scout:2},{scout:2},{scout:3}]);
  assert.equal(b.waves.length,2);
  assert.ok(b.waves.every(w=>Object.keys(w).every(type=>type==='scout')));
  assert.equal(c.waves.length,2);
@@ -81,7 +89,7 @@ test('an existing checkpoint shape stays valid; malformed trial records fail saf
  assert.equal(validContours({...world.contours,trials:{...valid,entries:[valid.entries[0],valid.entries[0]]}},[...world.stations]),false);
 });
 
-test('a local trial automatically spawns its waves and unlocks flux once',()=>{
+test('the player ignites a local core, then completes three distinct waves before flux starts',()=>{
  const g=game(),w=territory(),entries=claim(w);
  g.world=w;g.contourTrial=null;g.operation=null;g.heavyPortalShown=false;
  g.player.x=entries[0].x;g.player.y=entries[0].y;
@@ -89,17 +97,27 @@ test('a local trial automatically spawns its waves and unlocks flux once',()=>{
  g.zones=[];g.enemies=[];g.time=20;
  g.rewardNotice=(text)=>{g.lastReward=text;};
  updateContourTrials(g,.1);
- assert.equal(g.contourTrial.phase,'warning');
+ assert.equal(g.contourTrial,null,'arriving at the core is not an activation');
+ ignite(g,entries[0]);
  assert.equal(g.enemies.length,0);
  g.time+=6;updateContourTrials(g,.1);
  assert.equal(g.contourTrial.phase,'wave');
  assert.equal(g.enemies.length,2);
  assert.ok(g.enemies.every(e=>e.trialId===entries[0].id&&e.expAwarded));
- assert.equal(g.enemies.filter(e=>e._trialDiveEnabled).length,1,
-  'one of two new-field IRIS scouts must telegraph aggressive dives');
+ assert.equal(g.enemies.filter(e=>e._trialDiveEnabled).length,0,'the scouting wave has no dive');
  g.zones.push({x:g.player.x,y:g.player.y,r:66,fuse:2,trialId:entries[0].id});
- for(const e of g.enemies)e.hp=0;
- updateContourTrials(g,.1);
+ for(let wave=0;wave<3;wave++){
+  assert.equal(g.contourTrial.waveIndex,wave);
+  const alive=g.enemies.filter(e=>e.trialId===entries[0].id&&e.hp>0);
+  assert.equal(alive.filter(e=>e._trialDiveEnabled).length,wave,
+   'each successive wave contains more kamikaze scouts');
+  for(const e of alive)e.hp=0;
+  updateContourTrials(g,.1);
+  if(wave<2){
+   assert.equal(g.contourTrial.phase,'rest');
+   g.time=g.contourTrial.nextWaveAt+.1;updateContourTrials(g,.1);
+  }
+ }
  assert.equal(g.contourTrial,null);
  assert.equal(g.zones.filter(z=>z.trialId===entries[0].id).length,0,
   'orbital shells cannot fall after the victory announcement');
@@ -115,7 +133,7 @@ test('retreat resets only this encounter and preserves every station',()=>{
  g.player.x=entry.x;g.player.y=entry.y;
  g.camera=()=>({x:g.player.x-300,y:g.player.y-250,w:600,h:500});
  g.zones=[];g.enemies=[];g.time=20;
- updateContourTrials(g,.1);g.time+=6;updateContourTrials(g,.1);
+ ignite(g,entry);g.time+=6;updateContourTrials(g,.1);
  assert.equal(g.contourTrial.phase,'wave');
  g.player.x+=2500;g.time+=8;updateContourTrials(g,8);
  assert.equal(g.contourTrial,null);
@@ -131,7 +149,7 @@ test('enemies disappearing outside the camera cannot grant an automatic victory'
  g.player.x=entry.x;g.player.y=entry.y;
  g.camera=()=>({x:g.player.x-300,y:g.player.y-250,w:600,h:500});
  g.zones=[];g.enemies=[];g.time=20;
- updateContourTrials(g,.1);g.time+=6;updateContourTrials(g,.1);
+ ignite(g,entry);g.time+=6;updateContourTrials(g,.1);
  assert.equal(g.enemies.length,2);
  // The game's normal distance culler may remove live ships mid-flight.
  g.enemies=[];g.time+=1;updateContourTrials(g,.1);
@@ -148,11 +166,18 @@ test('each wave has a finite resolution: battered enemies retreat; inaction fail
   g.player.x=entry.x;g.player.y=entry.y;
   g.camera=()=>({x:g.player.x-300,y:g.player.y-250,w:600,h:500});
   g.zones=[];g.enemies=[];g.time=20;
-  updateContourTrials(g,.1);g.time+=6;updateContourTrials(g,.1);
+  ignite(g,entry);g.time+=6;updateContourTrials(g,.1);
   return {g,w,entry};
  };
  const defended=setup();for(const enemy of defended.g.enemies)enemy.hp=0;
- defended.g.time+=71;updateContourTrials(defended.g,.1);
+ for(let wave=0;wave<3;wave++){
+  for(const enemy of defended.g.enemies)if(enemy.trialId===defended.entry.id)enemy.hp=0;
+  updateContourTrials(defended.g,.1);
+  if(defended.g.contourTrial){
+   defended.g.time=defended.g.contourTrial.nextWaveAt+.1;
+   updateContourTrials(defended.g,.1);
+  }
+ }
  assert.equal(defended.w.contours.trials.completed,1);
  assert.equal(defended.g.contourTrial,null);
  const inactive=setup();inactive.g.time+=71;updateContourTrials(inactive.g,.1);
@@ -168,7 +193,7 @@ test('two-wave defence warns before the stronger second wave and strikes are tel
  g.player.x=entry.x;g.player.y=entry.y;
  g.camera=()=>({x:g.player.x-300,y:g.player.y-250,w:600,h:500});
  g.zones=[];g.enemies=[];g.time=20;
- updateContourTrials(g,.1);g.time+=6;updateContourTrials(g,.1);
+ ignite(g,entry);g.time+=6;updateContourTrials(g,.1);
  assert.ok(g.enemies.some(e=>e.type==='scout'));
  g.time+=4;updateContourTrials(g,.1);
  assert.ok(g.zones.some(z=>z.trialId===entry.id&&z.fuse>=2));

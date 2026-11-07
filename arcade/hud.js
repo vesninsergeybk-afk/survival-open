@@ -108,7 +108,8 @@ export class CockpitDisplay {
   n.interactionCue.hidden=!focus||game.paused||game.dead||!game.overlay.hidden||
    !!game.contourTrial&&!['station','repair','opening-repair'].includes(focus?.kind);
   if(!n.interactionCue.hidden) {
-   const label=focus.kind==='station'?'Открыть станцию':
+   const label=focus.kind==='contour'?'Запустить сердцевину':
+    focus.kind==='station'?'Открыть станцию':
     focus.kind==='repair'?'Ремонт зонда':
     focus.kind==='opening-repair'?'Эвакуация капсулы':'Добыча породы';
    display(n.interactionCue,(game.controlLabel?.('interact')||'E')+' · '+label+(focus.kind==='station'?'':' · удерживать'));

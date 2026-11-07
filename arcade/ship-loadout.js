@@ -1,6 +1,7 @@
 import {ionDamage} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 import {applySpecialization} from './weapon-specializations.js?v=weapons-cycle-2';
 import {TACTICAL_DEVICES} from './tactical-fields.js?v=tactical-field-2';
+import {RULES} from './balance.js';
 // Run-owned hardware; saved blueprints contain choices, never resources/unlocks.
 export const FRAME_STEPS=Object.freeze([
  {nodes:2,heavy:false,level:1,cost:0,name:'Лёгкий корпус'},
@@ -46,7 +47,7 @@ export function moduleStats(id,ranks={},specialization=null){
  const power=1+beam*.2,rate=1+beam*.08;
  const spread=specialization?.path==='sweep'&&id==='flak';
  return ({
-  plasma:{damage:18*power,range:435+range*56,interval:.63/rate,targets:1+Math.min(2,ranks.double||0)},
+  plasma:{damage:18*power,range:RULES.beamRange+range*70,interval:.63/rate,targets:1+Math.min(2,ranks.double||0)},
   rail:{damage:38*power,range:700,interval:1.65/rate,targets:1},
   flak:{damage:(spread?11:14)*power,range:245,interval:1.15/rate,targets:spread?(specialization.rank>=2?5:4):3},
   rocket:{damage:(48+rocket*19)*power,range:720,interval:3.5/(1+rocket*.28)/rate,targets:1},
