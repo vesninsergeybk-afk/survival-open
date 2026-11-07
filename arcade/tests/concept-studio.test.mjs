@@ -121,9 +121,9 @@ test('current game snapshots are distinct from concepts and reflect verified ope
  assert.match(SCENARIO_BASELINES.arsenal.reward,new RegExp(String(RELAY_DEFENSE.rewardOre)));
  assert.match(SCENARIO_BASELINES.arsenal.reward,new RegExp(String(RELAY_DEFENSE.rewardData)));
  assert.equal(RELAY_DEFENSE.waves.length,3);
- assert.equal(RELAY_DEFENSE.preparation,8);
- assert.equal(RELAY_DEFENSE.intermission,6);
- assert.match(SCENARIO_BASELINES.arsenal.gap,/чертежа оружия/);
+ assert.equal(RELAY_DEFENSE.preparation,4.5);
+ assert.equal(RELAY_DEFENSE.intermission,4);
+ assert.match(SCENARIO_BASELINES.arsenal.gap,/резервная антенна/);
 });
 
 test('one workshop has explicit proposal/baseline comparison, tactical experiments and local QA',()=>{
@@ -240,13 +240,15 @@ test('workshop does not pay the corridor before telemetry reaches the issuing do
  assert.match(payout,/player\.ore\+=CORRIDOR_OPERATION\.rewardOre/);
  assert.match(payout,/this\.collect\(\{type:'data',value:CORRIDOR_OPERATION\.rewardData\}\)/);
  assert.match(source,/updateCorridorReturn\(op\)\s*\{[\s\S]*?pursuitStarted=true/);
- assert.match(baseline.gap,/убивать их для выплаты не нужно/);
+ assert.match(baseline.gap,/Её можно обойти/);
 });
-test('workshop distinguishes corridor hand-in from immediately rewarded probe and relay',()=>{
+test('workshop distinguishes corridor hand-in, partial probe data and immediate defense payout',()=>{
  const dock=SCENARIO_BASELINES.dock,lab=SCENARIO_BASELINES.lab,arsenal=SCENARIO_BASELINES.arsenal;
  assert.match(dock.reward,/только после возвращения/);
- assert.match(lab.reward,/16 сплава.+32 данных/);
- assert.match(arsenal.reward,/28 сплава.+24 данных/);
+ assert.match(lab.reward,/20 сплава.+32 опыта.+при полном ремонте/);
+ assert.match(lab.reward,/9 сплава.+16 опыта.+при сдаче данных/);
+ assert.match(arsenal.reward,/28 сплава.+24 опыта/);
+ assert.match(arsenal.reward,/резервную антенну.+250 м/);
  const entry=SYSTEMS.find(item=>item.id==='return');
  assert.match(entry.reality,/«Глухого коридора»/);
  assert.match(entry.reality,/автоматически после успеха/);

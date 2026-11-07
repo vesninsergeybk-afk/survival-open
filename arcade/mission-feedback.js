@@ -1,5 +1,6 @@
 import {MODULES,moduleStats} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-menu-focus-1';
-import {RELAY_DEFENSE,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
+import {RELAY_DEFENSE,relayDefenseCue} from './relay-defense.js?v=station-operations-2';
+import {PROBE_OPERATION} from './operations.js?v=station-operations-2';
 import {CARRIER_INTERCEPTION,carrierDistanceRemaining,carrierTacticalCue,carrierPulseState} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 // Pure state-derived cues shared by the world renderer and tactical map.
 // Rendering never advances mission progress or changes rewards.
@@ -69,18 +70,33 @@ export function missionHudText(game) {
  if(op){
   const d=Math.round(Math.hypot(op.x-p.x,op.y-p.y));
   if(op.id==='silent-corridor'){
+   const phase=corridorCue(op,game.time,d,automaticRange(game));
+   if(phase?.key==='danger')return 'ГЛУШИТЕЛЬ · '+phase.hint;
+   if(op.radio==='calling')return '◈ ПЕРЕХВАТИТЕ РАЗВЕДЧИКА · '+Math.max(0,Math.ceil(op.radioAt-game.time))+' С';
    if(op.phase==='return'){
     const base=game.world?.stations?.get?.(op.baseId);
     const homeDistance=base?Math.round(Math.hypot(base.x-p.x,base.y-p.y)):d;
-    return '✓ ГЛУШИТЕЛЬ ОТКЛЮЧЁН · ВЕРНИТЕСЬ В ДОК · '+homeDistance+' М';
+    return (op.radio==='sent'&&!op.pursuitStarted?'ЗАСАДА НА КАРТЕ':'✓ ГЛУШИТЕЛЬ ОТКЛЮЧЁН')+' · ВЕРНИТЕСЬ В ДОК · '+homeDistance+' М';
    }
-   const phase=corridorCue(op,game.time,d,automaticRange(game))?.label||'СИГНАЛ ПОТЕРЯН';
-   return '◈ ГЛУШИТЕЛЬ · '+Math.ceil(op.hp/op.maxHp*100)+'% · '+phase;
+   return '◈ ГЛУШИТЕЛЬ · '+Math.ceil(op.hp/op.maxHp*100)+'% · '+(phase?.label||'СИГНАЛ ПОТЕРЯН');
   }
-  if(op.id==='last-signal')
-   return '◈ АВАРИЙНЫЙ ЗОНД · РЕМОНТ '+Math.round(op.repair||0)+'% · '+d+' М';
-  if(op.id===RELAY_DEFENSE.id)
-   return '◈ РЕТРАНСЛЯТОР · '+Math.ceil(op.hp/op.maxHp*100)+'% · '+relayDefenseCue(op,game.time);
+  if(op.id===PROBE_OPERATION.id){
+   if(op.phase==='return')return '◈ ДАННЫЕ СПАСЕНЫ · СДАЙТЕ ИХ В ЛАБОРАТОРИИ';
+   if(op.located===false)return '◈ ПОИСК ЗОНДА · ЛЕТИТЕ В ОТМЕЧЕННЫЙ РАЙОН';
+   const progress=Math.round(op.repair||0)+'%';
+   const stage=PROBE_OPERATION.stages[op.waves-1];
+   if(op.strikerSerial&&op.repair>=stage?.limit)
+    return '◈ РЕМОНТ '+progress+' · ПЕРЕХВАТИТЕ НАЛЁТЧИКА';
+   return '◈ ЗОНД · РЕМОНТ '+progress+(op.strikerSerial?' · ПОД АТАКОЙ':
+    op.repair>=PROBE_OPERATION.telemetryAt?' · ДАННЫЕ ГОТОВЫ':' · '+d+' М');
+  }
+  if(op.id===RELAY_DEFENSE.id){
+   const alert=(game.enemies||[]).filter(e=>e.relayAssault===op.baseId&&e.hp>0&&!e.converted&&
+    e.relayChargeUntil>game.time).sort((a,b)=>a.relayChargeUntil-b.relayChargeUntil)[0];
+   const cue=alert?(alert.missionStrike?.target==='antenna'?'УДАР ПО АНТЕННЕ':'ЗАЛП')+
+    ' ЧЕРЕЗ '+(alert.relayChargeUntil-game.time).toFixed(1)+' С':relayDefenseCue(op,game.time);
+   return '◈ РЕТРАНСЛЯТОР · '+Math.ceil(op.hp/op.maxHp*100)+'% · '+cue;
+  }
   if(op.id===CARRIER_INTERCEPTION.id){
    if(op.phase==='return'){
     const base=game.world?.stations?.get?.(op.baseId);

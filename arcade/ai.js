@@ -168,7 +168,7 @@ const findHealer=(enemy,game)=>{
   return best;
 };
 const pickTarget=(e,game)=>{
-  if(e.relayAssault&&game.operation?.id==='relay-defense'&&
+  if(e.relayAssault&&!e.relayScreen&&game.operation?.id==='relay-defense'&&
      game.operation.baseId===e.relayAssault&&game.operation.hp>0)return game.operation;
   const focus=e.signalIntel?.combatFocus;
   if(e.signalIntel?.mode==='engaged'&&focus&&focus!==game.player&&focus.hp>0&&
@@ -225,6 +225,14 @@ export function updateEnemy(e,game,dt){
   }
   // Every visible intent must be renewed by real steering this frame.
   e._commsIntent=null;e._theaterIntent=null;
+  if(e.missionFlight){
+    const goal=e.missionFlight,remaining=dist(e,goal);
+    const speed=Math.min(goal.speed,remaining*3);
+    const detour=enemyRockDetour(e,game,goal.x,goal.y);
+    steer(e,goal.x,goal.y,speed,dt,{x:detour.x*speed,y:detour.y*speed});
+    e._gunAiming=null;
+    return;
+  }
   if(stormSeek(e,game,dt)){e._gunAiming=null;return;}
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;

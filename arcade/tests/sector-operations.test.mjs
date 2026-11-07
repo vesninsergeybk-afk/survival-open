@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {CORRIDOR_OPERATION,corridorPosition,createCorridorOperation,
- corridorOffer,corridorPatrolModifier,chooseOperationLead} from '../operations.js';
+ corridorOffer,corridorPatrolModifier,chooseOperationLead,corridorAmbush} from '../operations.js';
 import {baseOffer,renderBasePanel,eligibleContractProgress} from '../base-panel.js';
 import {CARRIER_INTERCEPTION} from '../carrier-interception.js';
 import {World} from '../world.js';
@@ -114,16 +114,28 @@ test('the destroyed jammer starts a return journey without paying prematurely',(
  assert.equal(corridorOffer({...b,corridorMission:op},null).phase,'return',
   'the delivery phase must survive postponing the mission');
 });
-test('optional pursuit appears once on the return route and never requires kills',()=>{
+test('the radio scout creates one avoidable ambush only if it transmits',()=>{
  const {game,b,op}=fake();
+ game.player.x=op.x+500;game.player.y=op.y;game.updateCorridor();
+ assert.equal(op.radio,'calling');
+ game.time=op.radioAt+.1;game.updateCorridor();assert.equal(op.radio,'sent');
  game.completeCorridor();
- game.player.x=b.x+720;game.player.y=b.y-100;
+ const ambush=corridorAmbush(b,op);
+ const count=game.enemies.length;
+ game.player.x=ambush.x;game.player.y=ambush.y+CORRIDOR_OPERATION.ambushRadius+10;
+ game.updateCorridor(1);assert.equal(game.enemies.length,count);
+ game.player.x=ambush.x;game.player.y=ambush.y;
  game.updateCorridor(1);
- assert.equal(game.enemies.length,2);
- assert.ok(game.enemies.every(e=>e.scenario==='corridor-pursuit'));
+ assert.equal(game.enemies.length,count+2);
+ assert.ok(game.enemies.slice(-2).every(e=>e.scenario==='corridor-pursuit'));
  game.updateCorridor(4);
- assert.equal(game.enemies.length,2,'the pursuit cannot be farmed repeatedly');
+ assert.equal(game.enemies.length,count+2,'the pursuit cannot be farmed repeatedly');
  assert.equal(game.operation.phase,'return');
+ const quiet=fake();quiet.game.player.x=quiet.op.x+500;quiet.game.player.y=quiet.op.y;
+ quiet.game.updateCorridor();quiet.game.enemies.find(e=>e.corridorCourier).hp=0;
+ quiet.game.updateCorridor();assert.equal(quiet.op.radio,'blocked');
+ quiet.game.completeCorridor();Object.assign(quiet.game.player,corridorAmbush(quiet.b,quiet.op));
+ quiet.game.updateCorridor();assert.equal(quiet.op.pursuitStarted,false);
 });
 test('delivery at the issuing dock pays once, clears the marker and secures the route',()=>{
  const {game,b,value}=fake();
@@ -169,7 +181,8 @@ test('station UI exposes a briefing, route, equipment, and network independently
  assert.match(html,/data-act="baseMap"/);
  const jobs=renderBasePanel(b,{...st,baseTab:'operations'});
  assert.match(jobs,/data-act="acceptOperation"/);
- assert.match(jobs,/435 м/);
+ assert.match(jobs,/315 м/);
+ assert.match(jobs,/разведчик уйдёт передавать тревогу/);
  assert.match(jobs,/Принять заказ/);
  assert.doesNotMatch(jobs,/\d+ целей/);
  const underway=renderBasePanel(b,state({baseTab:'operations',operation:createCorridorOperation(b)}));

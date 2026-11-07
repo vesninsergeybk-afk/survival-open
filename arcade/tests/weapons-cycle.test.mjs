@@ -198,6 +198,19 @@ test('all four authored operations finish with three builds at 30 and 60 simulat
  }
 });
 
+test('starter plasma can protect a relay by intercepting, while parking on it loses the relay',async()=>{
+ const {runOperationScenario}=await import('../tools/weapons-cycle-scenarios.mjs');
+ const parked=runOperationScenario('relay','starter',1/60,{stationary:true});
+ assert.equal(parked.completed,false);assert.equal(parked.objectiveHP,0);assert.equal(parked.dead,false);
+ for(const [worldSeed,hz] of [[20261102,60],[8,30],[92,60]]){
+  const flown=runOperationScenario('relay','starter',1/hz,{worldSeed});
+  assert.ok(flown.completed&&flown.checkpointSaved&&flown.hull>0,JSON.stringify(flown));
+  assert.ok(flown.objectiveHP>80&&flown.antennaHP>0,JSON.stringify(flown));
+ }
+ const probe=runOperationScenario('probe','starter');
+ assert.ok(probe.completed&&probe.checkpointSaved&&probe.repair===100,JSON.stringify(probe));
+});
+
 test('calibration keeps the finite ion burst useful as automatic damage grows, and hangar shows its actual hits',()=>{
  const g=game();loan(g,'ion');g.skillRanks.beam=5;
  const a={...enemy(150),ionMarkUntil:20},b={...enemy(220),ionMarkUntil:20};g.grid.insert(a);g.grid.insert(b);

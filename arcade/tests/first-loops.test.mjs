@@ -178,6 +178,7 @@ test('all visible station and map repair instructions follow the assigned intera
  const g=game();const lab={id:'test-lab',type:'lab',x:1200,y:0,active:true,discovered:true};
  g.world.stations.set(lab.id,lab);g.docked=lab;g.baseTab='operations';
  g.controls={...DEFAULT_CONTROLS,interact:'KeyG'};g.operation=createProbeOperation(lab,g.world);
+ g.operation.located=true;
  const html=renderBasePanel(lab,g.baseState());
  assert.match(html,/Удерживайте G/);assert.doesNotMatch(html,/удерживайте E|Удерживайте E|Отпустите E/);
  g.mapView='map';const map=renderWorldMap(g);assert.match(map,/удерживайте G/);assert.doesNotMatch(map,/удерживайте E/);

@@ -2,12 +2,12 @@ import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-stat
 import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-territory-war-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
-import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2';
-import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
+import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2-station-ops-2';
+import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1-station-ops-2';
 import {CARRIER_INTERCEPTION,carrierOffer,autonomousStrikeCarrier} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1';
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
@@ -273,9 +273,8 @@ const corridorPanel=(base,state,compact=false)=>{
  const done=op.status==='complete',active=op.status==='active',returning=op.phase==='return';
  const hp=active||op.resumable?Math.ceil(op.hp/CORRIDOR_OPERATION.maxHp*100):100;
  const body=done?'Передатчик уничтожен, телеметрия доставлена. Разведка дока работает дальше.':
-  returning?'Глушитель отключён. Бортовой ИИ сохранил телеметрию. Вернитесь в домашний док и передайте её при стыковке (E). По дороге можно обойти преследователей или отбиться.':
-  active?'Цель отмечена. Выберите дистанцию по установленному оружию: плазма до 435 м, рельс до 700 м. В пределах 315 м заряжается ЭМ-импульс. Охранение можно обойти. После отключения глушителя доставьте телеметрию в домашний док за наградой.':
-  'Глушитель обнаружен примерно в 1,3 км к востоку. Стартовая плазма поражает передатчик до 435 м и сильнее вблизи; в радиусе 315 м заряжается ЭМ-импульс. Охранение можно устранить или обойти. После отключения передатчика вернитесь в док с телеметрией за наградой.';
+  returning?'Передайте телеметрию при стыковке с доком (E). Если разведчик передал тревогу, на карте будет отмечена засада.':
+  'Уничтожьте глушитель. ЭМ-разряд опасен в пределах 315 м. При сближении разведчик уйдёт передавать тревогу. Сбейте его до конца отсчёта, чтобы избежать засады на обратном пути.';
  const actions=done?'<span class="base-op-done">✓ Изменения действуют в секторе</span>':
   active?action('baseMap',returning?'Маршрут к доку':'Показать маршрут','','','','operation')+(compact?'':action('abandonOperation',returning?'Отложить передачу':'Отложить · сохранить повреждения')):
   action('baseMap','Посмотреть маршрут')+
@@ -284,7 +283,7 @@ const corridorPanel=(base,state,compact=false)=>{
   !done&&!active&&state.operation?'Сначала завершите или отложите текущую особую операцию.':'';
  const facts='<div class="base-op-details">'+
   '<div><span>ЗАДАЧА</span><b>Подавить помехи и доставить телеметрию</b></div>'+
-  '<div><span>ОПАСНОСТЬ</span><b>Охранение · ЭМ-импульс</b></div>'+
+  '<div><span>ОПАСНОСТЬ</span><b>ЭМ-разряд и разведчик, который вызывает засаду</b></div>'+
   '<div><span>ИЗМЕНЕНИЕ МИРА</span><b>Разведка +350 м · патрули реже</b></div></div>';
  return '<article class="base-featured-op mission-corridor '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ДОК</span><span>'+
@@ -300,65 +299,70 @@ const corridorPanel=(base,state,compact=false)=>{
   ' опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
 };
 const probePanel=(base,state,compact=false)=>{
- const op=probeOffer(base,state.operation);
+ const op=probeOffer(base,state.operation,state.time);
  if(!op)return '';
  const done=op.status==='complete',active=op.status==='active';
+ const canDeliver=active&&op.repair>=PROBE_OPERATION.telemetryAt;
  const pct=Math.round((op.repair||0)/PROBE_OPERATION.maxRepair*100);
- const body=done?'Зонд снова передаёт телеметрию. Разведка лаборатории работает дальше.':
-  active?'Подлетите к зонду на 150 м и удерживайте E для ремонта. Пока идёт восстановление, корабль не стреляет. Отпустите E, чтобы отразить атаку.':
-  'Повреждённый зонд находится в соседнем районе. Ремонт может привлечь перехватчиков; уже выполненная работа сохранится.';
- const actions=done?'<span class="base-op-done">✓ Разведка восстановлена</span>':
-  active?action('baseMap','Показать цель','','','','operation')+(compact?'':action('abandonOperation','Отложить · сохранить ремонт')):
+ const body=done?(op.partial?'Лаборатория получила сохранённые данные.':'Зонд работает, обзор карты у лаборатории расширен.'):
+  'Сканер уточнит место зонда при сближении. Удерживайте E для ремонта и отпускайте, чтобы отбить налёт. Прогресс сохранится. С 50% можно увезти данные и завершить операцию без полного ремонта.';
+ const actions=done?'<span class="base-op-done">✓ '+(op.partial?'Данные переданы':'Разведка восстановлена')+'</span>':
+  active?action('baseMap',op.phase==='return'?'Показать лабораторию':op.located===false?'Показать район поиска':'Показать цель','','','','operation')+
+   (canDeliver?action('claimProbeData','Сдать данные и завершить'):'')+
+   (compact?'':action('abandonOperation','Отложить · сохранить ремонт')):
   action('baseMap','Посмотреть район поиска')+
    action('acceptOperation','Принять операцию',op.status==='available'&&!state.operation?'':'Сначала завершите другую операцию или включите лабораторию');
- const warning=!done&&!active&&op.status!=='available'?'Сначала включите лабораторию.':
+ const warning=op.status==='cooldown'?'Новый сигнал через '+op.remaining+' с.':
+  !done&&!active&&op.status!=='available'?'Сначала включите лабораторию.':
   !done&&!active&&state.operation?'Сначала завершите или отложите текущую особую операцию.':'';
  const facts='<div class="base-op-details">'+
   '<div><span>ЗАДАЧА</span><b>Восстановить зонд</b></div>'+
-  '<div><span>ОПАСНОСТЬ</span><b>Возможны перехватчики</b></div>'+
-  '<div><span>ИЗМЕНЕНИЕ МИРА</span><b>Разведка +300 м; возможен новый сигнал</b></div></div>';
+  '<div><span>ОПАСНОСТЬ</span><b>Налётчики бьют по зонду и прерывают ремонт</b></div>'+
+  '<div><span>ИСХОДЫ</span><b>Данные: +9 сплава, +16 опыта. Полный ремонт: обзор карты +300 м.</b></div></div>';
  return '<article class="base-featured-op mission-probe '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ЛАБОРАТОРИЯ</span><span>'+
-  (done?'СИГНАЛ ВОССТАНОВЛЕН':active?'РЕМОНТ В ПОЛЁТЕ':'СИГНАЛ БЕДСТВИЯ')+'</span></div>'+
-  '<strong>'+PROBE_OPERATION.name+'</strong>'+missionSummary(done?'Зонд восстановлен.':active?
-   'Удерживайте E у зонда; в это время корабль не стреляет.':
+  (done?(op.partial?'ДАННЫЕ ПЕРЕДАНЫ':'СИГНАЛ ВОССТАНОВЛЕН'):op.phase==='return'?'ДАННЫЕ ГОТОВЫ К СДАЧЕ':active?'ОПЕРАЦИЯ ПРИНЯТА':'СИГНАЛ БЕДСТВИЯ')+'</span></div>'+
+  '<strong>'+PROBE_OPERATION.name+'</strong>'+missionSummary(done?(op.partial?'Телеметрия доставлена.':'Зонд восстановлен.'):
+   op.phase==='return'?'Зонд потерян. Сдайте сохранённые данные.':active&&op.located!==false?
+   'Удерживайте E у зонда. Отпустите кнопку, чтобы открыть огонь.':
    'Найдите и восстановите зонд рядом с лабораторией.')+
   (active||op.resumable?'<div class="base-op-progress"><span>Восстановлено: '+pct+'%</span>'+
    '<progress value="'+pct+'" max="100" aria-label="Ход восстановления зонда"></progress></div>':'')+
+  (canDeliver?'<small>Сдача данных завершит операцию. Награда: +'+PROBE_OPERATION.partialOre+' сплава и +'+PROBE_OPERATION.partialData+' опыта.</small>':'')+
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
-  PROBE_OPERATION.rewardOre+' сплава · +'+PROBE_OPERATION.rewardData+
+  (op.partial?PROBE_OPERATION.partialOre:PROBE_OPERATION.rewardOre)+' сплава · +'+(op.partial?PROBE_OPERATION.partialData:PROBE_OPERATION.rewardData)+
   ' опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
 };
 const relayPanel=(base,state,compact=false)=>{
  const op=relayOffer(base,state.operation,state.time);
  if(!op)return '';
  const done=op.status==='complete',active=op.status==='active';
- const body=done?'Ретранслятор защищён. Связь сохранена, разведчики получили новые координаты.':
-  active?'Налётчики атакуют передатчик, а не только корабль игрока. Сбивайте их до заряженного залпа. Всего три волны с передышками.':
-  'Недалеко от арсенала под угрозой ретранслятор. Подлетите к узлу — начнётся отсчёт до трёх конечных волн. При неудаче арсенал сохранится.';
+ const body=done?'Ретранслятор защищён. Связь восстановлена.':RELAY_DEFENSE.desc;
  const warning=op.status==='cooldown'?'Повторная попытка через '+op.remaining+' с.':
   op.status==='locked'?'Сначала включите станцию.':
   state.operation&&!active?'Завершите или отложите текущую особую операцию.':'';
  const actions=done?'<span class="base-op-done">✓ РЕТРАНСЛЯТОР ЗАЩИЩЁН</span>':
   active?action('baseMap','Показать цель','','','','operation')+
-   (compact?'':action('abandonOperation','Прервать · волны начнутся заново')):
+   (compact?'':action('abandonOperation',op.phase==='approach'?'Отложить оборону':'Отступить · повтор через 45 с')):
   action('baseMap','Посмотреть расположение')+
    action('acceptOperation','Начать оборону',op.status==='available'&&!state.operation?'':'Сначала завершите текущую операцию или дождитесь доступа');
  const facts='<div class="base-op-details">'+
   '<div><span>ЗАДАЧА</span><b>Сохранить передатчик · 3 волны</b></div>'+
-  '<div><span>ОПАСНОСТЬ</span><b>Заряжающиеся залпы · тяжёлый перехватчик</b></div>'+
-  '<div><span>ПОСЛЕДСТВИЕ</span><b>Разведка следующего узла · одноразовая награда</b></div></div>';
+  '<div><span>ОПАСНОСТЬ</span><b>Прицельные залпы с разных направлений</b></div>'+
+  '<div><span>БОНУС ЗА АНТЕННУ</span><b>+'+RELAY_DEFENSE.bonusOre+' сплава, +'+RELAY_DEFENSE.bonusData+' опыта, обзор карты +'+RELAY_DEFENSE.bonusScan+' м</b></div></div>';
  return '<article class="base-featured-op mission-relay '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · АРСЕНАЛ</span><span>'+
   (done?'ОБОРОНА ЗАВЕРШЕНА':active?'РЕТРАНСЛЯТОР ПОД УГРОЗОЙ':'ОЖИДАЕТ ПОДМОГИ')+'</span></div>'+
   '<strong>'+RELAY_DEFENSE.name+'</strong>'+missionSummary(done?'Ретранслятор защищён.':active?
    'Защитите передатчик от трёх волн налётчиков.':
    'Защитите передатчик: три волны налётчиков.')+
-  (active?'<small>Передатчик: '+Math.ceil(op.hp/op.maxHp*100)+'% · '+relayDefenseCue(op,state.time)+'</small>':'')+
+  (active?'<small>Передатчик: '+Math.ceil(op.hp/op.maxHp*100)+'% · '+relayDefenseCue(op,state.time)+
+   (op.antenna?' · Антенна: '+Math.ceil(op.antenna.hp/op.antenna.maxHp*100)+'%':'')+'</small>':'')+
+  (op.antennaSaved?'<small>Антенна уцелела. Обзор карты возле арсенала расширен на '+RELAY_DEFENSE.bonusScan+' м.</small>':'')+
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
-  RELAY_DEFENSE.rewardOre+' сплава · +'+RELAY_DEFENSE.rewardData+
+  (RELAY_DEFENSE.rewardOre+(op.antennaSaved?RELAY_DEFENSE.bonusOre:0))+' сплава · +'+(RELAY_DEFENSE.rewardData+(op.antennaSaved?RELAY_DEFENSE.bonusData:0))+
   ' опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
 };
 const carrierPanel=(base,state,compact=false)=>{
@@ -398,7 +402,7 @@ const carrierPanel=(base,state,compact=false)=>{
    ' опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
 };
 const specialOffer=(base,state)=>corridorOffer(base,state.operation)||
- probeOffer(base,state.operation)||relayOffer(base,state.operation,state.time)||
+ probeOffer(base,state.operation,state.time)||relayOffer(base,state.operation,state.time)||
  carrierOffer(base,state.operation,state.time);
 const specialPanel=(base,state,compact=false)=>
  corridorOffer(base,state.operation)?corridorPanel(base,state,compact):
@@ -410,14 +414,15 @@ const baseBrief=(base,state,o)=>{
   if(op.status==='complete')return ['ПОМЕХИ УСТРАНЕНЫ','Коридор открыт',
    'Дальность местной разведки выросла, патрули возле дома стали реже. Станция больше не заглушена.'];
   if(op.phase==='return')return ['ПОМЕХИ СНЯТЫ','Вернитесь с телеметрией',
-   'Передатчик отключён. Сохранённые данные нужно доставить в док. По дороге возможен перехват; вступать в бой необязательно.'];
+   'Передатчик отключён. Доставьте данные в док.'+(op.radio==='sent'?' На карте отмечена засада.':'')];
   if(op.status==='active')return ['ОПЕРАЦИЯ ВЫПОЛНЯЕТСЯ','Найдите передатчик',
-   'Можно прорваться к глушителю или сначала уничтожить охранение. Передатчик заряжает ЭМ-импульс вблизи; затяжной бой привлечёт подкрепление. Награда — после возвращения в док.'];
+   'Сбейте разведчика до передачи тревоги или обойдите засаду на пути назад. Вблизи глушителя следите за ЭМ-разрядом.'];
   return ['РАЗВЕДКА ПОД ПОМЕХАМИ','Глушитель на востоке',
    'Сеть станций работает, но передатчик мешает местной разведке. Отключите его и вернитесь с телеметрией в док, чтобы сделать маршрут спокойнее.'];
  }
- const probe=probeOffer(base,state.operation);
+ const probe=probeOffer(base,state.operation,state.time);
  if(probe){
+  if(probe.partial)return ['ТЕЛЕМЕТРИЯ ПОЛУЧЕНА','Данные переданы лаборатории','Операция завершена.'];
   if(probe.status==='complete')return ['ТЕЛЕМЕТРИЯ ПОЛУЧЕНА','Новый участок разведан',
    'Зонд восстановлен, местная разведка расширена. Если поблизости найден ещё один узел, его отметка появилась на карте.'];
   if(probe.status==='active')return ['ВОССТАНОВЛЕНИЕ ЗОНДА','Последний сигнал',
@@ -428,7 +433,7 @@ const baseBrief=(base,state,o)=>{
  const relay=relayOffer(base,state.operation,state.time);
  if(relay){
   if(relay.status==='complete')return ['ОБОРОНА УДАЛАСЬ','Ретранслятор сохранён',
-   'Станция отбила нападение, разведка получила координаты дополнительного узла.'];
+   relay.antennaSaved?'Резервная антенна расширила обзор карты возле арсенала.':'Связь с передатчиком восстановлена.'];
   if(relay.status==='active')return ['НАЛЁТ НА РЕТРАНСЛЯТОР','Удержите связь',
    'Перехватывайте корабли, которые сближаются с передатчиком. После каждой волны можно сменить позицию.'];
   return ['ТРЕВОГА НА АРСЕНАЛЕ','Нужна защита ретранслятора',
@@ -550,9 +555,13 @@ export function activeOperationStep(op,world,time=0,controls=DEFAULT_CONTROLS){
  const homeName=home?({dock:'в ремонтный док',lab:'в лабораторию',
   arsenal:'в военный арсенал',carrier:'на авианосец'}[home.type]||'на исходную станцию'):
   'на станцию, где приняли операцию';
+ if(op.id===PROBE_OPERATION.id&&op.phase==='return')return {title:'«Последний сигнал» · данные спасены',
+  description:'Вернитесь в лабораторию и сдайте данные в разделе операций.',button:'Показать лабораторию'};
  if(op.phase==='return')return {title:'«'+op.name+'» · возвращение',
   description:'Цель выполнена. Вернитесь '+homeName+' и пристыкуйтесь ('+interact+'), чтобы передать сведения и получить награду.',
   button:'Показать станцию сдачи'};
+ if(op.id===PROBE_OPERATION.id&&op.located===false)return {title:'«Последний сигнал» · поиск зонда',
+  description:'Подлетите в отмеченный район. Сканер уточнит положение зонда.',button:'Показать район поиска'};
  if(op.id===PROBE_OPERATION.id)return {title:'«Последний сигнал» · ремонт зонда',
   description:'Зонд восстановлен на '+Math.round(op.repair||0)+'%. Доберитесь до маркера, удерживайте '+interact+' для ремонта; отпускайте для стрельбы.',
   button:'Показать зонд'};

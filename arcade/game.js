@@ -5,7 +5,7 @@ import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from '
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2';
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
 import {focusContourRegion} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expedition-1';
@@ -29,20 +29,20 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2';
 import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1';
 import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
-import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1';
+import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
 import {ArcadeVisuals} from './visuals.js?v=regions-1-campaign-1-counterattack-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {manualWeapons,selectedManual,cycleManual,manualClick} from './manual-weapon-controls.js?v=unified-controls-1';
@@ -51,12 +51,13 @@ import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1';
-import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,PROBE_OPERATION,isProbeLab,createProbeOperation,chooseOperationLead} from './operations.js?v=weapons-cycle-2';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2';
+import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,
+ PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,chooseOperationLead} from './operations.js?v=station-operations-2';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
-import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1';
-import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue} from './relay-defense.js?v=relay-def-1';
+import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2';
+import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue,relayWavePlan} from './relay-defense.js?v=station-operations-2';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 
@@ -631,17 +632,17 @@ export class ArcadeGame {
      this.mapView='map';
      const op=b.dataset.target==='operation'?this.operation:null;
      const returnBase=op?.phase==='return'?this.world.stations.get(op.baseId):null;
-     const focus=returnBase||op||
+     const focus=returnBase||(op&&operationDestination(op,this.world))||
       (b.dataset.target==='contract'?this.world.stations.get(this.contract?.baseId):null);
      this.openMap(focus);return;
     }
    if(act==='operationWaypoint'&&this.operation&&this.overlay.dataset.mode==='map'){
     const op=this.operation,base=op.phase==='return'?this.world.stations.get(op.baseId):null;
-    const destination=base||op;
+    const destination=base||operationDestination(op,this.world);
     if(!Number.isFinite(destination?.x)||!Number.isFinite(destination?.y))return;
     const waypoint={id:base?.id||op.id,x:destination.x,y:destination.y,
      label:base?'Сдать операцию: '+(baseNames[base.type]||'станция'):
-      'Операция: '+op.name};
+      op.id===PROBE_OPERATION.id&&op.located===false?'Район поиска зонда':'Операция: '+op.name};
     this.setNavigationCourse(waypoint,'Курс проложен: '+waypoint.label);
     return;
    }
@@ -663,7 +664,7 @@ export class ArcadeGame {
     if(['loanField','returnField','fieldCharge','loanIon','returnIon'].includes(act)){
      this.baseAction(act,b.dataset.role||'');return;
     }
-   if(act==='acceptOperation'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimContract'||act==='claimFirstModule'||act==='installModule'||act==='antenna')
+   if(act==='acceptOperation'||act==='claimProbeData'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimContract'||act==='claimFirstModule'||act==='installModule'||act==='antenna')
     this.baseAction(act,b.dataset.role||'');
    if(act==='restart'){this.runStore?.end();location.reload();}
   });
@@ -1232,7 +1233,13 @@ export class ArcadeGame {
    const preservingCarrierReturn=operationId===CARRIER_INTERCEPTION.id&&this.operation.phase==='return';
    if(operationId===RELAY_DEFENSE.id){
     const base=this.world.stations.get(this.operation.baseId);
-    if(base)base.relayMission=null;
+    if(base){
+     base.relayMission=null;
+     if(this.operation.phase!=='approach'){
+      base.relayRetryAt=this.time+RELAY_DEFENSE.retryDelay;
+      base.relayAttempts=(base.relayAttempts||0)+1;
+     }
+    }
     this.enemies=this.enemies.filter(e=>e.relayAssault!==this.operation.baseId);
    }
    if(operationId===CARRIER_INTERCEPTION.id){
@@ -1243,7 +1250,7 @@ export class ArcadeGame {
    this.operation=null;this.probeRepairing=false;
    if(this.waypoint?.id===operationId)this.waypoint=null;
    this.heritage.ui('cancel');this.notice('Операция «'+name+'» отложена. '+
-    (operationId===RELAY_DEFENSE.id?'Налёт отменён. При повторном запуске волны начнутся заново.':
+    (operationId===RELAY_DEFENSE.id?'Следующую попытку начните в арсенале. После начавшегося налёта действует задержка.':
      operationId===CARRIER_INTERCEPTION.id?(preservingCarrierReturn?
       'Сведения сохранены. Передайте их при следующем посещении авианосца.':
       'Погоня отменена. Новый груз появится при следующем вылете.'):
@@ -1634,31 +1641,63 @@ export class ArcadeGame {
  }
 
  // Finite assault on a fragile relay. Leaving the sector never grants a free win.
+ prepareMissionStrike(enemy,target,spec){
+  enemy.missionStrike={target:spec.target,range:spec.range,damage:spec.damage,charge:spec.charge};
+  for(const offset of [0,.15,-.15,.3,-.3]){
+   const a=spec.angle+offset;
+   const x=target.x+Math.cos(a)*spec.range,y=target.y+Math.sin(a)*spec.range;
+   enemy.missionFlight={x,y,speed:ENEMY_TYPES[enemy.type].speed};
+   const rocks=this.world.nearbyRocks((x+target.x)*.5,(y+target.y)*.5,spec.range*.5+65);
+   if(!firstRockImpact(x,y,target.x,target.y,rocks,8,null))break;
+  }
+ }
+ updateMissionStrike(enemy,target){
+  const spec=enemy.missionStrike;
+  if(!target||target.hp<=0||dist(enemy,target)>spec.range+20||
+     this.time<(enemy.stasisUntil||0)||this.time<(enemy.chargeDisabledUntil||0)){
+   enemy.relayChargeUntil=0;return;
+  }
+  if(this.time<(enemy.relayCooldownUntil||0))return;
+  if(!enemy.relayChargeUntil){enemy.relayChargeUntil=this.time+spec.charge;return;}
+  if(this.time<enemy.relayChargeUntil)return;
+  enemy.relayChargeUntil=0;enemy.relayCooldownUntil=this.time+2.1;
+  const rocks=this.world.nearbyRocks((enemy.x+target.x)*.5,(enemy.y+target.y)*.5,dist(enemy,target)*.5+65);
+  const cover=firstRockImpact(enemy.x,enemy.y,target.x,target.y,rocks,3,null);
+  if(cover)this.damageRock(cover.rock,spec.damage,cover.x,cover.y,'cover',false);
+  else target.hp=Math.max(0,target.hp-spec.damage);
+  this.flash(enemy.x,enemy.y,cover?.x??target.x,cover?.y??target.y,'#ffb585');
+  this.heritage.play('damage',.2,{x:target.x,y:target.y});
+ }
  spawnRelayWave(op,index){
-  const roster=RELAY_DEFENSE.waves[index];if(!roster)return;
+  const roster=relayWavePlan(op,index);if(!roster.length)return;
   op.enemySerials=[];op.wave=index+1;op.phase='wave';
   for(let i=0;i<roster.length;i++){
-   const spec=roster[i],def=ENEMY_TYPES[spec.type],radius=630+i*85;
+   const spec=roster[i],def=ENEMY_TYPES[spec.type];
+   const target=spec.target==='antenna'?op.antenna:spec.target==='relay'?op:null;
+   const origin=target||op,radius=spec.range?spec.range+170:600;
    let angle=spec.angle,x=op.x+Math.cos(angle)*radius,y=op.y+Math.sin(angle)*radius;
-   for(let step=0;step<6;step++){
-    angle=spec.angle+step*.3;
-    const px=op.x+Math.cos(angle)*radius,py=op.y+Math.sin(angle)*radius;
+   for(const offset of [0,.16,-.16,.32,-.32,.58]){
+    angle=spec.angle+offset;
+    const px=origin.x+Math.cos(angle)*radius,py=origin.y+Math.sin(angle)*radius;
     const obstructed=this.world.nearbyRocks(px,py,62).some(r=>r.alive&&dist(r,{x:px,y:py})<r.r+28);
     if(!obstructed){x=px;y=py;break;}
    }
    const serial=++this.enemySerial;
-   this.enemies.push({serial,group:++this.groupSerial,type:spec.type,
+   const enemy={serial,group:++this.groupSerial,type:spec.type,
     x,y,vx:0,vy:0,r:spec.type==='gunship'?22:14,
     hp:def.hp,maxHp:def.hp,damage:def.dmg,think:0,fire:1.4,
-    state:'hunt',commitUntil:0,target:op,angle:0,hit:0,
+    state:'hunt',commitUntil:0,target:target||this.player,angle:0,hit:0,
     expAwarded:true,scenario:'relay-assault',protect:null,
-    relayAssault:op.baseId,relayCooldownUntil:this.time+2.4,relayChargeUntil:0,
-    operationGuard:true,fieldChargeOperation:this.operation?.id,fieldChargeBaseId:this.operation?.baseId,entryPortalPending:false});
+    relayAssault:op.baseId,relayScreen:!target,relayCooldownUntil:this.time+.9,relayChargeUntil:0,
+    operationGuard:true,fieldChargeOperation:this.operation?.id,fieldChargeBaseId:this.operation?.baseId,entryPortalPending:false};
+   if(target)this.prepareMissionStrike(enemy,target,{...spec,angle});
+   this.enemies.push(enemy);
    op.enemySerials.push(serial);
   }
-  this.notice('Бортовой ИИ: волна '+op.wave+'/3. '+(index===2?
-   'Тяжёлый корабль атакует ретранслятор — перехватите его!':
-   'Перехватите налётчиков до их залпа по передатчику.'),4.5);
+  this.notice('Волна '+op.wave+'/3. '+(index===1&&op.antenna?.hp>0?
+   'Две цели под ударом: передатчик и резервная антенна.':index===2?
+   'Корвет остановится на дальней позиции. Перехватите его до залпа!':
+   'Штурмовик готовит удар по передатчику. Выйдите ему навстречу.'),4.2);
  }
  updateRelayDefense(dt){
   const op=this.operation;
@@ -1671,7 +1710,7 @@ export class ArcadeGame {
   if(op.phase==='approach'){
    if(dist(this.player,op)<=RELAY_DEFENSE.triggerRange){
     op.phase='warning';op.nextAt=this.time+RELAY_DEFENSE.preparation;
-    this.notice('Бортовой ИИ: на ретранслятор наводятся противники. Первая атака через 8 секунд.',4.5);
+    this.notice('Угроза ретранслятору. Займите позицию со стороны стрелки.',4);
    }
    return;
   }
@@ -1685,6 +1724,21 @@ export class ArcadeGame {
    if(e.relayAssault!==op.baseId||!op.enemySerials.includes(e.serial)||
       e.hp<=0||e.converted)continue;
    surviving++;
+   if(e.missionStrike){
+    const antenna=e.missionStrike.target==='antenna';
+    const target=antenna?op.antenna:op;
+    const wasIntact=antenna&&target?.hp>0;
+    this.updateMissionStrike(e,target);
+    if(wasIntact&&target.hp<=0){
+     this.heritage.vfx.shipExplosion(target.x,target.y,15,'#ffa373');
+     this.notice('Резервная антенна потеряна. Передатчик ещё можно спасти.',4);
+     delete e.missionFlight;delete e.missionStrike;
+     e.relayScreen=true;e.target=this.player;
+    }
+    continue;
+   }
+   if(e.relayScreen)continue;
+   // A checkpoint made during a wave can still contain old close-range attackers.
    if(dist(e,op)>RELAY_DEFENSE.assaultRange){
     e.relayChargeUntil=0;continue;
    }
@@ -1715,33 +1769,40 @@ export class ArcadeGame {
   if(this.operation!==op)return;
   finishFieldAssignment(this.fieldLoan,'operation',op);
   const base=this.world.stations.get(op.baseId);
-  if(base){base.relayMission=null;base.relayRetryAt=this.time+45;}
+  if(base){
+   base.relayMission=null;base.relayRetryAt=this.time+RELAY_DEFENSE.retryDelay;
+   base.relayAttempts=(base.relayAttempts||0)+1;
+  }
   this.enemies=this.enemies.filter(e=>e.relayAssault!==op.baseId);
   this.operation=null;
   if(this.waypoint?.id===RELAY_DEFENSE.id)this.waypoint=null;
-  this.heritage.vfx.nova(op.x,op.y,125,'red');
+  this.heritage.vfx.shipExplosion(op.x,op.y,32,'#ff8c74');
   this.notice('Ретранслятор потерян. Арсенал цел; повторить оборону можно через 45 секунд.',5);
  }
  completeRelayDefense(op){
   const base=this.world.stations.get(op.baseId);
-  if(!base||base.relayDefenseDone||this.operation!==op)return;
+  if(!base||base.relayDefenseDone||this.operation!==op||op.hp<=0)return;
   finishFieldAssignment(this.fieldLoan,'operation',op);
   base.relayDefenseDone=true;base.relayMission=null;this.operation=null;
+  base.relaySite={x:op.x,y:op.y,hp:op.hp,maxHp:op.maxHp,antenna:op.antenna,onlineAt:this.time};
   if(this.waypoint?.id===RELAY_DEFENSE.id)this.waypoint=null;
-  const next=chooseOperationLead(this.world,op,base.id,'carrier',2500);
+  const antennaSaved=op.antenna?.hp>0;
+  const next=(antennaSaved||!op.antenna)&&chooseOperationLead(this.world,op,base.id,'carrier',2500);
   if(next){next.discovered=true;this.world.discovered.add(next.id);
    if(!this.waypoint)this.waypoint={id:next.id,x:next.x,y:next.y,
     label:baseNames[next.type]||'Станция'};}
-  this.player.ore+=RELAY_DEFENSE.rewardOre;
-  recordSortieIncome(this,'ore','operation',RELAY_DEFENSE.rewardOre);
-  this.cockpit.resourceGain(RELAY_DEFENSE.rewardOre,this.time);
+  const ore=RELAY_DEFENSE.rewardOre+(antennaSaved?RELAY_DEFENSE.bonusOre:0);
+  const data=RELAY_DEFENSE.rewardData+(antennaSaved?RELAY_DEFENSE.bonusData:0);
+  this.player.ore+=ore;
+  recordSortieIncome(this,'ore','operation',ore);
+  this.cockpit.resourceGain(ore,this.time);
   const previousLevel=this.player.level;
-  this.collect({type:'data',value:RELAY_DEFENSE.rewardData});
-  recordSortieIncome(this,'data','operation',RELAY_DEFENSE.rewardData);
-  this.heritage.vfx.nova(op.x,op.y,130,'green');
+  this.collect({type:'data',value:data});
+  recordSortieIncome(this,'data','operation',data);
   this.heritage.station('claimContract',base.type);
-  this.rewardNotice('РЕТРАНСЛЯТОР ЗАЩИЩЁН! +'+RELAY_DEFENSE.rewardOre+' сплава, +'+
-   RELAY_DEFENSE.rewardData+' данных и опыта.'+(next?' На карте отмечен следующий узел.':''),previousLevel,5.5);
+  this.rewardNotice('ОБОРОНА ЗАВЕРШЕНА. Связь восстановлена. +'+ore+' сплава, +'+data+' опыта.'+
+   (antennaSaved?' Антенна уцелела: обзор карты у арсенала +'+RELAY_DEFENSE.bonusScan+' м.':'')+
+   (next?' Отмечен следующий узел.':''),previousLevel,6.5);
  }
 
   // A carrier operation begins only when the player reaches the contact area.
@@ -1875,15 +1936,18 @@ export class ArcadeGame {
  // Pursuers can be fought or outrun; they are not mandatory kill targets.
  updateCorridorReturn(op){
   const base=this.world.stations.get(op.baseId);
-  if(!base||op.pursuitStarted||dist(this.player,base)>900)return;
+  if(!base||op.pursuitStarted)return;
+  const ambush=op.radio==='sent'?corridorAmbush(base,op):null;
+  if(ambush?dist(this.player,ambush)>CORRIDOR_OPERATION.ambushRadius:op.radio!==undefined||dist(this.player,base)>900)return;
   op.pursuitStarted=true;
   const angle=Math.atan2(this.player.y-base.y,this.player.x-base.x);
   let spawned=0;
   for(const spec of [{type:'scout',back:255,side:-85},{type:'fighter',back:325,side:100}]){
    if(this.enemies.length>=RULES.maxEnemies)break;
    const def=ENEMY_TYPES[spec.type];if(!def)continue;
-   const x=this.player.x+Math.cos(angle)*spec.back-Math.sin(angle)*spec.side;
-   const y=this.player.y+Math.sin(angle)*spec.back+Math.cos(angle)*spec.side;
+   const anchor=ambush||this.player,back=ambush?65:spec.back;
+   const x=anchor.x+Math.cos(angle)*back-Math.sin(angle)*spec.side;
+   const y=anchor.y+Math.sin(angle)*back+Math.cos(angle)*spec.side;
    if(this.world.nearbyRocks(x,y,70).some(rock=>rock.alive&&Math.hypot(x-rock.x,y-rock.y)<rock.r+35))continue;
    const hp=def.hp*(1+Math.min(1,this.time/900));
    this.enemies.push({serial:++this.enemySerial,group:++this.groupSerial,
@@ -1893,13 +1957,29 @@ export class ArcadeGame {
     scenario:'corridor-pursuit',protect:null,operationGuard:true,fieldChargeOperation:this.operation?.id,fieldChargeBaseId:this.operation?.baseId});
    spawned++;
   }
-  if(spawned)this.notice('Бортовой ИИ: преследователи на обратном маршруте. Сражайтесь или уходите к доку на форсаже!',5);
+  if(spawned)this.notice('Засада на обратном пути. Уходите к доку на форсаже или примите бой.',4);
+ }
+
+ stopCorridorRadio(op){
+  if(op.radio!=='calling')return;
+  op.radio='blocked';
+  if(this.operation===op)this.notice('Разведчик перехвачен. Засада на пути к доку сорвана.',4);
+ }
+ updateCorridorRadio(op){
+  if(op.radio!=='calling')return;
+  const scout=this.enemies.find(e=>e.serial===op.radioSerial);
+  if(scout&&(scout.hp<=0||scout.converted)){this.stopCorridorRadio(op);return;}
+  if(this.time<op.radioAt)return;
+  op.radio='sent';
+  if(scout){delete scout.missionFlight;scout.think=0;}
+  this.notice('Тревога передана. На карте отмечена засада между глушителем и доком.',4.5);
  }
 
  // A tangible, single-use operation: a jammer, an EMP duel, and a return leg.
  updateCorridor(dt=0){
   const op=this.operation;
   if(!op||op.id!==CORRIDOR_OPERATION.id||this.dead)return;
+  this.updateCorridorRadio(op);
   if(op.phase==='return'){this.updateCorridorReturn(op);return;}
   if(op.hp<=0)return;
   const d=dist(this.player,op);
@@ -1934,18 +2014,23 @@ export class ArcadeGame {
    if(first)this.spawnCorridorGuard('fighter',1);
    if(first){
     op.guardsSpawned=true;op.reinforcementsAt=this.time+32;
-    this.notice('Передатчик передаёт сигнал тревоги. Уничтожьте его, чтобы остановить подкрепления.',3.8);
+    const bearing=Math.atan2(op.y-this.player.y,op.x-this.player.x)+.68;
+    first.corridorCourier=true;
+    first.missionFlight={x:op.x+Math.cos(bearing)*1120,y:op.y+Math.sin(bearing)*1120,speed:128};
+    op.radio='calling';op.radioSerial=first.serial;op.radioAt=this.time+CORRIDOR_OPERATION.radioDelay;
+    this.notice('Разведчик уходит передавать тревогу. Перехватите отмеченный корабль, пока идёт отсчёт.',4.8);
    }
-  }else if(op.waves<1&&this.time>=op.reinforcementsAt){
+  }else if((op.radio==='sent'||op.radio===undefined)&&op.waves<1&&this.time>=op.reinforcementsAt){
    if(this.spawnCorridorGuard('fighter',2)){
     op.waves++;this.notice('Глушитель вызвал подкрепление!',2.8);
    }
   }
- } spawnCorridorGuard(type,index){
+ } spawnCorridorGuard(type,index,placement=null){
   if(this.enemies.length>=RULES.maxEnemies)return false;
   const op=this.operation;if(!op)return false;
   const def=ENEMY_TYPES[type];if(!def)return false;
-  const angle=[-1.15,1.12,2.55][index]??0,offset=125+index*34;
+  const angle=placement?.angle??([-1.15,1.12,2.55][index]??0);
+  const offset=placement?.distance??(125+index*34);
   let x=op.x+Math.cos(angle)*offset,y=op.y+Math.sin(angle)*offset;
   // Do not place an escort inside a procedurally generated asteroid.
   for(let step=0;step<7;step++){
@@ -1956,23 +2041,25 @@ export class ArcadeGame {
    }
   }
   const hp=def.hp*(1+Math.min(1,this.time/900));
-  this.enemies.push({serial:++this.enemySerial,group:++this.groupSerial,type,
+  const enemy={serial:++this.enemySerial,group:++this.groupSerial,type,
    x,y,vx:0,vy:0,
    r:14,hp,maxHp:hp,damage:def.dmg,think:.12+index*.09,fire:1.2,
    state:'hunt',commitUntil:0,target:this.player,angle:0,hit:0,
    expAwarded:false,scenario:'corridor-escort',protect:null,
-   operationGuard:true,fieldChargeOperation:this.operation?.id,fieldChargeBaseId:this.operation?.baseId});
-  return true;
+   operationGuard:true,fieldChargeOperation:op.id,fieldChargeBaseId:op.baseId};
+  this.enemies.push(enemy);return enemy;
  }
  completeCorridor(){
   const op=this.operation;
   if(!op||op.id!==CORRIDOR_OPERATION.id||op.phase==='return')return;
   const base=this.world.stations.get(op.baseId);if(!base)return;
   op.phase='return';op.hp=0;op.pulseCharge=0;op.pulseLocked=false;
+  if(op.radio==='idle')op.radio='blocked';
   this.waypoint={id:CORRIDOR_OPERATION.id,x:base.x,y:base.y,label:'Вернуться с телеметрией в док'};
   this.heritage.vfx.shipExplosion(op.x,op.y,55,'#b876ff');
   this.heritage.vfx.nova(op.x,op.y,160,'green');
-  this.notice('Глушитель отключён. Телеметрия сохранена! Вернитесь в домашний док ('+this.controlLabel('interact')+') за наградой. Возможна погоня.',6);
+  this.notice('Глушитель отключён. Вернитесь в док с телеметрией.'+
+   (op.radio==='calling'?' Разведчик ещё может передать тревогу.':op.radio==='sent'?' Обойдите отмеченную засаду.':''),5);
  }
  deliverCorridor(){
   const op=this.operation;
@@ -1980,6 +2067,8 @@ export class ArcadeGame {
   const base=this.world.stations.get(op.baseId);if(!base||base.corridorSecured)return;
   finishFieldAssignment(this.fieldLoan,'operation',op);
   base.corridorSecured=true;base.corridorMission=null;this.operation=null;
+  const courier=this.enemies.find(e=>e.corridorCourier&&e.serial===op.radioSerial);
+  if(courier){delete courier.missionFlight;courier.think=0;}
   if(this.waypoint?.id===CORRIDOR_OPERATION.id)this.waypoint=null;
   // The reclaimed corridor yields a lead to the next station, not free resources.
   const nextStation=chooseOperationLead(this.world,op,base.id,'lab',2400);
@@ -2004,29 +2093,83 @@ export class ArcadeGame {
    (nextStation?' На карте отмечена станция: '+(baseNames[nextStation.type]||'неизвестная')+'.':''),previousLevel,6);
  }
 
- // The player chooses between repairing under fire and releasing E to fight.
+ updateProbe(){
+  const op=this.operation;
+  if(op?.id!==PROBE_OPERATION.id||op.phase==='return'||this.dead)return;
+  op.hp??=PROBE_OPERATION.maxHp;
+  op.r??=28;
+  if(op.located===false&&dist(this.player,op)<=PROBE_OPERATION.detectRange){
+   op.located=true;
+   if(this.waypoint?.id===op.id)this.waypoint={id:op.id,x:op.x,y:op.y,label:'Аварийный зонд'};
+   this.notice('Зонд найден. Подлетите к нему и удерживайте '+this.controlLabel('interact')+' для ремонта.',4);
+  }
+  if(!op.strikerSerial)return;
+  const striker=this.enemies.find(e=>e.serial===op.strikerSerial);
+  if(!striker){
+   // A suspended mission can lose distant actors to normal despawning. Recreate
+   // the unresolved phase on the next repair, keeping the probe's damage.
+   op.waves=Math.max(0,op.waves-1);op.strikerSerial=null;
+   return;
+  }
+  if(striker.hp<=0||striker.converted){op.strikerSerial=null;return;}
+  this.updateMissionStrike(striker,op);
+  if(op.hp<=0)this.loseProbe(op);
+ }
+ loseProbe(op){
+  const base=this.world.stations.get(op.baseId);if(!base)return;
+  this.enemies=this.enemies.filter(e=>e.probeAssault!==op.baseId);
+  op.strikerSerial=null;
+  this.probeRepairing=false;
+  this.heritage.vfx.shipExplosion(op.x,op.y,29,'#ff956c');
+  if(op.repair>=PROBE_OPERATION.telemetryAt){
+   op.phase='return';
+   this.waypoint={id:op.id,x:base.x,y:base.y,label:'Лаборатория · сдать данные'};
+   this.notice('Зонд потерян. Данные у вас: их можно сдать в лаборатории.',5);
+  }else{
+   this.operation=null;base.probeMission=null;base.probeRetryAt=this.time+PROBE_OPERATION.retryDelay;
+   finishFieldAssignment(this.fieldLoan,'operation',op);
+   if(this.waypoint?.id===op.id)this.waypoint=null;
+   this.notice('Зонд потерян. Новый сигнал можно принять в лаборатории через '+PROBE_OPERATION.retryDelay+' с.',5);
+  }
+ }
+ // A repair stage preserves earned progress while a striker forces the pilot to fight.
  repairProbe(dt){
   const op=this.operation;
-  if(!op||op.id!==PROBE_OPERATION.id||this.dead)return;
-  op.repair=Math.min(PROBE_OPERATION.maxRepair,op.repair+PROBE_OPERATION.repairPerSecond*dt);
-  if(!op.waves&&op.repair>=30){
-   op.waves=1;
-   this.spawnCorridorGuard('scout',0);
-   this.spawnCorridorGuard('scout',1);
-   this.notice('Зонд передал сигнал. Приближаются разведчики! Отпустите '+this.controlLabel('interact')+', чтобы отбиться.',4);
-  }else if(op.waves===1&&op.repair>=70){
-   op.waves=2;
-   this.spawnCorridorGuard('fighter',2);
-   this.notice('Перехватчик вышел на сигнал зонда. Можно прервать ремонт и отступить.',4);
+  if(op?.id!==PROBE_OPERATION.id||op.phase==='return'||op.located===false||this.dead)return;
+  const before=op.repair;
+  const stage=PROBE_OPERATION.stages[op.waves];
+  let repair=before+PROBE_OPERATION.repairPerSecond*dt;
+  if(stage&&repair>=stage.at&&!op.strikerSerial){
+   const striker=this.spawnCorridorGuard(stage.type,op.waves,{angle:stage.angle,distance:stage.range+120});
+   if(striker){
+    striker.probeAssault=op.baseId;
+    this.prepareMissionStrike(striker,op,{...stage,target:'probe'});
+    op.strikerSerial=striker.serial;op.waves++;
+    if(op.waves===1){
+     const screen=this.spawnCorridorGuard('scout',1,{angle:stage.angle-1.25,distance:415});
+     if(screen)screen.probeAssault=op.baseId;
+    }
+    this.notice('Налётчик глушит ремонтный луч и наводится на зонд. Отпустите '+
+     this.controlLabel('interact')+' и перехватите отмеченный корабль.',4.5);
+   }else repair=Math.min(repair,stage.at);
   }
+  const limit=op.strikerSerial?PROBE_OPERATION.stages[op.waves-1].limit:PROBE_OPERATION.maxRepair;
+  op.repair=Math.max(before,Math.min(limit,repair));
+  if(before<PROBE_OPERATION.telemetryAt&&op.repair>=PROBE_OPERATION.telemetryAt)
+   this.notice('Координаты сохранены. Можно сдать данные в лаборатории или продолжить ремонт ради обзора карты.',4.8);
   if(op.repair>=PROBE_OPERATION.maxRepair)this.completeProbe();
  }
- completeProbe(){
+ completeProbe(partial=false){
   const op=this.operation;
   if(!op||op.id!==PROBE_OPERATION.id)return;
-  const base=this.world.stations.get(op.baseId);if(!base)return;
+  const base=this.world.stations.get(op.baseId);
+  if(!base||base.probeRecovered||base.probeTelemetryDelivered)return;
+  if(partial?(this.docked!==base||op.repair<PROBE_OPERATION.telemetryAt):
+   (op.phase==='return'||op.repair<PROBE_OPERATION.maxRepair))return;
   finishFieldAssignment(this.fieldLoan,'operation',op);
-  base.probeRecovered=true;base.probeMission=null;
+  if(partial)base.probeTelemetryDelivered=true;else base.probeRecovered=true;
+  base.probeMission=null;
+  this.enemies=this.enemies.filter(e=>e.probeAssault!==op.baseId);
   this.operation=null;this.probeRepairing=false;
   if(this.waypoint?.id===PROBE_OPERATION.id)this.waypoint=null;
   const next=chooseOperationLead(this.world,op,base.id,'arsenal',2300);
@@ -2035,16 +2178,18 @@ export class ArcadeGame {
    if(!this.waypoint)this.waypoint={id:next.id,x:next.x,y:next.y,
     label:baseNames[next.type]||'Станция'};
   }
-  this.player.ore+=PROBE_OPERATION.rewardOre;
-  recordSortieIncome(this,'ore','operation',PROBE_OPERATION.rewardOre);
-  this.cockpit.resourceGain(PROBE_OPERATION.rewardOre,this.time);
+  const ore=partial?PROBE_OPERATION.partialOre:PROBE_OPERATION.rewardOre;
+  const data=partial?PROBE_OPERATION.partialData:PROBE_OPERATION.rewardData;
+  this.player.ore+=ore;
+  recordSortieIncome(this,'ore','operation',ore);
+  this.cockpit.resourceGain(ore,this.time);
   const previousLevel=this.player.level;
-  this.collect({type:'data',value:PROBE_OPERATION.rewardData});
-  recordSortieIncome(this,'data','operation',PROBE_OPERATION.rewardData);
-  this.heritage.vfx.nova(op.x,op.y,105,'cyan');
+  this.collect({type:'data',value:data});
+  recordSortieIncome(this,'data','operation',data);
+  if(!partial)this.heritage.vfx.nova(op.x,op.y,105,'cyan');
   this.heritage.station('claimContract',base.type);
-  this.rewardNotice('СИГНАЛ ВОССТАНОВЛЕН! +'+PROBE_OPERATION.rewardOre+' сплава, +'+
-   PROBE_OPERATION.rewardData+' данных и опыта. Местная разведка усилена.'+
+  this.rewardNotice((partial?'ТЕЛЕМЕТРИЯ ДОСТАВЛЕНА. ':'ЗОНД ВОССТАНОВЛЕН. ')+'+'+ore+' сплава, +'+data+' опыта.'+
+   (partial?'':' Обзор карты у лаборатории +300 м.')+
    (next?' Отмечен новый узел сети.':''),previousLevel,5.5);
  }
  syncShipLoadout(){
@@ -2349,7 +2494,8 @@ export class ArcadeGame {
    Math.hypot(this.player.x-arc.rescueX,this.player.y-arc.rescueY)<=OPENING_ARC.repairRange)
    return {kind:'opening-repair',target:{x:arc.rescueX,y:arc.rescueY},
     label:'Эвакуация',hold:true};
-  const probe=this.operation?.id===PROBE_OPERATION.id?this.operation:null;
+  const op=this.operation;
+  const probe=op?.id===PROBE_OPERATION.id&&op.located!==false&&op.phase!=='return'?op:null;
   const rock=this.mining.target;
   const range=extractorStats(this.skillRanks.extractor||0,this.skillRanks.mining||0).range;
   return chooseInteraction({player:this.player,probe,station:this.nearestInteractionStation(),
@@ -2605,10 +2751,14 @@ export class ArcadeGame {
    this.notice(fieldWeapon(this.fieldLoan).short+': зарядов '+quote.charges+'/3 · −'+quote.cost+' сплава',3);
    this.heritage.ui('upgrade');this.renderDock();return;
   }
+   if(act==='claimProbeData'){
+    if(!b.active||b.enemy||!this.paused||this.overlay?.dataset.mode!=='base')return;
+    this.completeProbe(true);this.pausedRenderPending=true;this.renderDock();return;
+   }
    if(act==='acceptOperation'){
    const corridor=isCorridorDock(b),probe=isProbeLab(b),relay=isRelayArsenal(b),carrier=isCarrierBase(b);
    if(!b.active||this.operation||(!corridor&&!probe&&!relay&&!carrier)||
-    (corridor&&b.corridorSecured)||(probe&&b.probeRecovered)||
+    (corridor&&b.corridorSecured)||(probe&&(b.probeRecovered||b.probeTelemetryDelivered||b.probeRetryAt>this.time))||
     (relay&&(b.relayDefenseDone||b.relayRetryAt>this.time))||
      (carrier&&(b.supplyIntercepted||b.carrierRetryAt>this.time))){
     this.heritage.ui('deny');this.notice('Особая операция сейчас недоступна',2.3);return;
@@ -2623,16 +2773,19 @@ export class ArcadeGame {
    else if(probe)b.probeMission=this.operation;
    else if(relay)b.relayMission=this.operation;
    else b.carrierMission=this.operation;
-   const returning=(corridor||carrier)&&this.operation.phase==='return';
-   this.waypoint={id:this.operation.id,x:returning?b.x:this.operation.x,y:returning?b.y:this.operation.y,
-    label:returning?(carrier?'Вернуться на авианосец':'Вернуться с телеметрией в док'):
-     corridor?'Вражеский глушитель':probe?'Аварийный зонд':relay?'Боевой ретранслятор':'Район перехвата груза'};
+   const returning=this.operation.phase==='return';
+   const destination=operationDestination(this.operation,this.world);
+   this.waypoint={id:this.operation.id,x:destination.x,y:destination.y,
+    label:returning?(carrier?'Вернуться на авианосец':probe?'Лаборатория · сдать данные':'Вернуться с телеметрией в док'):
+     corridor?'Вражеский глушитель':probe?(this.operation.located===false?'Район поиска зонда':'Аварийный зонд'):
+      relay?'Боевой ретранслятор':'Район перехвата груза'};
    if(this.baseTab!=='summary')this.baseTab='operations';
-   if(returning){if(carrier)this.deliverCarrierInterception();else this.deliverCorridor();
+   if(returning&&!probe){if(carrier)this.deliverCarrierInterception();else this.deliverCorridor();
     this.pausedRenderPending=true;this.renderDock();return;}
    this.heritage.station('acceptContract',b.type);
    this.notice(corridor?'«Глухой коридор»: цель отмечена на карте. Подготовьте корабль и вылетайте.':
-    probe?'«Последний сигнал»: зонд отмечен. Подлетите и удерживайте '+this.controlLabel('interact')+' для ремонта; отпустите клавишу, чтобы стрелять.':
+    probe?(returning?'Данные у вас. Сдайте их в разделе операций.':
+     '«Последний сигнал»: следуйте в район поиска. Бортовой сканер уточнит направление при сближении.'):
     relay?'«Оборона ретранслятора»: подлетите к отмеченному узлу. Налёт начнётся после сближения.':
      '«Перехват снабжения»: найдите отмеченный район встречи. Груз тронется только при обнаружении.',5);
    this.pausedRenderPending=true;this.renderDock();return;
@@ -3806,8 +3959,9 @@ export class ArcadeGame {
   const miningStats=extractorStats(this.skillRanks.extractor||0,this.skillRanks.mining||0);
   const candidate=miningTarget(this.nearRocks,p,this.mining.target,miningStats.range);
   this.mining.target=candidate;
+  this.updateProbe();
   const probe=this.operation?.id===PROBE_OPERATION.id?this.operation:null;
-  const atProbe=!!probe&&dist(p,probe)<=PROBE_OPERATION.repairRange;
+  const atProbe=!!probe&&probe.located!==false&&probe.phase!=='return'&&dist(p,probe)<=PROBE_OPERATION.repairRange;
   this.interactionFocus=this.currentInteraction();
   // Action kind is locked when pressed. Neither docking nor repair may hijack mining.
   this.probeRepairing=activeInteraction(this.actionHeld,'repair',atProbe);
@@ -3864,7 +4018,7 @@ export class ArcadeGame {
   if(this.spawnClock<=0){
    if(this.contourTrial||
        (this.operation?.id===RELAY_DEFENSE.id&&this.operation.phase!=='approach')||
-       carrierInFlight(this.operation)){
+       carrierInFlight(this.operation)||this.operation?.strikerSerial){
     // The authored assault replaces ambient patrols; cap combat pressure.
     this.spawnClock=4.5;
    }else{
@@ -3946,6 +4100,14 @@ export class ArcadeGame {
   for(const e of this.enemies){
    e.hit=Math.max(0,(e.hit||0)-dt);
    if(e.hp>0)continue;
+   if(e.corridorCourier){
+    const op=this.world.home.corridorMission||this.operation;
+    if(op?.radioSerial===e.serial)this.stopCorridorRadio(op);
+   }
+   if(e.probeAssault){
+    const op=this.world.stations.get(e.probeAssault)?.probeMission||this.operation;
+    if(op?.strikerSerial===e.serial)op.strikerSerial=null;
+   }
    if(e.trialId!==undefined&&e.trialId===this.contourTrial?.entry?.id)
     this.contourTrial.defeatedIds?.add(e.serial);
    if(e.trialId!==undefined&&!e.fieldRewarded&&!e.converted&&!e.trialRetreatUntil){
@@ -3983,6 +4145,7 @@ export class ArcadeGame {
   }
   this.enemies=this.enemies.filter(e=>{
    const retained=e.hp>0&&(e.interceptCargo||e.relayAssault||e.stationRaid||
+    (e.probeAssault&&e.probeAssault===this.operation?.baseId)||(e.corridorCourier&&e.serial===this.operation?.radioSerial)||
     (e.openingCommander&&openingArcActive(this.openingArc))||
     dist(e,p)<Math.max(this.vw,this.vh)*1.65+500);
    if(!retained)rememberCargoEscort(e);
@@ -4168,13 +4331,22 @@ export class ArcadeGame {
 
  drawRelayDefense(c,cam){
   const op=this.operation;
-  if(!op||op.id!==RELAY_DEFENSE.id)return;
+  for(const base of this.localStations||[])
+   if(base.relaySite)this.drawRelaySite(c,cam,base.relaySite,true);
+  if(op?.id!==RELAY_DEFENSE.id)return;
+  this.drawRelaySite(c,cam,op);
+  if(op.phase==='wave')for(const e of this.enemies){
+   if(e.relayAssault===op.baseId)this.drawMissionStrikeWarning(c,cam,e,
+    e.missionStrike?.target==='antenna'?op.antenna:op);
+  }
+ }
+ drawRelaySite(c,cam,op,online=false){
   if(!outsideCamera(op.x,op.y,cam,560)){
-   const phase=relayDefenseCue(op,this.time);
+   const phase=online?'СВЯЗЬ ВОССТАНОВЛЕНА':relayDefenseCue(op,this.time);
    const hp=Math.max(0,op.hp/op.maxHp);
    c.save();c.translate(op.x,op.y);
    const pulse=this.visuals.reducedMotion?0:.5+.5*Math.sin(this.time*2.8);
-   c.strokeStyle='#81e4df';c.lineWidth=3;
+   c.strokeStyle=online?'#85eeb0':'#81e4df';c.lineWidth=3;
    c.beginPath();c.arc(0,0,39,0,TAU);c.stroke();
    c.strokeStyle='rgba(130,237,221,'+(.22+pulse*.28).toFixed(3)+')';
    c.lineWidth=1.7;c.beginPath();c.arc(0,0,55+pulse*5,0,TAU);c.stroke();
@@ -4192,21 +4364,54 @@ export class ArcadeGame {
    c.moveTo(-42,67);c.lineTo(-42+84*hp,67);c.stroke();
    c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle='#bcfff3';
    c.fillText('БОЕВОЙ РЕТРАНСЛЯТОР',0,-77,210);
-   c.fillStyle=hp<.35?'#ffac98':'#ffe8b7';
+   c.fillStyle=online?'#a2f8bc':hp<.35?'#ffac98':'#ffe8b7';
    c.fillText(phase,0,-61,250);
-   c.restore();
-  }
-  if(op.phase==='wave'){
-   c.save();c.setLineDash([8,7]);c.strokeStyle='#ffb078bb';c.lineWidth=2;
-   for(const e of this.enemies){
-    if(e.relayAssault!==op.baseId||e.hp<=0||e.converted||
-       !(e.relayChargeUntil>this.time)||outsideCamera(e.x,e.y,cam,60))continue;
-    c.beginPath();c.moveTo(e.x,e.y);c.lineTo(op.x,op.y);c.stroke();
-    c.font='bold 10px system-ui';c.fillStyle='#ffcca4';c.textAlign='center';
-    c.fillText('ЗАРЯДКА ЗАЛПА',e.x,e.y-32,125);
+   if(online){
+    const age=this.time-op.onlineAt;
+    c.strokeStyle='#a1ffc0';c.lineWidth=2;
+    for(let i=0;i<3;i++){
+     const radius=16+i*8+(this.visuals.reducedMotion?0:pulse*3);
+     c.globalAlpha=age<4?.8:.5;
+     c.beginPath();c.arc(0,-25,radius,-2.2,-.94);c.stroke();
+    }
+   }else if(op.phase==='warning'||op.phase==='intermission'){
+    for(const spec of relayWavePlan(op).filter(s=>s.target)){
+     c.save();c.rotate(spec.angle);c.strokeStyle='#ffbf75';c.lineWidth=3;
+     c.beginPath();c.moveTo(113,-8);c.lineTo(97,0);c.lineTo(113,8);c.stroke();c.restore();
+    }
    }
    c.restore();
   }
+  const a=op.antenna;
+  if(a&&(!online||a.hp>0)&&!outsideCamera(a.x,a.y,cam,75)){
+   c.save();c.translate(a.x,a.y);c.strokeStyle=a.hp>0?'#a9dffd':'#bf8179';c.lineWidth=2;
+   c.fillStyle='#122936';c.beginPath();c.arc(0,0,16,0,TAU);c.fill();c.stroke();
+   c.beginPath();c.arc(0,-8,11,-2.45,-.69);c.stroke();
+   c.beginPath();c.moveTo(0,-17);c.lineTo(0,9);c.stroke();
+   c.textAlign='center';c.font='bold 10px system-ui';c.fillStyle=c.strokeStyle;
+   c.fillText('РЕЗЕРВНАЯ АНТЕННА',0,32,125);
+   c.fillText(a.hp>0?Math.ceil(a.hp/a.maxHp*100)+'%':'ПОТЕРЯНА',0,45,125);
+   c.restore();
+  }
+ }
+ drawMissionStrikeWarning(c,cam,e,target){
+  if(!target||e.hp<=0||e.converted)return;
+  const charging=e.relayChargeUntil>this.time;
+  if(!e.missionStrike&&!charging)return;
+  const visible=!outsideCamera(e.x,e.y,cam,58);
+  if(!visible&&(!charging||outsideCamera(target.x,target.y,cam,60)))return;
+  c.save();c.strokeStyle='#ffb078c0';c.lineWidth=2;
+  if(charging){
+   c.setLineDash([8,7]);c.beginPath();c.moveTo(e.x,e.y);c.lineTo(target.x,target.y);c.stroke();
+   c.setLineDash([]);
+  }
+  if(visible){
+   c.beginPath();c.arc(e.x,e.y,e.r+8,0,TAU);c.stroke();
+   c.font='bold 10px system-ui';c.fillStyle='#ffcca4';c.textAlign='center';
+   c.fillText(charging?'ЗАЛП ЧЕРЕЗ '+(e.relayChargeUntil-this.time).toFixed(1)+' С':
+    e.missionStrike?.target==='probe'?'ГЛУШИТ РЕМОНТ':e.missionStrike?.target==='antenna'?'ЦЕЛИТСЯ В АНТЕННУ':'АТАКУЕТ ПЕРЕДАТЧИК',e.x,e.y-e.r-16,154);
+  }
+  c.restore();
  }
  drawCorridorBeacon(c,cam){
   const home=this.world.home,op=this.operation;
@@ -4295,7 +4500,10 @@ export class ArcadeGame {
 
  drawProbe(c,cam){
   const op=this.operation;
-  if(op?.id!==PROBE_OPERATION.id||outsideCamera(op.x,op.y,cam,95))return;
+  if(op?.id!==PROBE_OPERATION.id||op.phase==='return'||op.located===false)return;
+  const striker=op.strikerSerial&&this.enemies.find(e=>e.serial===op.strikerSerial);
+  if(striker)this.drawMissionStrikeWarning(c,cam,striker,op);
+  if(outsideCamera(op.x,op.y,cam,95))return;
   const pulse=.5+.5*Math.sin(this.time*3.1);
   c.save();c.translate(op.x,op.y);
   c.lineWidth=2;c.strokeStyle='#73d6edbd';c.fillStyle='#102b3c';
@@ -4311,14 +4519,24 @@ export class ArcadeGame {
   c.textAlign='center';c.font='bold 12px system-ui';c.fillStyle='#dbfbff';
   c.fillText('АВАРИЙНЫЙ ЗОНД',0,-69);
   c.font='11px system-ui';c.fillStyle='#9fe7e7';
-  c.fillText(Math.round(op.repair)+'% · '+(dist(this.player,op)>PROBE_OPERATION.repairRange?
-   'СБЛИЗЬТЕСЬ':'E / РЕМОНТ'),0,-52);
+  c.fillText('РЕМОНТ '+Math.round(op.repair)+'% · КОРПУС '+Math.ceil((op.hp??PROBE_OPERATION.maxHp)/PROBE_OPERATION.maxHp*100)+'%',0,-52);
   c.restore();
   if(this.probeRepairing){
    c.save();c.strokeStyle='#81f7e0a9';c.lineWidth=4;c.setLineDash([11,7]);
    c.beginPath();c.moveTo(this.player.x,this.player.y);c.lineTo(op.x,op.y);c.stroke();
    c.restore();
   }
+ }
+ drawCorridorCourier(c,cam){
+  const op=this.operation;
+  if(op?.radio!=='calling')return;
+  const scout=this.enemies.find(e=>e.serial===op.radioSerial);
+  if(!scout||outsideCamera(scout.x,scout.y,cam,70))return;
+  c.save();c.strokeStyle='#ffc273';c.fillStyle='#ffe1a4';c.lineWidth=2;
+  c.beginPath();c.arc(scout.x,scout.y,27,0,TAU);c.stroke();
+  c.font='bold 11px system-ui';c.textAlign='center';
+  c.fillText('РАЗВЕДЧИК · '+Math.max(0,op.radioAt-this.time).toFixed(1)+' С',scout.x,scout.y-37,150);
+  c.restore();
  }
  drawBase(b,readyBaseId=null){
   this.visuals.drawBase(this.ctx,b,this.time,this.player.x,this.player.y,
@@ -4377,7 +4595,7 @@ export class ArcadeGame {
    const nextTrial=pendingContourTrials(this.world)[0];
    const trialRoute=nextTrial&&!this.operation&&!mission&&this.waypoint?.id===this.world.home?.id?
     {...nextTrial,label:'Испытание контура'}:null;
-   this.cachedTarget=this.manualWaypoint||trialRoute||this.waypoint||this.operation||(mission&&mission.progress>=mission.goal?
+   this.cachedTarget=this.manualWaypoint||trialRoute||this.waypoint||operationDestination(this.operation,this.world)||(mission&&mission.progress>=mission.goal?
     this.world.stations.get(mission.baseId):null);
   }
   for(const [a,b] of this.cachedWorldLinks){
@@ -4462,6 +4680,7 @@ export class ArcadeGame {
    }
   }
   this.drawCorridorBeacon(c,cam);
+  this.drawCorridorCourier(c,cam);
   if(this.weaponProfile.ion&&this.fieldLoan?.charges>0&&this.operation?.id===CORRIDOR_OPERATION.id)drawIonMark(c,this.operation,this.time,30);
   this.drawCarrierRoute(c,cam);
   this.drawRelayDefense(c,cam);
@@ -4638,16 +4857,21 @@ export class ArcadeGame {
   c.restore();
   drawContourTrialHUD(c,this);
   // Directional station indicator is screen-fixed and never covers the ship.
-  const target=this.cachedTarget;
+  const activeOp=this.operation;
+  const threat=activeOp&&this.enemies.find(e=>e.hp>0&&!e.converted&&(
+   (activeOp.radio==='calling'&&e.serial===activeOp.radioSerial)||
+   (e.probeAssault&&e.serial===activeOp.strikerSerial)||
+   (activeOp.phase==='wave'&&e.missionStrike?.target==='relay'&&e.relayAssault===activeOp.baseId)));
+  const target=this.manualWaypoint||threat||this.cachedTarget;
   if(target){
    const dx=target.x-p.x,dy=target.y-p.y,d=length(dx,dy);
    if(d>140){
     const a=Math.atan2(dy,dx),r=Math.min(this.vw,this.vh)*.36;
     const x=this.vw/2+Math.cos(a)*r,y=this.vh/2+Math.sin(a)*r;
     c.save();c.translate(x,y);c.rotate(a+Math.PI/2);
-    c.fillStyle='#71f4e0';c.beginPath();c.moveTo(0,-12);c.lineTo(-8,7);
+    c.fillStyle=target===threat?'#ffbf75':'#71f4e0';c.beginPath();c.moveTo(0,-12);c.lineTo(-8,7);
     c.lineTo(8,7);c.fill();c.restore();
-    const cue=openingWaypointCue(target,d);
+    const cue=target===threat?(threat.corridorCourier?'Разведчик':'Налётчик')+' · '+Math.round(d)+' м':openingWaypointCue(target,d);
     c.save();c.textAlign='center';
     if(cue){
      // A bare distance can look like the label of a station directly behind
