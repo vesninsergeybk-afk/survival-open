@@ -1,6 +1,6 @@
 <!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Проверка первых игровых циклов</title>
 <style>body{margin:0;background:#14232c;color:#d8e8e6;font:13px system-ui}nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 12px}button{background:#24434a;color:#e1fff0;border:1px solid #608b8d;padding:9px;cursor:pointer}p{margin:0 12px 8px}iframe{display:block;width:100%;height:calc(100dvh - 130px);max-width:100%;margin:auto;border:0;background:#071322}output{display:block;margin:7px 12px;min-height:16px;color:#b1edc8;font-size:12px}</style>
-<nav><button data-scene="level">Новый уровень</button><button data-scene="next">Следующий уровень</button><button data-scene="dock">Станция</button><button data-scene="trial">Первая оборона</button><button data-scene="win">Завершить волну</button><button data-scene="territory">Своя территория</button></nav>
+<nav><button data-scene="level">Новый уровень</button><button data-scene="next">Следующий уровень</button><button data-scene="dock">Станция</button><button data-scene="trial">Первая оборона</button><button data-scene="charge">Зарядить 3 с</button><button data-scene="win">Завершить волну</button><button data-scene="territory">Своя территория</button></nav>
 <nav><button data-size="full">Всё окно</button><button data-size="412">412 × 915</button><button data-size="915">915 × 412</button><button data-scene="inspect">Проверить состояние</button></nav>
 <p>Стенд использует настоящую игру. Прогресс игрока не читается и не записывается. «Завершить волну» имитирует победу над её противниками.</p><output id="state" aria-live="polite">Игра загружается.</output><iframe title="Проверочная аркада" src="../index.html?qa=first-loops"></iframe>
 <script type="module">
@@ -53,7 +53,11 @@ document.querySelectorAll('nav').forEach(nav=>nav.addEventListener('click',e=>{
   if(!entry){out.textContent='Новая территория не зарегистрирована.';return;}
   g.player.x=entry.x;g.player.y=entry.y;g.player.level=Math.max(2,g.player.level);
   g.time=Math.max(30,g.time);g.actionHeld={kind:'contour',target:entry};
-  updateContourTrials(g,1.2);g.actionHeld=null;g.hud();
+  updateContourTrials(g,.1);updateContourTrials(g,1.2);g.actionHeld=null;g.hud();
+ }
+ if(scene==='charge'&&g.contourTrial){
+  const entry=g.contourTrial.entry;g.player.x=entry.x;g.player.y=entry.y;
+  g.actionHeld={kind:'contour',target:entry};updateContourTrials(g,3);g.actionHeld=null;g.hud();
  }
  if(scene==='win'){
   const event=g.contourTrial;if(event){

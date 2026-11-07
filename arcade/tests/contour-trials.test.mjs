@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createContours,autoConnectContours,contourFields,advanceContours,validContours} from '../territory-system.js';
 import {registerContourTrials,pendingContourTrials,productiveContourFields,
- completeContourTrial,planContourTrial,TRIAL_VARIANTS} from '../contour-trials.js';
+ completeContourTrial,planContourTrial,TRIAL_VARIANTS,contourChargeGoal} from '../contour-trials.js';
 import {updateContourTrials} from '../contour-trial-director.js';
 import {game} from './weapons-scene.mjs';
 
@@ -18,10 +18,14 @@ const claim=w=>{
 const ignite=(g,entry)=>{
  g.actionHeld={kind:'contour',target:entry};
  updateContourTrials(g,.6);
- assert.equal(g.contourTrial,null,'a partial hold must not start the attack');
+ assert.equal(g.contourTrial?.phase,'warning','the first beam pulse triggers the counterattack');
  updateContourTrials(g,.6);
  g.actionHeld=null;
  assert.equal(g.contourTrial?.phase,'warning');
+ assert.equal(g.contourTrial?.charge,.6);
+};
+const charge=(g,entry,seconds)=>{
+ g.actionHeld={kind:'contour',target:entry};updateContourTrials(g,seconds);g.actionHeld=null;
 };
 
 test('a new triangle queues one trial and pays no flux before victory',()=>{
@@ -66,6 +70,46 @@ test('first three stages contain the promised scout and fighter waves',()=>{
  assert.equal(c.waves.length,2);
  assert.ok(c.waves[0].scout>0&&c.waves[1].fighter>0);
  assert.equal(planContourTrial(999,100).tier,12);
+ assert.equal(contourChargeGoal(1),18,'the first core requires several sustained approaches');
+ assert.ok(contourChargeGoal(12)>contourChargeGoal(1));
+});
+
+test('a red beam charges cumulatively, pauses on release, and stops outside its short range',()=>{
+ const g=game(),world=territory(),entry=claim(world)[0];
+ g.world=world;g.player.x=entry.x;g.player.y=entry.y;
+ g.time=30;g.contourTrial=null;
+ g.actionHeld={kind:'contour',target:entry};updateContourTrials(g,.01);
+ assert.equal(g.contourTrial?.charge,0);
+ updateContourTrials(g,3.5);
+ assert.equal(g.contourTrial.charge,3.5);
+ assert.equal(world.contours.trials.completed,0);
+ g.actionHeld=null;updateContourTrials(g,4);
+ assert.equal(g.contourTrial.charge,3.5,'releasing action preserves but never raises charge');
+ g.actionHeld={kind:'contour',target:entry};g.player.x+=190;
+ updateContourTrials(g,2);
+ assert.equal(g.contourTrial.charge,3.5,'moving beyond the beam radius stops charging');
+ g.player.x=entry.x;g.paused=true;updateContourTrials(g,3);
+ assert.equal(g.contourTrial.charge,3.5,'menus cannot silently charge the core');
+ g.paused=false;updateContourTrials(g,2.5);
+ assert.equal(g.contourTrial.charge,6);
+ g.actionHeld=null;
+ g.actionHeld={kind:'contour',target:{id:-999}};updateContourTrials(g,1);
+ assert.equal(g.contourTrial.charge,6,'another contextual action cannot charge this core');
+ assert.equal(world.contours.trials.completed,0);
+});
+
+test('a full charge before the assault ends does not prematurely complete the triangle',()=>{
+ const g=game(),world=territory(),entry=claim(world)[0];
+ g.world=world;g.player.x=entry.x;g.player.y=entry.y;g.time=30;
+ g.actionHeld={kind:'contour',target:entry};updateContourTrials(g,.01);
+ updateContourTrials(g,g.contourTrial.chargeGoal);
+ assert.equal(g.contourTrial.charge,g.contourTrial.chargeGoal);
+ assert.equal(g.contourTrial.phase,'warning');
+ assert.equal(world.contours.trials.completed,0);
+ assert.equal(g.player.ore,400);
+ g.actionHeld=null;g.time=g.contourTrial.nextWaveAt+.1;updateContourTrials(g,.1);
+ assert.equal(g.contourTrial.phase,'wave');
+ assert.equal(world.contours.trials.completed,0);
 });
 
 test('all ten tactical variants occur, higher tiers remain bounded',()=>{
@@ -118,6 +162,16 @@ test('the player ignites a local core, then completes three distinct waves befor
    g.time=g.contourTrial.nextWaveAt+.1;updateContourTrials(g,.1);
   }
  }
+ assert.equal(g.contourTrial?.phase,'stabilize',
+  'defeating every wave without charging the core must not pay a reward');
+ assert.equal(w.contours.trials.completed,0);
+ const oldCharge=g.contourTrial.charge;
+ updateContourTrials(g,3);assert.equal(g.contourTrial.charge,oldCharge,
+  'letting go of the beam freezes the percentage');
+ g.time=g.contourTrial.nextStrikeAt+.1;updateContourTrials(g,.1);
+ assert.ok(g.zones.some(z=>z.trialId===entries[0].id),
+  'finishing the wave defence without finishing charge leaves an avoidable orbital threat');
+ charge(g,entries[0],g.contourTrial.chargeGoal-oldCharge);
  assert.equal(g.contourTrial,null);
  assert.equal(g.zones.filter(z=>z.trialId===entries[0].id).length,0,
   'orbital shells cannot fall after the victory announcement');
@@ -178,6 +232,8 @@ test('each wave has a finite resolution: battered enemies retreat; inaction fail
    updateContourTrials(defended.g,.1);
   }
  }
+ assert.equal(defended.g.contourTrial?.phase,'stabilize');
+ charge(defended.g,defended.entry,defended.g.contourTrial.chargeGoal);
  assert.equal(defended.w.contours.trials.completed,1);
  assert.equal(defended.g.contourTrial,null);
  const inactive=setup();inactive.g.time+=71;updateContourTrials(inactive.g,.1);
@@ -204,5 +260,7 @@ test('two-wave defence warns before the stronger second wave and strikes are tel
  assert.ok(g.enemies.some(e=>e.type==='fighter'&&e.hp>0));
  for(const e of g.enemies)e.hp=0;
  updateContourTrials(g,.1);
+ assert.equal(g.contourTrial?.phase,'stabilize');
+ charge(g,entry,g.contourTrial.chargeGoal);
  assert.equal(w.contours.trials.completed,1);
 });

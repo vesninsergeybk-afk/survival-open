@@ -29,7 +29,7 @@ function trial(tier=1){
 }
 function ignite(g){
  const entry=g.world.contours.trials.entries.find(e=>e.status==='pending');
- g.actionHeld={kind:'contour',target:entry};updateContourTrials(g,1.2);g.actionHeld=null;
+ g.actionHeld={kind:'contour',target:entry};updateContourTrials(g,.1);g.actionHeld=null;
 }
 function start(g){ignite(g);g.time+=6;updateContourTrials(g,.1);}
 
@@ -67,6 +67,10 @@ test('a completed defence pays alloy once and immediately demonstrates its shiel
   updateContourTrials(g,.1);
   if(g.contourTrial){g.time=g.contourTrial.nextWaveAt+.1;updateContourTrials(g,.1);}
  }
+ assert.equal(g.contourTrial?.phase,'stabilize');
+ assert.equal(g.player.ore,before,'combat alone cannot start flux production');
+ g.actionHeld={kind:'contour',target:entry};updateContourTrials(g,g.contourTrial.chargeGoal);
+ g.actionHeld=null;
  assert.equal(world.contours.trials.completed,1);assert.equal(g.player.ore,before+24);
  assert.equal(g.player.shield,18);assert.equal(g.shots.length,1);
  assert.equal(g.contourFeedback.unlocked,'Контурный щит');

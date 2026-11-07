@@ -3,8 +3,11 @@ import {insidePolygon} from './territory-system.js';
 // One completed territorial expansion earns one trial. A change to the
 // triangulation of land already owned never creates another challenge.
 export const CONTOUR_TRIALS=Object.freeze({maxTier:12,maxEntries:256,engageRadius:990,
- activationRadius:175,activationSeconds:1.15,
+ activationRadius:175,chargeSeconds:18,chargeSecondsPerTier:.75,finalStrikeInterval:9.5,
  retreatRadius:1650,warningSeconds:5,retreatSeconds:7,maxWaveSeconds:70,maxWaitSeconds:12});
+
+export const contourChargeGoal=tier=>CONTOUR_TRIALS.chargeSeconds+
+ (Math.max(1,Math.min(CONTOUR_TRIALS.maxTier,tier||1))-1)*CONTOUR_TRIALS.chargeSecondsPerTier;
 
 export const trialQuota=(count,tier)=>tier<=3?count:Math.ceil(count*.75);
 
@@ -139,5 +142,5 @@ export function planContourTrial(tier,serial=1){
   strikeInterval:Math.max(7.5,20-(t-1)*1.03)-
    (variants.some(v=>v.id==='orbital')?2.2:0),
   strikeCount:variants.some(v=>v.id==='crossfire')?2:1,
-  intermission:variants.some(v=>v.id==='reinforcements')?2.5:4.5};
+  intermission:variants.some(v=>v.id==='reinforcements')?2.5:t===1?5.2:4.5};
 }

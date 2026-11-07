@@ -235,7 +235,6 @@ export class ArcadeGame {
   this.mapView='map';this.contourRegion='all';this.contourFirst=null;this.contourSelection=null;this.contourError='';this.contourInfo='';this.enemyBackboneMap=false;
   this.mapViewports={};this.mapPointers=new Map();this.mapDraggedUntil=0;this.lastMapPanRender=0;this.mapMarkMode=false;
   this.contourFeedback=null;this.contourBirths=[];this.contourDynamics=null;this.contourTrial=null;
-  this.contourCharge=null;
   this.openingArc=createOpeningArc(this.world.home);this.openingRepairing=false;
   this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
   this.lastContractReceipt=null;
@@ -2196,7 +2195,8 @@ export class ArcadeGame {
   }
  }
  updateShipWeapons(dt){
-  updateAutomaticWeapons(this,dt,!this.heavyCharge&&automaticFireAllowed(this.holdFire,
+  updateAutomaticWeapons(this,dt,!this.heavyCharge&&this.actionHeld?.kind!=='contour'&&
+   automaticFireAllowed(this.holdFire,
    this.mining.active,this.probeRepairing||this.openingRepairing));
  }
   toggleManualRail(){
@@ -2214,7 +2214,7 @@ export class ArcadeGame {
   }
   fireManualRailAt(point){
    if(this.dead||this.paused||!this.overlay.hidden||this.openingRepairing||
-    this.actionHeld?.kind==='opening-repair')return false;
+    ['opening-repair','contour'].includes(this.actionHeld?.kind))return false;
    const preparing=this.enemies.filter(e=>e.hp>0&&e.stationRaid?.chargeAt!=null);
    const result=fireAimedRail(this,point);
    if(!result.ok){this.notice(result.reason,2);return false;}
@@ -2225,7 +2225,8 @@ export class ArcadeGame {
   }
  callHowitzer(point=null){
   if(this.dead||this.paused||!this.overlay.hidden||this.mining.active||
-   this.probeRepairing||this.openingRepairing||this.actionHeld?.kind==='opening-repair')return false;
+   this.probeRepairing||this.openingRepairing||
+   ['opening-repair','contour'].includes(this.actionHeld?.kind))return false;
   const plan=planHowitzer(this,point);
   if(!plan.ok){this.notice(plan.reason,2.8);return false;}
   this.heavyCharge=plan.charge;this.heritage.play('rocket',.2);this.hud();return true;
@@ -2351,12 +2352,12 @@ export class ArcadeGame {
    Math.hypot(this.player.x-arc.rescueX,this.player.y-arc.rescueY)<=OPENING_ARC.repairRange)
    return {kind:'opening-repair',target:{x:arc.rescueX,y:arc.rescueY},
     label:'Эвакуация',hold:true};
-  const core=!this.contourTrial&&(this.contourTrialRetryAt||0)<=this.time&&
-   pendingContourTrials(this.world)
+  const core=(this.contourTrial||((this.contourTrialRetryAt||0)<=this.time))&&
+   (this.contourTrial?[this.contourTrial.entry]:pendingContourTrials(this.world))
    .filter(e=>dist(this.player,e)<=CONTOUR_TRIALS.activationRadius&&
     fieldAt(this.world,e.x,e.y))
    .sort((a,b)=>dist(this.player,a)-dist(this.player,b))[0];
-  if(core)return {kind:'contour',target:core,label:'Запуск ядра',hold:true};
+  if(core)return {kind:'contour',target:core,label:this.contourTrial?'Заряд ядра':'Запуск ядра',hold:true};
   const probe=this.operation?.id===PROBE_OPERATION.id?this.operation:null;
   const rock=this.mining.target;
   const range=extractorStats(this.skillRanks.extractor||0,this.skillRanks.mining||0).range;
@@ -2376,7 +2377,7 @@ export class ArcadeGame {
  endInteraction(source=null){
   if(!this.actionHeld)return;
   if(source&&this.actionHeld.source!==source)return;
-  this.actionHeld=null;this.contourCharge=null;
+  this.actionHeld=null;
   this.probeRepairing=false;this.openingRepairing=false;this.mining.active=false;
   this.heritage.extraction(false);
  }
@@ -2393,7 +2394,7 @@ export class ArcadeGame {
   const button=$('actionBtn');
   if(button){
    const focus=this.actionHeld||this.interactionFocus;
-   const label=focus?.kind==='contour'?'Запуск ядра':
+   const label=focus?.kind==='contour'?(this.contourTrial?'Заряд ядра':'Запуск ядра'):
     focus?.kind==='repair'?'Ремонт':focus?.kind==='mine'?'Добыча':
     focus?.kind==='opening-repair'?'Эвакуация':
     focus?.kind==='station'?'Станция':'Действие';
@@ -2845,6 +2846,7 @@ export class ArcadeGame {
   this.pausedRenderPending=true;this.renderDock();
  }
  callFieldWeapon(){
+  if(this.actionHeld?.kind==='contour')return false;
   if(!this.fieldLoan||!this.weaponProfile?.[this.fieldLoan.moduleId||'ion'])return this.callTacticalField();
   if((this.fieldLoan?.moduleId||'ion')!=='resonator')return this.callIonDischarge();
   if(this.dead||this.paused||!this.overlay.hidden)return false;
@@ -2874,7 +2876,7 @@ export class ArcadeGame {
    y:cam.y+(pointer.y-rect.top)/rect.height*cam.h};
  }
  callTacticalField(){
-  if(this.dead||this.paused||!this.overlay.hidden)return false;
+  if(this.dead||this.paused||!this.overlay.hidden||this.actionHeld?.kind==='contour')return false;
   if(this.mining.active||this.probeRepairing||this.openingRepairing){
    this.notice('Отпустите '+this.controlLabel('interact')+', чтобы включить полевое устройство.',2);return false;
   }
@@ -2902,7 +2904,7 @@ export class ArcadeGame {
   if(['beam','rail','flak','rocket','howitzer','ion'].includes(source))resonanceDamage(this,item,dealt);
  }
  callIonDischarge(){
-  if(this.dead||this.paused||!this.overlay.hidden)return false;
+  if(this.dead||this.paused||!this.overlay.hidden||this.actionHeld?.kind==='contour')return false;
   if(this.mining.active||this.probeRepairing||this.openingRepairing){
    this.notice('Во время добычи и ремонта ионный разряд недоступен',2.5);return false;
   }
@@ -2941,7 +2943,7 @@ export class ArcadeGame {
   this.hud();return true;
  }
  callStrike(){
-  if(this.dead||this.paused)return false;
+  if(this.dead||this.paused||this.actionHeld?.kind==='contour')return false;
   const sup=this.support;
   if(!sup.charges){this.notice('Снарядите авиаудар на подключённом авианосце или захваченном сборочном узле',3);return false;}
   if(sup.cooldown>0){this.notice('Перезарядка связи: '+Math.ceil(sup.cooldown)+' с',2);return false;}
@@ -3075,7 +3077,7 @@ export class ArcadeGame {
  }
 
  hack(){
-  if(this.dead)return;
+  if(this.dead||this.actionHeld?.kind==='contour')return;
   if(!this.hacks.length){this.notice('Нужен код захваченной вражеской базы',2);return;}
   const charge=this.hacks.shift(),cam=this.camera();
   let count=0;

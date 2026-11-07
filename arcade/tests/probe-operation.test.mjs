@@ -71,7 +71,7 @@ test('no passive shooting while repairing, and no corridor damage applied to pro
  assert.match(gameSource,/this\.probeRepairing=activeInteraction\(this\.actionHeld,'repair',atProbe\)/);
  assert.match(gameSource,/this\.mining\.active=activeInteraction\(this\.actionHeld,'mine',candidate\?\.alive\)/);
  assert.match(gameSource,/if\(this\.probeRepairing\)this\.repairProbe\(dt\)/);
- assert.match(gameSource,/updateAutomaticWeapons\(this,dt,!this.heavyCharge&&automaticFireAllowed\(this.holdFire,\s*this.mining.active,this.probeRepairing\|\|this.openingRepairing\)\)/);
+ assert.match(gameSource,/updateAutomaticWeapons\(this,dt,!this.heavyCharge&&this\.actionHeld\?\.kind!=='contour'&&\s*automaticFireAllowed\(this.holdFire,\s*this.mining.active,this.probeRepairing\|\|this.openingRepairing\)\)/);
  assert.match(gameSource,/op\.id!==CORRIDOR_OPERATION\.id\|\|this\.dead/);
  const targets=readFileSync(new URL('../combat-targets.js',import.meta.url),'utf8');
  assert.match(targets,/if\(t===game.operation&&!t.interceptCargo\)return false/);
