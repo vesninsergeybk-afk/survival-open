@@ -150,9 +150,9 @@ export function pendingTrialMapArtwork(world,center,scale,atlasPoint){
   if(p.x<12||p.x>668||p.y<12||p.y>468)return '';
   const count=planContourTrial(e.tier,e.id).waves.length;
   const wording=count===1?'одну волну':count===2?'две волны':'три волны';
-  return `<g class="contour-pending-trial" role="img" aria-label="Нестабильный контур. Отразите ${wording}" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})">
+  return `<g class="contour-pending-trial" role="img" aria-label="Нестабильный контур. Запустите сердцевину и отразите ${wording}" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})">
    <circle r="17" fill="#321c24ee" stroke="#ffba74" stroke-width="2" stroke-dasharray="5 4"/>
    <text text-anchor="middle" y="5" fill="#ffe8cc" font-size="14" font-weight="900">!</text>
-   <title>Враг обнаружил новый треугольник. Подлетите к полю и отразите ${wording}, чтобы запустить добычу.</title></g>`;
+   <title>Новая сердцевина ожидает запуска. Подлетите к знаку, удерживайте действие и отразите ${wording}, чтобы начать добычу.</title></g>`;
  }).join('');
 }
