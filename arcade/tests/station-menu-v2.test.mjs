@@ -54,7 +54,7 @@ test('new styling keeps real development, live fitting and station upgrades',()=
 
 test('production loads final quiet layer, real art and reduced-motion/mobile rules',()=>{
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
- const finalCss='./station-menu-v2.css?v=station-menu-v2-1';
+ const finalCss='./station-menu-v2.css?v=station-menu-v2-2';
  assert.ok(html.includes(finalCss));
  assert.ok(html.indexOf(finalCss)>html.indexOf('./progression-art.css'));
  assert.match(html,/game\.js\?v=[^"\n]*station-menu-v2-1/,
