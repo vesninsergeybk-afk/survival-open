@@ -98,10 +98,18 @@ test('production loads final quiet layer, real art and reduced-motion/mobile rul
 
 test('development presentation uses the same quiet cards and honest portraits',()=>{
  const css=readFileSync(new URL('../progression-art.css',import.meta.url),'utf8');
+ const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(index,/progression-art\.css\?v=progression-art-5/);
  assert.match(css,/\.prog-orbit-center img/);
  assert.match(css,/\.prog-domain\[aria-pressed=true\]/);
  assert.match(css,/\.prog-action:disabled/);
  assert.match(css,/@media\(max-width:800px\)/);
+ const mobile=css.slice(css.indexOf('@media(max-width:800px){'),css.indexOf('@media(max-width:520px){'));
+ assert.match(mobile,/\.prog-orbit-center\{grid-column:1\/-1;display:flex/,
+  'mobile development must retain the real ship portrait');
+ assert.doesNotMatch(mobile,/\.prog-orbit-center\{display:none/);
+ assert.match(mobile,/\.prog-tree\{max-height:none;overflow:visible/,
+  'mobile development should use its parent scroll instead of nesting another scroll');
  assert.doesNotMatch(css,/space_nebula\.webp|tab_idle\.webp|tab_active\.webp|detail_backplate\.webp/);
  const svg=readFileSync(new URL('../studio/menu-kit/terminal-v2-four-tabs.svg',import.meta.url),'utf8');
  for(const tab of ['Задания','Корабль','Развитие','Станция'])assert.ok(svg.includes('>'+tab+'</text>'));
