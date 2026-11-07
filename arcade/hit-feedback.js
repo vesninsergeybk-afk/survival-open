@@ -56,7 +56,9 @@ export function recordHitFeedback(game,item,dealt,source,point,before){
   // The ordinary ship explosion still handles destruction and debris.
   push(events,{kind:'finish',target,family,power:1,x:target.x,y:target.y,
    r,age:0,life:.37});
- }else if(!target.captured&&before/maxHp>.35&&after/maxHp<=.35&&after>0){
+ }else if(!target.captured&&!target._criticalFractureFx&&
+  before/maxHp>.35&&after/maxHp<=.35&&after>0){
+  target._criticalFractureFx=true;
   push(events,{kind:'fracture',target,family,power,x,y,r,
    tx:target.x,ty:target.y,age:0,life:.43});
  }

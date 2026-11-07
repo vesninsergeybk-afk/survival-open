@@ -63,6 +63,10 @@ test('damage threshold and death have separate truthful signatures',()=>{
  const g={},t=target(30);
  recordHitFeedback(g,{kind:'enemy',target:t},15,'rail',contact(),45);
  assert.deepEqual(g.combatHitFx.map(e=>e.kind),['impact','fracture']);
+ updateHitFeedback(g,.5);
+ t.hp=31;recordHitFeedback(g,{kind:'enemy',target:t},8,'rail',contact(),39);
+ assert.deepEqual(g.combatHitFx.map(e=>e.kind),['impact'],
+  'the same hull should not show a second critical crack after healing');
  const normal={};recordHitFeedback(normal,{kind:'enemy',target:target(80)},
   10,'rail',contact(),90);
  assert.deepEqual(normal.combatHitFx.map(e=>e.kind),['impact']);
