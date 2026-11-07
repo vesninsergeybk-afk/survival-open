@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 920" role="img" aria-labelledby="title desc">
+ <title id="title">Схемы четырёх разделов терминала «Выжившего»</title>
+ <desc id="desc">Структура заданий, корабля, развития и станции. Общие панели, навигация и порядок действий без декоративных изображений.</desc>
+ <style>
+  text{font-family:Arial,Helvetica,sans-serif;fill:#d9e6e9}
+  .page{fill:#0b1723}.shell{fill:#102430;stroke:#577382;stroke-width:1.4}
+  .bar{fill:#183442}.nav{fill:#1c3542;stroke:#567080}.selected{fill:#3f382f;stroke:#d7ac72}
+  .panel{fill:#142a37;stroke:#426273}.muted{fill:#0d202c;stroke:#395668}
+  .action{fill:#ba8f58}.heading{font-size:21px;font-weight:700}
+  .label{font-size:13px;fill:#9fbcc8}.body{font-size:15px}.small{font-size:12px}
+ </style>
+ <rect class="page" width="1060" height="920"/>
+ <text x="32" y="38" class="heading">Терминал станции · единая компоновка</text>
+ <text x="32" y="59" class="label">Схемы структуры: данные и действия берутся из игры, изображения корпуса — из общего источника</text>
+
+ <g transform="translate(26 84)">
+  <rect class="shell" width="494" height="380" rx="8"/>
+  <text class="heading" x="18" y="29">Задания</text>
+  <rect class="bar" x="12" y="42" width="470" height="39" rx="5"/>
+  <rect class="nav" x="20" y="49" width="82" height="25" rx="3"/>
+  <rect class="selected" x="107" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="194" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="281" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="368" y="49" width="104" height="25" rx="3"/>
+  <rect class="panel" x="14" y="94" width="288" height="250" rx="5"/>
+  <text class="body" x="28" y="118">Текущая операция</text>
+  <text class="label" x="28" y="140">Этап → задача → место → риск</text>
+  <rect class="muted" x="28" y="157" width="260" height="64" rx="4"/>
+  <text class="small" x="40" y="179">Описание действий и условий</text>
+  <text class="small" x="40" y="198">Прогресс и последствия</text>
+  <rect class="action" x="28" y="293" width="126" height="35" rx="4"/>
+  <text class="small" style="fill:#16242a" x="42" y="314">Карта / продолжить</text>
+  <rect class="panel" x="314" y="94" width="166" height="250" rx="5"/>
+  <text class="body" x="327" y="118">Доступно</text>
+  <rect class="muted" x="326" y="138" width="140" height="79" rx="4"/>
+  <text class="small" x="336" y="159">Полевой заказ</text>
+  <text class="small" x="336" y="178">Награда · условия</text>
+  <rect class="muted" x="326" y="228" width="140" height="79" rx="4"/>
+  <text class="small" x="336" y="249">Следующая вылазка</text>
+  <text class="small" x="336" y="268">Доступность</text>
+  <text class="label" x="18" y="366">Главное: ясно, что делать и что изменится</text>
+ </g>
+
+ <g transform="translate(540 84)">
+  <rect class="shell" width="494" height="380" rx="8"/>
+  <text class="heading" x="18" y="29">Корабль</text>
+  <rect class="bar" x="12" y="42" width="470" height="39" rx="5"/>
+  <rect class="nav" x="20" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="107" y="49" width="82" height="25" rx="3"/>
+  <rect class="selected" x="194" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="281" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="368" y="49" width="104" height="25" rx="3"/>
+  <rect class="panel" x="14" y="94" width="230" height="250" rx="5"/>
+  <text class="body" x="27" y="118">Облик и узлы</text>
+  <path d="M126 143 L157 207 L125 283 L94 207 Z" fill="#274b5b" stroke="#b6cbd0" stroke-width="2"/>
+  <circle cx="100" cy="191" r="9" fill="#d7ac72"/><circle cx="152" cy="191" r="9" fill="#d7ac72"/>
+  <circle cx="126" cy="247" r="9" fill="#6b9da7"/>
+  <text class="small" x="27" y="325">Состояние корпуса и узлов</text>
+  <rect class="panel" x="254" y="94" width="226" height="180" rx="5"/>
+  <text class="body" x="267" y="118">Каталог модулей</text>
+  <rect class="muted" x="265" y="137" width="203" height="45" rx="4"/>
+  <rect class="muted" x="265" y="190" width="203" height="45" rx="4"/>
+  <rect class="panel" x="254" y="284" width="226" height="60" rx="5"/>
+  <text class="small" x="266" y="304">Стоимость и отличие сборки</text>
+  <rect class="action" x="348" y="313" width="119" height="24" rx="3"/>
+  <text class="small" x="18" y="366">Применение только после подтверждения</text>
+ </g>
+
+ <g transform="translate(26 485)">
+  <rect class="shell" width="494" height="398" rx="8"/>
+  <text class="heading" x="18" y="29">Развитие</text>
+  <rect class="bar" x="12" y="42" width="470" height="39" rx="5"/>
+  <rect class="nav" x="20" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="107" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="194" y="49" width="82" height="25" rx="3"/>
+  <rect class="selected" x="281" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="368" y="49" width="104" height="25" rx="3"/>
+  <rect class="panel" x="14" y="94" width="140" height="266" rx="5"/>
+  <text class="small" x="24" y="112">Текущий корабль</text>
+  <path d="M84 121 L105 160 L84 205 L63 160 Z" fill="#2a5867" stroke="#a8d0d9"/>
+  <rect class="selected" x="22" y="220" width="124" height="25" rx="4"/>
+  <rect class="nav" x="22" y="251" width="124" height="25" rx="4"/>
+  <rect class="nav" x="22" y="282" width="124" height="25" rx="4"/>
+  <rect class="nav" x="22" y="313" width="124" height="25" rx="4"/>
+  <rect class="panel" x="164" y="94" width="168" height="266" rx="5"/>
+  <text class="body" x="175" y="117">Ветки навыков</text>
+  <rect class="muted" x="175" y="141" width="146" height="57" rx="4"/>
+  <rect class="muted" x="175" y="211" width="146" height="57" rx="4"/>
+  <path d="M248 198 V211" stroke="#8ca9b8" stroke-dasharray="4 3"/>
+  <rect class="muted" x="175" y="281" width="146" height="57" rx="4"/>
+  <rect class="panel" x="342" y="94" width="138" height="266" rx="5"/>
+  <text class="body" x="352" y="117">Выбранный</text>
+  <text class="body" x="352" y="135">навык</text>
+  <text class="small" x="352" y="161">Эффект</text>
+  <text class="small" x="352" y="183">Условия</text>
+  <text class="small" x="352" y="205">Цена</text>
+  <rect class="action" x="351" y="297" width="120" height="34" rx="4"/>
+  <text class="small" style="fill:#17252b" x="361" y="317">Изучить</text>
+  <text class="label" x="18" y="382">Ничего лишнего вокруг выбора навыка</text>
+ </g>
+
+ <g transform="translate(540 485)">
+  <rect class="shell" width="494" height="398" rx="8"/>
+  <text class="heading" x="18" y="29">Станция</text>
+  <rect class="bar" x="12" y="42" width="470" height="39" rx="5"/>
+  <rect class="nav" x="20" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="107" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="194" y="49" width="82" height="25" rx="3"/>
+  <rect class="nav" x="281" y="49" width="82" height="25" rx="3"/>
+  <rect class="selected" x="368" y="49" width="104" height="25" rx="3"/>
+  <rect class="panel" x="14" y="94" width="466" height="110" rx="5"/>
+  <text class="body" x="27" y="117">Связь и территория</text>
+  <text class="label" x="27" y="137">Покрытие · контуры · доступные маршруты</text>
+  <rect class="muted" x="27" y="151" width="440" height="37" rx="4"/>
+  <rect class="panel" x="14" y="213" width="224" height="147" rx="5"/>
+  <text class="body" x="27" y="236">Технологии</text>
+  <text class="label" x="27" y="258">Общесетевой эффект</text>
+  <text class="small" x="27" y="281">Цена и ограничение</text>
+  <rect class="action" x="27" y="313" width="124" height="32" rx="4"/>
+  <rect class="panel" x="247" y="213" width="233" height="147" rx="5"/>
+  <text class="body" x="259" y="236">Модули и оборона</text>
+  <text class="label" x="259" y="258">Что установлено</text>
+  <text class="small" x="259" y="281">Что доступно и почему</text>
+  <rect class="muted" x="259" y="313" width="208" height="32" rx="4"/>
+  <text class="label" x="18" y="382">Сложные услуги разделены по назначению</text>
+ </g>
+</svg>

@@ -3,6 +3,7 @@ import {WEAPON_SPECIALIZATIONS,quoteSpecialization} from './weapon-specializatio
 import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalQuote} from './tactical-fields.js';
 import {developmentPointLedger} from './experience.js';
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js';
+import {heroMenuPortrait} from './hero-menu-portrait.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const art=(group,id)=>'./assets/progression/'+group+'/'+id+'.webp';
@@ -277,11 +278,14 @@ export function renderProgressionScreen(state){
  const ledger=developmentPointLedger(state),meta=domains.find(d=>d.id===domain);
  const top='<header class="prog-header"><div><span>ТЕРМИНАЛ / ДЕРЕВО РАЗВИТИЯ</span><h2>Развитие</h2></div>'+
   '<div class="prog-resource-bar"><span class="prog-chip points">Очки <b>'+points+'</b></span><span class="prog-chip alloy">Сплав <b>'+(state.ore||0)+'</b></span><span class="prog-chip level">Пилот · ур. <b>'+(state.level||1)+'</b></span></div></header>';
+ const damaged=Number(state.maxHp)>0&&Number(state.hp)/Number(state.maxHp)<.4;
  const orbit='<aside class="prog-domains" aria-label="Направления развития"><div class="prog-orbit">'+
-  '<div class="prog-orbit-center" aria-hidden="true"><img src="../assets/space/hero-evolution/ship_01.webp" alt=""></div>'+
+  '<div class="prog-orbit-center"><img src="'+heroMenuPortrait(state.level,state.hp,state.maxHp)+'" alt="Ваш корабль" loading="lazy">'+
+  '<div class="prog-ship-caption"><span>ВАШ КОРАБЛЬ</span><strong>Уровень '+(state.level||1)+'</strong>'+
+  '<small>'+(damaged?'Корпус серьёзно повреждён':'Текущая модель корпуса')+'</small></div></div>'+
   domains.map((d,index)=>'<button type="button" class="prog-domain domain-'+d.id+'" data-act="devDomain" data-id="'+d.id+'" aria-pressed="'+(domain===d.id)+'"'+
    ' title="'+esc(d.subtitle)+'"><img src="'+art('domains',d.id==='network'?'stations':d.id)+'" alt=""><strong>'+d.title+'</strong></button>').join('')+
-  '</div><div class="prog-domain-legend"><span>● Доступно</span><span>◆ Изучено</span><span>◇ Пока закрыто</span></div></aside>';
+  '</div></aside>';
  const weaponHead=weapon?'<div class="prog-weapon-summary"><img src="'+art('weapons',weapon.family.id)+'" alt=""><div><strong>'+esc(weapon.family.name)+'</strong><span>'+
   (weapon.installed?'Установлено':'Не установлено')+' · '+esc(weapon.family.role)+' · дальность '+esc(weapon.stats?.range)+' м</span></div></div>':'';
  const branch=branchButtons(domain,state);

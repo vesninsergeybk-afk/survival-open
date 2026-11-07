@@ -37,14 +37,18 @@ test('overview shows the live next decision, genuinely known sector and real cur
  assert.match(html,/Корпус <b>75 \/ 110<\/b>/);
  assert.match(html,/class="base-hull-meter" value="75" max="110"/);
  const advanced=renderBasePanel(base,{...state,level:7,hp:42});
- assert.match(advanced,/base-real-ship" src="\.\.\/assets\/space\/hero-evolution\/ship_03.webp"/);
+ assert.match(advanced,/base-real-ship" src="\.\.\/assets\/space\/hero-evolution\/ship_03_damaged.webp"/);
  assert.match(advanced,/base-hull-meter" value="42" max="110"/);
+ const repaired=renderBasePanel(base,{...state,level:7,hp:75});
+ assert.match(repaired,/base-real-ship" src="\.\.\/assets\/space\/hero-evolution\/ship_03.webp"/);
 });
 
 test('new styling keeps real development, live fitting and station upgrades',()=>{
  const ship=renderBasePanel(base,{...state,baseTab:'hangar'});
  assert.match(ship,/data-act="hgSlot"/);
  assert.match(ship,/hero-evolution\/ship_01.webp/);
+ const damagedShip=renderBasePanel(base,{...state,level:7,hp:40,baseTab:'hangar'});
+ assert.match(damagedShip,/hg-hull" src="\.\.\/assets\/space\/hero-evolution\/ship_03_damaged.webp"/);
  const skills=renderBasePanel(base,{...state,baseTab:'development'});
  assert.match(skills,/class="progression-ui/);
  const network=renderBasePanel(base,{...state,baseTab:'network'});
@@ -71,7 +75,7 @@ test('disabled local station modules explain the missing alloy',()=>{
 
 test('production loads final quiet layer, real art and reduced-motion/mobile rules',()=>{
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
- const finalCss='./station-menu-v2.css?v=station-menu-v2-3';
+ const finalCss='./station-menu-v2.css?v=station-menu-v2-4';
  assert.ok(html.includes(finalCss));
  assert.ok(html.indexOf(finalCss)>html.indexOf('./progression-art.css'));
  assert.match(html,/game\.js\?v=[^"\n]*station-menu-v2-1/,
@@ -90,4 +94,15 @@ test('production loads final quiet layer, real art and reduced-motion/mobile rul
  assert.doesNotMatch(css,/01-overview-v2\.png|03-ship-v2\.png/);
  const atlas=new URL('../assets/station-menu/icons-v2.webp',import.meta.url);
  assert.ok(statSync(atlas).size<500_000,'the atlas should not consume multiple megabytes at load');
+});
+
+test('development presentation uses the same quiet cards and honest portraits',()=>{
+ const css=readFileSync(new URL('../progression-art.css',import.meta.url),'utf8');
+ assert.match(css,/\.prog-orbit-center img/);
+ assert.match(css,/\.prog-domain\[aria-pressed=true\]/);
+ assert.match(css,/\.prog-action:disabled/);
+ assert.match(css,/@media\(max-width:800px\)/);
+ assert.doesNotMatch(css,/space_nebula\.webp|tab_idle\.webp|tab_active\.webp|detail_backplate\.webp/);
+ const svg=readFileSync(new URL('../studio/menu-kit/terminal-v2-four-tabs.svg',import.meta.url),'utf8');
+ for(const tab of ['Задания','Корабль','Развитие','Станция'])assert.ok(svg.includes('>'+tab+'</text>'));
 });

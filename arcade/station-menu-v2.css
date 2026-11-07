@@ -23,9 +23,9 @@
 #overlay .base-dialog .base-emblem{width:55px;height:55px;filter:none}
 #overlay .base-dialog .emblem-frame{fill:#102432;stroke:#6a8999}
 #overlay .base-dialog .emblem-ring{opacity:.35}
-#overlay .base-dialog .base-system-label{color:#84a7b9;font-size:9px;letter-spacing:.14em}
+#overlay .base-dialog .base-system-label{color:#9fbac8;font-size:11px;letter-spacing:.1em}
 #overlay .base-dialog .base-head h2{color:#f0f4f6;font-weight:680;font-size:clamp(21px,2vw,27px);margin:0 0 9px;text-shadow:none}
-#overlay .base-dialog .base-credits{gap:5px 14px;color:#9bb4c0;font-size:11px}
+#overlay .base-dialog .base-credits{gap:5px 14px;color:#a9c4d0;font-size:12px}
 #overlay .base-dialog .base-credits b{color:#e8eff0;font-size:12px}
 #overlay .base-dialog .base-pill{padding:7px 10px;margin-top:4px;background:#142832ad;border-color:#5b807a77;color:#afd7c7;box-shadow:none}
 
@@ -50,15 +50,15 @@
 #overlay .base-dialog .base-tabs button[data-notice]::after{background:#d0a66b;color:#15222a;border:0}
 #overlay .base-dialog button:focus-visible,
 #overlay .base-dialog summary:focus-visible{outline:2px solid #f4d08e!important;outline-offset:3px}
-#overlay .base-dialog .base-kicker{color:#88acbe;font-weight:700;font-size:10px;letter-spacing:.11em}
+#overlay .base-dialog .base-kicker{color:#a2bdc9;font-weight:700;font-size:11px;letter-spacing:.09em}
 #overlay .base-dialog .base-tab-panel{min-width:0}
 
 /* Overview: actual decision + actual local sector map. Unknown locations are
    already filtered in renderStationRoutePreview, never fabricated here. */
-.base-overview-lead{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr);gap:12px;align-items:stretch;margin:0 0 12px}
+.base-overview-lead{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);gap:12px;align-items:start;margin:0 0 12px}
 #overlay .base-dialog .base-overview-lead .base-next-step{
- margin:0;padding:19px 21px;min-width:0;display:flex;flex-direction:column;
- align-items:flex-start;justify-content:space-between;gap:18px;
+ margin:0;padding:16px 19px;min-width:0;display:flex;flex-direction:column;
+ align-items:flex-start;justify-content:flex-start;gap:12px;
  background:#142735;border:1px solid #567183;border-left:2px solid #dfb77d;
  border-radius:7px;box-shadow:none;
 }
@@ -83,9 +83,9 @@
  opacity:.72;
 }
 .base-overview-sector .base-route-graphic{display:flex;flex:1;flex-direction:column;justify-content:space-between;gap:8px;min-width:0}
-.base-overview-sector .base-route-graphic svg{width:100%;height:auto;max-height:200px;background:#0a1b29;border:1px solid #324957;border-radius:5px}
+.base-overview-sector .base-route-graphic svg{width:100%;height:auto;max-height:155px;background:#0a1b29;border:1px solid #324957;border-radius:5px}
 .base-overview-sector .base-route-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.base-overview-sector .base-route-actions small{color:#93b2c2;font-size:11px}
+.base-overview-sector .base-route-actions small{color:#a6c1ce;font-size:12px}
 #overlay .base-overview-sector .base-route-actions button{min-height:44px;padding:8px 12px;margin:0;background:#1d3544;color:#d5e8ee;border:1px solid #547283;border-radius:4px;font-size:11px}
 
 /* Ship and wing summaries. Both values and the ship stage come from the live

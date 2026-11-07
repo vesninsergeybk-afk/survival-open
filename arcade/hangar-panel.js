@@ -7,6 +7,7 @@ import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-contro
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {MODULES,FRAME_STEPS,BLUEPRINT_NAMES,SHIP_ART,HangarSession,createLoadout,
  frameSpec,slotOpen,equipModule,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-flow-2-menu-focus-1';
+import {heroMenuPortrait} from './hero-menu-portrait.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>typeof n==='number'?Number(n.toFixed(2)).toLocaleString('ru-RU'):n;
@@ -112,7 +113,7 @@ function shipScene(context,session){
    (open?(id?MODULES[id].short:'Пусто'):'Закрыт')+'</span></button>';
  }
  return '<div class="hg-blueprint" style="--art-ratio:512 / '+art[1]+'">'+
-  '<img class="hg-hull" src="../assets/space/hero-evolution/ship_'+String(stage+1).padStart(2,'0')+'.webp" alt="Ваш корабль. Нос направлен вверх">'+
+  '<img class="hg-hull" src="'+heroMenuPortrait(context.level,context.hp,context.maxHp)+'" alt="Ваш корабль. Нос направлен вверх">'+
   '<svg class="hg-wiring" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke-width=".22">'+lines+'</g>'+guns+'</svg>'+nodes+'</div>';
 }
 export function renderShipHangar(state,session=state.hangarSession){
