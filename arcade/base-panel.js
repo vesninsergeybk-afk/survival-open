@@ -875,9 +875,9 @@ export function renderBasePanel(base,state){
   '<section class="base-trial-picker" aria-label="Бесплатный полевой модуль">'+
   '<strong>Выберите один полевой модуль</strong><p>На выбор один бесплатный модуль с тремя зарядами. При наличии свободного узла модуль установится сразу.</p>'+
   '<div class="base-trial-options">'+
-  '<div class="base-trial-option"><div class="base-trial-product"><img src="./assets/station-menu/field-ion.webp" alt="" loading="lazy" width="80" height="80"><div><b>Ионный проводник</b><small>Цепной разряд по целям с плазменными метками · '+fieldKey+'</small></div></div>'+
+  '<div class="base-trial-option"><div class="base-trial-product"><img src="./assets/station-menu/field-ion.webp" alt="" loading="lazy" width="80" height="80"><b>Ионный проводник</b><small>Цепной разряд по целям с плазменными метками · '+fieldKey+'</small></div>'+
   action('loanField','Выбрать ионный','','ion')+'</div>'+
-  '<div class="base-trial-option"><div class="base-trial-product"><img src="./assets/station-menu/field-resonator.webp" alt="" loading="lazy" width="80" height="80"><div><b>Резонатор</b><small>Связывает несколько целей и передаёт между ними часть урона · '+fieldKey+'</small></div></div>'+
+  '<div class="base-trial-option"><div class="base-trial-product"><img src="./assets/station-menu/field-resonator.webp" alt="" loading="lazy" width="80" height="80"><b>Резонатор</b><small>Связывает несколько целей и передаёт между ними часть урона · '+fieldKey+'</small></div>'+
   action('loanField','Выбрать резонатор','','resonator')+'</div></div></section>':'';
  const regionalGoal=state.world&&state.position?renderHomeConflict({world:state.world,player:state.position,
   time:state.time,openingArc:state.openingArc},{compact:true}):'';
@@ -946,7 +946,7 @@ export function renderBasePanel(base,state){
  const hasAcceptedWork=!!state.operation||!!state.contract;
  const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ВАШИ ЗАДАНИЯ</span><strong>'+
   (hasAcceptedWork?'Текущие задания':'Доступные задания')+'</strong>'+
-  '<p>Полевой заказ можно совмещать с особой операцией или сложной вылазкой. Для двух последних — одно общее место.</p></div></div>'+
+  '<p>Полевой заказ можно выполнять вместе с особой операцией или сложной вылазкой. Операцию и сложную вылазку одновременно взять нельзя.</p></div></div>'+
   (state.operation&&!localOperation?'<div class="base-active-mission">'+ongoingOpPanel+'</div>':'')+
   firstReward+
   '<div class="base-task-board">'+

@@ -152,11 +152,10 @@
 #overlay .base-dialog .base-task-group>h3{color:#e6edf0;border-bottom-color:#3d5967;font-size:17px}
 #overlay .base-dialog .base-trial-picker{background:#112734;border-color:#547681;border-radius:6px}
 #overlay .base-dialog .base-trial-options>div{background:#102430;border-color:#426371;padding:12px;gap:10px}
-.base-trial-product{display:flex;align-items:center;gap:13px;min-height:80px}
-.base-trial-product img{display:block;flex:0 0 80px;width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 5px 10px #0005)}
-.base-trial-product>div{min-width:0}
-.base-trial-product b{display:block;font-size:14px;color:#edf2f3}
-.base-trial-product small{display:block;margin-top:7px;color:#b3cbd5;font-size:12px;line-height:1.5}
+.base-trial-product{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:4px 10px}
+.base-trial-product img{display:block;grid-column:1;grid-row:1;width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 5px 10px #0005)}
+.base-trial-product b{grid-column:2;grid-row:1;font-size:14px;color:#edf2f3}
+.base-trial-product small{display:block;grid-column:1/-1;grid-row:2;color:#b3cbd5;font-size:12px;line-height:1.5}
 #overlay .base-dialog .base-trial-options button{margin-top:auto!important;min-height:44px;background:#1d4346!important;border-color:#638d8c!important;color:#def5ef!important}
 #overlay .base-dialog .base-trial-options button:hover{background:#28585a!important}
 #overlay .base-dialog .field-operation-card{background:#132834;border-color:#4b6977}
@@ -229,7 +228,8 @@
  #overlay .base-dialog .base-quick-service::after{width:32px;height:32px;right:59px;top:7px}
  .base-real-ship{width:65px;height:85px;flex-basis:65px}
  #overlay .base-dialog .base-foot{bottom:-6px}
- .base-trial-product img{flex-basis:68px;width:68px;height:68px}
+ .base-trial-product{grid-template-columns:58px minmax(0,1fr)}
+ .base-trial-product img{width:58px;height:58px}
 }
 @media(max-width:370px){
  #overlay .base-dialog .base-tabs button{font-size:11px!important;letter-spacing:-.025em}
