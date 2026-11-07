@@ -2,13 +2,13 @@ import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-stat
 import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-territory-war-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
 import {corridorOffer,CORRIDOR_OPERATION,corridorScanBonus,probeOffer,probeDataReady,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2-station-ops-2-ops-audit-2';
-import {FIELD_OPERATIONS,fieldOperationIds,fieldOperationOffer,fieldOperationCue,isFieldOperation} from './field-operations.js?v=field-operations-1-audit-1';
-import {abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1';
+import {FIELD_OPERATIONS,fieldOperationIds,fieldOperationOffer,fieldOperationCue,isFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1';
+import {abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1-station-ops-2-ops-audit-2';
 import {CARRIER_INTERCEPTION,carrierOffer,autonomousStrikeCarrier} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1';
@@ -423,8 +423,9 @@ const fieldOperationsPanel=(base,state)=>{
    const offer=fieldOperationOffer(base,state.operation,state.time||0,id,state.level||1),spec=FIELD_OPERATIONS[id];
    if(!offer)return '';
    const active=offer.status==='active',op=active?state.operation:null;
-   const returning=op?.phase==='return',readyPartial=
-    ['deep-resonance','line-break','sleeping-reactor'].includes(id)&&op?.progress>=1&&!returning;
+   const returning=op?.phase==='return',failed=op?.phase==='failed',readyPartial=
+    ['deep-resonance','line-break','sleeping-reactor'].includes(id)&&op?.progress>=1&&
+    op?.phase==='active';
    const progress=op?(id==='deep-resonance'?op.progress+'/2 образца':
     id==='reverse-hunt'?op.scans+'/2 наблюдения':
     id==='false-call'?'Проверено '+op.checks+'/3 маяков':
@@ -436,16 +437,18 @@ const fieldOperationsPanel=(base,state)=>{
     state.operation&&!active?'Сначала завершите текущую особую операцию.':'';
    const accept=offer.status==='available'&&!state.operation?'':(wait||'Пока недоступно');
    const actions=active?
-    action('baseMap',returning?'Курс к станции':'Показать цель','','','','operation')+
+    (failed?'':action('baseMap',returning?'Курс к станции':'Показать цель','','','','operation'))+
     (readyPartial?action('claimFieldOperation','Сдать достигнутый результат · частичная награда'):'')+
-    action('abandonOperation','Отменить · прогресс будет потерян'):
+    action('abandonOperation',failed?'Закрыть сорванную вылазку · без награды':
+     'Отменить · прогресс будет потерян'):
     id==='broken-convoy'?action('acceptFieldOperation','Обходной маршрут · меньше врагов',accept,id+':safe')+
      action('acceptFieldOperation','Короткий маршрут · больше врагов',accept,id+':fast'):
      action('acceptFieldOperation','Принять вылазку',accept,id);
    return '<article class="base-featured-op field-operation-card field-op--'+id+' '+(active?'underway':'')+'">'+
     '<div class="base-featured-head"><span class="base-kicker">'+
     ({lab:'ЛАБОРАТОРИЯ',arsenal:'АРСЕНАЛ',dock:'ДОК',carrier:'АВИАНОСЕЦ'}[base.type]||'СТАНЦИЯ')+'</span><span>'+(
-     returning?'ВОЗВРАЩАЙТЕСЬ':active?'ВЫЛАЗКА ПРИНЯТА':offer.status==='cooldown'?'ОЖИДАНИЕ':'НОВАЯ ЗАДАЧА')+
+     failed?'ВЫЛАЗКА СОРВАНА':returning?'ВОЗВРАЩАЙТЕСЬ':
+      active?'ВЫЛАЗКА ПРИНЯТА':offer.status==='cooldown'?'ОЖИДАНИЕ':'НОВАЯ ЗАДАЧА')+
     '</span></div><div class="field-op-title"><span class="field-op-icon" aria-hidden="true"></span>'+
     '<h4>'+spec.name+'</h4></div>'+missionSummary(spec.desc)+
     (offer.threatTier?'<small class="base-op-warning">Угроза '+offer.threatTier+

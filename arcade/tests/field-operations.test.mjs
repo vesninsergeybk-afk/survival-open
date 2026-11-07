@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,statSync} from 'node:fs';
 import {World} from '../world.js';
 import {ENEMY_TYPES,updateEnemy} from '../ai.js';
 import {renderBasePanel} from '../base-panel.js';
 import {RuntimeHarness} from './runtime-game.mjs';
 import {packRun,unpackRun} from '../run-checkpoint.js';
 import {createFieldOperation,fieldOperationIds,fieldOperationOffer,fieldOperationMining,
- advanceFieldOperation,validFieldOperation,fieldOperationCue,fieldOperationInteraction,fieldThreatTier} from '../field-operations.js';
+ advanceFieldOperation,validFieldOperation,fieldOperationCue,fieldOperationInteraction,fieldThreatTier,
+ FIELD_TACTICS,drawFieldOperation} from '../field-operations.js';
 
 const world=new World(20261107);
 const stations=world.nearbyStations(0,0,9000,false).filter(b=>!b.enemy);
@@ -18,9 +19,23 @@ for(const base of [lab,arsenal,dock,carrier])base.active=true;
 test('published module URLs expose the audited missions instead of cached station cards',()=>{
  const page=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
- assert.match(page,/src="\.\/game\.js\?v=[^"]*mission-qa-2/);
- assert.match(game,/from '\.\/base-panel\.js\?v=[^']*audit-1'/);
- assert.match(game,/from '\.\/field-operations\.js\?v=[^']*audit-1'/);
+ assert.match(page,/src="\.\/game\.js\?v=[^"]*field-experience-1/);
+ assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1'/);
+ assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1'/);
+});
+
+test('illustrated objective props are drawn from one compact transparent sprite atlas',()=>{
+ const atlasFile=new URL('../assets/missions/field-props-v1.webp',import.meta.url);
+ assert.ok(statSync(atlasFile).size<350_000,'the mission props cannot add a megabyte per sortie');
+ const op=createFieldOperation('two-fronts',arsenal,world),game=fakeGame(op);
+ game.images={fieldProps:{complete:true,naturalWidth:1278,naturalHeight:1230}};
+ const drawn=[],noop=()=>{};
+ const ctx={save:noop,restore:noop,translate:noop,rotate:noop,beginPath:noop,arc:noop,
+  stroke:noop,fill:noop,fillText:noop,setLineDash:noop,fillRect:noop,
+  drawImage:(...args)=>drawn.push(args)};
+ drawFieldOperation(game,ctx,{x:op.x,y:op.y,w:4000,h:4000});
+ assert.equal(drawn.length,2);
+ assert.deepEqual(drawn.map(args=>args.slice(1,5)),[[95,0,410,600],[95,0,410,600]]);
 });
 
 function fakeGame(op){
@@ -176,6 +191,30 @@ test('developed pilots face an additional, stronger defense wave',()=>{
  assert.equal(offer.rewardPartialOre,24);
 });
 
+test('one risky shield charge protects exactly one of two threatened nodes',()=>{
+ const op=createFieldOperation('two-fronts',arsenal,world),game=fakeGame(op);
+ op.phase='active';op.nextWaveAt=100;
+ const node=op.nodes[0];game.player.x=node.x;game.player.y=node.y;
+ const interaction=fieldOperationInteraction(op,game.player);
+ assert.equal(interaction?.label,'Зарядить щит');
+ game.actionHeld={kind:'field-work',target:interaction.target};game.time=3;
+ advanceFieldOperation(game,FIELD_TACTICS.shieldHold+.1);
+ assert.equal(op.shieldChargeUsed,true);
+ assert.equal(node.fieldShield,FIELD_TACTICS.shieldStrength);
+ assert.equal(op.nodes[1].fieldShield,0);
+ game.player.x=op.nodes[1].x;game.player.y=op.nodes[1].y;
+ assert.equal(fieldOperationInteraction(op,game.player),null,'the reserve cannot be spent twice');
+ const enemy={x:node.x+110,y:node.y,relayChargeUntil:2,
+  missionStrike:{range:200,charge:1,damage:17}};
+ game.world={nearbyRocks:()=>[]};game.flash=()=>{};game.time=4;
+ RuntimeHarness.prototype.updateMissionStrike.call(game,enemy,node);
+ assert.equal(node.hp,100,'the reserved barrier absorbs damage before the structure');
+ assert.equal(node.fieldShield,FIELD_TACTICS.shieldStrength-17);
+ assert.ok(validFieldOperation(op));
+ const copy=unpackRun(packRun({operation:op,station:{fieldMission:op},enemies:[]}));
+ assert.equal(copy.operation.nodes[0].fieldShield,FIELD_TACTICS.shieldStrength-17);
+});
+
 test('claiming a field operation pays once, reduces repeats, and keeps station identity',()=>{
  const op=createFieldOperation('deep-resonance',lab,world),game=fakeGame(op);
  op.phase='return';op.progress=2;
@@ -287,6 +326,37 @@ test('convoy route choice changes path and risk; destroyed cargo can still be re
  game.actionHeld={kind:'field-work',target:crate};game.time+=3.3;advanceFieldOperation(game,3.3);
  assert.equal(fast.phase,'return');assert.equal(fast.partial,true);
  assert.ok(validFieldOperation(fast));
+});
+
+test('convoy field repair trades six ore and four seconds of exposure for one hull recovery',()=>{
+ const op=createFieldOperation('broken-convoy',carrier,world,0,'safe'),game=fakeGame(op);
+ op.phase='active';op.hp=53;op.nextRaidAt=1000;game.player.ore=10;
+ game.player.x=op.x;game.player.y=op.y;
+ const repair=fieldOperationInteraction(op,game.player);
+ assert.match(repair?.label||'',/6 сплава/);
+ game.actionHeld={kind:'field-work',target:repair.target};
+ const old={x:op.x,y:op.y};game.time=2;
+ game.economyExpenses={repairs:0};
+ advanceFieldOperation(game,2);
+ assert.deepEqual({x:op.x,y:op.y},old,'cargo stops while the player repairs it');
+ assert.equal(op.hp,53);
+ game.time=4.1;advanceFieldOperation(game,2.1);
+ assert.equal(op.hp,53+FIELD_TACTICS.convoyRepairStrength);
+ assert.equal(game.player.ore,4);
+ assert.equal(game.economyExpenses.repairs,FIELD_TACTICS.convoyRepairCost);
+ assert.equal(op.fieldRepair.used,true);
+ assert.equal(fieldOperationInteraction(op,game.player),null);
+ assert.ok(validFieldOperation(op));
+});
+
+test('failed sorties stay saveable and expose a truthful return-or-abandon instruction',()=>{
+ const op=createFieldOperation('two-fronts',arsenal,world),game=fakeGame(op);
+ op.phase='failed';op.nodes[0].hp=0;op.nodes[1].hp=0;
+ assert.ok(validFieldOperation(op));
+ assert.match(fieldOperationCue(op,game),/ВЫЛАЗКА СОРВАНА/);
+ advanceFieldOperation(game,5);
+ assert.equal(op.phase,'failed');
+ assert.ok(validFieldOperation(unpackRun(packRun({operation:op,station:{fieldMission:op},enemies:[]})).operation));
 });
 
 test('a convoy raider follows the moving transport instead of aiming at an obsolete coordinate',()=>{
