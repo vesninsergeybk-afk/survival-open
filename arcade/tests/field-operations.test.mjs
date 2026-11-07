@@ -331,6 +331,50 @@ test('reverse hunt rewards surviving scan cycles and gives a partial outcome for
  assert.match(fieldOperationCue(other,early),/ВЕРНИТЕСЬ/);
 });
 
+test('discharged scan flash remains at the firing position after the scout moves',()=>{
+ const op=createFieldOperation('reverse-hunt',lab,world),game=fakeGame(op);
+ advanceFieldOperation(game,.1);
+ const enemy=game.enemies.find(e=>e.serial===op.enemySerial);
+ game.time=op.scanAt;advanceFieldOperation(game,.1);
+ game.player.x=enemy.x+200;game.player.y=enemy.y;
+ game.time=op.scanUntil;advanceFieldOperation(game,.1);
+ const point={x:enemy.x,y:enemy.y};
+ assert.deepEqual({x:op.lastScanX,y:op.lastScanY},point);
+ const resumed=unpackRun(packRun({operation:op})).operation;
+ assert.deepEqual({x:resumed.lastScanX,y:resumed.lastScanY},point,
+  'a saved scan keeps its world-space origin');
+ enemy.x+=100;enemy.y-=50;
+ game.time+=.1;advanceFieldOperation(game,.1);
+ assert.notEqual(op.x,point.x,'the live target has flown away');
+ game.images={missionImpacts:{complete:true,naturalWidth:1024,naturalHeight:1024}};
+ const {ctx,calls}=canvasRecorder();ctx.globalAlpha=1;
+ drawFieldOperation(game,ctx,{x:op.x-1000,y:op.y-1000,w:2000,h:2000});
+ const paint=calls.find(c=>c[0]==='drawImage'&&c[1]===game.images.missionImpacts);
+ assert.ok(paint,'the captured discharge is drawn');
+ assert.equal(paint[6]+paint[8]/2,point.x);
+ assert.equal(paint[7]+paint[9]/2,point.y);
+});
+
+test('ore discharge keeps its original deposit even when the sample advances',()=>{
+ const op=createFieldOperation('deep-resonance',lab,world),game=fakeGame(op);
+ op.phase='active';op.nextPulse=100;op.pulseUntil=4;
+ game.time=4;advanceFieldOperation(game,.1);
+ const point={x:op.samples[0].x,y:op.samples[0].y};
+ assert.deepEqual({x:op.lastPulseX,y:op.lastPulseY},point);
+ const resumed=unpackRun(packRun({operation:op})).operation;
+ assert.deepEqual({x:resumed.lastPulseX,y:resumed.lastPulseY},point,
+  'a saved ore pulse keeps its world-space origin');
+ op.samples[0].done=true;
+ game.time+=.1;
+ game.images={missionImpacts:{complete:true,naturalWidth:1024,naturalHeight:1024}};
+ const {ctx,calls}=canvasRecorder();ctx.globalAlpha=1;
+ drawFieldOperation(game,ctx,{x:point.x-1000,y:point.y-1000,w:2000,h:2000});
+ const paint=calls.find(c=>c[0]==='drawImage'&&c[1]===game.images.missionImpacts);
+ assert.ok(paint,'the discharge is drawn after the objective switches');
+ assert.equal(paint[6]+paint[8]/2,point.x);
+ assert.equal(paint[7]+paint[9]/2,point.y);
+});
+
 test('two-front defense attacks separate assets and accepts one surviving node',()=>{
  const op=createFieldOperation('two-fronts',arsenal,world),game=fakeGame(op);
  assert.ok(validFieldOperation(op));
