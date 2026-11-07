@@ -18,7 +18,8 @@ test('ordinary field orders precede optional long operations in reading and keyb
  const special=operations.indexOf('aria-label="Особая операция"');
  const extended=operations.indexOf('aria-label="Сложные вылазки"');
  assert.ok(field>0&&special>field&&extended>special);
- assert.match(operations,/Полевой заказ можно совмещать с особой операцией или сложной вылазкой/);
+ assert.match(operations,/Полевой заказ можно выполнять вместе с особой операцией или сложной вылазкой/);
+ assert.match(operations,/Операцию и сложную вылазку одновременно взять нельзя/);
  assert.match(operations,/одну такую вылазку/);
  assert.match(operations,/data-act="acceptContract"/);
  assert.match(operations,/data-act="acceptOperation"/);
@@ -54,6 +55,7 @@ test('mobile section labels stay readable in the last-loaded stylesheet',()=>{
  assert.match(css,/@media\(max-width:650px\)/);
  assert.match(css,/\.base-tabs button\{min-height:56px;[^}]*font-size:12px!important/);
  assert.match(css,/@media\(max-width:370px\)/);
+ assert.match(css,/\.base-trial-product\{display:grid;grid-template-columns:64px/);
 });
 
 test('the empty weapon slot distinguishes a permanent reward from a free trial',()=>{
