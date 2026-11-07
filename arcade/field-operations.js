@@ -5,6 +5,7 @@ import {RULES} from './balance.js?v=field-operations-1';
 import {recordEconomyExpense} from './sortie-ledger.js?v=economy-ledger-1';
 import {drawRelayArt,drawConvoyEngineArt,drawConvoyHullArt,drawConvoySurfaceArt,
  drawConvoyWreckArt,drawSalvageCrateArt} from './field-operation-art.js?v=mission-art-6';
+import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 
 export const FIELD_TACTICS=Object.freeze({shieldStrength:40,shieldHold:2.8,
  convoyRepairCost:6,convoyRepairStrength:35,convoyRepairHold:4});
@@ -303,6 +304,7 @@ function advanceFieldWork(game,op,dt){
   game.notice('Уцелевший контейнер спасён. Вернитесь на авианосец за частичной наградой.',5);
  }else{
   target.done=true;op.progress++;
+  if(op.id==='sleeping-reactor')target.extractedAt=game.time;
   game.heritage.play(op.id==='line-break'?'fieldRelayRepair':'fieldCassette',.2,
    {x:target.x,y:target.y});
   game.heritage.vfx.nova(target.x,target.y,op.id==='line-break'?47:32,
@@ -421,6 +423,7 @@ export function advanceFieldOperation(game,dt){
   if(op.pulseUntil>0&&game.time>=op.pulseUntil){
    op.pulseUntil=0;
    const source=op.samples.find(s=>!s.done)||op;
+   op.lastPulseAt=game.time;
    game.heritage.vfx.nova(source.x,source.y,160,'violet');
    game.heritage.play('fieldPulse',.2,{x:source.x,y:source.y});
    if(distance(game.player,source)<165)game.hurt(12,source);
@@ -434,15 +437,21 @@ export function advanceFieldOperation(game,dt){
   op.x=enemy.x;op.y=enemy.y;
   if(game.time>=op.scanAt&&op.scanUntil<=game.time){
    op.scanUntil=game.time+1.6;op.scanAt=game.time+7.4;op.cycle++;
+   // Drive the already-painted I.R.I.S. antenna animation from this mission's
+   // scan window; its autonomous predator logic keeps its own clock.
+   enemy._missionScanStarted=game.time;enemy._missionScanUntil=op.scanUntil;
    game.heritage.play('fieldScan',.2,{x:enemy.x,y:enemy.y});
    game.notice('ЗРАЧОК РАСКРЫВАЕТ СКАНЕР! Держитесь на дистанции 130–310 м.',2.7);
   }
   if(op.scanUntil>0&&game.time>=op.scanUntil){
    op.scanUntil=0;
+   op.lastScanAt=game.time;
+   game.heritage.play('fieldPulse',.3,{x:enemy.x,y:enemy.y});
    const d=distance(enemy,game.player);
    game.heritage.vfx.nova(enemy.x,enemy.y,315,'violet');
    if(d<=125)game.hurt(13,enemy);
    else if(d<=310){op.scans=Math.min(2,op.scans+1);
+    game.heritage.play('fieldScanCaptured',.3,{x:enemy.x,y:enemy.y});
     game.notice('Спектр получен: '+op.scans+'/2.'+(op.scans===2?' Данных достаточно, можно возвращаться.':''),4);}
    if(op.scans===2){op.phase='return';op.partial=false;}
   }
@@ -487,6 +496,7 @@ export function advanceFieldOperation(game,dt){
   }
   if(op.pulseUntil>0&&game.time>=op.pulseUntil){
    op.pulseUntil=0;
+   op.lastPulseAt=game.time;
    game.heritage.vfx.nova(core.x,core.y,270,'violet');
    game.heritage.play('fieldPulse',.2,{x:core.x,y:core.y});
    if(distance(game.player,core)<270)game.hurt(15+4*(op.threatTier||0),core);
@@ -579,10 +589,13 @@ export function drawFieldOperation(game,c,cam){
   }
   if(op.resonance>=58){const p=op.samples.find(s=>!s.done)||op;
    ring(p,165,'#f182af',op.pulseUntil>game.time?'РАЗРЯД':'РЕЗОНАНС '+Math.round(op.resonance)+'%',true);}
+  const source=op.samples.find(s=>!s.done)||op;
+  paintMissionImpact(game,c,'emp',source.x,source.y,op.lastPulseAt,194,.7);
  }else if(op.id==='reverse-hunt'){
   ring(op,op.scanUntil>game.time?310:140,'#c794ff',
    op.scanUntil>game.time?'СКАНИРОВАНИЕ':'ЗРАЧОК · '+op.scans+'/2',op.scanUntil>game.time);
   activity(op,op.scanUntil>game.time?298:125,'#cb9cff');
+  paintMissionImpact(game,c,'emp',op.x,op.y,op.lastScanAt,132,.58);
  }else if(op.id==='false-call'){
   for(const [i,beacon] of op.beacons.entries()){
    if(beacon.checked)continue;
@@ -639,12 +652,26 @@ export function drawFieldOperation(game,c,cam){
   ring(op.core||op,270,op.pulseUntil>game.time?'#ff8e89':'#c49bff',
    op.pulseUntil>game.time?'ВЫБРОС · УХОДИТЕ':'РЕАКТОР',op.pulseUntil>game.time);
   activity(op.core||op,op.pulseUntil>game.time?256:80,'#e5a4ff');
-  for(const [i,node] of op.nodes.entries())if(!node.done){
+  paintMissionImpact(game,c,'emp',(op.core||op).x,(op.core||op).y,
+   op.lastPulseAt,252,.64);
+  for(const [i,node] of op.nodes.entries()){
+   if(node.done){
+    const age=game.time-(node.extractedAt??-Infinity);
+    if(age>=0&&age<.65&&visible(node)){
+     const rise=age/.65;
+     paintMissionCell(c,game.images?.missionHardware,1,node.x,node.y-rise*25,
+      57,57,{alpha:1-rise});
+    }
+    continue;
+   }
    ring(node,47,'#ffc878','КАССЕТА '+(i+1)+' · '+Math.round(node.progress/node.goal*100)+'%');
-   if(visible(node)){c.save();c.translate(node.x,node.y);c.rotate(.65);
+   if(visible(node)&&!paintMissionMorph(c,game.images?.missionHardware,0,1,
+    node.x,node.y,57,57,node.progress/node.goal)){
+    c.save();c.translate(node.x,node.y);c.rotate(.65);
     c.fillStyle='#4c4543';c.strokeStyle='#ffd083';c.lineWidth=1.8;
     c.fillRect(-12,-18,24,36);c.strokeRect(-12,-18,24,36);
-    c.fillStyle='#ffa964';c.fillRect(-4,-12,8,24);c.restore();}
+    c.fillStyle='#ffa964';c.fillRect(-4,-12,8,24);c.restore();
+   }
   }
  }else if(op.id==='line-break'){
   for(const [i,node] of op.nodes.entries()){

@@ -39,7 +39,7 @@ import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
-import {ArcadeVisuals} from './visuals.js?v=regions-1-campaign-1-counterattack-1';
+import {ArcadeVisuals} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
@@ -48,15 +48,16 @@ import {chooseInteraction,activeInteraction,automaticFireAllowed} from './contro
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {manualWeapons,selectedManual,cycleManual,manualClick} from './manual-weapon-controls.js?v=unified-controls-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
-import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1';
+import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
+import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
- advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5-mission-av-1';
+ advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5-mission-av-1-mission-pack-1';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1';
@@ -187,6 +188,10 @@ const MODELS={
  convoyWreck:'./assets/missions/convoy-wreck-v1.webp',
  convoyDebris:'./assets/missions/convoy-debris-v1.webp',
  salvageCrate:'./assets/missions/salvage-crate-v1.webp',
+ missionSpecial:'./assets/missions/special-objectives-v1.webp',
+ missionHardware:'./assets/missions/reactor-hardware-v1.webp',
+ missionFreighter:'./assets/missions/hostile-freighter-v1.webp',
+ missionImpacts:'./assets/missions/mission-impacts-v1.webp',
  rock:'../assets/space/asteroid-ore.webp',
  rock2:'../assets/space/asteroid-realistic.webp'
 };
@@ -1762,7 +1767,8 @@ export class ArcadeGame {
    if(target.hp<=0&&target!==this.operation){
     this.heritage.vfx.nova(target.x,target.y,43,'red');
     this.heritage.play('largeExplosion',.28,position);
-   }else if(hullDamage>0)this.heritage.play('armorHit',.17,position);
+   }else if(hullDamage>0)this.heritage.play(
+    this.operation?.id===RELAY_DEFENSE.id?'missionRelayImpact':'armorHit',.17,position);
    else if(absorbed>0)this.heritage.play(target.fieldShield===0?'shieldBreak':'shieldHit',.17,position);
   }
  }
@@ -1796,6 +1802,7 @@ export class ArcadeGame {
    'Две цели под ударом: передатчик и резервная антенна.':index===2?
    'Корвет остановится на дальней позиции. Перехватите его до залпа!':
    'Штурмовик готовит удар по передатчику. Выйдите ему навстречу.'),4.2);
+  this.heritage.play('missionRelayWave',1.1,{x:op.x,y:op.y});
  }
  updateRelayDefense(dt){
   const op=this.operation;
@@ -1846,9 +1853,10 @@ export class ArcadeGame {
    }else if(this.time>=e.relayChargeUntil){
     const damage=e.type==='gunship'?23:e.type==='fighter'?14:e.type==='flanker'?13:10;
     op.hp=Math.max(0,op.hp-damage);
+   op.fieldHullHitAt=this.time;
     e.relayChargeUntil=0;e.relayCooldownUntil=this.time+3.1;
     this.flash(e.x,e.y,op.x,op.y,'#ffb585');
-    this.heritage.play(e.type==='gunship'?'rocket':'damage',.2,{x:e.x,y:e.y});
+   this.heritage.play('missionRelayImpact',.2,{x:op.x,y:op.y});
     if(op.hp<=RELAY_DEFENSE.maxHp*.35&&!op.criticalWarned){
      op.criticalWarned=true;
      this.notice('ТРЕВОГА: ретранслятор повреждён! Перехватывайте заряжающиеся корабли.',4);
@@ -1875,6 +1883,7 @@ export class ArcadeGame {
   this.operation=null;
   if(this.waypoint?.id===RELAY_DEFENSE.id)this.waypoint=null;
   this.heritage.vfx.shipExplosion(op.x,op.y,32,'#ff8c74');
+  this.heritage.play('largeExplosion',.3,{x:op.x,y:op.y});
   this.notice('Ретранслятор потерян. Арсенал цел; повторить оборону можно через 45 секунд.',5);
  }
  completeRelayDefense(op){
@@ -1898,6 +1907,7 @@ export class ArcadeGame {
   this.collect({type:'data',value:data});
   recordSortieIncome(this,'data','operation',data);
   this.heritage.station('claimContract',base.type);
+  this.heritage.play('missionRelayOnline',.4,{x:op.x,y:op.y});
   this.rewardNotice('ОБОРОНА ЗАВЕРШЕНА. Связь восстановлена. +'+ore+' сплава, +'+data+' опыта.'+
    (antennaSaved?' Антенна уцелела: обзор карты у арсенала +'+RELAY_DEFENSE.bonusScan+' м.':'')+
    (next?' Отмечен следующий узел.':''),previousLevel,6.5);
@@ -1918,6 +1928,7 @@ export class ArcadeGame {
     this.enemies.push(op);
     this.spawnCarrierEscort(op,'fighter',0);
     this.spawnCarrierEscort(op,'scout',1);
+    this.heritage.play('missionCarrierContact',.4,{x:op.x,y:op.y});
     this.notice('Конвой обнаружен! Нос бронирован, двигатели уязвимы с кормы. Повредите их, чтобы замедлить груз.',5);
    }
    if(!carrierInFlight(op))return;
@@ -1929,7 +1940,10 @@ export class ArcadeGame {
     if(rock.alive&&dist(rock,op)<rock.r+op.r+8)
      this.damageRock(rock,rock.hp,op.x,op.y,'cover');
    }
-   if(events.boostWarning)this.notice('Транспорт готовит форсаж! Заходите на корму: попадания по двигателям замедляют груз.',3.5);
+   if(events.boostWarning){
+    this.heritage.play('missionCarrierBoost',.4,{x:op.x,y:op.y});
+    this.notice('Транспорт готовит форсаж! Заходите на корму: попадания по двигателям замедляют груз.',3.5);
+   }
    if(events.pulseWarning){
     this.heritage.play('ramWarning',1.8,{x:op.x,y:op.y});
     this.notice('КРУГОВОЙ РАЗРЯД: выйдите за отмеченные 230 м. После разряда броня откроется на 3 секунды.',3.5);
@@ -2103,6 +2117,7 @@ export class ArcadeGame {
    if(op.pulseCharge>=CORRIDOR_OPERATION.pulsePeriod*.28)op.pulseLocked=true;
    if(!op.pulseWarned&&op.pulseCharge>.25){
     op.pulseWarned=true;
+    this.heritage.play?.('missionEmpCharge',.5,{x:op.x,y:op.y});
     this.notice('Бортовой ИИ: глушитель заряжает ЭМ-импульс. Выйдите за 315 м.',3.5);
    }
    if(op.pulseCharge>=CORRIDOR_OPERATION.pulsePeriod){
@@ -2111,7 +2126,7 @@ export class ArcadeGame {
     op.pulseFlashUntil=this.time+.55;
     op.overheatedUntil=this.time+2.3;
     this.heritage.vfx.nova(op.x,op.y,180,'cyan');
-    this.heritage.play?.('damage',.27);
+    this.heritage.play?.('missionEmpPulse',.27,{x:op.x,y:op.y});
     if(d<=CORRIDOR_OPERATION.pulseRange)
      this.hurt(CORRIDOR_OPERATION.pulseDamage,{x:op.x,y:op.y});
     this.notice('Бортовой ИИ: разряд! Глушитель перегревается — сейчас его защита слабее.',2.7);
@@ -2260,6 +2275,10 @@ export class ArcadeGame {
   const op=this.operation;
   if(op?.id!==PROBE_OPERATION.id||op.phase==='return'||op.located===false||this.dead)return;
   const before=op.repair;
+  if(this.time-(op.lastRepairCueAt??-Infinity)>=1.4){
+   op.lastRepairCueAt=this.time;
+   this.heritage.play('missionProbeWeld',1.1,{x:op.x,y:op.y});
+  }
   const stage=PROBE_OPERATION.stages[op.waves];
   let repair=before+PROBE_OPERATION.repairPerSecond*dt;
   if(stage&&repair>=stage.at&&!op.strikerSerial){
@@ -2278,8 +2297,11 @@ export class ArcadeGame {
   }
   const limit=op.strikerSerial?PROBE_OPERATION.stages[op.waves-1].limit:PROBE_OPERATION.maxRepair;
   op.repair=Math.max(before,Math.min(limit,repair));
-  if(before<PROBE_OPERATION.telemetryAt&&op.repair>=PROBE_OPERATION.telemetryAt)
+  if(before<PROBE_OPERATION.telemetryAt&&op.repair>=PROBE_OPERATION.telemetryAt){
+   op.repairMilestoneAt=this.time;
+   this.heritage.play('missionProbeReady',.3,{x:op.x,y:op.y});
    this.notice('Координаты сохранены. Можно сдать данные в лаборатории или продолжить ремонт ради обзора карты.',4.8);
+  }
   if(op.repair>=PROBE_OPERATION.maxRepair)this.completeProbe();
  }
  completeProbe(partial=false){
@@ -4489,18 +4511,23 @@ export class ArcadeGame {
   }
   c.save();c.translate(e.x,e.y);c.rotate(e.angle||0);
   const flash=e.hit>0;
-  c.shadowColor='#ffb46c';c.shadowBlur=this.fps<34?2:flash?19:8;
-  c.fillStyle='#111e36';c.strokeStyle=flash?'#fff0ca':'#ffb882';c.lineWidth=3;
-  c.beginPath();c.moveTo(0,-55);c.lineTo(35,-29);c.lineTo(43,18);
-  c.lineTo(28,48);c.lineTo(-28,48);c.lineTo(-43,18);
-  c.lineTo(-35,-29);c.closePath();c.fill();c.stroke();
-  c.shadowBlur=0;
-  for(const x of [-25,0,25]){
-   c.fillStyle=x===0?'#5b554a':'#554c42';c.fillRect(x-10,-24,20,55);
-   c.strokeStyle='#e7ae68';c.lineWidth=1.7;c.strokeRect(x-10,-24,20,55);
-   c.fillStyle='#f2c88f';c.fillRect(x-7,-15,14,3);c.fillRect(x-7,5,14,3);
+  const damage=1-Math.max(0,Math.min(1,e.hp/Math.max(1,e.maxHp)));
+  const painted=paintMissionMorph(c,this.images?.missionFreighter,0,1,
+   0,0,104,126,Math.min(1,Math.max(0,(damage-.12)/.7)),{rows:1});
+  if(!painted){
+   c.shadowColor='#ffb46c';c.shadowBlur=this.fps<34?2:flash?19:8;
+   c.fillStyle='#111e36';c.strokeStyle=flash?'#fff0ca':'#ffb882';c.lineWidth=3;
+   c.beginPath();c.moveTo(0,-55);c.lineTo(35,-29);c.lineTo(43,18);
+   c.lineTo(28,48);c.lineTo(-28,48);c.lineTo(-43,18);
+   c.lineTo(-35,-29);c.closePath();c.fill();c.stroke();c.shadowBlur=0;
+   for(const x of [-25,0,25]){
+    c.fillStyle=x===0?'#5b554a':'#554c42';c.fillRect(x-10,-24,20,55);
+    c.strokeStyle='#e7ae68';c.lineWidth=1.7;c.strokeRect(x-10,-24,20,55);
+   }
+   c.fillStyle='#78d5f5';c.fillRect(-25,42,12,7);c.fillRect(13,42,12,7);
   }
-  c.fillStyle='#78d5f5';c.fillRect(-25,42,12,7);c.fillRect(13,42,12,7);
+  if(flash)paintMissionCell(c,this.images?.missionImpacts,0,0,0,90,90,
+   {alpha:Math.min(.7,e.hit*.32)});
   c.strokeStyle=pulse.key==='vent'?'#8af0ca':'#afc5ff';c.lineWidth=4;
   c.setLineDash(pulse.key==='vent'?[5,8]:[]);
   c.beginPath();c.arc(0,0,62,-Math.PI/2-1.1,-Math.PI/2+1.1);c.stroke();c.setLineDash([]);
@@ -4538,15 +4565,20 @@ export class ArcadeGame {
    c.beginPath();c.arc(0,0,39,0,TAU);c.stroke();
    c.strokeStyle='rgba(130,237,221,'+(.22+pulse*.28).toFixed(3)+')';
    c.lineWidth=1.7;c.beginPath();c.arc(0,0,55+pulse*5,0,TAU);c.stroke();
-   c.fillStyle='#09304a';c.beginPath();
-   for(let i=0;i<6;i++){
-    const a=i*TAU/6-Math.PI/2;
-    if(i===0)c.moveTo(Math.cos(a)*29,Math.sin(a)*29);
-    else c.lineTo(Math.cos(a)*29,Math.sin(a)*29);
+   const relay=this.images?.relayPoses;
+   if(relay?.complete&&relay.naturalWidth>=768){
+    c.drawImage(relay,online?512:0,0,256,256,-52,-52,104,104);
+   }else{
+    c.fillStyle='#09304a';c.beginPath();
+    for(let i=0;i<6;i++){
+     const a=i*TAU/6-Math.PI/2;
+     if(i===0)c.moveTo(Math.cos(a)*29,Math.sin(a)*29);
+     else c.lineTo(Math.cos(a)*29,Math.sin(a)*29);
+    }
+    c.closePath();c.fill();c.stroke();
+    c.fillStyle='#b4fff6';c.fillRect(-15,-5,30,10);
    }
-   c.closePath();c.fill();c.stroke();
-   c.fillStyle='#b4fff6';c.fillRect(-15,-5,30,10);
-   c.fillStyle='#082835';c.fillRect(-8,-2,16,4);
+   paintMissionImpact(this,c,'metal',0,0,op.fieldHullHitAt,104,.43);
    c.strokeStyle='#1a3945';c.lineWidth=4;c.beginPath();c.moveTo(-42,67);c.lineTo(42,67);c.stroke();
    c.strokeStyle=hp<.35?'#ff9c88':'#82e8bb';c.beginPath();
    c.moveTo(-42,67);c.lineTo(-42+84*hp,67);c.stroke();
@@ -4571,11 +4603,14 @@ export class ArcadeGame {
    c.restore();
   }
   const a=op.antenna;
-  if(a&&(!online||a.hp>0)&&!outsideCamera(a.x,a.y,cam,75)){
+  if(a&&!outsideCamera(a.x,a.y,cam,75)){
    c.save();c.translate(a.x,a.y);c.strokeStyle=a.hp>0?'#a9dffd':'#bf8179';c.lineWidth=2;
-   c.fillStyle='#122936';c.beginPath();c.arc(0,0,16,0,TAU);c.fill();c.stroke();
-   c.beginPath();c.arc(0,-8,11,-2.45,-.69);c.stroke();
-   c.beginPath();c.moveTo(0,-17);c.lineTo(0,9);c.stroke();
+   if(!paintMissionCell(c,this.images?.missionHardware,a.hp>0?2:3,0,0,67,67)){
+    c.fillStyle='#122936';c.beginPath();c.arc(0,0,16,0,TAU);c.fill();c.stroke();
+    c.beginPath();c.arc(0,-8,11,-2.45,-.69);c.stroke();
+    c.beginPath();c.moveTo(0,-17);c.lineTo(0,9);c.stroke();
+   }
+   paintMissionImpact(this,c,'metal',0,0,a.fieldHullHitAt,90,.4);
    c.textAlign='center';c.font='bold 10px system-ui';c.fillStyle=c.strokeStyle;
    c.fillText('РЕЗЕРВНАЯ АНТЕННА',0,32,125);
    c.fillText(a.hp>0?Math.ceil(a.hp/a.maxHp*100)+'%':'ПОТЕРЯНА',0,45,125);
@@ -4640,23 +4675,28 @@ export class ArcadeGame {
   }else{
    c.fillStyle='#142530';c.strokeStyle='#4a897f';c.lineWidth=2;
   }
-  c.beginPath();
-  for(let i=0;i<6;i++){const a=-Math.PI/2+i*TAU/6;
-   const x=Math.cos(a)*40,y=Math.sin(a)*40;
-   if(i===0)c.moveTo(x,y);else c.lineTo(x,y);
+  if(!paintMissionCell(c,this.images?.missionSpecial,active?0:1,0,0,108,108)){
+   c.beginPath();
+   for(let i=0;i<6;i++){const a=-Math.PI/2+i*TAU/6;
+    const x=Math.cos(a)*40,y=Math.sin(a)*40;
+    if(i===0)c.moveTo(x,y);else c.lineTo(x,y);
+   }
+   c.closePath();c.fill();c.stroke();
+   c.save();c.rotate(active?this.time*.45:.18);
+   for(let i=0;i<3;i++){
+    const a=i*TAU/3;
+    c.save();c.rotate(a);c.fillStyle=active?'#472357':'#29434a';
+    c.fillRect(-8,-52,16,29);
+    c.strokeStyle=active?'#de82f6':'#668e84';c.lineWidth=2;
+    c.strokeRect(-8,-52,16,29);c.restore();
+   }
+   c.restore();
+   c.beginPath();c.arc(0,0,active?15+pulse*3:13,0,TAU);
+   c.fillStyle=active?'#d680ff':'#546c71';c.fill();
   }
-  c.closePath();c.fill();c.stroke();c.shadowBlur=0;
-  c.save();c.rotate(active?this.time*.45:.18);
-  for(let i=0;i<3;i++){
-   const a=i*TAU/3;
-   c.save();c.rotate(a);c.fillStyle=active?'#472357':'#29434a';
-   c.fillRect(-8,-52,16,29);
-   c.strokeStyle=active?'#de82f6':'#668e84';c.lineWidth=2;
-   c.strokeRect(-8,-52,16,29);c.restore();
-  }
-  c.restore();
-  c.beginPath();c.arc(0,0,active?15+pulse*3:13,0,TAU);
-  c.fillStyle=active?'#d680ff':'#546c71';c.fill();
+  c.shadowBlur=0;
+  paintMissionImpact(this,c,'emp',0,0,(op?.pulseFlashUntil??-Infinity)-.55,
+   155,.55);
   if(active){
    c.strokeStyle='#f3c5ff';c.lineWidth=2;c.beginPath();
    c.arc(0,0,29,-Math.PI/2,-Math.PI/2+TAU*op.hp/op.maxHp);c.stroke();
@@ -4697,13 +4737,16 @@ export class ArcadeGame {
   const pulse=.5+.5*Math.sin(this.time*3.1);
   c.save();c.translate(op.x,op.y);
   c.lineWidth=2;c.strokeStyle='#73d6edbd';c.fillStyle='#102b3c';
-  c.shadowColor='#66c9ed';c.shadowBlur=this.fps<34?4:14;
-  c.beginPath();c.moveTo(-33,0);c.lineTo(-13,-20);c.lineTo(14,-20);
-  c.lineTo(33,0);c.lineTo(14,20);c.lineTo(-13,20);c.closePath();c.fill();c.stroke();
-  c.shadowBlur=0;
-  c.strokeStyle='#bbf4ff';c.lineWidth=3;
-  c.beginPath();c.arc(0,0,8+pulse*2,0,TAU);c.stroke();
-  c.fillStyle='#a5e7ed';c.fillRect(-41,-5,9,10);c.fillRect(32,-5,9,10);
+  if(!paintMissionMorph(c,this.images?.missionSpecial,2,3,0,0,112,112,
+   Math.max(0,Math.min(1,(op.repair-12)/85)))){
+   c.shadowColor='#66c9ed';c.shadowBlur=this.fps<34?4:14;
+   c.beginPath();c.moveTo(-33,0);c.lineTo(-13,-20);c.lineTo(14,-20);
+   c.lineTo(33,0);c.lineTo(14,20);c.lineTo(-13,20);c.closePath();c.fill();c.stroke();
+   c.shadowBlur=0;
+   c.strokeStyle='#bbf4ff';c.lineWidth=3;
+   c.beginPath();c.arc(0,0,8+pulse*2,0,TAU);c.stroke();
+  }
+  paintMissionImpact(this,c,'repair',0,0,op.repairMilestoneAt,94,.63);
   c.lineWidth=4;c.strokeStyle='#67e7dc';
   c.beginPath();c.arc(0,0,43,-Math.PI/2,-Math.PI/2+TAU*op.repair/100);c.stroke();
   c.textAlign='center';c.font='bold 12px system-ui';c.fillStyle='#dbfbff';

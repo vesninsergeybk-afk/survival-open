@@ -1,5 +1,5 @@
-import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03-mission-av-1';
-import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03-mission-av-1';
+import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03-mission-av-1-mission-pack-1';
+import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03-mission-av-1-mission-pack-1';
 import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
 import { MUSIC_TRACKS, MUSIC_POOLS, MusicRotation } from '../arcade/music-playlist.js?v=cinematic-rotation-01';
 
@@ -101,7 +101,10 @@ export class AudioEngine {
                     'shield_hit','field_shield_up','field_shield_break',
                     'field_relay_repair','field_convoy_repair','field_beacon_ok',
                     'field_beacon_alarm','field_salvage','field_cassette',
-                    'field_scan','field_reactor_charge','field_pulse','field_work','field_raid'];
+                    'field_scan','field_scan_captured','field_reactor_charge','field_pulse','field_work','field_raid',
+                    'mission_emp_charge','mission_emp_pulse','mission_probe_weld','mission_probe_ready',
+                    'mission_relay_wave','mission_relay_impact','mission_relay_online',
+                    'mission_carrier_contact','mission_carrier_boost'];
                 const sounds = Object.entries(SOUND_CATALOG)
                     .sort(([a],[b]) => (priority.indexOf(a) < 0 ? 999 : priority.indexOf(a)) -
                         (priority.indexOf(b) < 0 ? 999 : priority.indexOf(b)));

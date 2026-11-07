@@ -156,8 +156,18 @@ export const AUX_SOUNDS = {
   field_cassette: cue('Кассета извлечена','structure',k('doorClose_001'),.19,2,350,.5),
   field_raid: cue('Нападение на оборудование','ui',b('base_raid_warning'),.19,3,1400,1.0),
   field_scan: cue('Опасный сканер раскрыт','ambient',k('computerNoise_001'),.23,3,1100,1.1),
-  field_reactor_charge: cue('Реактор готовится к выбросу','ambient',k('computerNoise_001'),.23,3,1300,1.1),
-  field_pulse: cue('Разряд аномалии','impact',k('forceField_002'),.29,3,750,.85)
+  field_scan_captured: cue('Получен спектр зрачка','ui',b('base_raid_success'),.15,2,500,.6),
+  field_reactor_charge: cue('Реактор готовится к выбросу','ambient',k('forceField_003'),.26,3,1300,.9),
+  field_pulse: cue('Разряд аномалии','impact',k('forceField_002'),.29,3,750,.85),
+  mission_emp_charge: cue('Заряд глушителя','ambient',k('computerNoise_000'),.24,3,1200,1.2),
+  mission_emp_pulse: cue('Разряд глушителя','impact',k('forceField_003'),.38,4,600,.75),
+  mission_probe_weld: cue('Работа ремонтного луча','structure',b('base_repair_pulse'),.15,2,1200,.75),
+  mission_probe_ready: cue('Телеметрия зонда восстановлена','structure',b('base_raid_success'),.27,4,800,.85),
+  mission_relay_wave: cue('Подход атакующей волны','ui',b('base_raid_warning'),.24,3,1800,1.1),
+  mission_relay_impact: cue('Удар по передатчику','impact',k('impactMetal_heavy_001'),.32,3,190,.4),
+  mission_relay_online: cue('Связь ретранслятора восстановлена','structure',b('base_resonance_link'),.37,4,1800,1.3),
+  mission_carrier_contact: cue('Выход вражеского грузовика','ambient',k('spaceEngineLarge_000'),.21,2,1500,1.0),
+  mission_carrier_boost: cue('Форсаж вражеского грузовика','ambient',k('thrusterFire_000'),.34,3,1700,.9)
 };
 
 AUX_SOUNDS.ui_slider.sampleUrls = [k('impactMetal_heavy_000'),k('impactMetal_heavy_001')];

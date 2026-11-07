@@ -186,7 +186,10 @@ export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
   const now=Number.isFinite(time)?time:0;
   if(!Number.isFinite(enemy._irisFirstPaintTime))enemy._irisFirstPaintTime=now;
   let age=Math.max(0,now-enemy._irisFirstPaintTime);
-  const scanElapsed=now-(enemy._irisScanStarted??-Infinity);
+  const missionScan=Number.isFinite(enemy._missionScanStarted)&&
+   now>=enemy._missionScanStarted&&now<(enemy._missionScanUntil??-Infinity);
+  const scanStarted=missionScan?enemy._missionScanStarted:enemy._irisScanStarted;
+  const scanElapsed=now-(scanStarted??-Infinity);
   const scanDuration=IRIS_SCAN.open+IRIS_SCAN.hold+IRIS_SCAN.close;
   const scanning=scanElapsed>=0&&scanElapsed<=scanDuration;
   const vx=Number.isFinite(enemy.vx)?enemy.vx:0;
@@ -228,7 +231,7 @@ export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
     irisManeuverFrameAt(now-(enemy._irisManeuverAt??-Infinity));
   const dodgeElapsed=now-(enemy._scoutDodgeStarted??-Infinity);
   const dodgeFrame=reducedMotion?8:irisDodgeFrameAt(dodgeElapsed);
-  const jawExtension=scanning?irisScanExtension(now,enemy._irisScanStarted,reducedMotion):0;
+  const jawExtension=scanning?irisScanExtension(now,scanStarted,reducedMotion):0;
   const frame=scanning?8:Math.min(scanFrame,maneuverFrame,dodgeFrame);
   // The player's ship is ~39 px across. Scout body shrinks from 42 to 32 px,
   // while its gameplay collision radius remains 14 world units.
