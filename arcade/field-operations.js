@@ -8,30 +8,31 @@ import {drawRelayArt,drawConvoyEngineArt,drawConvoyHullArt,drawConvoySurfaceArt,
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 
 export const FIELD_TACTICS=Object.freeze({shieldStrength:40,shieldHold:2.8,
- convoyRepairCost:6,convoyRepairStrength:35,convoyRepairHold:4});
+ convoyRepairCost:6,convoyRepairStrength:35,convoyRepairHold:4,
+ beaconDecodeSeconds:4.5,beaconDecodeRadius:240});
 const FIELD_PROP_CUTOUTS=Object.freeze({relay:[95,0,410,600],reactor:[649,60,561,520],
  beacon:[92,608,390,580],cargo:[620,690,655,420]});
 
 export const FIELD_OPERATIONS=Object.freeze({
  'line-break':{id:'line-break',name:'Линия разрыва',station:'dock',
   ore:25,data:23,partialOre:12,partialData:9,
-  desc:'Восстановите два узла связи, удерживая действие. Во время ремонта автоматический огонь приостановлен. После первого узла можно отступить; противник попытается уничтожить второй.'},
+  desc:'Восстановите два узла связи в любом порядке. Во время ремонта автоматический огонь приостановлен. После первого узла враги атакуют оставшийся; можно отступить с частичной наградой.'},
  'deep-resonance':{id:'deep-resonance',name:'Глубинный резонанс',station:'lab',
   ore:26,data:25,partialOre:9,partialData:10,
-  desc:'Получите два образца, удерживая добычу на богатых залежах. Раскалывающий удар приносит руду, но портит образец. Шум привлекает охотников и вызывает разряды. После первого образца можно отступить.'},
+  desc:'Получите два образца на богатых залежах. Раскалывающий удар портит образец. Шум привлекает патрули: на второй залежи возможен новый перехват. Можно прерывать добычу, чтобы снизить резонанс, или отступить после первого образца.'},
  'reverse-hunt':{id:'reverse-hunt',name:'Обратная охота',station:'lab',
   ore:18,data:37,partialOre:13,partialData:8,
-  desc:'Выдержите два цикла сканирования опасного «зрачка» на расстоянии 130–310 м. Можно уничтожить его раньше, но тогда лаборатория получит лишь обломки.'},
+  desc:'Запишите два сканирования опасного «зрачка». Для первого держитесь в 130–310 м, для второго придётся сблизиться до 170–270 м. Развитый враг может позвать прикрытие. Уничтожение цели раньше времени даст лишь часть данных.'},
  'false-call':{id:'false-call',name:'Чужой позывной',station:'lab',
   ore:17,data:30,partialOre:12,partialData:14,
-  desc:'Найдите среди трёх передатчиков поддельный маяк. У него двойной фиолетовый импульс. Проверка неверного маяка поднимает тревогу, но не завершает поиск.'},
+  desc:'По двойному фиолетовому импульсу найдите поддельный маяк среди трёх. После проверки удерживайте район, пока лаборатория перехватывает ответный сигнал: враг попытается помешать. Ошибочный выбор поднимет тревогу.'},
  'two-fronts':{id:'two-fronts',name:'Два фронта',station:'arsenal',
   ore:32,data:32,partialOre:17,partialData:17,
   desc:'Защитите два разнесённых узла. Перед атакой можно один раз вручную включить резервный щит на одном из них, но во время работы корабль не стреляет. Враги целятся в оборудование; спасение одного узла тоже засчитывается.'}
  ,
  'sleeping-reactor':{id:'sleeping-reactor',name:'Спящий реактор',station:'arsenal',
   ore:30,data:31,partialOre:12,partialData:11,
-  desc:'Извлеките внешнюю и внутреннюю кассеты из аварийного реактора. Перед круговым выбросом ядро светится. Можно ограничиться внешней кассетой.'},
+  desc:'Извлеките обе кассеты. Начать с внешней безопаснее; если первой взять внутреннюю, реактор раньше перейдёт к частым выбросам. Ядро заранее предупреждает о разряде. После одной кассеты можно отступить.'},
  'broken-convoy':{id:'broken-convoy',name:'Конвой на изломе',station:'carrier',
   ore:34,data:31,partialOre:17,partialData:13,
   desc:'Сопроводите транспорт: короткий маршрут опаснее, обходной дольше. Если корпус сильно повреждён, можно один раз остановиться для ремонта за 6 сплава — под огнём, без автострельбы. После гибели транспорта можно спасти часть груза.'}
@@ -51,16 +52,23 @@ export function validFieldOperation(op){
  if(op.id==='deep-resonance')return Array.isArray(op.samples)&&op.samples.length===2&&
   op.samples.every(s=>typeof s.id==='string'&&Number.isFinite(s.x)&&Number.isFinite(s.y)&&typeof s.done==='boolean')&&
   Number.isInteger(op.progress)&&op.progress>=0&&op.progress<=2&&Number.isFinite(op.resonance)&&
-  op.resonance>=0&&op.resonance<=100;
+  op.resonance>=0&&op.resonance<=100&&
+  (op.secondRaidSent===undefined||typeof op.secondRaidSent==='boolean');
  if(op.id==='reverse-hunt')return Number.isInteger(op.scans)&&op.scans>=0&&op.scans<=2&&
-  Number.isFinite(op.scanAt)&&Number.isFinite(op.scanUntil);
+  Number.isFinite(op.scanAt)&&Number.isFinite(op.scanUntil)&&
+  (op.coverSent===undefined||typeof op.coverSent==='boolean');
  if(op.id==='false-call')return Array.isArray(op.beacons)&&op.beacons.length===3&&
   op.beacons.every(b=>Number.isFinite(b.x)&&Number.isFinite(b.y)&&typeof b.checked==='boolean')&&
-  Number.isInteger(op.correct)&&op.correct>=0&&op.correct<=2;
+  Number.isInteger(op.correct)&&op.correct>=0&&op.correct<=2&&
+  (op.decoding===undefined||typeof op.decoding==='boolean')&&
+  (op.decodeProgress===undefined||Number.isFinite(op.decodeProgress)&&op.decodeProgress>=0&&
+   op.decodeProgress<=FIELD_TACTICS.beaconDecodeSeconds)&&
+  (!op.decoding||Number.isFinite(op.decodeProgress)&&op.beacons[op.correct].checked);
  if(op.id==='line-break'||op.id==='sleeping-reactor')return Array.isArray(op.nodes)&&
   op.nodes.length===2&&op.nodes.every(n=>Number.isFinite(n.x)&&Number.isFinite(n.y)&&
    Number.isFinite(n.goal)&&n.goal>0&&Number.isFinite(n.progress)&&n.progress>=0&&n.progress<=n.goal&&
-   (op.id!=='line-break'||Number.isFinite(n.hp)&&n.hp>=0&&n.hp<=100));
+   (op.id!=='line-break'||Number.isFinite(n.hp)&&n.hp>=0&&n.hp<=100))&&
+  (op.id!=='sleeping-reactor'||op.innerFirst===undefined||typeof op.innerFirst==='boolean');
  if(op.id==='broken-convoy')return Number.isFinite(op.hp)&&op.hp>=0&&op.hp<=100&&
   Array.isArray(op.route)&&op.route.length===3&&Number.isInteger(op.routeIndex)&&
   op.routeIndex>=0&&op.routeIndex<=2&&op.route.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y))&&
@@ -84,6 +92,14 @@ export function validFieldOperation(op){
   op.enemySerials.length<=6;
 }
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const convoyRouteProgress=op=>{
+ const [start,middle,end]=op.route;
+ const first=distance(start,middle),second=distance(middle,end),total=first+second;
+ if(total<=0)return 1;
+ const traveled=op.routeIndex>=2?total:op.routeIndex>=1?
+  first+Math.min(second,distance(middle,op)):Math.min(first,distance(start,op));
+ return Math.min(1,Math.max(0,traveled/total));
+};
 const convoyHeading=op=>{
  if(Number.isFinite(op.artHeading))return op.artHeading;
  const index=Math.min(2,Math.max(1,op.routeIndex+1));
@@ -125,10 +141,10 @@ export function createFieldOperation(id,base,world,attempt=0,routeChoice='safe',
   if(rocks.length<2)return null;
   const samples=rocks.slice(0,2).map(r=>({id:r.id,x:r.x,y:r.y,done:false}));
   return {...common,x:samples[0].x,y:samples[0].y,samples,progress:0,
-   resonance:0,nextPulse:0,pulseUntil:0,alerted:false,nextGeologyCheck:0};
+   resonance:0,nextPulse:0,pulseUntil:0,alerted:false,secondRaidSent:false,nextGeologyCheck:0};
  }
  if(id==='reverse-hunt')return {...common,scans:0,scanAt:0,scanUntil:0,
-  enemySerial:null,cycle:0,enemyDestroyed:false};
+  enemySerial:null,cycle:0,enemyDestroyed:false,coverSent:false};
  if(id==='line-break'){
   const a=siteNear(base,world,590,bearing+.3),b=siteNear(base,world,790,bearing+2.65);
   return {...common,x:a.x,y:a.y,nodes:[{...a,progress:0,goal:5,done:false,hp:100},
@@ -137,13 +153,16 @@ export function createFieldOperation(id,base,world,attempt=0,routeChoice='safe',
  if(id==='false-call'){
   const beacons=[0,1,2].map(i=>({...siteNear(base,world,690,bearing+i*2.094),
    checked:false,progress:0,goal:1.6}));
+  const signature=Math.sin((attempt+1)*12.9898+base.x*.015+base.y*.023)*100000;
   return {...common,x:beacons[0].x,y:beacons[0].y,beacons,
-   correct:(attempt+Math.abs(Math.trunc(base.x+base.y)))%3,checks:0,progress:0};
+   correct:Math.abs(Math.trunc(signature))%3,checks:0,progress:0,
+   decoding:false,decodeProgress:0};
  }
  if(id==='sleeping-reactor'){
   const outer={x:site.x+275,y:site.y+75,progress:0,goal:3.3,done:false};
   const inner={x:site.x+84,y:site.y-42,progress:0,goal:5,done:false};
-  return {...common,core:{...site},nodes:[outer,inner],progress:0,pulseAt:0,pulseUntil:0};
+  return {...common,core:{...site},nodes:[outer,inner],progress:0,pulseAt:0,pulseUntil:0,
+   innerFirst:false};
  }
  if(id==='broken-convoy'){
   const end=siteNear(base,world,1790,bearing+1.7);
@@ -190,14 +209,18 @@ export function fieldOperationCue(op,game){
  if(op.phase==='approach')return '◈ '+op.name.toUpperCase()+' · ДО ЦЕЛИ '+Math.round(distance(game.player,op))+' М';
  const workCue=game.actionHeld?.kind==='field-work'?' · ОГОНЬ ПРИОСТАНОВЛЕН':'';
  if(op.id==='deep-resonance')return '◈ ОБРАЗЦЫ '+op.progress+'/2 · РЕЗОНАНС '+Math.round(op.resonance)+'%'+
-  (op.pulseUntil>game.time?' · РАЗРЯД!':op.resonance>65?' · ОТОЙДИТЕ ОТ ПОРОДЫ':'');
+  (op.pulseUntil>game.time?' · РАЗРЯД!':op.resonance>65?' · ПАТРУЛЬ СЛЫШИТ ДОБЫЧУ':'');
  if(op.id==='reverse-hunt')return '◈ СКАНИРОВАНИЕ '+op.scans+'/2'+
-  (op.scanUntil>game.time?' · ИМПУЛЬС!':' · ДЕРЖИТЕСЬ В 130–310 М');
+  (op.scanUntil>game.time?' · ИМПУЛЬС!':op.scans===1?' · ДИСТАНЦИЯ 170–270 М':
+   ' · ДИСТАНЦИЯ 130–310 М');
  if(op.id==='line-break')return '◈ ЛИНИЯ СВЯЗИ '+op.progress+'/2 · УЗЛЫ '+
   op.nodes.map(n=>Math.round(n.hp)+'%').join(' / ')+' · ЗАЩИТИТЕ РЕМОНТ'+workCue;
- if(op.id==='false-call')return '◈ МАЯКИ · ПРОВЕРЕНО '+op.checks+'/3 · ИЩИТЕ ДВОЙНОЙ ИМПУЛЬС'+workCue;
+ if(op.id==='false-call')return op.decoding?
+  '◈ ПЕРЕХВАТ СИГНАЛА · '+Math.round((op.decodeProgress||0)/FIELD_TACTICS.beaconDecodeSeconds*100)+
+  '% · ДЕРЖИТЕСЬ В '+FIELD_TACTICS.beaconDecodeRadius+' М ОТ МАЯКА':
+  '◈ МАЯКИ · ПРОВЕРЕНО '+op.checks+'/3 · ИЩИТЕ ДВОЙНОЙ ИМПУЛЬС'+workCue;
  if(op.id==='sleeping-reactor')return '◈ КАССЕТЫ '+op.progress+'/2'+
-  (op.pulseUntil>game.time?' · ВЫБРОС!':' · СЛЕДИТЕ ЗА ЯДРОМ')+workCue;
+  (op.pulseUntil>game.time?' · ВЫБРОС!':op.innerFirst?' · УСКОРЕННЫЙ ЦИКЛ':' · СЛЕДИТЕ ЗА ЯДРОМ')+workCue;
  if(op.id==='broken-convoy')return '◈ КОНВОЙ · КОРПУС '+Math.ceil(op.hp)+'% · '+
   (op.routeIndex===2?'ПУНКТ НАЗНАЧЕНИЯ':op.fieldRepair?.used?'РЕМОНТ ИЗРАСХОДОВАН':
    op.hp<=78?(game.player?.ore!==undefined&&game.player.ore<FIELD_TACTICS.convoyRepairCost?
@@ -228,6 +251,7 @@ export function fieldOperationMining(op,rock,kind){
 }
 export function fieldOperationInteraction(op,player){
  if(!isFieldOperation(op)||!['active','salvage'].includes(op.phase))return null;
+ if(op.id==='false-call'&&op.decoding)return null;
  if(op.id==='two-fronts'&&!op.shieldChargeUsed){
   const node=op.nodes.find(n=>n.hp>0&&!n.stabilized&&distance(n,player)<=125);
   if(node){node.goal??=FIELD_TACTICS.shieldHold;node.progress??=0;
@@ -286,10 +310,15 @@ function advanceFieldWork(game,op,dt){
  }else if(op.id==='false-call'){
   target.checked=true;op.checks++;
   const index=op.beacons.indexOf(target);
-  if(index===op.correct){op.phase='return';op.partial=op.checks>1;
+  if(index===op.correct){op.decoding=true;op.decodeProgress=0;op.partial=op.checks>1;
+   op.x=target.x;op.y=target.y;
    game.heritage.play('fieldBeaconOk',.2,{x:target.x,y:target.y});
    game.heritage.vfx.nova(target.x,target.y,44,'violet');
-   game.notice('Поддельный маяк раскрыт. '+(op.partial?'Тревога уже поднята. ':'')+'Вернитесь в лабораторию.',5);
+   const hunter=spawnFieldEnemy(game,op,(op.threatTier||0)>=2?'flanker':
+    (op.threatTier||0)>=1?'fighter':'scout',target);
+   if(hunter)game.heritage.play('fieldRaid',.2,{x:hunter.x,y:hunter.y});
+   game.notice('Поддельный маяк найден. Оставайтесь в 240 м от него для перехвата ответа. '+
+    'Вражеский корабль пытается сорвать связь.',5);
   }else{
    game.heritage.play('fieldBeaconAlarm',.2,{x:target.x,y:target.y});
    game.heritage.vfx.nova(target.x,target.y,53,'red');
@@ -311,16 +340,26 @@ function advanceFieldWork(game,op,dt){
    op.id==='line-break'?'cyan':'gold');
   if(op.id==='line-break'&&op.progress===1){
    op.guardsSent=true;
-   spawnFieldEnemy(game,op,'fighter',op.nodes[1]);
-   spawnFieldEnemy(game,op,'flanker',op.nodes[1],op.nodes[1],1);
-   game.notice('Первый узел восстановлен. Противник атакует оборудование второго: перехватите его. Можно отступить с частичной наградой.',5);
+   const unserviced=op.nodes.find(n=>!n.done&&n.hp>0);
+   if(unserviced){
+    spawnFieldEnemy(game,op,'fighter',unserviced);
+    spawnFieldEnemy(game,op,'flanker',unserviced,unserviced,1);
+   }
+   game.notice('Один узел восстановлен. Противник атакует оставшийся: перехватите его. Можно отступить с частичной наградой.',5);
   }
   if(op.progress>=2){op.phase='return';
    game.notice(op.id==='line-break'?'Обе линии восстановлены. Вернитесь в док.':
     'Обе кассеты извлечены. Уходите из опасной зоны к арсеналу.',5);
   }else{
    const next=op.nodes.find(n=>!n.done);op.x=next.x;op.y=next.y;
-   if(op.id==='sleeping-reactor')game.notice('Внешняя кассета извлечена. Внутренняя находится ближе к опасному реактору.',4.5);
+   if(op.id==='sleeping-reactor'){
+    if(target===op.nodes[1]){
+     op.innerFirst=true;
+     op.pulseAt=Math.min(op.pulseAt,game.time+.25);
+     game.notice('Вы начали с внутренней кассеты. Реактор ускоряет разряды! '+
+      'Внешняя находится за пределами опасного кольца.',4.5);
+    }else game.notice('Внешняя кассета извлечена. Внутренняя находится ближе к опасному реактору.',4.5);
+   }
   }
  }
  // A held action must be released before attempting another target.
@@ -362,7 +401,7 @@ export function advanceFieldOperation(game,dt){
    game.notice('Два узла под угрозой! Можно один раз зарядить щит любого узла удержанием действия. Во время зарядки орудия молчат.',5);
   }else if(op.id==='sleeping-reactor'){
    op.pulseAt=game.time+7;
-   game.notice('Реактор просыпается. Сначала извлеките внешнюю кассету. Ядро предупреждает о разряде.',5);
+   game.notice('Реактор просыпается. Внешняя кассета безопаснее; внутренняя первой ускорит выбросы. Следите за ядром.',5);
   }else if(op.id==='broken-convoy'){
    op.started=true;op.nextRaidAt=game.time+(op.routeChoice==='fast'?5:12);
    game.notice('Транспорт начал рейс. Держитесь ближе 500 м. Если корпус упадёт ниже 78%, можно разово остановить и починить его за 6 сплава.',5);
@@ -375,15 +414,16 @@ export function advanceFieldOperation(game,dt){
  advanceFieldWork(game,op,dt);
  if(op.phase==='return')return;
  if(op.id==='line-break'){
-  if(op.nodes[1].hp<=0&&!op.nodes[1].done){
+  const unserviced=op.nodes.find(n=>!n.done);
+  if(unserviced?.hp<=0){
    op.partial=op.progress>0;op.phase=op.partial?'return':'failed';
-   game.notice(op.partial?'Второй узел уничтожен! Возвращайтесь с результатом первого ремонта.':
-    'Оба узла потеряны, ремонт сорван.',5);
+   game.notice(op.partial?'Неотремонтированный узел уничтожен! Возвращайтесь с результатом первого ремонта.':
+    'Оборудование потеряно, ремонт сорван.',5);
    return;
   }
   for(const enemy of game.enemies){
    if(enemy.fieldOperation!==op.id||!enemy.missionStrike||enemy.hp<=0||enemy.converted)continue;
-   game.updateMissionStrike(enemy,op.nodes[1]);
+   if(unserviced)game.updateMissionStrike(enemy,unserviced);
   }
  }else if(op.id==='deep-resonance'){
   if(game.time>=(op.nextGeologyCheck||0)){
@@ -414,6 +454,16 @@ export function advanceFieldOperation(game,dt){
    if(enemy){op.alerted=true;
     game.heritage.play('fieldRaid',.2,{x:enemy.x,y:enemy.y});
     game.notice('Резонанс заметили перехватчики! Продолжайте добычу или отступайте.',4);}
+  }
+  // Quietly waiting lowers resonance and can prevent the second interception;
+  // rushing the second sample creates a different, finite combat problem.
+  if(op.progress===1&&miningSample&&op.resonance>=76&&!op.secondRaidSent){
+   const hunter=spawnFieldEnemy(game,op,(op.threatTier||0)>=2?'flanker':
+    (op.threatTier||0)>=1?'fighter':'scout',miningSample);
+   if(hunter){op.secondRaidSent=true;
+    game.heritage.play('fieldRaid',.2,{x:hunter.x,y:hunter.y});
+    game.notice('ВТОРОЙ ПЕРЕХВАТ! Резонанс выдал положение новой залежи. '+
+     'Прервите добычу или успейте забрать образец.',4.5);}
   }
   if(op.resonance>=90&&game.time>=op.nextPulse){
    op.nextPulse=game.time+5;op.pulseUntil=game.time+1.5;
@@ -455,11 +505,35 @@ export function advanceFieldOperation(game,dt){
    game.heritage.play('fieldPulse',.3,{x:enemy.x,y:enemy.y});
    const d=distance(enemy,game.player);
    game.heritage.vfx.nova(enemy.x,enemy.y,315,'violet');
-   if(d<=125)game.hurt(13,enemy);
-   else if(d<=310){op.scans=Math.min(2,op.scans+1);
+   const inner=op.scans===1?170:130,outer=op.scans===1?270:310;
+   if(d<inner)game.hurt(13,enemy);
+   else if(d<=outer){op.scans=Math.min(2,op.scans+1);
     game.heritage.play('fieldScanCaptured',.3,{x:enemy.x,y:enemy.y});
-    game.notice('Спектр получен: '+op.scans+'/2.'+(op.scans===2?' Данных достаточно, можно возвращаться.':''),4);}
+    game.notice('Спектр получен: '+op.scans+'/2.'+(op.scans===2?
+     ' Данных достаточно, можно возвращаться.':' Второй импульс: держитесь ближе, в 170–270 м.'),4);
+    if(op.scans===1&&(op.threatTier||0)>=2&&!op.coverSent){
+     const cover=spawnFieldEnemy(game,op,'fighter',enemy);
+     if(cover){op.coverSent=true;
+      game.heritage.play('fieldRaid',.2,{x:cover.x,y:cover.y});
+      game.notice('Зрачок вызвал прикрытие. Второй спектр придётся получить под огнём.',4.5);}
+    }
+   }
    if(op.scans===2){op.phase='return';op.partial=false;}
+  }
+ }else if(op.id==='false-call'){
+  if(op.decoding){
+   const beacon=op.beacons[op.correct];
+   if(distance(game.player,beacon)<=FIELD_TACTICS.beaconDecodeRadius)
+    op.decodeProgress=Math.min(FIELD_TACTICS.beaconDecodeSeconds,(op.decodeProgress||0)+dt);
+   const hostile=game.enemies.some(e=>e.fieldOperation===op.id&&e.hp>0&&!e.converted);
+   if(op.decodeProgress>=FIELD_TACTICS.beaconDecodeSeconds||
+     op.decodeProgress>=1.8&&!hostile){
+    op.decoding=false;op.phase='return';
+    game.heritage.play('fieldScanCaptured',.3,{x:beacon.x,y:beacon.y});
+    game.heritage.vfx.nova(beacon.x,beacon.y,75,'violet');
+    game.notice('Ответный позывной перехвачен. Вернитесь в лабораторию.'+
+     (op.partial?' Тревога после ошибки уменьшит награду.':''),5);
+   }
   }
  }else if(op.id==='two-fronts'){
   if(op.nodes.every(n=>n.hp<=0)){op.partial=false;op.phase='failed';return;}
@@ -496,7 +570,8 @@ export function advanceFieldOperation(game,dt){
  }else if(op.id==='sleeping-reactor'){
   const core=op.core||op;
   if(game.time>=op.pulseAt&&op.pulseUntil<=game.time){
-   op.pulseUntil=game.time+1.6;op.pulseAt=game.time+8.4-.5*(op.threatTier||0);
+   op.pulseUntil=game.time+1.6;
+   op.pulseAt=game.time+(op.innerFirst?6.4:8.4)-.5*(op.threatTier||0);
    game.heritage.play('fieldReactorCharge',.2,{x:core.x,y:core.y});
    game.notice('РЕАКТОР ЗАРЯЖАЕТСЯ! Выйдите за 270 м до выброса.',2.8);
   }
@@ -534,7 +609,13 @@ export function advanceFieldOperation(game,dt){
      game.notice((op.partial?'Повреждённый':'Целый')+' транспорт доставлен. Возвращайтесь за наградой.',5);return;}}
   }
   op.fieldRepair.x=op.x;op.fieldRepair.y=op.y;
-  if(game.time>=op.nextRaidAt&&op.escortSerials.length<6){
+  // A parked transport cannot exhaust all future ambushes. Only the
+  // opening patrol is time-triggered; later interceptors guard route sections.
+  const raidMarks=op.routeChoice==='fast'?[0,.34,.68]:[0,.58];
+  if((op.threatTier||0)>=1)raidMarks.push(.86);
+  if((op.threatTier||0)>=3&&op.routeChoice==='fast')raidMarks.push(.96);
+  if(game.time>=op.nextRaidAt&&op.escortSerials.length<raidMarks.length&&
+    convoyRouteProgress(op)>=raidMarks[op.escortSerials.length]){
    const raid=spawnFieldEnemy(game,op,op.routeChoice==='fast'?'flanker':'fighter',op,op,op.escortSerials.length);
    if(raid){op.escortSerials.push(raid.serial);
     op.nextRaidAt=game.time+(op.routeChoice==='fast'?7:18)*(1-.12*(op.threatTier||0));
@@ -599,15 +680,22 @@ export function drawFieldOperation(game,c,cam){
   paintMissionImpact(game,c,'emp',op.lastPulseX??source.x,op.lastPulseY??source.y,
    op.lastPulseAt,194,.7);
  }else if(op.id==='reverse-hunt'){
-  ring(op,op.scanUntil>game.time?310:140,'#c794ff',
+  const second=op.scans===1,limit=second?270:310;
+  ring(op,op.scanUntil>game.time?limit:140,'#c794ff',
    op.scanUntil>game.time?'СКАНИРОВАНИЕ':'ЗРАЧОК · '+op.scans+'/2',op.scanUntil>game.time);
-  activity(op,op.scanUntil>game.time?298:125,'#cb9cff');
+  if(second&&op.scanUntil>game.time)ring(op,170,'#f9a7d2','СЛИШКОМ БЛИЗКО');
+  activity(op,op.scanUntil>game.time?limit-12:125,'#cb9cff');
   paintMissionImpact(game,c,'emp',op.lastScanX??op.x,op.lastScanY??op.y,
    op.lastScanAt,132,.58);
  }else if(op.id==='false-call'){
   for(const [i,beacon] of op.beacons.entries()){
-   if(beacon.checked)continue;
+   if(beacon.checked&&!(op.decoding&&i===op.correct))continue;
    prop(beacon,'beacon',59,88);
+   if(op.decoding){
+    ring(beacon,FIELD_TACTICS.beaconDecodeRadius,'#bc99f8',
+     'ПЕРЕХВАТ · '+Math.round(op.decodeProgress/FIELD_TACTICS.beaconDecodeSeconds*100)+'%');
+    activity(beacon,64,'#d8b6ff',i);continue;
+   }
    const phase=game.time%3.6;
    const double=i===op.correct&&phase>.37&&phase<.63;
    const regular=phase<.22;

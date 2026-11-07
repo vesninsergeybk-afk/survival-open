@@ -21,8 +21,8 @@ test('published module URLs expose the audited missions instead of cached statio
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(page,/src="\.\/game\.js\?v=[^"]*field-experience-1/);
  assert.match(page,/src="\.\/game\.js\?v=[^"]*mission-art-5/);
- assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1-menu-prof-1'/);
- assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5-mission-av-1-mission-pack-1'/);
+ assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1-menu-prof-1-mission-depth-1'/);
+ assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1'/);
 });
 
 test('illustrated objective props are drawn from one compact transparent sprite atlas',()=>{
@@ -298,6 +298,28 @@ test('resonance changes danger only after risky mining; pulse is telegraphed and
  assert.equal(game.hits||0,0,'leaving the hazard circle avoids damage');
 });
 
+test('second noisy extraction calls a bounded interceptor, while quiet mining can avoid it',()=>{
+ const op=createFieldOperation('deep-resonance',lab,world),game=fakeGame(op);
+ op.phase='active';op.nextGeologyCheck=Infinity;op.progress=1;op.resonance=77;op.alerted=true;
+ op.samples[0].done=true;
+ game.mining={active:true,target:{id:op.samples[1].id}};
+ advanceFieldOperation(game,.1);
+ assert.equal(op.secondRaidSent,true);
+ assert.equal(game.enemies.length,1);
+ advanceFieldOperation(game,.1);
+ assert.equal(game.enemies.length,1,'a noisy second deposit must not create infinite escorts');
+ const saved=unpackRun(packRun({operation:op})).operation;
+ assert.equal(saved.secondRaidSent,true);
+ assert.ok(validFieldOperation(saved));
+ const quiet=createFieldOperation('deep-resonance',lab,world,1),quietGame=fakeGame(quiet);
+ quiet.phase='active';quiet.nextGeologyCheck=Infinity;quiet.progress=1;quiet.alerted=true;
+ quiet.samples[0].done=true;quiet.resonance=30;
+ quietGame.mining={active:true,target:{id:quiet.samples[1].id}};
+ advanceFieldOperation(quietGame,.1);
+ assert.equal(quiet.secondRaidSent,false);
+ assert.equal(quietGame.enemies.length,0);
+});
+
 test('long-range extraction still raises resonance, and breaking a sample requires another deposit',()=>{
  const op=createFieldOperation('deep-resonance',lab,world),game=fakeGame(op);
  advanceFieldOperation(game,.1);
@@ -329,6 +351,26 @@ test('reverse hunt rewards surviving scan cycles and gives a partial outcome for
  early.enemies[0].hp=0;early.time=1;advanceFieldOperation(early,.1);
  assert.equal(other.phase,'return');assert.equal(other.partial,true);
  assert.match(fieldOperationCue(other,early),/ВЕРНИТЕСЬ/);
+});
+
+test('second IRIS observation needs a closer band and high tiers get one escort',()=>{
+ const op=createFieldOperation('reverse-hunt',lab,world,0,'safe',13),game=fakeGame(op);
+ advanceFieldOperation(game,.1);
+ const iris=game.enemies.find(e=>e.serial===op.enemySerial);
+ game.time=op.scanAt;advanceFieldOperation(game,.1);
+ game.player.x=iris.x+200;game.player.y=iris.y;
+ game.time=op.scanUntil;advanceFieldOperation(game,.1);
+ assert.equal(op.scans,1);assert.equal(op.coverSent,true);
+ assert.equal(game.enemies.length,2);
+ game.time=op.scanAt;advanceFieldOperation(game,.1);
+ game.player.x=iris.x+295;
+ game.time=op.scanUntil;advanceFieldOperation(game,.1);
+ assert.equal(op.scans,1,'the old outer edge is too far away on the second pass');
+ game.time=op.scanAt;advanceFieldOperation(game,.1);
+ game.player.x=iris.x+215;
+ game.time=op.scanUntil;advanceFieldOperation(game,.1);
+ assert.equal(op.scans,2);assert.equal(op.phase,'return');
+ assert.equal(game.enemies.length,2,'high-tier cover spawns once');
 });
 
 test('discharged scan flash remains at the firing position after the scout moves',()=>{
@@ -553,6 +595,23 @@ test('the second communication node can actually be destroyed, forcing a partial
  assert.equal(fieldOperationInteraction(op,game.player),null);
 });
 
+test('repairing node two first does not redirect guards to an already finished node',()=>{
+ const op=createFieldOperation('line-break',dock,world),game=fakeGame(op);
+ advanceFieldOperation(game,.1);
+ const second=op.nodes[1];game.player.x=second.x;game.player.y=second.y;
+ game.actionHeld={kind:'field-work',target:second};game.time=6.2;
+ advanceFieldOperation(game,6.2);
+ assert.equal(second.done,true);assert.equal(op.progress,1);
+ const first=op.nodes[0];
+ assert.ok(game.enemies.some(e=>e.missionStrike&&e.target===first),
+  'guards must attack whichever repair remains unfinished');
+ game.updateMissionStrike=(_enemy,target)=>{target.hp=0;};
+ game.time+=.1;advanceFieldOperation(game,.1);
+ game.time+=.1;advanceFieldOperation(game,.1);
+ assert.equal(op.phase,'return');assert.equal(op.partial,true,
+  'losing the exposed node cannot award full mission payout');
+});
+
 test('false beacon gives an observable clue and punishes a rushed wrong choice',()=>{
  const op=createFieldOperation('false-call',lab,world),game=fakeGame(op);
  advanceFieldOperation(game,.1);
@@ -563,8 +622,32 @@ test('false beacon gives an observable clue and punishes a rushed wrong choice',
  assert.ok(game.enemies.some(e=>e.fieldOperation===op.id));
  const correct=op.beacons[op.correct];game.player.x=correct.x;game.player.y=correct.y;
  game.actionHeld={kind:'field-work',target:correct};game.time=4;advanceFieldOperation(game,2);
+ assert.equal(op.phase,'active');assert.equal(op.decoding,true);
+ assert.match(fieldOperationCue(op,game),/ПЕРЕХВАТ СИГНАЛА/);
+ assert.equal(fieldOperationInteraction(op,game.player),null,
+  'the beacon cannot be examined a second time while decoding');
+ game.player.x=correct.x+400;game.time=5;const before=op.decodeProgress;
+ advanceFieldOperation(game,1);
+ assert.equal(op.decodeProgress,before,'signal capture must pause outside the actual area');
+ game.player.x=correct.x;game.time=6;advanceFieldOperation(game,3);
  assert.equal(op.phase,'return');assert.equal(op.partial,true);
  assert.ok(validFieldOperation(op));
+});
+
+test('correct beacon produces a short defendable signal capture and persists through checkpoint',()=>{
+ const op=createFieldOperation('false-call',lab,world,2),game=fakeGame(op);
+ advanceFieldOperation(game,.1);
+ const right=op.beacons[op.correct];game.player.x=right.x;game.player.y=right.y;
+ game.actionHeld={kind:'field-work',target:right};game.time=2;
+ advanceFieldOperation(game,1.6);
+ assert.equal(op.phase,'active');assert.equal(op.decoding,true);
+ assert.ok(game.enemies.some(e=>e.fieldOperation==='false-call'));
+ const saved=unpackRun(packRun({operation:op,enemies:game.enemies})).operation;
+ assert.equal(saved.decoding,true);assert.ok(validFieldOperation(saved));
+ game.enemies.forEach(e=>e.hp=0);
+ game.time=4;advanceFieldOperation(game,.3);
+ assert.equal(op.phase,'return','defeating the interceptor should end the intercept promptly');
+ assert.equal(op.partial,false);
 });
 
 test('reactor outer cassette is safe, inner cassette requires avoiding warned pulses',()=>{
@@ -581,6 +664,21 @@ test('reactor outer cassette is safe, inner cassette requires avoiding warned pu
  const inner=op.nodes[1];game.player.x=inner.x;game.player.y=inner.y;
  game.actionHeld={kind:'field-work',target:inner};game.time+=5;advanceFieldOperation(game,5);
  assert.equal(op.phase,'return');assert.equal(op.progress,2);
+});
+
+test('taking the inner cassette first starts a telegraphed faster hazard cycle',()=>{
+ const op=createFieldOperation('sleeping-reactor',arsenal,world),game=fakeGame(op);
+ advanceFieldOperation(game,.1);
+ const inner=op.nodes[1];game.player.x=inner.x;game.player.y=inner.y;
+ game.actionHeld={kind:'field-work',target:inner};game.time=5;
+ advanceFieldOperation(game,5);
+ assert.equal(op.innerFirst,true);
+ assert.ok(op.pulseAt<=game.time+.25);
+ assert.match(fieldOperationCue(op,game),/УСКОРЕННЫЙ ЦИКЛ/);
+ game.time=op.pulseAt;advanceFieldOperation(game,.1);
+ assert.ok(op.pulseUntil>game.time,'the shortcut must still warn before damage');
+ assert.ok(op.pulseAt-game.time<8.4,'the unsafe route has a faster pulse cycle');
+ assert.ok(validFieldOperation(unpackRun(packRun({operation:op})).operation));
 });
 
 test('convoy route choice changes path and risk; destroyed cargo can still be recovered',()=>{
@@ -645,6 +743,23 @@ test('a convoy raider follows the moving transport instead of aiming at an obsol
  }
  assert.ok(Math.hypot(raider.missionFlight.x-start.x,raider.missionFlight.y-start.y)>150);
  assert.ok(Math.hypot(raider.missionFlight.x-op.x,raider.missionFlight.y-op.y)<300);
+});
+
+test('stationary cargo cannot exhaust later ambushes before reaching their route sections',()=>{
+ const op=createFieldOperation('broken-convoy',carrier,world,0,'fast'),game=fakeGame(op);
+ advanceFieldOperation(game,.1);
+ game.player.x=op.x+800;game.player.y=op.y;
+ const start={x:op.x,y:op.y};
+ game.time=op.nextRaidAt;advanceFieldOperation(game,.1);
+ assert.equal(op.escortSerials.length,1,'the opening patrol is still time-triggered');
+ game.updateMissionStrike=()=>{};
+ for(let i=0;i<10;i++){game.time+=10;advanceFieldOperation(game,10);}
+ assert.equal(op.escortSerials.length,1,'waiting and defeating raiders cannot prepay every ambush');
+ assert.deepEqual({x:op.x,y:op.y},start,'cargo waits when the pilot is away');
+ for(let i=0;i<25&&op.phase==='active';i++){
+  game.player.x=op.x;game.player.y=op.y;game.time+=1;advanceFieldOperation(game,1);
+ }
+ assert.ok(op.escortSerials.length>=2,'later attackers appear when the convoy advances');
 });
 
 test('real steering and charged strikes can damage an undefended moving convoy',()=>{
