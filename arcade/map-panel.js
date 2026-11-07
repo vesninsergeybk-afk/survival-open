@@ -8,8 +8,9 @@ import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-w
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
 import {CORRIDOR_OPERATION,corridorPosition,corridorAmbush,corridorScanBonus,probeSearchArea,operationDestination,
  isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=station-operations-2-ops-audit-2';
+import {isFieldOperation,fieldOperationCue} from './field-operations.js?v=field-operations-1';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
-import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2';
+import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1';
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=station-operations-2-ops-audit-2';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
@@ -208,9 +209,29 @@ export function renderWorldMap(game){
    operation.id===RELAY_DEFENSE.id?'Ретранслятор':
     operation.id===CARRIER_INTERCEPTION.id?(operation.phase==='return'?'Авианосец · сдача сведений':
      operation.phase==='approach'?'Район встречи':'Движущийся груз'):
+    isFieldOperation(operation)?(operation.phase==='return'?'Сдать вылазку':operation.name):
     operation.phase==='return'?'Док · передать данные':'Глушитель'):
    previewProbe?'Область поиска зонда':previewRelay?'Ретранслятор':
    previewCarrier?'Район встречи':previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
+ const fieldSites=isFieldOperation(operation)?(
+  operation.id==='deep-resonance'?operation.samples.filter(s=>!s.done):
+  operation.id==='two-fronts'?operation.nodes:
+  ['line-break','sleeping-reactor'].includes(operation.id)?operation.nodes.filter(s=>!s.done):
+  operation.id==='false-call'?operation.beacons.filter(s=>!s.checked):
+  operation.id==='broken-convoy'?(operation.crate?[operation.crate]:operation.route.slice(operation.routeIndex+1)):[]):[];
+ const fieldMarks=fieldSites.map((site,i)=>{
+  const mark=point(site.x,site.y,center,scale);
+  if(!visible(mark))return '';
+  const intact=site.hp===undefined||site.hp>0;
+  return '<circle cx="'+mark.x.toFixed(1)+'" cy="'+mark.y.toFixed(1)+
+   '" r="11" fill="'+(intact?'#e9bdff33':'#e56f8033')+'" stroke="'+
+   (intact?'#ddafff':'#ff918e')+'" stroke-width="2"/>'+
+   '<text x="'+(mark.x+14).toFixed(1)+'" y="'+(mark.y+14).toFixed(1)+
+   '" fill="#edd7fa" font-size="10">'+
+   (['two-fronts','line-break'].includes(operation.id)?'Узел ':
+    operation.id==='false-call'?'Маяк ':operation.id==='sleeping-reactor'?'Кассета ':
+    operation.id==='broken-convoy'?'Маршрут ':'Руда ')+(i+1)+'</text>';
+ }).join('');
  const ambush=operation?.radio==='sent'&&!operation.pursuitStarted&&world.stations.get(operation.baseId);
  const ambushMark=ambush?(()=>{
   const spot=corridorAmbush(ambush,operation),q=point(spot.x,spot.y,center,scale);
@@ -253,6 +274,7 @@ export function renderWorldMap(game){
    'Особая операция «Перехват снабжения»: транспорт '+Math.ceil(operation.hp/operation.maxHp*100)+
     '% прочности, до линии выхода '+Math.ceil(carrierDistanceRemaining(operation))+
     ' м. '+carrierTacticalCue(operation,p)+'. Нос бронирован, двигатели уязвимы с кормы. Разряд поражает только в пределах 230 м; затем броня открыта 3 с.'):
+  isFieldOperation(operation)?'Особая операция «'+operation.name+'». '+fieldOperationCue(operation,game)+'. '+operation.desc:
   operation.phase==='return'?'Особая операция «Глухой коридор»: глушитель отключён. Телеметрия сохранена. Вернитесь в док.'+
    (ambush?' На карте отмечена засада. Проложите маршрут в обход круга или прорывайтесь.':''):
    'Особая операция «Глухой коридор»: уничтожьте отмеченный передатчик. Осталось '+Math.ceil(operation.hp/operation.maxHp*100)+'% прочности. Фаза: '+
@@ -339,6 +361,7 @@ export function renderWorldMap(game){
    operation.id===PROBE_OPERATION.id?(searching?'Летите в район поиска.':'Удерживайте E для ремонта; отпустите, чтобы стрелять.'):
    operation.id===RELAY_DEFENSE.id?'Подлетите к передатчику и отразите три волны.':
    operation.id===CARRIER_INTERCEPTION.id?'Перехватите груз до выхода из сектора.':
+   isFieldOperation(operation)?fieldOperationCue(operation,game):
    'Отключите глушитель и вернитесь с телеметрией.')+'</span></div>'+
   '<button type="button" data-act="operationWaypoint">'+(operation.phase==='return'?'Проложить путь обратно':'Проложить курс к цели')+'</button></div>':'';
  return interactionCopy('<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
@@ -354,7 +377,7 @@ export function renderWorldMap(game){
   '<section class="map-shell"><div class="map-canvas"><div class="map-plot"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   chartBackdrop(world.seed,center,scale)+atlasStars(world.seed,center,scale,false)+
   '<circle cx="'+pilot.x.toFixed(1)+'" cy="'+pilot.y.toFixed(1)+'" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
-  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+defenseRing+securedRoutes+carrierPath+ambushMark+route+echoes+intelMarks+marks+operationMark+enemyOrders+parasiteEchoes+
+  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+defenseRing+securedRoutes+carrierPath+ambushMark+route+echoes+intelMarks+marks+operationMark+fieldMarks+enemyOrders+parasiteEchoes+
   pendingTrialMapArtwork(world,center,scale,(entry,c,s)=>point(entry.x,entry.y,c,s))+
   pilotGlyph(pilot.x,pilot.y)+chartFrame(center,scale,{local:true})+
   '<text x="'+(pilot.x+11).toFixed(1)+'" y="'+(pilot.y+26).toFixed(1)+'" fill="#dcffff" font-size="12">ВЫ</text></svg>'+

@@ -2,12 +2,13 @@ import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-stat
 import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-territory-war-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
 import {corridorOffer,CORRIDOR_OPERATION,corridorScanBonus,probeOffer,probeDataReady,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2-station-ops-2-ops-audit-2';
-import {abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2';
+import {FIELD_OPERATIONS,fieldOperationIds,fieldOperationOffer,fieldOperationCue,isFieldOperation} from './field-operations.js?v=field-operations-1';
+import {abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1-station-ops-2-ops-audit-2';
 import {CARRIER_INTERCEPTION,carrierOffer,autonomousStrikeCarrier} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1';
@@ -412,6 +413,47 @@ const specialPanel=(base,state,compact=false)=>
  corridorOffer(base,state.operation)?corridorPanel(base,state,compact):
  probeOffer(base,state.operation)?probePanel(base,state,compact):
  relayOffer(base,state.operation,state.time)?relayPanel(base,state,compact):carrierPanel(base,state,compact);
+const fieldOperationsPanel=(base,state)=>{
+ const ids=fieldOperationIds(base.type);
+ if(!ids.length)return '';
+ return '<section class="base-task-group special field-operation-board" aria-label="Сложные вылазки">'+
+  '<h3>Сложные вылазки · повторяемые</h3><p class="base-op-summary">'+
+  'Разные задачи, несколько исходов. Пока выполняется одна особая операция, новую начать нельзя.</p>'+
+  ids.map(id=>{
+   const offer=fieldOperationOffer(base,state.operation,state.time||0,id),spec=FIELD_OPERATIONS[id];
+   if(!offer)return '';
+   const active=offer.status==='active',op=active?state.operation:null;
+   const returning=op?.phase==='return',readyPartial=
+    ['deep-resonance','line-break','sleeping-reactor'].includes(id)&&op?.progress>=1&&!returning;
+   const progress=op?(id==='deep-resonance'?op.progress+'/2 образца':
+    id==='reverse-hunt'?op.scans+'/2 наблюдения':
+    id==='false-call'?'Проверено '+op.checks+'/3 маяков':
+    id==='broken-convoy'?'Прочность транспорта: '+Math.ceil(op.hp)+'%':
+    id==='two-fronts'?'Узлы: '+op.nodes.map(n=>Math.round(n.hp/n.maxHp*100)+'%').join(' / '):
+    op.progress+'/2 узла'):' ';
+   const wait=offer.status==='cooldown'?'Новая вылазка через '+offer.remaining+' с.':
+    offer.status==='locked'?'Сначала включите станцию.':
+    state.operation&&!active?'Сначала завершите текущую особую операцию.':'';
+   const accept=offer.status==='available'&&!state.operation?'':(wait||'Пока недоступно');
+   const actions=active?
+    action('baseMap',returning?'Курс к станции':'Показать цель','','','','operation')+
+    (readyPartial?action('claimFieldOperation','Сдать достигнутый результат · частичная награда'):'')+
+    action('abandonOperation','Отменить · прогресс будет потерян'):
+    id==='broken-convoy'?action('acceptFieldOperation','Обходной маршрут · меньше врагов',accept,id+':safe')+
+     action('acceptFieldOperation','Короткий маршрут · больше врагов',accept,id+':fast'):
+     action('acceptFieldOperation','Принять вылазку',accept,id);
+   return '<article class="base-featured-op field-operation-card '+(active?'underway':'')+'">'+
+    '<div class="base-featured-head"><span class="base-kicker">'+
+    ({lab:'ЛАБОРАТОРИЯ',arsenal:'АРСЕНАЛ',dock:'ДОК',carrier:'АВИАНОСЕЦ'}[base.type]||'СТАНЦИЯ')+'</span><span>'+(
+     returning?'ВОЗВРАЩАЙТЕСЬ':active?'ВЫЛАЗКА ПРИНЯТА':offer.status==='cooldown'?'ОЖИДАНИЕ':'НОВАЯ ЗАДАЧА')+
+    '</span></div><strong>'+spec.name+'</strong>'+missionSummary(spec.desc)+
+    (active?'<small>'+progress+' · '+fieldOperationCue(op,{player:state.player||{x:base.x,y:base.y},time:state.time||0})+'</small>':'')+
+    (wait?'<small class="base-op-warning">'+wait+'</small>':'')+
+    '<div class="base-featured-foot"><span>Награда: +'+(offer.runs?Math.round(spec.ore*.75):spec.ore)+
+    ' сплава · +'+(offer.runs?Math.round(spec.data*.75):spec.data)+
+    ' опыта</span><div>'+actions+'</div></div></article>';
+  }).join('')+'</section>';
+};
 const baseBrief=(base,state,o)=>{
  const op=corridorOffer(base,state.operation);
  if(op){
@@ -564,6 +606,9 @@ export function activeOperationStep(op,world,time=0,controls=DEFAULT_CONTROLS){
  if(op.phase==='return')return {title:'«'+op.name+'» · возвращение',
   description:'Цель выполнена. Вернитесь '+homeName+' и пристыкуйтесь ('+interact+'), чтобы передать сведения и получить награду.',
   button:'Показать станцию сдачи'};
+ if(isFieldOperation(op))return {title:'«'+op.name+'» · вылазка',
+  description:op.desc,
+  button:'Показать цель'};
  if(op.id===PROBE_OPERATION.id&&op.located===false)return {title:'«Последний сигнал» · поиск зонда',
   description:'Подлетите в отмеченный район. Сканер уточнит положение зонда.',button:'Показать район поиска'};
  if(op.id===PROBE_OPERATION.id)return {title:'«Последний сигнал» · ремонт зонда',
@@ -899,6 +944,7 @@ export function renderBasePanel(base,state){
   (o.contract.status==='ready'?'<section class="base-task-group reward"><h3>Готовая награда</h3>'+contractPanel(o,state)+'</section>':'')+
   (specialOffer(base,state)?'<section class="base-task-group special" aria-label="Особая операция"><h3>Особая операция</h3>'+
    specialPanel(base,state)+'</section>':'')+
+  fieldOperationsPanel(base,state)+
   (o.contract.status==='ready'?'':'<section class="base-task-group regular" aria-label="Полевые заказы"><h3>Полевые заказы</h3>'+contractPanel(o,state)+'</section>')+
   '</div>'+
   (regionalGoal||campaign?'<details class="base-secondary-info base-region-plans" data-hangar-section="region-plans">'+
@@ -906,7 +952,9 @@ export function renderBasePanel(base,state){
  const localMission=specialOffer(base,state),hullPercent=Math.round(state.hp/state.maxHp*100);
  const missionForPreparation=state.operation||localMission;
  const missionContext=missionForPreparation&&missionForPreparation.status!=='complete'?
-  (missionForPreparation.id===PROBE_OPERATION.id?
+  (isFieldOperation(missionForPreparation)?
+   'Операция «'+missionForPreparation.name+'»: '+missionForPreparation.desc:
+   missionForPreparation.id===PROBE_OPERATION.id?
    'Операция «Последний сигнал»: при ремонте зонда корабль не стреляет. Дрон может прикрыть его, но не гарантирует безопасность.':
    missionForPreparation.id===RELAY_DEFENSE.id?
    'Операция «Оборона ретранслятора»: противники стремятся к передатчику. Перехватывайте заряженные залпы; атака состоит из трёх конечных волн.':

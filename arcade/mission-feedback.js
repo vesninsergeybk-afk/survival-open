@@ -2,6 +2,7 @@ import {MODULES,moduleStats} from './ship-loadout.js?v=weapons-cycle-2-campaign-
 import {RELAY_DEFENSE,relayDefenseCue,relayAttacker} from './relay-defense.js?v=station-operations-2-ops-audit-1';
 import {PROBE_OPERATION} from './operations.js?v=station-operations-2-ops-audit-1';
 import {CARRIER_INTERCEPTION,carrierDistanceRemaining,carrierTacticalCue,carrierPulseState} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
+import {isFieldOperation,fieldOperationCue} from './field-operations.js?v=field-operations-1';
 // Pure state-derived cues shared by the world renderer and tactical map.
 // Rendering never advances mission progress or changes rewards.
 export function contractReturnStation(contract, world) {
@@ -69,6 +70,7 @@ export function missionHudText(game) {
  if(!p||(!op&&!c))return '';
  if(op){
   const d=Math.round(Math.hypot(op.x-p.x,op.y-p.y));
+  if(isFieldOperation(op))return fieldOperationCue(op,game);
   if(op.id==='silent-corridor'){
    const phase=corridorCue(op,game.time,d,automaticRange(game));
    if(phase?.key==='danger')return 'ГЛУШИТЕЛЬ · '+phase.hint;
@@ -127,6 +129,7 @@ export function missionHudText(game) {
 }
 
 export function abandonOperationLabel(op){
+ if(isFieldOperation(op))return 'Отменить вылазку · прогресс будет потерян';
  if(op.id===RELAY_DEFENSE.id&&op.phase!=='approach')return 'Отступить · повтор через '+RELAY_DEFENSE.retryDelay+' с';
  if(op.id===PROBE_OPERATION.id&&op.strikerSerial)return 'Отложить · зонд останется под огнём';
  return 'Отложить операцию';

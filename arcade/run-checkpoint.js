@@ -14,6 +14,7 @@ import {createContours,validContours,autoConnectContours} from './territory-syst
 import {ensureTrialLedger} from './contour-trials.js?v=contour-trials-1-first-loops-1';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
+import {validFieldOperation} from './field-operations.js?v=field-operations-1';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
@@ -197,7 +198,9 @@ export function validateCheckpoint(data){
   for(const r of pair[1])if(!object(r)||typeof r.id!=='string'||!r.id.startsWith(pair[0]+'/')||
    !finite(r.x)||!finite(r.y)||!finite(r.hp,0,1e6)||typeof r.alive!=='boolean')return false;
  }
- if(s.operation&&(!ids.has(s.operation.baseId)||!['silent-corridor','last-signal','relay-defense','carrier-interception'].includes(s.operation.id)))return false;
+ if(s.operation&&(!ids.has(s.operation.baseId)||
+  !(['silent-corridor','last-signal','relay-defense','carrier-interception'].includes(s.operation.id)||
+    validFieldOperation(s.operation))))return false;
  if(s.contract&&!ids.has(s.contract.baseId))return false;
  if(s.fieldLoan){
   const loan=s.fieldLoan,spec=FIELD_WEAPONS[loan.moduleId||'ion'];
