@@ -72,3 +72,15 @@ export function relayDefenseCue(op,now=0){
  if(op.phase==='intermission')return 'СЛЕДУЮЩАЯ ВОЛНА ЧЕРЕЗ '+Math.max(0,Math.ceil(op.nextAt-now))+' С '+relayApproachCue(op);
  return 'ОБОРОНА ВЫПОЛНЯЕТСЯ';
 }
+export function relayAttacker(op,enemies,now){
+ if(op?.phase!=='wave')return null;
+ let target=null,firstShot=Infinity;
+ for(const e of enemies){
+  if(e.relayAssault!==op.baseId||e.hp<=0||e.converted)continue;
+  const charge=e.relayChargeUntil>now?e.relayChargeUntil:Infinity;
+  if(charge<firstShot||(!target&&e.missionStrike)){
+   target=e;firstShot=charge;
+  }
+ }
+ return target;
+}

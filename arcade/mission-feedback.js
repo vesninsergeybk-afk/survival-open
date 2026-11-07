@@ -1,6 +1,6 @@
 import {MODULES,moduleStats} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-menu-focus-1';
-import {RELAY_DEFENSE,relayDefenseCue} from './relay-defense.js?v=station-operations-2';
-import {PROBE_OPERATION} from './operations.js?v=station-operations-2';
+import {RELAY_DEFENSE,relayDefenseCue,relayAttacker} from './relay-defense.js?v=station-operations-2-ops-audit-1';
+import {PROBE_OPERATION} from './operations.js?v=station-operations-2-ops-audit-1';
 import {CARRIER_INTERCEPTION,carrierDistanceRemaining,carrierTacticalCue,carrierPulseState} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 // Pure state-derived cues shared by the world renderer and tactical map.
 // Rendering never advances mission progress or changes rewards.
@@ -72,7 +72,10 @@ export function missionHudText(game) {
   if(op.id==='silent-corridor'){
    const phase=corridorCue(op,game.time,d,automaticRange(game));
    if(phase?.key==='danger')return 'ГЛУШИТЕЛЬ · '+phase.hint;
-   if(op.radio==='calling')return '◈ ПЕРЕХВАТИТЕ РАЗВЕДЧИКА · '+Math.max(0,Math.ceil(op.radioAt-game.time))+' С';
+   if(op.radio==='calling'){
+    const remaining=Math.max(0,Math.ceil(op.radioAt-game.time))+' С';
+    return (op.phase==='return'?'✓ ВЕРНИТЕСЬ В ДОК · ТРЕВОГА ЧЕРЕЗ ':'◈ ПЕРЕХВАТИТЕ РАЗВЕДЧИКА · ')+remaining;
+   }
    if(op.phase==='return'){
     const base=game.world?.stations?.get?.(op.baseId);
     const homeDistance=base?Math.round(Math.hypot(base.x-p.x,base.y-p.y)):d;
@@ -91,9 +94,8 @@ export function missionHudText(game) {
     op.repair>=PROBE_OPERATION.telemetryAt?' · ДАННЫЕ ГОТОВЫ':' · '+d+' М');
   }
   if(op.id===RELAY_DEFENSE.id){
-   const alert=(game.enemies||[]).filter(e=>e.relayAssault===op.baseId&&e.hp>0&&!e.converted&&
-    e.relayChargeUntil>game.time).sort((a,b)=>a.relayChargeUntil-b.relayChargeUntil)[0];
-   const cue=alert?(alert.missionStrike?.target==='antenna'?'УДАР ПО АНТЕННЕ':'ЗАЛП')+
+   const alert=relayAttacker(op,game.enemies||[],game.time);
+   const cue=alert?.relayChargeUntil>game.time?(alert.missionStrike?.target==='antenna'?'УДАР ПО АНТЕННЕ':'ЗАЛП')+
     ' ЧЕРЕЗ '+(alert.relayChargeUntil-game.time).toFixed(1)+' С':relayDefenseCue(op,game.time);
    return '◈ РЕТРАНСЛЯТОР · '+Math.ceil(op.hp/op.maxHp*100)+'% · '+cue;
   }
@@ -122,4 +124,10 @@ export function missionHudText(game) {
    (radiusDistance<=0?'В ЗОНЕ ЗАЩИТЫ':'ДО ЗОНЫ '+Math.ceil(radiusDistance)+' М');
  }
  return c.name+' · '+c.progress+'/'+c.goal+' · ПОЛЕВОЙ ЗАКАЗ';
+}
+
+export function abandonOperationLabel(op){
+ if(op.id===RELAY_DEFENSE.id&&op.phase!=='approach')return 'Отступить · повтор через '+RELAY_DEFENSE.retryDelay+' с';
+ if(op.id===PROBE_OPERATION.id&&op.strikerSerial)return 'Отложить · зонд останется под огнём';
+ return 'Отложить операцию';
 }

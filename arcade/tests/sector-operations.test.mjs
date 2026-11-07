@@ -3,11 +3,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {CORRIDOR_OPERATION,corridorPosition,createCorridorOperation,
- corridorOffer,corridorPatrolModifier,chooseOperationLead,corridorAmbush} from '../operations.js';
+ corridorOffer,corridorPatrolModifier,chooseOperationLead,corridorAmbush,corridorScanBonus} from '../operations.js';
 import {baseOffer,renderBasePanel,eligibleContractProgress} from '../base-panel.js';
 import {CARRIER_INTERCEPTION} from '../carrier-interception.js';
 import {World} from '../world.js';
-import {baseNames} from '../balance.js';
+import {baseNames,RULES} from '../balance.js';
 import {renderWorldMap} from '../map-panel.js';
 import {finishSortie,appendSortieReport} from '../sortie-economy.js';
 
@@ -136,6 +136,28 @@ test('the radio scout creates one avoidable ambush only if it transmits',()=>{
  quiet.game.updateCorridor();assert.equal(quiet.op.radio,'blocked');
  quiet.game.completeCorridor();Object.assign(quiet.game.player,corridorAmbush(quiet.b,quiet.op));
  quiet.game.updateCorridor();assert.equal(quiet.op.pursuitStarted,false);
+ quiet.game.deliverCorridor();assert.equal(corridorScanBonus(quiet.b),500);
+});
+test('a radio call goes through on time while the operation is postponed',()=>{
+ const {game,b,op}=fake();b.corridorMission=op;
+ Object.assign(game.player,{x:op.x+450,y:op.y});game.updateCorridor();
+ const scout=game.enemies.find(e=>e.serial===op.radioSerial);
+ game.operation=null;game.time=op.radioAt+1;game.updateCorridor();
+ scout.hp=0;game.stopCorridorRadio(op);
+ assert.equal(op.radio,'sent');assert.equal(scout.missionFlight,undefined);
+ assert.equal(game.operation,null);
+});
+test('a blocked ambush can retry without marking the encounter spent or spawning on the pilot',()=>{
+ const {game,b,op}=fake();op.radio='sent';game.completeCorridor();
+ Object.assign(game.player,corridorAmbush(b,op));
+ game.enemies=Array.from({length:RULES.maxEnemies},()=>({hp:1}));
+ game.updateCorridor();assert.equal(op.pursuitStarted,false);
+ game.enemies=[];game.time+=1;
+ game.world.nearbyRocks=(x,y)=>[{x,y,r:45,alive:true}];
+ game.updateCorridor();assert.equal(op.pursuitStarted,false);
+ game.world.nearbyRocks=()=>[];game.time+=1;game.updateCorridor();
+ assert.equal(op.pursuitStarted,true);assert.equal(game.enemies.length,2);
+ assert.ok(game.enemies.every(e=>Math.hypot(e.x-game.player.x,e.y-game.player.y)>=130));
 });
 test('delivery at the issuing dock pays once, clears the marker and secures the route',()=>{
  const {game,b,value}=fake();
@@ -146,12 +168,14 @@ test('delivery at the issuing dock pays once, clears the marker and secures the 
  assert.ok(dockStart>0&&dockEnd>dockStart);
  const Dock=RuntimeHarness;
  game.player.x=b.x;game.player.y=b.y;
+ game.waypoint={id:b.id,x:b.x,y:b.y,label:'Сдать операцию: Ремонтный док'};
  game.overlay={hidden:true,dataset:{}};game.endInteraction=()=>{};
  game.heritage.pause=()=>{};game.heritage.ui=()=>{};game.renderDock=()=>{};
  Dock.prototype.dock.call(game,b);
  assert.equal(b.corridorSecured,true);
  assert.equal(game.operation,null);
  assert.equal(game.waypoint,null);
+ assert.equal(corridorScanBonus(b),350,'skipping the scout still yields the standard exploration benefit');
  assert.equal(game.player.ore,CORRIDOR_OPERATION.rewardOre);
  assert.equal(value.ore,CORRIDOR_OPERATION.rewardOre);
  assert.equal(value.data,CORRIDOR_OPERATION.rewardData);
@@ -212,8 +236,12 @@ test('the navigation map displays the actual target and the secured-route outcom
  assert.match(returnMap,/Построить маршрут к награде/);
  world.home.corridorSecured=true;game.operation=null;
  const after=renderWorldMap(game);
- assert.match(after,/Разведка возле дока расширена/);
+ assert.match(after,/Разведка возле дока расширена на 350 м/);
  assert.match(after,/Коридор открыт/);
+ world.home.corridorQuiet=true;
+ const quiet=renderWorldMap(game);
+ assert.match(quiet,/Разведка возле дока расширена на 500 м/);
+ assert.match(quiet,/до 2700 м/);
 });
 
 test('the next lead favours a different station task without demanding a long detour',()=>{

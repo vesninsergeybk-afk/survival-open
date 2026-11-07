@@ -37,9 +37,10 @@ const makeGame=()=>{
  Object.assign(game,{operation:op,world:{stations:new Map([[base.id,base]]),
    discovered:new Set(),nearbyStations:()=>[],nearbyRocks:()=>[]},
   player:{x:op.x,y:op.y,ore:0},dead:false,time:90,waypoint:{id:op.id},
-  enemies:[],enemySerial:0,groupSerial:0,
-  cockpit:{resourceGain:()=>{}},heritage:{vfx:{nova:()=>{},shipExplosion:()=>{}},station:()=>{}},
+  enemies:[],enemySerial:0,groupSerial:0,overlay:{dataset:{}},flash(){},
+  cockpit:{resourceGain:()=>{}},heritage:{vfx:{nova:()=>{},shipExplosion:()=>{}},station:()=>{},ui(){},play(){}},
   notice:m=>messages.push(m),collect:item=>drops.push(item)});
+ base.probeMission=op;
  return {game,base,op,messages,drops};
 };
 test('only a local scan reveals the probe, and live jammers cap repair at both stages',()=>{
@@ -86,12 +87,26 @@ test('only the issuing lab can redeem partial data, including after the probe is
  assert.equal(game.player.ore,PROBE_OPERATION.partialOre);
  assert.deepEqual(drops,[{type:'data',value:PROBE_OPERATION.partialData}]);
 });
+test('postponing an active repair leaves the probe exposed and does not replace the next course',()=>{
+ const {game,base,op}=makeGame();
+ game.updateProbe();game.repairProbe(20);
+ const striker=game.enemies.find(e=>e.serial===op.strikerSerial);
+ Object.assign(striker,{x:op.x+350,y:op.y,relayChargeUntil:game.time+1});
+ game.abandonOperation();assert.equal(game.operation,null);
+ const other={id:'relay-defense',baseId:'4:0'},route={id:'relay-defense',x:0,y:0};
+ game.operation=other;game.waypoint=route;
+ game.time+=2;game.updateProbe();assert.equal(op.hp,76);
+ op.hp=1;striker.relayChargeUntil=game.time+3;
+ game.time+=4;game.updateProbe();
+ assert.equal(base.probeMission,op);assert.equal(op.phase,'return');
+ assert.equal(game.operation,other);assert.equal(game.waypoint,route);
+});
 test('no passive shooting while repairing, and no corridor damage applied to probe',()=>{
  assert.match(gameSource,/this\.probeRepairing=activeInteraction\(this\.actionHeld,'repair',atProbe\)/);
  assert.match(gameSource,/this\.mining\.active=activeInteraction\(this\.actionHeld,'mine',candidate\?\.alive\)/);
  assert.match(gameSource,/if\(this\.probeRepairing\)this\.repairProbe\(dt\)/);
  assert.match(gameSource,/updateAutomaticWeapons\(this,dt,!this.heavyCharge&&automaticFireAllowed\(this.holdFire,\s*this.mining.active,this.probeRepairing\|\|this.openingRepairing\)\)/);
- assert.match(gameSource,/op\.id!==CORRIDOR_OPERATION\.id\|\|this\.dead/);
+ const {game,op}=makeGame();game.updateCorridor(5);assert.equal(op.hp,PROBE_OPERATION.maxHp);
  const targets=readFileSync(new URL('../combat-targets.js',import.meta.url),'utf8');
  assert.match(targets,/if\(t===game.operation&&!t.interceptCargo\)return false/);
 });
@@ -113,4 +128,17 @@ test('lab terminal and map show the actual mission with a repair instruction',()
  op.located=true;const map=renderWorldMap(game);
  assert.match(map,/АВАРИЙНАЯ ТЕЛЕМЕТРИЯ/);
  assert.match(map,/Аварийный зонд/);
+});
+test('the issuing lab shows the salvage payout on arrival, before opening the task list',()=>{
+ const op=createProbeOperation(lab,world);Object.assign(op,{repair:50,located:true,phase:'return',hp:0});
+ const baseState={operation:op,world,ore:80,hp:110,maxHp:110,network:{},baseTab:'summary'};
+ const html=renderBasePanel(lab,baseState);
+ assert.match(html,/Телеметрия готова к сдаче/);
+ assert.match(html,/data-act="claimProbeData">Сдать данные и завершить/);
+ const jobs=renderBasePanel(lab,{...baseState,baseTab:'operations'});
+ assert.match(jobs,/Награда: \+9 сплава · \+16 опыта/);
+ assert.doesNotMatch(jobs,/Награда: \+20 сплава/);
+ const paused={...lab,probeMission:op};
+ const resumed=renderBasePanel(paused,{...baseState,operation:null});
+ assert.match(resumed,/data-act="claimProbeData">Сдать данные и завершить/);
 });

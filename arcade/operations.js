@@ -3,7 +3,7 @@
 export const CORRIDOR_OPERATION=Object.freeze({
  id:'silent-corridor',kind:'jammer',name:'Глухой коридор',
  kicker:'ОСОБАЯ ОПЕРАЦИЯ',rewardOre:30,rewardData:22,
- maxHp:150,focusRange:435,escortTrigger:650,radioDelay:9,ambushRadius:295,
+ maxHp:150,escortTrigger:650,radioDelay:9,ambushRadius:295,scanBonus:350,radioScanBonus:150,
  pulseRange:315,pulsePeriod:4.2,pulseDamage:13,
  desc:'Отключите глушитель и вернитесь в док. При сближении разведчик пойдёт передавать тревогу. Перехватите его или обойдите отмеченную засаду на обратном пути.',
  consequence:'После уничтожения передатчика разведка дока расширится на 350 м, а вражеские патрули в домашнем секторе станут реже.'
@@ -18,6 +18,9 @@ export function createCorridorOperation(base){
 }
 export function corridorAmbush(base,operation){
  return {x:base.x+(operation.x-base.x)*.51,y:base.y+(operation.y-base.y)*.51};
+}
+export function corridorScanBonus(base){
+ return base?.corridorSecured?CORRIDOR_OPERATION.scanBonus+(base.corridorQuiet?CORRIDOR_OPERATION.radioScanBonus:0):0;
 }
 export function corridorOffer(base,operation){
  if(!isCorridorDock(base))return null;
@@ -76,6 +79,14 @@ export function operationDestination(operation,world){
  if(operation?.phase==='return')return world?.stations?.get(operation.baseId)||operation;
  return operation?.id===PROBE_OPERATION.id&&operation.located===false?operation.search:operation;
 }
+export function isOperationWaypoint(waypoint,operation){
+ return !!waypoint&&(waypoint.id===operation.id||
+  (waypoint.id===operation.baseId&&waypoint.label?.startsWith('Сдать операцию: ')));
+}
+export function probeDataReady(base,operation){
+ return isProbeLab(base)&&base.active&&!base.probeRecovered&&!base.probeTelemetryDelivered&&
+  operation?.id===PROBE_OPERATION.id&&operation.baseId===base.id&&operation.repair>=PROBE_OPERATION.telemetryAt;
+}
 export function probeOffer(base,operation,now=0){
  if(!isProbeLab(base))return null;
  if(base.probeRecovered||base.probeTelemetryDelivered)return {status:'complete',...PROBE_OPERATION,
@@ -87,7 +98,7 @@ export function probeOffer(base,operation,now=0){
    phase:operation.phase,strikerSerial:operation.strikerSerial};
  const remembered=base.probeMission;
  return {status:base.active?'available':'locked',...PROBE_OPERATION,
-  resumable:!!remembered,repair:remembered?.repair||0};
+  resumable:!!remembered,repair:remembered?.repair||0,phase:remembered?.phase,located:remembered?.located};
 }
 
 

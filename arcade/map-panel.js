@@ -6,11 +6,11 @@ import {pendingContourTrials} from './contour-trials.js?v=first-loops-1';
 import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=first-loops-1';
 import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
-import {CORRIDOR_OPERATION,corridorPosition,corridorAmbush,probeSearchArea,operationDestination,
- isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=station-operations-2';
+import {CORRIDOR_OPERATION,corridorPosition,corridorAmbush,corridorScanBonus,probeSearchArea,operationDestination,
+ isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=station-operations-2-ops-audit-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
-import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2';
-import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=station-operations-2';
+import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2';
+import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=station-operations-2-ops-audit-2';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
 import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-4';
@@ -41,7 +41,7 @@ export function renderStationRoutePreview(base,state={}){
  const active=state.operation?.baseId===base.id?state.operation:null;
  const resolvedCorridor=isCorridorDock(base)&&!!base.corridorSecured;
  const corridor=isCorridorDock(base)&&!base.corridorSecured;
- const probe=isProbeLab(base)&&!base.probeRecovered&&!base.probeTelemetryDelivered;
+ const probe=isProbeLab(base)&&!base.probeRecovered&&!base.probeTelemetryDelivered&&base.probeMission?.phase!=='return';
  const carrier=isCarrierBase(base)&&!base.supplyIntercepted;
  const target=operationDestination(active,world)||
   (corridor||resolvedCorridor?corridorPosition(base):probe?probeSearchArea(base,world):carrier?carrierRoute(base)[0]:null);
@@ -104,8 +104,8 @@ export function renderWorldMap(game){
   b.probeRecovered&&distance(b,p)<1900);
  const relayScan=known.some(b=>b.active&&b.relaySite?.antenna?.hp>0&&distance(b,p)<1900);
  const home=world.home;
- const homeCorridorSecure=!!home.corridorSecured&&distance(home,p)<1550;
- const scanRadius=2200+(survey?650:0)+(homeCorridorSecure?350:0)+(probeScan?300:0)+
+ const homeScan=distance(home,p)<1550?corridorScanBonus(home):0;
+ const scanRadius=2200+(survey?650:0)+homeScan+(probeScan?300:0)+
   (relayScan?RELAY_DEFENSE.bonusScan:0);
  const signals=world.signals(p.x,p.y,scanRadius,enemyVisible)
   .filter(b=>!known.some(k=>k.id===b.id));
@@ -183,7 +183,8 @@ export function renderWorldMap(game){
  }).join('');
  const operation=game.operation;
  const previewBase=game.mapReturnToBase?game.docked:null;
- const previewProbe=!operation&&previewBase&&isProbeLab(previewBase)&&!previewBase.probeRecovered&&!previewBase.probeTelemetryDelivered;
+ const previewProbe=!operation&&previewBase&&isProbeLab(previewBase)&&!previewBase.probeRecovered&&
+  !previewBase.probeTelemetryDelivered&&previewBase.probeMission?.phase!=='return';
  const previewCorridor=!operation&&previewBase&&isCorridorDock(previewBase)&&!previewBase.corridorSecured;
  const previewRelay=!operation&&previewBase&&isRelayArsenal(previewBase)&&!previewBase.relayDefenseDone;
  const previewCarrier=!operation&&previewBase&&isCarrierBase(previewBase)&&!previewBase.supplyIntercepted;
@@ -260,7 +261,7 @@ export function renderWorldMap(game){
    previewRelay?'Предварительный маршрут: ретранслятор арсенала. Отразите три конечные волны.':
    previewCarrier?'Предварительная разведка: район встречи конвоя. Груз появится после сближения; затем уйдёт к обозначенной границе.':
    'Предварительная разведка: источник помех находится к востоку от дока. Операция ещё не принята.'):
-  home.corridorSecured?'Восточный коридор открыт. Разведка возле дока расширена на 350 м, патрулей стало меньше.':'';
+  home.corridorSecured?'Восточный коридор открыт. Разведка возле дока расширена на '+corridorScanBonus(home)+' м, патрулей стало меньше.':'';
  const objectiveText=objective?
   (objective.progress>=objective.goal?'Награда готова. Вернитесь на '+
     (readyStation?baseNames[readyStation.type]:'станцию')+'.':
@@ -368,7 +369,7 @@ export function renderWorldMap(game){
   renderStationThreats(game)+
   (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
      operation?.id===RELAY_DEFENSE.id?'ОБОРОНА РЕТРАНСЛЯТОРА':operation?.id===CARRIER_INTERCEPTION.id?'ПЕРЕХВАТ КОНВОЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+
-   (operation?'<button type="button" data-act="abandonOperation">Отложить операцию</button>':'')+'</div>':'')+
+   (operation?'<button type="button" data-act="abandonOperation">'+enc(abandonOperationLabel(operation))+'</button>':'')+'</div>':'')+
   '<div class="map-objective"><span>ПОЛЕВОЙ ЗАКАЗ</span><p>'+enc(objectiveText)+'</p>'+readyRoute+
   (objective&&objective.progress<objective.goal?'<details class="map-cancel-contract"><summary>Отказаться от заказа</summary><p>Выполненная часть заказа будет потеряна.</p><button type="button" data-act="abandonContract">Подтвердить отказ</button></details>':'')+'</div>'+
   '<h3>Обнаруженные станции</h3><div class="map-contact-list">'+(discovered||

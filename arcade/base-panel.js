@@ -1,13 +1,14 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1';
-import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1';
+import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-territory-war-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
-import {corridorOffer,CORRIDOR_OPERATION,probeOffer,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2-station-ops-2';
-import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1-station-ops-2';
+import {corridorOffer,CORRIDOR_OPERATION,corridorScanBonus,probeOffer,probeDataReady,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2-station-ops-2-ops-audit-2';
+import {abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2';
+import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1-station-ops-2-ops-audit-2';
 import {CARRIER_INTERCEPTION,carrierOffer,autonomousStrikeCarrier} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1';
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
@@ -272,7 +273,7 @@ const corridorPanel=(base,state,compact=false)=>{
  if(!op)return '';
  const done=op.status==='complete',active=op.status==='active',returning=op.phase==='return';
  const hp=active||op.resumable?Math.ceil(op.hp/CORRIDOR_OPERATION.maxHp*100):100;
- const body=done?'Передатчик уничтожен, телеметрия доставлена. Разведка дока работает дальше.':
+ const body=done?'Передатчик уничтожен, телеметрия доставлена. Обзор карты у дока +'+corridorScanBonus(base)+' м.':
   returning?'Передайте телеметрию при стыковке с доком (E). Если разведчик передал тревогу, на карте будет отмечена засада.':
   'Уничтожьте глушитель. ЭМ-разряд опасен в пределах 315 м. При сближении разведчик уйдёт передавать тревогу. Сбейте его до конца отсчёта, чтобы избежать засады на обратном пути.';
  const actions=done?'<span class="base-op-done">✓ Изменения действуют в секторе</span>':
@@ -284,7 +285,8 @@ const corridorPanel=(base,state,compact=false)=>{
  const facts='<div class="base-op-details">'+
   '<div><span>ЗАДАЧА</span><b>Подавить помехи и доставить телеметрию</b></div>'+
   '<div><span>ОПАСНОСТЬ</span><b>ЭМ-разряд и разведчик, который вызывает засаду</b></div>'+
-  '<div><span>ИЗМЕНЕНИЕ МИРА</span><b>Разведка +350 м · патрули реже</b></div></div>';
+  '<div><span>ИЗМЕНЕНИЕ МИРА</span><b>'+(done?'Обзор карты +'+corridorScanBonus(base)+' м, патрули реже':
+   'Обзор карты +'+CORRIDOR_OPERATION.scanBonus+' м, за перехват разведчика ещё +'+CORRIDOR_OPERATION.radioScanBonus+' м')+'</b></div></div>';
  return '<article class="base-featured-op mission-corridor '+(done?'resolved':active?'underway':'')+'">'+
   '<div class="base-featured-head"><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ · ДОК</span><span>'+
   (done?'КОРИДОР ОТКРЫТ':returning?'ОСТАЛОСЬ ВЕРНУТЬСЯ':active?'ОПЕРАЦИЯ ПРИНЯТА':'РАЗВЕДКА ПОД ПОМЕХАМИ')+'</span></div>'+
@@ -302,16 +304,18 @@ const probePanel=(base,state,compact=false)=>{
  const op=probeOffer(base,state.operation,state.time);
  if(!op)return '';
  const done=op.status==='complete',active=op.status==='active';
- const canDeliver=active&&op.repair>=PROBE_OPERATION.telemetryAt;
+ const canDeliver=probeDataReady(base,state.operation||base.probeMission);
+ const partial=op.partial||op.phase==='return';
  const pct=Math.round((op.repair||0)/PROBE_OPERATION.maxRepair*100);
  const body=done?(op.partial?'Лаборатория получила сохранённые данные.':'Зонд работает, обзор карты у лаборатории расширен.'):
+  op.phase==='return'?'Сдайте сохранённые данные. Лаборатория выплатит награду за телеметрию.':
   'Сканер уточнит место зонда при сближении. Удерживайте E для ремонта и отпускайте, чтобы отбить налёт. Прогресс сохранится. С 50% можно увезти данные и завершить операцию без полного ремонта.';
  const actions=done?'<span class="base-op-done">✓ '+(op.partial?'Данные переданы':'Разведка восстановлена')+'</span>':
-  active?action('baseMap',op.phase==='return'?'Показать лабораторию':op.located===false?'Показать район поиска':'Показать цель','','','','operation')+
-   (canDeliver?action('claimProbeData','Сдать данные и завершить'):'')+
-   (compact?'':action('abandonOperation','Отложить · сохранить ремонт')):
-  action('baseMap','Посмотреть район поиска')+
-   action('acceptOperation','Принять операцию',op.status==='available'&&!state.operation?'':'Сначала завершите другую операцию или включите лабораторию');
+  (canDeliver?action('claimProbeData','Сдать данные и завершить'):'')+
+  (active?action('baseMap',op.phase==='return'?'Показать лабораторию':op.located===false?'Показать район поиска':'Показать цель','','','','operation')+
+   (compact?'':action('abandonOperation',op.strikerSerial?abandonOperationLabel(op):'Отложить · сохранить ремонт')):
+   canDeliver&&op.phase==='return'?'':action('baseMap','Посмотреть район поиска')+
+   action('acceptOperation',op.resumable?'Возобновить операцию':'Принять операцию',op.status==='available'&&!state.operation?'':'Сначала завершите другую операцию или включите лабораторию'));
  const warning=op.status==='cooldown'?'Новый сигнал через '+op.remaining+' с.':
   !done&&!active&&op.status!=='available'?'Сначала включите лабораторию.':
   !done&&!active&&state.operation?'Сначала завершите или отложите текущую особую операцию.':'';
@@ -331,7 +335,7 @@ const probePanel=(base,state,compact=false)=>{
   (canDeliver?'<small>Сдача данных завершит операцию. Награда: +'+PROBE_OPERATION.partialOre+' сплава и +'+PROBE_OPERATION.partialData+' опыта.</small>':'')+
   (warning?'<small class="base-op-warning">'+warning+'</small>':'')+
   '<div class="base-featured-foot"><span>'+(done?'Получено: +':'Награда: +')+
-  (op.partial?PROBE_OPERATION.partialOre:PROBE_OPERATION.rewardOre)+' сплава · +'+(op.partial?PROBE_OPERATION.partialData:PROBE_OPERATION.rewardData)+
+  (partial?PROBE_OPERATION.partialOre:PROBE_OPERATION.rewardOre)+' сплава · +'+(partial?PROBE_OPERATION.partialData:PROBE_OPERATION.rewardData)+
   ' опыта</span><div>'+actions+'</div></div>'+missionDetails(body,facts,compact)+'</article>';
 };
 const relayPanel=(base,state,compact=false)=>{
@@ -344,7 +348,7 @@ const relayPanel=(base,state,compact=false)=>{
   state.operation&&!active?'Завершите или отложите текущую особую операцию.':'';
  const actions=done?'<span class="base-op-done">✓ РЕТРАНСЛЯТОР ЗАЩИЩЁН</span>':
   active?action('baseMap','Показать цель','','','','operation')+
-   (compact?'':action('abandonOperation',op.phase==='approach'?'Отложить оборону':'Отступить · повтор через 45 с')):
+   (compact?'':action('abandonOperation',op.phase==='approach'?'Отложить оборону':abandonOperationLabel(op))):
   action('baseMap','Посмотреть расположение')+
    action('acceptOperation','Начать оборону',op.status==='available'&&!state.operation?'':'Сначала завершите текущую операцию или дождитесь доступа');
  const facts='<div class="base-op-details">'+
@@ -587,6 +591,7 @@ function stationNextStep(base,state,o,regionalGoal=false){
  const origin=c&&!local?state.world?.stations?.get(c.baseId):null;
  const destination=origin?(baseNames[origin.type]||'исходную станцию'):'станцию, где Вы приняли заказ';
  const op=state.operation;
+ const probe=op||base.probeMission;
  const operationStep=activeOperationStep(op,state.world,state.time,state.controls);
  let kind='standard',title='Выберите следующее задание';
  let description='Начните с небольшого заказа или особой операции. Награда и условия видны до принятия.';
@@ -596,6 +601,11 @@ function stationNextStep(base,state,o,regionalGoal=false){
   description=c.name+': +'+c.ore+' сплава, +'+c.data+
    ' опыта. Награда ещё не зачислена.';
   buttons=action('claimContract','Забрать награду');
+ }else if(probeDataReady(base,probe)){
+  kind='reward';title='Телеметрия готова к сдаче';
+  description='За данные лаборатория выплатит '+PROBE_OPERATION.partialOre+' сплава и '+PROBE_OPERATION.partialData+' опыта.'+
+   (probe.phase==='return'?'':' Можно вернуться к зонду и закончить ремонт ради расширенного обзора карты.');
+  buttons=action('claimProbeData','Сдать данные и завершить');
  }else if(c&&!local&&c.progress>=c.goal){
   kind='return';title='Награда ждёт на другой станции';
   description='Заказ «'+c.name+'» выполнен. Вернитесь на '+destination+
@@ -607,8 +617,9 @@ function stationNextStep(base,state,o,regionalGoal=false){
   buttons=action('baseTab','Выбрать оружие','','operations');
  }else if(operationStep){
   kind='active';title=operationStep.title;
+  const partial=op.id===PROBE_OPERATION.id&&op.phase==='return';
   description=operationStep.description+(Number.isFinite(op.rewardOre)?
-   ' Награда: '+op.rewardOre+' сплава, '+op.rewardData+' опыта.':'');
+   ' Награда: '+(partial?PROBE_OPERATION.partialOre:op.rewardOre)+' сплава, '+(partial?PROBE_OPERATION.partialData:op.rewardData)+' опыта.':'');
   buttons=action('baseMap',operationStep.button,'','','','operation')+action('baseTab','Условия и награда','','operations');
  }else if(c){
   kind='active';title='Заказ в работе: '+c.progress+' из '+c.goal;
@@ -824,7 +835,8 @@ export function renderBasePanel(base,state){
  const ongoingOp=activeOperationStep(state.operation,state.world,state.time,state.controls);
  const ongoingOpPanel=ongoingOp?'<section class="base-next-step active" aria-label="Текущая особая операция">'+
   '<div><span class="base-kicker">ОСОБАЯ ОПЕРАЦИЯ В РАБОТЕ</span><h3>'+ongoingOp.title+'</h3><p>'+ongoingOp.description+'</p></div>'+
-  '<div class="base-next-actions">'+action('baseMap',ongoingOp.button,'','','','operation')+action('abandonOperation','Отложить операцию')+'</div></section>':'';
+  '<div class="base-next-actions">'+action('baseMap',ongoingOp.button,'','','','operation')+
+  action('abandonOperation',abandonOperationLabel(state.operation))+'</div></section>':'';
  const xp=Math.max(0,Math.floor(state.xp||0)),nextXp=Math.max(1,state.nextXp||1);
  const homeDevelopment='<section class="base-home-development" aria-label="Свободные очки">'+
   '<div class="base-home-heading"><h3>Свободные очки · '+(state.points||0)+'</h3></div>'+
@@ -980,7 +992,7 @@ export function renderBasePanel(base,state){
  const opening=active?
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
   tabButton('summary','Обзор',selected)+tabButton('operations','Задания',selected,o.contract.status==='ready'?'Награда':state.firstHardwareReward==='pending'?'Оружие':'')+
-  tabButton('hangar','Корабль',selected)+tabButton('development','Пилот',selected)+tabButton('network','Станция',selected,threats?'Угроза':'')+'</nav>'+
+  tabButton('hangar','Корабль',selected)+tabButton('development','Развитие',selected)+tabButton('network','Станция',selected,threats?'Угроза':'')+'</nav>'+
   tabPanel('summary',selected,dashboard+(report?'<details class="base-secondary-info base-report-details">'+
     '<summary>Итоги последнего вылета</summary>'+report+'</details>':''))+
   tabPanel('operations',selected,operations)+

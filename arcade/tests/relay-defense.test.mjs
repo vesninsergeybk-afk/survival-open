@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {World} from '../world.js';
 import {ENEMY_TYPES} from '../ai.js';
 import {baseNames} from '../balance.js';
-import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayOffer,relayDefenseCue} from '../relay-defense.js';
+import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayOffer,relayDefenseCue,relayAttacker} from '../relay-defense.js';
 import {chooseOperationLead} from '../operations.js';
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
@@ -108,6 +108,15 @@ test('a lost antenna costs the bonus, and retreat cannot restart a live wave imm
  fight.game.operation=fight.op;fight.game.updateRelayDefense(.1);
  fight.game.abandonOperation();assert.equal(relayOffer(fight.base,null,fight.game.time).remaining,45);
  assert.notEqual(createRelayDefense(fight.base,fight.game.world).bearing,fight.op.bearing);
+});
+test('the nearest volley drives the warning, even if it targets the antenna',()=>{
+ const {game,op}=scenario();game.spawnRelayWave(op,1);
+ const [main,antenna]=game.enemies;
+ main.relayChargeUntil=game.time+3;antenna.relayChargeUntil=game.time+2;
+ assert.equal(relayAttacker(op,game.enemies,game.time),antenna);
+ assert.match(missionHudText(game),/УДАР ПО АНТЕННЕ ЧЕРЕЗ 2.0 С/);
+ main.hp=0;antenna.relayChargeUntil=0;
+ assert.equal(relayAttacker(op,game.enemies,game.time),antenna);
 });
 
 test('station UI, map and cockpit describe the actual relay-defense mission',()=>{

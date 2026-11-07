@@ -6,7 +6,7 @@ import {pathToFileURL} from 'node:url';
 // player acceleration; a deterministic controller supplies continuous input.
 // This cannot measure enjoyment, visual readability, device FPS or human timing.
 import {game} from '../tests/weapons-scene.mjs';
-import {SpatialGrid} from '../balance.js';
+import {SpatialGrid,openingThreat} from '../balance.js';
 import {World} from '../world.js';
 import {createFieldLoan,missionAssignment} from '../field-weapons.js';
 import {createCorridorOperation,createProbeOperation,operationDestination} from '../operations.js';
@@ -17,7 +17,7 @@ const jobs={jammer:['dock',createCorridorOperation],probe:['lab',createProbeOper
 const kits=[{id:'plasma-ion',slots:['plasma','ion'],range:100,field:'ion'},
  {id:'rail-plasma',slots:['rail','plasma'],range:570},
  {id:'flak-resonator',slots:['flak','resonator'],range:180,field:'resonator'}];
-export function runOperationScenario(job,kitId,dt=1/60,{worldSeed,stationary=false,interceptRadio=false}={}){
+export function runOperationScenario(job,kitId,dt=1/60,{worldSeed,stationary=false,interceptRadio=false,realStation=false,ambient=false}={}){
  const starter=kitId==='starter';
  const kit=starter?{id:kitId,slots:['plasma'],range:135}:kits.find(k=>k.id===kitId);
  if(!kit||!jobs[job])throw new Error('unknown scenario');
@@ -28,18 +28,23 @@ export function runOperationScenario(job,kitId,dt=1/60,{worldSeed,stationary=fal
  }
  g.enemyLearning=new EnemyLearning(null);g.enemyComms=new EnemyComms();g.time=0;
  g.player.level=starter?1:4;g.skillRanks.rocket=0;g.skillRanks.beam=starter?0:1;
- const [type,create]=jobs[job],b=g.world.home;b.type=type;
+ const [type,create]=jobs[job];
+ const b=realStation&&type!=='dock'?
+  g.world.nearbyStations(0,0,10000,false).find(base=>base.type===type&&!base.captured&&!base.enemy):g.world.home;
+ if(!b)throw new Error('no suitable station');
+ b.type=type;b.active=true;b.discovered=true;g.world.discovered.add(b.id);g.docked=b;
  g.operation=create(b,g.world);const op=g.operation;b[{jammer:'corridorMission',probe:'probeMission',relay:'relayMission',cargo:'carrierMission'}[job]]=op;
  Object.assign(g.player,{x:b.x+60,y:b.y,invul:0,burstRemaining:0,burstCooldown:0,burstX:0,burstY:-1});
  if(stationary){g.player.x=op.x;g.player.y=op.y;}
  if(kit.field)g.fieldLoan=createFieldLoan(kit.field,b.id,0,missionAssignment(op,null));g.syncShipLoadout();
  Object.assign(g,{vw:1280,vh:720,canvas:{},shotGrid:new SpatialGrid(95),visuals:{updateSky:noop,capitalDamageQA:false},
   lastDamageAt:-Infinity,lastX:g.player.x,lastY:g.player.y,stationary:0,
-  zoneClock:1e6,spawnClock:1e6,worldQueryClock:0,worldQueryX:0,worldQueryY:0,nearRocks:[],localStations:[],
+  zoneClock:ambient?14:1e6,spawnClock:ambient?1:1e6,worldQueryClock:0,worldQueryX:0,worldQueryY:0,nearRocks:[],localStations:[],
   miningNoise:0,miningNoiseWarned:false,miningIntroShown:false,noiseAlert:null,worldVisualLast:0,
   heavyPortalShown:true,allySerial:0,amberBeltSeen:false,ionFieldSeen:false,lastIonAudioCycle:-1});
  g.cockpit.impact=noop;g.heritage.tick=noop;g.heritage.extraction=noop;g.heritage.world=noop;g.heritage.onDeath=noop;
  const notices=[];g.notice=text=>notices.push(text);g.runStore={end:noop,recoveryCheckpoint:()=>null};
+ if(ambient)g.spawnGroup(g.sectorDirector(openingThreat(g.time,g.player.level)));
  let uses=0,minimumHull=110,combatAt=null,delivered=false,checkpointSaved=false;
  for(let frame=0;frame<240/dt&&!g.dead;frame++){
   const active=g.operation,returning=!active||active.phase==='return';

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {availableDevelopmentChoices,renderDevelopmentPanel} from '../development-panel.js';
 import {renderShipHangar} from '../hangar-panel.js';
 import {renderPilotContent} from '../pilot-menu.js';
-import {createLoadout,HangarSession} from '../ship-loadout.js';
+import {createLoadout,HangarSession,moduleStats} from '../ship-loadout.js';
 import {createTactical} from '../tactical-fields.js';
 import {game} from './weapons-scene.mjs';
 
@@ -26,21 +26,19 @@ test('development entry identifies points and offers direct playstyle routes',()
  const s=state({hangarUpgrades:upgrades.map(s=>['hull','magnet'].includes(s.id)?{...s,canBuy:true}:s),
   pilotSkills:[{id:'magnet',title:'Магнитный захват',from:2,max:3,branch:'Добыча',desc:'Притяжение трофеев'}],
   nextSkillEffect:()=>'+55 м'});
- const html=renderDevelopmentPanel({...s,developmentCategory:'weapons'});
+ const html=renderDevelopmentPanel({...s,developmentDomain:'weapons'});
  assert.match(html,/1 очко/);
- assert.match(html,/Сильнее атаковать/);
- assert.match(html,/Дольше выживать/);
- assert.match(html,/Быстрее добывать/);
- assert.match(html,/data-id="weapons" data-focus="plasma" data-upgrade="beam"/);
- assert.match(html,/data-id="ship" data-focus="hull" data-upgrade="hull"/);
- assert.match(html,/data-id="pilot" data-focus="magnet" data-upgrade="magnet"/);
- assert.match(html,/class="dev-choice-effect">\+55 м/);
- assert.equal((html.match(/data-act="skillBranch"/g)||[]).length,3);
- assert.match(html,/До уровня 9 осталось/);
- assert.doesNotMatch(html,/data-act="developmentTab" data-id="station"/);
- const noPoints=renderDevelopmentPanel({...s,points:0,developmentCategory:'weapons'});
- assert.match(noPoints,/Свободных очков пока нет/);
- assert.doesNotMatch(noPoints,/Сильнее атаковать/);
+ for(const id of ['pilot','weapons','ship','tactics','network'])
+  assert.match(html,new RegExp('data-act="devDomain" data-id="'+id+'"'));
+ assert.match(html,/data-act="devFocus" data-id="skill-beam"/);
+ assert.match(html,/data-act="hgUpgrade" data-id="beam"/);
+ assert.match(html,/data-act="devWeapon" data-id="plasma"/);
+ assert.match(html,/Калибровка орудий/);
+ assert.ok(html.includes('дальность '+moduleStats('plasma',s.ranks).range+' м'));
+ const noPoints=renderDevelopmentPanel({...s,points:0,developmentDomain:'weapons'});
+ assert.match(noPoints,/Очки <b>0<\/b>/);
+ assert.match(noPoints,/data-act="devFocus" data-id="skill-beam"/);
+ assert.match(noPoints,/data-act="hgUpgrade" data-id="beam" disabled/);
 });
 
 test('quick recommendations only include actually buyable skills and never promise a blocked option',()=>{
@@ -63,25 +61,17 @@ test('quick recommendations only include actually buyable skills and never promi
  assert.equal(split[0].focus,'plasma');assert.equal(split[0].upgrade,'range');
 });
 
-test('a quick recommendation focuses the exact purchasable node, without spending points',()=>{
+test('a direct progression shortcut selects the named node without spending points',()=>{
  const g=game();g.player.points=2;
- const calls=[];
- const node={setAttribute:(...args)=>calls.push(['tabindex',...args]),
-  scrollIntoView:()=>calls.push(['scroll']),focus:()=>calls.push(['focus'])};
- let disabled=false;
- g.overlay.querySelector=selector=>{
-  if(selector.includes('data-act="hgUpgrade"')&&selector.includes('data-id="beam"'))
-   return {disabled,closest:()=>node};
-  return null;
- };
+ const before=JSON.stringify(g.shipLoadout),ranks=JSON.stringify(g.skillRanks);
  g.openDevelopment('weapons','plasma','beam');
- assert.equal(g.baseTab,'hangar');
- assert.equal(g.hangarView,'weapon-upgrades');
- assert.deepEqual(calls.map(v=>v[0]),['tabindex','scroll','focus']);
+ assert.equal(g.baseTab,'development');
+ assert.equal(g.developmentDomain,'weapons');
+ assert.equal(g.developmentFocus,'skill-beam');
+ assert.equal(g.hangarSession.focusWeapon,'plasma');
  assert.equal(g.player.points,2);
- calls.length=0;disabled=true;
- g.openDevelopment('weapons','plasma','beam');
- assert.deepEqual(calls,[],'a skill that became unavailable must never be focused as a recommendation');
+ assert.equal(JSON.stringify(g.shipLoadout),before);
+ assert.equal(JSON.stringify(g.skillRanks),ranks);
 });
 
 test('weapon tree shows true prerequisite chain and selected two-path specialization',()=>{

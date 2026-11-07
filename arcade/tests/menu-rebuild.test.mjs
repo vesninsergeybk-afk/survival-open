@@ -42,20 +42,20 @@ test('a ready reward and first weapon choice can both be completed from the home
  g.baseAction('claimFirstModule','rail');assert.equal(g.firstHardwareReward,'rail');
 });
 
-test('ship upgrades share one ship tab and pilot skills have their own tab',()=>{
+test('all development directions use one visual atlas; fitting remains a separate ship tab',()=>{
  const {g,base}=station();
- for(const [category,view,content] of [['weapons','weapon-upgrades','Плазменный луч'],['ship','upgrades','Защита и двигатель'],['tactics','tactics','Инерционный импульс']]){
+ for(const [category,content] of [['weapons','Плазменный луч'],['ship','Укрепление корпуса'],['tactics','Инерционный импульс']]){
   g.openDevelopment(category);
   const state=g.baseState();
-  assert.equal(state.baseTab,'hangar');assert.equal(state.hangarView,view);
+  assert.equal(state.baseTab,'development');assert.equal(state.developmentDomain,category);
   const html=renderBasePanel(base,state);
-  assert.match(html,new RegExp('data-ship-view="'+view+'"'));
+  assert.match(html,new RegExp('class="progression-ui" data-domain="'+category+'"'));
   assert.ok(html.includes(content),category);
-  assert.match(html,/id="base-panel-development"[^>]* hidden><\/section>/);
+  assert.match(html,/data-act="devDomain" data-id="ship"/);
  }
  g.openDevelopment('pilot');
  const pilot=renderBasePanel(base,g.baseState());
- assert.match(pilot,/data-development="pilot"/);
+ assert.match(pilot,/class="progression-ui" data-domain="pilot"/);
  assert.match(pilot,/Уклонение/);
  assert.doesNotMatch(pilot,/data-act="hgUpgrade"/);
 });
@@ -65,10 +65,10 @@ test('opening development and an exact weapon preserves the entire pending desig
  g.hangarSession.draft.slots[1]='rail';
  const draft=JSON.stringify(g.hangarSession.draft),alloy=g.player.ore,points=g.player.points;
  g.openDevelopment('weapons','rail');
- assert.equal(g.baseTab,'hangar');assert.equal(g.hangarView,'weapon-upgrades');
+ assert.equal(g.baseTab,'development');assert.equal(g.developmentDomain,'weapons');
  assert.equal(g.hangarSession.focusWeapon,'rail');
  g.openDevelopment('pilot');g.openDevelopment('tactics','decoy');
- assert.equal(g.hangarSession.focusTactic,'decoy');
+ assert.equal(g.developmentTactic,'decoy');
  assert.equal(JSON.stringify(g.hangarSession.draft),draft);
  assert.equal(g.player.ore,alloy);assert.equal(g.player.points,points);
 });
@@ -115,14 +115,15 @@ test('pilot purchases on the station remain on development, while fitting shortc
  assert.equal(g.player.ore,ore);assert.equal(JSON.stringify(g.shipLoadout),loadout);
 });
 
-test('an available pilot doctrine is visible before the long skill branches, without selecting it',()=>{
+test('an available doctrine has a visible selectable node without spending points',()=>{
  const {g,base}=station();g.baseTab='development';g.developmentCategory='pilot';
  g.player.level=5;g.player.points=1;
  const html=renderBasePanel(base,g.baseState());
- assert.match(html,/<details class="pilot-doctrines"[^>]* open>/);
- assert.match(html,/data-act="doctrine"/);
- assert.ok(html.indexOf('pilot-doctrines')<html.indexOf('skill-branch-tabs'),
-  'players should see the doctrine option before a full list of skills');
+ assert.match(html,/data-act="devFocus" data-id="doctrine-assault"/);
+ assert.match(html,/data-act="devFocus" data-id="doctrine-command"/);
+ assert.match(html,/data-act="devFocus" data-id="doctrine-prospect"/);
+ g.developmentFocus='doctrine-command';
+ assert.match(renderBasePanel(base,g.baseState()),/data-act="doctrine" data-id="command"/);
  assert.equal(g.doctrine,null);assert.equal(g.player.points,1);
 });
 

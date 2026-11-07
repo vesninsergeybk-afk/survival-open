@@ -185,6 +185,30 @@ test('v2 checkpoint preserves live resonance references and finite ammunition',(
  assert.equal(restored.fieldLoan.charges,2);assert.equal(restored.fieldEffects[0].targets[0].target,restored.enemies[0]);
  restored.time=15;updateFieldEffects(restored);assert.equal(restored.fieldEffects.length,0);
 });
+test('a postponed probe and its pending attack survive a checkpoint, then partial data pay once',()=>{
+ const g=game(),lab=g.world.nearbyStations(0,0,10000,false).find(b=>b.type==='lab'&&!b.enemy&&!b.captured);
+ lab.active=true;lab.discovered=true;g.world.discovered.add(lab.id);g.docked=lab;
+ const op=createProbeOperation(lab,g.world);lab.probeMission=g.operation=op;
+ g.player.x=op.x;g.player.y=op.y;g.updateProbe();g.repairProbe(11);
+ const attacker=g.enemies.find(e=>e.serial===op.strikerSerial);
+ Object.assign(attacker,{x:op.x+350,y:op.y,relayChargeUntil:g.time+.1});
+ op.hp=1;g.abandonOperation();
+ const fresh=game();restoreCheckpoint(fresh,unpackRun(packRun(checkpoint(g))));
+ assert.equal(fresh.operation,null);
+ const saved=fresh.docked.probeMission;
+ assert.equal(saved.repair,50);assert.equal(saved.hp,1);
+ assert.ok(fresh.enemies.some(e=>e.serial===saved.strikerSerial));
+ fresh.world.nearbyRocks=()=>[];
+ fresh.time+=1;fresh.updateProbe();assert.equal(saved.phase,'return');
+ const other={id:'silent-corridor',baseId:'0:0'};
+ fresh.operation=other;fresh.baseAction('claimProbeData');assert.equal(fresh.operation,other);
+ fresh.operation=null;
+ fresh.baseAction('claimProbeData');fresh.baseAction('claimProbeData');
+ assert.equal(fresh.docked.probeTelemetryDelivered,true);assert.equal(fresh.player.ore,409);
+ const reopened=game();restoreCheckpoint(reopened,unpackRun(packRun(checkpoint(fresh))));
+ assert.equal(reopened.operation,null);assert.equal(reopened.docked.probeTelemetryDelivered,true);
+ assert.equal(reopened.player.ore,409);
+});
 
 // Exercise the whole production update loop, including acceleration, terrain,
 // enemy AI, missiles, repair interruptions, charges, rewards and actual return.
