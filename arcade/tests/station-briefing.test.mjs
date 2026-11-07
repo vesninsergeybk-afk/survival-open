@@ -77,8 +77,8 @@ test('lab operation marks an uncertain search area and shows repair progress',()
  const operation={id:'last-signal',baseId:b.id,repair:45,x:800,y:300};
  const html=renderBasePanel(b,stationState(w,{operation,baseTab:'operations'}));
  assert.match(html,/<progress value="45" max="100"/);
- assert.match(html,/Возможны перехватчики/);
- assert.match(html,/возможен новый сигнал/);
+ assert.match(html,/Налётчики бьют по зонду и прерывают ремонт/);
+ assert.match(html,/Данные: \+9 сплава, \+16 опыта/);
 });
 
 test('unavailable special operations state their actual blocking condition',()=>{

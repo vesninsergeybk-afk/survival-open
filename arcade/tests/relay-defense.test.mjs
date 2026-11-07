@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {World} from '../world.js';
 import {ENEMY_TYPES} from '../ai.js';
 import {baseNames} from '../balance.js';
-import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayOffer,relayDefenseCue} from '../relay-defense.js';
+import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayOffer,relayDefenseCue,relayAttacker} from '../relay-defense.js';
 import {chooseOperationLead} from '../operations.js';
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
@@ -40,27 +40,30 @@ const scenario=()=>{
  const base={...arsenal,relayDefenseDone:false,relayRetryAt:0};
  const scene={stations:new Map([[base.id,base]]),discovered:new Set(),
   nearbyStations:()=>[],nearbyRocks:()=>[]};
- const op=createRelayDefense(base,scene),game=new Ops(),messages=[];
+ const op=createRelayDefense(base,scene),game=new Ops(),messages=[],effects=[];
  Object.assign(game,{world:scene,operation:op,player:{x:op.x+20,y:op.y,ore:0},
   enemies:[],enemySerial:0,groupSerial:0,time:0,dead:false,waypoint:{id:op.id},
-  heritage:{vfx:{nova(){}},play(){},station(){}},cockpit:{resourceGain(){}},
+  heritage:{vfx:{nova(){effects.push('nova');},shipExplosion(){effects.push('explosion');}},play(){},station(){},ui(){}},
+  overlay:{dataset:{}},cockpit:{resourceGain(){}},
   flash(){},notice:m=>messages.push(m),collect(item){this.data=(this.data||0)+item.value;}});
- return {game,base,op,messages};
+ return {game,base,op,messages,effects};
 };
 
 test('waves arrive after warning, charge their attacks, and give no restartable kill farm',()=>{
  const {game,op}=scenario();
  game.updateRelayDefense(.1);
  assert.equal(op.phase,'warning');
- assert.equal(relayDefenseCue(op,3),'АТАКА ЧЕРЕЗ 5 С');
+ assert.match(relayDefenseCue(op,3),/^АТАКА ЧЕРЕЗ 2 С [↘↓↙←↖↑↗→]$/);
  game.time=op.nextAt+.01;game.updateRelayDefense(.1);
  assert.equal(op.wave,1);assert.equal(op.phase,'wave');
  assert.equal(op.enemySerials.length,2);
  assert.ok(game.enemies.every(e=>e.relayAssault===op.baseId&&e.expAwarded));
  for(const e of game.enemies){e.x=op.x+180;e.y=op.y;e.relayCooldownUntil=0;}
  game.time+=.1;game.updateRelayDefense(.1);
- assert.ok(game.enemies.every(e=>e.relayChargeUntil>game.time));
- game.time+=1.4;game.updateRelayDefense(1.4);
+ const striker=game.enemies.find(e=>e.missionStrike);
+ assert.ok(striker.relayChargeUntil>game.time);
+ assert.ok(game.enemies.find(e=>e.relayScreen).relayChargeUntil===0);
+ game.time=striker.relayChargeUntil+.01;game.updateRelayDefense(.01);
  assert.ok(op.hp<op.maxHp,'an uninterrupted charged salvo must damage the relay');
  for(const e of game.enemies)e.hp=0;
  game.updateRelayDefense(.1);
@@ -69,8 +72,8 @@ test('waves arrive after warning, charge their attacks, and give no restartable 
  assert.equal(op.wave,2);assert.equal(game.enemies.filter(e=>e.hp>0).length,2);
 });
 
-test('winning pays only once and failure preserves the friendly arsenal',()=>{
- const {game,op,base}=scenario();
+test('winning leaves a working site, pays once and has a different effect from defeat',()=>{
+ const {game,op,base,effects,messages}=scenario();
  game.updateRelayDefense(.1);
  game.time=op.nextAt+.1;game.updateRelayDefense(.1);
  for(let wave=1;wave<=3;wave++){
@@ -80,16 +83,40 @@ test('winning pays only once and failure preserves the friendly arsenal',()=>{
  }
  assert.equal(base.relayDefenseDone,true);
  assert.equal(game.operation,null);
- assert.equal(game.player.ore,RELAY_DEFENSE.rewardOre);
- assert.equal(game.data,RELAY_DEFENSE.rewardData);
+ assert.equal(base.relaySite.hp,op.hp);
+ assert.equal(base.relaySite.antenna.hp,RELAY_DEFENSE.antennaHp);
+ assert.deepEqual(effects,[],'success uses the persisted online render, no flash or explosion');
+ assert.match(messages.at(-1),/Связь восстановлена/);
+ assert.equal(game.player.ore,RELAY_DEFENSE.rewardOre+RELAY_DEFENSE.bonusOre);
+ assert.equal(game.data,RELAY_DEFENSE.rewardData+RELAY_DEFENSE.bonusData);
  game.completeRelayDefense(op);
- assert.equal(game.player.ore,RELAY_DEFENSE.rewardOre);
+ assert.equal(game.player.ore,RELAY_DEFENSE.rewardOre+RELAY_DEFENSE.bonusOre);
  const failed=scenario();failed.op.hp=0;
  failed.game.failRelayDefense(failed.op);
  assert.equal(failed.base.relayDefenseDone,false);
  assert.equal(failed.base.active,true);
  assert.ok(failed.base.relayRetryAt>failed.game.time);
  assert.equal(failed.game.operation,null);
+ assert.deepEqual(failed.effects,['explosion']);
+});
+
+test('a lost antenna costs the bonus, and retreat cannot restart a live wave immediately',()=>{
+ const {game,op,base}=scenario();op.antenna.hp=0;game.completeRelayDefense(op);
+ assert.equal(game.player.ore,RELAY_DEFENSE.rewardOre);
+ assert.equal(base.relaySite.antenna.hp,0);
+ const fight=scenario();fight.game.abandonOperation();assert.equal(fight.base.relayRetryAt,0);
+ fight.game.operation=fight.op;fight.game.updateRelayDefense(.1);
+ fight.game.abandonOperation();assert.equal(relayOffer(fight.base,null,fight.game.time).remaining,45);
+ assert.notEqual(createRelayDefense(fight.base,fight.game.world).bearing,fight.op.bearing);
+});
+test('the nearest volley drives the warning, even if it targets the antenna',()=>{
+ const {game,op}=scenario();game.spawnRelayWave(op,1);
+ const [main,antenna]=game.enemies;
+ main.relayChargeUntil=game.time+3;antenna.relayChargeUntil=game.time+2;
+ assert.equal(relayAttacker(op,game.enemies,game.time),antenna);
+ assert.match(missionHudText(game),/УДАР ПО АНТЕННЕ ЧЕРЕЗ 2.0 С/);
+ main.hp=0;antenna.relayChargeUntil=0;
+ assert.equal(relayAttacker(op,game.enemies,game.time),antenna);
 });
 
 test('station UI, map and cockpit describe the actual relay-defense mission',()=>{

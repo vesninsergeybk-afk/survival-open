@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {availableDevelopmentChoices,renderDevelopmentPanel} from '../development-panel.js';
 import {renderShipHangar} from '../hangar-panel.js';
 import {renderPilotContent} from '../pilot-menu.js';
-import {createLoadout,HangarSession} from '../ship-loadout.js';
+import {createLoadout,HangarSession,moduleStats} from '../ship-loadout.js';
 import {createTactical} from '../tactical-fields.js';
 import {game} from './weapons-scene.mjs';
 
@@ -34,7 +34,7 @@ test('development entry identifies points and offers direct playstyle routes',()
  assert.match(html,/data-act="hgUpgrade" data-id="beam"/);
  assert.match(html,/data-act="devWeapon" data-id="plasma"/);
  assert.match(html,/Калибровка орудий/);
- assert.match(html,/дальность 435 м/);
+ assert.ok(html.includes('дальность '+moduleStats('plasma',s.ranks).range+' м'));
  const noPoints=renderDevelopmentPanel({...s,points:0,developmentDomain:'weapons'});
  assert.match(noPoints,/Очки <b>0<\/b>/);
  assert.match(noPoints,/data-act="devFocus" data-id="skill-beam"/);
