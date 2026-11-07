@@ -513,6 +513,7 @@ canvas#game.rail-manual{cursor:crosshair}
 .base-featured-foot{display:flex;justify-content:space-between;align-items:center;gap:9px;flex-wrap:wrap;
  margin-top:2px;padding-top:8px;border-top:1px solid #8b9ca53a}
 .base-featured-foot>span{font-size:11px;color:#e9da9d}
+.field-operation-card .base-featured-foot>span small{display:block;margin-top:4px;color:#b9cad2;font-size:11px;line-height:1.4}
 .base-featured-foot>div{display:flex;flex-wrap:wrap;gap:7px}
 .base-featured-foot button{margin:0!important;padding:8px 11px!important;font-size:12px!important}
 .base-op-done{color:#b0ffdf!important}

@@ -6,10 +6,10 @@ import {RULES} from './balance.js?v=field-operations-1';
 export const FIELD_OPERATIONS=Object.freeze({
  'line-break':{id:'line-break',name:'Линия разрыва',station:'dock',
   ore:25,data:23,partialOre:12,partialData:9,
-  desc:'Восстановите два повреждённых узла связи, удерживая действие рядом с ними. После первого ремонта можно отступить. Противник попытается помешать второму.'},
+  desc:'Восстановите два узла связи, удерживая действие. Во время ремонта автоматический огонь приостановлен. После первого узла можно отступить; противник попытается уничтожить второй.'},
  'deep-resonance':{id:'deep-resonance',name:'Глубинный резонанс',station:'lab',
   ore:26,data:25,partialOre:9,partialData:10,
-  desc:'Добудьте образцы из двух богатых залежей. Шум вызывает резонанс и привлекает охотников. После первого образца можно отступить с частью данных.'},
+  desc:'Получите два образца, удерживая добычу на богатых залежах. Раскалывающий удар приносит руду, но портит образец. Шум привлекает охотников и вызывает разряды. После первого образца можно отступить.'},
  'reverse-hunt':{id:'reverse-hunt',name:'Обратная охота',station:'lab',
   ore:18,data:37,partialOre:13,partialData:8,
   desc:'Выдержите два цикла сканирования опасного «зрачка» на расстоянии 130–310 м. Можно уничтожить его раньше, но тогда лаборатория получит лишь обломки.'},
@@ -31,10 +31,14 @@ export const fieldOperationIds=type=>type==='dock'?['line-break']:
  type==='lab'?['deep-resonance','reverse-hunt','false-call']:
  type==='arsenal'?['two-fronts','sleeping-reactor']:
  type==='carrier'?['broken-convoy']:[];
+export const fieldThreatTier=(level=1,runs=0)=>Math.min(3,Math.max(0,
+ Math.floor((Math.max(1,level)-1)/6),Math.floor(Math.max(0,runs)/3)));
+export const fieldRewardFactor=tier=>1+.2*Math.max(0,Math.min(3,tier||0));
 export const isFieldOperation=op=>!!op&&Object.hasOwn(FIELD_OPERATIONS,op.id);
 export function validFieldOperation(op){
  if(!isFieldOperation(op)||!['approach','active','return','salvage'].includes(op.phase)||
-  !Number.isFinite(op.x)||!Number.isFinite(op.y)||typeof op.baseId!=='string')return false;
+  !Number.isFinite(op.x)||!Number.isFinite(op.y)||typeof op.baseId!=='string'||
+  (op.threatTier!==undefined&&(!Number.isInteger(op.threatTier)||op.threatTier<0||op.threatTier>3)))return false;
  if(op.id==='deep-resonance')return Array.isArray(op.samples)&&op.samples.length===2&&
   op.samples.every(s=>typeof s.id==='string'&&Number.isFinite(s.x)&&Number.isFinite(s.y)&&typeof s.done==='boolean')&&
   Number.isInteger(op.progress)&&op.progress>=0&&op.progress<=2&&Number.isFinite(op.resonance)&&
@@ -53,8 +57,9 @@ export function validFieldOperation(op){
   op.routeIndex>=0&&op.routeIndex<=2;
  return Array.isArray(op.nodes)&&op.nodes.length===2&&op.nodes.every(n=>
   Number.isFinite(n.x)&&Number.isFinite(n.y)&&Number.isFinite(n.hp)&&n.hp>=0&&n.hp<=100)&&
-  Number.isInteger(op.wave)&&op.wave>=0&&op.wave<=2&&Array.isArray(op.enemySerials)&&
-  op.enemySerials.length<=4;
+  Number.isInteger(op.wave)&&op.wave>=0&&op.wave<=(op.wavesTotal||2)&&
+  [undefined,2,3].includes(op.wavesTotal)&&Array.isArray(op.enemySerials)&&
+  op.enemySerials.length<=6;
 }
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const validSite=(world,p,r=80)=>!world.nearbyRocks(p.x,p.y,r+70).some(rock=>
@@ -68,13 +73,14 @@ function siteNear(base,world,radius,heading){
  }
  return {x:base.x+radius,y:base.y};
 }
-export function createFieldOperation(id,base,world,attempt=0,routeChoice='safe'){
+export function createFieldOperation(id,base,world,attempt=0,routeChoice='safe',pilotLevel=1){
  const spec=FIELD_OPERATIONS[id];
  if(!spec||!base?.active||base.enemy||base.type!==spec.station)return null;
  const bearing=(attempt*2.17+(base.x*0.002+base.y*0.0007))%(Math.PI*2);
  const site=siteNear(base,world,710,bearing);
+ const threatTier=fieldThreatTier(pilotLevel,attempt);
  const common={...spec,baseId:base.id,x:site.x,y:site.y,phase:'approach',
-  startedAt:0,attempt,partial:false};
+  startedAt:0,attempt,partial:false,threatTier};
  if(id==='deep-resonance'){
   const rocks=world.nearbyRocks(site.x,site.y,1400)
    .filter(r=>r.alive&&r.rich&&distance(r,base)>250)
@@ -117,41 +123,52 @@ export function createFieldOperation(id,base,world,attempt=0,routeChoice='safe')
  const second=siteNear(base,world,700,bearing+3.1);
  return {...common,x:(first.x+second.x)/2,y:(first.y+second.y)/2,
   nodes:[{...first,hp:100,maxHp:100},{...second,hp:100,maxHp:100}],
-  wave:0,nextWaveAt:0,enemySerials:[],warningShown:false};
+  wave:0,wavesTotal:threatTier?3:2,nextWaveAt:0,enemySerials:[],warningShown:false};
 }
-export function fieldOperationOffer(base,op,now,id){
+export function fieldOperationOffer(base,op,now,id,pilotLevel=1){
  const spec=FIELD_OPERATIONS[id];if(!spec||base?.type!==spec.station||base.enemy)return null;
  const active=op?.id===id&&op.baseId===base.id;
  const completed=base.fieldOperationRuns?.[id]||0;
  const wait=Math.max(0,Math.ceil((base.fieldOperationCooldowns?.[id]||0)-now));
+ const threatTier=active?(op.threatTier||0):fieldThreatTier(pilotLevel,completed);
+ const factor=fieldRewardFactor(threatTier)*(completed?.75:1);
  return {...spec,status:active?'active':!base.active?'locked':wait?'cooldown':'available',
-  remaining:wait,runs:completed,progress:active?(op.progress??op.scans??op.wave):0};
+  remaining:wait,runs:completed,threatTier,
+  rewardOre:Math.round(spec.ore*factor),rewardData:Math.round(spec.data*factor),
+  rewardPartialOre:Math.round(spec.partialOre*factor),rewardPartialData:Math.round(spec.partialData*factor),
+  progress:active?(op.progress??op.scans??op.wave):0};
 }
 export function fieldOperationCue(op,game){
  if(!isFieldOperation(op))return '';
  if(op.phase==='salvage')return '◈ ТРАНСПОРТ ПОТЕРЯН · ЗАБЕРИТЕ УЦЕЛЕВШИЙ КОНТЕЙНЕР';
  if(op.phase==='return')return '✓ '+op.name.toUpperCase()+' · ВЕРНИТЕСЬ НА СТАНЦИЮ';
  if(op.phase==='approach')return '◈ '+op.name.toUpperCase()+' · ДО ЦЕЛИ '+Math.round(distance(game.player,op))+' М';
+ const workCue=game.actionHeld?.kind==='field-work'?' · ОГОНЬ ПРИОСТАНОВЛЕН':'';
  if(op.id==='deep-resonance')return '◈ ОБРАЗЦЫ '+op.progress+'/2 · РЕЗОНАНС '+Math.round(op.resonance)+'%'+
   (op.pulseUntil>game.time?' · РАЗРЯД!':op.resonance>65?' · ОТОЙДИТЕ ОТ ПОРОДЫ':'');
  if(op.id==='reverse-hunt')return '◈ СКАНИРОВАНИЕ '+op.scans+'/2'+
   (op.scanUntil>game.time?' · ИМПУЛЬС!':' · ДЕРЖИТЕСЬ В 130–310 М');
  if(op.id==='line-break')return '◈ ЛИНИЯ СВЯЗИ '+op.progress+'/2 · УЗЛЫ '+
-  op.nodes.map(n=>Math.round(n.hp)+'%').join(' / ')+' · ЗАЩИТИТЕ РЕМОНТ';
- if(op.id==='false-call')return '◈ МАЯКИ · ПРОВЕРЕНО '+op.checks+'/3 · ИЩИТЕ ДВОЙНОЙ ИМПУЛЬС';
+  op.nodes.map(n=>Math.round(n.hp)+'%').join(' / ')+' · ЗАЩИТИТЕ РЕМОНТ'+workCue;
+ if(op.id==='false-call')return '◈ МАЯКИ · ПРОВЕРЕНО '+op.checks+'/3 · ИЩИТЕ ДВОЙНОЙ ИМПУЛЬС'+workCue;
  if(op.id==='sleeping-reactor')return '◈ КАССЕТЫ '+op.progress+'/2'+
-  (op.pulseUntil>game.time?' · ВЫБРОС!':' · СЛЕДИТЕ ЗА ЯДРОМ');
+  (op.pulseUntil>game.time?' · ВЫБРОС!':' · СЛЕДИТЕ ЗА ЯДРОМ')+workCue;
  if(op.id==='broken-convoy')return '◈ КОНВОЙ · КОРПУС '+Math.ceil(op.hp)+'% · '+
   (op.routeIndex===2?'ПУНКТ НАЗНАЧЕНИЯ':'ДЕРЖИТЕСЬ РЯДОМ');
  const hp=op.nodes.map(n=>Math.ceil(n.hp/n.maxHp*100)+'%').join(' / ');
- return '◈ ДВА УЗЛА '+hp+' · '+(op.nextWaveAt>game.time?'АТАКА ЧЕРЕЗ '+Math.ceil(op.nextWaveAt-game.time)+' С':'ПЕРЕХВАТИТЕ НАЛЁТЧИКОВ');
+ return '◈ ДВА УЗЛА '+hp+' · ВОЛНА '+op.wave+'/'+(op.wavesTotal||2)+' · '+
+  (op.nextWaveAt>game.time&&Number.isFinite(op.nextWaveAt)?
+   'АТАКА ЧЕРЕЗ '+Math.ceil(op.nextWaveAt-game.time)+' С':'ПЕРЕХВАТИТЕ НАЛЁТЧИКОВ');
 }
 export function fieldOperationMining(op,rock,kind){
- if(op?.id!=='deep-resonance'||op.phase!=='active'||!['extract','strike'].includes(kind))return false;
+ if(op?.id!=='deep-resonance'||op.phase!=='active'||kind!=='extract')return false;
  const sample=op.samples.find(s=>s.id===rock.id&&!s.done);
  if(!sample)return false;
  sample.done=true;op.progress++;
- op.resonance=Math.min(100,op.resonance+(kind==='strike'?48:27));
+ // Even a powerful extractor must reveal the first find. Otherwise two
+ // instant kills of mineral rocks would complete the entire sortie quietly.
+ op.resonance=op.progress===1?Math.max(60,Math.min(100,op.resonance+27)):
+  Math.min(100,op.resonance+27);
  const next=op.samples.find(s=>!s.done);
  if(next){op.x=next.x;op.y=next.y;}else op.phase='return';
  return true;
@@ -215,13 +232,17 @@ export function spawnFieldEnemy(game,op,type,location,target=null,index=0){
  const def=ENEMY_TYPES[type];if(!def)return null;
  const heading=index*2.4+.3;
  const x=location.x+Math.cos(heading)*260,y=location.y+Math.sin(heading)*260;
+ const hp=Math.round(def.hp*(1+.27*(op.threatTier||0)));
  const enemy={serial:++game.enemySerial,group:++game.groupSerial,type,x,y,vx:0,vy:0,
-  r:type==='gunship'?22:14,hp:def.hp,maxHp:def.hp,damage:def.dmg,
+  r:type==='gunship'?22:14,hp,maxHp:hp,damage:Math.round(def.dmg*(1+.12*(op.threatTier||0))),
   think:.1,fire:1.2,state:'hunt',commitUntil:0,target:target||game.player,
   angle:0,hit:0,expAwarded:true,scenario:'field-'+op.id,fieldOperation:op.id,
   operationGuard:true,protect:null,entryPortalPending:false};
  if(target)game.prepareMissionStrike(enemy,target,{target:op.id==='broken-convoy'?'field-convoy':'field-node',range:380,
   damage:type==='flanker'?17:14,charge:type==='flanker'?2.8:3.4,angle:heading});
+ if(op.id==='broken-convoy'&&target){
+  enemy.escortApproachAngle=Math.atan2(y-target.y,x-target.x);
+ }
  game.enemies.push(enemy);return enemy;
 }
 export function advanceFieldOperation(game,dt){
@@ -232,7 +253,7 @@ export function advanceFieldOperation(game,dt){
   op.phase='active';op.startedAt=game.time;
   if(op.id==='reverse-hunt'){
    const enemy=spawnFieldEnemy(game,op,'scout',op);
-   if(enemy){enemy.hp=enemy.maxHp=165;op.enemySerial=enemy.serial;
+   if(enemy){enemy.hp=enemy.maxHp=Math.round(165*(1+.2*(op.threatTier||0)));op.enemySerial=enemy.serial;
     op.scanAt=game.time+5.5;}
    else {op.phase='approach';return;}
    game.notice('Зрачок обнаружен. Выдержите два сканирования на дистанции 130–310 м. Автоогонь можно отключить.',5);
@@ -249,7 +270,7 @@ export function advanceFieldOperation(game,dt){
    game.notice('У фальшивого маяка двойной фиолетовый импульс. Наблюдайте сигналы перед проверкой.',5);
   }else if(op.id==='line-break'){
    game.notice('Удерживайте действие у повреждённого узла. После первого ремонта можно отступить.',4.5);
-  }else game.notice('Две залежи отмечены на карте. Шум усиливает резонанс. Первый образец можно сдать отдельно.',5);
+  }else game.notice('Две залежи отмечены на карте. Образцы даёт только удерживаемая добыча: раскалывающий удар испортит образец и усилит резонанс.',5);
  }
  advanceFieldWork(game,op,dt);
  if(op.phase==='return')return;
@@ -277,7 +298,7 @@ export function advanceFieldOperation(game,dt){
      const next=substitute.sort((a,b)=>distance(a,op)-distance(b,op))[0];
      sample.id=next.id;sample.x=next.x;sample.y=next.y;
      op.x=next.x;op.y=next.y;
-     game.notice('Залежь разрушена посторонним огнём. Сканер отметил запасную точку.',4);
+     game.notice('Залежь разрушена до взятия образца. Сканер отметил запасную точку.',4);
     }else{
      op.partial=op.progress>0;op.phase=op.progress>0?'return':'failed';
      game.notice('Месторождение разрушено. '+(op.partial?'Возвращайтесь с добытым образцом.':'Добыть образцы не удалось.'),4);
@@ -285,11 +306,11 @@ export function advanceFieldOperation(game,dt){
     }
    }
   }
-  const nearby=op.samples.find(s=>!s.done&&distance(game.player,s)<210);
-  if(nearby&&game.mining.active){op.resonance=Math.min(100,op.resonance+dt*(13+Math.min(12,game.miningNoise/14)));}
+  const miningSample=op.samples.find(s=>!s.done&&game.mining?.target?.id===s.id);
+  if(miningSample&&game.mining.active){op.resonance=Math.min(100,op.resonance+dt*(13+3*(op.threatTier||0)+Math.min(12,game.miningNoise/14)));}
   else op.resonance=Math.max(0,op.resonance-dt*5);
   if(op.resonance>=58&&!op.alerted){
-   const enemy=spawnFieldEnemy(game,op,'flanker',nearby||op);
+   const enemy=spawnFieldEnemy(game,op,'flanker',miningSample||op);
    if(enemy){op.alerted=true;game.notice('Резонанс заметили перехватчики! Продолжайте добычу или отступайте.',4);}
   }
   if(op.resonance>=90&&game.time>=op.nextPulse){
@@ -325,9 +346,11 @@ export function advanceFieldOperation(game,dt){
  }else if(op.id==='two-fronts'){
   if(op.nodes.every(n=>n.hp<=0)){op.partial=false;op.phase='failed';return;}
   if(op.phase==='failed')return;
-  if(game.time>=op.nextWaveAt&&op.wave<2&&game.enemies.length>RULES.maxEnemies-2)return;
-  if(game.time>=op.nextWaveAt&&op.wave<2){
-   const types=op.wave===0?['fighter','flanker']:['flanker','fighter'];
+  const wavesTotal=op.wavesTotal||2;
+  if(game.time>=op.nextWaveAt&&op.wave<wavesTotal&&game.enemies.length>RULES.maxEnemies-2)return;
+  if(game.time>=op.nextWaveAt&&op.wave<wavesTotal){
+   const types=op.wave===0?['fighter','flanker']:op.wave===1?['flanker','fighter']:
+    [(op.threatTier||0)>=2?'gunship':'fighter','flanker'];
    const spawned=[];
    for(let i=0;i<2;i++){
     const target=op.nodes[i].hp>0?op.nodes[i]:op.nodes[1-i];
@@ -335,7 +358,7 @@ export function advanceFieldOperation(game,dt){
     if(e)spawned.push(e.serial);
    }
    if(spawned.length){op.wave++;op.enemySerials.push(...spawned);op.nextWaveAt=Infinity;
-    game.notice('ВОЛНА '+op.wave+'/2: перехватчики выходят к двум узлам. Смотрите направления залпов.',4.5);}
+    game.notice('ВОЛНА '+op.wave+'/'+wavesTotal+': перехватчики выходят к двум узлам. Смотрите направления залпов.',4.5);}
   }
   for(const enemy of game.enemies){
    if(enemy.fieldOperation!==op.id||!enemy.missionStrike||enemy.hp<=0||enemy.converted)continue;
@@ -346,7 +369,7 @@ export function advanceFieldOperation(game,dt){
    game.updateMissionStrike(enemy,target);
   }
   if(op.wave>0&&!game.enemies.some(e=>op.enemySerials.includes(e.serial)&&e.hp>0&&!e.converted)){
-   if(op.wave>=2){op.phase='return';op.partial=op.nodes.some(n=>n.hp<=0);
+   if(op.wave>=wavesTotal){op.phase='return';op.partial=op.nodes.some(n=>n.hp<=0);
     game.notice('Атаки отражены. '+(op.partial?'Один узел потерян.':'Оба узла уцелели.')+' Вернитесь в арсенал.',5);
    }else if(op.nextWaveAt===Infinity){op.nextWaveAt=game.time+5;
     game.notice('Первую атаку отбили. Следующая через 5 секунд — успейте сменить позицию.',4);}
@@ -354,13 +377,13 @@ export function advanceFieldOperation(game,dt){
  }else if(op.id==='sleeping-reactor'){
   const core=op.core||op;
   if(game.time>=op.pulseAt&&op.pulseUntil<=game.time){
-   op.pulseUntil=game.time+1.6;op.pulseAt=game.time+8.4;
+   op.pulseUntil=game.time+1.6;op.pulseAt=game.time+8.4-.5*(op.threatTier||0);
    game.notice('РЕАКТОР ЗАРЯЖАЕТСЯ! Выйдите за 270 м до выброса.',2.8);
   }
   if(op.pulseUntil>0&&game.time>=op.pulseUntil){
    op.pulseUntil=0;
    game.heritage.vfx.nova(core.x,core.y,270,'violet');
-   if(distance(game.player,core)<270)game.hurt(15,core);
+   if(distance(game.player,core)<270)game.hurt(15+4*(op.threatTier||0),core);
   }
  }else if(op.id==='broken-convoy'){
   if(op.phase==='salvage')return;
@@ -368,7 +391,7 @@ export function advanceFieldOperation(game,dt){
    op.phase='salvage';op.crate={x:op.x+40,y:op.y+30,goal:3.2,progress:0,done:false};
    game.notice('Конвой уничтожен! Спасите контейнер из обломков, затем отступайте.',5);return;
   }
-  if(distance(game.player,op)<=500){
+   if(distance(game.player,op)<=500){
    const target=op.route[Math.min(op.routeIndex+1,2)];
    const d=distance(op,target),speed=op.routeChoice==='fast'?105:83;
    const step=Math.min(d,speed*dt);
@@ -380,11 +403,20 @@ export function advanceFieldOperation(game,dt){
   if(game.time>=op.nextRaidAt&&op.escortSerials.length<6){
    const raid=spawnFieldEnemy(game,op,op.routeChoice==='fast'?'flanker':'fighter',op,op,op.escortSerials.length);
    if(raid){op.escortSerials.push(raid.serial);
-    op.nextRaidAt=game.time+(op.routeChoice==='fast'?7:18);
+    op.nextRaidAt=game.time+(op.routeChoice==='fast'?7:18)*(1-.12*(op.threatTier||0));
     game.notice('Нападение на конвой! Перехватите корабль до прицельного залпа.',4);}
   }
   for(const enemy of game.enemies)if(enemy.fieldOperation===op.id&&enemy.missionStrike&&
-   enemy.hp>0&&!enemy.converted)game.updateMissionStrike(enemy,op);
+   enemy.hp>0&&!enemy.converted){
+   // Keep an attacker's actual flight destination attached to its moving target.
+   // The enemy steers there on its next AI tick; its position never teleports.
+   if(enemy.missionFlight){
+    const angle=enemy.escortApproachAngle??Math.atan2(enemy.y-op.y,enemy.x-op.x);
+    enemy.missionFlight.x=op.x+Math.cos(angle)*265;
+    enemy.missionFlight.y=op.y+Math.sin(angle)*265;
+   }
+   game.updateMissionStrike(enemy,op);
+  }
   if(op.hp<=0){op.phase='salvage';op.crate={x:op.x+40,y:op.y+30,goal:3.2,progress:0,done:false};
    game.notice('Транспорт потерян. Заберите уцелевший контейнер из обломков.',5);}
  }

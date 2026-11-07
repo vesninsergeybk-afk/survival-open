@@ -14,7 +14,7 @@ import {createContours,validContours,autoConnectContours} from './territory-syst
 import {ensureTrialLedger} from './contour-trials.js?v=contour-trials-1-first-loops-1';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
-import {validFieldOperation} from './field-operations.js?v=field-operations-1';
+import {validFieldOperation} from './field-operations.js?v=field-operations-1-audit-1';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
