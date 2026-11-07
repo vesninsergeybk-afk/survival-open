@@ -1,0 +1,190 @@
+/* Station menu v2. A calm shared visual language for the existing live DOM.
+   The only bitmap in this layer is a decorative icon sheet: no rendered
+   mockup, text, mission state, price, ship or map is baked into a picture. */
+#overlay .base-dialog{
+ --terminal-bg:#0b1621;--terminal-panel:#132331;--terminal-text:#ebf1f5;
+ --terminal-muted:#a9bbc9;--terminal-copper:#dab37b;
+ --station-accent:#88cbd1;--station-accent-soft:#88cbd113;
+ width:min(97vw,1190px);padding:13px 17px 10px;
+ background:#0b1723;
+ border:1px solid #546b7b;border-radius:9px;
+ box-shadow:0 18px 70px #000c,inset 0 1px #ffffff0b;
+ scrollbar-color:#456273 #0b1723;
+}
+#overlay .base-dialog:has(#base-panel-hangar:not([hidden])){width:min(98vw,1310px)}
+#overlay .base-dialog:has(#base-panel-development:not([hidden])){width:min(98vw,1530px)}
+#overlay .base-dialog::before{opacity:.52;background:
+ linear-gradient(90deg,#d1af79,transparent) top left 14px/82px 1px no-repeat}
+#overlay .base-dialog .base-head{
+ min-height:80px;margin:0;padding:6px 3px 12px;gap:14px;
+ background:none;border-bottom:1px solid #456071a6;box-shadow:none;
+}
+#overlay .base-dialog .base-head::before{display:none}
+#overlay .base-dialog .base-emblem{width:55px;height:55px;filter:none}
+#overlay .base-dialog .emblem-frame{fill:#102432;stroke:#6a8999}
+#overlay .base-dialog .emblem-ring{opacity:.35}
+#overlay .base-dialog .base-system-label{color:#84a7b9;font-size:9px;letter-spacing:.14em}
+#overlay .base-dialog .base-head h2{color:#f0f4f6;font-weight:680;font-size:clamp(21px,2vw,27px);margin:0 0 9px;text-shadow:none}
+#overlay .base-dialog .base-credits{gap:5px 14px;color:#9bb4c0;font-size:11px}
+#overlay .base-dialog .base-credits b{color:#e8eff0;font-size:12px}
+#overlay .base-dialog .base-pill{padding:7px 10px;margin-top:4px;background:#142832ad;border-color:#5b807a77;color:#afd7c7;box-shadow:none}
+
+/* Five destinations remain native tab controls with their existing keys,
+   selected state, notice badges and keyboard-navigation implementation. */
+#overlay .base-dialog .base-tabs{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;
+ position:sticky;top:0;z-index:10;margin:0 0 13px;padding:8px 0 6px;
+ background:#0b1723f7;border-bottom:1px solid #38505e;backdrop-filter:blur(12px);
+}
+#overlay .base-dialog .base-tabs button{
+ min-height:46px;margin:0!important;padding:8px 10px!important;
+ background:#152734!important;border:1px solid #334d5d!important;border-radius:5px!important;
+ box-shadow:none!important;color:#b5c8d3;font-size:12px!important;font-weight:650;
+ text-shadow:none;letter-spacing:.01em;
+}
+#overlay .base-dialog .base-tabs button:hover:not([aria-selected="true"]){background:#1b3442!important;border-color:#64818e!important;color:#e7f1f4}
+#overlay .base-dialog .base-tabs button[aria-selected="true"]{
+ background:#302b27!important;border:1px solid #ae8756!important;
+ box-shadow:inset 0 -2px #e8b574!important;color:#ffe2b2!important;
+}
+#overlay .base-dialog .base-tabs button[data-notice]::after{background:#d0a66b;color:#15222a;border:0}
+#overlay .base-dialog button:focus-visible,
+#overlay .base-dialog summary:focus-visible{outline:2px solid #f4d08e!important;outline-offset:3px}
+#overlay .base-dialog .base-kicker{color:#88acbe;font-weight:700;font-size:10px;letter-spacing:.11em}
+#overlay .base-dialog .base-tab-panel{min-width:0}
+
+/* Overview: actual decision + actual local sector map. Unknown locations are
+   already filtered in renderStationRoutePreview, never fabricated here. */
+.base-overview-lead{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr);gap:12px;align-items:stretch;margin:0 0 12px}
+#overlay .base-dialog .base-overview-lead .base-next-step{
+ margin:0;padding:19px 21px;min-width:0;display:flex;flex-direction:column;
+ align-items:flex-start;justify-content:space-between;gap:18px;
+ background:#142735;border:1px solid #567183;border-left:2px solid #dfb77d;
+ border-radius:7px;box-shadow:none;
+}
+#overlay .base-dialog .base-next-step::after{display:none}
+#overlay .base-dialog .base-next-step h3{color:#f3f2ee;font-size:clamp(19px,2vw,26px);font-weight:680}
+#overlay .base-dialog .base-next-step p{color:#b9cad3;line-height:1.5}
+#overlay .base-dialog .base-next-actions{justify-content:flex-start;flex-wrap:wrap;gap:7px}
+#overlay .base-dialog .base-next-actions button{
+ margin:0!important;min-height:44px;min-width:0;
+ padding:10px 16px!important;background:#b58b57!important;border:1px solid #e5bd82!important;
+ border-radius:5px!important;box-shadow:none!important;color:#191c1c!important;
+ font-size:12px!important;font-weight:750;
+}
+#overlay .base-dialog .base-next-actions button:hover:not(:disabled){background:#d1aa77!important}
+#overlay .base-dialog .base-next-actions button[data-act="abandonOperation"]{background:#283a46!important;color:#ccd9e0!important;border-color:#607584!important}
+.base-overview-sector{display:flex;flex-direction:column;min-width:0;padding:15px 16px;background:#102330;
+ border:1px solid #445e6d;border-radius:7px}
+.base-overview-sector h3{font-size:18px;color:#e5edf0;margin:3px 0 13px}
+.base-overview-sector .base-route-graphic{display:flex;flex:1;flex-direction:column;justify-content:space-between;gap:8px;min-width:0}
+.base-overview-sector .base-route-graphic svg{width:100%;height:auto;max-height:200px;background:#0a1b29;border:1px solid #324957;border-radius:5px}
+.base-overview-sector .base-route-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.base-overview-sector .base-route-actions small{color:#93b2c2;font-size:11px}
+#overlay .base-overview-sector .base-route-actions button{min-height:38px;padding:7px 11px;margin:0;background:#1d3544;color:#d5e8ee;border:1px solid #547283;border-radius:4px;font-size:11px}
+
+/* Ship and wing summaries. Both values and the ship stage come from the live
+   state; the stylized icon sheet is only an ornament. */
+#overlay .base-dialog .base-quick-services{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#overlay .base-dialog .base-quick-service{
+ position:relative;isolation:isolate;padding:15px 17px;gap:8px;
+ border:1px solid #445f6e;border-radius:7px;
+ background:#132633;box-shadow:none;
+}
+#overlay .base-dialog .base-quick-service::before{display:none}
+#overlay .base-dialog .base-quick-service::after{
+ content:"";position:absolute;top:9px;right:67px;width:38px;height:38px;
+ background-image:url('./assets/station-menu/icons-v2.webp');
+ background-repeat:no-repeat;background-size:400% 300%;background-position:0 0;
+ opacity:.75;pointer-events:none;
+}
+#overlay .base-dialog .base-quick-drones::after{background-position:33.333% 0}
+#overlay .base-dialog .base-quick-service h3{font-size:17px;font-weight:680;color:#e8f0f2;max-width:calc(100% - 87px);padding-right:0}
+#overlay .base-dialog .base-quick-service p{color:#abbfcb;font-size:12px;line-height:1.45;margin:0;padding:0}
+.base-ship-condition{display:flex;align-items:center;gap:14px;min-width:0;flex:1}
+.base-real-ship{display:block;flex:0 0 82px;width:82px;height:106px;object-fit:contain;filter:drop-shadow(0 5px 10px #0008)}
+.base-ship-condition>div{flex:1;min-width:0}
+.base-ship-condition b{color:#e9eee9;font-size:14px}
+.base-hull-meter{display:block;width:min(100%,220px);height:7px;margin:9px 0 0;accent-color:#87c9d5;border:0;border-radius:3px;overflow:hidden;background:#0c1a25}
+.base-hull-meter::-webkit-progress-bar{background:#0c1a25;border-radius:3px}
+.base-hull-meter::-webkit-progress-value{background:#82c7cf;border-radius:3px}
+.base-hull-meter::-moz-progress-bar{background:#82c7cf}
+#overlay .base-dialog .base-quick-buttons button{
+ min-height:44px;padding:9px 13px!important;color:#d6e5eb;background:#203b4a;
+ border:1px solid #547285;border-radius:5px;box-shadow:none;font-size:12px;
+}
+#overlay .base-dialog .base-quick-buttons button:hover:not(:disabled){background:#2b4b5a;border-color:#85a4b3;box-shadow:none}
+#overlay .base-dialog .base-home-strategy{margin-top:12px}
+
+/* The same quiet cards across mission, network and fitting submenus. The
+   original labels, actions, costs, locks and prerequisite hints remain. */
+#overlay .base-dialog .base-task-group,
+#overlay .base-dialog .base-network-direct,
+#overlay .base-dialog .base-network-simple,
+#overlay .base-dialog .base-station-development,
+#overlay .base-dialog .base-home-development,
+#overlay .base-dialog .base-territory-summary,
+#overlay .base-dialog .base-contract-choice,
+#overlay .base-dialog .base-card,
+#overlay .base-dialog .base-module-option{
+ background:#112532;border-color:#466372;box-shadow:none;border-radius:6px;
+}
+#overlay .base-dialog .base-task-group.special{border-color:#a18256}
+#overlay .base-dialog .base-task-group>h3{color:#e6edf0;border-bottom-color:#3d5967;font-size:17px}
+#overlay .base-dialog .base-view-intro{background:none;border:0;box-shadow:none}
+#overlay .base-dialog .base-network-direct h3,#overlay .base-dialog .base-network-simple h3{color:#e5edf0;font-weight:650}
+#overlay .base-dialog .base-secondary-info,#overlay .base-dialog .base-mission-details{
+ background:#0f202c;border-color:#395466;box-shadow:none;
+}
+#overlay .base-dialog .base-secondary-info>summary{color:#aac3d0}
+#overlay .base-dialog .base-route-graphic svg,
+#overlay .base-dialog .base-network-preview svg{background:#091926}
+
+/* Real hero sprite and real loadout controls stay in charge of the ship tab. */
+#overlay .base-dialog .hg-layout,#overlay .base-dialog .hg-layout-editing{background:#0b1b27;border-color:#415e6e}
+#overlay .base-dialog .hg-arsenal{background:#102532}
+#overlay .base-dialog .hg-ship{background:#0d1e2a}
+#overlay .base-dialog .hg-blueprint{background:radial-gradient(ellipse at center,#183547 0,#0a1b29 72%);border-color:#456575;box-shadow:none}
+#overlay .base-dialog .hg-blueprint::after{background:none;opacity:0}
+#overlay .base-dialog .hg-node{box-shadow:0 3px 9px #0007;background:#193240ef;border-color:#628394}
+#overlay .base-dialog .hg-node.selected{background:#314c51;outline:2px solid #e4b77d;outline-offset:2px;box-shadow:0 0 0 4px #d4b18026}
+#overlay .base-dialog .hg-weapon{background:#172f3c;border-color:#4c6e7c;box-shadow:none}
+#overlay .base-dialog .hg-weapon:hover:not(:disabled){background:#213e4b;box-shadow:none}
+#overlay .base-dialog .hg-view-nav{background:#0b1723f7}
+#overlay .base-dialog .hg-view-nav button{background:#172d3b;border-color:#3f6070}
+#overlay .base-dialog .hg-view-nav button[aria-pressed="true"]{background:#302d28;border-color:#c4a06b;box-shadow:inset 0 -2px #dfb778;color:#ffe6c2}
+
+#overlay .base-dialog .base-foot{position:sticky;bottom:-10px;z-index:12;margin:13px -3px 0;padding:10px 3px 4px;background:#0b1723f7;border-top:1px solid #446170;box-shadow:none;backdrop-filter:blur(12px)}
+#overlay .base-dialog .base-footer-actions button{min-height:44px;border-radius:5px;color:#c2d3dd;background:#1a3040;border:1px solid #527080;box-shadow:none}
+#overlay .base-dialog .base-footer-actions button[data-act="close"]{background:#ba905d;color:#1c1c1b;border-color:#e6bd83;box-shadow:none}
+#overlay .base-dialog .base-footer-actions button[data-act="close"]:hover{background:#d5aa74;box-shadow:none}
+
+@media(max-width:860px){
+ .base-overview-lead{grid-template-columns:1fr}
+ .base-overview-sector .base-route-graphic svg{max-height:160px}
+}
+@media(max-width:650px){
+ #overlay .base-dialog{padding:8px 10px 6px;width:min(99vw,760px)}
+ #overlay .base-dialog .base-head{min-height:0;gap:7px;padding-bottom:9px}
+ #overlay .base-dialog .base-emblem{width:40px;height:40px}
+ #overlay .base-dialog .base-head h2{font-size:20px;margin-bottom:5px}
+ #overlay .base-dialog .base-tabs{gap:3px;margin-bottom:9px;padding:5px 0}
+ #overlay .base-dialog .base-tabs button{min-height:49px;padding:6px 2px!important;font-size:10px!important;overflow-wrap:anywhere}
+ #overlay .base-dialog .base-quick-services{grid-template-columns:1fr;gap:8px}
+ #overlay .base-dialog .base-quick-service{padding:12px 13px}
+ #overlay .base-dialog .base-quick-service h3{font-size:16px}
+ #overlay .base-dialog .base-quick-service::after{width:32px;height:32px;right:59px;top:7px}
+ .base-real-ship{width:65px;height:85px;flex-basis:65px}
+ #overlay .base-dialog .base-foot{bottom:-6px}
+}
+@media(max-height:580px) and (min-width:651px){
+ #overlay .base-dialog .base-head{min-height:0;padding:2px 3px 6px}
+ #overlay .base-dialog .base-tabs{padding:3px 0;margin-bottom:8px}
+ #overlay .base-dialog .base-tabs button{min-height:38px}
+ #overlay .base-dialog .base-overview-lead .base-next-step{padding:12px 15px;gap:8px}
+ .base-overview-sector{padding:10px}
+ .base-overview-sector .base-route-graphic svg{max-height:130px}
+}
+@media(prefers-reduced-motion:reduce){
+ #overlay .base-dialog .base-tabs button,#overlay .base-dialog .base-next-actions button{transition:none}
+}

@@ -14,7 +14,7 @@ import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weap
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
-import {slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1-direct-fit-2-menu-focus-1';
+import {slotOpen,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1-direct-fit-2-menu-focus-1';
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
@@ -847,18 +847,26 @@ export function renderBasePanel(base,state){
  const homeUrgent=state.firstHardwareReward==='pending'&&!completedOrder?
   firstReward:
   stationNextStep(base,state,o,!!(regionalGoal||campaign));
+ // The same level-driven sprite is used by the actual hangar, so the overview
+ // never advertises an imaginary ship or an outdated hull configuration.
+ const heroArt='../assets/space/hero-evolution/ship_'+
+  String(shipArtStage(state.level)+1).padStart(2,'0')+'.webp';
+ const sectorPreview='<aside class="base-overview-sector" aria-label="Известные узлы сектора">'+
+  '<span class="base-kicker">ОБСТАНОВКА</span><h3>Известный сектор</h3>'+basePreview(base,state)+'</aside>';
  const receipt=state.lastContractReceipt;
  const earnedReward=receipt&&!state.contract?'<section class="base-auto-contract-receipt" role="status" aria-label="Награда за заказ получена">'+
   '<span class="base-kicker">ЗАКАЗ ЗАВЕРШЁН</span><strong>Награда зачислена</strong>'+
   '<span class="base-auto-contract-values">+'+receipt.ore+' сплава · +'+receipt.data+
   ' опыта</span></section>':'';
- const dashboard=earnedReward+homeUrgent+suppression+
+ const dashboard=earnedReward+'<div class="base-overview-lead">'+homeUrgent+sectorPreview+'</div>'+suppression+
   (threats?'<aside class="base-alert" role="status"><span>Противник угрожает связи станций.</span>'+
    action('baseTab','Посмотреть угрозы','','network')+'</aside>':'')+
   '<div class="base-quick-services">'+
-  '<section class="base-quick-service"><span class="base-kicker">КОРАБЛЬ</span><h3>Ремонт и оснащение</h3>'+
+  '<section class="base-quick-service base-quick-ship"><span class="base-kicker">КОРАБЛЬ</span><h3>Ремонт и оснащение</h3>'+
   '<button type="button" class="menu-info" data-help-only data-help="'+repairHint+(base.type==='dock'?' Бесплатный ремонт: отстыкуйтесь и оставайтесь рядом с доком без попаданий. Меню останавливает время.':'')+'" aria-label="Условия ремонта">i</button>'+
-  '<p>Корпус '+Math.ceil(state.hp)+' / '+state.maxHp+(state.hp<state.maxHp?' · есть повреждения':' · исправен')+'</p>'+
+  '<div class="base-ship-condition"><img class="base-real-ship" src="'+heroArt+'" alt="Текущий облик корабля пилота" loading="lazy">'+
+  '<div><p>Корпус <b>'+Math.ceil(state.hp)+' / '+state.maxHp+'</b>'+(state.hp<state.maxHp?' · есть повреждения':' · исправен')+'</p>'+
+  '<progress class="base-hull-meter" value="'+Math.max(0,Math.min(state.maxHp,state.hp))+'" max="'+state.maxHp+'" aria-label="Прочность корпуса"></progress></div></div>'+
   '<div class="base-quick-buttons">'+
   (state.hp<state.maxHp?action('repair','Починить · '+o.repairCost+' сплава',o.reasons.repair):'')+
   (base.id==='0:0'&&!state.fieldTrialTaken&&!state.fieldLoan?
@@ -866,7 +874,7 @@ export function renderBasePanel(base,state){
   '</div>'+
   quickTrial+
   (state.hp<state.maxHp&&o.reasons.repair?'<small class="base-quick-reason">'+o.reasons.repair+'</small>':'')+'</section>'+
-  '<section class="base-quick-service"><span class="base-kicker">ПОДДЕРЖКА</span><h3>Боевые дроны</h3>'+
+  '<section class="base-quick-service base-quick-drones"><span class="base-kicker">ПОДДЕРЖКА</span><h3>Боевые дроны</h3>'+
   '<p>В строю '+state.allies+' / '+o.cap+(state.droneDamage>0?' · есть повреждения':'')+'</p>'+
   '<button type="button" class="menu-info" data-help-only data-help="'+o.drone.desc+'" aria-label="О боевом дроне">i</button>'+
   '<div class="base-quick-buttons">'+
@@ -876,8 +884,7 @@ export function renderBasePanel(base,state){
   '</section></div>'+(capturedWing||supply)+'<div class="base-home-strategy">'+renderTerritoryProgress(state.world,state.position)+(state.points?homeDevelopment:'')+'</div>'+
   '<details class="base-secondary-info"><summary>Станция · '+brief[0]+' · карта и подробности</summary>'+
   '<div class="base-secondary-body"><p><b>'+brief[1]+'.</b> '+brief[2]+'</p>'+
-  '<p>Архив данных · '+(state.data||0)+' · статистика вылета</p>'+
-  basePreview(base,state)+'</div></details>'+
+  '<p>Архив данных · '+(state.data||0)+' · статистика вылета</p></div></details>'+
   (firstRewardPromise?'<div class="base-quiet-promise">'+
    'Первый сданный заказ даст бесплатное оружие на выбор.</div>':'')+
   (stationPromise?'<div class="base-quiet-promise">'+stationPromise+'</div>':'');
