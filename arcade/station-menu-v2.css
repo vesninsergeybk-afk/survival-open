@@ -53,6 +53,17 @@
 #overlay .base-dialog .base-kicker{color:#a2bdc9;font-weight:700;font-size:11px;letter-spacing:.09em}
 #overlay .base-dialog .base-tab-panel{min-width:0}
 
+/* The dock header already displays level, points and alloy. Keep the large
+   progression page from repeating those same figures underneath it. */
+#overlay .base-dialog #base-panel-development .prog-resource-bar{display:none}
+
+/* Each task is a separate decision. On desktop the ordinary offers share
+   one full-width row, with each offer getting its own readable column. */
+#overlay .base-dialog .base-task-board>.base-task-group.regular{grid-column:1/-1}
+#overlay .base-dialog .base-task-group.regular .base-contract-choices{
+ grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
 /* Overview: actual decision + actual local sector map. Unknown locations are
    already filtered in renderStationRoutePreview, never fabricated here. */
 .base-overview-lead{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);gap:12px;align-items:start;margin:0 0 12px}
@@ -186,6 +197,10 @@
 #overlay .base-dialog .base-footer-actions button{min-height:44px;border-radius:5px;color:#c2d3dd;background:#1a3040;border:1px solid #527080;box-shadow:none}
 #overlay .base-dialog .base-footer-actions button[data-act="close"]{background:#ba905d;color:#1c1c1b;border-color:#e6bd83;box-shadow:none}
 #overlay .base-dialog .base-footer-actions button[data-act="close"]:hover{background:#d5aa74;box-shadow:none}
+@media(max-width:760px){
+ #overlay .base-dialog .base-task-board>.base-task-group.regular{grid-column:auto}
+ #overlay .base-dialog .base-task-group.regular .base-contract-choices{grid-template-columns:1fr}
+}
 
 @media(max-width:860px){
  .base-overview-lead{grid-template-columns:1fr}

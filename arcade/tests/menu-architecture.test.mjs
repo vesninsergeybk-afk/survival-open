@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {renderBasePanel} from '../base-panel.js';
 import {renderShipHangar} from '../hangar-panel.js';
 import {createLoadout,HangarSession} from '../ship-loadout.js';
@@ -26,6 +27,21 @@ test('special operation and normal assignments offer acceptance immediately on t
  assert.match(html,/data-act="acceptContract" data-role="standard">Принять заказ/);
  assert.doesNotMatch(html,/class="base-mission-details"/);
  assert.ok(html.indexOf('data-act="acceptOperation"')<html.indexOf('base-task-group regular'));
+});
+
+test('ordinary contracts use the whole task board on desktop without breaking mobile stacking',()=>{
+ const css=readFileSync(new URL('../station-menu-v2.css',import.meta.url),'utf8');
+ assert.match(css,/\.base-task-board>\.base-task-group\.regular\{grid-column:1\/-1\}/);
+ assert.match(css,/\.base-task-group\.regular \.base-contract-choices\{\s*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(css,/@media\(max-width:760px\)[\s\S]*?\.base-task-group\.regular \.base-contract-choices\{grid-template-columns:1fr\}/);
+});
+
+test('service menu has meaningful labels and distinguishes an offered operation from an accepted one',()=>{
+ const html=panel(renderBasePanel(dock,state({baseTab:'hangar',hangarView:'services'})),'hangar');
+ assert.match(html,/Операция «Глухой коридор» пока не принята\. У глушителя/);
+ assert.match(html,/ТЕХОБСЛУЖИВАНИЕ/);
+ assert.match(html,/БОЕВОЙ ДРОН/);
+ assert.doesNotMatch(html,/0[1-6] · (?:БОЕВОЙ ДРОН|ТЕХОБСЛУЖИВАНИЕ|МЕСТНАЯ УСЛУГА)/);
 });
 
 test('installed weapons show upgrade paths; absent weapons show installation only',()=>{

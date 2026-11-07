@@ -20,7 +20,7 @@ test('published module URLs expose the audited missions instead of cached statio
  const page=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(page,/src="\.\/game\.js\?v=[^"]*field-experience-1/);
- assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1'/);
+ assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1-menu-prof-1'/);
  assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-3'/);
 });
 

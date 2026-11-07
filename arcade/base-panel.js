@@ -713,24 +713,25 @@ export function renderBasePanel(base,state){
  const o=baseOffer(base,state),active=!!base.active;
  const status=base.suppressed?'СВЯЗЬ ПОДАВЛЕНА':active?(o.connected?'СЕТЬ ПОДКЛЮЧЕНА':'АВТОНОМНЫЙ УЗЕЛ'):'СТАНЦИЯ ВЫКЛЮЧЕНА';
  const activation=card('base-power'+(active?' connected':''),
-  '01 · УЗЕЛ СЕТИ',active?'Станция активна':'Включить станцию',
+  'УЗЕЛ СЕТИ',active?'Станция активна':'Включить станцию',
   active?(o.connected?'Связь с домашним доком. Услуги сети доступны.':
    'Работает локально. Активируйте промежуточные станции, чтобы соединить её с сетью.'):
    (o.relayCost?'Запуск узла требует '+o.relayCost+' сплава. После включения появятся местные услуги и доступ к сети.':'Первый док: +20 сплава и небольшой ремонт. Другие базы дают доступ к услугам и технологиям.'),
   active?'<span class="base-ready">✓ Питание включено</span>':
    action('activate',o.relayCost?'Подключить · '+o.relayCost+' сплава':'Запустить бесплатно',o.reasons.activate));
  const hire=card('base-service'+(!active?' inactive':''),
-  '02 · БОЕВОЙ ДРОН',o.drone.name+' · '+state.allies+'/'+o.cap,
-  o.drone.desc+' Дрон остаётся рядом.'+(o.replacing?' Заменяет дрона другого типа с частичным зачётом стоимости.':''),
+  'БОЕВОЙ ДРОН',o.drone.name+' · '+state.allies+'/'+o.cap,
+  o.drone.desc+(o.drone.role==='fighter'?' Сопровождает корабль.':'')+
+   (o.replacing?' Заменяет дрона другого типа с частичным зачётом стоимости.':''),
   action('hire',(o.replacing?'Заменить · ':'Нанять · ')+o.hireCost+' сплава',o.reasons.hire,o.drone.role),
   o.reasons.hire);
  const upgrade=card('base-service'+(!active?' inactive':''),
-  '03 · ТЕХНОЛОГИЯ СЕТИ',o.tech.name+' · '+o.level+' / 6',
-  o.tech.desc+' Один шаг на каждой станции этого типа.',
+  'ТЕХНОЛОГИЯ СЕТИ',o.tech.name+' · '+o.level+' / 6',
+  o.tech.desc,
   action('upgrade','Развить · '+o.upgradeCost+' сплава',o.reasons.upgrade),
   o.reasons.upgrade);
  const repair=card('base-service'+(!active?' inactive':''),
-  '04 · ТЕХОБСЛУЖИВАНИЕ','Ремонт корабля и дронов',
+  'ТЕХОБСЛУЖИВАНИЕ','Ремонт корабля и дронов',
   o.repairAmount<=0&&!(state.droneDamage>0)?'Корпус и дроны исправны.':base.type==='dock'?
    'Бесплатно: если вокруг безопасно, отстыкуйтесь и держитесь в 165 м от дока. Через 4 с без попаданий корпус будет восстанавливаться примерно на 3 ед./с. Платный ремонт возвращает до '+Math.ceil(o.repairAmount)+' ед. сразу; при небольших повреждениях обычно выгоднее подождать.':
    'Платный ремонт восстанавливает до '+Math.ceil(o.repairAmount)+' ед. корпуса сразу. Повреждённых дронов можно починить отдельно.',
@@ -738,7 +739,7 @@ export function renderBasePanel(base,state){
   (state.droneDamage>0?action('repairDrones','Починить дронов · '+o.droneRepairCost+' сплава',o.reasons.drones):''),
   o.reasons.repair&&o.reasons.drones?'':undefined);
  const local=o.localService?card('base-service base-local',
-   '05 · МЕСТНАЯ УСЛУГА',o.localService.name,
+   'МЕСТНАЯ УСЛУГА',o.localService.name,
    o.localService.desc,
    action('service','Применить · '+o.localService.cost+' сплава',o.reasons.service),
    o.reasons.service):'';
@@ -747,7 +748,7 @@ export function renderBasePanel(base,state){
   action('supply','Снарядить · '+o.chargeCost+' сплава',o.reasons.supply)+
   '<span>Зарядов: '+state.charges+' / 2</span></div>':'';
  const transit=o.connected&&state.connectedBases>=2&&o.transfers.length?
-  '<section class="base-transit"><div class="base-transit-head"><b>06 · МАРШРУТЫ СЕТИ</b><small>Между включёнными станциями можно перелететь за сплав. Сопровождающие дроны следуют за вами.</small></div><div class="base-transit-routes">'+
+  '<section class="base-transit"><div class="base-transit-head"><b>МАРШРУТЫ СЕТИ</b><small>Между включёнными станциями можно перелететь за сплав. Сопровождающие дроны следуют за вами.</small></div><div class="base-transit-routes">'+
   o.transfers.map(t=>action('transfer',(baseNames[t.type]||'Станция')+' · '+t.distance+' м · '+t.cost+' сплава',shortfall(t.cost,o.ore),t.id)).join('')+
   '</div></section>':'';
  const moduleOption=m=>'<div class="base-module-option'+(base.module===m.key?' selected':'')+'"><strong>'+m.name+'</strong><small>'+m.desc+'</small>'+
@@ -972,10 +973,13 @@ export function renderBasePanel(base,state){
    missionForPreparation.phase==='return'?'Операция «Глухой коридор»: помехи сняты, но награда ждёт передачи телеметрии в домашнем доке.':
    'Операция «Глухой коридор»: у глушителя есть охранение и ЭМ-импульсы. После уничтожения вернитесь с телеметрией в док за наградой.') :
   'Выберите дальнейший маршрут и подготовьте корабль к ожидаемой угрозе.';
+ const missionReadiness=!state.operation&&localMission?
+  missionContext.replace(/^Операция («[^»]+»): (.)/u,(_,name,first)=>
+   'Операция '+name+' пока не принята. '+first.toUpperCase()):missionContext;
  const readiness='<section class="base-sortie-context"><div><span class="base-kicker">ГОТОВНОСТЬ К ВЫЛЕТУ</span>'+
   '<strong>Корпус '+Math.ceil(state.hp)+' / '+state.maxHp+' · Дроны '+state.allies+'/'+o.cap+
   ' · Щит '+Math.ceil(state.shield||0)+'</strong></div>'+
-  '<p>'+missionContext+(hullPercent<45?' Корпус сильно повреждён: перед опасным вылетом можно отремонтироваться.':'')+'</p>'+
+  '<p>'+missionReadiness+(hullPercent<45?' Корпус сильно повреждён: перед опасным вылетом можно отремонтироваться.':'')+'</p>'+
   '<small>'+((state.droneRoles||[]).includes(o.drone.role)?
    o.drone.name+' уже в строю.':
    'Дрон: '+o.hireCost+' сплава · '+(o.ore>=o.hireCost?
@@ -1037,7 +1041,7 @@ export function renderBasePanel(base,state){
   '<p>Стазис действует только в сети с домашним доком. Два обычных врага должны одновременно находиться не дальше 235 м от станции и 185 м от вас. Импульс останавливает до трёх на 2,6 с, затем восстанавливается 26 с. На боссов и цели операций не действует.</p>'+
   '<p>Пропуск орбитальных ударов позволяет использовать их против врагов и астероидов, но опасен и для вас.</p></div></details></section>';
  const stationDevelopment='<section class="base-station-development" aria-label="Развитие станции"><h3>'+menuIcon('upgrades')+'Технология всего флота</h3>'+
-  '<p class="dev-station-currency">'+o.tech.desc+' Улучшение действует на ваши силы во всём мире, а не только рядом с этой станцией. На каждой станции можно внести вклад в технологию <b>один раз</b>. Стоимость — сплав; очки пилота не нужны.</p>'+
+  '<p class="dev-station-currency">На каждой станции можно один раз улучшить общую технологию флота. Результат действует во всём мире. Нужен сплав; очки пилота не расходуются.</p>'+
   '<div class="dev-station-level" aria-label="Развитие технологии сети"><strong>'+o.tech.name+'</strong><span>Общий уровень '+o.level+' из 6 · '+(base.usedUpgrade?'вклад этой станции уже использован':'эта станция ещё может улучшить технологию')+'</span>'+
   '<progress value="'+o.level+'" max="6" aria-label="Изучено уровней технологии"></progress></div>'+
   (instantUpgrades?'<h4>Доступно сейчас</h4><div class="base-grid">'+instantUpgrades+'</div>':'')+
