@@ -21,7 +21,7 @@ test('published module URLs expose the audited missions instead of cached statio
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(page,/src="\.\/game\.js\?v=[^"]*field-experience-1/);
  assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1'/);
- assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1'/);
+ assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-3'/);
 });
 
 test('illustrated objective props are drawn from one compact transparent sprite atlas',()=>{
@@ -36,6 +36,69 @@ test('illustrated objective props are drawn from one compact transparent sprite 
  drawFieldOperation(game,ctx,{x:op.x,y:op.y,w:4000,h:4000});
  assert.equal(drawn.length,2);
  assert.deepEqual(drawn.map(args=>args.slice(1,5)),[[95,0,410,600],[95,0,410,600]]);
+});
+
+const canvasRecorder=()=>{
+ const calls=[];
+ const ctx={};
+ for(const m of ['save','restore','translate','rotate','beginPath','arc','stroke','fill',
+  'fillText','setLineDash','fillRect','moveTo','lineTo','closePath','roundRect','strokeRect'])
+  ctx[m]=(...args)=>calls.push([m,...args]);
+ ctx.drawImage=(...args)=>calls.push(['drawImage',...args]);
+ return {ctx,calls};
+};
+
+test('relay has actual dormant, opening and powered art without extra downloads per node',()=>{
+ const relay=new URL('../assets/missions/relay-states-v2.webp',import.meta.url);
+ const repair=new URL('../assets/missions/repair-drone-v1.webp',import.meta.url);
+ const freighter=new URL('../assets/missions/convoy-health-v2.webp',import.meta.url);
+ const gameSource=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ assert.ok(statSync(relay).size<200_000);
+ assert.ok(statSync(repair).size<80_000);
+ assert.ok(statSync(freighter).size<130_000);
+ assert.match(gameSource,/relayStates:'\.\/assets\/missions\/relay-states-v2\.webp'/);
+ assert.match(gameSource,/repairDrone:'\.\/assets\/missions\/repair-drone-v1\.webp'/);
+ assert.match(gameSource,/convoyHealth:'\.\/assets\/missions\/convoy-health-v2\.webp'/);
+ const op=createFieldOperation('two-fronts',arsenal,world),game=fakeGame(op);
+ const sprite={complete:true,naturalWidth:512,naturalHeight:256};
+ game.images={relayStates:sprite};
+ const {ctx,calls}=canvasRecorder();
+ const cam={x:op.x,y:op.y,w:5000,h:5000};
+ drawFieldOperation(game,ctx,cam);
+ assert.equal(calls.filter(c=>c[0]==='drawImage'&&c[1]===sprite).length,2);
+ op.nodes[0].progress=1.4;
+ op.nodes[1].stabilized=true;op.nodes[1].fieldShield=40;
+ calls.length=0;drawFieldOperation(game,ctx,cam);
+ assert.equal(calls.filter(c=>c[0]==='drawImage'&&c[2]===256).length,2,
+  'charging and powered nodes use the second sprite in the same atlas');
+ assert.ok(calls.some(c=>c[0]==='lineTo'),'the raised shield has a faceted silhouette');
+});
+
+test('convoy only runs the engine while moving and shows a physical repair drone',()=>{
+ const op=createFieldOperation('broken-convoy',carrier,world,0,'safe'),game=fakeGame(op);
+ op.phase='active';op.nextRaidAt=1000;op.hp=62;
+ const sprite={complete:true,naturalWidth:240,naturalHeight:256};
+ const hull={complete:true,naturalWidth:512,naturalHeight:157};
+ game.images={repairDrone:sprite,convoyHealth:hull};
+ const {ctx,calls}=canvasRecorder();
+ const cam={x:op.x,y:op.y,w:5000,h:5000};
+ advanceFieldOperation(game,.25);
+ assert.equal(op.artMoving,true);
+ drawFieldOperation(game,ctx,cam);
+ const enginePaint=calls.filter(c=>c[0]==='fill'&&c.length===1).length;
+ assert.equal(calls.filter(c=>c[0]==='drawImage'&&c[1]===hull).length,2,
+  'at 62% hull integrity the clean and damaged ship frames blend');
+ op.fieldRepair.progress=1;game.actionHeld={kind:'field-work',target:op.fieldRepair};
+ calls.length=0;advanceFieldOperation(game,.25);
+ assert.equal(op.artMoving,false);
+ drawFieldOperation(game,ctx,cam);
+ assert.ok(calls.some(c=>c[0]==='drawImage'&&c[1]===sprite),
+  'the actual drone appears during held repair');
+ assert.ok(enginePaint>=2,'the moving ship leaves two engine wakes');
+ op.hp=90;calls.length=0;
+ drawFieldOperation(game,ctx,cam);
+ assert.equal(calls.filter(c=>c[0]==='drawImage'&&c[1]===hull).length,1,
+  'after a successful repair the ship no longer shows painted holes');
 });
 
 function fakeGame(op){
@@ -210,6 +273,8 @@ test('one risky shield charge protects exactly one of two threatened nodes',()=>
  RuntimeHarness.prototype.updateMissionStrike.call(game,enemy,node);
  assert.equal(node.hp,100,'the reserved barrier absorbs damage before the structure');
  assert.equal(node.fieldShield,FIELD_TACTICS.shieldStrength-17);
+ assert.equal(node.fieldShieldHitAt,4);
+ assert.equal(node.fieldShieldHitAngle,0);
  assert.ok(validFieldOperation(op));
  const copy=unpackRun(packRun({operation:op,station:{fieldMission:op},enemies:[]}));
  assert.equal(copy.operation.nodes[0].fieldShield,FIELD_TACTICS.shieldStrength-17);

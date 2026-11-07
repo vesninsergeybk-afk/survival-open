@@ -56,7 +56,7 @@ import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractR
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
- advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1';
+ advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-3';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1';
@@ -180,6 +180,9 @@ const MODELS={
  allyscout:'../assets/space/ship_scout.png',
  allybomber:'../assets/space/ship_mage.png',
  fieldProps:'./assets/missions/field-props-v1.webp',
+ relayStates:'./assets/missions/relay-states-v2.webp',
+ repairDrone:'./assets/missions/repair-drone-v1.webp',
+ convoyHealth:'./assets/missions/convoy-health-v2.webp',
  rock:'../assets/space/asteroid-ore.webp',
  rock2:'../assets/space/asteroid-realistic.webp'
 };
@@ -1739,8 +1742,12 @@ export class ArcadeGame {
   if(!cover){
    absorbed=Math.min(target.fieldShield||0,spec.damage);
    if(absorbed){target.fieldShield=Math.max(0,target.fieldShield-absorbed);
-    if(target.fieldShield===0)this.heritage.vfx.nova(target.x,target.y,48,'cyan');}
-   target.hp=Math.max(0,target.hp-(spec.damage-absorbed));
+    target.fieldShieldHitAt=this.time;
+    target.fieldShieldHitAngle=Math.atan2(enemy.y-target.y,enemy.x-target.x);
+    if(target.fieldShield===0){target.fieldShieldBreakAt=this.time;
+     this.heritage.vfx.nova(target.x,target.y,33,'cyan');}}
+   const hullDamage=spec.damage-absorbed;
+   if(hullDamage>0){target.hp=Math.max(0,target.hp-hullDamage);target.fieldHullHitAt=this.time;}
   }
   this.flash(enemy.x,enemy.y,cover?.x??target.x,cover?.y??target.y,
    absorbed?'#8ef5e4':'#ffb585');
@@ -2712,6 +2719,9 @@ export class ArcadeGame {
  }
  drawInteractionFocus(c,cam){
   const held=this.actionHeld;
+  // The two new 3D-looking mission objects already carry charge/repair visuals.
+  // A second dashed circle and a generic 'Action' label would cover their art.
+  if(held?.kind==='field-work'&&['two-fronts','broken-convoy'].includes(this.operation?.id))return;
   const focus=held?
    (held.kind==='mine'&&this.mining.target?.alive?
     {kind:'mine',target:this.mining.target,label:'Добыча'}:
