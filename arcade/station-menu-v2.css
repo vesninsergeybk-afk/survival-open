@@ -102,7 +102,9 @@
 #overlay .base-dialog .base-quick-service h3{font-size:17px;font-weight:680;color:#e8f0f2;max-width:calc(100% - 87px);padding-right:0}
 #overlay .base-dialog .base-quick-service p{color:#abbfcb;font-size:12px;line-height:1.45;margin:0;padding:0}
 .base-ship-condition{display:flex;align-items:center;gap:14px;min-width:0;flex:1}
-.base-real-ship{display:block;flex:0 0 82px;width:82px;height:106px;object-fit:contain;filter:drop-shadow(0 5px 10px #0008)}
+.base-real-ship{display:block;flex:0 0 82px;width:82px;height:106px;object-fit:cover;object-position:center;
+ mix-blend-mode:screen;mask-image:radial-gradient(ellipse at center,#000 53%,transparent 84%);
+ filter:drop-shadow(0 5px 10px #0008)}
 .base-ship-condition>div{flex:1;min-width:0}
 .base-ship-condition b{color:#e9eee9;font-size:14px}
 .base-hull-meter{display:block;width:min(100%,220px);height:7px;margin:9px 0 0;accent-color:#87c9d5;border:0;border-radius:3px;overflow:hidden;background:#0c1a25}
