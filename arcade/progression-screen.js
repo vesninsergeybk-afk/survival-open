@@ -297,7 +297,15 @@ export function renderProgressionScreen(state){
 export function paintProgressionLinks(root){
  if(!root)return;
  const svg=root.querySelector('.prog-tree-links');if(!svg)return;
- const rect=root.getBoundingClientRect(),width=root.scrollWidth,height=root.scrollHeight;
+ // An absolute SVG sized to scrollWidth/scrollHeight would enlarge those very
+ // dimensions and create scrollbars even when the whole tree fits on screen.
+ const rect=root.getBoundingClientRect(),style=getComputedStyle(root);
+ const rightPadding=Number.parseFloat(style.paddingRight)||0;
+ const bottomPadding=Number.parseFloat(style.paddingBottom)||0;
+ const width=Math.max(1,root.clientWidth-rightPadding);
+ const contentBottom=Math.max(0,...[...root.querySelectorAll('.prog-tier')]
+  .map(tier=>tier.offsetTop+tier.offsetHeight));
+ const height=Math.max(1,Math.ceil(root.clientHeight-bottomPadding),Math.ceil(contentBottom));
  svg.setAttribute('viewBox','0 0 '+Math.max(1,width)+' '+Math.max(1,height));
  svg.setAttribute('width',width);svg.setAttribute('height',height);
  const map=new Map([...root.querySelectorAll('.prog-node[data-node]')].map(el=>[el.dataset.node,el]));
@@ -305,8 +313,8 @@ export function paintProgressionLinks(root){
  for(const element of map.values()){
   const parent=map.get(element.dataset.requires);if(!parent)continue;
   const p=parent.getBoundingClientRect(),c=element.getBoundingClientRect();
-  const x1=p.left-rect.left+p.width/2,y1=p.bottom-rect.top;
-  const x2=c.left-rect.left+c.width/2,y2=c.top-rect.top;
+  const x1=p.left-rect.left+p.width/2+root.scrollLeft,y1=p.bottom-rect.top+root.scrollTop;
+  const x2=c.left-rect.left+c.width/2+root.scrollLeft,y2=c.top-rect.top+root.scrollTop;
   const path=document.createElementNS('http://www.w3.org/2000/svg','path');
   const dy=Math.max(14,Math.abs(y2-y1)*.45);
   path.setAttribute('d',`M${x1},${y1} C${x1},${y1+dy} ${x2},${y2-dy} ${x2},${y2}`);

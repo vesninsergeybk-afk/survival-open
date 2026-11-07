@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {join,dirname} from 'node:path';
-import {progressionModel,renderProgressionScreen} from '../progression-screen.js';
+import {progressionModel,renderProgressionScreen,paintProgressionLinks} from '../progression-screen.js';
 import {createLoadout} from '../ship-loadout.js';
 import {createTactical} from '../tactical-fields.js';
 import {DEFAULT_CONTROLS} from '../control-layout.js';
@@ -113,4 +113,22 @@ test('all referenced generated images are present as independent assets',()=>{
    assert.equal(existsSync(join(root,match[1])),true,'missing '+match[1]);
   }
  }
+});
+
+test('tree connectors cannot create scrollbars on short branches and grow for long ones',()=>{
+ const previous=globalThis.getComputedStyle;
+ globalThis.getComputedStyle=()=>({paddingRight:'10px',paddingBottom:'13px'});
+ try{
+  const attrs={};
+  const svg={setAttribute:(key,value)=>{attrs[key]=String(value);},replaceChildren(){}};
+  const tiers=[{offsetTop:7,offsetHeight:162}];
+  const root={clientWidth:474,clientHeight:342,scrollWidth:484,scrollHeight:352,
+   querySelector:()=>svg,querySelectorAll:selector=>selector==='.prog-tier'?tiers:[],
+   getBoundingClientRect:()=>({left:0,top:0})};
+  paintProgressionLinks(root);
+  assert.equal(attrs.width,'464');assert.equal(attrs.height,'329');
+  tiers[0].offsetTop=650;
+  paintProgressionLinks(root);
+  assert.equal(attrs.height,'812');
+ }finally{globalThis.getComputedStyle=previous;}
 });
