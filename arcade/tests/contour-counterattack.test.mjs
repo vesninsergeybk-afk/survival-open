@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {contourIrisDirective,contourIrisRushContacts,drawContourIrisCharge,CONTOUR_IRIS} from '../contour-trial-iris.js';
 import {updateEnemy} from '../ai.js';
+import {markDashPass} from '../field-evolution.js';
 
 function scene(){
  const player={x:0,y:0,vx:0,vy:0,r:19,hp:200,invul:200};
@@ -91,6 +92,42 @@ test('trial charge artwork is tied to a real warning state and reduced-motion sa
  contourIrisDirective(enemy,game);
  assert.equal(drawContourIrisCharge(ctx,enemy,game.time,true),true);
  assert.ok(operations.some(([name])=>name==='fillText'),'a literal dash warning exists');
+});
+
+test('a dodged dive leaves a visible slower recovery window',()=>{
+ const {game,enemy}=scene();
+ contourIrisDirective(enemy,game);
+ game.time+=CONTOUR_IRIS.windup+.01;
+ contourIrisDirective(enemy,game);
+ game.time+=CONTOUR_IRIS.rush+.01;
+ const order=contourIrisDirective(enemy,game);
+ assert.equal(order.phase,'recover');
+ assert.ok(order.speed<CONTOUR_IRIS.baseSpeed*.5);
+ const labels=[];
+ const ctx=new Proxy({},{get(target,key){
+  if(key==='fillText')return text=>labels.push(text);
+  return key in target?target[key]:()=>{};
+ },set(target,key,value){target[key]=value;return true;}});
+ assert.equal(drawContourIrisCharge(ctx,enemy,game.time,true),true);
+ assert.ok(labels.includes('ПЕРЕГРУЗКА'));
+});
+
+test('Conduit dash can cancel a warned IRIS attack, while ordinary ships keep their behavior',()=>{
+ const {game,enemy}=scene();
+ contourIrisDirective(enemy,game);
+ game.fieldEvolution={pulseAt:0};game.skillRanks={conduit:1};game.flash=()=>{};
+ game.heritage.vfx.nova=()=>{};
+ game.player.burstRemaining=.2;game.player.x=370;
+ assert.equal(markDashPass(game,0,0),1);
+ assert.equal(enemy._trialDive.phase,'recover');
+ assert.equal(enemy._trialDive.interrupted,true);
+ assert.ok(enemy.stasisUntil>game.time);
+ assert.ok(enemy.fieldMarkUntil>game.time,'the original dash-and-shoot synergy survives');
+ const ordinary={...enemy,serial:100,x:180,fieldMarkUntil:0,
+  trialId:undefined,_trialDive:undefined,_trialDiveEnabled:false};
+ game.enemies=[ordinary];
+ assert.equal(markDashPass(game,0,0),1);
+ assert.equal(ordinary._trialDive,undefined);
 });
 
 test('real IRIS AI retains ordinary projectile fire and reaches aggressive rush speed',()=>{

@@ -70,7 +70,7 @@ test('first three stages contain the promised scout and fighter waves',()=>{
  assert.equal(c.waves.length,2);
  assert.ok(c.waves[0].scout>0&&c.waves[1].fighter>0);
  assert.equal(planContourTrial(999,100).tier,12);
- assert.equal(contourChargeGoal(1),18,'the first core requires several sustained approaches');
+ assert.equal(contourChargeGoal(1),24,'the first core cannot charge entirely in the three safe windows');
  assert.ok(contourChargeGoal(12)>contourChargeGoal(1));
 });
 

@@ -1,11 +1,12 @@
 import {recordSortieIncome} from './sortie-ledger.js';
 import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,completeContourTrial,
- planContourTrial,trialQuota,contourChargeGoal} from './contour-trials.js?v=clarity-pass-1-first-loops-1';
+ planContourTrial,trialQuota,contourChargeGoal} from './contour-trials.js?v=clarity-pass-1-first-loops-1-pressure-1';
 import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1';
 import {contourFields,fieldAt} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js';
 import {ENEMY_TYPES} from './ai.js?v=first-loops-1';
 import {recordWorldFeedback} from './world-feedback.js';
+import {updateContourTrialPressure} from './contour-trial-pressure.js';
 
 const nearby=(a,b,r)=>dist(a,b)<r;
 function available(game,entry){
@@ -196,6 +197,7 @@ export function updateContourTrials(game,dt){
  // none of those actions silently erase already earned charge.
  if(channeling(game,event.entry))
   event.charge=Math.min(event.chargeGoal,event.charge+Math.max(0,dt));
+ updateContourTrialPressure(game,event,dt);
  if(event.phase==='stabilize'){
   if(event.charge>=event.chargeGoal){finishTrial(game,event);return;}
   if(game.time>=event.nextStrikeAt)scheduleTrialStrike(game,event);

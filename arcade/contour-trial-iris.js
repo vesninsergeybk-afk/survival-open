@@ -6,7 +6,7 @@ import {clamp} from './balance.js';
 
 export const CONTOUR_IRIS=Object.freeze({
  minimumRange:135,maximumRange:445,windup:.78,rush:.79,
- correctionAt:.32,recovery:1.25,baseSpeed:338,maxSpeed:385,
+ correctionAt:.32,recovery:1.9,baseSpeed:338,maxSpeed:385,
  maxSimultaneous:2
 });
 
@@ -45,7 +45,7 @@ export function contourIrisDirective(enemy,game){
   }
  }
  if(attack?.phase==='recover'){
-  if(now<attack.until)return {x:attack.x,y:attack.y,speed:193,phase:'recover'};
+  if(now<attack.until)return {x:attack.x,y:attack.y,speed:145,phase:'recover'};
   attack.phase='cooldown';attack.until=now+2.3+(Math.abs(enemy.serial||0)%4)*.4;
  }
  if(attack?.phase==='windup'){
@@ -80,6 +80,17 @@ export function contourIrisDirective(enemy,game){
  return {x:aim.x,y:aim.y,speed:78,phase:'windup'};
 }
 
+/** A timed dash through an IRIS with the Conduit skill disrupts its dive.
+ * Ordinary dashes still depend on steering away from the announced lane. */
+export function interruptContourIrisDive(enemy,now){
+ const attack=enemy?._trialDive;
+ if(!enemy?._trialDiveEnabled||!['windup','rush'].includes(attack?.phase))return false;
+ enemy._trialDive={phase:'recover',started:now,
+  until:now+CONTOUR_IRIS.recovery,x:enemy.x,y:enemy.y,interrupted:true};
+ enemy.stasisUntil=Math.max(enemy.stasisUntil||0,now+.65);
+ return true;
+}
+
 /** Swept contact avoids a fast dive passing through the ship at 10–20 FPS. */
 export function contourIrisRushContacts(startX,startY,enemy,player){
  const dx=enemy.x-startX,dy=enemy.y-startY;
@@ -93,14 +104,20 @@ export function contourIrisRushContacts(startX,startY,enemy,player){
 /** An exact world-space warning and readable, low-cost thrust trail. */
 export function drawContourIrisCharge(ctx,enemy,now,reducedMotion=false){
  const attack=enemy?._trialDive;
- if(!attack||!['windup','rush'].includes(attack.phase)||enemy.hp<=0)return false;
+ if(!attack||!['windup','rush','recover'].includes(attack.phase)||enemy.hp<=0||
+  (attack.phase==='recover'&&now>=attack.until))return false;
  const warning=attack.phase==='windup';
+ const recovering=attack.phase==='recover';
  const progress=clamp((now-attack.started)/(warning?CONTOUR_IRIS.windup:CONTOUR_IRIS.rush),0,1);
- const radius=(enemy.r||14)+(warning?11+7*(1-progress):8);
+ const radius=(enemy.r||14)+(warning?11+7*(1-progress):recovering?13:8);
  ctx.save();ctx.lineCap='round';
- ctx.strokeStyle=warning?'#ffc58f':'#ff727d';ctx.lineWidth=warning?2.4:3;
+ ctx.strokeStyle=recovering?'#80ffdd':warning?'#ffc58f':'#ff727d';
+ ctx.lineWidth=warning?2.4:3;
  ctx.beginPath();ctx.arc(enemy.x,enemy.y,radius,0,Math.PI*2);ctx.stroke();
- if(warning){
+ if(recovering){
+  ctx.fillStyle='#a1ffe6';ctx.font='bold 10px system-ui';ctx.textAlign='center';
+  ctx.fillText(attack.interrupted?'СБОЙ НАВЕДЕНИЯ':'ПЕРЕГРУЗКА',enemy.x,enemy.y-radius-12);
+ }else if(warning){
   // The lane is a prediction, not an invisible unavoidable lock-on.
   ctx.setLineDash([9,8]);ctx.strokeStyle='rgba(255,154,135,.68)';ctx.lineWidth=1.7;
   ctx.beginPath();ctx.moveTo(enemy.x,enemy.y);ctx.lineTo(attack.x,attack.y);ctx.stroke();

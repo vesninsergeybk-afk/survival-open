@@ -1,4 +1,4 @@
-import {CONTOUR_TRIALS,pendingContourTrials,trialBlockingField,planContourTrial,trialQuota} from './contour-trials.js?v=clarity-pass-1-first-loops-1';
+import {CONTOUR_TRIALS,pendingContourTrials,trialBlockingField,planContourTrial,trialQuota} from './contour-trials.js?v=clarity-pass-1-first-loops-1-pressure-1';
 
 // An actual short-range interaction beam, not a decorative blue extraction
 // ray. Forks are deterministic, so reduced motion and low FPS stay readable.
@@ -126,7 +126,9 @@ export function drawContourTrialHUD(c,game){
   phase==='warning'?'АТАКА ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С · ВСЕГО ВОЛН: '+event.plan.waves.length:
   phase==='rest'?'ВОЛНА ОТРАЖЕНА · СЛЕДУЮЩАЯ ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С':
   (waveName?waveName+' · ':'')+'ПОБЕДИТЬ '+Math.min(defeated,quota)+' / '+quota+' · '+seconds+' С';
- const hint=fraction>=1?'Заряд готов · осталось отразить нападения':
+ const markedZone=game.zones?.some(z=>z.antiCamp&&z.trialId===event.entry.id&&z.fuse>0);
+ const hint=markedZone?'ВАС ЗАСЕКЛИ НА МЕСТЕ · УЙДИТЕ ИЗ КРУГА':
+  fraction>=1?'Заряд готов · осталось отразить нападения':
   channeling?'ЛУЧ РАБОТАЕТ · стрельба корабля остановлена':
   beamOutOfRange?'ЛУЧ ПРЕРВАН · подлетите ближе или отпустите действие':
   phase==='wave'&&irisRush?'Зрачок готовит рывок · уклонитесь и вернитесь к ядру':

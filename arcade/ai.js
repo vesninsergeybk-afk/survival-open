@@ -1,12 +1,12 @@
 import {theaterDestination} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2-mesh-strategy-v2-1';
-import {updateParasitizedEnemy} from './field-evolution.js?v=field-evolution-1-first-loops-1';
+import {updateParasitizedEnemy} from './field-evolution.js?v=field-evolution-1-first-loops-1-iris-interrupt-1';
 import {stormSeek} from './regional-storms.js?v=regions-1';
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20';
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
-import {contourIrisDirective,contourIrisRushContacts} from './contour-trial-iris.js?v=contour-counterattack-1';
+import {contourIrisDirective,contourIrisRushContacts} from './contour-trial-iris.js?v=counterattack-2';
 import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2';
 import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1';
@@ -563,7 +563,7 @@ export function updateEnemy(e,game,dt){
   steer(e,goalX,goalY,speed,dt,{x:extraX,y:extraY});
   e.healFlash=Math.max(0,(e.healFlash||0)-dt);
   updateEnemyGunnery(e,game,selected);
-  if(e.type==='scout'&&!search&&trialDive?.phase!=='rush'&&
+  if(e.type==='scout'&&!search&&trialDive?.phase!=='rush'&&trialDive?.phase!=='recover'&&
      (localContact||(selected!==game.player&&game.enemyCanSee?.(e,selected))))
     scoutAttack(e,game,selected,
     e._irisScanMode==='acquire'&&game.time<(e._irisScanUntil||0));
