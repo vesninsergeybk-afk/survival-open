@@ -57,6 +57,11 @@ test('production loads final quiet layer, real art and reduced-motion/mobile rul
  const finalCss='./station-menu-v2.css?v=station-menu-v2-1';
  assert.ok(html.includes(finalCss));
  assert.ok(html.indexOf(finalCss)>html.indexOf('./progression-art.css'));
+ assert.match(html,/game\.js\?v=[^"\n]*station-menu-v2-1/,
+  'the game module needs a fresh URL so browsers do not reuse an older import graph');
+ const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ assert.match(game,/base-panel\.js\?v=[^'\n]*station-menu-v2-1/,
+  'the station renderer itself must be cache-busted');
  const css=readFileSync(new URL('../station-menu-v2.css',import.meta.url),'utf8');
  assert.match(css,/\.base-overview-lead/);
  assert.match(css,/\.base-ship-condition/);
