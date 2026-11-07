@@ -1,4 +1,4 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1';
 import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-portrait-1';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
@@ -419,7 +419,7 @@ const fieldOperationsPanel=(base,state)=>{
  if(!ids.length)return '';
  return '<section class="base-task-group special field-operation-board" aria-label="Сложные вылазки">'+
   '<h3>Сложные вылазки · повторяемые</h3><p class="base-op-summary">'+
-  'Разные задачи, несколько исходов. Пока выполняется одна особая операция, новую начать нельзя.</p>'+
+  'Альтернатива особой операции: одновременно можно выполнять только одну такую вылазку. У некоторых заданий есть частичная награда.</p>'+
   ids.map(id=>{
    const offer=fieldOperationOffer(base,state.operation,state.time||0,id,state.level||1),spec=FIELD_OPERATIONS[id];
    if(!offer)return '';
@@ -875,9 +875,9 @@ export function renderBasePanel(base,state){
   '<section class="base-trial-picker" aria-label="Бесплатный полевой модуль">'+
   '<strong>Выберите один полевой модуль</strong><p>На выбор один бесплатный модуль с тремя зарядами. При наличии свободного узла модуль установится сразу.</p>'+
   '<div class="base-trial-options">'+
-  '<div><b>Ионный проводник</b><small>Цепной разряд по целям с плазменными метками · '+fieldKey+'</small>'+
+  '<div class="base-trial-option"><div class="base-trial-product"><img src="./assets/station-menu/field-ion.webp" alt="" loading="lazy" width="80" height="80"><div><b>Ионный проводник</b><small>Цепной разряд по целям с плазменными метками · '+fieldKey+'</small></div></div>'+
   action('loanField','Выбрать ионный','','ion')+'</div>'+
-  '<div><b>Резонатор</b><small>Связывает несколько целей и передаёт между ними часть урона · '+fieldKey+'</small>'+
+  '<div class="base-trial-option"><div class="base-trial-product"><img src="./assets/station-menu/field-resonator.webp" alt="" loading="lazy" width="80" height="80"><div><b>Резонатор</b><small>Связывает несколько целей и передаёт между ними часть урона · '+fieldKey+'</small></div></div>'+
   action('loanField','Выбрать резонатор','','resonator')+'</div></div></section>':'';
  const regionalGoal=state.world&&state.position?renderHomeConflict({world:state.world,player:state.position,
   time:state.time,openingArc:state.openingArc},{compact:true}):'';
@@ -946,15 +946,15 @@ export function renderBasePanel(base,state){
  const hasAcceptedWork=!!state.operation||!!state.contract;
  const operations='<div class="base-operations"><div class="base-view-intro"><div><span class="base-kicker">ВАШИ ЗАДАНИЯ</span><strong>'+
   (hasAcceptedWork?'Текущие задания':'Доступные задания')+'</strong>'+
-  '<p>Можно выполнять одну особую операцию и один полевой заказ одновременно.</p></div></div>'+
+  '<p>Полевой заказ можно совмещать с особой операцией или сложной вылазкой. Для двух последних — одно общее место.</p></div></div>'+
   (state.operation&&!localOperation?'<div class="base-active-mission">'+ongoingOpPanel+'</div>':'')+
   firstReward+
   '<div class="base-task-board">'+
   (o.contract.status==='ready'?'<section class="base-task-group reward"><h3>Готовая награда</h3>'+contractPanel(o,state)+'</section>':'')+
+  (o.contract.status==='ready'?'':'<section class="base-task-group regular" aria-label="Полевые заказы"><h3>Полевые заказы</h3>'+contractPanel(o,state)+'</section>')+
   (specialOffer(base,state)?'<section class="base-task-group special" aria-label="Особая операция"><h3>Особая операция</h3>'+
    specialPanel(base,state)+'</section>':'')+
   fieldOperationsPanel(base,state)+
-  (o.contract.status==='ready'?'':'<section class="base-task-group regular" aria-label="Полевые заказы"><h3>Полевые заказы</h3>'+contractPanel(o,state)+'</section>')+
   '</div>'+
   (regionalGoal||campaign?'<details class="base-secondary-info base-region-plans" data-hangar-section="region-plans">'+
    '<summary>Цели в регионах · ослабить противника и открыть станции</summary>'+regionalGoal+campaign+'</details>':'')+'</div>';
@@ -1045,7 +1045,7 @@ export function renderBasePanel(base,state){
   '<div class="dev-station-level" aria-label="Развитие технологии сети"><strong>'+o.tech.name+'</strong><span>Общий уровень '+o.level+' из 6 · '+(base.usedUpgrade?'вклад этой станции уже использован':'эта станция ещё может улучшить технологию')+'</span>'+
   '<progress value="'+o.level+'" max="6" aria-label="Изучено уровней технологии"></progress></div>'+
   (instantUpgrades?'<h4>Доступно сейчас</h4><div class="base-grid">'+instantUpgrades+'</div>':'')+
-  (futureUpgrades?'<div class="base-network-future"><h4>Следующие улучшения · стоимость и условия</h4><div class="base-grid">'+futureUpgrades+'</div></div>':'')+'</section>'+
+  (futureUpgrades?'<details class="base-secondary-info base-network-future"><summary>Следующие улучшения · стоимость и условия</summary><div class="base-grid">'+futureUpgrades+'</div></details>':'')+'</section>'+
   (modules?'<section class="base-network-direct" aria-label="Оснащение станции"><h3>'+
    menuIcon('upgrades')+(base.module?'Местный модуль · установлен':'Местный модуль · выбор для этой станции')+
    '</h3>'+modules+'</section>':'');
