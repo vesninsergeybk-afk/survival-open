@@ -141,10 +141,17 @@ test('new regional goal waits for the first dilemma, and never hijacks a player 
 test('a cancelled hangar departure does not commit the new regional plan',()=>{
  const g=game();g.time=150;updateHomeConflict(g);
  Object.assign(g,{dead:false,overlay:{hidden:false,dataset:{mode:'base'}},docked:g.world.home,
-  stationExitArmed:true,hangarSession:{dirty:()=>true},askDepartureConfirmation(){g.asked=true;}});
- assert.equal(g.chooseConflictPlan('survey'),true);assert.equal(g.asked,true);
+  stationExitArmed:true,hangarSession:{dirty:()=>true},askDepartureConfirmation(){g.asked=true;},
+  openMap(){this.overlay.dataset.mode='map';},renderMap(){}});
+ g.heritage.ui=()=>{};
+ assert.equal(g.chooseConflictPlan('survey'),true);
+ assert.equal(g.asked,undefined);
+ assert.equal(g.overlay.dataset.mode,'map');
+ assert.equal(g.waypoint.conflictPlan,'survey');
  assert.equal(g.world.regionalSupply.central.conflict.plan,null);
- assert.equal(g.pendingWaypointSelection.waypoint.conflictPlan,'survey');
+ assert.equal(g.dismiss(),false);
+ assert.equal(g.asked,true);
+ assert.equal(g.world.regionalSupply.central.conflict.plan,null);
 });
 test('a paid sortie can depart at the background cap, while the total remains bounded',()=>{
  const g=game(),s=g.world.regionalSupply.central;g.time=200;

@@ -65,30 +65,30 @@ test('tactical inspection shows only the chosen branches and preserves equipment
  const html=renderShipHangar({...g.baseState(),developmentMode:true,developmentCategory:'tactics'},g.hangarSession);
  assert.equal((html.match(/data-act="hgFocusTactic"/g)||[]).length,4);
  assert.match(html,/Устройство пока не получено/);
- assert.match(html,/data-act="fitTactic" data-id="jam"/);
+ assert.match(html,/data-act="hgTacticUnlock" data-id="jam"/);
  assert.doesNotMatch(html,/data-act="hgTacticUpgrade"/,'an unowned device cannot open a purchasable branch');
  assert.doesNotMatch(html,/Защитная оболочка|Сборщик патрулей/);
  assert.match(html,/Сейчас установлено: <b>Импульс<\/b>/);
  g.hangarAction({act:'hgFocusTactic',id:'fabricated'});assert.equal(g.hangarSession.focusTactic,'jam');
 });
 
-test('tactical acquisition shortcut opens the precise fitting without buying or discarding a draft',()=>{
+test('a tactical shortcut opens the specified device without buying or discarding a draft',()=>{
  const g=dockedGame();g.baseTab='development';g.hangarSession.draft.slots[1]='rail';
  const snapshot=JSON.stringify(g.hangarSession.draft),tactical=JSON.stringify(g.tactical),ore=g.player.ore;
- g.focusTacticalFitting('jam');
+ g.openDevelopment('tactics','jam');
  assert.equal(g.baseTab,'hangar');assert.equal(g.hangarView,'tactics');
  assert.equal(g.hangarSession.focusTactic,'jam');
  assert.equal(JSON.stringify(g.tactical),tactical);assert.equal(g.player.ore,ore);
  assert.equal(JSON.stringify(g.hangarSession.draft),snapshot);
- g.focusTacticalFitting('fabricated');assert.equal(g.hangarSession.focusTactic,'jam');
+ g.openDevelopment('tactics','fabricated');assert.equal(g.hangarSession.focusTactic,'jam');
 });
 
-test('owned tactical equipment can be developed before equipping, with a fitting shortcut',()=>{
+test('owned tactical equipment can be upgraded or installed on the same page',()=>{
  const g=dockedGame();g.tactical.owned.push('decoy');g.hangarSession.focusTactic='decoy';
  const html=renderShipHangar({...g.baseState(),developmentMode:true,developmentCategory:'tactics'},g.hangarSession);
  assert.match(html,/Получено · сейчас установлено другое устройство/);
  assert.match(html,/data-act="hgTacticUpgrade" data-id="decoy:lure"/);
- assert.match(html,/data-act="fitTactic" data-id="decoy"/);
+ assert.match(html,/data-act="hgTacticEquip" data-id="decoy"/);
  assert.match(html,/Радиус: 590 → 700 м/);
  assert.doesNotMatch(html,/data-act="hgTacticUnlock"/);
 });
@@ -99,21 +99,20 @@ test('the tactical cooldown describes the selected upgraded device, including wh
  g.tactical.branches.pulse={path:'shell',rank:1};
  g.hangarSession.focusTactic='pulse';
  const html=renderShipHangar(g.baseState(),g.hangarSession);
- assert.match(html,new RegExp('перезарядка <b>'+tacticalSpec({...g.tactical,equipped:'pulse'}).cooldown+' с'));
+ assert.match(html,new RegExp('перезарядка '+tacticalSpec({...g.tactical,equipped:'pulse'}).cooldown+' с'));
 });
 
-test('a level-one pilot sees one concrete next improvement before the complete technology list',()=>{
+test('hull and frame show the requirements without unrelated weapon technologies',()=>{
  const g=dockedGame();g.player.level=1;g.player.points=0;g.hangarView='upgrades';
  const html=renderShipHangar(g.baseState(),g.hangarSession);
- const first=html.split('<details class="hg-all-technologies"')[0];
- assert.match(first,/Доступно сейчас/);assert.match(first,/Сейчас нет доступных покупок/);
- assert.equal((first.match(/data-act="hgUpgrade"/g)||[]).length,1);
- assert.match(first,/Калибровка орудий/);assert.match(first,/Нужен уровень 2/);
- assert.doesNotMatch(first,/Энергощит|Авторакеты|Разделение луча/);
- assert.match(html,/<details class="hg-all-technologies" data-hangar-section="all-technologies">/);
+ assert.match(html,/Свободные очки: 0/);
+ assert.match(html,/Укрепление корпуса/);
+ assert.match(html,/data-id="hull" disabled>Изучить · 1 очко<\/button>[^]*?Нужен уровень 2/);
+ assert.doesNotMatch(html,/Калибровка орудий|Авторакеты|Разделение луча/);
+ assert.match(html,/Оружейные узлы/);
  g.player.level=3;g.player.points=1;
- const available=renderShipHangar(g.baseState(),g.hangarSession).split('class="hg-next-upgrade"')[0];
- for(const id of ['beam','range','hull','engine'])assert.match(available,new RegExp('data-id="'+id+'">Изучить · 1 очко'));
+ const available=renderShipHangar(g.baseState(),g.hangarSession);
+ for(const id of ['hull','engine'])assert.match(available,new RegExp('data-id="'+id+'">Изучить · 1 очко'));
 });
 
 test('region entry immediately suggests a legal starting station without building lines or revealing contacts',()=>{
@@ -154,10 +153,11 @@ test('station functions explain automatic service radio and automatic territoria
  assert.match(html,/Местный модуль · выбор для этой станции/);
 });
 
-test('map destination counts are labelled as a list rather than a number of missions',()=>{
+test('the map lists destinations without suggesting a count of active missions',()=>{
  const g=dockedGame();g.mapView='targets';
  const html=renderWorldMap(g);
- assert.match(html,/Список · \d+/);assert.doesNotMatch(html,/Цели · \d+/);
+ assert.match(html,/data-id="targets" aria-pressed="true"[^>]*>[\s\S]*?Цели<\/button>/);
+ assert.doesNotMatch(html,/Цели · \d+/);
 });
 
 test('touch information opens on one tap, stays open until dismissed, and never propagates as a purchase',()=>{

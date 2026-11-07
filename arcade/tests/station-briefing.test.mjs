@@ -59,7 +59,7 @@ test('station operations expose risk, consequences, route and preparation withou
  assert.match(h,/ОПАСНОСТЬ/);
  assert.match(h,/ИЗМЕНЕНИЕ МИРА/);
  assert.match(h,/Посмотреть маршрут/);
- assert.match(h,/Архив данных <b>0<\/b><\/span>/);
+ assert.match(renderBasePanel(b,stationState(w)),/Архив данных · 0 · статистика вылета/);
  assert.doesNotMatch(h,/Данные <b>0<\/b> \(опыт\)/);
  assert.match(h,/aria-controls="base-panel-hangar"/);
  const prep=renderBasePanel(b,stationState(w,{baseTab:'hangar',hangarView:'services',hp:30}));

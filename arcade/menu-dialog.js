@@ -54,14 +54,17 @@ export function keepTabInMenu(event,overlay){
 export function captureMenuControl(overlay){
  const element=overlay?.ownerDocument?.activeElement;
  if(!element||!overlay.contains?.(element)||!element.dataset?.act)return null;
- return {act:element.dataset.act,id:element.dataset.id||'',role:element.dataset.role||''};
+ return {act:element.dataset.act,id:element.dataset.id||'',role:element.dataset.role||'',
+  target:element.dataset.target||'',focus:element.dataset.focus||''};
 }
 
 export function restoreMenuControl(overlay,identity,fallback=''){
  if(identity){
   const found=[...overlay.querySelectorAll('[data-act]')].find(element=>
    element.dataset.act===identity.act&&(element.dataset.id||'')===identity.id&&
-   (element.dataset.role||'')===identity.role&&visible(element));
+   (element.dataset.role||'')===identity.role&&
+   (element.dataset.target||'')===(identity.target||'')&&
+   (element.dataset.focus||'')===(identity.focus||'')&&visible(element));
   if(found){found.focus({preventScroll:true});return found;}
  }
  return focusMenu(overlay,fallback);

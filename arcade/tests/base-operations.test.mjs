@@ -32,7 +32,7 @@ test('each station offers exactly two mutually exclusive tasks',()=>{
   const options=contractChoices(type);
   assert.equal(options.length,2);
   assert.notEqual(options[0].kind+options[0].goal,options[1].kind+options[1].goal);
-  const html=renderBasePanel(station(type),state());
+  const html=renderBasePanel(station(type),state({baseTab:'operations'}));
   assert.match(html,/data-act="acceptContract" data-role="standard"/);
   assert.match(html,/data-act="acceptContract" data-role="alternate"/);
  }
@@ -42,7 +42,7 @@ test('first contract advertises free hardware, then offers one clear choice loca
  const intro=renderBasePanel(dock,state({loadout:createLoadout(),firstHardwareReward:null}));
  assert.match(intro,/Первый сданный заказ даст бесплатное оружие на выбор/);
  const ready=renderBasePanel(dock,state({loadout:createLoadout(),firstHardwareReward:'pending'}));
- assert.match(ready,/Вы получили новое оружие/);
+ assert.match(ready,/Выберите бесплатное оружие/);
  assert.doesNotMatch(ready,/data-act="baseTab" data-role="operations">Выбрать оружие/);
  assert.equal((ready.match(/data-act="claimFirstModule"/g)||[]).length,3,
   'one choice location avoids duplicated award buttons');
@@ -66,7 +66,7 @@ test('alternate task pays its own reward and remains selected after claiming',()
  assert.equal(dock.completedContract,'alternate');
  assert.equal(contractOffer(dock,game.baseState()).name,'Геологические сведения');
  assert.equal(contractOffer(dock,game.baseState()).status,'cooldown');
- const menu=renderBasePanel(dock,game.baseState());
+ const menu=renderBasePanel(dock,{...game.baseState(),baseTab:'operations'});
  assert.match(menu,/class="base-contract-wait">Новый заказ через/);
  assert.doesNotMatch(menu,/data-act="acceptContract" disabled>Ожидание/);
 });

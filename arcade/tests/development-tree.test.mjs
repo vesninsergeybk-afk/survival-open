@@ -35,7 +35,7 @@ test('development entry identifies points and offers direct playstyle routes',()
  assert.match(html,/data-id="ship" data-focus="hull" data-upgrade="hull"/);
  assert.match(html,/data-id="pilot" data-focus="magnet" data-upgrade="magnet"/);
  assert.match(html,/class="dev-choice-effect">\+55 м/);
- assert.equal((html.match(/data-act="developmentTab"/g)||[]).length,4);
+ assert.equal((html.match(/data-act="skillBranch"/g)||[]).length,3);
  assert.match(html,/До уровня 9 осталось/);
  assert.doesNotMatch(html,/data-act="developmentTab" data-id="station"/);
  const noPoints=renderDevelopmentPanel({...s,points:0,developmentCategory:'weapons'});
@@ -75,7 +75,8 @@ test('a quick recommendation focuses the exact purchasable node, without spendin
   return null;
  };
  g.openDevelopment('weapons','plasma','beam');
- assert.equal(g.baseTab,'development');
+ assert.equal(g.baseTab,'hangar');
+ assert.equal(g.hangarView,'weapon-upgrades');
  assert.deepEqual(calls.map(v=>v[0]),['tabindex','scroll','focus']);
  assert.equal(g.player.points,2);
  calls.length=0;disabled=true;
@@ -134,7 +135,7 @@ test('ship screen keeps the hull→shield prerequisite and distinguishes alloy s
  assert.match(html,/сплава/);
 });
 
-test('pilot shows all unlocked-by-level skills even when no point is currently available',()=>{
+test('pilot shows the selected branch with available skills before locked future skills',()=>{
  const skills=[
   {id:'dodge',branch:'Корабль',title:'Уклонение',from:3,max:3,desc:'Рывок'},
   {id:'magnet',branch:'Добыча',title:'Магнитный захват',from:2,max:3,desc:'Сбор'},
@@ -142,19 +143,18 @@ test('pilot shows all unlocked-by-level skills even when no point is currently a
   {id:'extractor',branch:'Добыча',title:'Дуговой экстрактор',from:3,max:3,requires:'mining',desc:'Разряд'},
   {id:'radar',branch:'Технологии',title:'Радар',from:3,max:2,desc:'Карта'}
  ];
- const html=renderPilotContent({player:{level:8,points:0},ranks:{mining:0},skills,doctrines:[],nextEffect:()=>'+1',allBranches:true});
+ const html=renderPilotContent({player:{level:8,points:0},ranks:{mining:0},skills,doctrines:[],nextEffect:()=>'+1',branch:'Добыча'});
  assert.match(html,/data-state="waiting"/);
  assert.match(html,/После «Геологическая подготовка»/);
- for(const name of ['Уклонение','Магнитный захват','Геологическая подготовка','Дуговой экстрактор','Радар'])
+ for(const name of ['Магнитный захват','Геологическая подготовка','Дуговой экстрактор'])
   assert.match(html,new RegExp(name));
- assert.equal((html.match(/data-act="skill"/g)||[]).length,5);
- assert.match(html,/<details class="pilot-future"><summary>Будущие навыки/);
+ assert.equal((html.match(/data-act="skill"/g)||[]).length,3);
+ assert.match(html,/<details class="pilot-future"[^>]*><summary>Будущие навыки/);
  assert.ok(html.indexOf('data-id="magnet"')<html.indexOf('data-id="extractor"'),'available skills precede prerequisite-locked future skills');
- assert.equal((html.match(/data-act="focusPilotBranch"/g)||[]).length,3);
- assert.doesNotMatch(html,/dev-pilot-ready-list/,'no point must not imply a purchasable skill');
- const ready=renderPilotContent({player:{level:8,points:1},ranks:{mining:0},skills,doctrines:[],nextEffect:()=>'+1',allBranches:true});
- assert.match(ready,/dev-pilot-ready-list/);
- assert.match(ready,/data-act="openDevelopment" data-id="pilot" data-focus="magnet" data-upgrade="magnet"/);
+ assert.equal((html.match(/data-act="skillBranch"/g)||[]).length,3);
+ assert.doesNotMatch(html,/Уклонение|Радар|Изучить · 1 очко/);
+ const ready=renderPilotContent({player:{level:8,points:1},ranks:{mining:0},skills,doctrines:[],nextEffect:()=>'+1',branch:'Добыча'});
+ assert.match(ready,/data-act="skill" data-id="magnet">Изучить · 1 очко/);
 });
 
 test('installation shortcut enters a real fitting without manufacturing the weapon',()=>{

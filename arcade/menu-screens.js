@@ -12,6 +12,26 @@ export const menuSymbol=kind=>{
 export const menuInfo=(title,text)=>'<button type="button" class="menu-info" data-help-only data-help="'+escapeMenu(text)+'" aria-label="'+escapeMenu(title)+'">i</button>';
 export const screenHead=(kind,kicker,title,id)=>'<header class="screen-head"><span class="screen-emblem" aria-hidden="true">'+menuSymbol(kind)+'</span><div><span class="screen-kicker">'+kicker+'</span><h2 id="'+id+'">'+title+'</h2></div></header>';
 export const menuFooter=(primary,other='')=>'<footer class="screen-footer"><div class="screen-secondary">'+other+'</div><div class="screen-primary">'+primary+'</div></footer>';
+export function menuBackButton(label,action='menuBack'){
+ if(!label)return '';
+ return '<button type="button" class="screen-button" data-act="'+action+'"'+
+  (label==='К паузе'?' data-return-pause':'')+'>← '+escapeMenu(label)+'</button>';
+}
+export function renderMapActions(game){
+ const back=game.menuBackLabel?.()||(game.mapReturnToBase&&game.docked?'К станции':'');
+ const route=game.manualWaypoint||game.waypoint;
+ const distance=route&&Math.round(Math.hypot(route.x-game.player.x,route.y-game.player.y));
+ const dirty=(game.stationExitArmed||game.mapReturnToBase)&&game.hangarSession?.dirty(game.shipLoadout);
+ return '<footer class="map-control-bar">'+
+  '<div class="map-course"><div role="status"><strong>'+(route?
+   escapeMenu(route.label)+' · '+distance+' м':'Курс не задан')+'</strong>'+
+  (game.mapCourseMessage?'<small>'+escapeMenu(game.mapCourseMessage)+'</small>':'')+'</div>'+
+  (route?'<button type="button" data-act="waypoint" data-id="clear">Сбросить маршрут</button>':'')+'</div>'+
+  '<div class="map-footer-actions">'+menuBackButton(back,back==='К станции'?'baseBack':'menuBack')+
+  '<button type="button" class="primary" data-act="close">'+
+   (dirty?'В полёт · сборка не применена':game.stationExitArmed||game.mapReturnToBase?'В полёт':'Продолжить полёт')+
+   '</button></div></footer>';
+}
 const action=(act,label,cls='screen-button',role='')=>'<button type="button" class="'+cls+'" data-act="'+act+'"'+(role?' data-role="'+role+'"':'')+'>'+label+'</button>';
 const saveHelp='Прогресс сохраняется при стыковке с активной станцией и после подготовки корабля. Возврат после гибели восстанавливает мир, ресурсы и корабль на момент сохранения; более поздние события отменяются.';
 export function renderContinuation(saved,issue){

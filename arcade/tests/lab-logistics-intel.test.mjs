@@ -87,7 +87,7 @@ test('map waypoint selects only an actually scanned hostile cargo, never a forge
  const g=game();installLab(g,lab('5:1',6100,1300,true));
  const cargo=centralCargo();g.world.regionalSupply.central.convoys.push(cargo);
  g.overlay.dataset.mode='map';
- let waypoint=null;g.requestWaypointDeparture=wp=>{waypoint=wp;};
+ let waypoint=null;g.setNavigationCourse=wp=>{waypoint=wp;};
  g.selectWaypoint({id:cargo.id,x:'999999',y:'999999',label:'Подделка'});
  assert.equal(waypoint.id,cargo.id);
  assert.equal(waypoint.x,cargo.x);
@@ -103,7 +103,7 @@ test('radio waypoint stops following a cargo outside lab range and reacquires it
  const cargo=centralCargo('central-cargo-1',4400,2800);cargo.launchedAt=10;
  g.world.regionalSupply.central.convoys.push(cargo);
  g.overlay.dataset.mode='map';g.player.x=4400;g.player.y=2800;
- g.requestWaypointDeparture=waypoint=>{g.waypoint=waypoint;};
+ g.setNavigationCourse=waypoint=>{g.waypoint=waypoint;};
  g.selectWaypoint({id:cargo.id,x:'4400',y:'2800'});
  assert.equal(g.waypoint.radioContact,true);
  g.time=11;updateRegionalWorld(g,1);
@@ -140,7 +140,7 @@ test('desktop and compact maps give a truthful route selection hint',()=>{
  const g=game();installLab(g,lab('2:2',2500,2300,true));
  const html=renderWorldMap(g);
  assert.match(html,/map-intel-wide">Выберите маршрут в списке справа/);
- assert.match(html,/map-intel-compact">Нажмите «Список»/);
+ assert.match(html,/map-intel-compact">Откройте «Цели»/);
  assert.doesNotMatch(LAB_LOGISTICS_TECH.unlocked,/в разделе «Регионы и цели»/);
 });
 

@@ -53,24 +53,22 @@ test('installed weapons show upgrade paths; absent weapons show installation onl
  assert.equal(current.slots[0],'plasma','inspecting must not equip or buy');
 });
 
-test('ship destinations separate tactical devices, system upgrades and repair services',()=>{
+test('the ship keeps weapon fitting, tactics, hull and repair in one section',()=>{
  const session=new HangarSession();session.begin(createLoadout());
  const shared=state({baseTab:'hangar',hangarSession:session});
  const weapons=renderShipHangar(shared,session);
  const tactics=renderShipHangar({...shared,hangarView:'tactics'},session);
- const upgrades=renderBasePanel(dock,{...shared,baseTab:'development',developmentCategory:'ship'});
- const tacticalGrowth=renderBasePanel(dock,{...shared,baseTab:'development',developmentCategory:'tactics'});
+ const upgrades=renderBasePanel(dock,{...shared,hangarView:'upgrades'});
  const services=panel(renderBasePanel(dock,{...shared,hangarView:'services'}),'hangar');
  for(const html of [weapons,tactics,services]){
   assert.match(html,/data-act="hgView" data-id="weapons"/);
   assert.match(html,/data-act="hgView" data-id="tactics"/);
-  assert.doesNotMatch(html,/data-act="hgView" data-id="upgrades"/);
+  assert.match(html,/data-act="hgView" data-id="upgrades"/);
   assert.match(html,/data-act="hgView" data-id="services"/);
  }
  assert.doesNotMatch(weapons,/data-act="hgTacticUnlock"/);
  assert.match(tactics,/data-act="hgFocusTactic" data-id="decoy"/);
- assert.doesNotMatch(tactics,/data-act="hgTacticUpgrade"/);
- assert.match(tacticalGrowth,/data-act="hgTacticUpgrade"/);
+ assert.match(tactics,/data-act="hgTacticUpgrade"/);
  assert.doesNotMatch(tactics,/<details class="hg-tactic-upgrade-details"/);
  assert.match(upgrades,/data-act="hgFrame"/);
  assert.match(upgrades,/data-act="hgUpgrade" data-id="hull"/);
@@ -83,7 +81,7 @@ test('inspecting and switching sections preserves unfinished weapon blueprints',
  const loadout=createLoadout(),session=new HangarSession();session.begin(loadout);
  session.draft.slots[1]='rail';
  session.dispatch({act:'hgFocusWeapon',id:'rocket'},{loadout});
- const upgradeHtml=renderBasePanel(dock,state({loadout,hangarSession:session,baseTab:'development',developmentCategory:'ship'}));
+ const upgradeHtml=renderBasePanel(dock,state({loadout,hangarSession:session,baseTab:'hangar',hangarView:'upgrades'}));
  const weaponsHtml=renderShipHangar(state({loadout,hangarSession:session}),session);
  assert.match(upgradeHtml,/В ангаре есть неприменённая сборка/);
  assert.match(weaponsHtml,/Предварительная сборка/);

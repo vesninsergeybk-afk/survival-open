@@ -72,7 +72,7 @@ function stagedExit(mode='base'){
   get saveCount(){return saveCount;},get discardCount(){return discardCount;}};
 }
 
-test('station and map exits protect an unapplied hangar draft, including Escape path',()=>{
+test('explicit departures from station and map protect an unapplied hangar draft',()=>{
  for(const mode of ['base','map','skills']){
   const s=stagedExit(mode);
   assert.equal(s.game.dismiss(),false,'the first exit must ask the pilot');
@@ -105,21 +105,29 @@ test('pilot can return from the map confirmation to the same staged loadout',()=
  assert.equal(s.saveCount,0);
 });
 
-test('map destination is committed only after accepting departure from a dirty hangar',()=>{
+test('setting and clearing a course keeps the map open, even with a dirty loadout',()=>{
  const s=stagedExit('map');
  const previous={id:'home',x:0,y:0,label:'Док'};
  const next={id:'lab',x:320,y:40,label:'Лаборатория'};
- let notification='';
- s.game.waypoint=previous;s.game.notice=message=>{notification=message;};
- s.game.heritage.world=()=>{};
- s.game.requestWaypointDeparture(next,'Курс на лабораторию');
- assert.equal(s.game.waypoint,previous,'the route cannot change behind the confirmation');
+ s.game.waypoint=previous;s.game.paused=true;
+ s.game.renderMap=()=>{};
+ s.game.setNavigationCourse(next,'Курс на лабораторию');
+ assert.equal(s.game.waypoint,next);
+ assert.equal(s.overlay.hidden,false);
+ assert.equal(s.game.paused,true);
+ assert.equal(s.confirmation,null);
+ assert.equal(s.saveCount,0);
+ s.game.setNavigationCourse(null,'Курс сброшен');
+ assert.equal(s.game.waypoint,null);
+ assert.equal(s.overlay.hidden,false);
+ s.game.setNavigationCourse(next,'Курс на лабораторию');
+ assert.equal(s.game.dismiss(),false);
  s.game.cancelDeparture();
- assert.equal(s.game.waypoint,previous,'cancelling the exit cancels its pending route');
- s.game.requestWaypointDeparture(next,'Курс на лабораторию');
+ assert.equal(s.game.waypoint,next);
+ assert.equal(s.discardCount,0);
+ assert.equal(s.game.dismiss(),false);
  assert.equal(s.game.confirmDeparture(),true);
  assert.equal(s.game.waypoint,next);
- assert.equal(notification,'Курс на лабораторию');
  assert.equal(s.overlay.hidden,true);
 });
 
@@ -139,4 +147,22 @@ test('a stale departure action cannot silently discard an unconfirmed build',()=
  assert.equal(s.overlay.hidden,false);
  assert.equal(s.discardCount,0);
  assert.equal(s.saveCount,0);
+});
+
+test('back from the station map restores the weapon upgrade view without departing',()=>{
+ const s=stagedExit('base');
+ Object.assign(s.game,{baseTab:'hangar',hangarView:'weapon-upgrades',paused:true});
+ s.dialog.scrollTop=200;
+ s.game.enterMenu('map');
+ assert.equal(s.game.menuBackLabel(),'К станции');
+ s.overlay.dataset.mode='map';
+ s.game.baseTab='summary';s.game.hangarView='weapons';s.dialog.scrollTop=0;
+ s.game.goBackInMenu();
+ assert.equal(s.overlay.dataset.mode,'base');
+ assert.equal(s.game.baseTab,'hangar');
+ assert.equal(s.game.hangarView,'weapon-upgrades');
+ assert.equal(s.dialog.scrollTop,200);
+ assert.equal(s.game.paused,true);
+ assert.equal(s.game.stationExitArmed,true);
+ assert.equal(s.discardCount,0);
 });

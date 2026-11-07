@@ -21,7 +21,8 @@ test('regional plans cannot replace or bury routine station actions',()=>{
  const {home,state}=fixture();
  state.world.regionalSupply.central.conflict={offeredAt:150,plan:null,outcome:null};
  const html=renderBasePanel(home,state),summary=section(html,'summary'),tasks=section(renderBasePanel(home,{...state,baseTab:'operations'}),'operations');
- assert.match(summary,/Задания на главной/);
+ assert.match(summary,/data-act="baseTab" data-role="operations">Посмотреть задания/);
+ assert.doesNotMatch(summary,/data-act="acceptContract"|data-act="acceptOperation"/);
  assert.match(summary,/data-act="repair"/);
  assert.doesNotMatch(summary,/class="campaign-progress"|aria-label="Цель домашнего региона"|data-act="conflictPlan"/);
  assert.match(tasks,/data-hangar-section="region-plans"/);

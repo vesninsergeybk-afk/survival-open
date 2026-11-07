@@ -17,7 +17,7 @@ function prepare(g){
  g.endInteraction();g.operation=null;g.contract=null;g.enemies=[];g.shots=[];g.zones=[];
  g.spawnClock=99999;g.zoneClock=99999;g.player.invul=99999;
  g.player.hp=g.player.maxHp;g.player.vx=0;g.player.vy=0;
- g.overlay.hidden=true;g.paused=false;g.stationExitArmed=false;g.docked=null;g.releaseMenu();g.heritage.resume();
+ g.overlay.hidden=true;g.paused=false;g.stationExitArmed=false;g.docked=null;g.menuTrail=[];g.releaseMenu();g.heritage.resume();
  g.waypoint=null;g.manualWaypoint=null;
 }
 function status(g){
