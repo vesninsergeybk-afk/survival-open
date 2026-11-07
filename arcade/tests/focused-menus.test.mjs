@@ -76,11 +76,11 @@ test('a tactical shortcut opens the specified device without buying or discardin
  const g=dockedGame();g.baseTab='development';g.hangarSession.draft.slots[1]='rail';
  const snapshot=JSON.stringify(g.hangarSession.draft),tactical=JSON.stringify(g.tactical),ore=g.player.ore;
  g.openDevelopment('tactics','jam');
- assert.equal(g.baseTab,'hangar');assert.equal(g.hangarView,'tactics');
- assert.equal(g.hangarSession.focusTactic,'jam');
+ assert.equal(g.baseTab,'development');assert.equal(g.developmentDomain,'tactics');
+ assert.equal(g.developmentTactic,'jam');
  assert.equal(JSON.stringify(g.tactical),tactical);assert.equal(g.player.ore,ore);
  assert.equal(JSON.stringify(g.hangarSession.draft),snapshot);
- g.openDevelopment('tactics','fabricated');assert.equal(g.hangarSession.focusTactic,'jam');
+ g.openDevelopment('tactics','fabricated');assert.equal(g.developmentTactic,'jam');
 });
 
 test('owned tactical equipment can be upgraded or installed on the same page',()=>{

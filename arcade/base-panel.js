@@ -1,5 +1,5 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1';
-import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1';
+import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1';
@@ -971,7 +971,7 @@ export function renderBasePanel(base,state){
  const opening=active?
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
   tabButton('summary','Обзор',selected)+tabButton('operations','Задания',selected,o.contract.status==='ready'?'Награда':state.firstHardwareReward==='pending'?'Оружие':'')+
-  tabButton('hangar','Корабль',selected)+tabButton('development','Пилот',selected)+tabButton('network','Станция',selected,threats?'Угроза':'')+'</nav>'+
+  tabButton('hangar','Корабль',selected)+tabButton('development','Развитие',selected)+tabButton('network','Станция',selected,threats?'Угроза':'')+'</nav>'+
   tabPanel('summary',selected,dashboard+(report?'<details class="base-secondary-info base-report-details">'+
     '<summary>Итоги последнего вылета</summary>'+report+'</details>':''))+
   tabPanel('operations',selected,operations)+
