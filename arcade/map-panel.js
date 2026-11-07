@@ -80,7 +80,8 @@ export function renderStationRoutePreview(base,state={}){
   '<circle cx="'+b.x.toFixed(1)+'" cy="'+b.y.toFixed(1)+'" r="4" fill="#c5fff1"/>'+
   '<text x="'+(b.x+13).toFixed(1)+'" y="'+(b.y+22).toFixed(1)+'" fill="#a4e4d8" font-size="12">СТАНЦИЯ</text></svg>'+
   '<div class="base-route-actions"><small>'+(target?
-   (uncertain?'Предполагаемая область · ':resolvedCorridor?'Открытый маршрут · ':'Расстояние · ')+distance(base,target)+' м':
+   (uncertain?'Предполагаемая область · ':resolvedCorridor?'Открытый маршрут · ':
+    corridor&&!active?'Метка разведки · ':'Расстояние · ')+distance(base,target)+' м':
    'Известные узлы сети')+'</small>'+
    '<button type="button" data-act="baseMap">Изучить карту</button></div></div>';
 }
@@ -282,7 +283,7 @@ export function renderWorldMap(game){
   previewTarget?(previewProbe?'Предварительная разведка: здесь ожидается аварийный зонд. Место пока известно приблизительно.':
    previewRelay?'Предварительный маршрут: ретранслятор арсенала. Отразите три конечные волны.':
    previewCarrier?'Предварительная разведка: район встречи конвоя. Груз появится после сближения; затем уйдёт к обозначенной границе.':
-   'Предварительная разведка: источник помех находится к востоку от дока. Операция ещё не принята.'):
+   'Предварительная разведка: источник помех отмечен на карте к востоку от дока. Операция ещё не принята.'):
   home.corridorSecured?'Восточный коридор открыт. Разведка возле дока расширена на '+corridorScanBonus(home)+' м, патрулей стало меньше.':'';
  const objectiveText=objective?
   (objective.progress>=objective.goal?'Награда готова. Вернитесь на '+

@@ -76,12 +76,17 @@
 #overlay .base-dialog .base-next-actions button[data-act="abandonOperation"]{background:#283a46!important;color:#ccd9e0!important;border-color:#607584!important}
 .base-overview-sector{display:flex;flex-direction:column;min-width:0;padding:15px 16px;background:#102330;
  border:1px solid #445e6d;border-radius:7px}
-.base-overview-sector h3{font-size:18px;color:#e5edf0;margin:3px 0 13px}
+.base-overview-sector h3{display:flex;align-items:center;gap:9px;font-size:18px;color:#e5edf0;margin:3px 0 13px}
+.base-overview-sector h3::before{
+ content:"";flex:0 0 26px;width:26px;height:26px;
+ background:url('./assets/station-menu/icons-v2.webp') 0 50%/400% 300% no-repeat;
+ opacity:.72;
+}
 .base-overview-sector .base-route-graphic{display:flex;flex:1;flex-direction:column;justify-content:space-between;gap:8px;min-width:0}
 .base-overview-sector .base-route-graphic svg{width:100%;height:auto;max-height:200px;background:#0a1b29;border:1px solid #324957;border-radius:5px}
 .base-overview-sector .base-route-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .base-overview-sector .base-route-actions small{color:#93b2c2;font-size:11px}
-#overlay .base-overview-sector .base-route-actions button{min-height:38px;padding:7px 11px;margin:0;background:#1d3544;color:#d5e8ee;border:1px solid #547283;border-radius:4px;font-size:11px}
+#overlay .base-overview-sector .base-route-actions button{min-height:44px;padding:8px 12px;margin:0;background:#1d3544;color:#d5e8ee;border:1px solid #547283;border-radius:4px;font-size:11px}
 
 /* Ship and wing summaries. Both values and the ship stage come from the live
    state; the stylized icon sheet is only an ornament. */
@@ -133,6 +138,27 @@
 }
 #overlay .base-dialog .base-task-group.special{border-color:#a18256}
 #overlay .base-dialog .base-task-group>h3{color:#e6edf0;border-bottom-color:#3d5967;font-size:17px}
+#overlay .base-dialog .field-operation-card{background:#132834;border-color:#4b6977}
+#overlay .base-dialog .field-op-title{display:flex;align-items:center;gap:11px;min-width:0;margin:8px 0}
+#overlay .base-dialog .field-op-title h4{margin:0;color:#edf2f2;font-size:clamp(17px,1.7vw,21px);line-height:1.25;font-weight:680}
+#overlay .base-dialog .field-op-icon{
+ display:block;flex:0 0 37px;width:37px;height:37px;
+ background-image:url('./assets/station-menu/icons-v2.webp');
+ background-size:400% 300%;background-repeat:no-repeat;
+ background-position:66.667% 100%;opacity:.79;pointer-events:none;
+}
+#overlay .base-dialog .field-op--deep-resonance .field-op-icon{background-position:0 100%}
+#overlay .base-dialog .field-op--reverse-hunt .field-op-icon{background-position:100% 0}
+#overlay .base-dialog .field-op--false-call .field-op-icon{background-position:33.333% 50%}
+#overlay .base-dialog .field-op--two-fronts .field-op-icon{background-position:66.667% 50%}
+#overlay .base-dialog .field-op--sleeping-reactor .field-op-icon{background-position:100% 100%}
+#overlay .base-dialog .field-op--broken-convoy .field-op-icon{background-position:100% 50%}
+#overlay .base-dialog .base-modules-heading strong{display:flex;align-items:center;gap:9px}
+#overlay .base-dialog .base-modules-heading strong::before{
+ content:"";flex:0 0 26px;width:26px;height:26px;
+ background:url('./assets/station-menu/icons-v2.webp') 100% 100%/400% 300% no-repeat;opacity:.7;
+}
+#overlay .base-dialog .base-module-reason{display:block;margin-top:0;color:#e0b8a7;font-size:11px;line-height:1.4}
 #overlay .base-dialog .base-view-intro{background:none;border:0;box-shadow:none}
 #overlay .base-dialog .base-network-direct h3,#overlay .base-dialog .base-network-simple h3{color:#e5edf0;font-weight:650}
 #overlay .base-dialog .base-secondary-info,#overlay .base-dialog .base-mission-details{
@@ -182,7 +208,7 @@
 @media(max-height:580px) and (min-width:651px){
  #overlay .base-dialog .base-head{min-height:0;padding:2px 3px 6px}
  #overlay .base-dialog .base-tabs{padding:3px 0;margin-bottom:8px}
- #overlay .base-dialog .base-tabs button{min-height:38px}
+ #overlay .base-dialog .base-tabs button{min-height:44px}
  #overlay .base-dialog .base-overview-lead .base-next-step{padding:12px 15px;gap:8px}
  .base-overview-sector{padding:10px}
  .base-overview-sector .base-route-graphic svg{max-height:130px}

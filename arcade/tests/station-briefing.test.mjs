@@ -32,6 +32,7 @@ test('home station preview uses an actual operation position and discovered sect
  const w=world([b,other,hidden]);
  const html=renderStationRoutePreview(b,stationState(w));
  assert.match(html,/ИСТОЧНИК ПОМЕХ/);
+ assert.match(html,/Метка разведки/);
  assert.match(html,/Изучить карту/);
  assert.match(html,/Расположение станции, известных узлов и цели/);
  assert.doesNotMatch(html,/Арсенал/);

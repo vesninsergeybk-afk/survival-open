@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 680" role="img" aria-labelledby="title desc">
+ <title id="title">Эскиз спокойного терминала станции</title>
+ <desc id="desc">Слева композиция для большого экрана с пятью вкладками, главной целью, картой, кораблём, дронами и территорией. Справа композиция для узкого экрана, где карточки идут одна за другой.</desc>
+ <rect width="1140" height="680" fill="#091724"/>
+ <text x="30" y="34" fill="#edf1f1" font-family="sans-serif" font-size="20">Терминал станции · принцип расположения</text>
+ <text x="30" y="54" fill="#a8c1ca" font-family="sans-serif" font-size="12">Схема структуры. Никаких вымышленных показателей и изображений корабля.</text>
+ <g font-family="sans-serif" fill="#dce8eb">
+  <rect x="30" y="78" width="760" height="551" rx="12" fill="#0d2030" stroke="#637d86"/>
+  <text x="48" y="105" font-size="18" font-weight="600">Ремонтный док</text>
+  <text x="48" y="126" font-size="11" fill="#afc3cb">Сплав · опыт · корпус · сеть · дроны</text>
+  <g fill="#182e3c" stroke="#4b6d7b">
+   <rect x="46" y="145" width="140" height="42" rx="5"/>
+   <rect x="192" y="145" width="140" height="42" rx="5"/>
+   <rect x="338" y="145" width="140" height="42" rx="5"/>
+   <rect x="484" y="145" width="140" height="42" rx="5"/>
+   <rect x="630" y="145" width="140" height="42" rx="5"/>
+  </g>
+  <rect x="46" y="145" width="140" height="42" rx="5" fill="#38342d" stroke="#d6ac71"/>
+  <g font-size="13" text-anchor="middle">
+   <text x="116" y="171">Обзор</text><text x="262" y="171">Задания</text>
+   <text x="408" y="171">Корабль</text><text x="554" y="171">Развитие</text><text x="700" y="171">Станция</text>
+  </g>
+  <rect x="46" y="201" width="427" height="179" rx="7" fill="#152d3b" stroke="#b59060"/>
+  <text x="64" y="230" font-size="12" fill="#c2a77f">ГЛАВНОЕ ДЕЙСТВИЕ</text>
+  <text x="64" y="257" font-size="19">Что делать сейчас</text>
+  <text x="64" y="278" font-size="12" fill="#afc4ca">Короткая причина и следующий шаг</text>
+  <rect x="64" y="315" width="151" height="43" rx="5" fill="#b68e60"/>
+  <text x="139" y="342" font-size="13" font-weight="600" text-anchor="middle" fill="#17202a">Действие</text>
+  <rect x="485" y="201" width="285" height="179" rx="7" fill="#122939" stroke="#517285"/>
+  <text x="501" y="230" font-size="16">Известный сектор</text>
+  <rect x="501" y="246" width="253" height="96" rx="4" fill="#0a1c2b" stroke="#365466"/>
+  <path d="M522 317 L615 270 L721 307" fill="none" stroke="#7caab3" stroke-width="2" stroke-dasharray="5 6"/>
+  <circle cx="522" cy="317" r="6" fill="#9bf0d5"/><circle cx="721" cy="307" r="7" fill="none" stroke="#d8b6df"/>
+  <text x="503" y="363" font-size="11" fill="#afc4ca">Подпись о точности данных</text>
+  <rect x="46" y="394" width="354" height="103" rx="7" fill="#142a38" stroke="#52707d"/>
+  <rect x="413" y="394" width="357" height="103" rx="7" fill="#142a38" stroke="#52707d"/>
+  <text x="65" y="421" font-size="16">Корабль · корпус</text>
+  <text x="65" y="442" font-size="12" fill="#a5bcc6">Настоящее изображение корабля</text>
+  <rect x="65" y="457" width="203" height="7" rx="3" fill="#537780"/>
+  <text x="432" y="421" font-size="16">Дроны · ведомые</text>
+  <text x="432" y="442" font-size="12" fill="#a5bcc6">Состояние и доступное действие</text>
+  <rect x="46" y="511" width="724" height="65" rx="7" fill="#122938" stroke="#52707d"/>
+  <text x="64" y="536" font-size="16">Территория · ближайшая цель сети</text>
+  <text x="64" y="556" font-size="12" fill="#a5bcc6">Подробности открываются по запросу</text>
+  <rect x="46" y="586" width="724" height="31" rx="4" fill="#1a3342"/>
+  <text x="64" y="607" font-size="12">Карта сектора</text><text x="726" y="607" font-size="12" text-anchor="end">В полёт</text>
+ </g>
+ <g font-family="sans-serif" fill="#dce8eb">
+  <rect x="820" y="78" width="290" height="551" rx="12" fill="#0d2030" stroke="#637d86"/>
+  <text x="838" y="106" font-size="18">Узкий экран</text>
+  <text x="838" y="127" font-size="11" fill="#a8bfc8">Краткая строка ресурсов</text>
+  <g fill="#1c3441" stroke="#587380"><rect x="836" y="145" width="51" height="41" rx="4"/><rect x="891" y="145" width="51" height="41" rx="4"/><rect x="946" y="145" width="51" height="41" rx="4"/><rect x="1001" y="145" width="51" height="41" rx="4"/><rect x="1056" y="145" width="38" height="41" rx="4"/></g>
+  <g text-anchor="middle" font-size="10"><text x="861" y="169">Обзор</text><text x="916" y="169">Задания</text><text x="971" y="169">Корабль</text><text x="1026" y="169">Развитие</text><text x="1075" y="169">Сеть</text></g>
+  <rect x="836" y="198" width="258" height="104" rx="6" fill="#142b39" stroke="#b59060"/>
+  <text x="848" y="220" font-size="13">Главная цель</text>
+  <text x="848" y="239" font-size="11" fill="#a8bdc5">Одна понятная кнопка</text>
+  <rect x="848" y="252" width="114" height="36" rx="4" fill="#b68e60"/>
+  <text x="905" y="274" text-anchor="middle" font-size="11" fill="#17202a">Действие</text>
+  <rect x="836" y="312" width="258" height="109" rx="6" fill="#122939" stroke="#527383"/>
+  <text x="848" y="335" font-size="13">Карта сектора</text>
+  <path d="M858 385 L931 349 L1049 393" fill="none" stroke="#7fa6b4" stroke-width="2" stroke-dasharray="5 5"/>
+  <rect x="836" y="431" width="258" height="67" rx="6" fill="#142b39" stroke="#527383"/>
+  <text x="848" y="456" font-size="13">Корабль и корпус</text><text x="848" y="478" font-size="11" fill="#a8bdc5">Состояние · действие</text>
+  <rect x="836" y="508" width="258" height="51" rx="6" fill="#142b39" stroke="#527383"/>
+  <text x="848" y="537" font-size="13">Дроны → территория ниже</text>
+  <rect x="836" y="574" width="258" height="43" rx="5" fill="#243e49"/>
+  <text x="848" y="600" font-size="12">Прокрутка</text><text x="1080" y="600" font-size="12" text-anchor="end">В полёт</text>
+ </g>
+ <text x="30" y="657" fill="#8ea9b5" font-family="sans-serif" font-size="11">Значки и предметные иллюстрации применяются точечно; показатели, кнопки и подсказки остаются HTML.</text>
+</svg>

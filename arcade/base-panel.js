@@ -2,7 +2,7 @@ import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-stat
 import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-territory-war-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4';
@@ -442,11 +442,12 @@ const fieldOperationsPanel=(base,state)=>{
     id==='broken-convoy'?action('acceptFieldOperation','Обходной маршрут · меньше врагов',accept,id+':safe')+
      action('acceptFieldOperation','Короткий маршрут · больше врагов',accept,id+':fast'):
      action('acceptFieldOperation','Принять вылазку',accept,id);
-   return '<article class="base-featured-op field-operation-card '+(active?'underway':'')+'">'+
+   return '<article class="base-featured-op field-operation-card field-op--'+id+' '+(active?'underway':'')+'">'+
     '<div class="base-featured-head"><span class="base-kicker">'+
     ({lab:'ЛАБОРАТОРИЯ',arsenal:'АРСЕНАЛ',dock:'ДОК',carrier:'АВИАНОСЕЦ'}[base.type]||'СТАНЦИЯ')+'</span><span>'+(
      returning?'ВОЗВРАЩАЙТЕСЬ':active?'ВЫЛАЗКА ПРИНЯТА':offer.status==='cooldown'?'ОЖИДАНИЕ':'НОВАЯ ЗАДАЧА')+
-    '</span></div><strong>'+spec.name+'</strong>'+missionSummary(spec.desc)+
+    '</span></div><div class="field-op-title"><span class="field-op-icon" aria-hidden="true"></span>'+
+    '<h4>'+spec.name+'</h4></div>'+missionSummary(spec.desc)+
     (active?'<small>'+progress+' · '+fieldOperationCue(op,{player:state.player||{x:base.x,y:base.y},time:state.time||0})+'</small>':'')+
     (wait?'<small class="base-op-warning">'+wait+'</small>':'')+
     '<div class="base-featured-foot"><span>Награда: +'+(offer.runs?Math.round(spec.ore*.75):spec.ore)+
@@ -745,7 +746,8 @@ export function renderBasePanel(base,state){
  const moduleOption=m=>'<div class="base-module-option'+(base.module===m.key?' selected':'')+'"><strong>'+m.name+'</strong><small>'+m.desc+'</small>'+
   (base.module===m.key?'<span class="base-module-installed">✓ УСТАНОВЛЕНО</span>':
    base.module?'<span class="dev-station-unavailable">Другой модуль уже выбран</span>':
-   action('installModule','Установить · '+m.cost+' сплава',m.reason,m.key))+'</div>';
+   action('installModule','Установить · '+m.cost+' сплава',m.reason,m.key)+
+   (m.reason?'<span class="base-module-reason">'+m.reason+'</span>':''))+'</div>';
  const installedOption=base.module?o.moduleOptions.find(m=>m.key===base.module):null;
  const modules=active?'<section class="base-modules"><div class="base-modules-heading"><span class="base-kicker">СПЕЦИАЛИЗАЦИЯ СТАНЦИИ</span><strong>'+
   (base.module?'Модуль установлен':'Выберите одно оснащение')+'</strong><small>'+
