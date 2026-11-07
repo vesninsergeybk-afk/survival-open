@@ -424,6 +424,9 @@ export function advanceFieldOperation(game,dt){
    op.pulseUntil=0;
    const source=op.samples.find(s=>!s.done)||op;
    op.lastPulseAt=game.time;
+   // The expanding discharge stays at the emitting deposit even if the
+   // next sample becomes active before the painted flash has faded.
+   op.lastPulseX=source.x;op.lastPulseY=source.y;
    game.heritage.vfx.nova(source.x,source.y,160,'violet');
    game.heritage.play('fieldPulse',.2,{x:source.x,y:source.y});
    if(distance(game.player,source)<165)game.hurt(12,source);
@@ -446,6 +449,9 @@ export function advanceFieldOperation(game,dt){
   if(op.scanUntil>0&&game.time>=op.scanUntil){
    op.scanUntil=0;
    op.lastScanAt=game.time;
+   // A released wave is a world-space event, not a decal attached to
+   // the scout's later movement.
+   op.lastScanX=enemy.x;op.lastScanY=enemy.y;
    game.heritage.play('fieldPulse',.3,{x:enemy.x,y:enemy.y});
    const d=distance(enemy,game.player);
    game.heritage.vfx.nova(enemy.x,enemy.y,315,'violet');
@@ -590,12 +596,14 @@ export function drawFieldOperation(game,c,cam){
   if(op.resonance>=58){const p=op.samples.find(s=>!s.done)||op;
    ring(p,165,'#f182af',op.pulseUntil>game.time?'РАЗРЯД':'РЕЗОНАНС '+Math.round(op.resonance)+'%',true);}
   const source=op.samples.find(s=>!s.done)||op;
-  paintMissionImpact(game,c,'emp',source.x,source.y,op.lastPulseAt,194,.7);
+  paintMissionImpact(game,c,'emp',op.lastPulseX??source.x,op.lastPulseY??source.y,
+   op.lastPulseAt,194,.7);
  }else if(op.id==='reverse-hunt'){
   ring(op,op.scanUntil>game.time?310:140,'#c794ff',
    op.scanUntil>game.time?'СКАНИРОВАНИЕ':'ЗРАЧОК · '+op.scans+'/2',op.scanUntil>game.time);
   activity(op,op.scanUntil>game.time?298:125,'#cb9cff');
-  paintMissionImpact(game,c,'emp',op.x,op.y,op.lastScanAt,132,.58);
+  paintMissionImpact(game,c,'emp',op.lastScanX??op.x,op.lastScanY??op.y,
+   op.lastScanAt,132,.58);
  }else if(op.id==='false-call'){
   for(const [i,beacon] of op.beacons.entries()){
    if(beacon.checked)continue;
