@@ -35,10 +35,11 @@
 .base-development-shortcuts button:last-child{grid-column:1/-1}
 #overlay .base-dialog .base-quick-services{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 #overlay .base-dialog .base-quick-service{padding:10px 14px;gap:4px}
-#overlay .base-dialog .base-quick-service h3{font-size:16px;margin:0}
+#overlay .base-dialog .base-quick-service h3{font-size:16px;margin:0;padding-inline-end:48px}
 .base-quick-service .base-kicker{display:none}
-#overlay .base-quick-service p{margin:0;flex:none}
-.base-quick-buttons{margin-top:0}
+#overlay .base-quick-service>p{margin:0;flex:none;padding-inline-end:40px}
+.base-quick-buttons{margin-top:4px}
+#overlay .base-quick-buttons button{min-width:0;max-width:100%;white-space:normal}
 .base-home-tasks .base-featured-op{padding:12px}
 .base-home-tasks .base-op-summary{margin:6px 0}
 .development-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 12px}
@@ -78,14 +79,9 @@
 .hg-upgrade-action{align-items:center}
 .hg-upgrade-action .menu-info{flex:none}
 .development-tabs,.development-heading,.hg-weapon-inspector,.hg-tactic-detail{scroll-margin-top:126px}
-#overlay .base-dialog{scroll-padding-block:126px 76px}
+#overlay .base-dialog{scroll-padding-block:126px 76px;padding-bottom:0}
 @media(min-width:1100px){
- #overlay .base-dialog .base-quick-service{display:grid;grid-template-columns:minmax(0,1fr) auto;align-content:center}
- .base-quick-service>h3{grid-column:1;grid-row:1}
- .base-quick-service>p{grid-column:1;grid-row:2}
- .base-quick-service>.base-quick-buttons{grid-column:2;grid-row:1/3;margin:0 48px 0 8px}
  #overlay .base-quick-buttons button{min-height:44px;margin:0;padding:9px 12px}
- .base-quick-service>.base-quick-reason,.base-quick-service>.base-trial-picker{grid-column:1/-1}
  .base-home-tasks .base-contract-choices{grid-template-columns:repeat(2,minmax(0,1fr))}
  .base-home-tasks .base-contract-choice{display:flex;flex-direction:column;align-items:stretch;gap:5px}
  .base-home-tasks .base-contract-choice>small{flex:1}
@@ -108,7 +104,7 @@
  #overlay .base-dialog .base-tabs button[data-notice]::after{position:absolute;right:4px;top:4px;content:"";width:6px;height:6px;min-height:0;padding:0;margin:0;border-radius:50%}
  #overlay .base-dialog .base-quick-services{grid-template-columns:1fr 1fr;gap:7px}
  #overlay .base-dialog .base-quick-service{padding:10px;min-width:0}
- #overlay .base-dialog .base-quick-service h3{font-size:14px;padding-right:26px}
+ #overlay .base-dialog .base-quick-service h3{font-size:14px;padding-inline-end:44px}
  #overlay .base-dialog .base-quick-service .menu-info{min-width:44px;min-height:44px;width:44px;height:44px;right:4px;top:5px}
  .base-quick-service p{font-size:12px}
  .base-quick-buttons{display:flex;flex-direction:column;align-items:stretch;gap:5px}
@@ -370,6 +366,14 @@
 .base-home-strategy {
  margin: 12px 0;
  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+.base-next-actions {
+ flex-wrap: wrap;
+ gap: 8px;
+}
+#overlay .base-home-development .base-next-actions button {
+ flex: 1 1 164px;
+ min-width: 0;
 }
 #overlay .base-footer-actions,
 #overlay .base-footer-actions button {
