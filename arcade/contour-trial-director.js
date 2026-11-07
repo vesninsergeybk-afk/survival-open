@@ -1,11 +1,12 @@
 import {recordSortieIncome} from './sortie-ledger.js';
 import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,completeContourTrial,
- planContourTrial,trialQuota} from './contour-trials.js?v=clarity-pass-1-first-loops-1';
+ planContourTrial,trialQuota,contourChargeGoal} from './contour-trials.js?v=clarity-pass-1-first-loops-1-pressure-1';
 import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1';
 import {contourFields,fieldAt} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js';
 import {ENEMY_TYPES} from './ai.js?v=first-loops-1';
 import {recordWorldFeedback} from './world-feedback.js';
+import {updateContourTrialPressure} from './contour-trial-pressure.js';
 
 const nearby=(a,b,r)=>dist(a,b)<r;
 function available(game,entry){
@@ -43,7 +44,8 @@ function spawnTrialWave(game,event){
   const def=ENEMY_TYPES[type];if(!def)continue;
   // A small subset of IRIS scouts answer the new field's EM pulse with
   // panicked high-speed dives; ordinary patrol scouts never inherit it.
-  const dive=type==='scout'&&scoutCount++<Math.min(3,1+Math.floor((event.plan.tier-1)/5));
+  const dive=type==='scout'&&scoutCount++<Math.min(3,
+   (event.plan.tier===1?event.waveIndex:1+Math.floor((event.plan.tier-1)/5)));
   const side=rear?rearSide:pincer?(i%2===0?0:1):
    (event.waveIndex+i+event.entry.id)%4;
   const xy=spawnOutside(cam,side,.18+((i*7+event.entry.id)%13)/20,150+i*8);
@@ -68,12 +70,13 @@ function spawnTrialWave(game,event){
  game.notice?.('ОБОРОНА ТРЕУГОЛЬНИКА · волна '+
   (event.waveIndex+1)+' из '+event.plan.waves.length+' · подавите '+event.required+' из '+total+' кораблей.'+
   (scoutCount?' Зрачки готовят резкие таранные рывки!':' Уклоняйтесь от орбитального огня!'),4.5);
+ game.heritage?.vfx?.nova?.(event.entry.x,event.entry.y,125,'red');
  game.heritage?.play?.('orbitalWarning',.9,game.player);
  return true;
 }
 
 function scheduleTrialStrike(game,event){
- if(event.phase!=='wave')return;
+ if(event.phase!=='wave'&&event.phase!=='stabilize')return;
  const plan=event.plan,p=game.player;
  const aim=Math.atan2(p.vy||0,p.vx||0)+.55;
  for(let i=0;i<plan.strikeCount;i++){
@@ -85,7 +88,7 @@ function scheduleTrialStrike(game,event){
   game.zones.push(zone);
   game.heritage?.play?.('orbitalWarning',.95,zone);
  }
- event.nextStrikeAt=game.time+plan.strikeInterval;
+ event.nextStrikeAt=game.time+(event.phase==='stabilize'?CONTOUR_TRIALS.finalStrikeInterval:plan.strikeInterval);
 }
 
 function disengage(game,event,reason){
@@ -97,6 +100,7 @@ function disengage(game,event,reason){
  if(game.shots)game.shots=game.shots.filter(s=>s.trialId!==event.entry.id);
  game.zones=game.zones.filter(z=>z.trialId!==event.entry.id);
  game.zoneClock=Math.max(game.zoneClock||0,5);
+ if(game.actionHeld?.kind==='contour')game.actionHeld=null;
  game.contourTrial=null;
  game.contourTrialRetryAt=game.time+18;
  game.notice?.(reason,4.5);
@@ -146,8 +150,13 @@ function finishTrial(game,event){
   x:event.entry.x,y:event.entry.y});
  game.contourVisualAt=-Infinity;
  game.zoneClock=Math.max(game.zoneClock||0,5);
+ if(game.actionHeld?.kind==='contour')game.actionHeld=null;
  game.contourTrial=null;
 }
+
+const channeling=(game,entry)=>game.actionHeld?.kind==='contour'&&
+ game.actionHeld.target?.id===entry.id&&
+ nearby(game.player,entry,CONTOUR_TRIALS.activationRadius);
 
 /** Advance one local encounter. Remote fields wait without taking damage;
  * another territory never starts until the first battle is resolved. */
@@ -156,16 +165,21 @@ export function updateContourTrials(game,dt){
  if(!ledger||game.dead||game.paused)return;
  let event=game.contourTrial;
  if(!event){
-  const entry=pendingContourTrials(game.world).find(e=>available(game,e));
+  // The first held interaction emits a detectable pulse, but completion
+  // requires many short approaches while enemies contest the area.
+  const held=game.actionHeld;
+  const entry=held?.kind==='contour'&&pendingContourTrials(game.world)
+   .find(e=>e.id===held.target?.id&&available(game,e)&&channeling(game,e));
   if(!entry)return;
   event={entry,plan:planContourTrial(entry.tier,entry.id),phase:'warning',
    startedAt:game.time,
+   charge:0,chargeGoal:contourChargeGoal(entry.tier),
    waveIndex:-1,nextWaveAt:game.time+CONTOUR_TRIALS.warningSeconds,
    nextStrikeAt:Infinity,outsideFor:0};
   game.contourTrial=event;
-  game.notice?.('КОНТУР ЗАМКНУТ · противник обнаружил новый треугольник! '+
-   'Оборона: '+event.plan.waves.length+' '+(event.plan.waves.length===1?'волна':'волны')+
-   ' · рекомендован уровень '+event.plan.recommendedLevel+'+. Отразите нападение!',5);
+  game.notice?.('ПОДАЧА ЭНЕРГИИ НАЧАТА · красный импульс выдал вашу позицию! '+
+   'Впереди '+event.plan.waves.length+' волны атаки. Рекомендован уровень '+
+   event.plan.recommendedLevel+'+. Удерживайте луч, отпускайте для боя и возвращайтесь к ядру!',5);
   game.heritage?.vfx?.nova?.(entry.x,entry.y,120,'red');
   game.heritage?.play?.('orbitalWarning',1.2,entry);
   return;
@@ -177,6 +191,17 @@ export function updateContourTrials(game,dt){
   event.outsideFor+dt;
  if(event.outsideFor>=CONTOUR_TRIALS.retreatSeconds){
   disengage(game,event,'Вы отошли от контура. Станции сохранены; испытание можно повторить позже.');return;
+ }
+ // Charge accumulates only while holding the real contextual action near
+ // the core. Releasing E, moving away, or opening a menu freezes progress;
+ // none of those actions silently erase already earned charge.
+ if(channeling(game,event.entry))
+  event.charge=Math.min(event.chargeGoal,event.charge+Math.max(0,dt));
+ updateContourTrialPressure(game,event,dt);
+ if(event.phase==='stabilize'){
+  if(event.charge>=event.chargeGoal){finishTrial(game,event);return;}
+  if(game.time>=event.nextStrikeAt)scheduleTrialStrike(game,event);
+  return;
  }
  if(event.phase==='warning'||event.phase==='rest'){
   if(game.time>=event.nextWaveAt&&!spawnTrialWave(game,event)){
@@ -229,7 +254,13 @@ export function updateContourTrials(game,dt){
   enemy._trialDiveEnabled=false;enemy.expAwarded=true;
   enemy.damage=0;enemy.fire=999;
  }
- if(event.waveIndex+1>=event.plan.waves.length){finishTrial(game,event);return;}
+ if(event.waveIndex+1>=event.plan.waves.length){
+  if(event.charge>=event.chargeGoal){finishTrial(game,event);return;}
+  event.phase='stabilize';event.nextStrikeAt=game.time+5;
+  game.notice?.('Волны отбиты, но сердцевина заряжена на '+
+   Math.round(event.charge/event.chargeGoal*100)+'%. Вернитесь к ядру и удерживайте луч. Орбитальные удары продолжаются!',6);
+  return;
+ }
  event.phase='rest';event.nextWaveAt=game.time+event.plan.intermission;
  game.notice?.('Волна '+(event.waveIndex+1)+' из '+event.plan.waves.length+
   ' отражена! Оставшиеся противники отступили. Следующее нападение через '+

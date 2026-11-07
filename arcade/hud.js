@@ -106,9 +106,10 @@ export class CockpitDisplay {
    liveAllies+' из 2 дронов в строю');
   const focus=game.actionHeld||game.interactionFocus;
   n.interactionCue.hidden=!focus||game.paused||game.dead||!game.overlay.hidden||
-   !!game.contourTrial&&!['station','repair','opening-repair'].includes(focus?.kind);
+   !!game.contourTrial&&!['station','repair','opening-repair','contour'].includes(focus?.kind);
   if(!n.interactionCue.hidden) {
-   const label=focus.kind==='station'?'Открыть станцию':
+   const label=focus.kind==='contour'?(game.contourTrial?'Зарядить сердцевину':'Запустить сердцевину'):
+    focus.kind==='station'?'Открыть станцию':
     focus.kind==='repair'?'Ремонт зонда':
     focus.kind==='opening-repair'?'Эвакуация капсулы':'Добыча породы';
    display(n.interactionCue,(game.controlLabel?.('interact')||'E')+' · '+label+(focus.kind==='station'?'':' · удерживать'));

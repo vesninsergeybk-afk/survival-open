@@ -56,6 +56,30 @@ test('nearest weapons let position choose an escort; precision weapons choose th
  const escort=enemy(120);g.grid.insert(escort);
  assert.equal(selectTargets(g,435,1,false)[0].target,escort);assert.equal(selectTargets(g,700,1,true)[0].target,op);
 });
+test('starter plasma waits until 300 m, then range ranks visibly extend its reach',()=>{
+ const g=game(),target=enemy(350);g.grid.insert(target);
+ assert.equal(moduleStats('plasma').range,300);
+ assert.deepEqual([0,1,2,3].map(range=>moduleStats('plasma',{range}).range),
+  [300,370,440,510]);
+ g.updateShipWeapons(.01);assert.equal(target.hp,300);
+ g.skillRanks.range=1;g.beamClock=0;g.updateShipWeapons(.01);
+ assert.ok(target.hp<300,'the rank now creates a visible firing opportunity');
+});
+test('charging a triangle suspends every ship weapon until the action is released',()=>{
+ const g=game(),target=enemy(130);g.grid.insert(target);
+ g.actionHeld={kind:'contour',target:{id:123}};
+ g.updateShipWeapons(.1);
+ assert.equal(target.hp,300,'automatic plasma must not shoot while E channels the core');
+ g.support.charges=1;
+ assert.equal(g.callStrike(),false);
+ assert.equal(g.support.charges,1,'holding E cannot spend a carrier strike');
+ assert.equal(g.callHowitzer(),false);
+ assert.equal(g.callFieldWeapon(),false);
+ assert.equal(g.callTacticalField(),false);
+ assert.equal(g.callIonDischarge(),false);
+ g.actionHeld=null;g.updateShipWeapons(.1);
+ assert.ok(target.hp<300,'the ship resumes firing on the first update after E is released');
+});
 for(const id of ['plasma','rail','flak'])test(id+': rock cover blocks every actual mount and split target',()=>{
  const g=game();equip(g,id);g.skillRanks.double=2;
  const targets=[enemy(180,-12),enemy(190,0),enemy(200,12)];for(const e of targets)g.grid.insert(e);

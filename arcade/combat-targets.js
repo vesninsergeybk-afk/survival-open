@@ -1,6 +1,7 @@
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {canAutoTarget} from './signal-perception.js?v=arcade-perception-61-first-loops-1';
+import {recordHitFeedback} from './hit-feedback.js?v=hit-feedback-1';
 
 export const targetDistance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const targetRadius=item=>item.target.r||({jammer:30,turret:22,base:60}[item.kind])||18;
@@ -99,6 +100,7 @@ export function damageTarget(game,item,damage,source='beam',point=null,secondary
  else if(item.kind==='base')game.hitEnemyBase(t,damage);
  else game.damageEnemy(t,damage,source,point);
  const dealt=t.captured?Math.min(before,damage):Math.max(0,before-Math.max(0,t.hp));
+ if(dealt>0)recordHitFeedback(game,item,dealt,source,point,before);
  if(dealt>0&&!secondary)game.weaponHit?.(item,dealt,source,manual);
  return dealt;
 }

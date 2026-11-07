@@ -169,7 +169,7 @@ test('station UI exposes a briefing, route, equipment, and network independently
  assert.match(html,/data-act="baseMap"/);
  const jobs=renderBasePanel(b,{...st,baseTab:'operations'});
  assert.match(jobs,/data-act="acceptOperation"/);
- assert.match(jobs,/435 м/);
+ assert.match(jobs,/300 м/);
  assert.match(jobs,/Принять заказ/);
  assert.doesNotMatch(jobs,/\d+ целей/);
  const underway=renderBasePanel(b,state({baseTab:'operations',operation:createCorridorOperation(b)}));

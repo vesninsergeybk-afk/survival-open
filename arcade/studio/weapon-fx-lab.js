@@ -1,4 +1,6 @@
-import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from '../weapon-fx.js';
+import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from '../weapon-fx.js?v=plasma-taper-1';
+import {moduleStats} from '../ship-loadout.js?v=plasma-taper-1';
+import {plasmaBeamPower,plasmaFarRetention} from '../weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2-plasma-taper-1';
 import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from '../ballistic-weapons.js';
 import {drawSeekingMissile} from '../combat-feedback.js';
 import {drawFieldEffects} from '../field-weapons.js';
@@ -11,9 +13,9 @@ const $=id=>document.getElementById(id);
 const canvas=$('battle'),ctx=canvas.getContext('2d',{alpha:false});
 const start={x:208,y:285};
 const DATA=[
- {id:'plasma',name:'Плазменный излучатель',short:'Плазма',role:'Ближний бой · связный импульс',
-  desc:'Ровный голубой разряд со светлым стержнем и движущимся сгустком. На цели виден замкнутый круг контакта, у корабля — мягкий стартовый импульс. Это мгновенное попадание, а не летящий снаряд.',
-  sound:'starter_soft',points:[{x:790,y:265}]},
+ {id:'plasma',name:'Плазменный излучатель',short:'Плазма',role:'Ближний бой · затухающий луч',
+  desc:'У ствола луч широкий и плотный. С расстоянием его сердечник истончается, часть энергии уходит в боковые разряды. Фокусировка и «Дальний фокус» продлевают плотный участок и повышают фактический урон вдали; на стенде цель всегда находится в пределах реальной дальности оружия.',
+  sound:'starter_soft',points:[{x:480,y:265}]},
  {id:'rail',name:'Рельсотрон',short:'Рельсотрон',role:'Дальний бой · прямой удар',
   desc:'Узкий ослепительно-светлый след, две параллельные кромки, парные скобы у ствола и резкая четырёхлучевая отметка попадания. При промахе конечной вспышки нет. Ручной выстрел использует тот же рисунок.',
   sound:'railgun',points:[{x:915,y:212}]},
@@ -42,6 +44,12 @@ let selected=0,targets=[],missiles=[],sequence=false,sequenceNext=0,sequenceInde
 let fps=60,reducedMotion=false,last=0,accum=0,shotDelay=0,backgroundTime=0;
 let audio=null,audioEnabled=false,audioLoading=false;
 const TAU=Math.PI*2;
+const plasmaSetup=()=>{
+ const rangeRank=Number($('plasmaRank').value)||0,selection=$('plasmaSpec').value;
+ const spec=selection==='none'?null:{path:selection.startsWith('focus')?'focus':'furnace',
+  rank:selection.endsWith('2')?2:1};
+ return {rangeRank,range:moduleStats('plasma',{range:rangeRank}).range,spec};
+};
 const starPoints=Array.from({length:155},(_,i)=>{
  const hash=n=>(Math.sin(n*79.71+19.3)*43758.5453)%1;
  return {x:(hash(i*5)+1)%1*W,y:(hash(i*5+1)+1)%1*H,r:i%7?1:1.65};
@@ -65,6 +73,7 @@ function show(fireNow){
  $('name').textContent=d.name;
  $('desc').textContent=d.desc;
  $('frameInfo').textContent=fps+' FPS · '+(reducedMotion?'движение отключено':'обычная анимация');
+ $('plasmaControls').hidden=d.id!=='plasma';
  if(fireNow)fire();
 }
 
@@ -80,12 +89,24 @@ function muzzle(origin,target,style){
 function fire(){
  const d=DATA[selected];
  fxGame.weaponFx.length=0;fxGame.flakPellets=[];fxGame.heavyShells=[];vfx.reset();missiles=[];
- targets=d.points.map((p,i)=>({x:p.x,y:p.y,r:i===0&&d.id==='howitzer'?27:21,
+ const setup=d.id==='plasma'?plasmaSetup():null;
+ const points=setup?[{x:start.x+setup.range*.92,y:start.y-18}]:d.points;
+ targets=points.map((p,i)=>({x:p.x,y:p.y,r:i===0&&d.id==='howitzer'?27:21,
   hp:100,maxHp:100,type:'fighter'}));
  shotDelay=0;
  if(['plasma','rail'].includes(d.id)){
-  for(const target of targets)
-   emitWeaponFx(fxGame,d.id,start,surface(start,target,target.r));
+  for(const target of targets){
+   const impact=surface(start,target,target.r);
+   emitWeaponFx(fxGame,d.id,start,impact,setup?{profile:{...setup,
+    distance:Math.hypot(impact.x-start.x,impact.y-start.y),gain:1}}:{});
+  }
+  if(setup){
+   const power=plasmaFarRetention(setup.rangeRank,setup.spec);
+   const near=plasmaBeamPower(80,setup.range,setup.rangeRank,setup.spec);
+   $('plasmaSummary').textContent='Дальность: '+setup.range+' м · мощность вблизи: '+
+    Math.round(near*100)+'% · на пределе: '+Math.round(power*100)+
+    '% · изменение толщины и ветвления соответствует урону';
+  }
   muzzle(start,targets[0],d.id==='rail'?'railgun':'starter_pulse');
  }else if(d.id==='flak'){
   const items=targets.map(target=>({kind:'enemy',target}));
@@ -190,7 +211,7 @@ function draw(){
  drawWeaponFx(ctx,fxGame.weaponFx,fps,reducedMotion,{x:0,y:0,w:W,h:H});
  vfx.render(ctx,'front',{worldX:0,worldY:0,width:W,height:H});
  ctx.fillStyle='#8eb2c0';ctx.font='11px ui-monospace,monospace';
- ctx.fillText('СРАВНИТЕЛЬНЫЙ СТЕНД · БАЛАНС НЕ ОЦЕНИВАЕТСЯ',19,30);
+ ctx.fillText('СРАВНЕНИЕ ОРУЖИЯ · ДЛЯ ПЛАЗМЫ ПОКАЗАН РЕАЛЬНЫЙ СПАД СИЛЫ',19,30);
 }
 function frame(timestamp){
  const elapsed=Math.min(.14,(timestamp-last)/1000||.016);last=timestamp;
@@ -206,6 +227,8 @@ $('sequence').addEventListener('click',()=>{
 });
 $('fps').addEventListener('change',e=>{fps=Number(e.target.value);vfx.setBudget(fps<26?.27:fps<40?.45:fps<53?.7:1);show(false);});
 $('motion').addEventListener('change',e=>{reducedMotion=e.target.checked;show(false);});
+for(const id of ['plasmaRank','plasmaSpec'])
+ $(id).addEventListener('change',()=>{sequence=false;show(true);});
 document.addEventListener('keydown',e=>{
  if(e.target instanceof HTMLSelectElement||e.target instanceof HTMLInputElement)return;
  if(e.key>='1'&&e.key<='7'){selected=Number(e.key)-1;sequence=false;show(true);}

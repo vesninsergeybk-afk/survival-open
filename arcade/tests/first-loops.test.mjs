@@ -27,7 +27,11 @@ function trial(tier=1){
  g.camera=()=>({x:g.player.x-300,y:g.player.y-250,w:600,h:500});
  return {g,world,entry};
 }
-function start(g){updateContourTrials(g,.1);g.time+=6;updateContourTrials(g,.1);}
+function ignite(g){
+ const entry=g.world.contours.trials.entries.find(e=>e.status==='pending');
+ g.actionHeld={kind:'contour',target:entry};updateContourTrials(g,.1);g.actionHeld=null;
+}
+function start(g){ignite(g);g.time+=6;updateContourTrials(g,.1);}
 
 test('the first three territorial rewards have real effects only inside a stable powered field',()=>{
  const {g,world,entry}=trial();
@@ -58,8 +62,15 @@ test('territorial recharge pauses under damage and during a menu, and is indepen
 test('a completed defence pays alloy once and immediately demonstrates its shield',()=>{
  const {g,world,entry}=trial();const before=g.player.ore;
  start(g);g.shots=[{trialId:entry.id,alive:true},{alive:true}];
- for(const enemy of g.enemies)enemy.hp=0;
- updateContourTrials(g,.1);
+ for(let wave=0;wave<3;wave++){
+  for(const enemy of g.enemies)if(enemy.trialId===entry.id)enemy.hp=0;
+  updateContourTrials(g,.1);
+  if(g.contourTrial){g.time=g.contourTrial.nextWaveAt+.1;updateContourTrials(g,.1);}
+ }
+ assert.equal(g.contourTrial?.phase,'stabilize');
+ assert.equal(g.player.ore,before,'combat alone cannot start flux production');
+ g.actionHeld={kind:'contour',target:entry};updateContourTrials(g,g.contourTrial.chargeGoal);
+ g.actionHeld=null;
  assert.equal(world.contours.trials.completed,1);assert.equal(g.player.ore,before+24);
  assert.equal(g.player.shield,18);assert.equal(g.shots.length,1);
  assert.equal(g.contourFeedback.unlocked,'Контурный щит');
@@ -78,7 +89,7 @@ test('the timeout never silently reduces the displayed kill requirement',()=>{
 });
 
 test('crowding postpones an attack within a bounded time without awarding a victory',()=>{
- const {g,world}=trial();updateContourTrials(g,.1);
+ const {g,world}=trial();ignite(g);
  g.enemies=Array.from({length:RULES.maxEnemies},(_,serial)=>({serial:1000+serial,x:20000,y:20000,hp:10,stationRaid:'remote'}));
  g.time+=6;updateContourTrials(g,.1);assert.equal(g.contourTrial.waitingForSpace,true);
  g.time+=13;updateContourTrials(g,.1);

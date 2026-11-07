@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLoadout,cloneLoadout,moduleStats,HangarSession} from '../ship-loadout.js';
 import {WEAPON_SPECIALIZATIONS,quoteSpecialization,applySpecialization,
- plasmaDamageFactor,weaponDamageFactor,penetrationFactor,rocketFlight}
+ plasmaDamageFactor,plasmaFarRetention,plasmaBeamPower,
+ weaponDamageFactor,penetrationFactor,rocketFlight}
  from '../weapon-specializations.js';
 
 const context=(extra={})=>({baseActive:true,level:14,activeBases:3,points:6,ore:180,...extra});
@@ -45,9 +46,31 @@ test('near and far plasma paths have distinct distance profiles',()=>{
  assert.equal(plasmaDamageFactor(furnace,100,435),1.25);
  assert.equal(plasmaDamageFactor(furnace,300,435),1);
  assert.equal(plasmaDamageFactor(focus,100,435),1);
- assert.ok(Math.abs(plasmaDamageFactor(focus,435,435)*.28-.48)<1e-9);
+ assert.ok(Math.abs(plasmaDamageFactor(focus,435,435)*.28-.78)<1e-9);
  assert.equal(plasmaDamageFactor({...furnace,rank:2},100,435),1.45);
- assert.ok(Math.abs(plasmaDamageFactor({...focus,rank:2},435,435)*.28-.60)<1e-9);
+ assert.ok(Math.abs(plasmaDamageFactor({...focus,rank:2},435,435)*.28-.90)<1e-9);
+});
+
+test('focus upgrades improve the real far-edge damage while retaining full near damage',()=>{
+ const ranks=[0,1,2,3],ranges=[300,370,440,510];
+ assert.deepEqual(ranks.map(r=>plasmaFarRetention(r)),[.28,.40,.52,.64]);
+ for(let i=0;i<ranks.length;i++){
+  assert.equal(plasmaBeamPower(80,ranges[i],ranks[i]),1);
+  assert.ok(Math.abs(plasmaBeamPower(ranges[i],ranges[i],ranks[i])-
+   plasmaFarRetention(ranks[i]))<1e-9);
+ }
+ assert.equal(plasmaBeamPower(510,510,3,{path:'focus',rank:1}),.78);
+ assert.equal(plasmaBeamPower(510,510,3,{path:'focus',rank:2}),.90);
+ assert.equal(plasmaBeamPower(100,510,3,{path:'furnace',rank:1}),1.25);
+ assert.equal(plasmaBeamPower(510,510,3,{path:'furnace',rank:1}),.64);
+ for(let r=0;r<4;r++){
+  let previous=Infinity;
+  for(let d=0;d<=ranges[r];d+=5){
+   const power=plasmaBeamPower(d,ranges[r],r);
+   assert.ok(power<=previous+1e-8);
+   previous=power;
+  }
+ }
 });
 
 test('flak chooses between wider weaker bursts and extra anti-scout damage',()=>{

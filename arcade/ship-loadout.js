@@ -1,6 +1,7 @@
 import {ionDamage} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 import {applySpecialization} from './weapon-specializations.js?v=weapons-cycle-2';
 import {TACTICAL_DEVICES} from './tactical-fields.js?v=tactical-field-2';
+import {RULES} from './balance.js';
 // Run-owned hardware; saved blueprints contain choices, never resources/unlocks.
 export const FRAME_STEPS=Object.freeze([
  {nodes:2,heavy:false,level:1,cost:0,name:'Лёгкий корпус'},
@@ -12,7 +13,7 @@ export const FRAME_STEPS=Object.freeze([
 export const SHIP_UPGRADES=new Set(['beam','double','range','rocket','hull','engine','shield']);
 export const MODULES=Object.freeze({
  plasma:{id:'plasma',name:'Плазменный луч',short:'Плазма',kind:'auto',role:'Ближний бой',level:1,cost:24,heat:6,color:'#6de7ef',
-  desc:'Частые залпы. Самый сильный урон вблизи; к пределу дальности остаётся 28%. Несколько лучей стреляют общим залпом.'},
+  desc:'Частые залпы. Вблизи луч плотный и мощный, вдали ослабевает до 28%. «Фокусировка» повышает дальний урон до 64%, специализация «Дальний фокус» — до 90%. При разделении луча мощность делится между целями.'},
  rail:{id:'rail',name:'Рельсовое орудие',short:'Рельс',kind:'auto',role:'Дальний бой',level:3,cost:36,heat:18,color:'#a5bfff',
    desc:'Редкий дальний выстрел. Астероиды служат укрытием. После включения первого арсенала ЛКМ ведёт ручной огонь выбранным рельсом; R по умолчанию переключает режим. Нагрев и перезарядка общие.'},
  flak:{id:'flak',name:'Осколочный излучатель',short:'Картечь',kind:'auto',role:'Против роя',level:4,cost:42,heat:14,color:'#f7ce87',
@@ -46,7 +47,7 @@ export function moduleStats(id,ranks={},specialization=null){
  const power=1+beam*.2,rate=1+beam*.08;
  const spread=specialization?.path==='sweep'&&id==='flak';
  return ({
-  plasma:{damage:18*power,range:435+range*56,interval:.63/rate,targets:1+Math.min(2,ranks.double||0)},
+  plasma:{damage:18*power,range:RULES.beamRange+range*70,interval:.63/rate,targets:1+Math.min(2,ranks.double||0)},
   rail:{damage:38*power,range:700,interval:1.65/rate,targets:1},
   flak:{damage:(spread?11:14)*power,range:245,interval:1.15/rate,targets:spread?(specialization.rank>=2?5:4):3},
   rocket:{damage:(48+rocket*19)*power,range:720,interval:3.5/(1+rocket*.28)/rate,targets:1},

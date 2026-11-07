@@ -297,7 +297,8 @@ test('the station adapter, heat gates and both manual inputs are wired into the 
  const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(source,/e\.code===this\.controls\.howitzer\)this\.callHowitzer\(\)/);
  assert.match(source,/heavyButton.onclick=\(\)=>this.callHowitzer\(\)/);
- assert.match(source,/updateAutomaticWeapons\(this,dt,!this.heavyCharge&&automaticFireAllowed/);
+ assert.match(source,/updateAutomaticWeapons\(this,dt,!this.heavyCharge&&this\.actionHeld\?\.kind!=='contour'&&/);
+ assert.match(source,/automaticFireAllowed\(this.holdFire/);
  assert.match(source,/if\(SHIP_UPGRADES.has\(id\)&&\(!this.docked\?\.active/);
  assert.match(source,/markIonCluster\(targets,item.target/);
  assert.match(source,/this.shipLoadout=result.loadout;this.player.ore=result.ore/);

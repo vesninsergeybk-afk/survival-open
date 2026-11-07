@@ -1,10 +1,12 @@
+import {interruptContourIrisDive} from './contour-trial-iris.js?v=counterattack-2';
+
 // Field evolution is earned with the pilot's existing level points. The cores
 // dropped by ordinary kills are expendable combat resources, not experience.
 export const FIELD_EVOLUTION_SKILLS=[
  {id:'parasite',branch:'Технологии',title:'Энергетический паразит',max:1,from:2,
   desc:'При изучении получите первый защитный заряд. Каждый третий лично побеждённый дрон оставляет энергоядро. Запас до двух зарядов: один автоматически поглощает до 25 ед. сильного удара.'},
  {id:'conduit',branch:'Корабль',title:'Разрядный проход',max:1,from:2,
-  desc:'Рывок прошивает врагов электрическими метками. Попадите по помеченному кораблю — разряд на миг обездвижит его соседей.'},
+  desc:'Рывок оставляет на враге электрическую метку. Следующий выстрел по метке на миг обездвижит ближайших противников. Близкий рывок мимо атакующего зрачка срывает его таран.'},
  {id:'wreck',branch:'Технологии',title:'Обломки-укрытия',max:1,from:2,
   desc:'После победы над тяжёлыми дронами остаются дрейфующие обломки. Они на время перекрывают вражеский огонь, но разрушаются от попаданий.'},
  {id:'capture',branch:'Технологии',title:'Паразитный захват',max:1,from:3,requires:'parasite',
@@ -160,6 +162,10 @@ export function markDashPass(game,previousX,previousY){
   if(distanceToSegment(e.x,e.y,previousX,previousY,p.x,p.y)<(e.r||18)+21){
    e.fieldMarkUntil=game.time+4;marked++;
    game.flash?.(previousX,previousY,e.x,e.y,'#78ffe0');
+   if(e.trialId===game.contourTrial?.entry?.id&&interruptContourIrisDive(e,game.time)){
+    game.heritage?.vfx?.nova?.(e.x,e.y,49,'cyan');
+    game.heritage?.play?.('hack',.35,e);
+   }
   }
  }
  if(marked)s.pulseAt=game.time;

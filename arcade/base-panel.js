@@ -1,4 +1,4 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-plasma-taper-1';
 import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
@@ -274,8 +274,8 @@ const corridorPanel=(base,state,compact=false)=>{
  const hp=active||op.resumable?Math.ceil(op.hp/CORRIDOR_OPERATION.maxHp*100):100;
  const body=done?'Передатчик уничтожен, телеметрия доставлена. Разведка дока работает дальше.':
   returning?'Глушитель отключён. Бортовой ИИ сохранил телеметрию. Вернитесь в домашний док и передайте её при стыковке (E). По дороге можно обойти преследователей или отбиться.':
-  active?'Цель отмечена. Выберите дистанцию по установленному оружию: плазма до 435 м, рельс до 700 м. В пределах 315 м заряжается ЭМ-импульс. Охранение можно обойти. После отключения глушителя доставьте телеметрию в домашний док за наградой.':
-  'Глушитель обнаружен примерно в 1,3 км к востоку. Стартовая плазма поражает передатчик до 435 м и сильнее вблизи; в радиусе 315 м заряжается ЭМ-импульс. Охранение можно устранить или обойти. После отключения передатчика вернитесь в док с телеметрией за наградой.';
+  active?'Цель отмечена. Выберите дистанцию по установленному оружию: плазма без улучшений бьёт до 300 м, рельс — до 700 м. Прокачка увеличивает дальность. В пределах 315 м заряжается ЭМ-импульс. Охранение можно обойти. После отключения глушителя доставьте телеметрию в домашний док за наградой.':
+  'Глушитель обнаружен примерно в 1,3 км к востоку. Стартовая плазма поражает передатчик до 300 м и сильнее вблизи; улучшения увеличивают дальность. В радиусе 315 м заряжается ЭМ-импульс. Охранение можно устранить или обойти. После отключения передатчика вернитесь в док с телеметрией за наградой.';
  const actions=done?'<span class="base-op-done">✓ Изменения действуют в секторе</span>':
   active?action('baseMap',returning?'Маршрут к доку':'Показать маршрут','','','','operation')+(compact?'':action('abandonOperation',returning?'Отложить передачу':'Отложить · сохранить повреждения')):
   action('baseMap','Посмотреть маршрут')+
