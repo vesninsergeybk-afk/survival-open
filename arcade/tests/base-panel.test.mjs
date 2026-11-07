@@ -128,7 +128,7 @@ test('activated stations issue renewable field assignments with a cooldown',()=>
  assert.equal(contractOffer(dock,state()).status,'available');
  assert.equal(contractFor('dock').goal,4);
  assert.equal(contractFor('lab').kind,'rich');
- assert.match(renderBasePanel(dock,state()),/data-act="acceptContract"/);
+ assert.match(renderBasePanel(dock,state({baseTab:'operations'})),/data-act="acceptContract"/);
  const mission={baseId:dock.id,kind:'kill',goal:4,progress:4};
  assert.match(renderBasePanel(dock,state({contract:mission})),/data-act="claimContract"/);
  assert.equal(contractOffer({...dock,contractClaimed:true,contractRuns:1,
@@ -181,7 +181,7 @@ test('accepting and claiming a station assignment immediately refreshes its menu
  assert.equal(fake.contract.kind,'kill');
  assert.equal(fake.renders,1);
  assert.equal(fake.pausedRenderPending,true);
- const before=renderBasePanel(dock,fake.baseState());
+ const before=renderBasePanel(dock,{...fake.baseState(),baseTab:'operations'});
  assert.match(before,/В работе · 0 из 4/);
  fake.contract.progress=4;
  Actions.prototype.baseAction.call(fake,'claimContract');
@@ -190,7 +190,7 @@ test('accepting and claiming a station assignment immediately refreshes its menu
  assert.equal(fake.player.ore,16);
  assert.equal(fake.player.data,15);
  assert.equal(fake.renders,2);
- assert.match(renderBasePanel(dock,fake.baseState()),/Новый заказ через/);
+ assert.match(renderBasePanel(dock,{...fake.baseState(),baseTab:'operations'}),/Новый заказ через/);
 });
 
 test('each civilian station has a bounded, clearly priced local service',()=>{

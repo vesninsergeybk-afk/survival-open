@@ -90,7 +90,7 @@ test('local map puts destinations above optional reports and displays remapped c
  assert.ok(html.indexOf('Обнаруженные станции')<html.indexOf('<details class="map-world-details">'));
  assert.match(html,/G — карта · J — развитие/);assert.doesNotMatch(html,/Tab или M/);
 });
-test('flight Escape consumes the native cancel action before opening the pause dialog',()=>{
+test('Escape opens pause even when the flight menu button has focus',()=>{
  const {doc,game,nodes}=nativeScene(),priorDoc=globalThis.document,priorWindow=globalThis.window;
  const fallback={hidden:true,open:false,style:{},addEventListener(){}},listeners={};
  const get=doc.getElementById;doc.getElementById=id=>id==='creditsDialog'?null:get(id)||fallback;
@@ -101,8 +101,28 @@ test('flight Escape consumes the native cancel action before opening the pause d
  globalThis.document=doc;globalThis.window={addEventListener(){}};
  try{
   RuntimeHarness.prototype.bind.call(game);
-  const key={code:'Escape',key:'Escape',repeat:false,target:{closest:()=>null},preventDefault(){prevented=true;}};
+  const key={code:'Escape',key:'Escape',repeat:false,target:{closest:()=>nodes.get('menuBtn')},preventDefault(){prevented=true;}};
   for(const fn of listeners.keydown)fn(key);
   assert.ok(nodes.get('gameMenuDialog').open);assert.ok(game.paused);
+ }finally{globalThis.document=priorDoc;globalThis.window=priorWindow;}
+});
+
+test('flight keys cannot trigger gameplay from inside a custom menu',()=>{
+ const {doc,game}=nativeScene('base',true),priorDoc=globalThis.document,priorWindow=globalThis.window;
+ const fallback={hidden:true,open:false,style:{},addEventListener(){}},listeners={};
+ const get=doc.getElementById;
+ doc.getElementById=id=>id==='creditsDialog'?null:get(id)||fallback;
+ doc.addEventListener=(type,fn)=>(listeners[type]||=[]).push(fn);
+ game.overlay.addEventListener=()=>{};game.bindControlSettings=()=>{};
+ game.keys.clear();
+ game.beginInteraction=()=>assert.fail('a menu press must not trigger docking or mining');
+ globalThis.document=doc;globalThis.window={addEventListener(){}};
+ try{
+  RuntimeHarness.prototype.bind.call(game);
+  for(const code of [DEFAULT_CONTROLS.interact,DEFAULT_CONTROLS.up]){
+   for(const fn of listeners.keydown)fn({code,target:{closest:()=>null},preventDefault(){}});
+  }
+  assert.equal(game.keys.size,0);
+  assert.equal(game.overlay.dataset.mode,'base');
  }finally{globalThis.document=priorDoc;globalThis.window=priorWindow;}
 });

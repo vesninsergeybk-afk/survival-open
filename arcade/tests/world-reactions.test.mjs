@@ -182,7 +182,7 @@ test('a discovered repair ship can actually be selected from the region map',()=
  craft.seen=true;
  g.overlay={dataset:{mode:'map'}};
  let selected=null;
- g.requestWaypointDeparture=(waypoint)=>{selected=waypoint};
+ g.setNavigationCourse=(waypoint)=>{selected=waypoint};
  g.selectWaypoint({id:craft.id,x:craft.x,y:craft.y,label:'Ремонтный корабль'});
  assert.ok(selected,'the actual map button must lead to a navigable target');
  assert.equal(selected.id,craft.id);
@@ -209,7 +209,7 @@ test('a nearby active laboratory detects a live repair expedition without reveal
   c.label.includes('ремонтная')));
  g.overlay={dataset:{mode:'map'}};
  let chosen=null;
- g.requestWaypointDeparture=waypoint=>{chosen=waypoint};
+ g.setNavigationCourse=waypoint=>{chosen=waypoint};
  g.selectWaypoint({id:craft.id,x:craft.x,y:craft.y,label:'Радиометка ремонтного корабля'});
  assert.ok(chosen?.radioContact,'laboratory tracking must create a live radio waypoint');
  assert.equal(chosen.signalLabel,'Вражеская ремонтная экспедиция');

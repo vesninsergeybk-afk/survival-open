@@ -113,7 +113,7 @@ test('accepted special operation does not claim a sortie has already begun',()=>
 
 test('mission choices say what can be accepted and where the reward comes from',()=>{
  const operations=panel(renderBasePanel(home,state({baseTab:'operations'})),'operations');
- assert.match(operations,/Куда отправимся\?/);
+ assert.match(operations,/Доступные задания/);
  assert.match(operations,/aria-label="Особая операция"/);
  assert.match(operations,/Глухой коридор/);
  assert.match(operations,/Награда: 16 сплава · 15 опыта/);
@@ -154,6 +154,6 @@ test('an accepted special operation shows its status and route without an accord
  assert.match(operations,/<section class="base-task-group special" aria-label="Особая операция">/);
  assert.match(operations,/Глухой коридор/);
  assert.match(operations,/ОПЕРАЦИЯ ПРИНЯТА/);
- assert.match(operations,/data-act="baseMap">Показать маршрут/);
+ assert.match(operations,/data-act="baseMap" data-target="operation">Показать маршрут/);
  assert.doesNotMatch(operations,/class="base-mission-details"/);
 });

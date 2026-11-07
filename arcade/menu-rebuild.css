@@ -1,4 +1,4 @@
-/* Station terminal: act on the home page; fit and improve on separate pages. */
+/* Station terminal: short overview and dedicated pages for each task. */
 #overlay .base-dialog .base-tabs{grid-template-columns:repeat(5,minmax(0,1fr));top:0}
 #overlay .base-tabs [data-role="development"]::before{content:"";display:inline-block;flex:0 0 18px;width:18px;height:18px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='none' stroke='black' stroke-width='2' d='M16 3 26 13H20V28H12V13H6Z'/%3E%3C/svg%3E") center/contain no-repeat}
 #overlay .base-tab-panel[hidden]{display:none!important}
@@ -365,4 +365,89 @@
  .map-dialog>.territory-progress{display:block}
  .map-dialog>.territory-progress>button{width:100%;margin:0}
  .territory-progress{padding:12px}
+}
+
+.base-home-strategy {
+ margin: 12px 0;
+ grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+#overlay .base-footer-actions,
+#overlay .base-footer-actions button {
+ flex-wrap: wrap;
+}
+.hg-view-nav {
+ grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.hg-weapon-views,
+#overlay .base-dialog .skill-branch-tabs {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 6px;
+ margin: 6px 0 12px;
+}
+#overlay :is(.hg-weapon-views, .base-dialog .skill-branch-tabs) button {
+ min-height: 44px;
+ margin: 0;
+}
+#overlay :is(.hg-weapon-views, .base-dialog .skill-branch-tabs) button[aria-pressed="true"] {
+ background: #384941;
+ border-color: #ebd19a;
+ color: #ffedca;
+}
+.map-control-bar {
+ position: sticky;
+ bottom: 0;
+ z-index: 10;
+ display: flex;
+ flex-wrap: wrap;
+ align-items: center;
+ justify-content: space-between;
+ gap: 8px 16px;
+ margin-top: 10px;
+ padding: 9px 0 0;
+ border-top: 1px solid #77979c80;
+ background: #142530;
+ box-shadow: 0 -8px 16px #0a141bca;
+}
+.map-course, .map-footer-actions {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 6px;
+ align-items: center;
+ min-width: 0;
+}
+.map-course {
+ flex: 1 1 270px;
+}
+.map-course strong, .map-course small {
+ display: block;
+}
+.map-course small {
+ color: #b6cccf;
+ font-size: 12px;
+}
+#overlay .map-control-bar button {
+ min-height: 44px;
+ padding: 6px 10px;
+}
+#overlay .map-control-bar button.primary {
+ background: #d9c494;
+ color: #142530;
+ border-color: #efdeb9;
+ font-weight: 700;
+}
+#overlay .map-dialog { scroll-padding-bottom: 124px; }
+.system-shortcuts #systemResume { grid-column: 1 / -1; text-align: center; }
+.system-settings > summary {
+ min-height: 44px;
+ padding: 11px 0;
+ border-top: 1px solid var(--screen-line);
+ cursor: pointer;
+}
+@media (max-width: 600px) {
+ #overlay .base-footer-actions button { flex: 1 1 auto; }
+ #overlay .hg-view-nav button { overflow-wrap: anywhere; }
+ .map-control-bar { gap: 5px; }
+ .map-footer-actions { width: 100%; }
+ .map-footer-actions button { flex: 1 1 auto; }
 }

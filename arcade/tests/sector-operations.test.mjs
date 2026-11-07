@@ -165,20 +165,22 @@ test('station UI exposes a briefing, route, equipment, and network independently
  const html=renderBasePanel(b,st);
  for(const tab of ['summary','operations','hangar','network'])
   assert.match(html,new RegExp('data-role="'+tab+'"'));
- assert.match(html,/data-act="acceptOperation"/);
+ assert.match(html,/data-act="baseTab" data-role="operations">Посмотреть задания/);
  assert.match(html,/data-act="baseMap"/);
- assert.match(html,/435 м/);
-  assert.match(html,/Принять заказ/);
-  assert.doesNotMatch(html,/\d+ целей/);
+ const jobs=renderBasePanel(b,{...st,baseTab:'operations'});
+ assert.match(jobs,/data-act="acceptOperation"/);
+ assert.match(jobs,/435 м/);
+ assert.match(jobs,/Принять заказ/);
+ assert.doesNotMatch(jobs,/\d+ целей/);
  const underway=renderBasePanel(b,state({baseTab:'operations',operation:createCorridorOperation(b)}));
  assert.match(underway,/Отложить · сохранить повреждения/);
  const homebound=createCorridorOperation(b);homebound.phase='return';homebound.hp=0;
  const delivery=renderBasePanel(b,state({baseTab:'operations',operation:homebound}));
  assert.match(delivery,/ОСТАЛОСЬ ВЕРНУТЬСЯ/);
  assert.match(delivery,/Награда и разведка откроются после возвращения/);
- const done=renderBasePanel({...b,corridorSecured:true},st);
- assert.doesNotMatch(done,/data-act="acceptOperation"/);
- assert.match(done,/ПОМЕХИ УСТРАНЕНЫ/);
+ const completed={...b,corridorSecured:true};
+ assert.doesNotMatch(renderBasePanel(completed,{...st,baseTab:'operations'}),/data-act="acceptOperation"/);
+ assert.match(renderBasePanel(completed,st),/ПОМЕХИ УСТРАНЕНЫ/);
 });
 test('the navigation map displays the actual target and the secured-route outcome',()=>{
  const world=new World();world.home.active=true;world.home.discovered=true;

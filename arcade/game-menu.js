@@ -1,5 +1,10 @@
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1-first-loops-1';
 const states=new WeakMap();
+export const menuReturnLabels=Object.freeze({
+ base:'К станции',map:'К карте',skills:'К навыкам пилота',evolution:'К выбору способности',
+ 'run-start':'К сохранению',death:'К итогам вылета','opening-choice':'К выбору сигнала',
+ 'opening-reward':'К награде'
+});
 export function restoreSystemMenu(game,doc=globalThis.document){
  const prior=states.get(game);if(!prior)return false;
  states.delete(game);game.bindingCapture=null;
@@ -7,7 +12,7 @@ export function restoreSystemMenu(game,doc=globalThis.document){
  game.paused=game.dead||prior.paused||!game.overlay.hidden;
  game.pausedRenderPending=true;
  if(game.paused)game.heritage.pause(prior.modal||'map');else game.heritage.resume();
- const focus=prior.focus?.isConnected?prior.focus:doc?.getElementById('menuBtn');
+ const focus=(!game.paused&&game.canvas)||(prior.focus?.isConnected?prior.focus:doc?.getElementById('menuBtn'));
  focus?.focus?.({preventScroll:true});return true;
 }
 export function openSystemMenu(game,doc=globalThis.document){
@@ -15,9 +20,10 @@ export function openSystemMenu(game,doc=globalThis.document){
  states.set(game,{paused:game.paused,modal:game.heritage.modal,focus:doc.activeElement});
  game.endInteraction();game.keys.clear();game.paused=true;game.pausedRenderPending=true;
  game.heritage.pause('menu');
- const restricted=game.dead||['run-start','opening-choice','opening-reward'].includes(game.overlay.dataset.mode);
+ const restricted=game.dead||(!game.overlay.hidden&&['run-start','opening-choice','opening-reward'].includes(game.overlay.dataset.mode));
  for(const id of ['systemMap','systemSkills']){const button=doc.getElementById(id);if(button)button.disabled=restricted;}
- const resume=doc.getElementById('systemResume');if(resume)resume.textContent=game.overlay.hidden?'Продолжить полёт':'Вернуться к экрану';
+ const resume=doc.getElementById('systemResume');
+ if(resume)resume.textContent=game.overlay.hidden?'Продолжить полёт':menuReturnLabels[game.overlay.dataset.mode]||'Назад';
  const keyPanel=doc.getElementById('controlSettings');
  if(keyPanel)keyPanel.open=!!doc.querySelector('[data-settings-tab="keys"][aria-selected="true"]');
  const controls=game.controls||DEFAULT_CONTROLS;
@@ -56,13 +62,15 @@ export function mountSystemMenu(game,doc=globalThis.document){
  for(const [id,method] of [['systemMap','openMap'],['systemSkills','skills']])doc.getElementById(id)?.addEventListener('click',()=>{
   if(doc.getElementById(id).disabled)return;closeSystemMenu(game,doc);
   if(game.overlay.dataset.mode===(method==='openMap'?'map':'skills')&&!game.overlay.hidden)return;
-  game[method]();
+  if(method==='openMap')game.openMap(null,id);
+  else game.skills(true,id);
  });
 }
 export function attachMenuAccess(root){
  const dialog=root?.querySelector?.('.dialog');
- if(!dialog?.ownerDocument?.createElement||dialog.querySelector('[data-act="systemMenu"]'))return;
+ if(!dialog?.ownerDocument?.createElement||dialog.querySelector('[data-act="systemMenu"],[data-return-pause]'))return;
  const button=dialog.ownerDocument.createElement('button');button.type='button';button.dataset.act='systemMenu';
- button.className='menu-access';button.textContent='Меню';button.setAttribute('aria-haspopup','dialog');
- (dialog.querySelector('.base-footer-actions,.map-heading-actions,.screen-secondary')||dialog).append(button);
+ button.className='menu-access';button.textContent='Пауза';button.setAttribute('aria-haspopup','dialog');
+ const controls=dialog.querySelector('.base-footer-actions,.map-footer-actions,.screen-secondary')||dialog;
+ controls.insertBefore(button,controls.querySelector('[data-act="close"]'));
 }

@@ -1,5 +1,5 @@
 import {FIELD_EVOLUTION_SKILLS} from './field-evolution.js?v=first-loops-1';
-import {escapeMenu as esc,screenHead,menuFooter} from './menu-screens.js';
+import {escapeMenu as esc,screenHead,menuFooter,menuBackButton} from './menu-screens.js?v=menu-audit-1';
 
 export function installedEvolution(ranks={},skills=FIELD_EVOLUTION_SKILLS){
  return skills.filter(s=>(ranks[s.id]||0)>0);
@@ -21,5 +21,5 @@ export function renderEvolutionMenu(game,skills){
   active+
   (ranks.parasite?'<section class="evolution-core-help"><h3>Энергоядра · '+(s?.charge||0)+'/2</h3><p>Маленькие шары у корабля — расходуемые заряды паразита. Заряд автоматически поглощает до 25 ед. сильного удара. Захват и передатчик тоже тратят заряд. Исчезновение шара означает расход заряда; навык остаётся.</p></section>':'')+
   menuFooter('<button type="button" class="screen-button primary" data-act="close">Продолжить полёт</button>',
-   '<button type="button" class="screen-button" data-act="evolutionAll">Все навыки и улучшения</button>')+'</div>';
+   menuBackButton(game.menuBackLabel?.())+'<button type="button" class="screen-button" data-act="evolutionAll">Все навыки пилота</button>')+'</div>';
 }

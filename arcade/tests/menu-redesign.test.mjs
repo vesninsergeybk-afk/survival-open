@@ -129,7 +129,7 @@ test('map supports a deliberate short-screen switch while preserving imprecise s
  const loadout=createLoadout(),session=new HangarSession();session.begin(loadout);
  session.draft.slots[0]=null;
  Object.assign(game,{docked:home,mapReturnToBase:true,shipLoadout:loadout,hangarSession:session});
- assert.match(renderWorldMap(game),/Сборка ангара не применена/);
+ assert.match(renderWorldMap(game),/В полёт · сборка не применена/);
 });
 
 test('new artwork is lightweight and every path is present in the actual Pages game',()=>{

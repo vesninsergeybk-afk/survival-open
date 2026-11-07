@@ -128,7 +128,7 @@ test('storm warnings and contact share exact geometry; each discharge hits only 
 
 test('actual map buttons select canonical region entries and track only discovered cargo',()=>{
  const g=game();g.overlay={dataset:{mode:'map'}};
- g.requestWaypointDeparture=waypoint=>{g.selected=waypoint;};
+ g.setNavigationCourse=waypoint=>{g.selected=waypoint;};
  g.selectWaypoint({id:'region-amber',x:'1',y:'1',label:'arbitrary'});
  assert.deepEqual(g.selected,{id:'region-amber',...REGIONS[1].survey,label:REGIONS[1].name});
  advanceRegionalSupply(g.world,61);const c=g.world.regionalSupply.convoys[0];g.selected=null;

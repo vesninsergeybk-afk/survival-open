@@ -1,4 +1,4 @@
-import {menuInfo} from './menu-screens.js?v=all-menus-1';
+import {menuInfo,renderMapActions} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1';
 import {DEFAULT_CONTROLS,readableKey,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
@@ -17,7 +17,7 @@ import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './stat
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=menu-rebuild-territory-war-20261106';
 import {renderStationThreats} from './strategic-command.js?v=menu-rebuild-territory-war-20261106';
-import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1-contour-trials-1-counterattack-1-first-loops-1';
+import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1-contour-trials-1-counterattack-1-first-loops-1-menu-audit-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
@@ -258,7 +258,7 @@ export function renderWorldMap(game){
   const d=distance(b,p),same=navigator?.id===b.id;
   const status=isSignal?'координаты приблизительные (погрешность до 170 м)':
    b.enemy?'вражеская база':b.suppressed?'связь подавлена · восстановление через '+Math.max(0,Math.ceil(b.suppressedUntil-game.time))+' с':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети · ПВО'+(topology.count>=2?' и стазис':'')+(b.relayBoost?' · усиленная связь':''):'автономный узел · ПВО'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
-  const value=isSignal?'Приблизиться и исследовать':'Построить маршрут';
+  const value=isSignal?'Проложить курс к сигналу':'Построить маршрут';
   const discovery=!isSignal&&!b.enemy&&b.type==='arsenal'&&!precisionUnlocked?
    ' · ОТКРЫТИЕ: ручной прицел для рельсового орудия':
    !isSignal&&!b.enemy&&b.type==='lab'&&!b.active?
@@ -275,8 +275,6 @@ export function renderWorldMap(game){
   Number(navigator?.id===b.id)-Number(navigator?.id===a.id)||distance(a,p)-distance(b,p))
   .map(b=>row(b,false)).join('');
  const unidentified=signals.map(b=>row(b,true)).join('');
- const clear='<button type="button" data-act="waypoint" data-id="clear"'+
-  (!navigator?' disabled':'')+'>Сбросить маршрут</button>';
  const intercepted=game.enemyComms?.intercepted?.(game.time)||[];
  const radioHistory=intercepted.length?
   '<details class="map-objective map-radio-log"><summary>Перехваченные приказы · '+
@@ -316,11 +314,8 @@ export function renderWorldMap(game){
  const intelLead=intel.unlocked?' <b>Радиоперехват:</b> '+(intelContacts?
   'найдены промышленные сигналы.':'новых целей пока нет.')+
   ' <span class="map-intel-wide">Выберите маршрут в списке справа.</span>'+
-  '<span class="map-intel-compact">Нажмите «Список», чтобы выбрать маршрут.</span>':'';
+  '<span class="map-intel-compact">Откройте «Цели», чтобы выбрать маршрут.</span>':'';
  const view=game.mapView==='targets'?'targets':'map';
- const unapplied=game.mapReturnToBase&&game.hangarSession?.dirty(game.shipLoadout);
- const routeSummary='<div class="map-active-route"><b>Текущая цель:</b> '+(navigator?enc(navigator.label)+
-   ' · '+distance(navigator,p)+' м':'маршрут не задан')+clear+'</div>';
  const activeMission=operation?'<div class="map-operation-cue" role="status"><div><small>ПРИНЯТАЯ ОСОБАЯ ОПЕРАЦИЯ</small><strong>'+enc(operation.name)+
   (operation.phase==='return'?' · сдача результатов':' · цель на карте')+'</strong><span>'+
   (operation.phase==='return'?'Вернитесь на станцию, где приняли операцию.':
@@ -333,15 +328,13 @@ export function renderWorldMap(game){
   '<span class="map-kicker">НАВИГАЦИОННЫЙ КОМПЛЕКС</span><h2 id="map-menu-title">Карта сектора</h2>'+
   menuInfo('Как пользоваться картой','Выберите станцию или сигнал и постройте маршрут. Связь действует на 1450 м; каждая усиленная антенна добавляет 500 м. Неизвестные сигналы указаны приблизительно.')+
   '</div><div class="map-heading-actions"><span>В сети <b>'+topology.count+'</b> · Открыто <b>'+known.length+
-  '</b></span>'+(game.mapReturnToBase&&game.docked?'<button data-act="baseBack">← К станции</button>':'')+
-  '<button data-act="close">'+(unapplied?'В полёт · сборка не применена':'Продолжить полёт')+'</button></div></header>'+
-  (unapplied?'<p class="map-unapplied-note" role="status">Сборка ангара не применена. Перед вылетом потребуется подтверждение.</p>':'')+
+  '</b></span></div></header>'+
   '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">'+menuIcon('map')+'Рядом</button>'+
-  '<button type="button" data-act="mapView" data-id="territory">'+menuIcon('network')+'Контуры</button>'+
-  '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">'+menuIcon('navigation')+'Список · '+(known.length+signals.length)+'</button></nav>'+
+  '<button type="button" data-act="mapView" data-id="territory" aria-pressed="false">'+menuIcon('network')+'Территории</button>'+
+  '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">'+menuIcon('navigation')+'Цели</button></nav>'+
   activeMission+(pendingContourTrials(world).length?renderTerritoryProgress(world,p,{map:true}):'')+
   (discoveryLead||intelLead?'<details class="map-discovery-lead"><summary>Что можно открыть на станциях</summary>'+discoveryLead+intelLead+'</details>':'')+
-  '<section class="map-shell"><div class="map-canvas">'+routeSummary+'<div class="map-plot"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
+  '<section class="map-shell"><div class="map-canvas"><div class="map-plot"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   chartBackdrop(world.seed,center,scale)+atlasStars(world.seed,center,scale,false)+
   '<circle cx="'+pilot.x.toFixed(1)+'" cy="'+pilot.y.toFixed(1)+'" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
   grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+defenseRing+securedRoutes+carrierPath+route+echoes+intelMarks+marks+operationMark+enemyOrders+parasiteEchoes+
@@ -357,7 +350,6 @@ export function renderWorldMap(game){
   '</div>'+
   '<aside class="map-side">'+
   renderStationThreats(game)+
-  (view==='targets'?'<div class="map-active-route"><b>Текущая цель:</b> '+(navigator?enc(navigator.label)+' · '+distance(navigator,p)+' м':'маршрут не задан')+clear+'</div>':'')+
   (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
      operation?.id===CARRIER_INTERCEPTION.id?'ПЕРЕХВАТ КОНВОЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+
    (operation?'<button type="button" data-act="abandonOperation">Отложить операцию</button>':'')+'</div>':'')+
@@ -382,5 +374,5 @@ export function renderWorldMap(game){
   '</details></aside></section><footer class="map-foot">'+
   enc(readableKey((game.controls||DEFAULT_CONTROLS).map))+' — карта · '+
   enc(readableKey((game.controls||DEFAULT_CONTROLS).skills))+' — развитие · '+
-  (game.mapReturnToBase?'Esc — к станции.':'Esc — продолжить полёт.')+' Дистанции до сигналов приблизительные.</footer></div>',game.controls);
+  'Дистанции до сигналов приблизительные.</footer>'+renderMapActions(game)+'</div>',game.controls);
 }

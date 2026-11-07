@@ -239,7 +239,7 @@ test('a pending decoy survives a checkpoint with the same arm time; forged stati
 });
 test('the defense action navigates to the real threatened station and rejects a forged or expired alert',()=>{
  const {g,b,ship}=armed();g.overlay.dataset.mode='map';let route=null;
- g.requestWaypointDeparture=wp=>{route=wp;};
+ g.setNavigationCourse=wp=>{route=wp;};
  assert.ok(g.chooseStationDefense(b.id));assert.equal(route.id,b.id);assert.equal(route.x,b.x);
  route=null;assert.equal(g.chooseStationDefense('0:0'),false);assert.equal(route,null);
  g.time=ship.stationRaid.expiresAt;assert.equal(g.chooseStationDefense(b.id),false);
