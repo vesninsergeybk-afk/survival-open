@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {World} from '../world.js';
 import {ENEMY_TYPES,updateEnemy} from '../ai.js';
 import {renderBasePanel} from '../base-panel.js';
@@ -13,6 +14,14 @@ const stations=world.nearbyStations(0,0,9000,false).filter(b=>!b.enemy);
 const lab=stations.find(b=>b.type==='lab'),arsenal=stations.find(b=>b.type==='arsenal');
 const dock=world.home,carrier=stations.find(b=>b.type==='carrier');
 for(const base of [lab,arsenal,dock,carrier])base.active=true;
+
+test('published module URLs expose the audited missions instead of cached station cards',()=>{
+ const page=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ assert.match(page,/src="\.\/game\.js\?v=[^"]*mission-qa-2/);
+ assert.match(game,/from '\.\/base-panel\.js\?v=[^']*audit-1'/);
+ assert.match(game,/from '\.\/field-operations\.js\?v=[^']*audit-1'/);
+});
 
 function fakeGame(op){
  return {operation:op,player:{x:op.x,y:op.y},enemies:[],enemySerial:0,groupSerial:0,
