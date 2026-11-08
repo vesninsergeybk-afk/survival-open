@@ -70,6 +70,10 @@
 .base-field-illustration img{display:block;width:100%;height:100%;object-fit:contain;
  filter:drop-shadow(0 4px 8px #0005)}
 
+/* A long onboarding choice must not stretch the neighboring drone card into
+   a mostly empty rectangle. Both remain in their familiar positions. */
+#overlay .base-quick-services:has(.base-trial-picker)>.base-quick-drones{align-self:start}
+
 /* Long progress branches should not scroll inside an already scrolling dock.
    The browser's dialog provides one continuous and discoverable scroll area. */
 #overlay .prog-tree{max-height:none;overflow:visible}
