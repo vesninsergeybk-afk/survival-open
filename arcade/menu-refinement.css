@@ -132,6 +132,12 @@
      at 844x390 and 932x430 instead of inheriting the 9px short-screen rule. */
   #overlay .progression-ui .prog-ship-caption span {font-size:11px;line-height:1.25}
 }
+/* The previous 9px captions still affected ordinary-height tablets. */
+#overlay .progression-ui .prog-subtab-label {font-size:12px;letter-spacing:.065em}
+@media (min-width:521px) and (max-width:800px) and (min-height:541px) {
+  #overlay .progression-ui .prog-ship-caption span {font-size:12px;line-height:1.25}
+  #overlay .progression-ui .prog-domain strong {font-size:12px}
+}
 @media (prefers-reduced-motion:reduce) {
   #overlay .progression-ui .prog-node {transition:none}
 }
