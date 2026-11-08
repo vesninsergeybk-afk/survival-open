@@ -53,7 +53,7 @@ test('free field choices have distinct lightweight transparent illustrations wit
 test('mobile section labels stay readable in the last-loaded stylesheet',()=>{
  const css=readFileSync(new URL('../station-menu-v2.css',import.meta.url),'utf8');
  assert.match(css,/@media\(max-width:650px\)/);
- assert.match(css,/\.base-tabs button\{min-height:56px;[^}]*font-size:12px!important/);
+ assert.match(css,/\.base-tabs button\{flex-direction:column;gap:4px;min-height:56px;[^}]*font-size:clamp\(10px,3vw,12px\)!important/);
  assert.match(css,/@media\(max-width:370px\)/);
  assert.match(css,/\.base-trial-product\{display:grid;grid-template-columns:64px/);
 });
