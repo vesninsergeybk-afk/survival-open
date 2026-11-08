@@ -72,7 +72,7 @@ export function fireMouseWeapon(game,kind,point){
 const structural=target=>target.kind!=='enemy';
 const safeCombatTarget=item=>!item.target.centralWorker&&!item.target.frontierWorker&&
  !item.target.frontierSalvage;
-const eligibleParasite=t=>['scout','fighter','flanker','healer','berserker','gunship'].includes(t.type)&&
+const eligibleParasite=t=>!t.microSwarm&&['scout','fighter','flanker','healer','berserker','gunship'].includes(t.type)&&
  !t.boss&&!t.missionStructure&&!t.interceptCargo&&!t.regionalCargo&&!t.centralWorker&&!t.frontierWorker;
 function detonate(game,arsenal,point,radius,damage,kind){
  arsenal.bursts.push({x:point.x,y:point.y,radius,age:0,kind});

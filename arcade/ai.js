@@ -13,6 +13,7 @@ import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1
 import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1';
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-2';
+import {moveMote} from './mote-swarm.js?v=swarm-controls-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -223,6 +224,7 @@ export function updateEnemy(e,game,dt){
     e.x+=e.vx*dt;e.y+=e.vy*dt;
     return;
   }
+  if(e.microSwarm){moveMote(e,game,dt);return;}
   // Every visible intent must be renewed by real steering this frame.
   e._commsIntent=null;e._theaterIntent=null;
   if(e.missionFlight){

@@ -49,7 +49,8 @@ import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
-import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed} from './control-layout.js?v=unified-controls-1-first-loops-1';
+import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut} from './control-layout.js?v=swarm-controls-1';
+import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=swarm-controls-1';
 import {manualWeapons,selectedManual,cycleManual,manualClick} from './manual-weapon-controls.js?v=mouse-arms-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1';
@@ -307,7 +308,7 @@ export class ArcadeGame {
   this.bind();this.resize();this.world.discover(0,0);
   this.notice(matchMedia('(pointer: coarse)').matches?
    'Подлетите к доку и нажмите «Действие».':
-   'WASD — полёт · '+this.controlLabel('interact')+' — домашний док · В доке можно бесплатно взять полевой модуль · '+this.controlLabel('dash')+' — рывок.',9);
+   'WASD или стрелки — полёт · Tab / M — карта · '+this.controlLabel('interact')+' — домашний док · В доке можно бесплатно взять полевой модуль · '+this.controlLabel('dash')+' — рывок.',9);
   this.runStore=(this.visuals.capitalDamageQA||this.firstLoopsQA)?null:new RunCheckpointStore(hangarStorage);
   const saved=this.runStore?.load();
   if(saved||['damaged','unsupported'].includes(this.runStore?.issue))this.offerContinuation(saved);
@@ -426,7 +427,8 @@ export class ArcadeGame {
    // Game commands never pass through a modal screen.
    if(!this.overlay.hidden)return;
    if(e.target?.closest?.('input,textarea,select,button,summary,a'))return;
-   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',...Object.values(this.controls)].includes(e.code))e.preventDefault();
+   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',...Object.values(this.controls)].includes(e.code)||
+      isMapShortcut(e.code,this.controls))e.preventDefault();
    if(!e.repeat){
     if(e.code===this.controls.interact)this.beginInteraction('keyboard');
     if(e.code===this.controls.cease)this.toggleHoldFire();
@@ -435,7 +437,7 @@ export class ArcadeGame {
     if(e.code===this.controls.howitzer)this.callHowitzer();
     if(e.code===this.controls.strike)this.callStrike();
     if(e.code===this.controls.railMode&&!this.dead)this.toggleManualRail();
-    if(e.code===this.controls.map)this.openMap();
+    if(isMapShortcut(e.code,this.controls))this.openMap();
     if(e.code===this.controls.skills)this.skills();
     if(e.code===this.controls.railMode&&this.dead)location.reload();
    }
@@ -1763,6 +1765,15 @@ export class ArcadeGame {
 
  creditContractKill(enemy){
   if(!enemy||enemy.converted||enemy.contractKillCredited)return false;
+  if(enemy.microSwarm){
+   // A pack is one coordinated opponent for ordinary kill contracts. A
+   // damaged pack must be finished, and an area blast counts it only once.
+   if(this.enemies.some(other=>other!==enemy&&other.microSwarm&&
+     other.moteRoot===enemy.moteRoot&&other.hp>0))return false;
+   this._moteContractCredited??=new Set();
+   if(this._moteContractCredited.has(enemy.moteRoot))return false;
+   this._moteContractCredited.add(enemy.moteRoot);
+  }
   enemy.contractKillCredited=true;
   this.advanceContract('kill',enemy);
   return true;
@@ -2878,9 +2889,10 @@ export class ArcadeGame {
     const chosen=selectedManual(this.selectedManualWeapon,this.manualWeaponsHere());
     const shot=chosen==='rail'?'рельс':chosen==='howitzer'?'гаубица':'комета';
     const flight=['up','left','down','right'].map(key).join('/');
-    const base=flight+' — полёт · '+key('dash')+' — рывок · '+key('interact')+
+    const base=flight+' / стрелки — полёт · '+key('dash')+' — рывок · '+key('interact')+
      ' — действие · ЛКМ — '+shot+' · ПКМ — мины · '+key('field')+' — поле';
-    const extra=(this.manualWeaponsHere().length>1?' · колесо — сменить орудие':'')+' · Tab — карта · Esc — меню';
+    const extra=(this.manualWeaponsHere().length>1?' · колесо — сменить орудие':'')+
+     ' · Tab / M — карта · Esc — меню';
     if(tip.textContent!==base+extra)tip.textContent=base+extra;
    }
   const skills=$('skillBtn');
@@ -3957,7 +3969,9 @@ export class ArcadeGame {
   const available=cap-this.enemies.length;
   if(available<=0)return 0;
   const side=Math.floor(Math.random()*4),middle=.2+Math.random()*.6;
-  const plan=planEncounter(this.time,director,available,side,middle,
+  const ambient={...director,allowMotes:!noiseSignal&&
+   this.enemies.filter(e=>e.microSwarm&&e.hp>0).length<16};
+  const plan=planEncounter(this.time,ambient,available,side,middle,
     Math.random(),noiseSignal?'':this.lastEncounter);
   if(!plan.members.length)return 0;
   if(!noiseSignal)this.lastEncounter=plan.pattern;
@@ -3969,12 +3983,13 @@ export class ArcadeGame {
    const member=plan.members[i];
    const xy=spawnOutside(cam,member.side,member.position,170+i*12);
    const type=member.type,def=ENEMY_TYPES[type],serial=++this.enemySerial;
-   const hp=def.hp*(type==='scout'?(1+Math.min(.65,this.time/1600)):
+   const microSwarm=plan.pattern==='motes';
+   const hp=(microSwarm?MOTE_SWARM.hp:def.hp)*(type==='scout'?(1+Math.min(.65,this.time/1600)):
     (1+Math.min(2.5,this.time/550)))*
     (1+.16*(strongholdTier-1))*(1+.05*industrialTech);
    const enemy={serial,group,type,x:xy.x,y:xy.y,vx:0,vy:0,
-    r:type==='gunship'?22:14,hp,maxHp:hp,
-    damage:def.dmg*(1+.05*(strongholdTier-1)+.015*industrialTech),
+    r:microSwarm?MOTE_SWARM.radius:type==='gunship'?22:14,hp,maxHp:hp,
+    damage:(microSwarm?MOTE_SWARM.damage:def.dmg)*(1+.05*(strongholdTier-1)+.015*industrialTech),
     strongholdTier,industrialTech,think:Math.random()*.32,fire:1+Math.random(),state:'hunt',
     commitUntil:0,target:this.player,angle:0,hit:0,expAwarded:false,
     scenario:plan.pattern,protect:null,
@@ -3984,6 +3999,10 @@ export class ArcadeGame {
       ambientPatrolRoute(cam,member.side,member.position,serial),
     stormAdapted:regionAt(xy.x,xy.y).id==='azure'&&type==='flanker',
     entryPortalPending:type==='gunship'&&!this.heavyPortalShown};
+   if(microSwarm)Object.assign(enemy,{microSwarm:true,moteRoot:group,motePack:group,
+    moteSpawnedAt:this.time,moteFlank:0,moteReformUntil:0,
+    moteApproach:{x:cam.x+cam.w*.5,y:cam.y+cam.h*.5},
+    _patrolRoute:null});
    if(intelSource)Object.assign(enemy,{signalIntel:createSignalIntel(
       intelSource.x,intelSource.y,this.time),signalLeader:i===0,
      signalSlot:i,signalExitX:xy.x,signalExitY:xy.y});
@@ -4350,6 +4369,7 @@ export class ArcadeGame {
   if(this.probeRepairing)this.repairProbe(dt);
   this.grid.clear();
   for(const e of this.enemies)if(e.hp>0)this.grid.insert(e);
+  updateMoteSwarmOrders(this);
   this.enemyComms?.update(this);
   this.shotGrid.clear();
   for(const s of this.shots)if(s.alive)this.shotGrid.insert(s);
@@ -4491,10 +4511,18 @@ export class ArcadeGame {
    if(!e.visualDeath){
     e.visualDeath=true;
     const heavy=e.type==='gunship';
-    this.heritage.vfx.shipExplosion(e.x,e.y,e.r*(heavy?1.65:1),
-     e.converted?'#73ffda':'#ff8594',heavy);
-    if(heavy)this.heritage.vfx.nova(e.x,e.y,110,'red');
-    this.heritage.play(heavy?'largeExplosion':'explosion',.18,{x:e.x,y:e.y});
+    if(e.microSwarm){
+     this.heritage.vfx.nova(e.x,e.y,13,'cyan');
+     if(this.time>=(this._nextMoteDeathSoundAt||0)){
+      this.heritage.play('explosion',.075,{x:e.x,y:e.y});
+      this._nextMoteDeathSoundAt=this.time+.32;
+     }
+    }else{
+     this.heritage.vfx.shipExplosion(e.x,e.y,e.r*(heavy?1.65:1),
+      e.converted?'#73ffda':'#ff8594',heavy);
+     if(heavy)this.heritage.vfx.nova(e.x,e.y,110,'red');
+     this.heritage.play(heavy?'largeExplosion':'explosion',.18,{x:e.x,y:e.y});
+    }
    }
    this.enemyLearning?.finish(e,this.time);
    this.issueFieldCharge(e);
@@ -4507,7 +4535,7 @@ export class ArcadeGame {
     const directXp=qualifiesForDirectCombatXp(e,this.time);
     if(directXp)this.awardExperience(combatXp);
     rewardEyeKill(this,e,directXp);
-    this.addDrop('data',e.x,e.y,combatXp,
+    if(!e.microSwarm)this.addDrop('data',e.x,e.y,combatXp,
      {source:'combat',life:50,xpGranted:directXp});
     const salvage=enemySalvage(e);
     // The dock repairs the ship for free. Standing inside its healing field
@@ -5131,9 +5159,11 @@ export class ArcadeGame {
   }
   // Heading previews belong to the tactical world, not to the cockpit HUD.
   drawEnemyIntentions(c,cam,this,this.visuals.reducedMotion,this.fps);
+  drawMoteSwarms(c,this.enemies,cam,this.time,this.visuals.reducedMotion);
   const signaledGroups=new Set();
   for(const e of this.enemies){
    if(outsideCamera(e.x,e.y,cam,e.r+30))continue;
+   if(e.microSwarm)continue;
    if(e.interceptCargo){this.drawCarrierCargo(c,e);continue;}
    if(e.converted){
     c.strokeStyle='#77ffcb';c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,e.r+8,0,TAU);c.stroke();
