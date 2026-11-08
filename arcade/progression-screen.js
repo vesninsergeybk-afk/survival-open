@@ -19,6 +19,8 @@ const icons={beam:'calibration',range:'range',double:'split',rocket:'rocket',hul
  shield:'shield',engine:'engine',dodge:'engine',magnet:'magnet',mining:'mining',
  extractor:'mining',radar:'scanner',tactics:'doctrine',parasite:'energy_parasite',
  conduit:'dash_discharge',wreck:'hull',capture:'energy_parasite',signal:'radio_jam'};
+const semanticIcons=new Set(['dodge','extractor','wreck','capture','signal']);
+const branchVariants='./assets/progression/semantics/branch-variants.svg#';
 const activations={
  beam:'Автоматически усиливает установленное автооружие и ионную цепь.',
  range:'Работает автоматически: у плазменного луча увеличивается дальность.',
@@ -40,6 +42,7 @@ const activations={
  signal:'Попадите по свежей приоритетной цели с зарядом: враг раскроет расположение патруля.'
 };
 const iconFor=(id)=>{
+ if(semanticIcons.has(id))return './assets/progression/semantics/'+id+'.svg';
  const key=icons[id]||id;
  const group=['energy_parasite','dash_discharge','radio_jam'].includes(key)?'tactics':
   ['rocket'].includes(key)?'weapons':'upgrades';
@@ -99,7 +102,7 @@ function weaponNodes(state){
    level:state.level||1,activeBases:state.activeBases||0,points:state.points||0});
   const complete=rank>=2,reason=complete?'Мастерство изучено':exclusive?'Другая специализация уже выбрана':quote.reason||'';
   nodes.push({id:'spec-'+family.id+'-'+path,title:branch.name,
-   icon:art('weapons',family.id),level:rank?11:7,rank,max:2,
+   icon:art('weapons',family.id),variant:'spec-'+family.id+'-'+path,level:rank?11:7,rank,max:2,
    status:complete?'mastered':exclusive?'exclusive':quote.ok?'ready':reason.startsWith('Нужно 1 очко')?'waiting':'locked',
    description:branch.desc,effect:branch.desc,
    activation:'Пассивная специализация установленного оружия. Действует во время стрельбы.',
@@ -159,7 +162,8 @@ function tacticalNodes(state){
   const current=tactical.branches[id],rank=current?.path===path?current.rank:0;
   const exclusive=!!current&&current.path!==path,quote=tacticalQuote(tactical,'upgrade',id,{...context,path});
   const complete=rank>=2,reason=complete?'Мастерство изучено':exclusive?'Другая ветка уже выбрана':quote.reason||'';
-  nodes.push({id:'tactic-'+id+'-'+path,title:branch.name,icon:nodes[0].icon,level:rank?7:3,
+  nodes.push({id:'tactic-'+id+'-'+path,title:branch.name,icon:nodes[0].icon,
+   variant:'tactic-'+id+'-'+path,level:rank?7:3,
    rank,max:2,requires:'tactic-'+id,status:complete?'mastered':exclusive?'exclusive':quote.ok?'ready':
     reason.startsWith('Нужно 1 очко')?'waiting':'locked',
    description:branch.desc,effect:branch.desc,
@@ -216,7 +220,8 @@ function nodeHtml(node,selected){
   (node.requires?' data-requires="'+esc(node.requires)+'"':'')+' data-status="'+esc(node.status)+'" aria-pressed="'+(selected?.id===node.id)+'"'+
   ' aria-label="'+esc(node.title)+', '+esc(node.status==='mastered'?'изучено':node.reason||'доступно')+'">'+
   '<span class="prog-node-art"><img src="'+art('frames','node_'+(selected?.id===node.id?'selected':node.status==='mastered'?'mastered':node.status==='ready'||node.status==='info'?'ready':'locked'))+'" alt="" class="prog-node-frame">'+
-  '<img src="'+esc(node.icon)+'" alt="" class="prog-node-glyph"></span>'+
+  '<img src="'+esc(node.icon)+'" alt="" class="prog-node-glyph">'+
+  (node.variant?'<svg class="prog-node-variant" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><use href="'+branchVariants+esc(node.variant)+'"/></svg>':'')+'</span>'+
   '<strong>'+esc(node.title)+'</strong><small>'+esc(progress)+'</small></button>';
 }
 
@@ -248,7 +253,8 @@ function detailHtml(node,domain,weapon,state){
   (node.actionId?' data-id="'+esc(node.actionId)+'"':'')+(node.action==='baseTab'?' data-role="network"':'')+
   (node.canAct?'':' disabled')+'>'+esc(node.actionLabel)+'</button>';
  return '<aside class="prog-detail" aria-label="Выбранное улучшение"><div class="prog-detail-main">'+
-  '<img src="'+esc(node.icon)+'" alt="" class="prog-detail-icon"><div class="prog-detail-copy"><span class="prog-detail-status" data-status="'+esc(node.status)+'">'+status+'</span><h3>'+esc(node.title)+'</h3>'+
+  '<span class="prog-detail-icon-wrap"><img src="'+esc(node.icon)+'" alt="" class="prog-detail-icon">'+
+  (node.variant?'<svg class="prog-detail-variant" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><use href="'+branchVariants+esc(node.variant)+'"/></svg>':'')+'</span><div class="prog-detail-copy"><span class="prog-detail-status" data-status="'+esc(node.status)+'">'+status+'</span><h3>'+esc(node.title)+'</h3>'+
   '<p>'+esc(node.description)+'</p></div></div><div class="prog-detail-facts">'+
   '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p></div><div><b>Как применять</b><p>'+esc(activation)+'</p>'+
   (fieldCollision?'<p class="prog-control-warning">'+esc(fieldCollision)+'</p>':'')+'</div></div>'+
