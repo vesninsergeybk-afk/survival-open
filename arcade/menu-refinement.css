@@ -132,3 +132,43 @@
 @media (prefers-reduced-motion:reduce) {
   #overlay .progression-ui .prog-node {transition:none}
 }
+/* Semantic glyphs: the main subject is still the equipped weapon/device;
+   a small unique corner mark identifies the actual mutually exclusive path. */
+#overlay .progression-ui .prog-node-variant {
+  position:absolute;right:-3px;bottom:-2px;z-index:3;
+  width:27px;height:27px;pointer-events:none;
+  filter:drop-shadow(0 2px 4px #010d17e0);
+}
+#overlay .progression-ui .prog-detail-icon-wrap {
+  position:relative;flex:0 0 64px;width:64px;height:64px;
+}
+#overlay .progression-ui .prog-detail-icon-wrap .prog-detail-icon {
+  display:block;width:100%;height:100%;flex:none;
+}
+#overlay .progression-ui .prog-detail-variant {
+  position:absolute;right:-6px;bottom:-5px;width:30px;height:30px;
+  pointer-events:none;filter:drop-shadow(0 2px 4px #010d17e0);
+}
+/* Tier chronology stays visible; the uneven density of genuine branches is
+   intentional. A row of one skill is not stretched into an invented dependency. */
+#overlay .progression-ui .prog-graph-head {border-bottom:1px solid #43606b6b}
+#overlay .progression-ui .prog-tier-nodes:has(>.prog-node:only-child){
+  border-left:2px solid #53838c4f;margin-left:8px;padding-left:16px;
+}
+#overlay .progression-ui .prog-node:is([data-status=ready],[data-status=mastered]) .prog-node-art {
+  filter:drop-shadow(0 1px 6px #68bbb719);
+}
+#overlay .progression-ui .prog-node[aria-pressed=true] .prog-node-variant {
+  filter:drop-shadow(0 0 6px #eac78a80);
+}
+@media(min-width:1050px){
+  #overlay .progression-ui .prog-tier:nth-child(odd) .prog-tier-nodes:has(>.prog-node:only-child) {
+    padding-left:36px;
+  }
+}
+@media(max-width:520px){
+  #overlay .progression-ui .prog-node-variant{right:0;bottom:0;width:25px;height:25px}
+  #overlay .progression-ui .prog-tier-nodes:has(>.prog-node:only-child){
+    margin-left:0;padding-left:7px;
+  }
+}
