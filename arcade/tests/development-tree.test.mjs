@@ -141,7 +141,7 @@ test('pilot shows the selected branch with available skills before locked future
  assert.equal((html.match(/data-act="skill"/g)||[]).length,3);
  assert.match(html,/<details class="pilot-future"[^>]*><summary>Будущие навыки/);
  assert.ok(html.indexOf('data-id="magnet"')<html.indexOf('data-id="extractor"'),'available skills precede prerequisite-locked future skills');
- assert.equal((html.match(/data-act="skillBranch"/g)||[]).length,3);
+ assert.equal((html.match(/data-act="skillBranch"/g)||[]).length,4);
  assert.doesNotMatch(html,/Уклонение|Радар|Изучить · 1 очко/);
  const ready=renderPilotContent({player:{level:8,points:1},ranks:{mining:0},skills,doctrines:[],nextEffect:()=>'+1',branch:'Добыча'});
  assert.match(ready,/data-act="skill" data-id="magnet">Изучить · 1 очко/);

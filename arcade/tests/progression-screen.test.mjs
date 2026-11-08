@@ -89,6 +89,26 @@ test('manual upgrades spend ordinary level points, exclude the opposite path and
  assert.equal(JSON.stringify(g.shipLoadout),before,'manual upgrade never mutates the installed ship modules');
 });
 
+test('manual paths advertise mastery before purchase and explain desktop versus touch controls',()=>{
+ const g=docked();g.player.level=5;g.player.points=3;g.developmentDomain='weapons';
+ g.developmentWeapon='comet';g.developmentFocus='skill-cometCore';
+ const desktop=renderProgressionScreen(state(g,'weapons'));
+ assert.match(desktop,/выбор ветки с уровня 5, мастерство с уровня 9/i);
+ assert.doesNotMatch(desktop,/Комета · ЛКМ/);
+ g.developmentFocus='skill-cometRadius';
+ assert.match(renderProgressionScreen(state(g,'weapons')),/Выберите «Голубую комету» колесом мыши/);
+ const touch=renderProgressionScreen({...state(g,'weapons'),isTouchLayout:true});
+ assert.match(touch,/Коснитесь точки взрыва на поле боя/);
+ assert.match(touch,/Доступно сразу · касание поля боя/);
+ assert.doesNotMatch(touch,/Зажмите ЛКМ/);
+ g.developmentWeapon='mines';g.developmentFocus='skill-mineArray';
+ const mines=renderProgressionScreen({...state(g,'weapons'),isTouchLayout:true});
+ assert.match(mines,/Нажмите «Мины · выбор», затем коснитесь/);
+ assert.doesNotMatch(mines,/Зажмите ПКМ/);
+ const detail=progressionModel({...state(g,'weapons'),developmentFocus:'skill-mineSnare'});
+ assert.equal(detail.selected.masteryAt,9);
+});
+
 test('ship frame nodes charge the actual alloy price, and preserve the existing loadout',()=>{
  const g=docked();g.player.level=4;g.player.ore=47;g.developmentDomain='ship';
  const before=JSON.stringify(g.shipLoadout.slots);

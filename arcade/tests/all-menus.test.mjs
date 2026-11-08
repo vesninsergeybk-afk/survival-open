@@ -103,8 +103,30 @@ test('pilot screen limits cards to the selected branch and exposes prerequisites
   {id:'mining',branch:'Добыча',title:'Горняк',desc:'Добывает',from:1,max:2}];
  const args={player:{level:4,points:1,xp:100},ranks:{},skills,doctrines:[],branch:'Технологии',nextEffect:()=>'+100 м',nextXp:150,atStation:true};
  const html=renderPilotMenu(args);assert.match(html,/data-act="skill" data-id="radar">Изучить · 1 очко/);
- assert.match(html,/Сначала Радар/);assert.match(html,/data-help="Обнаруживает станции"/);
+ assert.match(html,/Сначала «Радар»/);assert.match(html,/data-help="Обнаруживает станции"/);
  assert.doesNotMatch(html,/data-act="skill" data-id="mining"/);assert.match(html,/data-act="pilotHangar"/);
+});
+test('full flight skills include manual weapons and enforce their exclusive and mastery gates',()=>{
+ const skills=[
+  {id:'cometRadius',branch:'Оружие',title:'Расширение кометы',from:2,max:2,desc:'Радиус'},
+  {id:'cometCore',branch:'Оружие',title:'Сердцевина кометы',from:5,max:2,
+   requires:'cometRadius',exclusiveWith:'cometCryo',masteryLevel:9,desc:'Эпицентр'},
+  {id:'cometCryo',branch:'Оружие',title:'Криоволна кометы',from:5,max:2,
+   requires:'cometRadius',exclusiveWith:'cometCore',masteryLevel:9,desc:'Холод'}
+ ];
+ const options={player:{level:5,points:2,xp:0},ranks:{cometRadius:1},skills,
+  doctrines:[],branch:'Оружие',nextEffect:()=>'+25%',nextXp:150,atStation:false};
+ const first=renderPilotMenu(options);
+ assert.match(first,/Ручное оружие/);
+ assert.match(first,/data-act="skill" data-id="cometCore">Изучить · 1 очко/);
+ assert.match(first,/второй ранг — с уровня 9/);
+ assert.equal((first.match(/data-act="skillBranch"/g)||[]).length,4);
+ const selected=renderPilotMenu({...options,ranks:{cometRadius:1,cometCore:1}});
+ assert.match(selected,/data-act="skill" data-id="cometCore" disabled>Второй ранг — с уровня 9/);
+ assert.match(selected,/data-act="skill" data-id="cometCryo" disabled>Выбрана другая специализация/);
+ const mastery=renderPilotMenu({...options,player:{...options.player,level:9},ranks:{cometRadius:1,cometCore:1}});
+ assert.match(mastery,/data-act="skill" data-id="cometCore">Изучить · 1 очко/);
+ assert.match(mastery,/data-act="skill" data-id="cometCryo" disabled/);
 });
 test('local map puts destinations above optional reports and displays remapped controls',()=>{
  const world=new World(20261102);world.home.discovered=true;world.home.active=true;world.discovered.add(world.home.id);

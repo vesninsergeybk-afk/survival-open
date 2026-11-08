@@ -1,7 +1,8 @@
 import {SHIP_UPGRADES} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-focus-1';
 import {escapeMenu as esc,menuInfo,menuSymbol,screenHead,menuFooter,menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 export function renderPilotContent({player:p,ranks,doctrine,skills,doctrines,branch='Корабль',nextEffect}){
- const branches=[['Корабль','Пилотирование'],['Технологии','Технологии'],['Добыча','Добыча']];
+ const branches=[['Корабль','Пилотирование'],['Технологии','Технологии'],
+  ['Добыча','Добыча'],['Оружие','Ручное оружие']];
  const current=branches.some(([id])=>id===branch)?branch:'Корабль';
  const selectedDoctrine=doctrines.find(d=>d.id===doctrine);
  const doctrineReady=!doctrine&&p.level>=4&&p.points>0;
@@ -13,14 +14,19 @@ export function renderPilotContent({player:p,ranks,doctrine,skills,doctrines,bra
    '<button type="button" data-act="doctrine" data-id="'+d.id+'"'+(!doctrineReady?' disabled':'')+'>'+ (doctrine===d.id?'Установлено':'Выбрать · 1 очко')+'</button></article>').join('')+'</div></details>':'';
  const entries=skills.filter(s=>s.branch===current&&!SHIP_UPGRADES.has(s.id)).map(s=>{
   const rank=ranks[s.id]||0,mastered=rank>=s.max,prereq=s.requires?skills.find(x=>x.id===s.requires):null;
-  const hasPrereq=!prereq||!!ranks[prereq.id],eligible=!mastered&&p.level>=s.from&&hasPrereq;
-  const reason=mastered?'Максимум':p.level<s.from?'Нужен уровень '+s.from:!hasPrereq?'Сначала '+prereq.title:p.points<=0?'Нужно 1 очко':'';
+  const hasPrereq=!s.requires||!!ranks[s.requires],exclusive=!!s.exclusiveWith&&!!ranks[s.exclusiveWith];
+  const masteryLocked=!!s.masteryLevel&&rank>0&&p.level<s.masteryLevel;
+  const eligible=!mastered&&p.level>=s.from&&hasPrereq&&!exclusive&&!masteryLocked;
+  const reason=mastered?'Максимум':exclusive?'Выбрана другая специализация':
+   p.level<s.from?'Нужен уровень '+s.from:!hasPrereq?'Сначала «'+(prereq?.title||s.requires)+'»':
+   masteryLocked?'Второй ранг — с уровня '+s.masteryLevel:p.points<=0?'Нужно 1 очко':'';
   const status=mastered?'mastered':eligible?(p.points>0?'ready':'waiting'):'locked';
   const effect=mastered?'Изучено полностью':nextEffect(s.id,rank,ranks);
   const ranksHtml='<span class="dev-rank-track" aria-label="Изучено '+rank+' из '+s.max+'">'+Array.from({length:s.max},(_,i)=>'<i'+(i<rank?' class="filled"':'')+'></i>').join('')+'</span>';
   const html='<article class="pilot-skill dev-node '+(reason?'locked':'ready')+'" data-state="'+status+'">'+menuInfo('О навыке: '+s.title,s.desc)+
    '<div class="pilot-skill-title">'+menuSymbol(s.branch==='Технологии'?'signal':s.branch==='Добыча'?'rescue':'skills')+'<h3 data-help="'+esc(s.desc)+'">'+esc(s.title)+'</h3><b>'+rank+'/'+s.max+'</b></div>'+
    ranksHtml+(prereq?'<small class="dev-prerequisite">После «'+esc(prereq.title)+'»</small>':'')+
+   (s.masteryLevel?'<small class="dev-prerequisite">Выбор пути — с уровня '+s.from+', второй ранг — с уровня '+s.masteryLevel+'. Пути несовместимы.</small>':'')+
    '<p class="pilot-next-effect">'+esc(effect)+'</p>'+
    '<button type="button" class="skill-node '+(reason?'locked':'ready')+'" data-act="skill" data-id="'+s.id+'"'+(reason?' disabled':'')+'>'+esc(reason||'Изучить · 1 очко')+'</button></article>';
   return {html,rank,eligible,ready:!reason};
@@ -43,6 +49,6 @@ export function renderPilotMenu(options){
   '<div class="pilot-status"><span>Уровень <b>'+p.level+'</b></span><span>Свободно очков <b>'+p.points+'</b></span><span>Опыт <b>'+Math.floor(p.xp)+'/'+nextXp+'</b></span></div>'+
   renderPilotContent(options)+
 
-  '<div class="pilot-ship-link"><span>Оружие, корпус и устройства улучшайте в разделе «Корабль» на станции.</span><button type="button" data-act="'+(atStation?'pilotHangar':'pilotMap')+'">'+(atStation?'К оснащению корабля':'Найти станцию')+'</button></div>'+
+  '<div class="pilot-ship-link"><span>Навыки «Голубой кометы» и мин доступны во вкладке «Ручное оружие». Модули автооружия, корпус и устройства улучшайте на станции.</span><button type="button" data-act="'+(atStation?'pilotHangar':'pilotMap')+'">'+(atStation?'К оснащению корабля':'Найти станцию')+'</button></div>'+
   menuFooter('<button type="button" class="screen-button primary" data-act="close">Продолжить полёт</button>',menuBackButton(backLabel))+'</div>';
 }
