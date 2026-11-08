@@ -98,7 +98,7 @@ export function validFieldEvolution(s,time){
 }
 
 const eligibleVictim=e=>e&&e.hp<=0&&!e.converted&&!e.trialRetreatUntil&&!e.boss&&!e.missionStructure&&
- !e.interceptCargo&&!e.regionalCargo&&!e.centralWorker&&!e.frontierWorker&&
+ !e.interceptCargo&&!e.regionalCargo&&!e.centralWorker&&!e.frontierWorker&&!e.microSwarm&&
  !e.openingCommander&&!e.relayAssault&&['scout','fighter','flanker','healer','berserker','gunship'].includes(e.type);
 
 export function enemyFieldReward(game,e,participated){

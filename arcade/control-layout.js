@@ -49,6 +49,13 @@ export function changeControl(bindings,action,code){
  return {ok:true,bindings:{...bindings,[action]:code}};
 }
 export const isPressed=(pressed,bindings,action)=>pressed.has((bindings||DEFAULT_CONTROLS)[action]);
+// Both familiar map keys work without stealing a key the player has explicitly
+// assigned to a different action in the control settings.
+export function isMapShortcut(code,bindings=DEFAULT_CONTROLS){
+ if(code===bindings.map)return true;
+ if(code!=='Tab'&&code!=='KeyM')return false;
+ return !Object.entries(bindings).some(([action,key])=>action!=='map'&&key===code);
+}
 
 // UI copy inherited from mission descriptions uses E as its interaction token.
 export function interactionCopy(text,controls=DEFAULT_CONTROLS){

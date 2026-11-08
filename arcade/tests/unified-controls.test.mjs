@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,validControls,readControls,
- changeControl,readableKey,isPressed} from '../control-layout.js';
+ changeControl,readableKey,isPressed,isMapShortcut} from '../control-layout.js';
 import {manualWeapons,selectedManual,cycleManual,manualClick} from '../manual-weapon-controls.js';
 import {planHowitzer} from '../ship-weapons.js';
 import {game} from './weapons-scene.mjs';
@@ -26,6 +26,26 @@ test('a duplicate, unsafe or malformed key mapping cannot silently break movemen
  assert.equal(changeControl(DEFAULT_CONTROLS,'dash','F5').ok,false);
  assert.deepEqual(readControls({getItem:()=>'{invalid'}),DEFAULT_CONTROLS);
  assert.deepEqual(readControls({getItem:()=>JSON.stringify({...DEFAULT_CONTROLS,up:'KeyS'})}),DEFAULT_CONTROLS);
+});
+test('Tab and M show the map, arrows remain movement aliases, and customized keys keep priority',()=>{
+ assert.ok(isMapShortcut('Tab',DEFAULT_CONTROLS));
+ assert.ok(isMapShortcut('KeyM',DEFAULT_CONTROLS));
+ assert.ok(!isMapShortcut('KeyD',DEFAULT_CONTROLS));
+ assert.ok(isMapShortcut('KeyM',{...DEFAULT_CONTROLS,map:'KeyN'}));
+ const custom=changeControl(DEFAULT_CONTROLS,'dash','KeyM');
+ assert.equal(custom.ok,true);
+ assert.ok(!isMapShortcut('KeyM',custom.bindings),'M is not stolen from a remapped dash');
+ assert.ok(isMapShortcut('Tab',custom.bindings));
+ const withTab=changeControl({...DEFAULT_CONTROLS,map:'KeyN'},'dash','Tab');
+ assert.equal(withTab.ok,true);
+ assert.ok(!isMapShortcut('Tab',withTab.bindings),'Tab is not stolen from a remapped dash');
+ const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ for(const arrow of ['ArrowUp','ArrowLeft','ArrowDown','ArrowRight'])
+  assert.ok(source.includes(`this.keys.has('${arrow}')`),arrow+' must remain an actual movement alias');
+ assert.match(source,/if\(isMapShortcut\(e\.code,this\.controls\)\)this\.openMap\(\)/);
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/WASD \/ стрелки — полёт/);
+ assert.match(html,/Tab \/ M — карта/);
 });
 
 test('manual modes have a stable order, with a dedicated comet action',()=>{

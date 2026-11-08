@@ -12,7 +12,7 @@ export const createFieldLoot=()=>({version:1,kills:0,misses:0,lastBoostAt:-1000,
 const close=(a,b,r)=>Math.hypot(a.x-b.x,a.y-b.y)<r;
 export function rewardEyeKill(game,eye,personal,random=Math.random){
  const state=game.fieldLoot;
- if(!state||!personal||eye.type!=='scout'||eye.converted||game.time<EYE_LOOT.firstAt||
+ if(!state||!personal||eye.type!=='scout'||eye.microSwarm||eye.converted||game.time<EYE_LOOT.firstAt||
   eye.trialId!==undefined)return null;
  state.kills++;
  // The free-repair dock must not become an invulnerable trophy farm.

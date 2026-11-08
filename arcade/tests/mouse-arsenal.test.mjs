@@ -33,6 +33,17 @@ test('comet uses a real moving projectile and damages multiple ships at arrival,
  assert.equal(outside.hp,28,'the blast does not damage ships outside the radius');
  assert.equal(fireMouseWeapon(g,'comet',{x:300,y:0}).ok,false,'cooldown stops instant repeat fire');
 });
+test('comet is useful against micro-drone formations without farming parasite capture',()=>{
+ const g=scene();g.skillRanks.capture=1;
+ for(let i=0;i<10;i++){
+  const e=scout(300+(i%5-2)*17,(Math.floor(i/5)-.5)*20,12);
+  e.r=6.5;e.microSwarm=true;g.enemies.push(e);
+ }
+ assert.equal(fireMouseWeapon(g,'comet',{x:300,y:0}).ok,true);
+ g.time=.6;updateMouseArsenal(g,.6);
+ assert.ok(g.enemies.every(e=>e.hp<=0),'one well-placed blast clears a packed swarm');
+ assert.equal(g.designatedTarget,undefined,'micro drones cannot become parasite captives');
+});
 
 test('radius and mine count upgrades have a bounded, observable effect',()=>{
  assert.equal(cometSpec({}).radius,90);

@@ -30,11 +30,28 @@ test('сценарии открываются постепенно и тольк
     const director=openingThreat(t,3);
     for(const roll of [0,.25,.5,.75,.999]){
       const plan=planEncounter(t,director,50,1,.43,roll);
-      assert.ok(plan.members.length<=director.groupSize);
+      assert.ok(plan.pattern==='motes'?plan.members.length<=10:
+       plan.members.length<=director.groupSize);
       assert.ok(plan.members.every(m=>director.types.includes(m.type)),
         'неразрешённый тип при t='+t);
     }
   }
+});
+test('малые рои появляются после освоения кометы и только при достаточном месте',()=>{
+  const director=openingThreat(110,3);
+  assert.ok(availableEncounters(110,director,2,10).includes('motes'));
+  assert.ok(!availableEncounters(94.9,director,2,10).includes('motes'));
+  assert.ok(!availableEncounters(110,director,2,7).includes('motes'));
+  assert.ok(!availableEncounters(110,{...director,allowMotes:false},2,10).includes('motes'));
+  const options=availableEncounters(110,director,2,10);
+  const index=options.indexOf('motes');
+  const plan=planEncounter(110,director,10,1,.5,(index+.1)/options.length);
+  assert.equal(plan.pattern,'motes');
+  assert.equal(plan.members.length,10);
+  assert.ok(plan.members.every(e=>e.type==='scout'));
+  assert.ok(new Set(plan.members.map(e=>e.position)).size>7);
+  const cramped=planEncounter(110,director,7,1,.5,(index+.1)/options.length);
+  assert.notEqual(cramped.pattern,'motes');
 });
 test('клещи действительно заходят с двух сторон и все корабли появляются за экраном',()=>{
   const d=openingThreat(120);
