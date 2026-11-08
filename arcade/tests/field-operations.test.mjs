@@ -9,6 +9,7 @@ import {packRun,unpackRun} from '../run-checkpoint.js';
 import {createFieldOperation,fieldOperationIds,fieldOperationOffer,fieldOperationMining,
  advanceFieldOperation,validFieldOperation,fieldOperationCue,fieldOperationInteraction,fieldThreatTier,
  FIELD_TACTICS,fieldApproachDistance,convoyRaidPlan,drawFieldOperation} from '../field-operations.js';
+import {twoFrontsWaveTargets,reverseHuntBand,reverseHuntInSector} from '../field-operations.js';
 
 const world=new World(20261107);
 const stations=world.nearbyStations(0,0,9000,false).filter(b=>!b.enemy);
@@ -22,7 +23,7 @@ test('published module URLs expose the audited missions instead of cached statio
  assert.match(page,/src="\.\/game\.js\?v=[^"]*field-experience-1/);
  assert.match(page,/src="\.\/game\.js\?v=[^"]*mission-art-5/);
  assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1-menu-prof-1-mission-depth-1[^']*mission-integrity-2/);
- assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1'/);
+ assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1-mission-choices-1'/);
 });
 
 test('illustrated objective props are drawn from one compact transparent sprite atlas',()=>{
@@ -448,6 +449,41 @@ test('second IRIS observation needs a closer band and high tiers get one escort'
  assert.equal(game.enemies.length,2,'high-tier cover spawns once');
 });
 
+test('repeat reverse-hunts telegraph a real directional capture sector',()=>{
+ const op=createFieldOperation('reverse-hunt',lab,world,2),game=fakeGame(op),sounds=[];
+ game.heritage.play=kind=>sounds.push(kind);
+ assert.equal(op.scanStyle,2);
+ assert.deepEqual(reverseHuntBand({...op,scans:1}),[190,275]);
+ advanceFieldOperation(game,.1);
+ const iris=game.enemies.find(e=>e.serial===op.enemySerial);
+ op.scans=1;op.scanAt=2;op.scanUntil=0;game.time=2;
+ game.player.x=iris.x+220;game.player.y=iris.y;
+ advanceFieldOperation(game,.1);
+ assert.ok(op.scanHeading>1,'the frozen capture sector points away from the starting pilot');
+ const outside={x:iris.x-220,y:iris.y};
+ assert.equal(reverseHuntInSector(op,iris,outside),false);
+ game.player.x=outside.x;game.player.y=outside.y;
+ game.time=op.scanUntil;advanceFieldOperation(game,.1);
+ assert.equal(op.scans,1);
+ assert.ok(sounds.includes('fieldScanMiss'));
+ assert.equal(op.lastScanDirectional,true);
+ const persisted=unpackRun(packRun({operation:op})).operation;
+ assert.ok(validFieldOperation(persisted));
+ assert.equal(persisted.scanHeading,op.scanHeading);
+ game.images={missionImpacts:{complete:true,naturalWidth:1024,naturalHeight:1024}};
+ const {ctx,calls}=canvasRecorder();
+ drawFieldOperation(game,ctx,{x:iris.x,y:iris.y,w:4000,h:4000});
+ assert.ok(calls.some(c=>c[0]==='arc'&&c[6]===true),
+  'the already-fired sector must be visible without painting a false full-ring discharge');
+ game.time=op.scanAt;game.player.x=iris.x+230;game.player.y=iris.y;
+ advanceFieldOperation(game,.1);
+ game.player.x=iris.x+Math.cos(op.scanHeading)*220;
+ game.player.y=iris.y+Math.sin(op.scanHeading)*220;
+ assert.equal(reverseHuntInSector(op,iris,game.player),true);
+ game.time=op.scanUntil;advanceFieldOperation(game,.1);
+ assert.equal(op.scans,2);assert.equal(op.phase,'return');
+});
+
 test('discharged scan flash remains at the firing position after the scout moves',()=>{
  const op=createFieldOperation('reverse-hunt',lab,world),game=fakeGame(op);
  advanceFieldOperation(game,.1);
@@ -510,6 +546,41 @@ test('two-front defense attacks separate assets and accepts one surviving node',
  game.time+=1;advanceFieldOperation(game,.1);
  assert.equal(op.phase,'return');assert.equal(op.partial,true);
  assert.ok(validFieldOperation(op));
+});
+
+test('later defense sorties vary attack concentration and preview the threatened node',()=>{
+ const first=createFieldOperation('two-fronts',arsenal,world,1),game=fakeGame(first);
+ assert.deepEqual(twoFrontsWaveTargets(first,0),[0,0]);
+ assert.deepEqual(twoFrontsWaveTargets(first,1),[1,0]);
+ assert.match(fieldOperationCue({...first,phase:'active',nextWaveAt:8},game),/ДВА КОРАБЛЯ → УЗЕЛ 1/);
+ game.player.x=first.nodes[0].x;game.player.y=first.nodes[0].y;
+ advanceFieldOperation(game,.1);assert.equal(first.phase,'active');
+ game.time=first.nextWaveAt;advanceFieldOperation(game,.1);
+ assert.equal(game.enemies[0].target,first.nodes[0]);
+ assert.equal(game.enemies[1].target,first.nodes[0]);
+ const second=createFieldOperation('two-fronts',arsenal,world,2);
+ assert.deepEqual(twoFrontsWaveTargets(second,0),[1,1]);
+ assert.ok(validFieldOperation(unpackRun(packRun({operation:second})).operation));
+});
+
+test('intermission transfers only the surviving shield charge and spends ore once',()=>{
+ const op=createFieldOperation('two-fronts',arsenal,world),game=fakeGame(op);
+ op.phase='active';op.wave=1;op.nextWaveAt=12;op.intermissionActive=true;
+ op.shieldChargeUsed=true;op.nodes[0].fieldShield=23;op.nodes[0].stabilized=true;
+ game.time=4;game.player.ore=10;
+ game.player.x=op.nodes[1].x;game.player.y=op.nodes[1].y;
+ const action=fieldOperationInteraction(op,game.player);
+ assert.equal(action?.label,'Перенести щит · 4 сплава');
+ game.actionHeld={kind:'field-work',target:action.target};
+ advanceFieldOperation(game,FIELD_TACTICS.shieldTransferHold+.1);
+ assert.equal(op.shieldTransferUsed,true);
+ assert.equal(op.nodes[0].fieldShield,0);
+ assert.equal(op.nodes[1].fieldShield,23,'transfer must not regenerate armor');
+ assert.equal(game.player.ore,6);
+ assert.equal(game.actionHeld,null);
+ assert.equal(fieldOperationInteraction(op,game.player),null);
+ assert.ok(validFieldOperation(op));
+ assert.equal(unpackRun(packRun({operation:op})).operation.nodes[1].fieldShield,23);
 });
 
 test('developed pilots face an additional, stronger defense wave',()=>{
