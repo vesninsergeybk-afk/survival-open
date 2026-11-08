@@ -121,9 +121,9 @@ test('current game snapshots are distinct from concepts and reflect verified ope
  assert.match(SCENARIO_BASELINES.arsenal.reward,new RegExp(String(RELAY_DEFENSE.rewardOre)));
  assert.match(SCENARIO_BASELINES.arsenal.reward,new RegExp(String(RELAY_DEFENSE.rewardData)));
  assert.equal(RELAY_DEFENSE.waves.length,3);
- assert.equal(RELAY_DEFENSE.preparation,4.5);
- assert.equal(RELAY_DEFENSE.intermission,4);
- assert.match(SCENARIO_BASELINES.arsenal.gap,/резервная антенна/);
+ assert.equal(RELAY_DEFENSE.preparation,5.5);
+ assert.equal(RELAY_DEFENSE.intermission,6.5);
+ assert.match(SCENARIO_BASELINES.arsenal.gap,/резервную антенну/);
 });
 
 test('one workshop has explicit proposal/baseline comparison, tactical experiments and local QA',()=>{

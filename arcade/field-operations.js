@@ -8,6 +8,7 @@ import {drawRelayArt,drawConvoyEngineArt,drawConvoyHullArt,drawConvoySurfaceArt,
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 
 export const FIELD_TACTICS=Object.freeze({shieldStrength:40,shieldHold:2.8,
+ shieldTransferHold:2.6,shieldTransferCost:4,
  convoyRepairCost:6,convoyRepairStrength:35,convoyRepairHold:4,
  beaconDecodeSeconds:4.5,beaconDecodeRadius:240,convoyFullIntegrity:75,
  relaySyncSeconds:6.5,relaySyncHp:90,beaconUplinkSeconds:5.5,beaconUplinkHp:90,
@@ -24,13 +25,13 @@ export const FIELD_OPERATIONS=Object.freeze({
   desc:'Получите два образца на богатых залежах. Раскалывающий удар портит образец. Шум привлекает патрули: на второй залежи возможен новый перехват. Можно прерывать добычу, чтобы снизить резонанс, или отступить после первого образца.'},
  'reverse-hunt':{id:'reverse-hunt',name:'Обратная охота',station:'lab',
   ore:18,data:37,partialOre:13,partialData:8,
-  desc:'Запишите два сканирования опасного «зрачка». Для первого держитесь в 130–310 м, для второго придётся сблизиться до 170–270 м. Развитый враг может позвать прикрытие. Уничтожение цели раньше времени даст лишь часть данных.'},
+  desc:'Сохраните два спектра опасного «зрачка»: первый снимайте с безопасной дистанции, второй потребует точнее выбрать позицию. В повторных вылазках сканер может раскрывать направленный сектор — его видно во время зарядки. Можно уничтожить цель раньше, но тогда останутся только обломки и часть данных.'},
  'false-call':{id:'false-call',name:'Чужой позывной',station:'lab',
   ore:17,data:30,partialOre:12,partialData:14,
   desc:'По двойному импульсу найдите поддельный маяк. Перехватите ответный сигнал, затем доберитесь до узла ретрансляции и закрепите запись под огнём. Ошибочные проверки вызывают охранение и снижают награду.'},
  'two-fronts':{id:'two-fronts',name:'Два фронта',station:'arsenal',
   ore:32,data:32,partialOre:17,partialData:17,
-  desc:'Защитите два разнесённых узла. Перед атакой можно один раз вручную включить резервный щит на одном из них, но во время работы корабль не стреляет. Враги целятся в оборудование; спасение одного узла тоже засчитывается.'}
+  desc:'Защитите два разнесённых узла. Следующая цель налёта обозначается заранее: враги могут сосредоточить огонь на одном узле. Один раз зарядите щит; между волнами можно перенести остаток барьера на второй узел за 4 сплава. Спасение одного узла тоже засчитывается.'}
  ,
  'sleeping-reactor':{id:'sleeping-reactor',name:'Спящий реактор',station:'arsenal',
   ore:30,data:31,partialOre:12,partialData:11,
@@ -47,6 +48,25 @@ export const fieldThreatTier=(level=1,runs=0)=>Math.min(3,Math.max(0,
  Math.floor((Math.max(1,level)-1)/6),Math.floor(Math.max(0,runs)/3)));
 export const fieldRewardFactor=tier=>1+.2*Math.max(0,Math.min(3,tier||0));
 export const isFieldOperation=op=>!!op&&Object.hasOwn(FIELD_OPERATIONS,op.id);
+// Each sortie exposes a readable attack plan. The starter pattern preserves
+// the original split assault; later sorties force different shield priorities.
+export function twoFrontsWaveTargets(op,index=op.wave){
+ const plans=[[[0,1],[0,1],[0,1]],[[0,0],[1,0],[1,1]],[[1,1],[0,1],[0,0]]];
+ const pattern=op.assaultPattern??0;
+ return plans[pattern][Math.min(2,Math.max(0,index))].map(i=>
+  op.nodes[i].hp>0?i:op.nodes[1-i].hp>0?1-i:i);
+}
+export function reverseHuntBand(op){
+ if(op.scans===0)return [130,op.scanStyle===2?290:310];
+ return op.scanStyle===2?[190,275]:op.scanStyle===1?[160,280]:[170,270];
+}
+export function reverseHuntInSector(op,enemy,player){
+ if(op.scans!==1||!op.scanStyle)return true;
+ const bearing=Math.atan2(player.y-enemy.y,player.x-enemy.x);
+ const angle=Math.atan2(Math.sin(bearing-op.scanHeading),Math.cos(bearing-op.scanHeading));
+ return Math.abs(angle)<=(op.scanStyle===2?.87:1.15);
+}
+const twoFrontsTransferSource=op=>op.nodes.find(n=>n.hp>0&&n.fieldShield>0);
 const fieldLink=op=>({x:(op.nodes[0].x+op.nodes[1].x)/2,
  y:(op.nodes[0].y+op.nodes[1].y)/2,progress:0,goal:FIELD_TACTICS.relaySyncSeconds,
  hp:FIELD_TACTICS.relaySyncHp,done:false});
@@ -89,6 +109,8 @@ export function validFieldOperation(op){
   (op.secondRaidSent===undefined||typeof op.secondRaidSent==='boolean');
  if(op.id==='reverse-hunt')return Number.isInteger(op.scans)&&op.scans>=0&&op.scans<=2&&
   Number.isFinite(op.scanAt)&&Number.isFinite(op.scanUntil)&&
+  (op.scanStyle===undefined||Number.isInteger(op.scanStyle)&&op.scanStyle>=0&&op.scanStyle<=2)&&
+  (op.scanHeading===undefined||Number.isFinite(op.scanHeading))&&
   (op.coverSent===undefined||typeof op.coverSent==='boolean');
  if(op.id==='false-call')return Array.isArray(op.beacons)&&op.beacons.length===3&&
   op.beacons.every(b=>Number.isFinite(b.x)&&Number.isFinite(b.y)&&typeof b.checked==='boolean')&&
@@ -136,6 +158,9 @@ export function validFieldOperation(op){
   (n.fieldShield===undefined||Number.isFinite(n.fieldShield)&&n.fieldShield>=0&&
    n.fieldShield<=FIELD_TACTICS.shieldStrength))&&
   (op.shieldChargeUsed===undefined||typeof op.shieldChargeUsed==='boolean')&&
+  (op.shieldTransferUsed===undefined||typeof op.shieldTransferUsed==='boolean')&&
+  (op.intermissionActive===undefined||typeof op.intermissionActive==='boolean')&&
+  (op.assaultPattern===undefined||Number.isInteger(op.assaultPattern)&&op.assaultPattern>=0&&op.assaultPattern<=2)&&
   Number.isInteger(op.wave)&&op.wave>=0&&op.wave<=(op.wavesTotal||2)&&
   [undefined,2,3].includes(op.wavesTotal)&&Array.isArray(op.enemySerials)&&
   op.enemySerials.length<=6;
@@ -194,6 +219,7 @@ export function createFieldOperation(id,base,world,attempt=0,routeChoice='safe',
    resonance:0,nextPulse:0,pulseUntil:0,alerted:false,secondRaidSent:false,nextGeologyCheck:0};
  }
  if(id==='reverse-hunt')return {...common,scans:0,scanAt:0,scanUntil:0,
+  scanStyle:attempt%3,scanHeading:0,
   enemySerial:null,cycle:0,enemyDestroyed:false,coverSent:false};
  if(id==='line-break'){
   const a=siteNear(base,world,590,bearing+.3),b=siteNear(base,world,790,bearing+2.65);
@@ -236,7 +262,8 @@ export function createFieldOperation(id,base,world,attempt=0,routeChoice='safe',
    progress:0,stabilized:false},
    {...second,hp:100,maxHp:100,fieldShield:0,goal:FIELD_TACTICS.shieldHold,
     progress:0,stabilized:false}],
-  shieldChargeUsed:false,wave:0,wavesTotal:threatTier?3:2,nextWaveAt:0,
+  shieldChargeUsed:false,shieldTransferUsed:false,intermissionActive:false,
+  assaultPattern:attempt%3,wave:0,wavesTotal:threatTier?3:2,nextWaveAt:0,
   enemySerials:[],warningShown:false};
 }
 export function fieldOperationOffer(base,op,now,id,pilotLevel=1){
@@ -264,9 +291,12 @@ export function fieldOperationCue(op,game){
  const workCue=game.actionHeld?.kind==='field-work'?' · ОГОНЬ ПРИОСТАНОВЛЕН':'';
  if(op.id==='deep-resonance')return '◈ ОБРАЗЦЫ '+op.progress+'/2 · РЕЗОНАНС '+Math.round(op.resonance)+'%'+
   (op.pulseUntil>game.time?' · РАЗРЯД!':op.resonance>65?' · ПАТРУЛЬ СЛЫШИТ ДОБЫЧУ':'');
- if(op.id==='reverse-hunt')return '◈ СКАНИРОВАНИЕ '+op.scans+'/2'+
-  (op.scanUntil>game.time?' · ИМПУЛЬС!':op.scans===1?' · ДИСТАНЦИЯ 170–270 М':
-   ' · ДИСТАНЦИЯ 130–310 М');
+ if(op.id==='reverse-hunt'){
+  const [min,max]=reverseHuntBand(op);
+  return '◈ СКАНИРОВАНИЕ '+op.scans+'/2 · ДИСТАНЦИЯ '+min+'–'+max+' М'+
+   (op.scanUntil>game.time?' · ИМПУЛЬС!':'')+
+   (op.scans===1&&op.scanStyle?' · ВОЙДИТЕ В СВЕТЯЩИЙСЯ СЕКТОР':'');
+ }
  if(op.id==='line-break')return op.stage==='sync'?
   '◈ СИНХРОНИЗАЦИЯ ЛИНИИ · '+Math.round((op.link?.progress||0)/(op.link?.goal||1)*100)+
   '% · УЗЕЛ '+Math.ceil(op.link?.hp||0)+'% · '+
@@ -294,10 +324,17 @@ export function fieldOperationCue(op,game){
  const hp=op.nodes.map(n=>Math.ceil(n.hp/n.maxHp*100)+'%'+
   (n.fieldShield>0?' · ЩИТ '+Math.ceil(n.fieldShield):'')).join(' / ');
  const preparing=op.nodes.find(n=>!n.stabilized&&n.progress>0);
+ const next=twoFrontsWaveTargets(op);
+ const nextThreat=op.wave<(op.wavesTotal||2)&&op.nextWaveAt>game.time&&
+  Number.isFinite(op.nextWaveAt)?' · СЛЕДУЮЩАЯ АТАКА: '+
+   (next[0]===next[1]?'ДВА КОРАБЛЯ → УЗЕЛ '+(next[0]+1):'ОБА УЗЛА'):'';
+ const transferable=op.intermissionActive&&op.shieldChargeUsed&&!op.shieldTransferUsed&&
+  twoFrontsTransferSource(op);
  return '◈ ДВА УЗЛА '+hp+' · РЕЗЕРВНЫЙ ЩИТ '+(op.shieldChargeUsed?'0':'1')+'/1 · ВОЛНА '+op.wave+'/'+(op.wavesTotal||2)+' · '+
   (op.nextWaveAt>game.time&&Number.isFinite(op.nextWaveAt)?
    'АТАКА ЧЕРЕЗ '+Math.ceil(op.nextWaveAt-game.time)+' С':'ПЕРЕХВАТИТЕ НАЛЁТЧИКОВ')+
-   (preparing?' · ЗАРЯД '+Math.round(preparing.progress/(preparing.goal||FIELD_TACTICS.shieldHold)*100)+'%':'')+workCue;
+   (preparing?' · ЗАРЯД '+Math.round(preparing.progress/(preparing.goal||FIELD_TACTICS.shieldHold)*100)+'%':'')+
+   nextThreat+(transferable?' · ПЕРЕНОС ЩИТА: 4 СПЛАВА':'')+workCue;
 }
 export function fieldOperationMining(op,rock,kind){
  if(op?.id!=='deep-resonance'||op.phase!=='active'||kind!=='extract')return false;
@@ -333,6 +370,14 @@ export function fieldOperationInteraction(op,player){
   if(node){node.goal??=FIELD_TACTICS.shieldHold;node.progress??=0;
    return {kind:'field-work',target:node,label:'Зарядить щит',hold:true};}
  }
+ if(op.id==='two-fronts'&&op.intermissionActive&&op.shieldChargeUsed&&
+  !op.shieldTransferUsed&&player.ore>=FIELD_TACTICS.shieldTransferCost){
+  const donor=twoFrontsTransferSource(op);
+  const receiver=op.nodes.find(n=>n!==donor&&n.hp>0&&distance(n,player)<=125);
+  if(donor&&receiver){receiver.goal=FIELD_TACTICS.shieldTransferHold;
+   receiver.progress??=0;
+   return {kind:'field-work',target:receiver,label:'Перенести щит · 4 сплава',hold:true};}
+ }
  if(op.id==='broken-convoy'&&op.phase==='active'&&op.hp>0&&op.hp<=78&&
   player.ore>=FIELD_TACTICS.convoyRepairCost){
   op.fieldRepair??={x:op.x,y:op.y,progress:0,goal:FIELD_TACTICS.convoyRepairHold,used:false};
@@ -360,7 +405,10 @@ function advanceFieldWork(game,op,dt){
   op.id==='line-break'?op.nodes.includes(target)&&!target.done&&target.hp>0:
   op.id==='sleeping-reactor'&&op.coolant===target?op.progress===1&&!op.cooled&&!target.done:
   op.id==='sleeping-reactor'?op.nodes.includes(target)&&!target.done:
-  op.id==='two-fronts'?op.nodes.includes(target)&&target.hp>0&&!op.shieldChargeUsed:
+  op.id==='two-fronts'?op.nodes.includes(target)&&target.hp>0&&
+   (!op.shieldChargeUsed||op.intermissionActive&&!op.shieldTransferUsed&&
+    target!==twoFrontsTransferSource(op)&&twoFrontsTransferSource(op)&&
+    game.player.ore>=FIELD_TACTICS.shieldTransferCost):
   op.id==='broken-convoy'&&op.phase==='active'?op.fieldRepair===target&&!target.used&&op.hp>0:
   op.id==='broken-convoy'?op.crate===target&&!target.done:false;
  if(!valid)return;
@@ -390,12 +438,28 @@ function advanceFieldWork(game,op,dt){
   game.heritage.vfx.nova(target.x,target.y,80,'cyan');
   game.notice('Клапан охлаждения открыт. Разряды станут реже. Вернитесь к оставшейся кассете.',4.5);
  }else if(op.id==='two-fronts'){
-  target.stabilized=true;target.fieldShield=FIELD_TACTICS.shieldStrength;
-  target.fieldPoweredAt=game.time;
-  op.shieldChargeUsed=true;
-  game.heritage.play('fieldShieldUp',.2,{x:target.x,y:target.y});
-  game.heritage.vfx.nova(target.x,target.y,70,'cyan');
-  game.notice('Резервный щит заряжен на одном узле. Второй остаётся без дополнительной защиты.',4.5);
+  if(op.shieldChargeUsed){
+   const donor=twoFrontsTransferSource(op);
+   if(!donor||game.player.ore<FIELD_TACTICS.shieldTransferCost){target.progress=0;return;}
+   const remaining=donor.fieldShield;
+   donor.fieldShield=0;donor.stabilized=false;
+   target.fieldShield=Math.min(FIELD_TACTICS.shieldStrength,remaining);
+   target.stabilized=true;target.fieldPoweredAt=game.time;
+   op.shieldTransferUsed=true;
+   game.player.ore-=FIELD_TACTICS.shieldTransferCost;
+   recordEconomyExpense(game,'repairs',FIELD_TACTICS.shieldTransferCost);
+   game.heritage.play('fieldShieldUp',.2,{x:target.x,y:target.y});
+   game.heritage.vfx.nova(donor.x,donor.y,55,'cyan');
+   game.heritage.vfx.nova(target.x,target.y,70,'cyan');
+   game.notice('Остаток барьера перенесён на другой узел. Первый остался без щита; ещё один перенос невозможен.',5);
+  }else{
+   target.stabilized=true;target.fieldShield=FIELD_TACTICS.shieldStrength;
+   target.fieldPoweredAt=game.time;
+   op.shieldChargeUsed=true;
+   game.heritage.play('fieldShieldUp',.2,{x:target.x,y:target.y});
+   game.heritage.vfx.nova(target.x,target.y,70,'cyan');
+   game.notice('Резервный щит заряжен на одном узле. Второй остаётся без дополнительной защиты.',4.5);
+  }
  }else if(op.id==='broken-convoy'&&op.phase==='active'){
   if(game.player.ore<FIELD_TACTICS.convoyRepairCost){target.progress=0;
    game.notice('Для аварийного ремонта не хватает 6 сплава.',3);}
@@ -528,10 +592,12 @@ export function advanceFieldOperation(game,dt){
    if(enemy){enemy.hp=enemy.maxHp=Math.round(165*(1+.2*(op.threatTier||0)));op.enemySerial=enemy.serial;
     op.scanAt=game.time+5.5;}
    else {op.phase='approach';return;}
-   game.notice('Зрачок обнаружен. Выдержите два сканирования на дистанции 130–310 м. Автоогонь можно отключить.',5);
+   const [min,max]=reverseHuntBand(op);
+   game.notice('Зрачок обнаружен. Сначала наблюдайте его с дистанции '+min+'–'+max+
+    ' м. Для второго импульса потребуется другая позиция. Автоогонь можно отключить.',5);
   }else if(op.id==='two-fronts'){
    op.nextWaveAt=game.time+6;
-   game.notice('Два узла под угрозой! Можно один раз зарядить щит любого узла удержанием действия. Во время зарядки орудия молчат.',5);
+   game.notice('Два узла под угрозой! Изучите метки первой атаки и зарядите щит нужного узла удержанием действия. Во время зарядки орудия молчат.',5);
   }else if(op.id==='sleeping-reactor'){
    op.pulseAt=game.time+7;
    game.notice('Реактор просыпается. Внешняя кассета безопаснее; внутренняя первой ускорит выбросы. Следите за ядром.',5);
@@ -639,34 +705,50 @@ export function advanceFieldOperation(game,dt){
   op.x=enemy.x;op.y=enemy.y;
   if(game.time>=op.scanAt&&op.scanUntil<=game.time){
    op.scanUntil=game.time+1.6;op.scanAt=game.time+7.4;op.cycle++;
+   if(op.scans===1&&op.scanStyle){
+    const angle=Math.atan2(game.player.y-enemy.y,game.player.x-enemy.x);
+    // The sector is frozen when the petals open: the pilot can deliberately
+    // move into it instead of chasing an invisible rotating hitbox.
+    op.scanHeading=angle+(op.scanStyle===2?1.04:-.38);
+   }
    // Drive the already-painted I.R.I.S. antenna animation from this mission's
    // scan window; its autonomous predator logic keeps its own clock.
    enemy._missionScanStarted=game.time;enemy._missionScanUntil=op.scanUntil;
    game.heritage.play('fieldScan',.2,{x:enemy.x,y:enemy.y});
-   game.notice('ЗРАЧОК РАСКРЫВАЕТ СКАНЕР! Держитесь на дистанции '+
-    (op.scans===1?'170–270':'130–310')+' м.',2.7);
+   const [min,max]=reverseHuntBand(op);
+   game.notice('ЗРАЧОК РАСКРЫВАЕТ СКАНЕР! Дистанция '+min+'–'+max+' м.'+
+    (op.scans===1&&op.scanStyle?' Для записи войдите в видимый сектор импульса.':''),3.3);
   }
   if(op.scanUntil>0&&game.time>=op.scanUntil){
    op.scanUntil=0;
    op.lastScanAt=game.time;
+   op.lastScanDirectional=op.scans===1&&!!op.scanStyle;
+   op.lastScanHeading=op.scanHeading;
+   [op.lastScanInner,op.lastScanOuter]=reverseHuntBand(op);
    // A released wave is a world-space event, not a decal attached to
    // the scout's later movement.
    op.lastScanX=enemy.x;op.lastScanY=enemy.y;
    game.heritage.play('fieldPulse',.3,{x:enemy.x,y:enemy.y});
    const d=distance(enemy,game.player);
-   game.heritage.vfx.nova(enemy.x,enemy.y,315,'violet');
-   const inner=op.scans===1?170:130,outer=op.scans===1?270:310;
-   if(d<inner)game.hurt(13,enemy);
-   else if(d<=outer){op.scans=Math.min(2,op.scans+1);
+   game.heritage.vfx.nova(enemy.x,enemy.y,op.lastScanDirectional?45:315,'violet');
+   const [inner,outer]=reverseHuntBand(op);
+   const inSector=reverseHuntInSector(op,enemy,game.player);
+   if(d<inner&&inSector)game.hurt(13,enemy);
+   else if(d>=inner&&d<=outer&&inSector){op.scans=Math.min(2,op.scans+1);
     game.heritage.play('fieldScanCaptured',.3,{x:enemy.x,y:enemy.y});
     game.notice('Спектр получен: '+op.scans+'/2.'+(op.scans===2?
-     ' Данных достаточно, можно возвращаться.':' Второй импульс: держитесь ближе, в 170–270 м.'),4);
+     ' Данных достаточно, можно возвращаться.':op.scanStyle?
+     ' Второй импульс будет направленным: следите за светящимся сектором и нужной дистанцией.':
+      ' Второй импульс: держитесь в 170–270 м.'),4);
     if(op.scans===1&&(op.threatTier||0)>=2&&!op.coverSent){
      const cover=spawnFieldEnemy(game,op,'fighter',enemy);
      if(cover){op.coverSent=true;
       game.heritage.play('fieldRaid',.2,{x:cover.x,y:cover.y});
       game.notice('Зрачок вызвал прикрытие. Второй спектр придётся получить под огнём.',4.5);}
     }
+   }else if(!inSector&&op.scans===1){
+    game.heritage.play('fieldScanMiss',.2,{x:enemy.x,y:enemy.y});
+    game.notice('Направленный импульс прошёл мимо: спектр не записан. Следите за сектором следующего сканирования.',3.5);
    }
    if(op.scans===2){op.phase='return';op.partial=false;}
   }
@@ -707,17 +789,24 @@ export function advanceFieldOperation(game,dt){
   const wavesTotal=op.wavesTotal||2;
   if(game.time>=op.nextWaveAt&&op.wave<wavesTotal&&game.enemies.length>RULES.maxEnemies-2)return;
   if(game.time>=op.nextWaveAt&&op.wave<wavesTotal){
+   if(op.intermissionActive&&game.actionHeld?.kind==='field-work'&&
+    op.nodes.includes(game.actionHeld.target))game.actionHeld=null;
+   op.intermissionActive=false;
    const types=op.wave===0?['fighter','flanker']:op.wave===1?['flanker','fighter']:
     [(op.threatTier||0)>=2?'gunship':'fighter','flanker'];
+   const targets=twoFrontsWaveTargets(op);
    const spawned=[];
    for(let i=0;i<2;i++){
-    const target=op.nodes[i].hp>0?op.nodes[i]:op.nodes[1-i];
+    const intended=targets[i];
+    const target=op.nodes[intended].hp>0?op.nodes[intended]:op.nodes[1-intended];
     const e=spawnFieldEnemy(game,op,types[i],target,target,i);
     if(e)spawned.push(e.serial);
    }
    if(spawned.length){op.wave++;op.enemySerials.push(...spawned);op.nextWaveAt=Infinity;
     game.heritage.play('fieldRaid',.2,{x:op.x,y:op.y});
-    game.notice('ВОЛНА '+op.wave+'/'+wavesTotal+': перехватчики выходят к двум узлам. Смотрите направления залпов.',4.5);}
+    game.notice('ВОЛНА '+op.wave+'/'+wavesTotal+': '+
+     (targets[0]===targets[1]?'оба перехватчика бьют по узлу '+(targets[0]+1):
+      'перехватчики разделились между двумя узлами')+'. Перехватывайте заряжающиеся корабли.',4.5);}
   }
   for(const enemy of game.enemies){
    if(enemy.fieldOperation!==op.id||!enemy.missionStrike||enemy.hp<=0||enemy.converted)continue;
@@ -730,8 +819,12 @@ export function advanceFieldOperation(game,dt){
   if(op.wave>0&&!game.enemies.some(e=>op.enemySerials.includes(e.serial)&&e.hp>0&&!e.converted)){
    if(op.wave>=wavesTotal){op.phase='return';op.partial=op.nodes.some(n=>n.hp<=0);
     game.notice('Атаки отражены. '+(op.partial?'Один узел потерян.':'Оба узла уцелели.')+' Вернитесь в арсенал.',5);
-   }else if(op.nextWaveAt===Infinity){op.nextWaveAt=game.time+5;
-    game.notice('Первую атаку отбили. Следующая через 5 секунд — успейте сменить позицию.',4);}
+   }else if(op.nextWaveAt===Infinity){op.nextWaveAt=game.time+7.5;
+    op.intermissionActive=true;
+    const next=twoFrontsWaveTargets(op);
+    game.notice('Волна отбита. Следующая через 8 секунд: '+
+     (next[0]===next[1]?'оба врага ударят по узлу '+(next[0]+1):
+      'атака по двум узлам')+'. При необходимости перенесите оставшийся щит за 4 сплава.',5);}
   }
  }else if(op.id==='sleeping-reactor'){
   const core=op.core||op;
@@ -848,12 +941,30 @@ export function drawFieldOperation(game,c,cam){
   paintMissionImpact(game,c,'emp',op.lastPulseX??source.x,op.lastPulseY??source.y,
    op.lastPulseAt,194,.7);
  }else if(op.id==='reverse-hunt'){
-  const second=op.scans===1,limit=second?270:310;
-  ring(op,op.scanUntil>game.time?limit:140,'#c794ff',
-   op.scanUntil>game.time?'СКАНИРОВАНИЕ':'ЗРАЧОК · '+op.scans+'/2',op.scanUntil>game.time);
-  if(second&&op.scanUntil>game.time)ring(op,170,'#f9a7d2','СЛИШКОМ БЛИЗКО');
-  activity(op,op.scanUntil>game.time?limit-12:125,'#cb9cff');
-  paintMissionImpact(game,c,'emp',op.lastScanX??op.x,op.lastScanY??op.y,
+  const [inner,outer]=reverseHuntBand(op),scanning=op.scanUntil>game.time;
+  ring(op,scanning?outer:140,'#c794ff',
+   scanning?'СКАНИРОВАНИЕ '+inner+'–'+outer+' М':'ЗРАЧОК · '+op.scans+'/2',scanning);
+  if(scanning){
+   ring(op,inner,'#f9a7d2','БЛИЖЕ — ОПАСНО');
+   if(op.scans===1&&op.scanStyle&&visible(op)){
+    const half=op.scanStyle===2?.87:1.15,h=op.scanHeading;
+    c.save();c.fillStyle='rgba(173,137,255,.24)';c.strokeStyle='#f3ccff';c.lineWidth=3;
+    c.beginPath();c.arc(op.x,op.y,outer,h-half,h+half);
+    c.arc(op.x,op.y,inner,h+half,h-half,true);c.closePath();c.fill();c.stroke();
+    c.restore();
+   }
+  }
+  activity(op,scanning?outer-12:125,'#cb9cff');
+  if(op.lastScanDirectional){
+   const age=game.time-(op.lastScanAt??-Infinity);
+   if(age>=0&&age<.7&&visible({x:op.lastScanX,y:op.lastScanY})){
+    const h=op.lastScanHeading,half=op.scanStyle===2?.87:1.15;
+    c.save();c.fillStyle='rgba(227,170,255,'+(.32*(1-age/.7)).toFixed(3)+')';
+    c.beginPath();c.arc(op.lastScanX,op.lastScanY,op.lastScanOuter,h-half,h+half);
+    c.arc(op.lastScanX,op.lastScanY,op.lastScanInner,h+half,h-half,true);
+    c.closePath();c.fill();c.restore();
+   }
+  }else paintMissionImpact(game,c,'emp',op.lastScanX??op.x,op.lastScanY??op.y,
    op.lastScanAt,132,.58);
  }else if(op.id==='false-call'){
   if(op.signalStage==='uplink'){
@@ -993,8 +1104,11 @@ export function drawFieldOperation(game,c,cam){
  }else if(op.id==='two-fronts')for(const [i,node] of op.nodes.entries()){
   if(!visible(node))continue;
   drawRelayArt(game,c,node,{fallback:()=>prop(node,'relay',68,92),shieldMax:FIELD_TACTICS.shieldStrength});
-  ring(node,90,node.hp>0?'#7eead9':'#ff7f79',
-   'УЗЕЛ '+(i+1)+' · '+Math.ceil(node.hp)+'%'+
+  const next=twoFrontsWaveTargets(op),warn=op.nextWaveAt>game.time&&
+   Number.isFinite(op.nextWaveAt)&&op.wave<(op.wavesTotal||2);
+  const incoming=warn?next.filter(target=>target===i).length:0;
+  ring(node,90,node.hp>0?(incoming?'#ffc28a':'#7eead9'):'#ff7f79',
+   'УЗЕЛ '+(i+1)+(incoming?' · АТАКА ×'+incoming:'')+' · '+Math.ceil(node.hp)+'%'+
     (node.fieldShield>0?' · БАРЬЕР '+Math.ceil(node.fieldShield):
      node.progress>0&&!op.shieldChargeUsed?' · ЗАРЯД '+
       Math.round(node.progress/(node.goal||FIELD_TACTICS.shieldHold)*100)+'%':''),false);

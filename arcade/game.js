@@ -47,26 +47,27 @@ import {ArcadeVisuals} from './visuals.js?v=regions-1-campaign-1-counterattack-1
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut} from './control-layout.js?v=swarm-controls-1';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=swarm-controls-1';
 import {manualWeapons,selectedManual,cycleManual,manualClick} from './manual-weapon-controls.js?v=mouse-arms-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
-import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1';
+import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-2-mission-integrity-2';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-2-mission-integrity-2-mission-choices-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
- advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1';
+ advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1-mission-choices-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1-mission-choices-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
-import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2';
-import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue,relayWavePlan,relayAttacker} from './relay-defense.js?v=station-operations-2-ops-audit-2';
+import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
+import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue,relayWavePlan,
+ relayAttacker,relayPrepInteraction,relayIncomingTargets} from './relay-defense.js?v=station-operations-2-ops-audit-2-mission-choices-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 
@@ -82,7 +83,7 @@ import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -1898,10 +1899,13 @@ export class ArcadeGame {
  }
  spawnRelayWave(op,index){
   const roster=relayWavePlan(op,index);if(!roster.length)return;
+  if(this.actionHeld?.kind==='relay-prep')this.actionHeld=null;
+  if(!op.prepared){op.prepProgress=0;op.prepTarget=null;}
   op.enemySerials=[];op.wave=index+1;op.phase='wave';
   for(let i=0;i<roster.length;i++){
    const spec=roster[i],def=ENEMY_TYPES[spec.type];
-   const target=spec.target==='antenna'?op.antenna:spec.target==='relay'?op:null;
+   const target=spec.target==='antenna'?(op.antenna?.hp>0?op.antenna:op):
+    spec.target==='relay'?op:null;
    const origin=target||op,radius=spec.range?spec.range+170:600;
    let angle=spec.angle,x=op.x+Math.cos(angle)*radius,y=op.y+Math.sin(angle)*radius;
    for(const offset of [0,.16,-.16,.32,-.32,.58]){
@@ -1918,20 +1922,48 @@ export class ArcadeGame {
     expAwarded:true,scenario:'relay-assault',protect:null,
     relayAssault:op.baseId,relayScreen:!target,relayCooldownUntil:this.time+.9,relayChargeUntil:0,
     operationGuard:true,fieldChargeOperation:this.operation?.id,fieldChargeBaseId:this.operation?.baseId,entryPortalPending:false};
-   if(target)this.prepareMissionStrike(enemy,target,{...spec,angle});
+   if(target)this.prepareMissionStrike(enemy,target,{...spec,
+    target:target===op?'relay':spec.target,angle});
    this.enemies.push(enemy);
    op.enemySerials.push(serial);
   }
-  this.notice('Волна '+op.wave+'/3. '+(index===1&&op.antenna?.hp>0?
-   'Две цели под ударом: передатчик и резервная антенна.':index===2?
-   'Корвет остановится на дальней позиции. Перехватите его до залпа!':
-   'Штурмовик готовит удар по передатчику. Выйдите ему навстречу.'),4.2);
+  const relayHit=roster.some(s=>s.target==='relay');
+  const antennaHit=roster.some(s=>s.target==='antenna');
+  this.notice('Волна '+op.wave+'/3. '+(relayHit&&antennaHit?
+   'Атакуют передатчик и антенну.':antennaHit?'Главная цель — резервная антенна.':
+    'Главная цель — передатчик.')+' Перехватывайте заряжающиеся корабли.',4.6);
   this.heritage.play('missionRelayWave',1.1,{x:op.x,y:op.y});
  }
  updateRelayDefense(dt){
   const op=this.operation;
   if(!op||op.id!==RELAY_DEFENSE.id||this.dead)return;
   if(op.hp<=0){this.failRelayDefense(op);return;}
+  if(['warning','intermission'].includes(op.phase)&&!op.prepared){
+   const held=this.actionHeld;
+   if(held?.kind==='relay-prep'&&(held.target===op||held.target===op.antenna)&&
+    held.target.hp>0&&dist(this.player,held.target)<=125){
+    const target=held.target===op?'relay':'antenna';
+    if(op.prepTarget!==target){op.prepTarget=target;op.prepProgress=0;}
+    op.prepProgress=Math.min(RELAY_DEFENSE.prepHold,(op.prepProgress||0)+dt);
+    if(this.time-(op.lastPrepSoundAt??-Infinity)>1){
+     op.lastPrepSoundAt=this.time;
+     this.heritage.play('fieldWork',.2,{x:held.target.x,y:held.target.y});
+    }
+    if(op.prepProgress>=RELAY_DEFENSE.prepHold){
+     if(this.player.ore>=RELAY_DEFENSE.prepCost){
+      this.player.ore-=RELAY_DEFENSE.prepCost;
+      recordEconomyExpense(this,'repairs',RELAY_DEFENSE.prepCost);
+      held.target.fieldShield=RELAY_DEFENSE.prepShield;
+      op.prepared=true;op.prepProgress=0;
+      this.heritage.play('missionRelayPrepare',.2,{x:held.target.x,y:held.target.y});
+      this.heritage.vfx.nova(held.target.x,held.target.y,65,'cyan');
+      this.notice('Барьер установлен на '+(target==='relay'?'передатчик':'антенну')+
+       '. Второй объект без резервной защиты.',4.5);
+     }else this.notice('Для резервного барьера требуется 5 сплава.',3);
+     this.actionHeld=null;
+    }
+   }
+  }
   if(op.hp<=RELAY_DEFENSE.maxHp*.35&&!op.criticalWarned){
    op.criticalWarned=true;
    this.notice('ТРЕВОГА: ретранслятор повреждён! Перехватывайте заряжающиеся корабли.',4);
@@ -1939,7 +1971,7 @@ export class ArcadeGame {
   if(op.phase==='approach'){
    if(dist(this.player,op)<=RELAY_DEFENSE.triggerRange){
     op.phase='warning';op.nextAt=this.time+RELAY_DEFENSE.preparation;
-    this.notice('Угроза ретранслятору. Займите позицию со стороны стрелки.',4);
+    this.notice('Угроза ретранслятору. Стрелки покажут направления и цели налёта. Удержанием действия можно заранее защитить один объект за 5 сплава.',5.5);
    }
    return;
   }
@@ -1991,8 +2023,8 @@ export class ArcadeGame {
   if(!surviving){
    if(op.wave>=RELAY_DEFENSE.waves.length){this.completeRelayDefense(op);return;}
    op.phase='intermission';op.nextAt=this.time+RELAY_DEFENSE.intermission;
-   this.notice('Волна '+op.wave+'/3 отражена. Передышка '+RELAY_DEFENSE.intermission+
-    ' секунд — выберите позицию для следующего перехвата.',4.3);
+   this.notice('Волна '+op.wave+'/3 отражена. До следующей атаки '+RELAY_DEFENSE.intermission+
+    ' секунд. Проверьте её цель; неиспользованный резервный барьер ещё можно установить.',5);
   }
  }
  failRelayDefense(op){
@@ -2621,7 +2653,8 @@ export class ArcadeGame {
  }
  updateShipWeapons(dt){
   updateAutomaticWeapons(this,dt,!this.heavyCharge&&automaticFireAllowed(this.holdFire,
-   this.mining.active,this.probeRepairing||this.openingRepairing||this.actionHeld?.kind==='field-work'));
+   this.mining.active,this.probeRepairing||this.openingRepairing||
+    ['field-work','relay-prep'].includes(this.actionHeld?.kind)));
  }
   toggleManualRail(){
    if(this.dead||this.paused||!this.overlay.hidden)return false;
@@ -2784,6 +2817,8 @@ export class ArcadeGame {
     label:'Эвакуация',hold:true};
   const op=this.operation;
   const probe=op?.id===PROBE_OPERATION.id&&op.located!==false&&op.phase!=='return'?op:null;
+  const relay=relayPrepInteraction(op,this.player);
+  if(relay)return relay;
   const field=fieldOperationInteraction(op,this.player);
   if(field)return field;
   const rock=this.mining.target;
@@ -2821,14 +2856,14 @@ export class ArcadeGame {
   if(button){
    const focus=this.actionHeld||this.interactionFocus;
    const label=focus?.kind==='repair'?'Ремонт':focus?.kind==='mine'?'Добыча':
-    focus?.kind==='field-work'?focus.label:
+    ['field-work','relay-prep'].includes(focus?.kind)?focus.label:
     focus?.kind==='opening-repair'?'Эвакуация':
     focus?.kind==='station'?'Станция':'Действие';
    if(button.textContent!==label)button.textContent=label;
    button.disabled=!focus;
    button.setAttribute('aria-label',focus?(focus.kind==='station'?'Открыть станцию':
     focus.kind==='opening-repair'?'Удерживать для эвакуации капсулы':
-    focus.kind==='field-work'?'Удерживать для действия: '+focus.label:
+    ['field-work','relay-prep'].includes(focus.kind)?'Удерживать для действия: '+focus.label:
     focus.kind==='repair'?'Удерживать для ремонта зонда':'Удерживать для добычи'):'Нет объектов для взаимодействия');
   }
   const quiet=$('quietBtn');
@@ -2910,10 +2945,11 @@ export class ArcadeGame {
      {kind:'opening-repair',target:{x:this.openingArc.rescueX,y:this.openingArc.rescueY},label:'Эвакуация'}:
     held.kind==='repair'&&this.operation?.id===PROBE_OPERATION.id?
      {kind:'repair',target:this.operation,label:'Ремонт'}:
-    held.kind==='field-work'?{kind:'field-work',target:held.target,label:'Действие'}:null):this.interactionFocus;
+    ['field-work','relay-prep'].includes(held.kind)?{kind:held.kind,target:held.target,
+     label:held.kind==='relay-prep'?'Установка барьера':'Действие'}:null):this.interactionFocus;
   if(!focus?.target||outsideCamera(focus.target.x,focus.target.y,cam,85))return;
   const t=focus.target,r=focus.kind==='mine'?t.r+12:focus.kind==='station'?61:38;
-  c.save();c.lineWidth=1.7;c.strokeStyle=['repair','opening-repair','field-work'].includes(focus.kind)?'#ffc678':
+  c.save();c.lineWidth=1.7;c.strokeStyle=['repair','opening-repair','field-work','relay-prep'].includes(focus.kind)?'#ffc678':
    focus.kind==='station'?'#87f0cf':'#7de5f5';
   c.setLineDash([7,6]);c.beginPath();c.arc(t.x,t.y,r,0,TAU);c.stroke();
   c.setLineDash([]);c.fillStyle='#c9f6f6';c.font='bold 12px system-ui';
@@ -4759,6 +4795,10 @@ export class ArcadeGame {
    const pulse=this.visuals.reducedMotion?0:.5+.5*Math.sin(this.time*2.8);
    c.strokeStyle=online?'#85eeb0':'#81e4df';c.lineWidth=3;
    c.beginPath();c.arc(0,0,39,0,TAU);c.stroke();
+   if(!online&&op.fieldShield>0){
+    c.strokeStyle='#83fbe9';c.lineWidth=4;
+    c.beginPath();c.arc(0,0,60,0,TAU*op.fieldShield/RELAY_DEFENSE.prepShield);c.stroke();
+   }
    c.strokeStyle='rgba(130,237,221,'+(.22+pulse*.28).toFixed(3)+')';
    c.lineWidth=1.7;c.beginPath();c.arc(0,0,55+pulse*5,0,TAU);c.stroke();
    const relay=this.images?.relayPoses;
@@ -4782,6 +4822,11 @@ export class ArcadeGame {
    c.fillText('БОЕВОЙ РЕТРАНСЛЯТОР',0,-77,210);
    c.fillStyle=online?'#a2f8bc':hp<.35?'#ffac98':'#ffe8b7';
    c.fillText(phase,0,-61,250);
+   if(!online&&op.prepProgress>0&&!op.prepared&&op.prepTarget==='relay'){
+    c.strokeStyle='#ffcf93';c.lineWidth=4;
+    c.beginPath();c.arc(0,0,65,-Math.PI/2,
+     -Math.PI/2+TAU*op.prepProgress/RELAY_DEFENSE.prepHold);c.stroke();
+   }
    if(online){
     const age=this.time-op.onlineAt;
     c.strokeStyle='#a1ffc0';c.lineWidth=2;
@@ -4791,6 +4836,9 @@ export class ArcadeGame {
      c.beginPath();c.arc(0,-25,radius,-2.2,-.94);c.stroke();
     }
    }else if(op.phase==='warning'||op.phase==='intermission'){
+    const incoming=relayIncomingTargets(op);
+    if(incoming.relay){c.strokeStyle='#ffb877';c.lineWidth=3;c.setLineDash([9,8]);
+     c.beginPath();c.arc(0,0,88,0,TAU);c.stroke();c.setLineDash([]);}
     for(const spec of relayWavePlan(op).filter(s=>s.target)){
      c.save();c.rotate(spec.angle);c.strokeStyle='#ffbf75';c.lineWidth=3;
      c.beginPath();c.moveTo(113,-8);c.lineTo(97,0);c.lineTo(113,8);c.stroke();c.restore();
@@ -4801,6 +4849,17 @@ export class ArcadeGame {
   const a=op.antenna;
   if(a&&!outsideCamera(a.x,a.y,cam,75)){
    c.save();c.translate(a.x,a.y);c.strokeStyle=a.hp>0?'#a9dffd':'#bf8179';c.lineWidth=2;
+   if(a.fieldShield>0){c.strokeStyle='#8bf3e3';c.lineWidth=3;
+    c.beginPath();c.arc(0,0,44,0,TAU*a.fieldShield/RELAY_DEFENSE.prepShield);c.stroke();}
+   if(!online&&['warning','intermission'].includes(op.phase)&&relayIncomingTargets(op).antenna){
+    c.strokeStyle='#ffb877';c.lineWidth=2.5;c.setLineDash([8,6]);
+    c.beginPath();c.arc(0,0,57,0,TAU);c.stroke();c.setLineDash([]);
+   }
+   if(!online&&op.prepProgress>0&&!op.prepared&&op.prepTarget==='antenna'){
+    c.strokeStyle='#ffcf93';c.lineWidth=4;c.beginPath();c.arc(0,0,48,-Math.PI/2,
+     -Math.PI/2+TAU*op.prepProgress/RELAY_DEFENSE.prepHold);c.stroke();
+   }
+   c.strokeStyle=a.hp>0?'#a9dffd':'#bf8179';
    if(!paintMissionCell(c,this.images?.missionHardware,a.hp>0?2:3,0,0,67,67)){
     c.fillStyle='#122936';c.beginPath();c.arc(0,0,16,0,TAU);c.fill();c.stroke();
     c.beginPath();c.arc(0,-8,11,-2.45,-.69);c.stroke();

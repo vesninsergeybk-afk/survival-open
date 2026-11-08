@@ -5,7 +5,8 @@ import {readFileSync} from 'node:fs';
 import {World} from '../world.js';
 import {ENEMY_TYPES} from '../ai.js';
 import {baseNames} from '../balance.js';
-import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayOffer,relayDefenseCue,relayAttacker} from '../relay-defense.js';
+import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayOffer,relayDefenseCue,relayAttacker,
+ relayWavePlan,relayIncomingTargets,relayPrepInteraction} from '../relay-defense.js';
 import {chooseOperationLead} from '../operations.js';
 import {renderBasePanel} from '../base-panel.js';
 import {renderWorldMap} from '../map-panel.js';
@@ -53,7 +54,7 @@ test('waves arrive after warning, charge their attacks, and give no restartable 
  const {game,op}=scenario();
  game.updateRelayDefense(.1);
  assert.equal(op.phase,'warning');
- assert.match(relayDefenseCue(op,3),/^АТАКА ЧЕРЕЗ 2 С [↘↓↙←↖↑↗→]$/);
+ assert.match(relayDefenseCue(op,3),/^АТАКА ЧЕРЕЗ 3 С [↘↓↙←↖↑↗→] · ПЕРЕДАТЧИК ПОД УДАРОМ$/);
  game.time=op.nextAt+.01;game.updateRelayDefense(.1);
  assert.equal(op.wave,1);assert.equal(op.phase,'wave');
  assert.equal(op.enemySerials.length,2);
@@ -70,6 +71,53 @@ test('waves arrive after warning, charge their attacks, and give no restartable 
  assert.equal(op.phase,'intermission');
  game.time=op.nextAt+.1;game.updateRelayDefense(.1);
  assert.equal(op.wave,2);assert.equal(game.enemies.filter(e=>e.hp>0).length,2);
+});
+
+test('later relay attempts change the actual targets, not only the compass bearing',()=>{
+ const first=scenario(),second=scenario();
+ first.base.relayAttempts=1;second.base.relayAttempts=2;
+ const a=createRelayDefense(first.base,first.game.world);
+ const b=createRelayDefense(second.base,second.game.world);
+ assert.equal(a.assaultPattern,1);
+ assert.equal(b.assaultPattern,2);
+ assert.deepEqual(relayIncomingTargets(a),{relay:0,antenna:1});
+ assert.deepEqual(relayIncomingTargets(b),{relay:1,antenna:1});
+ assert.equal(relayWavePlan(a,0)[0].target,'antenna');
+ assert.equal(relayWavePlan(b,2)[0].target,'antenna');
+ assert.match(relayDefenseCue({...a,phase:'warning',nextAt:10},5),/АНТЕННА ПОД УДАРОМ/);
+});
+
+test('preparation installs one paid, damage-absorbing barrier using existing hold interaction',()=>{
+ const {game,op}=scenario();game.player.ore=15;game.time=1;
+ op.phase='warning';op.nextAt=20;
+ const action=relayPrepInteraction(op,game.player);
+ assert.equal(action?.kind,'relay-prep');assert.equal(action.target,op);
+ game.actionHeld={kind:action.kind,target:action.target};
+ game.updateRelayDefense(RELAY_DEFENSE.prepHold+.1);
+ assert.equal(op.prepared,true);assert.equal(op.fieldShield,RELAY_DEFENSE.prepShield);
+ assert.equal(game.player.ore,10);assert.equal(game.actionHeld,null);
+ assert.equal(relayPrepInteraction(op,{...game.player,x:op.antenna.x,y:op.antenna.y}),null);
+ const attacker={x:op.x+130,y:op.y,relayChargeUntil:game.time-.1,
+  missionStrike:{target:'relay',range:200,charge:1,damage:18}};
+ game.time=2;RuntimeHarness.prototype.updateMissionStrike.call(game,attacker,op);
+ assert.equal(op.hp,op.maxHp);
+ assert.equal(op.fieldShield,RELAY_DEFENSE.prepShield-18);
+});
+
+test('antenna preparation and unfinished holds remain honest through waves',()=>{
+ const {game,op}=scenario();game.player.ore=10;
+ game.player.x=op.antenna.x;game.player.y=op.antenna.y;
+ op.phase='intermission';op.wave=1;op.nextAt=12;game.time=4;
+ const action=relayPrepInteraction(op,game.player);
+ assert.equal(action?.target,op.antenna);
+ game.actionHeld={kind:'relay-prep',target:op.antenna};
+ game.updateRelayDefense(1);
+ assert.equal(op.antenna.fieldShield,undefined);
+ assert.equal(game.player.ore,10,'an interrupted hold cannot charge the pilot');
+ op.nextAt=4;game.spawnRelayWave(op,1);
+ assert.equal(game.actionHeld,null);
+ assert.equal(op.antenna.fieldShield,undefined);
+ assert.equal(op.prepProgress,0);
 });
 
 test('winning leaves a working site, pays once and has a different effect from defeat',()=>{

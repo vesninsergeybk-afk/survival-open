@@ -1,5 +1,5 @@
 import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1';
-import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1';
+import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=foley-autofire-03';
 
@@ -31,9 +31,11 @@ const SOUND_IDS=Object.freeze({
  fieldReactorCharge:'field_reactor_charge',fieldPulse:'field_pulse',
  fieldReactorCool:'field_reactor_cool',
  fieldScanCaptured:'field_scan_captured',
+ fieldScanMiss:'field_scan_miss',
  missionEmpCharge:'mission_emp_charge',missionEmpPulse:'mission_emp_pulse',
  missionProbeWeld:'mission_probe_weld',missionProbeReady:'mission_probe_ready',
  missionRelayWave:'mission_relay_wave',missionRelayImpact:'mission_relay_impact',
+ missionRelayPrepare:'mission_relay_prepare',
  missionRelayOnline:'mission_relay_online',missionCarrierContact:'mission_carrier_contact',
  missionCarrierBoost:'mission_carrier_boost'
 });
