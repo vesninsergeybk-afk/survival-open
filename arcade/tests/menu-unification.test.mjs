@@ -63,3 +63,8 @@ test('short landscape screens keep ship caption readable despite earlier 9px sty
  assert.match(section,/\.prog-ship-caption span \{font-size:11px;line-height:1\.25\}/);
  assert.match(section,/\.prog-domain strong \{font-size:12px\}/);
 });
+
+test('published HTML refreshes the stylesheet version for landscape readability fix',()=>{
+ const html=read('index.html');
+ assert.match(html,/menu-refinement\.css\?v=menu-unification-20261108-1-landscape-1/);
+});
