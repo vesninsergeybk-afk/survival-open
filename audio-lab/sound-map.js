@@ -4,11 +4,12 @@
  * Production audio routing shared with the public sound laboratory.
  * Keys match WEAPONS[*].id in ../src/data.js, production on 2026-10-28.
  *
- * Studio sources are not redistributed. Gameplay uses bundled Kenney CC0 recordings\n * and existing CC0 station recordings; there is no procedural fallback.
+ * Studio sources are not redistributed. Gameplay uses CC0 sound files:
+ * public Kenney samples, station sounds, and recorded Foley. No procedural fallback.
  */
 export const WEAPON_SOUNDS = {
   starter_pulse: { label: 'Учебный импульс', profile: 'pulse', family: 'energy', gain: 0.34, priority: 3, minIntervalMs: 95, sampleUrl: './assets/sfx/starter_pulse.ogg', note: 'Короткий упругий щелчок и мягкий электрический хвост.' },
-  starter_soft: { label: 'Плазменный автоогонь · акустические удары', profile: 'softpulse', family: 'energy', gain: 0.38, priority: 2, minIntervalMs: 170, note: 'Пять вариантов выстрела: два слоя записанных физических звуков — удар металла и глухой упругий толчок. Никаких электронных лазерных тонов.' },
+  starter_soft: { label: 'Плазменный автоогонь · механический импульс', profile: 'softpulse', family: 'energy', gain: 0.34, priority: 2, minIntervalMs: 170, note: 'Пять вариантов короткого пиротехнического или механического удара, дополненных тихим металлическим слоем. Реальные записи, без электронного сигнала.' },
   whip: { label: 'Плазменная дуга', profile: 'arc', family: 'energy', gain: 0.46, priority: 3, minIntervalMs: 160, sampleUrl: './assets/sfx/studio/whip.ogg', note: 'Широкий дуговой хлест с сухим верхним щелчком.' },
   magic_wand: { label: 'Ионная пушка', profile: 'ion', family: 'energy', gain: 0.40, priority: 3, minIntervalMs: 100, sampleUrl: './assets/sfx/studio/magic_wand.ogg', note: 'Заряженный электрический сгусток, нисходящий тон.' },
   knife: { label: 'Ракетный залп', profile: 'rocket', family: 'ballistic', gain: 0.53, priority: 4, minIntervalMs: 150, sampleUrl: './assets/sfx/studio/knife.ogg', note: 'Пуск и короткий реактивный выхлоп; не дублировать звук на каждую ракету залпа.' },
@@ -77,8 +78,9 @@ export const BASE_SOUNDS = {
 // superseded by verified Kenney files or recordings already stored in base/.
 const k = file => './assets/sfx/kenney/' + file + '.ogg';
 const b = file => './assets/sfx/base/' + file + '.ogg';
+const f = file => './assets/sfx/foley/' + file + '.ogg';
 const replacements = {
-  starter_soft: [k('impactMetal_medium_000'),k('impactMetal_medium_001'),k('impactMetal_medium_002'),k('impactMetal_medium_003'),k('impactMetal_medium_004')],
+  starter_soft: [f('rd_shot_01'),f('rd_shot_02'),f('rd_shot_03'),f('om_clamour5'),f('om_clamour7')],
   whip: [k('laserRetro_003')], magic_wand: [k('laserLarge_000'),k('laserLarge_001')],
   knife: [k('thrusterFire_000')], orbit: [k('spaceEngineSmall_000')],
   lightning: [k('forceField_000')], mine: [k('doorClose_001')],
@@ -94,7 +96,7 @@ const replacements = {
   achievement: [b('base_raid_success')], engine: [k('spaceEngineLow_000')]
 };
 const limits = {
-  starter_soft: .28, knife: .52, orbit: .35, garlic: .55, frost_nova: .65,
+  starter_soft: .82, knife: .52, orbit: .35, garlic: .55, frost_nova: .65,
   boomerang: .48, railgun: .62, lightning: .55, drone_swarm: .72,
   engine: .55, explosion_big: 1.45, player_death: 1.8, boss_spawn: 1.4
 };
@@ -106,12 +108,13 @@ for (const [key, paths] of Object.entries(replacements)) {
   if (limits[key]) def.maxDuration = limits[key];
 }
 
-// Five matched pairs of real foley recordings; layer two stays quiet.
+// Five matched pairs of real field recordings; layer two stays quiet.
 WEAPON_SOUNDS.starter_soft.sampleLayerUrls = [
-  k('impactSoft_medium_000'),k('impactSoft_medium_001'),k('impactSoft_medium_002'),
-  k('impactSoft_medium_003'),k('impactSoft_medium_004')
+  f('om_clamour5'),f('om_clamour7'),f('om_clamour1'),
+  f('om_toasterstep1'),f('om_toasterstep2')
 ];
-WEAPON_SOUNDS.starter_soft.layerGain = .3;
+WEAPON_SOUNDS.starter_soft.layerGain = .19;
+WEAPON_SOUNDS.starter_soft.fixedPitch = true;
 
 const cue = (label,family,sampleUrl,gain,priority=1,minIntervalMs=150,maxDuration=.65) =>
   ({label,profile:'recorded',family,sampleUrl,gain,priority,minIntervalMs,maxDuration});
@@ -176,35 +179,41 @@ export const AUX_SOUNDS = {
   mission_carrier_boost: cue('Форсаж вражеского грузовика','ambient',k('thrusterFire_000'),.34,3,1700,.9),
   // Manual area weapons have separate physical Foley for release, arming and
   // impact. The low-frequency body is a recorded sample, never an oscillator.
-  comet_launch: cue('Пуск Голубой кометы','energy',k('thrusterFire_001'),.36,4,300,.62),
-  comet_burst: cue('Удар Голубой кометы','impact',k('explosionCrunch_000'),.64,5,240,1.0),
-  mine_launch: cue('Сброс минного веера','mechanical',k('doorClose_001'),.31,3,320,.48),
-  mine_arm: cue('Мины встали на боевой взвод','mechanical',k('impactMetal_light_002'),.16,2,600,.32),
-  mine_burst: cue('Подрыв мин','impact',k('impactPunch_heavy_001'),.61,5,140,.78),
-  target_mark: cue('Назначена приоритетная цель','ui',k('impactGeneric_light_001'),.18,3,180,.34),
-  dash_burst: cue('Рывок корабля','mechanical',k('thrusterFire_002'),.35,3,350,.5),
-  swarm_arrival: cue('Приближение организованного роя','ambient',k('spaceEngineSmall_001'),.17,2,2100,.82),
-  swarm_split: cue('Рой делится','mechanical',k('spaceEngineSmall_001'),.22,3,1150,.65),
-  swarm_merge: cue('Рои объединяются','mechanical',k('forceField_004'),.21,3,1150,.65),
-  swarm_warning: cue('Рой готовит выстрел','ui',k('computerNoise_002'),.18,3,1600,.52)
+  comet_launch: cue('Пуск Голубой кометы','energy',f('rd_fw_01'),.32,4,300,1.36),
+  comet_burst: cue('Удар Голубой кометы','impact',f('rd_cannon_01'),.53,5,240,1.90),
+  mine_launch: cue('Сброс минного веера','mechanical',f('om_plugpull'),.29,3,320,.80),
+  mine_arm: cue('Мины встали на боевой взвод','mechanical',f('om_tap'),.14,2,600,1.12),
+  mine_burst: cue('Подрыв мин','impact',f('rd_bang_02'),.51,5,140,1.50),
+  target_mark: cue('Назначена приоритетная цель','ui',f('om_clamour11'),.14,3,180,1.10),
+  dash_burst: cue('Рывок корабля','mechanical',f('rd_fw_03'),.30,3,350,1.48),
+  swarm_arrival: cue('Приближение организованного роя','ambient',f('om_clamour6'),.15,2,2100,1.43),
+  swarm_split: cue('Рой делится','mechanical',f('om_scrape1'),.19,3,1150,1.12),
+  swarm_merge: cue('Рои объединяются','mechanical',f('om_clamour9'),.19,3,1150,.88),
+  swarm_warning: cue('Рой готовит выстрел','ui',f('om_clamour11'),.16,3,1600,1.12)
 };
 
 AUX_SOUNDS.ui_slider.sampleUrls = [k('impactMetal_heavy_000'),k('impactMetal_heavy_001')];
 const recordedLayers = {
-  comet_launch:{main:[k('thrusterFire_001'),k('thrusterFire_002')],
-    layer:[k('impactMetal_medium_000'),k('impactMetal_medium_001')],gain:.18},
-  comet_burst:{main:[k('explosionCrunch_000'),k('explosionCrunch_002')],
-    layer:[k('lowFrequency_explosion_001'),k('lowFrequency_explosion_000')],gain:.57},
-  mine_launch:{main:[k('doorClose_001')],layer:[k('impactMetal_light_002')],gain:.32},
-  mine_arm:{main:[k('impactMetal_light_002')],layer:[k('forceField_004')],gain:.18},
-  mine_burst:{main:[k('impactPunch_heavy_001')],layer:[k('explosionCrunch_001')],gain:.56},
-  target_mark:{main:[k('impactGeneric_light_001')],layer:[k('forceField_004')],gain:.12},
-  dash_burst:{main:[k('thrusterFire_002'),k('thrusterFire_001')],
-    layer:[k('impactSoft_medium_000'),k('impactSoft_medium_001')],gain:.2},
-  swarm_arrival:{main:[k('spaceEngineSmall_001')],layer:[k('computerNoise_002')],gain:.2},
-  swarm_split:{main:[k('spaceEngineSmall_001')],layer:[k('impactMetal_light_002')],gain:.24},
-  swarm_merge:{main:[k('forceField_004')],layer:[k('impactPlate_heavy_002')],gain:.21},
-  swarm_warning:{main:[k('computerNoise_002')],layer:[k('impactGeneric_light_001')],gain:.32}
+  comet_launch:{main:[f('rd_fw_01'),f('rd_fw_02')],
+    layer:[f('om_scrape1'),f('om_scrape2')],gain:.19},
+  comet_burst:{main:[f('rd_cannon_01'),f('rd_cannon_02')],
+    layer:[f('rd_bang_08'),f('rd_bang_10')],gain:.31},
+  mine_launch:{main:[f('om_plugpull'),f('om_toasterstep1')],
+    layer:[f('om_clamour5'),f('om_clamour7')],gain:.22},
+  mine_arm:{main:[f('om_tap')],layer:[f('om_clamour11')],gain:.15},
+  mine_burst:{main:[f('rd_bang_02'),f('rd_bang_03'),f('rd_bang_06')],
+    layer:[f('om_clamour1'),f('om_clamour3'),f('om_clamour6')],gain:.25},
+  target_mark:{main:[f('om_clamour11')],layer:[f('om_tap')],gain:.12},
+  dash_burst:{main:[f('rd_fw_03'),f('rd_fw_05')],
+    layer:[f('om_scrape1'),f('om_scrape2')],gain:.22},
+  swarm_arrival:{main:[f('om_clamour6'),f('om_clamour9')],
+    layer:[f('om_toasterstep1'),f('om_toasterstep2')],gain:.13},
+  swarm_split:{main:[f('om_scrape1'),f('om_scrape2')],
+    layer:[f('om_clamour5'),f('om_clamour7')],gain:.18},
+  swarm_merge:{main:[f('om_clamour9'),f('om_clamour10')],
+    layer:[f('om_toasterstep1'),f('om_toasterstep2')],gain:.16},
+  swarm_warning:{main:[f('om_clamour11'),f('om_clamour7')],
+    layer:[f('om_tap'),f('om_toasterstep2')],gain:.15}
 };
 for(const [key,{main,layer,gain}] of Object.entries(recordedLayers)){
   AUX_SOUNDS[key].sampleUrls=main;

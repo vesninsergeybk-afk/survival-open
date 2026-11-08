@@ -1,4 +1,4 @@
-import { SOUND_CATALOG, BUS_PRESET } from './sound-map.js?v=foley-autofire-03-mission-av-1-mission-variety-1-mission-choices-1-recorded-combat-1';
+import { SOUND_CATALOG, BUS_PRESET } from './sound-map.js?v=foley-autofire-03-mission-av-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2';
 
 /**
  * Isolated sound-lab engine. Shared by the audio laboratory and the live production game. Native Web Audio; no dependencies and no network calls
@@ -210,8 +210,12 @@ export class AudioLabEngine {
     return { key, seconds: buffer.duration, channels: buffer.numberOfChannels };
   }
 
-  async loadSampleFromUrl(key, url, {append = false, layer = false, index = null} = {}) {
-    await this.unlock();
+  async loadSampleFromUrl(key, url, {append = false, layer = false, index = null, prepareOnly = false} = {}) {
+    // Browsers permit fetching and decoding while audio is suspended. The
+    // user gesture is required to *play*, not to prepare recorded samples.
+    if (prepareOnly) {
+      if (!this.ctx) throw new Error('No AudioContext for sample preparation');
+    } else await this.unlock();
     if (!(key in SOUND_CATALOG)) throw new Error('Неизвестное звуковое событие: ' + key);
     if (!this.sampleFetches.has(url)) {
       const pending = (async () => {

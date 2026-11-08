@@ -1088,6 +1088,7 @@ export function renderBasePanel(base,state){
    '<span class="base-unapplied-note" role="status">В ангаре есть неприменённая сборка</span>':'')+
   '<div class="base-footer-actions">'+
   menuBackButton(state.menuBackLabel)+
+  action('toggleAudio',state.soundOn?'🔊 Звук включён':'♫ Включить звук')+
   (active?action('baseMap','Карта сектора'):'')+
   action('close',state.hangarSession?.dirty(state.loadout)?'В полёт · сборка не применена':'В полёт')+'</div></footer></div>',state.controls);
 }

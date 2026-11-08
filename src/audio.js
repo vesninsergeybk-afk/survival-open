@@ -1,5 +1,5 @@
-import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1';
-import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1';
+import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2';
+import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2';
 import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
 import { MUSIC_TRACKS, MUSIC_POOLS, MusicRotation } from '../arcade/music-playlist.js?v=cinematic-rotation-01';
 
@@ -41,6 +41,7 @@ export class AudioEngine {
         this.unlocked = false;
         this.sfxLab = null;
         this._samplesPromise = null;
+        this._essentialPromise = null;
     }
 
     init() {
@@ -80,6 +81,39 @@ export class AudioEngine {
             console.warn('[audio] disabled', err);
             this.enabled = false;
         }
+    }
+
+    /** Decode the first combat cues without resuming or playing audio.
+     *  The actual sound still requires a user gesture and an unmuted mixer.
+     */
+    primeEssentials() {
+        if (this._essentialPromise) return this._essentialPromise;
+        if (typeof window === 'undefined' || !(window.AudioContext || window.webkitAudioContext))
+            return Promise.resolve();
+        this.init();
+        if (!this.sfxLab) return Promise.resolve();
+        const keys = ['starter_soft','comet_launch','comet_burst','mine_launch',
+            'mine_arm','mine_burst','target_mark','dash_burst','swarm_arrival',
+            'swarm_split','swarm_merge','swarm_warning'];
+        const root = new URL('../audio-lab/', import.meta.url);
+        const queue = keys.flatMap(key => {
+            const def = SOUND_CATALOG[key];
+            const main = def.sampleUrls?.length ? def.sampleUrls : def.sampleUrl ? [def.sampleUrl] : [];
+            return [...main.map((url,index) => [key,url,false,index]),
+                ...(def.sampleLayerUrls || []).map((url,index) => [key,url,true,index])];
+        });
+        let cursor = 0;
+        const worker = async () => {
+            while (cursor < queue.length) {
+                const [key,url,layer,index] = queue[cursor++];
+                try {
+                    await this.sfxLab.loadSampleFromUrl(key,new URL(url,root).href,
+                        {append:true,layer,index,prepareOnly:true});
+                } catch (err) { console.warn('[audio] Essential recording unavailable:',key,err); }
+            }
+        };
+        this._essentialPromise = Promise.all(Array.from({length:Math.min(4,queue.length)},worker));
+        return this._essentialPromise;
     }
 
     unlock() {

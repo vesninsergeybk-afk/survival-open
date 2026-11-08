@@ -1,0 +1,146 @@
+{
+  "license": "CC0-1.0",
+  "notes": "Physical field recordings; see SOURCES.md. SHA-256 pins the packaged OGG.",
+  "files": [
+    {
+      "file": "om_clamour1.ogg",
+      "seconds": 0.685,
+      "sha256": "4e2495df6ac71cd4f1aef75fb4f1fedfa770c56c88573002dcb6eda40409f19d"
+    },
+    {
+      "file": "om_clamour10.ogg",
+      "seconds": 0.729,
+      "sha256": "9d0b479d89e6aff8725084698c676e65c85d8a88aeab5754a74363df2b18ec6b"
+    },
+    {
+      "file": "om_clamour11.ogg",
+      "seconds": 0.514,
+      "sha256": "e6005a0162949529756a8138338702e20709d29c4f64d10693b572d25abc3a61"
+    },
+    {
+      "file": "om_clamour3.ogg",
+      "seconds": 0.754,
+      "sha256": "0655ba619a9b54ad2545f6995abb893c12d31a98cc7a0e76b3e3093a0ee229f6"
+    },
+    {
+      "file": "om_clamour5.ogg",
+      "seconds": 0.445,
+      "sha256": "f25afe6784ca70472a8f35de8c4f78b92e78bdf38bbf946134fe9652b90d0d52"
+    },
+    {
+      "file": "om_clamour6.ogg",
+      "seconds": 1.288,
+      "sha256": "b46d71350a2885c64688bd35006ef3253fc70bfcc414e05bdf5b81b094f28463"
+    },
+    {
+      "file": "om_clamour7.ogg",
+      "seconds": 0.552,
+      "sha256": "04921f911d763d66448e4cd5758ffe94721140f95039d440b594eef7c756d103"
+    },
+    {
+      "file": "om_clamour9.ogg",
+      "seconds": 0.703,
+      "sha256": "e03a424d4338e9797ce66aaa68966d5aeb9f1e6d51bfa98b64ff7bd0705aae59"
+    },
+    {
+      "file": "om_plugpull.ogg",
+      "seconds": 0.415,
+      "sha256": "a6b7fdade21fccfd2c3b3de306048ab2361dc8a8cf689271d58da5e6ee144c79"
+    },
+    {
+      "file": "om_scrape1.ogg",
+      "seconds": 0.617,
+      "sha256": "3ac7074f111887de994aa89f08508102fb452e6579cbdcc660249e379a1365fc"
+    },
+    {
+      "file": "om_scrape2.ogg",
+      "seconds": 1.022,
+      "sha256": "73c825908518bd3020d4e189f5eb64c179c7d80f11e79eec60dd6c2526832a57"
+    },
+    {
+      "file": "om_tap.ogg",
+      "seconds": 0.952,
+      "sha256": "b982eae98cc4408d63a4710d7e557b292753fb1320c203eeca79a6e40ac672b9"
+    },
+    {
+      "file": "om_toasterstep1.ogg",
+      "seconds": 0.673,
+      "sha256": "26131149dc36196c319cf833bdeec53f63edd89de126c3d18ec457ec75278ee8"
+    },
+    {
+      "file": "om_toasterstep2.ogg",
+      "seconds": 0.633,
+      "sha256": "f00573d1ee285346ca7f9df8321489e168e36393e112203507d1a03a07064261"
+    },
+    {
+      "file": "rd_bang_02.ogg",
+      "seconds": 0.895,
+      "sha256": "0f0c960888e6ebcb1bc68fa77fa0e52a26b8693b7a420a95ed0d669c486bc4f5"
+    },
+    {
+      "file": "rd_bang_03.ogg",
+      "seconds": 1.09,
+      "sha256": "b823f53557ca9702f57b3f9e997fc92d5b87da99d464309d14199aabf2d620c4"
+    },
+    {
+      "file": "rd_bang_06.ogg",
+      "seconds": 1.364,
+      "sha256": "1209d7d44cd333abe089bb0ed8ac684381abfde8e4baad20bd5a0005168fd9ea"
+    },
+    {
+      "file": "rd_bang_08.ogg",
+      "seconds": 0.873,
+      "sha256": "aaaba1cdaeb9e5e61abf3ebdff09c967b5d451c42b45259e3b00f62575baafea"
+    },
+    {
+      "file": "rd_bang_10.ogg",
+      "seconds": 1.376,
+      "sha256": "c012d643e9cac159729a1026f6a8f70a6f84be7bdddc18fc8051243f814a17ec"
+    },
+    {
+      "file": "rd_cannon_01.ogg",
+      "seconds": 1.238,
+      "sha256": "e87ca0ee6b53da1f21cd9086cb75f456495871618fdfed63388bd2208a872596"
+    },
+    {
+      "file": "rd_cannon_02.ogg",
+      "seconds": 1.795,
+      "sha256": "716392af61b29dabe637c2616091207f390d25357aae3d4c625df5dfea7e961d"
+    },
+    {
+      "file": "rd_fw_01.ogg",
+      "seconds": 1.203,
+      "sha256": "1c8a6053433cd682a65665780ead9dfadc14c9442337e6d54469100bcb743694"
+    },
+    {
+      "file": "rd_fw_02.ogg",
+      "seconds": 1.111,
+      "sha256": "3f0e772c7608937de3e0d39167e1c7037c047f1891bbcf7f7ab6af21fe87177c"
+    },
+    {
+      "file": "rd_fw_03.ogg",
+      "seconds": 1.321,
+      "sha256": "2f2c7e9d44d61a5ddcdf7982383229e9b3fa6e0d37651c07030ab7d21baca49c"
+    },
+    {
+      "file": "rd_fw_05.ogg",
+      "seconds": 1.136,
+      "sha256": "d513015c404049f5332ea4c3b0d19a764e7c26639949c7d18894635b691f4787"
+    },
+    {
+      "file": "rd_shot_01.ogg",
+      "seconds": 0.459,
+      "sha256": "a846eefebbb08b6f6d31a7728318b8de349ea2971cea148d7afdb41d797fdcfc"
+    },
+    {
+      "file": "rd_shot_02.ogg",
+      "seconds": 0.374,
+      "sha256": "4b9b62ff7f430d9d257a07efc54be8192c2e01668fe5e2461f217b2f8fe33a77"
+    },
+    {
+      "file": "rd_shot_03.ogg",
+      "seconds": 0.264,
+      "sha256": "f3cfbf0af36a717ff9c8f58640f181db7b73266e8263591014d453c4e77c6418"
+    }
+  ]
+}

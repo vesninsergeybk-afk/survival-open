@@ -148,3 +148,14 @@ test('comet and mine explosions expose distinct visual phases without relying on
  g.time=.4;updateMouseArsenal(g,.2);drawMouseArsenal(c,g);
  assert.ok(circles.some(r=>r>12),'the blast has rings beyond the projectile core');
 });
+
+test('comet blast retains shards at 18 FPS without expensive shadows',()=>{
+ const g=scene(),strokes=[],lines=[];
+ g.fps=18;g.visuals={reducedMotion:false};
+ const ctx=new Proxy({stroke(){strokes.push(1);},lineTo(x,y){lines.push([x,y]);}},
+  {get(target,key){return target[key]??(()=>{});}});
+ g.mouseArsenal.bursts.push({x:0,y:0,kind:'comet',radius:90,age:.12});
+ drawMouseArsenal(ctx,g);
+ assert(strokes.length>=5,'low FPS should retain shock rings and three fragments');
+ assert(lines.length>=3,'explosion fragments must not disappear at 18 FPS');
+});

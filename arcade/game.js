@@ -50,10 +50,10 @@ import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1';
-import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1';
+import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2';
 import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
-import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1';
+import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
@@ -79,7 +79,7 @@ import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,upda
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1-supply-stronghold-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel} from './target-designation.js?v=mouse-area-1';
-import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,drawMouseArsenal} from './mouse-arsenal.js?v=mouse-arms-1-recorded-combat-1';
+import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,drawMouseArsenal} from './mouse-arsenal.js?v=mouse-arms-1-recorded-combat-1-realfoley-2';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
@@ -670,6 +670,12 @@ export class ArcadeGame {
    if(act==='returnHangar'){this.returnToHangar();return;}
    if(act==='discardDeparture'){this.confirmDeparture();return;}
    if(act==='close'){this.dismiss();return;}
+   if(act==='toggleAudio'){
+    const enabled=this.toggleAudio();
+    b.textContent=enabled?'🔊 Звук включён':'♫ Включить звук';
+    b.setAttribute('aria-pressed',String(enabled));
+    return;
+   }
    if(act==='menuBack'||act==='baseBack'){this.goBackInMenu();return;}
     if(act==='baseTab'&&BASE_TABS.includes(b.dataset.role)){
      this.baseTab=b.dataset.role;this.heritage.ui('tab');this.renderDock();
@@ -1011,6 +1017,7 @@ export class ArcadeGame {
   const quick=$('quickAudio');if(quick){quick.textContent=enabled?'♫':'♪';quick.setAttribute('aria-pressed',String(enabled));quick.setAttribute('aria-label',enabled?'Выключить звук':'Включить звук');}
   if(enabled)this.heritage.ui('audioOn');
   this.notice(enabled?'Звук и музыка включены':'Звук и музыка выключены',2.3);
+  return enabled;
  }
  startBurst(){
    const p=this.player;
@@ -2710,6 +2717,7 @@ export class ArcadeGame {
    droneDamage:this.allies.reduce((sum,a)=>sum+Math.max(0,a.maxHp-a.hp),0),
    charges:this.support.charges,contract:this.contract,operation:this.operation,baseTab:this.baseTab,
    menuBackLabel:this.menuBackLabel(),
+   soundOn:this.heritage.soundOn,
    hangarView:this.hangarView||'weapons',skillBranch:this.skillBranch,
    developmentDomain:this.developmentDomain,developmentFocus:this.developmentFocus,
    developmentTactic:this.developmentTactic,
