@@ -1,4 +1,4 @@
-import {renderProgressionScreen} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6';
+import {renderProgressionScreen} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-ui-1';
 
 export const developmentTab=id=>['weapons','ship','tactics','pilot','network'].includes(id)?id:'pilot';
 
