@@ -54,6 +54,17 @@ test('pause hides a shortcut when resuming already leads to the same screen',()=
   closeSystemMenu(game,doc);
  }
 });
+test('pause names the dock section and does not offer the already open pilot tree again',()=>{
+ for(const [baseTab,label] of [['summary','К обзору'],['operations','К заданиям'],
+  ['hangar','К кораблю'],['development','К развитию'],['network','К станции']]){
+  const {doc,game,nodes}=nativeScene('base',true);
+  game.baseTab=baseTab;game.developmentDomain='pilot';
+  openSystemMenu(game,doc);
+  assert.equal(nodes.get('systemResume').textContent,label);
+  assert.equal(nodes.get('systemSkills').hidden,baseTab==='development');
+  closeSystemMenu(game,doc);
+ }
+});
 test('system navigation from a station retains the draft and active docking session',()=>{
  const {doc,game,events}=nativeScene('base',true),draft=game.hangarSession;
  game.stationExitArmed=true;game.openMap=()=>{game.overlay.dataset.mode='map';game.mapReturnToBase=true;};
