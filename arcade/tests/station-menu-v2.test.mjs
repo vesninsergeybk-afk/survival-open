@@ -32,8 +32,8 @@ test('overview shows the live next decision, genuinely known sector and real cur
  assert.match(html,/class="base-overview-sector"/);
  assert.match(html,/aria-label="Расположение станции, известных узлов и цели"/);
  assert.match(html,/class="base-real-ship" src="\.\.\/assets\/space\/hero-evolution\/ship_01.webp"/);
- assert.match(html,/data-act="repair"/);
- assert.match(html,/data-act="hire"/);
+ assert.match(html,/data-act="openShipService"/);
+ assert.doesNotMatch(html,/data-act="repair"|data-act="hire"/);
  assert.match(html,/Корпус <b>75 \/ 110<\/b>/);
  assert.match(html,/class="base-hull-meter" value="75" max="110"/);
  const advanced=renderBasePanel(base,{...state,level:7,hp:42});

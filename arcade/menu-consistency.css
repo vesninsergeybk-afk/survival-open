@@ -1,0 +1,77 @@
+/* The same visual grammar across the in-flight menu, map and station.
+   Real game data and controls stay in HTML; artwork is never baked into UI labels. */
+
+/* Gold always means the main action. Cyan describes equipment/status.
+   Destructive and secondary actions retain their subdued colors. */
+#overlay :is(.screen-dialog,.pilot-dialog) button.primary,
+.system-dialog button.primary{
+ background:#b58b57!important;border:1px solid #e5bd82!important;
+ color:#191c1c!important;box-shadow:none!important;font-weight:750;
+}
+#overlay :is(.screen-dialog,.pilot-dialog) button.primary:hover:not(:disabled),
+.system-dialog button.primary:hover:not(:disabled){background:#d1aa77!important}
+
+/* One purchase destination: Development. The ship screens display a status
+   summary and take the player to the precise existing purchase controls. */
+#overlay .base-dialog .hg-navigation-card{
+ margin:12px 0;padding:19px 22px;border:1px solid #486575;
+ border-radius:7px;background:#132734;color:#c3d6df;
+}
+#overlay .base-dialog .hg-navigation-card .hg-section-head{margin-bottom:10px}
+#overlay .base-dialog .hg-navigation-card h3{
+ margin:4px 0 12px;font-size:clamp(17px,1.8vw,21px);line-height:1.3;
+ font-weight:700;color:#ecf1f1;
+}
+#overlay .base-dialog .hg-navigation-card p{
+ margin:9px 0;color:#b9cdd6;line-height:1.55;font-size:13px;
+}
+#overlay .base-dialog .hg-navigation-card .development-shortcut{
+ display:inline-flex;align-items:center;justify-content:center;gap:8px;
+ margin-top:15px;min-height:44px;padding:10px 17px;
+ border:1px solid #d2ae78;border-radius:5px;background:#b58b57;
+ color:#17202a;font-size:13px;font-weight:750;box-shadow:none;
+}
+#overlay .base-dialog .hg-navigation-card .development-shortcut:hover{background:#d1aa77}
+.hg-ship-status-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+ margin:14px 0 16px;
+}
+.hg-ship-status{
+ display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+ min-width:0;padding:12px 14px;background:#0d202d;border:1px solid #3e5a6a;
+ border-radius:5px;
+}
+.hg-ship-status strong{font-size:13px;font-weight:650;color:#e4eff1;overflow-wrap:anywhere}
+.hg-ship-status span{flex:none;font-size:12px;color:#c5d8dd;font-variant-numeric:tabular-nums}
+#overlay .base-dialog .hg-tactic-development{margin:0;height:max-content}
+
+/* Keep the same field-module pictograms in the overview and in maintenance. */
+#overlay .base-dialog .base-field-service>small{
+ display:block;min-height:70px;color:#b7cad3;font-size:12px;line-height:1.55;
+}
+.base-field-illustration{float:left;display:block;width:66px;height:66px;margin:0 13px 7px 0}
+.base-field-illustration img{display:block;width:100%;height:100%;object-fit:contain;
+ filter:drop-shadow(0 4px 8px #0005)}
+
+/* Long progress branches should not scroll inside an already scrolling dock.
+   The browser's dialog provides one continuous and discoverable scroll area. */
+#overlay .prog-tree{max-height:none;overflow:visible}
+@media(min-width:801px) and (min-height:620px){
+ #overlay .map-dialog .map-side{max-height:none;overflow:visible}
+}
+
+/* Smaller labels no longer merge their icons, text and numerical rank. */
+#overlay .pilot-skill-title{display:grid;grid-template-columns:27px minmax(0,1fr) auto;
+ align-items:center;column-gap:10px;row-gap:3px;padding-right:38px;flex-wrap:nowrap}
+#overlay .pilot-skill-title .menu-symbol{grid-column:1;flex:none}
+#overlay .pilot-skill-title h3{grid-column:2;min-width:0;overflow-wrap:break-word;line-height:1.3}
+#overlay .pilot-skill-title b{grid-column:3;width:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
+#overlay .base-dialog .hg-view-nav button{white-space:normal;line-height:1.25}
+
+@media(max-width:700px){
+ #overlay .base-dialog .hg-navigation-card{padding:14px}
+ .hg-ship-status-grid{grid-template-columns:1fr;gap:6px}
+ .hg-ship-status{padding:11px 12px}
+ #overlay .base-dialog .hg-navigation-card .development-shortcut{width:100%}
+ .base-field-illustration{width:58px;height:58px;margin-right:10px}
+}
