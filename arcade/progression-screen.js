@@ -16,9 +16,9 @@ const domains=[
 ];
 const fieldSkills=new Set(['parasite','conduit','wreck','capture','signal','tactics']);
 const icons={beam:'calibration',range:'range',double:'split',rocket:'rocket',hull:'hull',
- shield:'shield',engine:'engine',dodge:'engine',magnet:'magnet',mining:'mining',
- extractor:'mining',radar:'scanner',tactics:'doctrine',parasite:'energy_parasite',
- conduit:'dash_discharge',wreck:'hull',capture:'energy_parasite',signal:'radio_jam'};
+ shield:'shield',engine:'engine',dodge:'dodge',magnet:'magnet',mining:'mining',
+ extractor:'extractor',radar:'scanner',tactics:'doctrine',parasite:'energy_parasite',
+ conduit:'dash_discharge',wreck:'wreck',capture:'capture',signal:'signal'};
 const activations={
  beam:'Автоматически усиливает установленное автооружие и ионную цепь.',
  range:'Работает автоматически: у плазменного луча увеличивается дальность.',
@@ -27,10 +27,10 @@ const activations={
  hull:'Постоянно действует после изучения. Дополнительно сразу восстанавливает часть прочности.',
  shield:'Автоматически поглощает часть входящего урона и восстанавливается.',
  engine:'Действует постоянно. Для рывка используйте Shift.',
- dodge:'После попадания активируется по своим игровым условиям, отдельной клавиши нет.',
+ dodge:'При попадании корабль автоматически отскакивает от источника удара и получает краткую неуязвимость. Отдельная клавиша не нужна.',
  magnet:'Сбор сплава и данных происходит с увеличенной дистанции без дополнительной клавиши.',
  mining:'Используйте E у астероида: экстрактор добывает эффективнее.',
- extractor:'Используйте E у астероида: расщепление происходит быстрее.',
+ extractor:'Удерживайте E рядом с астероидом: экстрактор действует дальше, расщепляет породу быстрее и приносит больше сплава.',
  radar:'Станции обнаруживаются раньше автоматически.',
  tactics:'Союзные дроны лучше выбирают опасные цели автоматически.',
  conduit:'Shift: пройдите рывком через противника. Метка держится 4 с; попадите по ней, чтобы обездвижить до трёх целей на 1,25 с.',
@@ -41,10 +41,31 @@ const activations={
 };
 const iconFor=(id)=>{
  const key=icons[id]||id;
- const group=['energy_parasite','dash_discharge','radio_jam'].includes(key)?'tactics':
+ const group=['energy_parasite','dash_discharge','radio_jam','capture','signal'].includes(key)?'tactics':
   ['rocket'].includes(key)?'weapons':'upgrades';
  return art(group,key);
 };
+// Small, semantic path markers distinguish specializations that share a weapon/device
+// silhouette. The actual equipment art stays stable when the player changes a path.
+const branchMarks={
+ furnace:'<path d="M8 20c-5-4 0-8 1-13 4 3 3 6 5 8 1-2 2-4 2-7 5 6 4 11-1 13"/>',
+ focus:'<circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>',
+ breaker:'<path d="M4 7h16v10H4zM7 7v10m10-10v10M2 12h5m10 0h5"/>',
+ penetrator:'<path d="M3 12h16m-6-5 6 5-6 5M8 4v16"/>',
+ sweep:'<path d="M4 19 12 5l8 14M7 15l-4-2m14 2 4-2M12 11v10"/>',
+ interceptor:'<path d="m4 12 5-5 4 4 7-7M15 4h5v5M4 18l5-5"/>',
+ seeker:'<path d="M4 12a8 8 0 0 1 13-6M20 12a8 8 0 0 1-13 6m7-15 3 3-4 1m-3 14-3-3 4-1"/>',
+ payload:'<path d="M12 3v12m-5-7 5-5 5 5M5 17h14v4H5z"/>',
+ shell:'<path d="M12 2 4 6v6c0 5 3 8 8 10 5-2 8-5 8-10V6z"/>',
+ burst:'<path d="M12 12V2m0 20V12M2 12h20M5 5l14 14M19 5 5 19"/>',
+ lure:'<path d="M12 20V9m-4 0a4 4 0 0 1 8 0M5 6a9 9 0 0 1 14 0M3 2a14 14 0 0 1 18 0"/>',
+ ghost:'<path d="M6 20V9a6 6 0 0 1 12 0v11l-3-2-3 2-3-2z"/>',
+ sink:'<circle cx="12" cy="12" r="3"/><path d="M3 3l5 5m13-5-5 5M3 21l5-5m13 5-5-5"/>',
+ snare:'<path d="M4 4v16h16V4zM4 12h16M12 4v16M7 7l10 10M17 7 7 17"/>',
+ wide:'<path d="M12 20V8m-7 8a10 10 0 0 1 14 0M2 12a15 15 0 0 1 20 0"/>',
+ deep:'<circle cx="12" cy="12" r="9"/><path d="M12 6v7l4 3"/>'
+};
+const branchMark=mark=>branchMarks[mark]?'<span class="prog-branch-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+branchMarks[mark]+'</svg></span>':'';
 const pointsWord=n=>n%100>=11&&n%100<=14?'очков':n%10===1?'очко':n%10>=2&&n%10<=4?'очка':'очков';
 const mastered=(rank,max)=>rank>=max;
 
@@ -99,7 +120,7 @@ function weaponNodes(state){
    level:state.level||1,activeBases:state.activeBases||0,points:state.points||0});
   const complete=rank>=2,reason=complete?'Мастерство изучено':exclusive?'Другая специализация уже выбрана':quote.reason||'';
   nodes.push({id:'spec-'+family.id+'-'+path,title:branch.name,
-   icon:art('weapons',family.id),level:rank?11:7,rank,max:2,
+   icon:art('weapons',family.id),mark:path,level:7,masteryAt:11,rank,max:2,
    status:complete?'mastered':exclusive?'exclusive':quote.ok?'ready':reason.startsWith('Нужно 1 очко')?'waiting':'locked',
    description:branch.desc,effect:branch.desc,
    activation:'Пассивная специализация установленного оружия. Действует во время стрельбы.',
@@ -159,7 +180,7 @@ function tacticalNodes(state){
   const current=tactical.branches[id],rank=current?.path===path?current.rank:0;
   const exclusive=!!current&&current.path!==path,quote=tacticalQuote(tactical,'upgrade',id,{...context,path});
   const complete=rank>=2,reason=complete?'Мастерство изучено':exclusive?'Другая ветка уже выбрана':quote.reason||'';
-  nodes.push({id:'tactic-'+id+'-'+path,title:branch.name,icon:nodes[0].icon,level:rank?7:3,
+  nodes.push({id:'tactic-'+id+'-'+path,title:branch.name,icon:nodes[0].icon,mark:path,level:3,masteryAt:7,
    rank,max:2,requires:'tactic-'+id,status:complete?'mastered':exclusive?'exclusive':quote.ok?'ready':
     reason.startsWith('Нужно 1 очко')?'waiting':'locked',
    description:branch.desc,effect:branch.desc,
@@ -208,7 +229,7 @@ export function progressionModel(state){
 }
 
 function nodeHtml(node,selected){
- const labels={ready:'Доступно',mastered:'Изучено',waiting:'Нужны ресурсы',locked:'Закрыто',
+ const labels={ready:'Доступно',mastered:'Изучено',waiting:'Не выполнены условия',locked:'Закрыто',
   exclusive:'Другой путь',info:'Оснащение'};
  const progress=node.kind==='navigation'?'Раздел станции':node.kind==='equipment'?(node.rank?'Установлено':'Оснащение'):
   node.rank+'/'+node.max+' · '+(labels[node.status]||'Сведения');
@@ -216,13 +237,13 @@ function nodeHtml(node,selected){
   (node.requires?' data-requires="'+esc(node.requires)+'"':'')+' data-status="'+esc(node.status)+'" aria-pressed="'+(selected?.id===node.id)+'"'+
   ' aria-label="'+esc(node.title)+', '+esc(node.status==='mastered'?'изучено':node.reason||'доступно')+'">'+
   '<span class="prog-node-art"><img src="'+art('frames','node_'+(selected?.id===node.id?'selected':node.status==='mastered'?'mastered':node.status==='ready'||node.status==='info'?'ready':'locked'))+'" alt="" class="prog-node-frame">'+
-  '<img src="'+esc(node.icon)+'" alt="" class="prog-node-glyph"></span>'+
+  '<img src="'+esc(node.icon)+'" alt="" class="prog-node-glyph">'+branchMark(node.mark)+'</span>'+
   '<strong>'+esc(node.title)+'</strong><small>'+esc(progress)+'</small></button>';
 }
 
 function treeHtml(nodes,selected){
  const groups=new Map();for(const node of nodes){const level=node.level||1;if(!groups.has(level))groups.set(level,[]);groups.get(level).push(node);}
- return '<div class="prog-graph"><div class="prog-graph-head"><span>СХЕМА РАЗВИТИЯ</span><small>Выберите узел — справа появятся эффект и условия.</small></div>'+
+ return '<div class="prog-graph"><div class="prog-graph-head"><span>СХЕМА РАЗВИТИЯ</span><small>Выберите узел, чтобы увидеть эффект и условия.</small></div>'+
   '<div class="prog-tree" aria-label="Навыки по уровням и реальные связи между ними"><svg class="prog-tree-links" aria-hidden="true"></svg>'+
   [...groups].sort(([a],[b])=>a-b).map(([level,entries])=>{
    const station=entries.every(n=>n.kind==='navigation');
@@ -248,8 +269,8 @@ function detailHtml(node,domain,weapon,state){
   (node.actionId?' data-id="'+esc(node.actionId)+'"':'')+(node.action==='baseTab'?' data-role="network"':'')+
   (node.canAct?'':' disabled')+'>'+esc(node.actionLabel)+'</button>';
  return '<aside class="prog-detail" aria-label="Выбранное улучшение"><div class="prog-detail-main">'+
-  '<img src="'+esc(node.icon)+'" alt="" class="prog-detail-icon"><div class="prog-detail-copy"><span class="prog-detail-status" data-status="'+esc(node.status)+'">'+status+'</span><h3>'+esc(node.title)+'</h3>'+
-  '<p>'+esc(node.description)+'</p></div></div><div class="prog-detail-facts">'+
+  '<span class="prog-detail-illustration"><img src="'+esc(node.icon)+'" alt="" class="prog-detail-icon">'+branchMark(node.mark)+'</span><div class="prog-detail-copy"><span class="prog-detail-status" data-status="'+esc(node.status)+'">'+status+'</span><h3>'+esc(node.title)+'</h3>'+
+  '<p>'+esc(node.description)+'</p>'+(node.masteryAt?'<p class="prog-mastery-hint">Два ранга: выбор ветки с уровня '+node.level+', мастерство с уровня '+node.masteryAt+'.</p>':'')+'</div></div><div class="prog-detail-facts">'+
   '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p></div><div><b>Как применять</b><p>'+esc(activation)+'</p>'+
   (fieldCollision?'<p class="prog-control-warning">'+esc(fieldCollision)+'</p>':'')+'</div></div>'+
   '<div class="prog-detail-actions"><span class="prog-cost">Стоимость: '+esc(node.cost)+'</span>'+cta+

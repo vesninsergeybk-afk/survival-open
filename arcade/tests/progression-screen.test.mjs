@@ -139,6 +139,51 @@ test('the visual graph has honest tier labels, real prerequisite links and reada
   'station destinations are navigation cards, never a fictitious skill tree');
 });
 
+test('unique skill silhouettes exist and are not borrowed from unrelated upgrades',()=>{
+ const g=docked(),wanted={
+  dodge:'upgrades/dodge.webp',extractor:'upgrades/extractor.webp',
+  wreck:'upgrades/wreck.webp',capture:'tactics/capture.webp',signal:'tactics/signal.webp'
+ };
+ const root=dirname(fileURLToPath(new URL('../index.html',import.meta.url)));
+ const nodes=[];
+ for(const skillBranch of ['Корабль','Технологии','Добыча']){
+  nodes.push(...progressionModel({...state(g,'pilot'),skillBranch}).nodes);
+ }
+ nodes.push(...progressionModel({...state(g,'tactics'),developmentTactic:'abilities'}).nodes);
+ for(const [id,path] of Object.entries(wanted)){
+  const node=nodes.find(n=>n.id==='skill-'+id);
+  assert.ok(node,'missing real skill '+id);
+  assert.ok(node.icon.endsWith(path),id+' should have its own readable silhouette');
+  assert.ok(existsSync(join(root,'assets/progression',path)),path);
+ }
+});
+
+test('each real specialization path has a distinct marker and keeps its tree position after purchase',()=>{
+ const g=docked();g.player.level=7;g.player.points=2;g.activeBases=2;
+ const weapons={plasma:['furnace','focus'],rail:['breaker','penetrator'],
+  flak:['sweep','interceptor'],rocket:['seeker','payload']};
+ for(const [id,paths] of Object.entries(weapons)){
+  const s={...state(g,'weapons'),hangarSession:{...g.hangarSession,focusWeapon:id}};
+  const nodes=progressionModel(s).nodes.filter(n=>n.id.startsWith('spec-'));
+  assert.deepEqual(nodes.map(n=>n.mark),paths);
+  assert.ok(nodes.every(n=>n.level===7&&n.masteryAt===11));
+  assert.match(renderProgressionScreen(s),/class="prog-branch-mark"/);
+ }
+ const tactics={pulse:['shell','burst'],decoy:['lure','ghost'],
+  trap:['sink','snare'],jam:['wide','deep']};
+ for(const [id,paths] of Object.entries(tactics)){
+  const s={...state(g,'tactics'),developmentTactic:id};
+  const nodes=progressionModel(s).nodes.filter(n=>n.id.startsWith('tactic-'+id+'-'));
+  assert.deepEqual(nodes.map(n=>n.mark),paths);
+  assert.ok(nodes.every(n=>n.level===3&&n.masteryAt===7));
+  assert.match(renderProgressionScreen(s),/class="prog-branch-mark"/);
+ }
+ // Selecting the first rank must not move a node from level 7 to level 11.
+ g.shipLoadout.specializations.plasma={path:'focus',rank:1};
+ const chosen=progressionModel(state(g,'weapons')).nodes.find(n=>n.id==='spec-plasma-focus');
+ assert.equal(chosen.level,7);assert.equal(chosen.rank,1);
+});
+
 test('menu sketches use existing artwork plus the exact lightweight vector pieces they need',()=>{
  const root=dirname(fileURLToPath(new URL('../index.html',import.meta.url)));
  const development=readFileSync(join(root,'progression-art.css'),'utf8');
@@ -164,6 +209,12 @@ test('station and direct progression routes both load the newest renderer after 
  }
  const page=readFileSync(join(root,'index.html'),'utf8');
  assert.match(page,/game\.js\?v=[^"\n]*menu-sketch-1/);
+ assert.match(page,/progression-art\.css\?v=[^"\n]*semantic-1/);
+ assert.match(page,/station-menu-v2\.css\?v=[^"\n]*semantic-1/);
+ assert.match(page,/game\.js\?v=[^"\n]*realfoley-2-first-cue-1-semantic-1/);
+ assert.match(readFileSync(join(root,'game.js'),'utf8'),/base-panel\.js\?v=[^'\n]*semantic-1/);
+ assert.match(readFileSync(join(root,'development-panel.js'),'utf8'),/progression-screen\.js\?v=[^'\n]*semantic-1/);
+ assert.match(readFileSync(join(root,'base-panel.js'),'utf8'),/hangar-panel\.js\?v=[^'\n]*semantic-1/);
 });
 
 test('tree connectors cannot create scrollbars on short branches and grow for long ones',()=>{

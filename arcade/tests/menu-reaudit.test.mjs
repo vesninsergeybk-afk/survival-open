@@ -66,6 +66,22 @@ test('hangar instructions use the actual control assignments and the correct lif
  assert.match(tactical,/до конца прохождения/);
 });
 
+test('the fitting screen links to development without suggesting that an upgrade can be bought with zero points',()=>{
+ const state=context({points:0}),session=new HangarSession();session.begin(state.loadout);
+ session.catalog=true;
+ const html=renderShipHangar(state,session);
+ assert.match(html,/К дереву развития · 0 очк\./);
+ assert.doesNotMatch(html,/Улучшить оружие/);
+ assert.match(html,/data-act="openDevelopment" data-id="weapons"/);
+});
+
+test('station overview shows the actual allied drone silhouette and real capacity',()=>{
+ const g=game();g.docked.active=true;
+ const html=renderBasePanel(g.docked,{...g.baseState(),baseTab:'summary'});
+ assert.match(html,/assets\/progression\/weapons\/allied_drone\.webp/);
+ assert.match(html,/В строю <b>0 \/ 1<\/b>/);
+});
+
 test('returning to the fitting list preserves the selected module and pending design',()=>{
  const state=context({level:3,ore:100}),session=new HangarSession();session.begin(state.loadout);
  session.dispatch({act:'hgSlot',id:'1'},state);session.dispatch({act:'hgFocusWeapon',id:'rail'},state);

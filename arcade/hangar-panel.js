@@ -306,7 +306,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   (session.catalog&&open?fitting:'<p class="hg-weapon-availability">'+(installed?'✓ Установлено на корабле.':
    'Не установлено. Чтобы выбрать ветку, сначала установите оружие в свободный узел.')+'</p>')+
   '<div class="hg-inspector-actions">'+(!session.catalog?button('hgCatalog','Заменить оружие'):'')+
-  '<button type="button" class="development-shortcut" data-act="openDevelopment" data-id="weapons" data-focus="'+focusedId+'">'+menuIcon('upgrades')+'Улучшить оружие</button></div></aside>';
+  '<button type="button" class="development-shortcut" data-act="openDevelopment" data-id="weapons" data-focus="'+focusedId+'">'+menuIcon('upgrades')+'К дереву развития · '+(context.points||0)+' очк.</button></div></aside>';
  const savedBlueprints=session.blueprints.filter(Boolean).length;
  const blueprints='<details class="hg-presets" data-hangar-section="blueprints"><summary>Схемы оснащения · сохранено '+savedBlueprints+' из 3</summary><p class="hg-note">Есть три ячейки для сохранения сборок на этом устройстве. Сплав потребуется только для изготовления при применении. При новом прохождении оружие и узлы нужно открыть заново.</p><div>'+BLUEPRINT_NAMES.map((name,i)=>
   '<article><b>'+name+'</b><small>'+(session.blueprints[i]?'Сохранена':'Пустая ячейка')+'</small>'+button('hgLoad','Загрузить',String(i),!session.blueprints[i])+button('hgSave','Записать',String(i),!blueprintQuote.ok)+'</article>').join('')+'</div></details>';
