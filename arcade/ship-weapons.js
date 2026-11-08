@@ -3,7 +3,7 @@ import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight} fr
 import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2-unified-controls-1-menu-focus-1';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=rpg-precision-audit-1-expedition-1-campaign-1';
+import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1';
 import {emitWeaponFx} from './weapon-fx.js';
 import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js';
 
@@ -121,6 +121,7 @@ export function updateAutomaticWeapons(game,dt,allowed){
 // cooldown and target/cover rules. It cannot be stacked on top of auto fire.
 // A small tap assist centres a shot only on a genuinely nearby visible target;
 // the beam still stops at the first hostile hull or solid asteroid on its line.
+export const RAIL_AIM_ASSIST=60;
 const shotCircle=(from,to,centre,radius)=>{
  const dx=to.x-from.x,dy=to.y-from.y,fx=from.x-centre.x,fy=from.y-centre.y;
  const a=dx*dx+dy*dy,b=2*(fx*dx+fy*dy),c=fx*fx+fy*fy-radius*radius;
@@ -141,7 +142,7 @@ export function fireAimedRail(game,point){
  if(game.weaponThermal.locked)return {ok:false,reason:'Оружие перегрето'};
  if((game.moduleClocks?.rail||0)>0)return {ok:false,reason:'Рельс перезаряжается: '+Math.ceil(game.moduleClocks.rail*10)/10+' с'};
  const stats=statsFor(game,'rail'),targets=combatTargets(game,stats.range+85,game.player,true);
- const assisted=targets.filter(item=>targetDistance(point,item.target)<=targetRadius(item)+24)
+ const assisted=targets.filter(item=>targetDistance(point,item.target)<=targetRadius(item)+RAIL_AIM_ASSIST)
   .sort((a,b)=>targetDistance(point,a.target)-targetDistance(point,b.target))[0];
  const aim=assisted?assisted.target:point;
  const dx=aim.x-game.player.x,dy=aim.y-game.player.y,d=Math.hypot(dx,dy);
