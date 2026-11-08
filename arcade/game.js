@@ -1,7 +1,7 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1';
-import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1';
-import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1';
+import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1';
+import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
@@ -25,7 +25,7 @@ import {renderEvolutionMenu,installedEvolution} from './evolution-menu.js?v=mous
 import {updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1';
 import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,offerLevelCrystals,refreshEvolutionOffers,
  enemyFieldReward,collectParasiteCore,absorbParasiteImpact,markDashPass,fieldWeaponImpact,
- updateFieldEvolution,parasiteTargetMode,setParasiteTargetMode} from './field-evolution.js?v=mouse-arms-1';
+ updateFieldEvolution,parasiteTargetMode,setParasiteTargetMode} from './field-evolution.js?v=mouse-arms-1-manual-weapon-1';
 import {drawEvolutionEnvironment,drawParasiteCore,drawEvolutionEnemy,
  drawEvolutionConnections,drawEvolutionPlayer} from './field-evolution-vfx.js?v=field-evolution-1-first-loops-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=xp-feedback-pass1-1';
@@ -58,7 +58,7 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
@@ -79,7 +79,7 @@ import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,upda
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1-supply-stronghold-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel} from './target-designation.js?v=mouse-area-1';
-import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,drawMouseArsenal} from './mouse-arsenal.js?v=mouse-arms-1-recorded-combat-1-realfoley-2';
+import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,drawMouseArsenal} from './mouse-arsenal.js?v=mouse-arms-1-recorded-combat-1-realfoley-2-manual-weapon-1';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
@@ -176,6 +176,12 @@ function nextSkillEffect(id,rank,levels={}){
   case 'signal':return 'Попадание кометы внедряет ядро в прочную цель · разведка звена 16 с';
   case 'cometRadius':return 'Радиус взрыва кометы: '+(90+rank*17)+' → '+(90+n*17)+' м';
   case 'mineArray':return 'Мины за залп: '+(4+rank)+' → '+(4+n);
+  case 'cometCore':return 'Урон в эпицентре кометы: +'+(rank===0?0:rank===1?25:45)+'% → +'+(n===1?25:45)+'%';
+  case 'cometCryo':return 'Замедление после кометы: '+(rank===0?'нет':rank===1?'2,2 с, скорость ×0,66':'3,2 с, скорость ×0,52')+
+   ' → '+(n===1?'2,2 с, скорость ×0,66':'3,2 с, скорость ×0,52');
+  case 'minePierce':return 'Урон по тяжёлым кораблям от мин: +'+(rank===0?0:rank===1?30:50)+'% → +'+(n===1?30:50)+'%';
+  case 'mineSnare':return 'Замедление от мин: '+(rank===0?'нет':rank===1?'1,8 с, скорость ×0,60':'2,8 с, скорость ×0,42')+
+   ' → '+(n===1?'1,8 с, скорость ×0,60':'2,8 с, скорость ×0,42');
   default:return '';
  }
 }
@@ -259,7 +265,7 @@ export class ArcadeGame {
   this.lastNoiseSource=null;this.noiseAlert=null;
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';
-  this.hangarView='weapons';this.developmentDomain='pilot';this.developmentFocus='';
+  this.hangarView='weapons';this.developmentDomain='pilot';this.developmentFocus='';this.developmentWeapon=null;
   this.developmentTactic='pulse';this.mapReturnToBase=false;
   this.mapView='map';this.contourRegion='all';this.contourFirst=null;this.contourSelection=null;this.contourError='';this.contourInfo='';this.enemyBackboneMap=false;
   this.mapViewports={};this.mapPointers=new Map();this.mapDraggedUntil=0;this.lastMapPanRender=0;this.mapMarkMode=false;
@@ -519,8 +525,10 @@ export class ArcadeGame {
    if(act==='devPilotBranch'&&['Корабль','Технологии','Добыча'].includes(b.dataset.id)){
     this.skillBranch=b.dataset.id;this.developmentFocus='';this.renderDock();return;
    }
-   if(act==='devWeapon'&&Object.hasOwn(MODULES,b.dataset.id)){
-    this.hangarSession.focusWeapon=b.dataset.id;this.developmentFocus='';this.renderDock();return;
+   if(act==='devWeapon'&&(Object.hasOwn(MODULES,b.dataset.id)||['comet','mines'].includes(b.dataset.id))){
+    this.developmentWeapon=b.dataset.id;
+    if(Object.hasOwn(MODULES,b.dataset.id))this.hangarSession.focusWeapon=b.dataset.id;
+    this.developmentFocus='';this.renderDock();return;
    }
    if(act==='devTactic'&&(Object.hasOwn(TACTICAL_DEVICES,b.dataset.id)||b.dataset.id==='abilities')){
     this.developmentTactic=b.dataset.id;this.developmentFocus='';this.renderDock();return;
@@ -1595,7 +1603,10 @@ export class ArcadeGame {
   const target=developmentTab(category==='station'?'network':category);
   this.baseTab='development';this.developmentDomain=target;this.developmentFocus='';
   if(target==='weapons'){
-   if(Object.hasOwn(MODULES,focus))this.hangarSession.focusWeapon=focus;
+   if(Object.hasOwn(MODULES,focus)){
+    this.hangarSession.focusWeapon=focus;this.developmentWeapon=focus;
+   }else if(['comet','mines'].includes(focus))this.developmentWeapon=focus;
+   else if(!this.developmentWeapon)this.developmentWeapon=this.hangarSession.focusWeapon;
   }else if(target==='tactics'){
    if(Object.hasOwn(TACTICAL_DEVICES,focus))this.developmentTactic=focus;
   }else{
@@ -1727,6 +1738,8 @@ export class ArcadeGame {
   if(SHIP_UPGRADES.has(id)&&(!this.docked?.active||this.overlay.hidden||this.overlay.dataset.mode!=='base'||
    !['hangar','development'].includes(this.baseTab)))return;
   if(!skill||p.points<=0||p.level<skill.from||
+    (skill.exclusiveWith&&this.skillRanks[skill.exclusiveWith])||
+    (skill.masteryLevel&&(this.skillRanks[id]||0)>0&&p.level<skill.masteryLevel)||
     (skill.requires&&!this.skillRanks[skill.requires])||(this.skillRanks[id]||0)>=skill.max)return false;
   this.skillRanks[id]=(this.skillRanks[id]||0)+1;p.points--;
   if(id==='parasite'&&this.skillRanks[id]===1&&this.fieldEvolution)
@@ -2720,6 +2733,7 @@ export class ArcadeGame {
    soundOn:this.heritage.soundOn,
    hangarView:this.hangarView||'weapons',skillBranch:this.skillBranch,
    developmentDomain:this.developmentDomain,developmentFocus:this.developmentFocus,
+   developmentWeapon:this.developmentWeapon,
    developmentTactic:this.developmentTactic,
    pilotSkills:SKILLS,pilotDoctrines:DOCTRINES,nextSkillEffect,
    sortieReports:this.sortieReports,economyExpenses:this.economyExpenses,
@@ -2752,7 +2766,7 @@ export class ArcadeGame {
   this.overlay.innerHTML=renderBasePanel(this.docked,{...this.baseState(),checkpointNote});
   const section=this.baseTab==='hangar'?(this.hangarView||'weapons'):
    this.baseTab==='development'?this.developmentDomain+':'+(this.developmentDomain==='pilot'?this.skillBranch:
-    this.developmentDomain==='weapons'?this.hangarSession.focusWeapon:
+    this.developmentDomain==='weapons'?(this.developmentWeapon||this.hangarSession.focusWeapon):
     this.developmentDomain==='tactics'?this.developmentTactic:''):'';
   const key=this.baseTab+':'+section;
   if(this.stationViews[key])restoreHangarView(this.overlay,this.stationViews[key]);

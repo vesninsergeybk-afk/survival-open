@@ -75,8 +75,15 @@ const safeCombatTarget=item=>!item.target.centralWorker&&!item.target.frontierWo
  !item.target.frontierSalvage;
 const eligibleParasite=t=>!t.microSwarm&&['scout','fighter','flanker','healer','berserker','gunship'].includes(t.type)&&
  !t.boss&&!t.missionStructure&&!t.interceptCargo&&!t.regionalCargo&&!t.centralWorker&&!t.frontierWorker;
+const canSlow=item=>!structural(item)&&!item.target.converted&&!item.target.boss&&
+ !item.target.missionStructure&&!item.target.centralWorker&&!item.target.frontierWorker;
 function detonate(game,arsenal,point,radius,damage,kind){
- arsenal.bursts.push({x:point.x,y:point.y,radius,age:0,kind});
+ const ranks=game.skillRanks||{},core=kind==='comet'?(ranks.cometCore||0):0,
+  cryo=kind==='comet'?(ranks.cometCryo||0):0,
+  pierce=kind==='mine'?(ranks.minePierce||0):0,
+  snare=kind==='mine'?(ranks.mineSnare||0):0;
+ const modifier=cryo?'cryo':snare?'snare':core?'core':pierce?'pierce':null;
+ arsenal.bursts.push({x:point.x,y:point.y,radius,age:0,kind,modifier});
  if(arsenal.bursts.length>20)arsenal.bursts.shift();
  game.heritage?.play?.(kind==='comet'?'cometBurst':'mineBurst',.15,point);
  const targets=combatTargets(game,radius+90,point,true).filter(item=>
@@ -93,8 +100,21 @@ function detonate(game,arsenal,point,radius,damage,kind){
  for(const item of targets){
   const d=Math.max(0,targetDistance(point,item.target)-targetRadius(item));
   const falloff=.42+.58*(1-clamp(d/radius,0,1));
-  if(damageTarget(game,item,damage*falloff,kind,
-   {x:point.x,y:point.y,directed:true},false,true))hits++;
+  const centerPower=core?(core===1?.25:.45)*(1-clamp(d/radius,0,1)):0;
+  const heavyBonus=pierce&&['berserker','gunship'].includes(item.target.type)?
+   (pierce===1?.3:.5):0;
+  const hit=damageTarget(game,item,damage*falloff*(1+centerPower+heavyBonus),kind,
+   {x:point.x,y:point.y,directed:true},false,true);
+  if(hit)hits++;
+  if(hit&&item.target.hp>0&&canSlow(item)&&(cryo||snare)){
+   const duration=cryo?(cryo===1?2.2:3.2):(snare===1?1.8:2.8);
+   const factor=cryo?(cryo===1?.66:.52):(snare===1?.6:.42);
+   const now=game.time||0;
+   if((item.target.tacticalSlowUntil||0)>now)
+    item.target.tacticalSlowFactor=Math.min(item.target.tacticalSlowFactor||1,factor);
+   else item.target.tacticalSlowFactor=factor;
+   item.target.tacticalSlowUntil=Math.max(item.target.tacticalSlowUntil||0,now+duration);
+  }
  }
  game.heritage?.vfx?.nova?.(point.x,point.y,Math.min(95,radius*.7),kind==='comet'?'cyan':'violet');
  return hits;
@@ -184,11 +204,21 @@ export function drawMouseArsenal(ctx,game){
   const duration=comet?.72:.52,k=clamp(b.age/duration,0,1);
   const radius=b.radius*(.2+.8*k),fade=(1-k)*(1-k);
   const bright=blocked?'#ffe3ab':comet?'#c5fbff':'#e2e3ff';
-  const outer=blocked?'#e0a66c':comet?'#4bdff4':'#8ba3f7';
+  const outer=blocked?'#e0a66c':b.modifier==='cryo'?'#83b5ff':b.modifier==='snare'?'#92d7bf':
+   b.modifier==='core'?'#fcdb9f':b.modifier==='pierce'?'#ffc69b':comet?'#4bdff4':'#8ba3f7';
   ctx.globalAlpha=fade*.85;ctx.strokeStyle=outer;ctx.lineWidth=2.2+3*(1-k);
   ctx.beginPath();ctx.arc(b.x,b.y,radius,0,TAU);ctx.stroke();
   ctx.globalAlpha=fade*.75;ctx.strokeStyle=bright;ctx.lineWidth=1.3;
   ctx.beginPath();ctx.arc(b.x,b.y,radius*.72,0,TAU);ctx.stroke();
+  if(b.modifier){
+   // The branch is legible by its secondary arcs even without the status text.
+   ctx.globalAlpha=fade*.68;ctx.strokeStyle=outer;ctx.lineWidth=1.5;
+   const cuts=reduced?2:4;
+   for(let i=0;i<cuts;i++){
+    const start=i*TAU/cuts+Math.PI/7;
+    ctx.beginPath();ctx.arc(b.x,b.y,radius*.84,start,start+(b.modifier==='core'||b.modifier==='pierce'?.3:.53));ctx.stroke();
+   }
+  }
   ctx.globalAlpha=fade*.3;ctx.fillStyle=bright;
   ctx.beginPath();ctx.arc(b.x,b.y,b.radius*.28*(1-k),0,TAU);ctx.fill();
   // A weaker device keeps the silhouette of the blast; only detail count falls.

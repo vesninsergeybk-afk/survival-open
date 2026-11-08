@@ -55,6 +55,48 @@ test('radius and mine count upgrades have a bounded, observable effect',()=>{
  assert.equal(minesSpec({mineArray:100}).count,6);
 });
 
+test('comet core path increases central damage but preserves the weaker edge and nearby allies',()=>{
+ const run=rank=>{
+  const g=scene(),center=scout(300,0,200),edge=scout(404,0,200),friend=scout(305,0,200);
+  friend.converted=true;g.enemies.push(center,edge,friend);g.skillRanks.cometCore=rank;
+  fireMouseWeapon(g,'comet',{x:300,y:0});g.time=.6;updateMouseArsenal(g,.6);
+  return {center:200-center.hp,edge:200-edge.hp,friend:friend.hp,modifier:g.mouseArsenal.bursts[0].modifier};
+ };
+ const base=run(0),focused=run(2);
+ assert.ok(focused.center>base.center*1.4,'the center becomes a useful anti-heavy strike');
+ assert.equal(focused.edge,base.edge,'the outer rim keeps the baseline damage');
+ assert.equal(focused.friend,200,'a manual specialization cannot damage converted allies');
+ assert.equal(focused.modifier,'core','the active branch is visible in the blast');
+});
+
+test('cryo comet slows only surviving enemies and shows a distinct effect',()=>{
+ const g=scene(),foe=scout(300,0,200),ally=scout(311,0,200);
+ ally.converted=true;g.enemies.push(foe,ally);g.skillRanks.cometCryo=2;
+ fireMouseWeapon(g,'comet',{x:300,y:0});g.time=.6;updateMouseArsenal(g,.6);
+ assert.equal(foe.tacticalSlowFactor,.52);
+ assert.ok(Math.abs(foe.tacticalSlowUntil-3.8)<.01);
+ assert.equal(ally.tacticalSlowUntil,undefined);
+ assert.equal(g.mouseArsenal.bursts[0].modifier,'cryo');
+});
+
+test('mine specializations separately reward heavy-target damage or controlling live enemies',()=>{
+ const fire=rank=>{
+  const g=scene(),heavy={...scout(300,0,400),type:'gunship'},ordinary=scout(300,0,400);
+  g.skillRanks=rank;g.enemies.push(heavy,ordinary);
+  fireMouseWeapon(g,'mines',{x:300,y:0});g.time=1;updateMouseArsenal(g,1);
+  g.time=1.8;updateMouseArsenal(g,.05);
+  return {heavy,ordinary,bursts:g.mouseArsenal.bursts};
+ };
+ const standard=fire({}),pierce=fire({minePierce:2}),snare=fire({mineSnare:2});
+ assert.ok(400-pierce.heavy.hp>(400-standard.heavy.hp)*1.45);
+ assert.ok(Math.abs((400-pierce.ordinary.hp)-(400-standard.ordinary.hp))<.01,
+  'armor bonus must not increase damage against ordinary scouts');
+ assert.equal(snare.ordinary.tacticalSlowFactor,.42);
+ assert.ok(snare.ordinary.tacticalSlowUntil>3);
+ assert.ok(snare.bursts.some(b=>b.modifier==='snare'));
+ assert.ok(pierce.bursts.some(b=>b.modifier==='pierce'));
+});
+
 test('mine pods fly into a real fan, arm before triggering and cannot fill the map indefinitely',()=>{
  const g=scene();g.skillRanks.mineArray=2;
  assert.equal(fireMouseWeapon(g,'mines',{x:300,y:0}).count,6);

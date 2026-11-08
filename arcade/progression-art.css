@@ -44,8 +44,13 @@
 #overlay .prog-workspace-head h2{color:#f0f7ff;font-size:24px;margin:4px 0 0}
 #overlay .prog-points-hint{font-size:12px;color:#b7cbd9;text-align:right}
 #overlay .prog-subtabs{display:flex;gap:7px;overflow-x:auto;padding:3px 0 12px;scrollbar-width:thin}
+#overlay .prog-subtab-label{align-self:center;flex:0 0 auto;color:#87a9b9;font-size:9px;font-weight:800;letter-spacing:.12em;
+ padding:0 5px 0 8px;white-space:nowrap}
 #overlay .prog-subtabs button{flex:0 0 auto;min-width:74px;min-height:44px;padding:8px 12px;color:#c6d9e2;font-size:13px;font-weight:680;
  background:#172d3b!important;border:1px solid #456473!important;border-radius:4px!important;box-shadow:none!important}
+#overlay .prog-subtabs button{display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+#overlay .prog-subtabs button img{width:28px;height:28px;object-fit:contain;flex:0 0 28px;filter:drop-shadow(0 1px 3px #0009)}
+#overlay .prog-subtabs button.is-manual{border-color:#46768a!important;background:#122f3f!important}
 #overlay .prog-subtabs button[aria-pressed=true]{color:#ffe1b4;border-color:#a98357!important;
  background:#302c28!important;text-shadow:none}
 #overlay .prog-weapon-summary{display:flex;align-items:center;gap:11px;min-height:62px;margin:1px 0 10px;padding:5px 12px;background:#041322a1;
