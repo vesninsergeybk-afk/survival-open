@@ -136,6 +136,10 @@
  filter:drop-shadow(0 5px 10px #0008)}
 .base-ship-condition>div{flex:1;min-width:0}
 .base-ship-condition b{color:#e9eee9;font-size:14px}
+.base-drone-status{display:flex;align-items:center;gap:11px;min-width:0;flex:1}
+.base-drone-status img{width:88px;height:88px;flex:0 0 88px;object-fit:contain;filter:saturate(.72) brightness(.92)}
+.base-drone-status p{min-width:0}
+.base-drone-status b{color:#e9eee9;font-size:14px}
 .base-hull-meter{display:block;width:min(100%,220px);height:7px;margin:9px 0 0;accent-color:#87c9d5;border:0;border-radius:3px;overflow:hidden;background:#0c1a25}
 .base-hull-meter::-webkit-progress-bar{background:#0c1a25;border-radius:3px}
 .base-hull-meter::-webkit-progress-value{background:#82c7cf;border-radius:3px}

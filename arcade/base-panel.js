@@ -1,5 +1,5 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2';
-import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2-semantic-1';
+import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-integrity-2-mission-choices-1';
@@ -928,7 +928,8 @@ export function renderBasePanel(base,state){
   quickTrial+
   '</section>'+
   '<section class="base-quick-service base-quick-drones"><span class="base-kicker">ПОДДЕРЖКА</span><h3>Боевые дроны</h3>'+
-  '<p>В строю '+state.allies+' / '+o.cap+(state.droneDamage>0?' · есть повреждения':'')+'</p>'+
+  '<div class="base-drone-status"><img src="./assets/progression/weapons/allied_drone.webp" alt="" loading="lazy" width="88" height="88">'+
+  '<p>В строю <b>'+state.allies+' / '+o.cap+'</b>'+(state.droneDamage>0?' · есть повреждения':'')+'</p></div>'+
   '<button type="button" class="menu-info" data-help-only data-help="'+o.drone.desc+'" aria-label="О боевом дроне">i</button>'+
   '<div class="base-quick-buttons"><button type="button" data-act="openShipService">Обслуживание дронов →</button></div>'+
   '</section></div>'+(capturedWing||supply)+'<div class="base-home-strategy">'+renderTerritoryProgress(state.world,state.position)+(state.points?homeDevelopment:'')+'</div>'+
