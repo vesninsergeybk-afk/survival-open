@@ -21,7 +21,12 @@ export function openSystemMenu(game,doc=globalThis.document){
  game.endInteraction();game.keys.clear();game.paused=true;game.pausedRenderPending=true;
  game.heritage.pause('menu');
  const restricted=game.dead||(!game.overlay.hidden&&['run-start','opening-choice','opening-reward'].includes(game.overlay.dataset.mode));
- for(const id of ['systemMap','systemSkills']){const button=doc.getElementById(id);if(button)button.disabled=restricted;}
+ const currentScreen=game.overlay.hidden?'flight':game.overlay.dataset.mode;
+ for(const [id,screen] of [['systemMap','map'],['systemSkills','skills']]){
+  const button=doc.getElementById(id);if(!button)continue;
+  button.disabled=restricted;
+  button.hidden=currentScreen===screen;
+ }
  const resume=doc.getElementById('systemResume');
  if(resume)resume.textContent=game.overlay.hidden?'Продолжить полёт':menuReturnLabels[game.overlay.dataset.mode]||'Назад';
  const keyPanel=doc.getElementById('controlSettings');

@@ -11,6 +11,9 @@
 #overlay :is(.screen-dialog,.pilot-dialog) button.primary:hover:not(:disabled),
 .system-dialog button.primary:hover:not(:disabled){background:#d1aa77!important}
 
+/* Resuming the screen already under Pause is not a second route to that screen. */
+.system-dialog .system-shortcuts button[hidden]{display:none!important}
+
 /* One purchase destination: Development. The ship screens display a status
    summary and take the player to the precise existing purchase controls. */
 #overlay .base-dialog .hg-navigation-card{

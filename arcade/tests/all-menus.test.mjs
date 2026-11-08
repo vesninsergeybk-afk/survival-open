@@ -42,6 +42,18 @@ test('menus do not allow map or skill navigation during a run choice or death',(
   assert.ok(nodes.get('systemMap').disabled);assert.ok(nodes.get('systemSkills').disabled);closeSystemMenu(game,doc);
  }
 });
+test('pause hides a shortcut when resuming already leads to the same screen',()=>{
+ for(const [mode,mapHidden,pilotHidden,label] of [
+  ['map',true,false,'К карте'],['skills',false,true,'К навыкам пилота'],
+  ['base',false,false,'К станции'],['',false,false,'Продолжить полёт']]){
+  const {doc,game,nodes}=nativeScene(mode,!!mode);
+  assert.ok(openSystemMenu(game,doc));
+  assert.equal(nodes.get('systemMap').hidden,mapHidden);
+  assert.equal(nodes.get('systemSkills').hidden,pilotHidden);
+  assert.equal(nodes.get('systemResume').textContent,label);
+  closeSystemMenu(game,doc);
+ }
+});
 test('system navigation from a station retains the draft and active docking session',()=>{
  const {doc,game,events}=nativeScene('base',true),draft=game.hangarSession;
  game.stationExitArmed=true;game.openMap=()=>{game.overlay.dataset.mode='map';game.mapReturnToBase=true;};
