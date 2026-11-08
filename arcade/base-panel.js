@@ -1,5 +1,5 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1';
-import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-portrait-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2';
+import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-portrait-1-menu-consistency-2';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1';
@@ -896,8 +896,7 @@ export function renderBasePanel(base,state){
  const homeDevelopment='<section class="base-home-development" aria-label="Свободные очки">'+
   '<div class="base-home-heading"><h3>Свободные очки · '+(state.points||0)+'</h3></div>'+
   '<p>За одни и те же очки можно изучать навыки пилота и улучшать корабль.</p>'+
-  '<div class="base-next-actions">'+action('baseTab','Навыки пилота','','development')+
-  '<button type="button" data-act="openDevelopment" data-id="weapons">Улучшения оружия</button></div></section>';
+  '<div class="base-next-actions"><button type="button" data-act="openDevelopment" data-id="pilot">Открыть дерево развития</button></div></section>';
  const completedOrder=state.contract&&state.contract.progress>=state.contract.goal;
  const homeUrgent=state.firstHardwareReward==='pending'&&!completedOrder?
   firstReward:
@@ -922,19 +921,16 @@ export function renderBasePanel(base,state){
   '<div><p>Корпус <b>'+Math.ceil(state.hp)+' / '+state.maxHp+'</b>'+(state.hp<state.maxHp?' · есть повреждения':' · исправен')+'</p>'+
   '<progress class="base-hull-meter" value="'+Math.max(0,Math.min(state.maxHp,state.hp))+'" max="'+state.maxHp+'" aria-label="Прочность корпуса"></progress></div></div>'+
   '<div class="base-quick-buttons">'+
-  (state.hp<state.maxHp?action('repair','Починить · '+o.repairCost+' сплава',o.reasons.repair):'')+
+  '<button type="button" data-act="openShipService">Ремонт и обслуживание →</button>'+
   (base.id==='0:0'&&!state.fieldTrialTaken&&!state.fieldLoan?
    action('showFieldTrial',state.fieldTrialPickerOpen?'Скрыть полевые модули':'Полевой модуль · бесплатно'):'')+
   '</div>'+
   quickTrial+
-  (state.hp<state.maxHp&&o.reasons.repair?'<small class="base-quick-reason">'+o.reasons.repair+'</small>':'')+'</section>'+
+  '</section>'+
   '<section class="base-quick-service base-quick-drones"><span class="base-kicker">ПОДДЕРЖКА</span><h3>Боевые дроны</h3>'+
   '<p>В строю '+state.allies+' / '+o.cap+(state.droneDamage>0?' · есть повреждения':'')+'</p>'+
   '<button type="button" class="menu-info" data-help-only data-help="'+o.drone.desc+'" aria-label="О боевом дроне">i</button>'+
-  '<div class="base-quick-buttons">'+
-  (state.droneDamage>0?action('repairDrones','Ремонт дронов · '+o.droneRepairCost+' сплава',o.reasons.drones):'')+
-  action('hire',(o.replacing?'Заменить':'Нанять')+' · '+o.hireCost+' сплава',o.reasons.hire,o.drone.role)+
-  '</div>'+(o.reasons.hire?'<small class="base-quick-reason">'+o.reasons.hire+'</small>':'')+
+  '<div class="base-quick-buttons"><button type="button" data-act="openShipService">Обслуживание дронов →</button></div>'+
   '</section></div>'+(capturedWing||supply)+'<div class="base-home-strategy">'+renderTerritoryProgress(state.world,state.position)+(state.points?homeDevelopment:'')+'</div>'+
   '<details class="base-secondary-info"><summary>Станция · '+brief[0]+' · карта и подробности</summary>'+
   '<div class="base-secondary-body"><p><b>'+brief[1]+'.</b> '+brief[2]+'</p>'+
@@ -958,28 +954,25 @@ export function renderBasePanel(base,state){
   '</div>'+
   (regionalGoal||campaign?'<details class="base-secondary-info base-region-plans" data-hangar-section="region-plans">'+
    '<summary>Цели в регионах · ослабить противника и открыть станции</summary>'+regionalGoal+campaign+'</details>':'')+'</div>';
- const localMission=specialOffer(base,state),hullPercent=Math.round(state.hp/state.maxHp*100);
- const missionForPreparation=state.operation||localMission;
- const missionContext=missionForPreparation&&missionForPreparation.status!=='complete'?
-  (isFieldOperation(missionForPreparation)?
-   'Операция «'+missionForPreparation.name+'»: '+missionForPreparation.desc:
-   missionForPreparation.id===PROBE_OPERATION.id?
-   'Операция «Последний сигнал»: при ремонте зонда корабль не стреляет. Дрон может прикрыть его, но не гарантирует безопасность.':
-   missionForPreparation.id===RELAY_DEFENSE.id?
-   'Операция «Оборона ретранслятора»: противники стремятся к передатчику. Перехватывайте заряженные залпы; атака состоит из трёх конечных волн.':
-   missionForPreparation.id===CARRIER_INTERCEPTION.id?
-   (missionForPreparation.phase==='return'?'Операция «Перехват снабжения»: вернитесь на авианосец с телеметрией.':
-    'Операция «Перехват снабжения»: заход с кормы повреждает двигатели; перед разрядом выйдите за 230 м. Осколочное оружие помогает убрать охранение, рельс позволяет держать дистанцию.'):
-   missionForPreparation.phase==='return'?'Операция «Глухой коридор»: помехи сняты, но награда ждёт передачи телеметрии в домашнем доке.':
-   'Операция «Глухой коридор»: у глушителя есть охранение и ЭМ-импульсы. После уничтожения вернитесь с телеметрией в док за наградой.') :
-  'Выберите дальнейший маршрут и подготовьте корабль к ожидаемой угрозе.';
- const missionReadiness=!state.operation&&localMission?
-  missionContext.replace(/^Операция («[^»]+»): (.)/u,(_,name,first)=>
-   'Операция '+name+' пока не принята. '+first.toUpperCase()):missionContext;
+ const hullPercent=Math.round(state.hp/state.maxHp*100);
+ const currentMission=state.operation;
+ const missionPreparation=currentMission?(isFieldOperation(currentMission)?
+  'Операция «'+currentMission.name+'»: '+currentMission.desc:
+  currentMission.id===PROBE_OPERATION.id?
+   'Операция «Последний сигнал»: при ремонте зонда корабль не стреляет. Дрон может его прикрыть.':
+  currentMission.id===RELAY_DEFENSE.id?
+   'Операция «Оборона ретранслятора»: противники атакуют передатчик тремя волнами.':
+  currentMission.id===CARRIER_INTERCEPTION.id?
+   'Операция «Перехват снабжения»: заходите к транспорту с кормы; остерегайтесь охранения.':
+  currentMission.phase==='return'?
+   'Операция «Глухой коридор»: вернитесь в домашний док с телеметрией.':
+   'Операция «Глухой коридор»: у глушителя есть охранение и ЭМ-импульсы.'):
+  'Проверьте корпус, дронов и оснащение. Условия доступных заданий можно посмотреть в разделе «Задания».';
  const readiness='<section class="base-sortie-context"><div><span class="base-kicker">ГОТОВНОСТЬ К ВЫЛЕТУ</span>'+
   '<strong>Корпус '+Math.ceil(state.hp)+' / '+state.maxHp+' · Дроны '+state.allies+'/'+o.cap+
   ' · Щит '+Math.ceil(state.shield||0)+'</strong></div>'+
-  '<p>'+missionReadiness+(hullPercent<45?' Корпус сильно повреждён: перед опасным вылетом можно отремонтироваться.':'')+'</p>'+
+  '<p>'+missionPreparation+
+  (hullPercent<45?' Корпус сильно повреждён. Перед опасным вылетом рекомендуется ремонт.':'')+'</p>'+
   '<small>'+((state.droneRoles||[]).includes(o.drone.role)?
    o.drone.name+' уже в строю.':
    'Дрон: '+o.hireCost+' сплава · '+(o.ore>=o.hireCost?
@@ -992,17 +985,22 @@ export function renderBasePanel(base,state){
   'Плазма ставит метки. '+fieldKey+' даёт мгновенный цепной разряд по отмеченной группе. Нужен плазменный луч.':
   fieldKey+' связывает 2–3 близкие цели на 4 с. Затем стреляйте: 35% урона передаётся по связи. Камни и расстояние свыше 260 м разрывают передачу.';
  const refill=refillQuote(loan,o.ore);
- const fieldPanel=loan?card('base-service base-local','ПОЛЕВОЙ МОДУЛЬ',
+ const fieldIllustration=id=>'<span class="base-field-illustration"><img src="./assets/station-menu/field-'+id+'.webp" alt="" width="64" height="64" loading="lazy"></span>';
+ const fieldPanel=loan?card('base-service base-local base-field-service','ПОЛЕВОЙ МОДУЛЬ',
   spec.name+' · '+loan.charges+'/'+spec.capacity+' заряда',
-  fieldHelp(spec.id)+' Нажмите на обычный узел корабля и выберите этот модуль. '+
+  fieldIllustration(spec.id)+fieldHelp(spec.id)+' Нажмите на обычный узел корабля и выберите этот модуль. '+
   (loan.assignment?'Прокат закреплён за '+(loan.assignment.kind==='operation'?'особой операцией':'полевым заказом')+'; после её завершения или отмены модуль вернётся при стыковке.':
    'Прокат будет закреплён за следующим принятым заданием. Можно вернуть досрочно.'),
   action('fieldCharge','Купить заряд · '+spec.chargeCost+' сплава',refill.ok?'':refill.reason)+
   action('returnField','Вернуть модуль')):
+  offer?.mode==='trial'?card('base-service base-local base-field-service','БЕСПЛАТНАЯ ПРОБА',
+   'Выбор первого полевого модуля',
+   fieldIllustration('ion')+'Ионный проводник или резонатор: один модуль на три заряда. Выбор находится в «Обзоре», рядом с состоянием корабля.',
+   action('showFieldTrial','Выбрать модуль в Обзоре')):
   offer?'<div class="base-grid">'+Object.values(FIELD_WEAPONS).map(w=>{
    const q=fieldLoanOffer(base,state,w.id);
-   return card('base-service base-local','ПОЛЕВОЙ МОДУЛЬ · '+(q.mode==='trial'?'ОДНА БЕСПЛАТНАЯ ПРОБА':'ПРОКАТ'),
-    w.name,fieldHelp(w.id)+' Три заряда. Установите в обычный узел и примените сборку. Одновременно доступен один полевой модуль.',
+   return card('base-service base-local base-field-service','ПОЛЕВОЙ МОДУЛЬ · ПРОКАТ',
+    w.name,fieldIllustration(w.id)+fieldHelp(w.id)+' Три заряда. Установите в обычный узел и примените сборку. Одновременно доступен один полевой модуль.',
     action('loanField',q.mode==='trial'?'Выбрать бесплатно':'Взять · '+q.cost+' сплава',q.reason,w.id),q.reason);
   }).join('')+'</div>':base.type==='dock'&&state.fieldTrialTaken?card('base-service',
    'ПОЛЕВОЕ ОРУЖИЕ','Бесплатная проба использована',

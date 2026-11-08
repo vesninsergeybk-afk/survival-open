@@ -14,12 +14,13 @@ function station(extra={}){
  return {g,base:g.docked,state:{...g.baseState(),...extra}};
 }
 
-test('the overview links to one mission board and keeps repair and hire directly available',()=>{
+test('the overview links to missions and one maintenance destination without duplicating transactions',()=>{
  const {g,base,state}=station({hp:100});
  const html=renderBasePanel(base,state);
  assert.match(html,/data-act="baseTab" data-role="operations">Посмотреть задания/);
  assert.doesNotMatch(html,/data-act="acceptOperation"|data-act="acceptContract"/);
- assert.match(html,/data-act="repair"/);assert.match(html,/data-act="hire"/);
+ assert.equal((html.match(/data-act="openShipService"/g)||[]).length,2);
+ assert.doesNotMatch(html,/data-act="repair"|data-act="hire"/);
  assert.match(html,/id="base-panel-operations"[^>]* hidden><\/section>/);
  g.baseTab='operations';g.paused=true;
  const missions=renderBasePanel(base,g.baseState());
@@ -85,11 +86,13 @@ test('fitting and development show separate actions and only one no-spend explan
  assert.doesNotMatch(fitting,/Корпус 1 \/ 10/);session.catalog=false;assert.match(renderShipHangar(state,session),/Узлы:/);
 });
 
-test('general weapon upgrades and system upgrades belong to their respective development categories',()=>{
+test('the ship summarizes its upgrades and directs purchases to the single progression atlas',()=>{
  const {g,base}=station();
  const render=view=>renderBasePanel(base,{...g.baseState(),baseTab:'hangar',hangarView:view});
- const systems=render('upgrades');assert.match(systems,/Укрепление корпуса/);assert.doesNotMatch(systems,/Калибровка орудий/);
- const weapons=render('weapon-upgrades');assert.match(weapons,/Калибровка орудий/);assert.doesNotMatch(weapons,/Укрепление корпуса/);
+ const systems=render('upgrades');assert.match(systems,/Укрепление корпуса/);assert.doesNotMatch(systems,/data-act="hgUpgrade"/);
+ assert.match(systems,/data-act="openDevelopment" data-id="ship"/);
+ const weapons=render('weapon-upgrades');assert.match(weapons,/data-act="openDevelopment" data-id="weapons"/);
+ assert.doesNotMatch(weapons,/data-act="hgUpgrade"|data-act="hgSpec"/);
 });
 
 test('real development transactions retain station, point, level and alloy restrictions',()=>{

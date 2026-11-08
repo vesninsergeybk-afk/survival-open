@@ -36,11 +36,13 @@ test('ordinary contracts use the whole task board on desktop without breaking mo
  assert.match(css,/@media\(max-width:760px\)[\s\S]*?\.base-task-group\.regular \.base-contract-choices\{grid-template-columns:1fr\}/);
 });
 
-test('service menu has meaningful labels and distinguishes an offered operation from an accepted one',()=>{
+test('service menu concentrates on maintenance and does not advertise an unaccepted mission',()=>{
  const html=panel(renderBasePanel(dock,state({baseTab:'hangar',hangarView:'services'})),'hangar');
- assert.match(html,/Операция «Глухой коридор» пока не принята\. У глушителя/);
+ assert.match(html,/Условия доступных заданий можно посмотреть в разделе «Задания»/);
+ assert.doesNotMatch(html,/Операция «Глухой коридор»/);
  assert.match(html,/ТЕХОБСЛУЖИВАНИЕ/);
  assert.match(html,/БОЕВОЙ ДРОН/);
+ assert.match(html,/base-field-illustration/);
  assert.doesNotMatch(html,/0[1-6] · (?:БОЕВОЙ ДРОН|ТЕХОБСЛУЖИВАНИЕ|МЕСТНАЯ УСЛУГА)/);
 });
 
@@ -69,7 +71,7 @@ test('installed weapons show upgrade paths; absent weapons show installation onl
  assert.equal(current.slots[0],'plasma','inspecting must not equip or buy');
 });
 
-test('the ship keeps weapon fitting, tactics, hull and repair in one section',()=>{
+test('ship handles fitting, tactical equipment and repair; development owns all permanent upgrades',()=>{
  const session=new HangarSession();session.begin(createLoadout());
  const shared=state({baseTab:'hangar',hangarSession:session});
  const weapons=renderShipHangar(shared,session);
@@ -84,10 +86,11 @@ test('the ship keeps weapon fitting, tactics, hull and repair in one section',()
  }
  assert.doesNotMatch(weapons,/data-act="hgTacticUnlock"/);
  assert.match(tactics,/data-act="hgFocusTactic" data-id="decoy"/);
- assert.match(tactics,/data-act="hgTacticUpgrade"/);
+ assert.doesNotMatch(tactics,/data-act="hgTacticUpgrade"/);
+ assert.match(tactics,/data-act="openDevelopment" data-id="tactics"/);
  assert.doesNotMatch(tactics,/<details class="hg-tactic-upgrade-details"/);
- assert.match(upgrades,/data-act="hgFrame"/);
- assert.match(upgrades,/data-act="hgUpgrade" data-id="hull"/);
+ assert.doesNotMatch(upgrades,/data-act="hgFrame"|data-act="hgUpgrade"/);
+ assert.match(upgrades,/data-act="openDevelopment" data-id="ship"/);
  assert.match(services,/data-act="repair"/);
  assert.match(services,/data-act="hire"/);
  assert.doesNotMatch(services,/<details class="hg-services"/);

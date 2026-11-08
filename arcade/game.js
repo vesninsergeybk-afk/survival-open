@@ -1,7 +1,7 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1';
-import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-4';
-import {paintProgressionLinks} from './progression-screen.js?v=progression-art-4';
+import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-4-menu-consistency-2';
+import {paintProgressionLinks} from './progression-screen.js?v=progression-art-4-menu-consistency-2';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
@@ -53,7 +53,7 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-2';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
@@ -476,6 +476,10 @@ export class ArcadeGame {
    if(act==='pilotHangar'){this.baseTab='hangar';this.hangarView='weapons';this.returnToStation();return;}
    if(act==='pilotMap'){this.openMap();return;}
    if(act==='pilotSkills'){this.skills();return;}
+   if(act==='openShipService'&&this.docked?.active){
+    this.baseTab='hangar';this.hangarView='services';this.hangarSession.message='';
+    this.heritage.ui('tab');this.renderDock();return;
+   }
    if(act==='openDevelopment'){
     this.openDevelopment(b.dataset.id,b.dataset.focus,b.dataset.upgrade);return;
    }
@@ -2405,7 +2409,9 @@ export class ArcadeGame {
    !(this.baseTab==='hangar'||this.baseTab==='development'&&developmentActions.has(data.act))||!this.docked?.active)return;
   if(data.act==='hgSlot'&&!slotOpen(this.shipLoadout,Number(data.id))){this.openDevelopment('ship');return;}
   if(data.act==='hgView'){
-   if(!['weapons','weapon-upgrades','tactics','upgrades','services'].includes(data.id))return;
+   // Backwards-compatible shortcut from legacy weapon-upgrade tabs.
+   if(data.id==='weapon-upgrades'){this.openDevelopment('weapons',this.hangarSession.focusWeapon);return;}
+   if(!['weapons','tactics','upgrades','services'].includes(data.id))return;
    this.hangarView=data.id;this.hangarSession.message='';this.heritage.ui('tab');this.renderDock();
    const nav=data.id==='weapons'||data.id==='weapon-upgrades'?'.hg-weapon-views':'.hg-view-nav';
    this.overlay.querySelector(nav+' [aria-pressed="true"]')?.focus({preventScroll:true});
@@ -2881,6 +2887,10 @@ export class ArcadeGame {
   if(act==='loanField'||act==='loanIon'){
    const id=act==='loanIon'?'ion':role,offer=fieldLoanOffer(b,this.baseState(),id);
    if(!offer||offer.mode==='return'||offer.reason){this.heritage.ui('deny');return;}
+   if(this.hangarSession.dirty(this.shipLoadout)){
+    this.hangarSession.message='Сначала примените или отмените предварительную сборку оружия.';
+    this.baseTab='hangar';this.hangarView='weapons';this.heritage.ui('deny');this.renderDock();return;
+   }
    p.ore-=offer.cost;
    recordEconomyExpense(this,'services',offer.cost);
    this.fieldLoan=createFieldLoan(id,b.id,this.time,missionAssignment(this.operation,this.contract));
@@ -2893,6 +2903,7 @@ export class ArcadeGame {
    if(offer.mode==='trial')this.fieldTrialTaken=true;
    this.fieldTrialPickerOpen=false;
    this.baseTab='hangar';
+   if(!suggested)this.hangarView='weapons';
    const name=FIELD_WEAPONS[id].name;
    this.hangarSession.message=suggested?name+' установлен. Можно вылетать.':
     name+' на складе. Выберите узел корабля, затем этот модуль.';

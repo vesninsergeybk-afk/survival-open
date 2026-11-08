@@ -60,6 +60,17 @@ test('ship frame nodes charge the actual alloy price, and preserve the existing 
  assert.equal(JSON.stringify(g.shipLoadout.slots),before);
 });
 
+test('a pending fitting blueprint blocks frame purchase until the draft is resolved',()=>{
+ const g=docked();g.player.level=4;g.player.ore=100;
+ g.hangarSession.draft.slots[1]='rail';
+ let node=progressionModel(state(g,'ship')).nodes.find(n=>n.id==='frame-1');
+ assert.equal(node.canAct,false);
+ assert.match(node.reason,/примените или отмените предварительную сборку/);
+ g.hangarSession.begin(g.shipLoadout);
+ node=progressionModel(state(g,'ship')).nodes.find(n=>n.id==='frame-1');
+ assert.equal(node.canAct,true);
+});
+
 test('weapon specializations and tactical branches honor actual level, stations, points and exclusive choices',()=>{
  const g=docked();g.player.level=7;g.player.points=2;g.activeBases=2;g.developmentDomain='weapons';
  let node=progressionModel(state(g,'weapons')).nodes.find(n=>n.id==='spec-plasma-focus');

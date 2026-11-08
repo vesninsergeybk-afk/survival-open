@@ -61,10 +61,23 @@ test('the ordinary slot catalog includes free trial weapons beside owned and pur
  for(const id of ['ion','resonator']){
   g.hangarSession.dispatch({act:'hgFocusWeapon',id},{loadout:g.shipLoadout});
   const focused=renderBasePanel(g.docked,{...g.baseState(),baseTab:'hangar'});
-  assert.match(focused,new RegExp('data-act="hgBorrow" data-id="'+id+'"'));
+  assert.match(focused,/data-act="openShipService"[^>]*>Оформить прокат в обслуживании/);
+  assert.doesNotMatch(focused,/data-act="hgBorrow"/);
  }
  assert.doesNotMatch(html,/data-act="hgInstall"|class="hg-inspector"/);
  assert.doesNotMatch(html,/data-act="hgApply"/);
+});
+
+test('taking a field loan from maintenance never overwrites a pending weapon design',()=>{
+ const g=game();g.shipLoadout=createLoadout();g.hangarSession.begin(g.shipLoadout);
+ g.hangarSession.draft.slots[1]='rail';
+ const pending=JSON.stringify(g.hangarSession.draft),alloy=g.player.ore;
+ g.baseAction('loanField','ion');
+ assert.equal(g.fieldLoan,null);
+ assert.equal(g.player.ore,alloy);
+ assert.equal(JSON.stringify(g.hangarSession.draft),pending);
+ assert.equal(g.hangarView,'weapons');
+ assert.match(g.hangarSession.message,/примените или отмените предварительную сборку/);
 });
 
  test('locked future weapons never advertise free installation',()=>{

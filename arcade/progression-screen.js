@@ -121,11 +121,13 @@ function shipNodes(state){
  const nodes=(state.hangarUpgrades||[]).filter(s=>['hull','shield','engine'].includes(s.id))
   .map(s=>skillNode(s,state,'hgUpgrade'));
  const frame=state.loadout?.frame||0;
+ const pendingAssembly=!!state.hangarSession?.dirty?.(state.loadout);
  for(let i=1;i<FRAME_STEPS.length;i++){
   const step=FRAME_STEPS[i],complete=frame>=i,next=frame+1===i;
   const reason=complete?'Узел открыт':!next?'Сначала откройте предыдущий узел':
    (state.level||1)<step.level?'Нужен уровень '+step.level:
-   (state.ore||0)<step.cost?'Нужно '+step.cost+' сплава':'';
+   (state.ore||0)<step.cost?'Нужно '+step.cost+' сплава':
+   pendingAssembly?'Сначала примените или отмените предварительную сборку':'';
   nodes.push({id:'frame-'+i,title:step.name,icon:art('upgrades','weapon_slot'),level:step.level,
    rank:complete?1:0,max:1,requires:i>1?'frame-'+(i-1):null,
    status:complete?'mastered':!next||(state.level||1)<step.level?'locked':reason?'waiting':'ready',

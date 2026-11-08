@@ -105,14 +105,18 @@ test('the tactical cooldown describes the selected upgraded device, including wh
 test('hull and frame show the requirements without unrelated weapon technologies',()=>{
  const g=dockedGame();g.player.level=1;g.player.points=0;g.hangarView='upgrades';
  const html=renderShipHangar(g.baseState(),g.hangarSession);
- assert.match(html,/Свободные очки: 0/);
  assert.match(html,/Укрепление корпуса/);
- assert.match(html,/data-id="hull" disabled>Изучить · 1 очко<\/button>[^]*?Нужен уровень 2/);
+ assert.match(html,/0 из 5 рангов/);
+ assert.match(html,/Следующий оружейный узел: Третий узел · уровень 4 · 48 сплава/);
+ assert.match(html,/data-act="openDevelopment" data-id="ship"/);
+ assert.doesNotMatch(html,/data-act="hgUpgrade"|data-act="hgFrame"/);
  assert.doesNotMatch(html,/Калибровка орудий|Авторакеты|Разделение луча/);
  assert.match(html,/Оружейные узлы/);
  g.player.level=3;g.player.points=1;
  const available=renderShipHangar(g.baseState(),g.hangarSession);
- for(const id of ['hull','engine'])assert.match(available,new RegExp('data-id="'+id+'">Изучить · 1 очко'));
+ assert.match(available,/Укрепление корпуса/);
+ assert.match(available,/Импульсный форсаж/);
+ assert.doesNotMatch(available,/data-act="hgUpgrade"/);
 });
 
 test('region entry immediately suggests a legal starting station without building lines or revealing contacts',()=>{
