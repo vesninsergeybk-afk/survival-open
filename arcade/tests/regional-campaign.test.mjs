@@ -99,6 +99,27 @@ test('a compact campaign debrief reports actual player effects without revealing
  assert.match(events[0].actions.join(' '),/выпуск новых промышленных отрядов остановлен/);
  assert.match(renderCampaignProgress(g),/Что изменили Ваши действия/);
 });
+
+test('enemy construction is explained only after its real depot is discovered',()=>{
+ const g=game(),front=warFronts(g.world).find(f=>f.key==='home');
+ front.depot.turrets.push({x:front.depot.x+150,y:front.depot.y,
+  kind:'construction',buildKind:'shield',fortificationOf:front.depot.id,
+  hp:75,maxHp:75,startedAt:g.time,finishAt:g.time+30});
+ assert.doesNotMatch(renderCampaignProgress(g),/Генератор помех|Строится:/);
+ front.source.discovered=true;
+ assert.doesNotMatch(renderCampaignProgress(g),/Генератор помех|Строится:/,
+  'seeing the mine cannot expose work inside an undiscovered depot');
+ front.depot.discovered=true;
+ const visible=renderCampaignProgress(g);
+ assert.match(visible,/Строится: генератор помех/);
+ assert.match(visible,/30 с/);
+ const construction=front.depot.turrets.at(-1);
+ construction.kind='shield';construction.hp=140;construction.maxHp=140;
+ front.depot.fortification={stage:1};
+ assert.match(renderCampaignProgress(g),/Укрепления: действующих модулей — 1/);
+ construction.hp=0;
+ assert.match(renderCampaignProgress(g),/Укрепления: действующих модулей — 0/);
+});
 test('region navigation switches from industrial threat to actual secured status only after discovery',()=>{
  const g=game(),f=warFronts(g.world).find(f=>f.key==='home');
  let atlas=renderRegionAtlas(g);

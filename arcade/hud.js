@@ -4,7 +4,7 @@ import {miningSignal} from './mining.js?v=arcade-extraction-risk-34';
 import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-5';
 import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1-enemy-balance-2';
-import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1';
+import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1';
 const el = id => document.getElementById(id);

@@ -1,4 +1,5 @@
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
+import {FORT_STAGES} from './enemy-fortifications.js?v=living-combat-loop-1';
 import {TERRITORY_TECH} from './territory-tech.js?v=territory-war-1-territory-war-1';
 import {regionAt,REGIONS,REGION_LIMIT} from './regions.js?v=regions-audit-1';
 
@@ -18,12 +19,9 @@ export function campaignDestination(game,key){
  return {id:'region-'+region.id,...region.survey,label:region.name};
 }
 
-// Time unlocks formations, but cannot erase the military effect of a blockade.
-// Geography retains different baseline danger; funded ships and retaliation
-// are added by the existing, resource-backed industrial systems.
-// Geography sets a readable soft gate. The player's level never increases
-// the enemy threat: venturing towards a major hostile base does. Disrupting
-// its industry removes its elite patrol bonus and restores safer routes.
+// Geography sets baseline danger: the player's level never strengthens the
+// opposition. Deliveries and surviving paid defenses unlock stronger ambient
+// formations; blocking industry still removes this military advantage.
 export function strongholdThreat(world,player){
  const region=regionAt(player.x,player.y);
  const front=warFronts(world).find(f=>f.regions.includes(region.id));
@@ -33,9 +31,14 @@ export function strongholdThreat(world,player){
  const depth=region.id==='amethyst'?0:region.id==='amber'?1:region.id==='azure'?1:2;
  const proximity=distance<1800?2:distance<4800?1:0;
  const tier=inactive?1:Math.min(5,1+depth+proximity);
- // Military progress is earned by deliveries, not by level or elapsed time.
+ // Military progress is earned by delivered cargo and surviving, funded
+ // depot modules. A full warehouse cannot freeze all industrial development;
+ // destroying these modules removes their contribution immediately.
  const deliveries=inactive?0:Math.max(0,front?.pool?.delivered||0);
- const industrialTech=deliveries>=9?3:deliveries>=5?2:deliveries>=2?1:0;
+ const modules=inactive?0:(front?.depot?.turrets||[]).filter(t=>
+  t.fortificationOf===front.depot.id&&t.kind!=='construction'&&t.hp>0).length;
+ const industrialProgress=deliveries+modules;
+ const industrialTech=industrialProgress>=9?3:industrialProgress>=5?2:industrialProgress>=2?1:0;
  return {tier,industrialTech,region:region.id,front:front?.key||null,distance,
   recommendedLevel:[1,2,4,6,9][tier-1]+Math.min(2,industrialTech),
   nearStronghold:distance<4800};
@@ -60,7 +63,7 @@ export function regionalCampaignPressure(director,world,player){
    ...(threat.industrialTech>=2?['gunship']:[])]:
   threat.tier>=3?['flanker','berserker',...(threat.industrialTech>=1?['healer']:[])]:
   threat.tier>=2?['flanker']:[];
- // Heavy ambient specialists in charted regions require actual deliveries.
+ // Heavy ambient specialists require delivered cargo or completed, funded defenses.
  const baseline=director.types.filter(type=>type!=='healer'&&type!=='gunship');
  const types=remaining?director.types.filter(type=>remaining.includes(type)):
   [...new Set([...baseline,...supplement])];
@@ -114,15 +117,33 @@ export function renderCampaignProgress(game,{compact=false}={}){
  const status=f=>!f.known?'источник и сборка не разведаны':f.outcome==='captured'?'сборочный узел захвачен':
   f.outcome==='starved'?'снабжение исчерпано':!f.working?'добыча остановлена, запасы ещё опасны':
   'производство действует';
+ const constructionStatus=f=>{
+  if(!f.depot?.discovered||!f.depot.enemy||f.depot.hp<=0)return '';
+  const modules=f.depot.turrets.filter(t=>t.fortificationOf===f.depot.id&&
+   t.kind!=='construction'&&t.hp>0);
+  const work=f.depot.turrets.find(t=>t.fortificationOf===f.depot.id&&
+   t.kind==='construction'&&t.hp>0);
+  const built=f.depot.fortification?.stage||0;
+  const summary=built||modules.length?'Укрепления: действующих модулей — '+modules.length:'';
+  const spec=work&&FORT_STAGES.find(s=>s.kind===work.buildKind);
+  const remaining=work&&Number.isFinite(work.finishAt)&&Number.isFinite(game.time)?
+   ' · осталось '+Math.max(0,Math.ceil(work.finishAt-game.time))+' с':'';
+  const building=spec?'Строится: '+spec.label.toLowerCase()+remaining:'';
+  return [summary,building].filter(Boolean).join('. ');
+ };
  const rows=p.fronts.map(f=>{
   const target=campaignDestination(game,f.key);
   // A regional survey point is public geography, never a hidden station.
+  const building=constructionStatus(f);
   return '<article class="campaign-front"><div><strong>'+enc(f.name)+'</strong><small>'+enc(status(f))+
+   (building?'<br>'+enc(building):'')+
    (f.outcome==='captured'&&TERRITORY_TECH[f.key]?'<br>★ '+enc(TERRITORY_TECH[f.key].name)+': '+enc(TERRITORY_TECH[f.key].description):'')+'</small></div>'+
    (f.outcome?'<span>✓</span>':'<button type="button" data-act="campaignFront" data-role="'+f.key+'">'+
     (target?.id.startsWith('region-')?'Разведать регион':target?.id===f.depotId?'К сборочному узлу':'К источнику снабжения')+'</button>')+'</article>';
  }).join('');
+ const localBuilding=local&&constructionStatus(local);
  const localStatus=local?.known&&!local.outcome?'<p>'+enc(local.name)+': '+enc(status(local))+'. '+
+  (localBuilding?enc(localBuilding)+'. ':'')+
   (local.depot?.discovered?'Оставшихся партий: '+local.pool.reserves+'. ':'')+
   'Перехват отменяет усиление из одной поставки; захват сборочного узла прекращает все его будущие вылеты.</p>':'';
  const title=p.complete?'Промышленный натиск подавлен':'Подавить четыре промышленные сети';

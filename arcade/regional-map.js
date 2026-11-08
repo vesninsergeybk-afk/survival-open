@@ -3,7 +3,7 @@ import {SUPPLY,supplyRoute,supplyStatus,cargoLastContact} from './regional-suppl
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1-territory-war-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
-import {strongholdThreat} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1-stronghold-1-territory-war-1';
+import {strongholdThreat} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1-stronghold-1-territory-war-1-enemy-growth-1';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
@@ -41,11 +41,11 @@ export function renderRegionAtlas(game){
  const fronts=warFronts(world);
  const localFront=fronts.find(f=>f.key===threat.front);
  const techCue=localFront?.known&&threat.industrialTech?
-  'Поставки усилили врага: ступень '+threat.industrialTech+'/3. ':'';
+  'Военное развитие врага: ступень '+threat.industrialTech+'/3. ':'';
  const threatCue=threat.tier>1?'<p class="region-threat-cue">ОПАСНОСТЬ '+threat.tier+
   '/5 · рекомендуемый уровень '+threat.recommendedLevel+
   '+. У главных баз вражеские группы сильнее. '+techCue+
-  'Перехват грузов задерживает развитие врага, захват сборочного узла останавливает подкрепления.</p>':'';
+  'Перехват грузов и разрушение укреплений ослабляют врага; захват сборочного узла останавливает подкрепления.</p>':'';
  const q=p=>({x:150+p.x*.0022,y:120+p.y*.0022});
  const labels=REGIONS.map(r=>{const p=q(r);return '<text x="'+p.x+'" y="'+p.y+'" text-anchor="middle" fill="'+r.color+'" font-size="12">'+r.number+' · '+(r.id==='amethyst'?'Старт':r.id==='amber'?'Рудный пояс':r.id==='azure'?'Разлом':r.id==='lilac'?'Военный рубеж':'Обломки')+'</text>';}).join('');
  const player=q(game.player),buttons=REGIONS.map(r=>{

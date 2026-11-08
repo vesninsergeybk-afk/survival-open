@@ -7,6 +7,8 @@ import {FRONTIERS,frontierIndustryValid} from '../frontier-industry.js';
 import {warFronts} from '../war-fronts.js';
 import {labLogisticsIntel} from '../station-progression.js';
 import {strongholdThreat,regionalCampaignPressure} from '../regional-campaign.js';
+import {advanceEnemyFortifications} from '../enemy-fortifications.js';
+import {advanceEnemyExpansion} from '../enemy-expansion.js';
 
 test('deep hostile strongholds are dangerous independently of player level',()=>{
  const w=new World(),home=strongholdThreat(w,{x:360,y:-85});
@@ -32,7 +34,7 @@ test('deep hostile strongholds are dangerous independently of player level',()=>
  assert.ok(!suppressed.types.includes('gunship'));
 });
 
-test('enemy military technology grows only with delivered supplies, not arbitrary time or player levels',()=>{
+test('military technology responds to deliveries, not arbitrary time or player levels',()=>{
  const w=new World(),location=FRONTIERS.teal.depot;
  const pool=w.regionalSupply.frontier.teal;
  const base={cap:22,interval:4,groupSize:3,types:['scout','fighter','healer','gunship']};
@@ -59,6 +61,31 @@ test('enemy military technology grows only with delivered supplies, not arbitrar
  assert.equal(threat.industrialTech,0);
  assert.equal(threat.tier,1);
  assert.ok(!patrol.types.includes('gunship'));
+});
+
+test('completed paid defenses advance military strength despite saturated off-screen depots',()=>{
+ const w=new World(),location=FRONTIERS.teal.depot;
+ for(let t=1;t<=1200;t++){
+  advanceRegionalSupply(w,t);
+  advanceEnemyExpansion(w,t);
+  advanceEnemyFortifications(w,t);
+ }
+ for(const front of warFronts(w)){
+  assert.equal(front.pool.delivered,3,'a quiet depot has room for only three deliveries');
+  assert.equal(front.depot.fortification.stage,3,'every network completes real modules');
+  assert.ok(front.depot.fortification.spent>=13,'all constructions consume stock');
+  assert.ok((front.pool.ore??front.pool.resource)>=0,'stock stays nonnegative');
+  assert.equal(strongholdThreat(w,front.depot).industrialTech,2,
+   'completed, paid defenses must make an observable second military tier possible');
+ }
+ const front=warFronts(w).find(f=>f.key==='teal');
+ const modules=front.depot.turrets.filter(t=>t.fortificationOf===front.depot.id&&
+  t.kind!=='construction');
+ modules.forEach(t=>{t.hp=0;});
+ assert.equal(strongholdThreat(w,location).industrialTech,1,
+  'destroyed fortifications cannot keep supplying a defense-based strength bonus');
+ front.depot.enemy=false;front.depot.captured=true;
+ assert.equal(strongholdThreat(w,location).industrialTech,0);
 });
 
 test('home miners seek a second real asteroid belt before declaring starvation',()=>{
