@@ -17,6 +17,9 @@ import {emptyEconomyExpenses,recordEconomyExpense} from '../sortie-ledger.js';
 import {transitCost} from '../base-panel.js';
 import {createOpeningArc,beginOpeningArc} from '../opening-arc.js';
 import {advanceEnemyExpansion,enemyTerritoryFields} from '../enemy-expansion.js';
+import {createFieldLoot} from '../field-loot.js';
+import {createCombatTempo} from '../combat-tempo.js';
+import {advanceEnemyFortifications} from '../enemy-fortifications.js';
 import {createStrategicExperience,claimStationActivation,claimStationCapture,
  claimExploration,claimStrategicSabotage} from '../strategic-experience.js';
 
@@ -47,6 +50,35 @@ function save(g,storage=memory()){
  const store=new RunCheckpointStore(storage,()=>1234);store.load();assert.ok(store.startNew().ok);
  assert.ok(store.save(captureCheckpoint(g,g.docked)).ok);return {storage,store};
 }
+test('a saved sortie retains collected temporary charges, combat pacing and paid unfinished enemy works',()=>{
+ const g=scene();g.time=310;
+ g.fieldLoot=createFieldLoot();g.fieldLoot.reserve={id:'arc',until:375};
+ g.combatTempo=createCombatTempo();g.combatTempo.encounters=2;
+ g.combatTempo.lastContactAt=300;g.combatTempo.quietUntil=323;
+ g.world.regionalSupply.central.ore=16;
+ advanceEnemyFortifications(g.world,310);
+ const enemy=g.world.stations.get('industry:depot');
+ assert.equal(enemy.turrets.at(-1).kind,'construction');
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(snapshot),true);
+ const old=unpackRun(packRun(snapshot));
+ delete old.state.fieldLoot;delete old.state.combatTempo;
+ assert.equal(validateCheckpoint(old),true,'older saves may omit both systems');
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ assert.deepEqual(restored.fieldLoot.reserve,{id:'arc',until:375});
+ assert.equal(restored.combatTempo.encounters,2);
+ assert.equal(restored.world.stations.get(enemy.id).turrets.at(-1).kind,'construction');
+ const paid=restored.world.regionalSupply.central.ore;
+ assert.equal(advanceEnemyFortifications(restored.world,349)
+  .find(e=>e.front==='home')?.kind,'completed');
+ assert.equal(restored.world.regionalSupply.central.ore,paid,'completion does not charge a second time');
+ const legacy=scene();restoreCheckpoint(legacy,old);
+ assert.equal(legacy.fieldLoot.version,1);
+ assert.equal(legacy.combatTempo.version,1);
+ const forged=unpackRun(packRun(old));
+ forged.world.stations.find(([id])=>id===enemy.id)[1].fortification.stage=11;
+ assert.equal(validateCheckpoint(forged),false);
+});
 test('a map marker survives save and leaves the mission waypoint untouched',()=>{
  const g=scene();
  g.waypoint={id:'mission:relay',x:1200,y:800,label:'Сигнал задания'};

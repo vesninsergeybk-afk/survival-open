@@ -17,6 +17,10 @@ import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifi
 import {createStrategicExperience,claimStationActivation,claimStationCapture,claimExploration,
  claimContourExpansion,claimFirstFluxDelivery,claimGeologicalSurvey,claimStrategicSabotage} from './strategic-experience.js?v=strategic-xp-pass2-1';
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
+import {createFieldLoot,rewardEyeKill,collectFieldLoot,updateFieldLoot,
+ fieldLootDamage,fieldLootArmor,chainFieldLoot,drawFieldLootAura,BOOSTS} from './field-loot.js?v=eye-loot-1';
+import {createCombatTempo,recordCombatContact,ambientTempoPlan} from './combat-tempo.js?v=tempo-1';
+import {fortificationShield} from './enemy-fortifications.js?v=industrial-forts-1';
 import {renderEvolutionMenu,installedEvolution} from './evolution-menu.js?v=first-loops-1-menu-audit-1';
 import {updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1';
 import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,offerLevelCrystals,refreshEvolutionOffers,
@@ -221,6 +225,7 @@ export class ArcadeGame {
      burstRemaining:0,burstCooldown:0,burstX:0,burstY:-1};
   this.skillRanks=Object.fromEntries(SKILLS.map(s=>[s.id,0]));
   this.fieldEvolution=createFieldEvolution();
+  this.fieldLoot=createFieldLoot();this.combatTempo=createCombatTempo();
   this.shipLoadout=createLoadout();
   this.firstHardwareReward=null;
   let hangarStorage=null;try{if(!this.firstLoopsQA)hangarStorage=window.localStorage;}catch{}
@@ -3430,12 +3435,14 @@ export class ArcadeGame {
  hurt(damage,source=null){
   const p=this.player;if(p.invul>0)return;
   if(this.nearDockField||this.nearArsenalDefense)damage*=.82;
+  damage=fieldLootArmor(this,damage);
   damage=absorbParasiteImpact(this,damage);
   if(damage<=0){p.invul=.28;this.lastDamageAt=this.time;return;}
   const absorbed=Math.min(p.shield,damage);p.shield-=absorbed;
   const remaining=Math.max(0,damage-absorbed);
   const previousHp=p.hp;
   p.hp-=remaining;p.invul=.55+this.skillRanks.dodge*.12;this.lastDamageAt=this.time;
+  recordCombatContact(this);
   recordSortieDamage(this,Math.min(previousHp,remaining),absorbed);
   if(previousHp/p.maxHp>.3&&p.hp/p.maxHp<=.3&&p.hp>0)
    this.heritage.play('criticalHull',3);
@@ -3582,9 +3589,14 @@ export class ArcadeGame {
     else alertSignalThreat(e.signalIntel,impactEstimate,this.time);
   }
   const hpBefore=e.hp;
+  damage=fieldLootDamage(this,damage,source);
   damage=stormWeaponDamage(e,damage,source,this.time);
   e.hp-=damage;e.hit=.12;
-  if(aggressor===this.player && damage>0)e.lastPlayerHitAt=this.time;
+  if(aggressor===this.player && damage>0){
+   e.lastPlayerHitAt=this.time;
+   recordCombatContact(this);
+   chainFieldLoot(this,e,damage,source);
+  }
   this.enemyLearning?.damaged(e,Math.min(hpBefore,Math.max(0,damage)));
   this.enemyComms?.reportHit(e,Math.min(hpBefore,Math.max(0,damage)),this.time);
   if(aggressor===this.player&&e.hp>0)
@@ -3619,6 +3631,11 @@ export class ArcadeGame {
  }
  hitTurret(t,damage,contact=null,source='player'){
   if(t.hp<=0)return;
+  if(source==='player'){
+   damage*=fortificationShield(this.world,t);
+   damage=fieldLootDamage(this,damage,'beam');
+   recordCombatContact(this);
+  }
   const dealt=Math.min(t.hp,Math.max(0,damage));
   this.enemyLearning?.damaged(t,Math.min(t.hp,Math.max(0,damage)));
   t.hp-=damage;t.flash=.1;
@@ -3826,7 +3843,8 @@ export class ArcadeGame {
    const member=plan.members[i];
    const xy=spawnOutside(cam,member.side,member.position,170+i*12);
    const type=member.type,def=ENEMY_TYPES[type],serial=++this.enemySerial;
-   const hp=def.hp*(1+Math.min(2.5,this.time/550))*
+   const hp=def.hp*(type==='scout'?(1+Math.min(.65,this.time/1600)):
+    (1+Math.min(2.5,this.time/550)))*
     (1+.16*(strongholdTier-1))*(1+.05*industrialTech);
    const enemy={serial,group,type,x:xy.x,y:xy.y,vx:0,vy:0,
     r:type==='gunship'?22:14,hp,maxHp:hp,
@@ -3968,6 +3986,7 @@ export class ArcadeGame {
  collect(item){
   const p=this.player;
   if(item.type==='parasiteCore')return collectParasiteCore(this);
+  if(item.type==='fieldBoost'||item.type==='fieldRepair')return collectFieldLoot(this,item);
   if(item.type==='fieldCell'){
    const spec=this.fieldLoan&&fieldWeapon(this.fieldLoan);
    if(!spec||this.fieldLoan.charges>=spec.capacity)return false;
@@ -3990,6 +4009,7 @@ export class ArcadeGame {
  update(dt){
   const p=this.player;this.time+=dt;this.visuals.updateSky(p.x,p.y);
   updateFieldEvolution(this,dt);
+  updateFieldLoot(this);
   if(this.enemyLearning?.dirty&&this.time>=this.enemyLearning.nextSave)
    this.enemyLearning.flush(this.time);
   updateFieldEffects(this);
@@ -4241,16 +4261,22 @@ export class ArcadeGame {
     this.spawnClock=4.5;
    }else{
    const director=this.sectorDirector(openingThreat(this.time,this.player.level));
-   const frontier=spawnFrontierRaid(this,director);
-   const central=frontier?0:spawnCentralRaid(this,director);
+   const tempo=ambientTempoPlan(this,director);
+   if(tempo.mode==='wait'){
+    this.spawnClock=Math.max(.65,tempo.delay);
+   }else{
+   const stageDirector=tempo.director;
+   const frontier=spawnFrontierRaid(this,stageDirector);
+   const central=frontier?0:spawnCentralRaid(this,stageDirector);
    // Paid reinforcements now accompany a regular encounter. They must not
    // silently grant six seconds of relief after the larger formation.
-   const recovery=frontier||central||spawnRegionalRaid(this,director)||this.spawnGroup(director);
+   const recovery=frontier||central||spawnRegionalRaid(this,stageDirector)||this.spawnGroup(stageDirector);
    // Give the player room to clear an overwhelming formation, without
    // suppressing the large waves when a strong build is mowing them down.
-   const pressure=this.enemies.length/Math.max(1,director.cap);
-   this.spawnClock=director.interval+recovery+
+   const pressure=this.enemies.length/Math.max(1,stageDirector.cap);
+   this.spawnClock=(tempo.mode==='flock'?15:tempo.mode==='normal'&&this.time>=175?11:director.interval)+recovery+
     Math.min(3.5,Math.max(0,pressure-.48)*8.5);
+   }
    }
   }
   this.updateStrikes(dt);
@@ -4351,6 +4377,7 @@ export class ArcadeGame {
     const combatXp=enemyDataReward(e);
     const directXp=qualifiesForDirectCombatXp(e,this.time);
     if(directXp)this.awardExperience(combatXp);
+    rewardEyeKill(this,e,directXp);
     this.addDrop('data',e.x,e.y,combatXp,
      {source:'combat',life:50,xpGranted:directXp});
     const salvage=enemySalvage(e);
@@ -4385,7 +4412,7 @@ export class ArcadeGame {
    if(!b.enemy||(!b.strategicRole&&!this.enemyBasesUnlocked())||b.captured)continue;
    if(dist(b,p)>850)continue;
    for(const t of b.turrets){
-    if(t.hp<=0)continue;
+    if(t.hp<=0||t.kind&&t.kind!=='turret')continue;
     const turretStyle=this.enemyLearning?.styleFor(t,this.time,'turret');
     t.shot-=dt;t.flash=Math.max(0,(t.flash||0)-dt);
     if(t.shot<=0){
@@ -4911,6 +4938,14 @@ export class ArcadeGame {
    if(d.type==='parasiteCore'){
     drawParasiteCore(c,d,this.time,this.fps);continue;
    }
+   if(d.type==='fieldBoost'||d.type==='fieldRepair'){
+    const color=d.type==='fieldRepair'?'#90ffc2':BOOSTS[d.value]?.color||'#ffe7a9';
+    c.save();c.strokeStyle=color;c.fillStyle=color;c.lineWidth=2;
+    const rotation=this.visuals.reducedMotion?0:this.time*1.4;
+    c.translate(d.x,d.y);c.rotate(rotation);
+    c.beginPath();c.moveTo(0,-12);c.lineTo(11,0);c.lineTo(0,12);c.lineTo(-11,0);c.closePath();c.stroke();
+    c.globalAlpha=.65;c.beginPath();c.arc(0,0,4,0,TAU);c.fill();c.restore();continue;
+   }
    if(d.hot){c.fillStyle='#ff96323d';c.beginPath();c.arc(d.x,d.y,12,0,TAU);c.fill();}
    c.fillStyle=d.type==='fieldCell'?'#d5a1f0':d.type==='ore'?(d.hot?'#ffd296':'#efbb70'):'#69e7ec';
    c.beginPath();c.arc(d.x,d.y,d.type==='fieldCell'?7:d.type==='ore'?6:4,0,TAU);c.fill();
@@ -5095,6 +5130,7 @@ export class ArcadeGame {
    c.strokeStyle='#73dffc77';c.lineWidth=3;c.beginPath();c.arc(p.x,p.y,37,0,TAU);c.stroke();
   }
   drawEvolutionPlayer(c,this);
+  if(!this.dead)drawFieldLootAura(c,this);
   for(const f of this.flashes)drawEnergyFlash(c,f,this.fps);
   drawWeaponFx(c,this.weaponFx,this.fps,this.visuals.reducedMotion,cam);
   this.heritage.vfx.render(c,'front',

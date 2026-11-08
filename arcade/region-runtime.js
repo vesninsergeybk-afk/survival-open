@@ -10,6 +10,7 @@ import {stormPhase} from './regional-storms.js?v=regions-1';
 import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1-supply-stronghold-1';
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 import {advanceEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
+import {advanceEnemyFortifications,FORT_STAGES} from './enemy-fortifications.js?v=industrial-forts-1';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 /** Translate *completed simulation events*, never a speculative plan, into a
@@ -126,6 +127,25 @@ export function updateRegionalWorld(game,dt){
  const events=advanceRegionalSupply(world,game.time);
  // Territorial construction draws exclusively on the industry's existing stock.
  const expanded=advanceEnemyExpansion(world,game.time);
+ for(const event of advanceEnemyFortifications(world,game.time)){
+  const station=event.base;
+  if(!station.discovered)continue;
+  const module=FORT_STAGES.find(m=>m.kind===event.module);
+  const kind=event.kind;
+  if(kind==='repair'){
+   if(Math.hypot(game.player.x-station.x,game.player.y-station.y)<1050)
+    game.flash?.(station.x,station.y,event.x,event.y,'#9df0cc');
+   continue;
+  }
+  const cause=kind==='started'?'Вражеская промышленность потратила '+event.cost+' ед. сырья':
+   kind==='completed'?'Вражеская постройка завершена':'Стройка уничтожена до завершения';
+  const effect=kind==='started'?'На базе «'+station.title+'» строится '+module?.label.toLowerCase():
+   kind==='completed'?'На базе «'+station.title+'» появилась новая оборонительная цель':
+   'Противник потерял вложенное сырьё и отложил следующую попытку';
+  recordWorldFeedback(game,{key:'fortification:'+station.id+':'+kind+':'+Math.floor(game.time),
+   cause,effect,label:kind==='started'?'ВРАЖЕСКАЯ СТРОЙКА':kind==='completed'?'ОБОРОНА УСИЛЕНА':'СТРОЙКА СОРВАНА',
+   kind:'industry',x:station.x,y:station.y,notify:true});
+ }
  for(const move of expanded)if(move.witnessed){
   recordWorldFeedback(game,{key:'machine-contour:'+move.front+':'+move.a+':'+move.b,
    cause:move.kind==='claim'?'Противник замкнул территориальное поле':'Противник усилил линию между узлами',
