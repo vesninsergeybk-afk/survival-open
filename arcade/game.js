@@ -53,7 +53,7 @@ import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,change
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2';
 import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
-import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2';
+import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
@@ -1015,7 +1015,7 @@ export class ArcadeGame {
   $('audioBtn').textContent=enabled?'🔊 Звук включён':'♫ Начать со звуком';
   $('audioBtn').setAttribute('aria-pressed',String(enabled));
   const quick=$('quickAudio');if(quick){quick.textContent=enabled?'♫':'♪';quick.setAttribute('aria-pressed',String(enabled));quick.setAttribute('aria-label',enabled?'Выключить звук':'Включить звук');}
-  if(enabled)this.heritage.ui('audioOn');
+  if(enabled)void this.heritage.announceSoundEnabled();
   this.notice(enabled?'Звук и музыка включены':'Звук и музыка выключены',2.3);
   return enabled;
  }

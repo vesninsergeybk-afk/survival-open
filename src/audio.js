@@ -42,6 +42,7 @@ export class AudioEngine {
         this.sfxLab = null;
         this._samplesPromise = null;
         this._essentialPromise = null;
+        this._cueReadyPromises = new Map();
     }
 
     init() {
@@ -92,7 +93,7 @@ export class AudioEngine {
             return Promise.resolve();
         this.init();
         if (!this.sfxLab) return Promise.resolve();
-        const keys = ['starter_soft','comet_launch','comet_burst','mine_launch',
+        const keys = ['ui_audio_on','starter_soft','comet_launch','comet_burst','mine_launch',
             'mine_arm','mine_burst','target_mark','dash_burst','swarm_arrival',
             'swarm_split','swarm_merge','swarm_warning'];
         const root = new URL('../audio-lab/', import.meta.url);
@@ -114,6 +115,35 @@ export class AudioEngine {
         };
         this._essentialPromise = Promise.all(Array.from({length:Math.min(4,queue.length)},worker));
         return this._essentialPromise;
+    }
+
+    /** Make one short feedback recording playable after the player's sound-on gesture.
+     *  Reuses already downloaded samples; never creates a synthetic fallback.
+     */
+    readyForCue(key) {
+        if (!this.enabled || this.settings.muted) return Promise.resolve(false);
+        this.init();
+        const lab = this.sfxLab, def = SOUND_CATALOG[key];
+        if (!lab || !def) return Promise.resolve(false);
+        const sample = def.sampleUrls?.[0] || def.sampleUrl;
+        if (!sample) return Promise.resolve(false);
+        if (!this._cueReadyPromises.has(key)) {
+            const root = new URL('../audio-lab/', import.meta.url);
+            const pending = (lab.bufferByKey.get(key)
+                ? Promise.resolve(true)
+                : lab.loadSampleFromUrl(key,new URL(sample,root).href,
+                    {append:true,index:0,prepareOnly:true}).then(() => true))
+                .catch(err => {
+                    console.warn('[audio] Feedback recording unavailable:',key,err);
+                    this._cueReadyPromises.delete(key);
+                    return false;
+                });
+            this._cueReadyPromises.set(key,pending);
+        }
+        // Resume has already been requested during the user gesture in unlock().
+        return Promise.all([this._cueReadyPromises.get(key),lab.unlock()])
+            .then(([loaded]) => loaded && lab.ctx?.state === 'running')
+            .catch(() => false);
     }
 
     unlock() {

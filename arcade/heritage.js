@@ -1,5 +1,5 @@
 import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1';
-import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2';
+import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=foley-autofire-03';
 
@@ -96,6 +96,14 @@ export class ArcadeHeritage {
   this.audio.startMusic();
   if(this.hidden||this.dead)this.audio.stopMusic();
   this.syncVolume();return true;
+ }
+ async announceSoundEnabled(){
+  if(!this.soundOn||this.hidden||this.dead)return false;
+  const sequence=this.sequence;
+  const ready=await this.audio.readyForCue?.('ui_audio_on');
+  // A late download must never chime after mute, a hidden tab or a death.
+  if(!ready||!this.soundOn||this.hidden||this.dead||this.sequence!==sequence)return false;
+  return !!this.audio.playEvent('ui_audio_on',{force:true});
  }
  play(kind,minInterval=.16,position=null){
   if(!this.soundOn||this.hidden)return false;
