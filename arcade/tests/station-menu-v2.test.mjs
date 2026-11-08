@@ -75,7 +75,7 @@ test('disabled local station modules explain the missing alloy',()=>{
 
 test('production loads final quiet layer, real art and reduced-motion/mobile rules',()=>{
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-const finalCss='./station-menu-v2.css?v=station-menu-v2-7';
+const finalCss='./station-menu-v2.css?v=station-menu-v2-8-sketch';
  assert.ok(html.includes(finalCss));
  assert.ok(html.indexOf(finalCss)>html.indexOf('./progression-art.css'));
  assert.match(html,/game\.js\?v=[^"\n]*station-menu-v2-1/,
@@ -99,7 +99,7 @@ const finalCss='./station-menu-v2.css?v=station-menu-v2-7';
 test('development presentation uses the same quiet cards and honest portraits',()=>{
  const css=readFileSync(new URL('../progression-art.css',import.meta.url),'utf8');
  const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.match(index,/progression-art\.css\?v=progression-art-5/);
+ assert.match(index,/progression-art\.css\?v=progression-art-6-sketch/);
  assert.match(css,/\.prog-orbit-center img/);
  assert.match(css,/\.prog-domain\[aria-pressed=true\]/);
  assert.match(css,/\.prog-action:disabled/);

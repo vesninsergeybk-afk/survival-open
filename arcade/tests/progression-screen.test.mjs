@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {existsSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {join,dirname} from 'node:path';
 import {progressionModel,renderProgressionScreen,paintProgressionLinks} from '../progression-screen.js';
@@ -124,6 +124,46 @@ test('all referenced generated images are present as independent assets',()=>{
    assert.equal(existsSync(join(root,match[1])),true,'missing '+match[1]);
   }
  }
+});
+
+test('the visual graph has honest tier labels, real prerequisite links and readable non-color statuses',()=>{
+ const g=docked();g.player.level=7;g.player.points=2;g.developmentTactic='pulse';
+ const tactical=renderProgressionScreen(state(g,'tactics'));
+ assert.match(tactical,/class="prog-graph"/);
+ assert.match(tactical,/class="prog-tier-track"/);
+ assert.match(tactical,/data-requires="tactic-pulse"/);
+ assert.match(tactical,/class="prog-graph-key"/);
+ assert.match(tactical,/Закрыто или требует ресурсов/);
+ assert.match(tactical,/0\/2 · /);
+ assert.doesNotMatch(renderProgressionScreen(state(g,'network')),/data-requires=/,
+  'station destinations are navigation cards, never a fictitious skill tree');
+});
+
+test('menu sketches use existing artwork plus the exact lightweight vector pieces they need',()=>{
+ const root=dirname(fileURLToPath(new URL('../index.html',import.meta.url)));
+ const development=readFileSync(join(root,'progression-art.css'),'utf8');
+ const station=readFileSync(join(root,'station-menu-v2.css'),'utf8');
+ for(const asset of ['studio/menu-kit/art/ui/progression-grid.svg',
+  'studio/menu-kit/art/ui/nav-development.svg','studio/menu-kit/art/ui/panel-hatch.svg',
+  'assets/progression/frames/node_selected.webp']){
+  assert.ok(existsSync(join(root,asset)),asset);
+ }
+ assert.match(development,/progression-grid\.svg/);
+ assert.match(development,/\.prog-graph-key/);
+ assert.match(development,/\.prog-tier-track/);
+ assert.match(station,/nav-development\.svg/);
+ assert.match(station,/\.base-overview-lead/);
+});
+
+test('station and direct progression routes both load the newest renderer after publication',()=>{
+ const root=dirname(fileURLToPath(new URL('../index.html',import.meta.url)));
+ const files=['development-panel.js','base-panel.js','game.js'];
+ for(const file of files){
+  const source=readFileSync(join(root,file),'utf8');
+  assert.match(source,/progression-art-6-sketch/,file+' must change the import URL with the design');
+ }
+ const page=readFileSync(join(root,'index.html'),'utf8');
+ assert.match(page,/game\.js\?v=[^"\n]*menu-sketch-1/);
 });
 
 test('tree connectors cannot create scrollbars on short branches and grow for long ones',()=>{

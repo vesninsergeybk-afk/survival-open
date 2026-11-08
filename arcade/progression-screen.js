@@ -208,20 +208,29 @@ export function progressionModel(state){
 }
 
 function nodeHtml(node,selected){
+ const labels={ready:'Доступно',mastered:'Изучено',waiting:'Нужны ресурсы',locked:'Закрыто',
+  exclusive:'Другой путь',info:'Оснащение'};
+ const progress=node.kind==='navigation'?'Раздел станции':node.kind==='equipment'?(node.rank?'Установлено':'Оснащение'):
+  node.rank+'/'+node.max+' · '+(labels[node.status]||'Сведения');
  return '<button type="button" class="prog-node" data-act="devFocus" data-id="'+esc(node.id)+'" data-node="'+esc(node.id)+'"'+
   (node.requires?' data-requires="'+esc(node.requires)+'"':'')+' data-status="'+esc(node.status)+'" aria-pressed="'+(selected?.id===node.id)+'"'+
   ' aria-label="'+esc(node.title)+', '+esc(node.status==='mastered'?'изучено':node.reason||'доступно')+'">'+
   '<span class="prog-node-art"><img src="'+art('frames','node_'+(selected?.id===node.id?'selected':node.status==='mastered'?'mastered':node.status==='ready'||node.status==='info'?'ready':'locked'))+'" alt="" class="prog-node-frame">'+
   '<img src="'+esc(node.icon)+'" alt="" class="prog-node-glyph"></span>'+
-  '<strong>'+esc(node.title)+'</strong><small>'+(node.kind==='navigation'?'Открыть раздел':node.kind==='equipment'?(node.rank?'Установлено':'Оснащение'):node.rank+'/'+node.max+
-   (node.status==='ready'?' · доступно':node.status==='mastered'?' · изучено':''))+'</small></button>';
+  '<strong>'+esc(node.title)+'</strong><small>'+esc(progress)+'</small></button>';
 }
 
 function treeHtml(nodes,selected){
  const groups=new Map();for(const node of nodes){const level=node.level||1;if(!groups.has(level))groups.set(level,[]);groups.get(level).push(node);}
- return '<div class="prog-tree" aria-label="Настоящие навыки и условия развития"><svg class="prog-tree-links" aria-hidden="true"></svg>'+
-  [...groups].sort(([a],[b])=>a-b).map(([level,entries])=>'<section class="prog-tier"><h3>'+(entries.every(n=>n.kind==='navigation')?'Системы станции':'Уровень '+level)+'</h3><div class="prog-tier-nodes">'+
-    entries.map(n=>nodeHtml(n,selected)).join('')+'</div></section>').join('')+'</div>';
+ return '<div class="prog-graph"><div class="prog-graph-head"><span>СХЕМА РАЗВИТИЯ</span><small>Выберите узел — справа появятся эффект и условия.</small></div>'+
+  '<div class="prog-tree" aria-label="Навыки по уровням и реальные связи между ними"><svg class="prog-tree-links" aria-hidden="true"></svg>'+
+  [...groups].sort(([a],[b])=>a-b).map(([level,entries])=>{
+   const station=entries.every(n=>n.kind==='navigation');
+   return '<section class="prog-tier" aria-label="'+(station?'Системы станции':'Уровень '+level)+'">'+
+    '<div class="prog-tier-track"><span class="prog-tier-index">'+(station?'●':String(level).padStart(2,'0'))+'</span><h3>'+
+    (station?'Системы станции':'Уровень '+level)+'</h3></div><div class="prog-tier-nodes">'+
+    entries.map(n=>nodeHtml(n,selected)).join('')+'</div></section>';
+  }).join('')+'</div><div class="prog-graph-key" aria-label="Обозначения"><span class="is-ready">Доступно</span><span class="is-mastered">Изучено</span><span class="is-locked">Закрыто или требует ресурсов</span></div></div>';
 }
 
 function detailHtml(node,domain,weapon,state){

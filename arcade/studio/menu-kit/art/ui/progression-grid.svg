@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="460" viewBox="0 0 760 460" fill="none">
+  <!-- Quiet technical paper behind the interactive HTML graph. No nodes, ranks or paths are baked in. -->
+  <defs>
+    <pattern id="fine" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M24 0H0V24" stroke="#86b4bd" stroke-opacity=".045" stroke-width=".7"/>
+    </pattern>
+    <pattern id="major" width="120" height="120" patternUnits="userSpaceOnUse">
+      <path d="M120 0H0V120" stroke="#96c0c4" stroke-opacity=".075"/>
+      <path d="M3 0V9M0 3H9" stroke="#b7caca" stroke-opacity=".15"/>
+    </pattern>
+  </defs>
+  <rect width="760" height="460" fill="url(#fine)"/>
+  <rect width="760" height="460" fill="url(#major)"/>
+  <g stroke="#85c1c8" stroke-opacity=".11">
+    <path d="M534 18h142l54 54v92l-42 42H550l-35-35V47Z"/>
+    <circle cx="625" cy="111" r="59"/>
+    <circle cx="625" cy="111" r="38" stroke-opacity=".65"/>
+    <path d="M614 111h22m-11-11v22M78 350v35m-17-18h35"/>
+  </g>
+  <path d="M0 448h114M645 12h115" stroke="#c7ab79" stroke-opacity=".15" stroke-width="2"/>
+  <g fill="#b8cfd0" fill-opacity=".15"><circle cx="145" cy="77" r="1.5"/><circle cx="375" cy="358" r="1"/><circle cx="698" cy="421" r="1.5"/></g>
+</svg>
