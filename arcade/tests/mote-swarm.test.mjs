@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MOTE_SWARM,updateMoteSwarmOrders,moveMote} from '../mote-swarm.js';
+import {MOTE_SWARM,updateMoteSwarmOrders,moveMote,drawMoteSwarms} from '../mote-swarm.js';
 import {updateEnemy} from '../ai.js';
 import {enemySalvage,enemyDataReward} from '../combat-rewards.js';
 import {rewardEyeKill} from '../field-loot.js';
@@ -57,6 +57,26 @@ test('one group uses one warned volley rather than a bullet per drone',()=>{
  assert.equal(game.shots.length,1);
  game.time=103.95;updateMoteSwarmOrders(game);
  assert.equal(game.shots.length,1,'the whole pack shares one cooldown');
+});
+
+test('first visible micro-drone pack shows its area-weapon hint once, even if the leader is offscreen',()=>{
+ const group=drones(4),leader=group[0];
+ leader.encounterLabel='РОЙ МИКРОДРОНОВ · используйте комету или мины';
+ const words=[];
+ const c=new Proxy({fillText(value){words.push(value);}},
+  {get(target,key){return target[key]??(()=>{});}});
+ const distant={x:-500,y:-500,w:100,h:100};
+ drawMoteSwarms(c,group,distant,99,true);
+ assert.equal(leader.encounterLabelStart,undefined,'offscreen encounter does not waste hint time');
+ // The leader stays outside but its group enters the viewport.
+ leader.x=500;
+ const visible={x:200,y:-10,w:150,h:100};
+ drawMoteSwarms(c,group,visible,100,true);
+ assert.equal(leader.encounterLabelStart,100);
+ assert.ok(words.includes(leader.encounterLabel),'the swarm must actually paint its tactical hint');
+ words.length=0;
+ drawMoteSwarms(c,group,visible,104,true);
+ assert.ok(!words.includes(leader.encounterLabel),'the cue must not obscure the fight indefinitely');
 });
 
 test('no firing through blocked sight, and frozen members respect stasis',()=>{

@@ -1,4 +1,4 @@
-import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1-first-loops-1';
+import {DEFAULT_CONTROLS,readableKey,isMapShortcut} from './control-layout.js?v=control-audit-1';
 const states=new WeakMap();
 export const menuReturnLabels=Object.freeze({
  base:'К станции',map:'К карте',skills:'К навыкам пилота',evolution:'К выбору способности',
@@ -37,7 +37,10 @@ export function openSystemMenu(game,doc=globalThis.document){
  if(keyPanel)keyPanel.open=!!doc.querySelector('[data-settings-tab="keys"][aria-selected="true"]');
  const controls=game.controls||DEFAULT_CONTROLS;
  for(const node of doc.querySelectorAll('[data-control-help]'))node.textContent=node.dataset.controlHelp==='flight'?
-  ['up','left','down','right'].map(id=>readableKey(controls[id])).join(' / '):readableKey(controls[node.dataset.controlHelp]);
+  ['up','left','down','right'].map(id=>readableKey(controls[id])).join(' / '):
+  node.dataset.controlHelp==='map'?[...new Set([controls.map,'Tab','KeyM'])]
+   .filter(code=>isMapShortcut(code,controls)).map(readableKey).join(' / '):
+  readableKey(controls[node.dataset.controlHelp]);
  dialog.showModal();doc.getElementById('systemResume')?.focus({preventScroll:true});return true;
 }
 export function closeSystemMenu(game,doc=globalThis.document){

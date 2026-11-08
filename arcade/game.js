@@ -2,7 +2,7 @@ import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningH
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1';
 import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-4-menu-consistency-2';
 import {paintProgressionLinks} from './progression-screen.js?v=progression-art-4-menu-consistency-2';
-import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2';
+import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
@@ -49,9 +49,9 @@ import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
-import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut} from './control-layout.js?v=swarm-controls-1';
-import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=swarm-controls-1';
-import {manualWeapons,selectedManual,cycleManual,manualClick} from './manual-weapon-controls.js?v=mouse-arms-1';
+import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1';
+import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1';
+import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
@@ -63,7 +63,7 @@ import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPositi
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
  advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1-mission-choices-1';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1-mission-choices-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1-mission-choices-1-control-audit-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue,relayWavePlan,
@@ -411,6 +411,11 @@ export class ArcadeGame {
    if(document.getElementById?.('gameMenuDialog')?.open||document.getElementById?.('creditsDialog')?.open)return;
    if(!launchOpen&&!this.overlay.hidden&&keepTabInMenu(e,this.overlay))return;
    if(launchOpen)return;
+   if(!this.overlay.hidden&&this.overlay.dataset.mode==='map'&&!e.repeat&&
+      !e.ctrlKey&&!e.metaKey&&!e.altKey&&isMapCloseShortcut(e.code,this.controls)&&
+      !e.target?.closest?.('input,textarea,select,[contenteditable="true"]')){
+    e.preventDefault();this.goBackInMenu();return;
+   }
    if(!e.ctrlKey&&!e.metaKey&&!e.altKey&&this.overlay.dataset.mode==='evolution'&&!this.overlay.hidden&&this.fieldEvolution?.offers.length&&
     ['Digit1','Digit2','Digit3'].includes(e.code)&&!e.repeat&&
     !e.target?.closest?.('input,textarea,select,[contenteditable="true"]')){
@@ -900,18 +905,19 @@ export class ArcadeGame {
    if(this.paused||this.dead||!this.overlay.hidden||aimStart)return;
    this.tacticalPointer={x:e.clientX,y:e.clientY};
    if(e.button!==0&&e.button!==2)return;
+   // An optional Ctrl+LMB click restores manual priority without changing
+   // the everyday comet / mine buttons or consuming their cooldowns.
    const weapon=selectedManual(this.selectedManualWeapon,this.manualWeaponsHere());
-   const kind=e.button===2||e.pointerType==='touch'&&this.mobileMineArmed?'mines':
-    weapon==='comet'?'comet':null;
+   const {kind,mark}=pointerWeaponAction(e,weapon,this.mobileMineArmed);
    if(kind){
     const ready=canAimMouseWeapon(this,kind);
     if(!ready.ok){this.notice(ready.reason,1.5);e.preventDefault();return;}
    }
-   aimStart={id:e.pointerId,x:e.clientX,y:e.clientY,kind,button:e.button};
+   aimStart={id:e.pointerId,x:e.clientX,y:e.clientY,kind,button:e.button,mark};
    const point=worldAt(e.clientX,e.clientY);
    if(kind&&point)this.mouseAim={kind,point,clientX:e.clientX,clientY:e.clientY};
    try{this.canvas.setPointerCapture?.(e.pointerId);}catch{}
-   if(e.button===2)e.preventDefault();
+   if(e.button===2||mark)e.preventDefault();
    // On touch, a manual rail uses a tap to shoot. Holding a target always
    // remains an available way to designate it for automatic weapons.
    if(!kind&&e.pointerType==='touch'&&this.manualRailMode){
@@ -939,10 +945,11 @@ export class ArcadeGame {
    if(!aimStart||e.pointerId!==aimStart.id)return;
    cancelLongPress();
    const moved=Math.hypot(e.clientX-aimStart.x,e.clientY-aimStart.y);
-   const held=!!aimStart.longPress,kind=aimStart.kind;
+   const held=!!aimStart.longPress,kind=aimStart.kind,mark=aimStart.mark;
    aimStart=null;this.mouseAim=null;
    if(this.paused||this.dead||!this.overlay.hidden)return;
    const worldPoint=worldAt(e.clientX,e.clientY);if(!worldPoint)return;
+   if(mark){if(!held&&moved<=14)this.designateTargetAt(worldPoint);return;}
    if(kind){this.fireActiveMouseWeapon(kind,worldPoint);
     if(e.pointerType==='touch')this.mobileMineArmed=false;
     return;

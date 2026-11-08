@@ -111,7 +111,7 @@ test('local map puts destinations above optional reports and displays remapped c
  const game={world,player:{x:0,y:0},time:0,skillRanks:{},enemyBasesUnlocked:()=>false,mapView:'targets',controls:{...DEFAULT_CONTROLS,map:'KeyG',skills:'KeyJ'}};
  const html=renderWorldMap(game);
  assert.ok(html.indexOf('Обнаруженные станции')<html.indexOf('<details class="map-world-details">'));
- assert.match(html,/G \/ Tab \/ M — карта · J — развитие/);
+ assert.match(html,/G \/ M \/ Esc — назад · Tab — по кнопкам · J — развитие/);
 });
 test('Escape opens pause even when the flight menu button has focus',()=>{
  const {doc,game,nodes}=nativeScene(),priorDoc=globalThis.document,priorWindow=globalThis.window;
@@ -127,6 +127,35 @@ test('Escape opens pause even when the flight menu button has focus',()=>{
   const key={code:'Escape',key:'Escape',repeat:false,target:{closest:()=>nodes.get('menuBtn')},preventDefault(){prevented=true;}};
   for(const fn of listeners.keydown)fn(key);
   assert.ok(nodes.get('gameMenuDialog').open);assert.ok(game.paused);
+ }finally{globalThis.document=priorDoc;globalThis.window=priorWindow;}
+});
+
+test('M closes an open map without triggering flight actions, including remapped map keys',()=>{
+ const {doc,game}=nativeScene('map',true),priorDoc=globalThis.document,priorWindow=globalThis.window;
+ const fallback={hidden:true,open:false,style:{},addEventListener(){}},listeners={};
+ const get=doc.getElementById;
+ doc.getElementById=id=>id==='creditsDialog'?null:get(id)||fallback;
+ doc.addEventListener=(type,fn)=>(listeners[type]||=[]).push(fn);
+ game.overlay.addEventListener=()=>{};game.bindControlSettings=()=>{};
+ game.goBackInMenu=()=>{game.overlay.hidden=true;game.paused=false;};
+ game.startBurst=()=>assert.fail('closing the map must never perform a dash');
+ globalThis.document=doc;globalThis.window={addEventListener(){}};
+ try{
+  RuntimeHarness.prototype.bind.call(game);
+  const send=code=>{
+   let prevented=false;
+   for(const fn of listeners.keydown)fn({code,key:code==='Tab'?'Tab':'m',repeat:false,
+    target:{closest:()=>null},preventDefault(){prevented=true;}});
+   return prevented;
+  };
+  assert.ok(send('KeyM'));
+  assert.equal(game.overlay.hidden,true);
+  game.overlay.hidden=false;game.overlay.dataset.mode='map';game.paused=true;
+  game.controls={...DEFAULT_CONTROLS,map:'KeyN',dash:'KeyM'};
+  assert.equal(send('KeyM'),false,'a player-assigned M must not be stolen by the map');
+  assert.equal(game.overlay.hidden,false);
+  assert.ok(send('KeyN'));
+  assert.equal(game.overlay.hidden,true);
  }finally{globalThis.document=priorDoc;globalThis.window=priorWindow;}
 });
 

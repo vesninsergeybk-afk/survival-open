@@ -56,6 +56,10 @@ export function isMapShortcut(code,bindings=DEFAULT_CONTROLS){
  if(code!=='Tab'&&code!=='KeyM')return false;
  return !Object.entries(bindings).some(([action,key])=>action!=='map'&&key===code);
 }
+// Tab is kept for keyboard focus navigation once the interactive map is open.
+// M (or a remapped non-Tab map key) closes it without stealing another action.
+export const isMapCloseShortcut=(code,bindings=DEFAULT_CONTROLS)=>
+ code!=='Tab'&&isMapShortcut(code,bindings);
 
 // UI copy inherited from mission descriptions uses E as its interaction token.
 export function interactionCopy(text,controls=DEFAULT_CONTROLS){

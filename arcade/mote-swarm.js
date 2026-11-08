@@ -133,6 +133,17 @@ export function drawMoteSwarms(c,enemies,cam,t,reducedMotion=false){
    c.globalAlpha=.76;c.fillStyle='#8dd8ff';c.font='bold 10px system-ui';
    c.textAlign='center';c.fillText('РОЙ ×'+members.length,center.x,center.y-46);
   }
+  // The ordinary enemy renderer skips micro-drones, so their encounter cue
+  // must be painted here. Its timer starts only when the pack is visible.
+  const cue=members.find(e=>e.encounterLabel);
+  if(cue){
+   if(cue.encounterLabelStart===undefined)cue.encounterLabelStart=t;
+   if(t-cue.encounterLabelStart<3){
+    c.globalAlpha=.95;c.fillStyle='#ffe0b1';c.font='bold 11px system-ui';
+    c.textAlign='center';c.shadowColor='#071322';c.shadowBlur=7;
+    c.fillText(cue.encounterLabel,center.x,center.y-70,350);c.shadowBlur=0;
+   }
+  }
  }
  c.restore();
  for(const e of enemies){
