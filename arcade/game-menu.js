@@ -5,6 +5,7 @@ export const menuReturnLabels=Object.freeze({
  'run-start':'К сохранению',death:'К итогам вылета','opening-choice':'К выбору сигнала',
  'opening-reward':'К награде'
 });
+const dockReturnLabels=Object.freeze({summary:'К обзору',operations:'К заданиям',hangar:'К кораблю',development:'К развитию',network:'К станции'});
 export function restoreSystemMenu(game,doc=globalThis.document){
  const prior=states.get(game);if(!prior)return false;
  states.delete(game);game.bindingCapture=null;
@@ -22,13 +23,16 @@ export function openSystemMenu(game,doc=globalThis.document){
  game.heritage.pause('menu');
  const restricted=game.dead||(!game.overlay.hidden&&['run-start','opening-choice','opening-reward'].includes(game.overlay.dataset.mode));
  const currentScreen=game.overlay.hidden?'flight':game.overlay.dataset.mode;
+ const pilotVisibleAsCurrent=currentScreen==='skills'||
+  (currentScreen==='base'&&game.baseTab==='development'&&game.developmentDomain==='pilot');
  for(const [id,screen] of [['systemMap','map'],['systemSkills','skills']]){
   const button=doc.getElementById(id);if(!button)continue;
   button.disabled=restricted;
-  button.hidden=currentScreen===screen;
+  button.hidden=screen==='skills'?pilotVisibleAsCurrent:currentScreen===screen;
  }
  const resume=doc.getElementById('systemResume');
- if(resume)resume.textContent=game.overlay.hidden?'Продолжить полёт':menuReturnLabels[game.overlay.dataset.mode]||'Назад';
+ if(resume)resume.textContent=game.overlay.hidden?'Продолжить полёт':currentScreen==='base'?
+  dockReturnLabels[game.baseTab]||menuReturnLabels.base:menuReturnLabels[currentScreen]||'Назад';
  const keyPanel=doc.getElementById('controlSettings');
  if(keyPanel)keyPanel.open=!!doc.querySelector('[data-settings-tab="keys"][aria-selected="true"]');
  const controls=game.controls||DEFAULT_CONTROLS;
