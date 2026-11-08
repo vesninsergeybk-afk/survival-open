@@ -1,4 +1,4 @@
-import { SOUND_CATALOG, BUS_PRESET } from './sound-map.js?v=foley-autofire-03-mission-av-1';
+import { SOUND_CATALOG, BUS_PRESET } from './sound-map.js?v=foley-autofire-03-mission-av-1-mission-variety-1';
 
 /**
  * Isolated sound-lab engine. Shared by the audio laboratory and the live production game. Native Web Audio; no dependencies and no network calls

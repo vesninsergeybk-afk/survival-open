@@ -210,7 +210,9 @@ export function renderWorldMap(game){
    operation.id===RELAY_DEFENSE.id?'Ретранслятор':
     operation.id===CARRIER_INTERCEPTION.id?(operation.phase==='return'?'Авианосец · сдача сведений':
      operation.phase==='approach'?'Район встречи':'Движущийся груз'):
-    isFieldOperation(operation)?(operation.phase==='return'?'Сдать вылазку':operation.name):
+    isFieldOperation(operation)?(operation.phase==='return'?'Сдать вылазку':
+     operation.id==='line-break'&&operation.stage==='sync'?'Сопряжение узлов':
+     operation.id==='false-call'&&operation.signalStage==='uplink'?'Ответный маяк':operation.name):
     operation.phase==='return'?'Док · передать данные':'Глушитель'):
    previewProbe?'Область поиска зонда':previewRelay?'Ретранслятор':
    previewCarrier?'Район встречи':previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
@@ -218,6 +220,13 @@ export function renderWorldMap(game){
  const fieldSites=isFieldOperation(operation)?(
   operation.id==='deep-resonance'?numberedSites(operation.samples).filter(v=>!v.site.done):
   operation.id==='two-fronts'?numberedSites(operation.nodes):
+  operation.id==='line-break'&&operation.stage==='sync'&&operation.link?[{site:operation.link,index:2}]:
+  operation.id==='false-call'&&operation.signalStage==='uplink'&&operation.uplink?
+   [{site:operation.uplink,index:3}]:
+  operation.id==='sleeping-reactor'?
+   numberedSites(operation.nodes).filter(v=>!v.site.done).concat(
+    operation.progress===1&&!operation.cooled&&operation.coolant?
+     [{site:operation.coolant,index:2}]:[]):
   ['line-break','sleeping-reactor'].includes(operation.id)?numberedSites(operation.nodes).filter(v=>!v.site.done):
   operation.id==='false-call'?numberedSites(operation.beacons).filter(v=>!v.site.checked):
   operation.id==='broken-convoy'?(operation.crate?[{site:operation.crate,index:0}]:
@@ -231,9 +240,15 @@ export function renderWorldMap(game){
    (intact?'#ddafff':'#ff918e')+'" stroke-width="2"/>'+
    '<text x="'+(mark.x+14).toFixed(1)+'" y="'+(mark.y+14).toFixed(1)+
    '" fill="#edd7fa" font-size="10">'+
-   (['two-fronts','line-break'].includes(operation.id)?'Узел ':
+   (operation.id==='line-break'&&operation.stage==='sync'?'Сопряжение ':
+    operation.id==='false-call'&&operation.signalStage==='uplink'?'Ответный маяк ':
+    operation.id==='sleeping-reactor'&&index===2?'Клапан охлаждения ':
+    ['two-fronts','line-break'].includes(operation.id)?'Узел ':
     operation.id==='false-call'?'Маяк ':operation.id==='sleeping-reactor'?'Кассета ':
-    operation.id==='broken-convoy'?'Маршрут ':'Руда ')+(index+1)+'</text>';
+    operation.id==='broken-convoy'?'Маршрут ':'Руда ')+
+   (operation.id==='line-break'&&operation.stage==='sync'||
+    operation.id==='false-call'&&operation.signalStage==='uplink'||
+    operation.id==='sleeping-reactor'&&index===2?'':index+1)+'</text>';
  }).join('');
  const ambush=operation?.radio==='sent'&&!operation.pursuitStarted&&world.stations.get(operation.baseId);
  const ambushMark=ambush?(()=>{

@@ -97,7 +97,8 @@ test('all new mission sounds have recorded and provably licensed sources',()=>{
  const keys=['mission_emp_charge','mission_emp_pulse','mission_probe_weld',
   'mission_probe_ready','mission_relay_wave','mission_relay_impact',
   'mission_relay_online','mission_carrier_contact','mission_carrier_boost',
-  'field_scan_captured','field_reactor_charge'];
+  'field_scan_captured','field_reactor_charge','field_uplink_start',
+  'field_uplink_ready','field_link_sync','field_reactor_cool'];
  const heritage=new ArcadeHeritage(),heard=[];
  heritage.soundOn=true;heritage.audio={playEvent:key=>heard.push(key)};
  heritage.vfx.clock=13;
@@ -115,4 +116,13 @@ test('all new mission sounds have recorded and provably licensed sources',()=>{
   assert.equal(heritage.play(name,.05),true,name);
  }
  assert.equal(heard.length,10);
+});
+
+test('new relay sync and counter-signal cue names resolve to recorded audio',()=>{
+ const heritage=new ArcadeHeritage(),events=[];
+ heritage.soundOn=true;heritage.audio={playEvent:key=>events.push(key)};
+ for(const key of ['fieldLinkSync','fieldUplinkStart','fieldUplinkReady','fieldReactorCool'])
+  assert.equal(heritage.play(key,.1),true,key);
+ assert.deepEqual(events,['field_link_sync','field_uplink_start','field_uplink_ready',
+  'field_reactor_cool']);
 });
