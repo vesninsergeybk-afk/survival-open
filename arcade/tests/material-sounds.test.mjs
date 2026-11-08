@@ -82,15 +82,16 @@ test('game mining loop does not emit a gunshot on each resource tick',()=>{
  assert.doesNotMatch(game,/kind\s*===\s*['"]extract['"]\s*\)\s*this\.heritage\.play\(['"]laser['"]/);
 });
 
-test('starter auto-fire combines five pairs of physically recorded impacts',()=>{
+test('starter auto-fire combines five pairs of field-recorded impulses',()=>{
  const cue=SOUND_CATALOG.starter_soft;
  assert.equal(cue?.profile,'softpulse');
  assert.equal(cue?.sampleUrls.length,5);
  assert.equal(cue?.sampleLayerUrls.length,5);
- assert(cue.sampleUrls.every(path=>path.includes('/kenney/impactMetal_medium_')));
- assert(cue.sampleLayerUrls.every(path=>path.includes('/kenney/impactSoft_medium_')));
+ assert(cue.sampleUrls.every(path=>path.includes('/foley/')));
+ assert(cue.sampleLayerUrls.every(path=>path.includes('/foley/')));
  assert(!cue.sampleUrls.concat(cue.sampleLayerUrls).some(path=>path.includes('laser')));
- assert.equal(cue.layerGain,.3);
+ assert.equal(cue.layerGain,.19);
+ assert.equal(cue.fixedPitch,true);
  const mixer=new AudioLabEngine();
  assert.equal(mixer.bufferByKey.has('starter_soft'),false);
  assert.equal(mixer.layerBuffersByKey.has('starter_soft'),false);

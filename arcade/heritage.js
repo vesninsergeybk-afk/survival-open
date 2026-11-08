@@ -1,5 +1,5 @@
 import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1';
-import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1';
+import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=foley-autofire-03';
 
@@ -60,6 +60,7 @@ export class ArcadeHeritage {
   this.vfx=new WorldVFX();
   this.settings={...storedVolumes(),musicEnabled:false,muted:true};
   this.audio=new AudioEngine(this.settings);
+  this.audio.primeEssentials();
   this.soundOn=false;this.lastSound=Object.create(null);
   this.autoFireRun=0;this.lastAutoShotAt=-Infinity;
   this.musicCheck=0;this.musicElapsed=0;this.music=new AdaptiveMusicDirector();

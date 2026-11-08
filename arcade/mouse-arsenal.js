@@ -191,14 +191,28 @@ export function drawMouseArsenal(ctx,game){
   ctx.beginPath();ctx.arc(b.x,b.y,radius*.72,0,TAU);ctx.stroke();
   ctx.globalAlpha=fade*.3;ctx.fillStyle=bright;
   ctx.beginPath();ctx.arc(b.x,b.y,b.radius*.28*(1-k),0,TAU);ctx.fill();
-  if(quality&&!blocked){
-   const shards=comet?12:7;ctx.strokeStyle=bright;ctx.lineWidth=comet?2.1:1.4;
+  // A weaker device keeps the silhouette of the blast; only detail count falls.
+  const shards=blocked||reduced?0:game.fps<24?3:game.fps<36?5:comet?12:7;
+  if(shards){
+   ctx.strokeStyle=bright;ctx.lineWidth=comet?2.1:1.4;
    for(let i=0;i<shards;i++){
     const a=i*TAU/shards+.42,inner=b.radius*(.22+.43*k);
     const outerEdge=inner+b.radius*(comet?.2:.14)*(1-k);
     ctx.globalAlpha=fade*(i%3===0?.8:.48);
     ctx.beginPath();ctx.moveTo(b.x+Math.cos(a)*inner,b.y+Math.sin(a)*inner);
     ctx.lineTo(b.x+Math.cos(a)*outerEdge,b.y+Math.sin(a)*outerEdge);ctx.stroke();
+   }
+  }
+  if(!comet&&!blocked&&!reduced){
+   // Mine detonation: four angular electrical cuts, unlike the comet's
+   // broad, circular shock front. Keep only two on a slow device.
+   const cuts=game.fps<28?2:4;
+   ctx.strokeStyle='#b6c9ff';ctx.lineWidth=1.3;ctx.globalAlpha=fade*.62;
+   for(let i=0;i<cuts;i++){
+    const a=i*TAU/cuts+Math.PI/4+k*.22;
+    const start=b.radius*(.18+.26*k),end=start+b.radius*.13*(1-k);
+    ctx.beginPath();ctx.moveTo(b.x+Math.cos(a)*start,b.y+Math.sin(a)*start);
+    ctx.lineTo(b.x+Math.cos(a+.07)*end,b.y+Math.sin(a+.07)*end);ctx.stroke();
    }
   }
  }

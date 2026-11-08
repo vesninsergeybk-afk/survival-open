@@ -1,11 +1,12 @@
 /**
- * Public sound library contract. The 58 Kenney audio assets are pinned in
- * kenney/manifest.json and installed into the Pages bundle by the workflow.
+ * Public sound library contract. Remote Kenney and packaged Foley recordings
+ * are pinned by separate manifests.
  */
 import assert from 'node:assert/strict';
 import {readFileSync, existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname,resolve} from 'node:path';
+import {createHash} from 'node:crypto';
 import {WEAPONS} from '../src/data.js';
 import {WEAPON_SOUNDS,EVENT_SOUNDS,BASE_SOUNDS,AUX_SOUNDS,SOUND_CATALOG} from './sound-map.js';
 
@@ -17,7 +18,7 @@ assert.deepEqual(Object.keys(WEAPON_SOUNDS).filter(id=>id!=='starter_soft').sort
 const source=JSON.parse(readFileSync(resolve(here,'assets/sfx/kenney/manifest.json'),'utf8'));
 assert.equal(source.license,'CC0-1.0');
 assert.match(source.sourceCommit,/^[a-f0-9]{40}$/);
-assert.equal(source.files.length,58,'All verified Kenney sources should be pinned');
+assert.equal(source.files.length,36,'Only referenced Kenney files should be pinned');
 const names=new Set(source.files.map(entry=>{
  assert.match(entry.blobSha,/^[a-f0-9]{40}$/);
  assert(entry.size>0);
@@ -29,6 +30,26 @@ const referenced=new Set(Object.values(SOUND_CATALOG).flatMap(def=>
  .filter(url=>url.includes('/kenney/')).map(url=>url.split('/').at(-1))));
 assert.deepEqual([...referenced].sort(),[...names].sort(),
  'Every downloaded CC0 recording should actually be used by an audible event');
+
+const foley=JSON.parse(readFileSync(resolve(here,'assets/sfx/foley/manifest.json'),'utf8'));
+assert.equal(foley.license,'CC0-1.0');
+assert.equal(foley.files.length,28,'Recorded Foley library must be complete');
+const durations=new Map();
+for(const entry of foley.files){
+ assert.match(entry.sha256,/^[a-f0-9]{64}$/);
+ assert(entry.seconds>.15&&entry.seconds<2,'Foley cue has unexpected duration: '+entry.file);
+ const data=readFileSync(resolve(here,'assets/sfx/foley',entry.file));
+ assert.equal(data.subarray(0,4).toString(),'OggS','Invalid Foley file: '+entry.file);
+ assert.equal(createHash('sha256').update(data).digest('hex'),entry.sha256,
+  'Published Foley data changed: '+entry.file);
+ assert(!durations.has(entry.file),'Duplicate recorded Foley: '+entry.file);
+ durations.set(entry.file,entry.seconds);
+}
+const foleyReferences=new Set(Object.values(SOUND_CATALOG).flatMap(def=>
+ [...(def.sampleUrls?.length?def.sampleUrls:def.sampleUrl?[def.sampleUrl]:[]),...(def.sampleLayerUrls||[])]
+ .filter(url=>url.includes('/foley/')).map(url=>url.split('/').at(-1))));
+assert.deepEqual([...foleyReferences].sort(),[...durations.keys()].sort(),
+ 'Every packaged recorded file should be used by an audible event');
 
 let local=0,remote=0;
 for(const [id,def] of Object.entries(SOUND_CATALOG)){
@@ -67,14 +88,22 @@ for(const name of ['comet_launch','comet_burst','mine_launch','mine_arm','mine_b
  assert(def?.sampleUrls?.length&&def?.sampleLayerUrls?.length,
   'Combat mechanic needs a separately mixed, recorded attack and body: '+name);
  assert.equal(def.sampleUrls.length,def.sampleLayerUrls.length);
- assert(def.maxDuration>0&&def.maxDuration<=1.05,'Combat effects must have short, legible tails');
+ assert(def.fixedPitch,'Recorded combat Foley must keep its natural pitch');
+ const longest=Math.max(...[...def.sampleUrls,...def.sampleLayerUrls]
+  .map(url=>durations.get(url.split('/').at(-1))||0));
+ assert(def.maxDuration>=longest-.02,
+  'Combat effect is being truncated: '+name+' '+def.maxDuration+' < '+longest);
 }
 assert.equal(Object.keys(BASE_SOUNDS).length,29);
 assert.equal(Object.keys(EVENT_SOUNDS).length,13);
 assert.equal(WEAPON_SOUNDS.starter_soft.sampleUrls.length,5);
 assert.equal(WEAPON_SOUNDS.starter_soft.sampleLayerUrls.length,5);
-assert(WEAPON_SOUNDS.starter_soft.sampleUrls.every(u=>u.includes('impactMetal_medium_')));
-assert(WEAPON_SOUNDS.starter_soft.sampleLayerUrls.every(u=>u.includes('impactSoft_medium_')));
+assert(WEAPON_SOUNDS.starter_soft.sampleUrls.every(u=>u.includes('/foley/')));
+assert(WEAPON_SOUNDS.starter_soft.sampleLayerUrls.every(u=>u.includes('/foley/')));
+assert(WEAPON_SOUNDS.starter_soft.fixedPitch);
+assert(WEAPON_SOUNDS.starter_soft.maxDuration>=Math.max(...[
+ ...WEAPON_SOUNDS.starter_soft.sampleUrls,...WEAPON_SOUNDS.starter_soft.sampleLayerUrls
+ ].map(url=>durations.get(url.split('/').at(-1))||0))-.02);
 assert(![...WEAPON_SOUNDS.starter_soft.sampleUrls,...WEAPON_SOUNDS.starter_soft.sampleLayerUrls].some(u=>u.includes('laser')),
  'Starter auto-fire must never use electronic laser beeps');
 assert(existsSync(resolve(here,'assets/sfx/studio/SOURCES.md')));
@@ -88,4 +117,5 @@ assert(!mixer.includes('createOscillator('),'Mixer still synthesises tones');
 assert(!mixer.includes('synthesize('),'Missing audio must remain silent');
 console.log('Survivor audio: '+Object.keys(SOUND_CATALOG).length+
  ' recorded events, '+source.files.length+' pinned Kenney CC0 OGGs, '+
- remote+' source-file links, '+local+' bundled CC0 references, zero procedural game voices.');
+ foley.files.length+' physically recorded Foley OGGs, '+remote+' source-file links, '+local+
+ ' bundled CC0 references, zero procedural game voices.');

@@ -29,6 +29,16 @@ test('first dock is free, gives precisely one 20-alloy starter drone',()=>{
  assert.match(v,/После подключения/);
 });
 
+test('the station modal offers its own working sound toggle',()=>{
+ const dock=base('dock',{active:true});
+ const silent=renderBasePanel(dock,state({soundOn:false}));
+ assert.match(silent,/data-act="toggleAudio">♫ Включить звук<\/button>/);
+ const audible=renderBasePanel(dock,state({soundOn:true}));
+ assert.match(audible,/data-act="toggleAudio">🔊 Звук включён<\/button>/);
+ const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ assert.match(source,/if\(act==='toggleAudio'\)/,'station click must reach the audio toggle');
+});
+
 test('additional bases have rising, capped activation prices and no repeat reward',()=>{
  assert.deepEqual([0,1,2,3,10,100].map(activationCost),[0,24,34,44,84,84]);
  const o=baseOffer(base('arsenal'),state({ore:10,activeBases:1}));
