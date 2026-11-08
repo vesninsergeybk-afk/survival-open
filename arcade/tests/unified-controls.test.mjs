@@ -72,6 +72,9 @@ test('optional Ctrl+LMB marks a priority target without firing the comet or mine
   {kind:'mines',mark:false},'touch mine selection is not replaced by desktop marking');
  const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(source,/if\(mark\)\{if\(!held&&moved<=14\)this\.designateTargetAt\(worldPoint\);return;\}/);
+ assert.match(source,/Для метки нет цели\. Наведите курсор на противника и нажмите Ctrl \+ ЛКМ\./);
+ assert.doesNotMatch(source,/Рядом нет цели\. Паразит отмечает врага/,
+  'a missed optional priority click should not imply that a parasite ability was activated');
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(html,/Приоритетная цель \(без выстрела\)/);
 });
