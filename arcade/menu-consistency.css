@@ -78,6 +78,7 @@
    The browser's dialog provides one continuous and discoverable scroll area. */
 #overlay .prog-tree{max-height:none;overflow:visible}
 @media(min-width:801px) and (min-height:620px){
+ #overlay:has(.map-dialog){padding:12px}
  #overlay .map-dialog .map-side{max-height:none;overflow:visible}
 }
 
