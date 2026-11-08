@@ -16,7 +16,7 @@ test('combat sample preparation does not ask to resume or play audio',async()=>{
   assert.strictEqual(audio.primeEssentials(),first,'preload should start only once');
   await first;
   assert.equal(audio.unlocked,false,'preparation is allowed while sound is muted');
-  for(const key of ['starter_soft','comet_launch','comet_burst','mine_launch','mine_arm',
+  for(const key of ['ui_audio_on','starter_soft','comet_launch','comet_burst','mine_launch','mine_arm',
    'mine_burst','target_mark','dash_burst','swarm_arrival','swarm_split','swarm_merge','swarm_warning']){
    assert(events.some(entry=>entry.key===key),'missing preload cue '+key);
   }
@@ -24,6 +24,25 @@ test('combat sample preparation does not ask to resume or play audio',async()=>{
    'preparation must not resume the AudioContext');
   assert(events.every(entry=>entry.url.endsWith('.ogg')));
  } finally{globalThis.window=oldWindow;}
+});
+
+test('sound-on feedback waits for its real recording and an unlocked mixer',async()=>{
+ const audio=new AudioEngine({muted:false});
+ const loads=[];
+ audio.init=()=>{};
+ audio.sfxLab={ctx:{state:'running'},bufferByKey:new Map(),
+  loadSampleFromUrl:async(key,url,options)=>{
+   loads.push({key,url,options});
+   audio.sfxLab.bufferByKey.set(key,[{duration:.5}]);
+  },unlock:async()=>{}};
+ assert.equal(await audio.readyForCue('ui_audio_on'),true);
+ assert.equal(await audio.readyForCue('ui_audio_on'),true);
+ assert.equal(loads.length,1,'the feedback cue must not be fetched twice');
+ assert.equal(loads[0].key,'ui_audio_on');
+ assert.equal(loads[0].options.prepareOnly,true);
+ assert.ok(loads[0].url.endsWith('.ogg'));
+ audio.settings.muted=true;
+ assert.equal(await audio.readyForCue('ui_audio_on'),false);
 });
 
 test('preloading OGG data decodes without invoking AudioContext.resume',async()=>{

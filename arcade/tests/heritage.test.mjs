@@ -29,6 +29,23 @@ test('sound is an explicit reversible player choice',()=>{
  assert.equal(h.settings.muted,true);
  assert.equal(h.settings.musicEnabled,false);
 });
+test('a late sound-on recording is never played after the user mutes again',async()=>{
+ const h=new ArcadeHeritage();
+ let resolveSample;
+ const ready=new Promise(resolve=>{resolveSample=resolve;});
+ const heard=[];
+ h.soundOn=true;
+ h.audio={readyForCue:()=>ready,playEvent:(key)=>{heard.push(key);return true;}};
+ const pending=h.announceSoundEnabled();
+ h.soundOn=false;
+ h.sequence++;
+ resolveSample(true);
+ assert.equal(await pending,false);
+ assert.deepEqual(heard,[]);
+ h.soundOn=true;
+ assert.equal(await h.announceSoundEnabled(),true);
+ assert.deepEqual(heard,['ui_audio_on']);
+});
 test('original pooled effects downshift instead of exceeding the frame budget',()=>{
  const h=new ArcadeHeritage();
  h.setBudget(18);assert.equal(h.vfx.budgetScale,.27);
