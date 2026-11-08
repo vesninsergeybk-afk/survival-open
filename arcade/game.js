@@ -4001,8 +4001,9 @@ export class ArcadeGame {
     entryPortalPending:type==='gunship'&&!this.heavyPortalShown};
    if(microSwarm)Object.assign(enemy,{microSwarm:true,moteRoot:group,motePack:group,
     moteSpawnedAt:this.time,moteFlank:0,moteReformUntil:0,
-    moteApproach:{x:cam.x+cam.w*.5,y:cam.y+cam.h*.5},
-    _patrolRoute:null});
+    // Enter as an ordinary traffic formation; only local sensing may
+    // replace this route with a last-known position of the moving player.
+    moteApproach:enemy._patrolRoute});
    if(intelSource)Object.assign(enemy,{signalIntel:createSignalIntel(
       intelSource.x,intelSource.y,this.time),signalLeader:i===0,
      signalSlot:i,signalExitX:xy.x,signalExitY:xy.y});
