@@ -988,7 +988,7 @@ export class ArcadeGame {
    }else if(this.time-this.lastTargetHintAt>3){
     this.lastTargetHintAt=this.time;
     this.designatedTarget=null;
-    this.notice('Рядом нет цели. Паразит отмечает врага при попадании «Голубой кометы».',3.2);
+    this.notice('Для метки нет цели. Наведите курсор на противника и нажмите Ctrl + ЛКМ.',3.2);
    }else{
     this.designatedTarget=null;
    }
