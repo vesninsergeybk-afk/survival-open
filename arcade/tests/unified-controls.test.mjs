@@ -7,6 +7,7 @@ import {manualWeapons,selectedManual,cycleManual,manualClick} from '../manual-we
 import {planHowitzer} from '../ship-weapons.js';
 import {game} from './weapons-scene.mjs';
 import {precisionRailUnlocked} from '../station-progression.js';
+import {mapKeysLabel} from '../map-panel.js';
 
 test('new bindings are complete, one-action-per-key and survive storage',()=>{
  assert.equal(validControls(DEFAULT_CONTROLS),true);
@@ -46,6 +47,9 @@ test('Tab and M show the map, arrows remain movement aliases, and customized key
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(html,/WASD \/ стрелки — полёт/);
  assert.match(html,/Tab \/ M — карта/);
+ assert.equal(mapKeysLabel(DEFAULT_CONTROLS),'Tab / M');
+ assert.equal(mapKeysLabel(custom.bindings),'Tab','custom M binding must remove M from the footer');
+ assert.equal(mapKeysLabel({...DEFAULT_CONTROLS,map:'KeyN'}),'N / Tab / M');
 });
 
 test('manual modes have a stable order, with a dedicated comet action',()=>{
