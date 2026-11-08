@@ -273,6 +273,8 @@ export function restoreCheckpoint(game,data){
  migrateLegacyPlayerExperience(game.player);
  inheritStrategicExperience(game.player,world);
  game.tactical=data.state.tactical||createTactical();game.tacticalPointer=null;game.targetField=null;
+ game.mouseAim=null;game.mobileMineArmed=false;
+ if(game.mouseArsenal)game.mouseArsenal={cometReadyAt:0,minesReadyAt:0,projectiles:[],mines:[],bursts:[]};
  game.openingArc=data.state.openingArc||{...createOpeningArc(world.home),status:'skipped'};
  game.openingRepairing=false;
  game.sortieReports=data.state.sortieReports||[];

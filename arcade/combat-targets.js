@@ -72,14 +72,7 @@ export function selectTargets(game,range,limit=1,precision=false){
  const focus=designated&&game.time<=designated.expiresAt&&
   designated.target?.hp>0&&!designated.target.converted&&
   !designated.target.captured?designated.target:null;
- const zone=game.targetField&&game.time<=game.targetField.expiresAt?game.targetField:null;
- const candidates=combatTargets(game,range);
- // One distance calculation per candidate, not one per sort comparison: this
- // routine also runs on low-end phones with large enemy packs.
- const inZone=zone?new Set(candidates.filter(item=>
-  targetDistance(zone,item.target)<=zone.radius+targetRadius(item)).map(item=>item.target)):null;
- return candidates.sort((a,b)=>
-  (inZone?(inZone.has(b.target)?1:0)-(inZone.has(a.target)?1:0):0)||
+ return combatTargets(game,range).sort((a,b)=>
   (focus?(a.target===focus?-1:b.target===focus?1:0):0)||
   (precision?precisionRank(a)-precisionRank(b):0)||
   targetDistance(game.player,a.target)-targetDistance(game.player,b.target)).slice(0,limit);

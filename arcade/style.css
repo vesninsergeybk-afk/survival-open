@@ -363,6 +363,8 @@ canvas#game.rail-manual{cursor:crosshair}
 #controlsBindingMessage{position:sticky;top:-12px;z-index:1;padding:6px 7px;
  background:#0d2740;border:1px solid #476d88;border-radius:6px}
 #controlsBindingList{display:grid;gap:3px}
+.control-binding-extra{margin-top:6px;border-top:1px solid #476d8870;padding-top:7px}
+.control-binding-extra>summary{cursor:pointer;color:#addbdc;font-size:12px;padding:6px 2px}
 .control-binding-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
  min-height:32px;border-bottom:1px solid #4460785a}
 .control-binding-row button,#controlsReset{background:#163653;color:#e0fbff;

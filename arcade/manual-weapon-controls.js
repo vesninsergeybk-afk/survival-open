@@ -10,5 +10,5 @@ export function cycleManual(current,available,step=1){
  return available[(index+(step<0?-1:1)+available.length)%available.length];
 }
 export const manualClick=(weapon,railEnabled,touch=false)=>touch?
- (weapon==='rail'&&railEnabled?'rail':'designate'):
- weapon==='rail'?'rail':weapon==='howitzer'?'howitzer':'designate';
+ (weapon==='comet'?'comet':weapon==='rail'&&railEnabled?'rail':'designate'):
+ weapon==='comet'?'comet':weapon==='rail'?'rail':weapon==='howitzer'?'howitzer':'designate';
