@@ -439,7 +439,13 @@ export class CockpitDisplay {
   ctx.fillStyle='#f6ffff';ctx.shadowColor='#a1ffff';ctx.shadowBlur=7;
   ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(4,5);ctx.lineTo(0,2);ctx.lineTo(-4,5);ctx.closePath();ctx.fill();
   ctx.restore();
-  display(this.n.radarDistance,Number.isFinite(nearest)?
-   'СТАНЦИЯ · '+Math.round(nearest)+' М':'БЛИЖНИЙ СЕКТОР');
+  // This reading intentionally excludes the active dock. Make that
+  // distinction explicit so a dock beside the pilot is not shown as far away.
+  const inactiveStationNearby=Number.isFinite(nearest);
+  display(this.n.radarDistance,inactiveStationNearby?
+   'НЕАКТ. СТАНЦИЯ · '+Math.round(nearest)+' М':'БЛИЖНИЙ СЕКТОР');
+  this.n.radarDistance.title=inactiveStationNearby?
+   'До ближайшей неактивной станции в радиусе радара':
+   'Нет неактивных станций в радиусе радара';
  }
 }

@@ -294,7 +294,9 @@ test('every published station import invalidates stale manual-weapon menu code',
   const escaped=target.replace(/\./g,'\\.');
   const match=read(source).match(new RegExp(escaped+'\\?v=([^"\'\\s]+)'));
   assert.ok(match,source+' must import '+target);
-  assert.ok(match[1].endsWith(version),source+' must refresh '+target+' to '+version);
+  // Newer changes append further cache revisions; the manual weapon revision
+  // must remain in the chain without having to be its final suffix.
+  assert.ok(match[1].includes(version),source+' must retain '+target+' revision '+version);
  }
 });
 
