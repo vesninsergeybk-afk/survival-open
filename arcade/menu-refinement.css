@@ -141,3 +141,31 @@
 @media (prefers-reduced-motion:reduce) {
   #overlay .progression-ui .prog-node {transition:none}
 }
+/* Hangar readability. Original hangar.css still contains many 9–10px
+   annotations. Enlarge prose and status information, not interactive hardpoints
+   whose geometry must continue matching the underlying ship blueprint. */
+#overlay .ship-hangar :is(
+  .hg-eyebrow,.hg-live-pill,.hg-stage,
+  .hg-weapon small,.hg-weapon em,
+  .hg-thermal-plan span,.hg-thermal-plan small,
+  .hg-stats caption,.hg-before,
+  .hg-control-note,.hg-progression small,
+  .hg-upgrade-grid article>small,
+  .hg-fit-note,.hg-note,.hg-scene-caption,
+  .hg-apply-bar span,.hg-error,.hg-message
+) {
+  font-size:12px;
+  line-height:1.45;
+  overflow-wrap:break-word;
+}
+#overlay .ship-hangar .hg-stage {white-space:normal;text-align:right}
+#overlay .ship-hangar .hg-filters button {font-size:12px;min-height:44px}
+#overlay .ship-hangar :is(.hg-weapon,.hg-inspector,.hg-control-note,.hg-apply-bar>div:first-child) {
+  min-width:0;
+}
+#overlay .ship-hangar .hg-weapon :is(small,em),
+#overlay .ship-hangar .hg-control-note {hyphens:auto}
+@media(max-width:700px){
+  #overlay .ship-hangar .hg-live-pill {white-space:normal}
+  #overlay .ship-hangar .hg-apply-bar {flex-wrap:wrap}
+}
