@@ -279,6 +279,25 @@ test('station and direct progression routes both load the newest renderer after 
  assert.match(readFileSync(join(root,'base-panel.js'),'utf8'),/hangar-panel\.js\?v=[^'\n]*semantic-1/);
 });
 
+test('every published station import invalidates stale manual-weapon menu code',()=>{
+ const root=dirname(fileURLToPath(new URL('../index.html',import.meta.url)));
+ const read=file=>readFileSync(join(root,file),'utf8');
+ const chain=[
+  ['index.html','game.js','manual-qa-2'],
+  ['game.js','base-panel.js','manual-qa-2'],
+  ['game.js','development-panel.js','manual-qa-2'],
+  ['base-panel.js','development-panel.js','manual-qa-2'],
+  ['development-panel.js','progression-screen.js','manual-qa-1'],
+  ['game.js','progression-screen.js','manual-qa-1']
+ ];
+ for(const [source,target,version] of chain){
+  const escaped=target.replace(/\./g,'\\.');
+  const match=read(source).match(new RegExp(escaped+'\\?v=([^"\'\\s]+)'));
+  assert.ok(match,source+' must import '+target);
+  assert.ok(match[1].endsWith(version),source+' must refresh '+target+' to '+version);
+ }
+});
+
 test('tree connectors cannot create scrollbars on short branches and grow for long ones',()=>{
  const previous=globalThis.getComputedStyle;
  globalThis.getComputedStyle=()=>({paddingRight:'10px',paddingBottom:'13px'});
