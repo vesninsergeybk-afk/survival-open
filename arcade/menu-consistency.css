@@ -45,6 +45,23 @@
 .hg-ship-status span{flex:none;font-size:12px;color:#c5d8dd;font-variant-numeric:tabular-nums}
 #overlay .base-dialog .hg-tactic-development{margin:0;height:max-content}
 
+/* Readable functional copy: descriptions and consequences are primary content,
+   whereas uppercase kickers and metadata remain compact. */
+#overlay .base-dialog .base-contract-choice small,
+#overlay .base-dialog .base-contract-board>.base-contract-copy small,
+#overlay .base-dialog .base-task-group>p,
+#overlay .base-dialog .base-featured-op p,
+#overlay .base-dialog .base-view-intro p{
+ font-size:13px;line-height:1.5;
+}
+#overlay .base-dialog .base-contract-choice em{font-size:12.5px;line-height:1.4}
+#overlay .base-dialog .base-contract-choice button{font-size:13px}
+#overlay .prog-detail p{font-size:13px;line-height:1.55}
+#overlay .prog-detail-facts p{font-size:13px;line-height:1.5}
+#overlay .prog-detail-facts b{font-size:11.5px}
+#overlay .prog-detail-reason{font-size:12px!important}
+#overlay .prog-domain strong{line-height:1.3}
+
 /* Keep the same field-module pictograms in the overview and in maintenance. */
 #overlay .base-dialog .base-field-service>small{
  display:block;min-height:70px;color:#b7cad3;font-size:12px;line-height:1.55;
