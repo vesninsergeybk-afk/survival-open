@@ -78,3 +78,21 @@ test('published HTML refreshes the stylesheet version for landscape readability 
  const html=read('index.html');
  assert.match(html,/menu-refinement\.css\?v=menu-unification-20261108-1-landscape-1-midwidth-1/);
 });
+
+
+test('hangar explanatory text is legible while ship hardpoint geometry stays unchanged',()=>{
+ const css=read('menu-refinement.css');
+ const html=read('index.html');
+ const block=css.slice(css.indexOf('/* Hangar readability.'));
+ assert.ok(block.startsWith('/* Hangar readability.'));
+ for(const selector of ['.hg-weapon small','.hg-weapon em','.hg-fit-note',
+   '.hg-control-note','.hg-thermal-plan span','.hg-upgrade-grid article>small',
+   '.hg-stats caption','.hg-stage']){
+   assert.ok(block.includes(selector),selector+' must be covered by the readable type scale');
+ }
+ assert.match(block,/font-size:12px/);
+ assert.match(block,/\.hg-filters button \{font-size:12px;min-height:44px\}/);
+ assert.doesNotMatch(block,/\.hg-node\s+span\s*\{/,
+   'Ship hardpoint label geometry should not be resized without visual QA');
+ assert.match(html,/menu-refinement\.css\?v=[^"\n]*hangar-legibility-1/);
+});
