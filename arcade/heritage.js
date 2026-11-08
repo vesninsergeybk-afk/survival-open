@@ -1,5 +1,5 @@
 import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1';
-import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1';
+import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=foley-autofire-03';
 
@@ -39,7 +39,9 @@ const SOUND_IDS=Object.freeze({
  missionRelayOnline:'mission_relay_online',missionCarrierContact:'mission_carrier_contact',
  missionCarrierBoost:'mission_carrier_boost',
  cometLaunch:'comet_launch',cometBurst:'comet_burst',
+ cometCoreAccent:'comet_core_accent',cometCryoAccent:'comet_cryo_accent',
  mineLaunch:'mine_launch',mineArm:'mine_arm',mineBurst:'mine_burst',
+ minePierceAccent:'mine_pierce_accent',mineSnareAccent:'mine_snare_accent',
  targetMark:'target_mark',swarmArrival:'swarm_arrival',
  swarmSplit:'swarm_split',swarmMerge:'swarm_merge',swarmWarning:'swarm_warning',
  dashBurst:'dash_burst'

@@ -181,9 +181,13 @@ export const AUX_SOUNDS = {
   // impact. The low-frequency body is a recorded sample, never an oscillator.
   comet_launch: cue('Пуск Голубой кометы','energy',f('rd_fw_01'),.32,4,300,1.36),
   comet_burst: cue('Удар Голубой кометы','impact',f('rd_cannon_01'),.53,5,240,1.90),
+  comet_core_accent: cue('Усиленный эпицентр кометы','impact',k('lowFrequency_explosion_000'),.18,3,850,1.0),
+  comet_cryo_accent: cue('Криоволна кометы','energy',k('forceField_000'),.19,3,850,.95),
   mine_launch: cue('Сброс минного веера','mechanical',f('om_plugpull'),.29,3,320,.80),
   mine_arm: cue('Мины встали на боевой взвод','mechanical',f('om_tap'),.14,2,600,1.12),
   mine_burst: cue('Подрыв мин','impact',f('rd_bang_02'),.51,5,140,1.50),
+  mine_pierce_accent: cue('Бронебойный удар мины','impact',k('impactMetal_heavy_001'),.18,3,1100,.85),
+  mine_snare_accent: cue('Сдерживающее поле мины','energy',k('forceField_002'),.17,3,1100,.85),
   target_mark: cue('Назначена приоритетная цель','ui',f('om_clamour11'),.14,3,180,1.10),
   dash_burst: cue('Рывок корабля','mechanical',f('rd_fw_03'),.30,3,350,1.48),
   swarm_arrival: cue('Приближение организованного роя','ambient',f('om_clamour6'),.15,2,2100,1.43),

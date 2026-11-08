@@ -40,12 +40,16 @@ const activations={
  wreck:'После уничтожения тяжёлого противника появляются временные обломки-укрытия.',
  capture:'Отметьте противника приоритетной целью и уничтожьте его при наличии заряда: он временно перейдёт на вашу сторону.',
  signal:'Попадите по свежей приоритетной цели с зарядом: враг раскроет расположение патруля.',
- cometRadius:'Зажмите ЛКМ и наведите круг. Отпустите: комета взорвётся в выбранной точке.',
- mineArray:'Зажмите ПКМ и выберите место для веера. Отпустите: мины полетят туда и взведутся.',
- cometCore:'ЛКМ: усиление действует автоматически в центре каждого взрыва кометы.',
- cometCryo:'ЛКМ: пережившие взрыв кометы враги автоматически замедляются.',
- minePierce:'ПКМ: урон минами по тяжёлым противникам увеличивается автоматически.',
- mineSnare:'ПКМ: каждая сработавшая мина замедляет уцелевших противников.'
+ cometRadius:'Выберите «Голубую комету» колесом мыши, если доступно другое ручное орудие. Зажмите ЛКМ для прицеливания, отпустите для выстрела.',
+ mineArray:'Зажмите ПКМ, укажите место для минного веера и отпустите кнопку для запуска.',
+ cometCore:'Бонус действует автоматически в центре каждого взрыва «Голубой кометы».',
+ cometCryo:'Пережившие взрыв «Голубой кометы» враги замедляются автоматически.',
+ minePierce:'Бонус к урону срабатывает автоматически, когда мина поражает тяжёлый корабль.',
+ mineSnare:'Замедление срабатывает автоматически, когда мина поражает выжившего противника.'
+};
+const touchManualActivations={
+ cometRadius:'Коснитесь точки взрыва на поле боя. Основным ручным оружием должна быть выбрана «Голубая комета».',
+ mineArray:'Нажмите «Мины · выбор», затем коснитесь места установки мин.',
 };
 const iconFor=(id)=>{
  const key=icons[id]||id;
@@ -87,7 +91,7 @@ function skillNode(skill,state,act='skill'){
   level<skill.from?'Нужен уровень '+skill.from:masteryLocked?'Второй ранг откроется на уровне '+skill.masteryLevel:
   points<1?'Нужно 1 очко развития':'';
  return {id:'skill-'+skill.id,kind:'skill',title:skill.title,icon:iconFor(skill.id),
-  level:skill.from,rank,max:skill.max,requires:skill.requires?'skill-'+skill.requires:null,
+  level:skill.from,masteryAt:skill.masteryLevel,rank,max:skill.max,requires:skill.requires?'skill-'+skill.requires:null,
   status:complete?'mastered':exclusive?'exclusive':!hasPrereq||level<skill.from||masteryLocked?'locked':points<1?'waiting':'ready',
   description:skill.desc,effect:complete?'Полностью изучено':(state.nextSkillEffect?.(skill.id,rank,ranks)||skill.desc),
   activation:activations[skill.id]||'Действует автоматически после изучения.',
@@ -126,7 +130,8 @@ function weaponNodes(state){
    installed:true,manual:true,stats:{range:comet?670:520,
     summary:comet?'Радиус '+(90+rank*17)+' м · перезарядка 5,5 с':
      (4+rank)+' мины · перезарядка 17 с'},
-   control:comet?'ЛКМ':'ПКМ'};
+   control:state.isTouchLayout?(comet?'касание поля боя':'кнопка «Мины · выбор»'):
+    (comet?'ЛКМ (выбор оружия — колесом)':'ПКМ')};
  }
  const family=MODULES[id]||MODULES.plasma,installed=loadout.slots.includes(family.id);
  const relevant={plasma:['beam','range','double'],rail:['beam'],flak:['beam'],rocket:['beam','rocket'],
@@ -241,7 +246,7 @@ function branchButtons(domain,state){
   const current=state.developmentWeapon||state.hangarSession?.focusWeapon||'plasma';
   const tab=(id,name,manual=false)=>'<button type="button" class="prog-subtab'+(manual?' is-manual':'')+'" data-act="devWeapon" data-id="'+id+'" aria-pressed="'+(current===id)+'">'+
    '<img src="'+art('weapons',id)+'" alt=""><span>'+esc(name)+'</span></button>';
-  return '<span class="prog-subtab-label">РУЧНОЕ</span>'+tab('comet','Комета · ЛКМ',true)+tab('mines','Мины · ПКМ',true)+
+  return '<span class="prog-subtab-label">РУЧНОЕ</span>'+tab('comet','Комета',true)+tab('mines','Мины',true)+
    '<span class="prog-subtab-label">АВТО</span>'+Object.values(MODULES).map(m=>tab(m.id,m.short)).join('');
  }
  if(domain==='tactics')return [...Object.entries(TACTICAL_DEVICES).map(([id,d])=>[id,d.short]),['abilities','Способности']]
@@ -288,7 +293,7 @@ function detailHtml(node,domain,weapon,state){
  if(!node)return '<aside class="prog-detail">Пока нет навыков в выбранном направлении.</aside>';
  const bindings={...DEFAULT_CONTROLS,...state.controls};
  const key=action=>readableKey(bindings[action]);
- const activation=String(node.activation||'').replace(/\bShift\b/g,key('dash')).replace(/\bE\b/g,key('interact'))
+ const activation=String(state.isTouchLayout&&touchManualActivations[node.actionId]||node.activation||'').replace(/\bShift\b/g,key('dash')).replace(/\bE\b/g,key('interact'))
   .replace(/%FIELD%/g,key('field'));
  const fieldMounted=state.fieldLoan&&state.loadout?.slots?.includes(state.fieldLoan.moduleId||'ion');
  const fieldCollision=domain==='tactics'&&node.id.startsWith('tactic-')&&fieldMounted?

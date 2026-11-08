@@ -118,6 +118,24 @@ test('all new mission sounds have recorded and provably licensed sources',()=>{
  assert.equal(heard.length,10);
 });
 
+test('manual specialization accents use four separate pinned CC0 recordings',()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../../audio-lab/assets/sfx/kenney/manifest.json',import.meta.url),'utf8'));
+ const mapping=[['cometCoreAccent','comet_core_accent'],['cometCryoAccent','comet_cryo_accent'],
+  ['minePierceAccent','mine_pierce_accent'],['mineSnareAccent','mine_snare_accent']];
+ const heritage=new ArcadeHeritage(),events=[];
+ heritage.soundOn=true;heritage.audio={playEvent:key=>events.push(key)};
+ heritage.vfx.clock=13;
+ for(const [kind,key] of mapping){
+  const cue=SOUND_CATALOG[key];assert.ok(cue?.sampleUrl,key);
+  assert.ok(cue.gain<.25,key+' must remain a restrained accent');
+  assert.ok(cue.sampleUrl.includes('/kenney/'));
+  const file=cue.sampleUrl.split('/').at(-1);
+  assert.ok(manifest.files.some(item=>item.file===file&&item.size>0),file);
+  heritage.play(kind,.2,{x:0,y:0});
+ }
+ assert.deepEqual(events,mapping.map(([,key])=>key));
+});
+
 test('new relay sync and counter-signal cue names resolve to recorded audio',()=>{
  const heritage=new ArcadeHeritage(),events=[];
  heritage.soundOn=true;heritage.audio={playEvent:key=>events.push(key)};

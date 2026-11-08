@@ -180,6 +180,30 @@ test('manual weapons play individual recorded cues for launch, impact and one mi
  assert.ok(g.playedSounds.includes('mineBurst'),'the first triggered mine needs its own impact');
 });
 
+test('specialization accents sound only when their combat effect actually hits',()=>{
+ const comet=(rank,hit=true)=>{
+  const g=scene();g.skillRanks=rank;
+  if(hit)g.enemies.push(scout(300,0,200));
+  fireMouseWeapon(g,'comet',{x:300,y:0});g.time=.6;updateMouseArsenal(g,.6);
+  return g.playedSounds;
+ };
+ assert.ok(comet({cometCore:1}).includes('cometCoreAccent'));
+ assert.ok(!comet({cometCore:1},false).includes('cometCoreAccent'));
+ assert.ok(comet({cometCryo:1}).includes('cometCryoAccent'));
+ assert.ok(!comet({cometCryo:1},false).includes('cometCryoAccent'));
+ const mine=(rank,type)=>{
+  const g=scene();g.skillRanks=rank;
+  if(type)g.enemies.push({...scout(300,0,400),type});
+  fireMouseWeapon(g,'mines',{x:300,y:0});g.time=1;updateMouseArsenal(g,1);
+  g.time=1.8;updateMouseArsenal(g,.8);
+  return g.playedSounds;
+ };
+ assert.ok(mine({minePierce:1},'gunship').includes('minePierceAccent'));
+ assert.ok(!mine({minePierce:1},'scout').includes('minePierceAccent'));
+ assert.ok(mine({mineSnare:1},'scout').includes('mineSnareAccent'));
+ assert.ok(!mine({mineSnare:1},null).includes('mineSnareAccent'));
+});
+
 test('comet and mine explosions expose distinct visual phases without relying on audio',()=>{
  const g=scene(),circles=[],lines=[];
  const c=new Proxy({arc(x,y,r){circles.push(r);},stroke(){lines.push(1);}},

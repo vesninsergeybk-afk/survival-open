@@ -96,7 +96,7 @@ function detonate(game,arsenal,point,radius,damage,kind){
    .sort((a,b)=>targetDistance(point,a.target)-targetDistance(point,b.target))[0];
   if(chosen)game.designatedTarget={target:chosen.target,expiresAt:(game.time||0)+3.5};
  }
- let hits=0;
+ let hits=0,slowed=false,pierced=false;
  for(const item of targets){
   const d=Math.max(0,targetDistance(point,item.target)-targetRadius(item));
   const falloff=.42+.58*(1-clamp(d/radius,0,1));
@@ -105,7 +105,7 @@ function detonate(game,arsenal,point,radius,damage,kind){
    (pierce===1?.3:.5):0;
   const hit=damageTarget(game,item,damage*falloff*(1+centerPower+heavyBonus),kind,
    {x:point.x,y:point.y,directed:true},false,true);
-  if(hit)hits++;
+  if(hit){hits++;if(heavyBonus>0)pierced=true;}
   if(hit&&item.target.hp>0&&canSlow(item)&&(cryo||snare)){
    const duration=cryo?(cryo===1?2.2:3.2):(snare===1?1.8:2.8);
    const factor=cryo?(cryo===1?.66:.52):(snare===1?.6:.42);
@@ -114,8 +114,14 @@ function detonate(game,arsenal,point,radius,damage,kind){
     item.target.tacticalSlowFactor=Math.min(item.target.tacticalSlowFactor||1,factor);
    else item.target.tacticalSlowFactor=factor;
    item.target.tacticalSlowUntil=Math.max(item.target.tacticalSlowUntil||0,now+duration);
+   slowed=true;
   }
  }
+ // Distinct, quiet recorded accents describe the actual combat effect.
+ // A volley of mines must not play an accent for every empty explosion.
+ const accent=kind==='comet'?(cryo&&slowed?'cometCryoAccent':core&&hits?'cometCoreAccent':null):
+  snare&&slowed?'mineSnareAccent':pierce&&pierced?'minePierceAccent':null;
+ if(accent)game.heritage?.play?.(accent,kind==='comet'?.7:1.1,point);
  game.heritage?.vfx?.nova?.(point.x,point.y,Math.min(95,radius*.7),kind==='comet'?'cyan':'violet');
  return hits;
 }
