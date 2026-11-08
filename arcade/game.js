@@ -21,11 +21,11 @@ import {createFieldLoot,rewardEyeKill,collectFieldLoot,updateFieldLoot,
  fieldLootDamage,fieldLootArmor,chainFieldLoot,drawFieldLootAura,BOOSTS} from './field-loot.js?v=eye-loot-1';
 import {createCombatTempo,recordCombatContact,ambientTempoPlan} from './combat-tempo.js?v=tempo-1';
 import {fortificationShield} from './enemy-fortifications.js?v=industrial-forts-1';
-import {renderEvolutionMenu,installedEvolution} from './evolution-menu.js?v=first-loops-1-menu-audit-1';
+import {renderEvolutionMenu,installedEvolution} from './evolution-menu.js?v=parasite-clarity-1';
 import {updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1';
 import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,offerLevelCrystals,refreshEvolutionOffers,
  enemyFieldReward,collectParasiteCore,absorbParasiteImpact,markDashPass,fieldWeaponImpact,
- updateFieldEvolution} from './field-evolution.js?v=field-evolution-1-first-loops-1';
+ updateFieldEvolution,parasiteTargetMode,setParasiteTargetMode} from './field-evolution.js?v=parasite-clarity-1';
 import {drawEvolutionEnvironment,drawParasiteCore,drawEvolutionEnemy,
  drawEvolutionConnections,drawEvolutionPlayer} from './field-evolution-vfx.js?v=field-evolution-1-first-loops-1';
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=xp-feedback-pass1-1';
@@ -388,6 +388,9 @@ export class ArcadeGame {
    const button=event.target.closest?.('[data-evolution]');
    if(!button)return;
    if(button.dataset.evolution==='open'){this.openEvolution();return;}
+   if(button.dataset.evolution==='parasiteMode'){
+    this.setParasiteMode(parasiteTargetMode(this)==='capture'?'signal':'capture');return;
+   }
    if(button.dataset.evolution==='later'){this.deferEvolution();return;}
    this.chooseEvolution(button.dataset.evolution);
   });
@@ -454,6 +457,7 @@ export class ArcadeGame {
    if(this.pendingStationModule&&this.overlay.dataset.mode==='base'&&
     !b.closest('.base-module-confirm'))return;
    if(act==='evolutionPick'){this.chooseEvolution(b.dataset.id);return;}
+   if(act==='parasiteMode'){this.setParasiteMode(b.dataset.mode);return;}
    if(act==='evolutionAll'){this.skills(true);return;}
    if(act==='trialRoute'){
     const entry=pendingContourTrials(this.world).find(t=>String(t.id)===b.dataset.id);
@@ -915,8 +919,16 @@ export class ArcadeGame {
     this.designatedTarget=null;this.notice('Приоритет цели отменён',1.7);
    }else{
     this.designatedTarget={target:item.target,expiresAt:this.time+TARGET_DESIGNATION.duration};
+    const parasite=!!this.skillRanks.parasite;
+    const mode=parasite?parasiteTargetMode(this):'guard';
+    const active=this.enemies.some(e=>e.parasiteCapture&&e.hp>0);
+    const action=parasite&&mode!=='guard'&&this.fieldEvolution?.charge===0?' Для паразита требуется энергоядро.':
+     mode==='capture'&&active?' Захват пока занят: ваш союзник ещё действует.':
+     mode==='capture'&&this.fieldEvolution.captureReadyAt>this.time?' Захват восстановится через '+Math.ceil(this.fieldEvolution.captureReadyAt-this.time)+' с.':
+     mode==='capture'?' Добейте врага лично для захвата (1 ядро).':
+     mode==='signal'?' Попадите по врагу с достаточной прочностью для разведки (1 ядро).':'';
     this.notice('Приоритет: '+designationLabel(item)+' · '+TARGET_DESIGNATION.duration+
-     ' с. Автооружие выберет цель, когда она в зоне огня.',3.6);
+     ' с. Автооружие выберет эту цель.'+action,4.3);
    }
  }
  notice(text,seconds=3){this.message.textContent=text;this.messageUntil=this.time+seconds;}
@@ -1581,17 +1593,36 @@ export class ArcadeGame {
  }
  renderEvolution(){
   this.overlay.innerHTML=renderEvolutionMenu(this,SKILLS.filter(s=>!SHIP_UPGRADES.has(s.id)));
-  this.presentMenu('[data-act="evolutionPick"], [data-act="menuBack"], [data-act="close"]');
+  this.presentMenu('[data-act="evolutionPick"], [data-act="parasiteMode"], [data-act="menuBack"], [data-act="close"]');
+ }
+ setParasiteMode(mode){
+  if(!setParasiteTargetMode(this,mode))return false;
+  const name=mode==='capture'?'ЗАХВАТ — добейте отмеченную цель':'РАЗВЕДКА — попадите по отмеченной цели';
+  this.notice('ПАРАЗИТ · '+name+'. Понадобится одно энергоядро.',3.6);
+  this.syncEvolutionPrompt();
+  if(this.overlay.dataset.mode==='evolution'&&!this.overlay.hidden){
+   this.renderEvolution();
+   this.overlay.querySelector('[data-act="parasiteMode"][data-mode="'+mode+'"]')?.focus({preventScroll:true});
+  }
+  return true;
  }
  syncEvolutionPrompt(){
   const panel=$('evolutionPrompt');if(!panel)return;
   const state=this.fieldEvolution;
   const installed=installedEvolution(this.skillRanks,SKILLS.filter(s=>!SHIP_UPGRADES.has(s.id))),available=state?.offers?.length&&this.player.points>0;
   if(this.dead||!available&&!installed.length){panel.hidden=true;panel.innerHTML='';return;}
+  const dual=this.skillRanks.capture&&this.skillRanks.signal;
+  const mode=parasiteTargetMode(this);
+  const cooldown=mode==='capture'?Math.max(0,Math.ceil((state?.captureReadyAt||0)-this.time)):0;
+  const readiness=!state?.charge&&mode!=='guard'?'Нужно ядро':cooldown?'Захват через '+cooldown+' с':
+   mode==='guard'?'Автощит':mode==='capture'?'Захват по метке':'Разведка по метке';
   panel.innerHTML='<button type="button" class="evolution-open" data-evolution="open"><strong>'+
    (available?'Улучшить · '+this.player.points+' очк.':'Способности · '+installed.length)+
    '</strong><span>'+(this.skillRanks.parasite?'Энергоядра '+(state?.charge||0)+'/2 · ':'')+
-   'Открыть с паузой</span></button>';
+   (this.skillRanks.parasite?readiness+' · ':'')+
+   'Открыть с паузой</span></button>'+
+   (dual?'<button type="button" class="evolution-mode-quick" data-evolution="parasiteMode" aria-label="Изменить режим паразита"><span>Паразит: '+
+    (mode==='capture'?'захват':'разведка')+'</span><small>Сменить режим</small></button>':'');
   panel.hidden=false;
  }
  chooseEvolution(id){
@@ -1642,7 +1673,10 @@ export class ArcadeGame {
    moduleSuggested=this.suggestShipModule('rocket');
   }
   this.heritage.play('upgrade',.14);
-  this.notice('Улучшение: '+skill.title,2.4);
+  this.notice(id==='parasite'?'ПАРАЗИТ · 1/2 ядра. Защита сработает сама при сильном ударе.':
+   id==='capture'?'ЗАХВАТ · ПКМ или касание по врагу → добейте его с ядром в запасе.':
+   id==='signal'?'ПЕРЕДАТЧИК · отметьте врага и попадите по нему с ядром в запасе.':
+   'Улучшение: '+skill.title,3.6);
   if(SHIP_UPGRADES.has(id)){
    this.hangarSession.message=moduleSuggested?'Ракетный модуль добавлен в предварительную сборку. Нажмите «Применить».':
     id==='rocket'&&this.skillRanks.rocket===1?'Ракетный модуль получен. Выберите узел, установите его и примените сборку.':'Улучшение изучено: '+skill.title;
@@ -2691,6 +2725,14 @@ export class ArcadeGame {
   this.hud();
  }
  syncControlUI(){
+  const tips=$('tips');
+  if(tips){
+   const flight=['up','left','down','right'].map(id=>this.controlLabel(id)).join('/');
+   const next=flight+' — полёт · '+this.controlLabel('dash')+' — рывок · '+this.controlLabel('interact')+
+    ' — действие · ЛКМ — ручное оружие / цель · ПКМ — приоритет · '+
+    this.controlLabel('field')+' — поле · Меню → Справка';
+   if(tips.textContent!==next)tips.textContent=next;
+  }
   const button=$('actionBtn');
   if(button){
    const focus=this.actionHeld||this.interactionFocus;
@@ -4978,7 +5020,9 @@ export class ArcadeGame {
    c.setLineDash([7,5]);c.beginPath();
    c.arc(chosenTarget.x,chosenTarget.y,radius,0,TAU);c.stroke();
    c.setLineDash([]);c.textAlign='center';c.font='bold 10px system-ui';
-   c.fillStyle='#c9fff1';c.fillText('ПРИОРИТЕТ · '+Math.max(0,Math.ceil(this.designatedTarget.expiresAt-this.time))+' С',
+   const parasiteAction=this.skillRanks.parasite&&this.skillRanks[parasiteTargetMode(this)]?
+    ' · '+(this.fieldEvolution.charge>0?(parasiteTargetMode(this)==='capture'?'ЗАХВАТ':'РАЗВЕДКА'):'НЕТ ЯДРА'):'';
+   c.fillStyle='#c9fff1';c.fillText('ПРИОРИТЕТ'+parasiteAction+' · '+Math.max(0,Math.ceil(this.designatedTarget.expiresAt-this.time))+' С',
     chosenTarget.x,chosenTarget.y-radius-12);
    c.restore();
   }
@@ -5178,7 +5222,8 @@ export class ArcadeGame {
   this.syncControlUI();
   const panel=$('evolutionPrompt');
   if(panel){
-   const key=this.fieldEvolution?.pending+'|'+this.fieldEvolution?.offers.join('|')+'|'+this.player.points+'|'+this.fieldEvolution?.charge+'|'+installedEvolution(this.skillRanks,SKILLS.filter(s=>!SHIP_UPGRADES.has(s.id))).length+'|'+this.dead;
+   const captureWait=Math.max(0,Math.ceil((this.fieldEvolution?.captureReadyAt||0)-this.time));
+   const key=this.fieldEvolution?.pending+'|'+this.fieldEvolution?.offers.join('|')+'|'+this.player.points+'|'+this.fieldEvolution?.charge+'|'+this.fieldEvolution?.targetMode+'|'+captureWait+'|'+installedEvolution(this.skillRanks,SKILLS.filter(s=>!SHIP_UPGRADES.has(s.id))).length+'|'+this.dead;
    if(panel.dataset.state!==key){panel.dataset.state=key;this.syncEvolutionPrompt();}
   }
  }
