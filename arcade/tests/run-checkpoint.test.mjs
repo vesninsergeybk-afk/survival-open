@@ -93,6 +93,27 @@ test('a map marker survives save and leaves the mission waypoint untouched',()=>
  const legacy=unpackRun(packRun(data));delete legacy.state.manualWaypoint;
  assert.ok(validateCheckpoint(legacy));
 });
+
+test('field mission attempts, full wins and bounded results survive a station checkpoint',()=>{
+ const g=scene(),base=g.docked;
+ base.fieldOperationRuns={'line-break':3};
+ base.fieldOperationFullRuns={'line-break':1};
+ base.fieldOperationAttempts={'line-break':5};
+ base.fieldOperationHistory=[{id:'line-break',full:false,seconds:104,
+  tier:0,convoyHp:null}];
+ const saved=unpackRun(packRun(captureCheckpoint(g,base)));
+ assert.ok(validateCheckpoint(saved));
+ const restored=scene();restoreCheckpoint(restored,saved);
+ const station=restored.world.home;
+ assert.deepEqual(station.fieldOperationFullRuns,{'line-break':1});
+ assert.deepEqual(station.fieldOperationAttempts,{'line-break':5});
+ assert.deepEqual(station.fieldOperationHistory,base.fieldOperationHistory);
+ const forged=unpackRun(packRun(saved));
+ const broken=forged.world.stations.find(([id])=>id===base.id)[1];
+ broken.fieldOperationHistory[0].tier=10;
+ assert.equal(validateCheckpoint(forged),false,
+  'implausible mission history must not corrupt a resumed game');
+});
 test('strategic XP claims survive a checkpoint and older saves backfill visible past achievements',()=>{
  const g=scene(),site=g.world.stations.get('industry:source');
  site.enemy=false;site.active=true;site.captured=true;site.discovered=true;
