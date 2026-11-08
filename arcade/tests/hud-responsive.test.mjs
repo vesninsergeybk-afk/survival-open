@@ -18,6 +18,11 @@ test('HUD contract: unique live element IDs, cache versions and mobile layout',(
  }
  assert.match(source,/hud\.css\?v=hud-responsive-v16/);
  assert.match(source,/game\.js\?v=[a-z0-9-]+/);
+ assert.match(source,/game\.js\?v=[^"\n]*radar-lethal-1/,
+  'published entry must invalidate the old game module');
+ assert.match(readFileSync(new URL('../game.js',import.meta.url),'utf8'),
+  /hud\.js\?v=[^'\n]*radar-clarity-1/,
+  'the game must load the clarified radar readout');
  assert.match(css,/@media\(pointer:coarse\) and \(orientation:portrait\)/);
  assert.match(css,/@media\(pointer:coarse\) and \(orientation:landscape\)/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
@@ -99,6 +104,19 @@ test('HUD reads game state and changes contextual prompts without changing simul
    'touch HUD uses a short, complete weapon state');
   assert.equal(node('flightMode')['aria-label'],'АВТООГОНЬ · АКТИВЕН',
    'the original detailed state remains accessible');
+  // The active dock is next to the pilot. Navigation deliberately targets an
+  // inactive station; its distance must not be labelled ambiguously.
+  game.world.nearbyStations=()=>[
+   {x:5,y:0,enemy:false,active:true},
+   {x:925,y:0,enemy:false,active:false}
+  ];
+  hud.drawRadar(game);
+  assert.equal(node('radarDistance').textContent,'НЕАКТ. СТАНЦИЯ · 925 М');
+  assert.equal(node('radarDistance').title,
+   'До ближайшей неактивной станции в радиусе радара');
+  game.world.nearbyStations=()=>[{x:5,y:0,enemy:false,active:true}];
+  hud.drawRadar(game);
+  assert.equal(node('radarDistance').textContent,'БЛИЖНИЙ СЕКТОР');
   // HUD compares actual inventory states, including rewards and purchases
   // which do not call the old ore-only pulse function.
   game.player.ore=18;game.player.data=9;game.player.xp=25;game.time=2.1;

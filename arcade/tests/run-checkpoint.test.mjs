@@ -50,6 +50,19 @@ function save(g,storage=memory()){
  const store=new RunCheckpointStore(storage,()=>1234);store.load();assert.ok(store.startNew().ok);
  assert.ok(store.save(captureCheckpoint(g,g.docked)).ok);return {storage,store};
 }
+test('a lethal hit before the next frame cannot invalidate a station checkpoint',()=>{
+ const g=scene(),e={serial:1,type:'fighter',x:g.player.x+100,y:g.player.y,
+  r:14,hp:10,maxHp:70,expAwarded:false};
+ g.enemies=[e];g.enemyCanSee=()=>false;g.heritage.vfx.hullImpact=noop;
+ g.damageEnemy(e,30,'ion');
+ assert.equal(e.hp,0,'dead enemies must never have negative HP');
+ const {storage}=save(g),fresh=scene();
+ restoreCheckpoint(fresh,new RunCheckpointStore(storage).load());
+ assert.equal(fresh.enemies[0].hp,0);
+ assert.equal(fresh.enemies[0].expAwarded,false,
+  'the next update, not the hit, awards experience');
+ assert.equal(fresh.player.data,30,'no premature reward');
+});
 test('a saved sortie retains collected temporary charges, combat pacing and paid unfinished enemy works',()=>{
  const g=scene();g.time=310;
  g.fieldLoot=createFieldLoot();g.fieldLoot.reserve={id:'arc',until:375};
