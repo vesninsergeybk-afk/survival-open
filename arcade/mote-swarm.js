@@ -17,19 +17,36 @@ const groupsOf=motes=>{
 };
 const centroid=members=>({x:members.reduce((n,e)=>n+e.x,0)/members.length,
  y:members.reduce((n,e)=>n+e.y,0)/members.length});
+const onScreen=(game,point)=>{
+ const cam=game.camera?.();
+ return !cam||point.x>=cam.x-35&&point.y>=cam.y-35&&
+  point.x<=cam.x+cam.w+35&&point.y<=cam.y+cam.h+35;
+};
+function formationCue(game,kind,point,t){
+ if(!onScreen(game,point))return;
+ const fx=game.moteFormationFx??(game.moteFormationFx=[]);
+ fx.push({kind,x:point.x,y:point.y,bornAt:t});
+ if(fx.length>8)fx.shift();
+ game.heritage?.play?.(kind==='split'?'swarmSplit':'swarmMerge',1.1,point);
+}
 
 export function updateMoteSwarmOrders(game){
  const t=game.time||0;
  if(t<(game._nextMoteSwarmAt??-Infinity))return;
  game._nextMoteSwarmAt=t+MOTE_SWARM.interval;
  const motes=liveMotes(game);
+ game.moteFormationFx=(game.moteFormationFx||[]).filter(fx=>t-fx.bornAt<1.05);
  if(!motes.length){game._moteSquadStates?.clear();return;}
+ const seenRoots=game._moteSeenRoots??(game._moteSeenRoots=new Set());
+ const liveRoots=new Set(motes.map(e=>e.moteRoot??e.motePack??e.group));
+ for(const root of seenRoots)if(!liveRoots.has(root))seenRoots.delete(root);
  let packs=groupsOf(motes);
  // Close to the player a full swarm breaks into two coordinated flanks.
  for(const [id,members] of packs){
   if(members.length<MOTE_SWARM.splitCount||members.some(e=>t<(e.moteReformUntil||0)))continue;
   if(t<(members[0].moteSpawnedAt??0)+2.2||
      distance(centroid(members),game.player)>MOTE_SWARM.splitAt)continue;
+  formationCue(game,'split',centroid(members),t);
   const secondId=++game.groupSerial;
   const sorted=[...members].sort((a,b)=>a.serial-b.serial);
   for(let i=0;i<sorted.length;i++){
@@ -50,6 +67,7 @@ export function updateMoteSwarmOrders(game){
       a.length+b.length>MOTE_SWARM.size||
       [...a,...b].some(e=>t<(e.moteReformUntil||0))||
       distance(centroid(a),centroid(b))>MOTE_SWARM.mergeDistance)continue;
+   formationCue(game,'merge',centroid([...a,...b]),t);
    for(const e of b){e.motePack=id;e.moteRoot=a[0].moteRoot;
     e.moteFlank=0;e.moteReformUntil=t+4.2;}
    a.push(...b);entries[j][1]=[];
@@ -61,6 +79,11 @@ export function updateMoteSwarmOrders(game){
  for(const [id,members] of packs){
   members.sort((a,b)=>a.serial-b.serial);
   const center=centroid(members),p=game.player;
+  const root=members[0].moteRoot??id;
+  if(onScreen(game,center)&&!seenRoots.has(root)){
+   seenRoots.add(root);
+   game.heritage?.play?.('swarmArrival',2.1,center);
+  }
   const within=distance(center,p);
   const canSee=within<950&&members.some(e=>
    !game.enemyCanSee||game.enemyCanSee(e,p));
@@ -90,7 +113,10 @@ export function updateMoteSwarmOrders(game){
   const shooter=members.find(e=>t>=(e.stasisUntil||0)&&distance(e,p)<MOTE_SWARM.fireRange&&
    (!game.enemyCanSee||game.enemyCanSee(e,p)));
   if(shooter&&canSee&&t>=state.nextShotAt){
-   if(state.warningAt==null)state.warningAt=t;
+   if(state.warningAt==null){
+    state.warningAt=t;
+    game.heritage?.play?.('swarmWarning',1.6,shooter);
+   }
    if(t-state.warningAt>=MOTE_SWARM.fireWarning&&game.enemyShot){
     const lead=.16;
     const fired=game.enemyShot(shooter.x,shooter.y,p.x+(p.vx||0)*lead,
@@ -118,7 +144,7 @@ export function moveMote(e,game,dt){
  if(Math.hypot(e.vx,e.vy)>10)e.angle=Math.atan2(e.vy,e.vx)+Math.PI/2;
 }
 
-export function drawMoteSwarms(c,enemies,cam,t,reducedMotion=false){
+export function drawMoteSwarms(c,enemies,cam,t,reducedMotion=false,formations=[]){
  const packs=groupsOf(enemies.filter(e=>e.microSwarm&&e.hp>0));
  c.save();
  for(const members of packs.values()){
@@ -133,6 +159,12 @@ export function drawMoteSwarms(c,enemies,cam,t,reducedMotion=false){
    c.globalAlpha=.76;c.fillStyle='#8dd8ff';c.font='bold 10px system-ui';
    c.textAlign='center';c.fillText('РОЙ ×'+members.length,center.x,center.y-46);
   }
+  if(visible.some(e=>e.moteWarning)){
+   const r=32+(reducedMotion?0:4*Math.sin(t*8));
+   c.strokeStyle='#ffb67d';c.lineWidth=1.7;c.globalAlpha=.72;
+   c.beginPath();c.arc(center.x,center.y,r,-Math.PI*.83,-Math.PI*.17);c.stroke();
+   c.beginPath();c.arc(center.x,center.y,r,Math.PI*.17,Math.PI*.83);c.stroke();
+  }
   // The ordinary enemy renderer skips micro-drones, so their encounter cue
   // must be painted here. Its timer starts only when the pack is visible.
   const cue=members.find(e=>e.encounterLabel);
@@ -143,6 +175,25 @@ export function drawMoteSwarms(c,enemies,cam,t,reducedMotion=false){
     c.textAlign='center';c.shadowColor='#071322';c.shadowBlur=7;
     c.fillText(cue.encounterLabel,center.x,center.y-70,350);c.shadowBlur=0;
    }
+  }
+ }
+ c.restore();
+ c.save();
+ for(const fx of formations){
+  const k=Math.max(0,Math.min(1,(t-fx.bornAt)/1.05));
+  if(k>=1||fx.x<cam.x-100||fx.y<cam.y-100||fx.x>cam.x+cam.w+100||fx.y>cam.y+cam.h+100)continue;
+  const split=fx.kind==='split',r=split?21+58*k:72-47*k;
+  c.strokeStyle=split?'#77d9ff':'#d2adff';c.lineWidth=2.3*(1-k)+.6;c.globalAlpha=(1-k)*.7;
+  c.beginPath();c.arc(fx.x,fx.y,r,0,Math.PI*2);c.stroke();
+  c.lineWidth=1.2;
+  for(const sign of [-1,1]){
+   const x=fx.x+sign*(split?38*k:38*(1-k));
+   c.beginPath();c.arc(x,fx.y,split?12+7*k:12+7*(1-k),0,Math.PI*2);c.stroke();
+  }
+  if(k<.65){
+   c.globalAlpha=(1-k/.65)*.8;c.fillStyle=split?'#b0eaff':'#e5d3ff';
+   c.font='bold 10px system-ui';c.textAlign='center';
+   c.fillText(split?'РОЙ РАЗДЕЛЯЕТСЯ':'РОЙ ОБЪЕДИНЯЕТСЯ',fx.x,fx.y-r-14);
   }
  }
  c.restore();

@@ -1,5 +1,5 @@
 /**
- * Public sound library contract. The 46 Kenney audio assets are pinned in
+ * Public sound library contract. The 58 Kenney audio assets are pinned in
  * kenney/manifest.json and installed into the Pages bundle by the workflow.
  */
 import assert from 'node:assert/strict';
@@ -17,7 +17,7 @@ assert.deepEqual(Object.keys(WEAPON_SOUNDS).filter(id=>id!=='starter_soft').sort
 const source=JSON.parse(readFileSync(resolve(here,'assets/sfx/kenney/manifest.json'),'utf8'));
 assert.equal(source.license,'CC0-1.0');
 assert.match(source.sourceCommit,/^[a-f0-9]{40}$/);
-assert.equal(source.files.length,46,'All verified Kenney sources should be pinned');
+assert.equal(source.files.length,58,'All verified Kenney sources should be pinned');
 const names=new Set(source.files.map(entry=>{
  assert.match(entry.blobSha,/^[a-f0-9]{40}$/);
  assert(entry.size>0);
@@ -60,6 +60,14 @@ for(const name of ['field_work','field_shield_up','field_shield_break',
  'field_salvage','field_cassette','field_raid','field_scan',
  'field_reactor_charge','field_pulse']){
  assert(AUX_SOUNDS[name]?.sampleUrl,'Mission scene has no recorded cue: '+name);
+}
+for(const name of ['comet_launch','comet_burst','mine_launch','mine_arm','mine_burst',
+ 'target_mark','dash_burst','swarm_arrival','swarm_split','swarm_merge','swarm_warning']){
+ const def=AUX_SOUNDS[name];
+ assert(def?.sampleUrls?.length&&def?.sampleLayerUrls?.length,
+  'Combat mechanic needs a separately mixed, recorded attack and body: '+name);
+ assert.equal(def.sampleUrls.length,def.sampleLayerUrls.length);
+ assert(def.maxDuration>0&&def.maxDuration<=1.05,'Combat effects must have short, legible tails');
 }
 assert.equal(Object.keys(BASE_SOUNDS).length,29);
 assert.equal(Object.keys(EVENT_SOUNDS).length,13);

@@ -9,7 +9,7 @@ export const MOUSE_ARMS=Object.freeze({
  comet:{name:'Голубая комета',range:670,cooldown:5.5,speed:580},
  mines:{name:'Минный веер',range:520,cooldown:17,flight:570,life:12,armTime:.65}
 });
-export const createMouseArsenal=()=>({cometReadyAt:0,minesReadyAt:0,projectiles:[],mines:[],bursts:[]});
+export const createMouseArsenal=()=>({cometReadyAt:0,minesReadyAt:0,projectiles:[],mines:[],bursts:[],mineArmCuePlayed:true});
 export const cometSpec=ranks=>({
  radius:90+Math.min(2,Math.max(0,ranks?.cometRadius||0))*17,
  damage:35,cooldown:MOUSE_ARMS.comet.cooldown,range:MOUSE_ARMS.comet.range
@@ -53,11 +53,12 @@ export function fireMouseWeapon(game,kind,point){
  if(kind==='comet'){
   arsenal.cometReadyAt=now+plan.spec.cooldown;
   launch(arsenal,'comet',p,point,MOUSE_ARMS.comet.speed,now,{radius:plan.spec.radius,damage:plan.spec.damage});
-  game.heritage?.play?.('plasmaShot',.36,{x:p.x,y:p.y});
+  game.heritage?.play?.('cometLaunch',.3,{x:p.x,y:p.y});
  }else{
   arsenal.minesReadyAt=now+plan.spec.cooldown;
   // The previous minefield disappears before new pods are deployed.
   arsenal.mines=[];
+  arsenal.mineArmCuePlayed=false;
   const angle=Math.atan2(point.y-p.y,point.x-p.x)+Math.PI/2;
   for(let i=0;i<plan.spec.count;i++){
    const spacing=(i-(plan.spec.count-1)/2)*43;
@@ -65,7 +66,7 @@ export function fireMouseWeapon(game,kind,point){
    launch(arsenal,'mine',p,target,MOUSE_ARMS.mines.flight,now,
     {radius:plan.spec.radius,damage:plan.spec.damage});
   }
-  game.heritage?.play?.('flakShot',.24,{x:p.x,y:p.y});
+  game.heritage?.play?.('mineLaunch',.24,{x:p.x,y:p.y});
  }
  return {ok:true,kind,count:kind==='mines'?plan.spec.count:1};
 }
@@ -77,6 +78,7 @@ const eligibleParasite=t=>!t.microSwarm&&['scout','fighter','flanker','healer','
 function detonate(game,arsenal,point,radius,damage,kind){
  arsenal.bursts.push({x:point.x,y:point.y,radius,age:0,kind});
  if(arsenal.bursts.length>20)arsenal.bursts.shift();
+ game.heritage?.play?.(kind==='comet'?'cometBurst':'mineBurst',.15,point);
  const targets=combatTargets(game,radius+90,point,true).filter(item=>
   safeCombatTarget(item)&&
   targetDistance(point,item.target)<=radius+targetRadius(item)&&
@@ -117,10 +119,18 @@ export function updateMouseArsenal(game,dt){
     arsenal.mines.push({x:projectile.x,y:projectile.y,radius:projectile.radius,
      damage:projectile.damage,armedAt:now+MOUSE_ARMS.mines.armTime,
      expiresAt:now+MOUSE_ARMS.mines.life,nextScanAt:now+MOUSE_ARMS.mines.armTime});
+   }else{
+    arsenal.bursts.push({x:projectile.x,y:projectile.y,radius:18,age:0,kind:'mineBlocked'});
+    if(arsenal.bursts.length>20)arsenal.bursts.shift();
+    game.heritage?.play?.('armorHit',.18,projectile);
    }
   }
  }
  arsenal.projectiles=arsenal.projectiles.filter(p=>p.life>0);
+ if(!arsenal.mineArmCuePlayed){
+  const armed=arsenal.mines.find(m=>m.armedAt<=now&&m.expiresAt>now);
+  if(armed){arsenal.mineArmCuePlayed=true;game.heritage?.play?.('mineArm',.4,armed);}
+ }
  for(const mine of arsenal.mines){
   if(mine.expiresAt<=now||mine.armedAt>now||mine.nextScanAt>now)continue;
   mine.nextScanAt=now+.12;
@@ -130,30 +140,67 @@ export function updateMouseArsenal(game,dt){
  }
  arsenal.mines=arsenal.mines.filter(m=>m.expiresAt>now);
  for(const burst of arsenal.bursts)burst.age+=dt;
- arsenal.bursts=arsenal.bursts.filter(b=>b.age<.5);
+ arsenal.bursts=arsenal.bursts.filter(b=>b.age<(b.kind==='comet'?.72:.52));
 }
 export function drawMouseArsenal(ctx,game){
  const arsenal=game.mouseArsenal;if(!arsenal)return;
  const reduced=game.visuals?.reducedMotion;
+ const quality=!reduced&&game.fps>=32;
  ctx.save();
  for(const mine of arsenal.mines){
-  const active=game.time>=mine.armedAt,pulse=reduced?0:Math.sin(game.time*5)*2;
+  const active=game.time>=mine.armedAt,pulse=reduced?0:Math.sin(game.time*5)*1.2;
+  const progress=clamp(1-(mine.armedAt-game.time)/MOUSE_ARMS.mines.armTime,0,1);
   ctx.strokeStyle=active?'#9ef9e8':'#9ba8b9';ctx.fillStyle=active?'#50dbca':'#7d869b';
-  ctx.globalAlpha=active?.85:.35;ctx.lineWidth=1.5;
+  ctx.globalAlpha=active?.9:.5;ctx.lineWidth=1.5;
   ctx.beginPath();ctx.arc(mine.x,mine.y,7+pulse,0,TAU);ctx.stroke();
   ctx.beginPath();ctx.arc(mine.x,mine.y,3,0,TAU);ctx.fill();
-  if(active){ctx.globalAlpha=.13;ctx.beginPath();ctx.arc(mine.x,mine.y,mine.radius,0,TAU);ctx.stroke();}
+  if(!active){
+   ctx.strokeStyle='#f0c99e';ctx.globalAlpha=.65;ctx.lineWidth=2;
+   ctx.beginPath();ctx.arc(mine.x,mine.y,12,-Math.PI/2,-Math.PI/2+TAU*progress);ctx.stroke();
+  }else{
+   ctx.strokeStyle='#63dccc';ctx.globalAlpha=.18;
+   ctx.beginPath();ctx.arc(mine.x,mine.y,mine.radius,0,TAU);ctx.stroke();
+   for(let i=0;i<4;i++){
+    const a=i*Math.PI/2;
+    ctx.globalAlpha=.45;ctx.beginPath();ctx.moveTo(mine.x+Math.cos(a)*10,mine.y+Math.sin(a)*10);
+    ctx.lineTo(mine.x+Math.cos(a)*14,mine.y+Math.sin(a)*14);ctx.stroke();
+   }
+  }
  }
  for(const p of arsenal.projectiles){
-  const mine=p.kind==='mine';ctx.globalAlpha=.95;
-  ctx.shadowColor=mine?'#c4d3ec':'#36e9fd';ctx.shadowBlur=mine?8:20;
-  ctx.fillStyle=mine?'#b9d3f2':'#8ffbff';ctx.beginPath();ctx.arc(p.x,p.y,mine?4:9,0,TAU);ctx.fill();
-  ctx.shadowBlur=0;ctx.strokeStyle=mine?'#a0b6df':'#1b9ecb';ctx.lineWidth=mine?1.3:3;
-  ctx.beginPath();ctx.moveTo(p.x-p.vx*.06,p.y-p.vy*.06);ctx.lineTo(p.x,p.y);ctx.stroke();
+  const mine=p.kind==='mine',speed=Math.hypot(p.vx,p.vy)||1;
+  const nx=p.vx/speed,ny=p.vy/speed,tail=mine?16:48;
+  ctx.lineCap='round';ctx.globalAlpha=mine?.6:.4;
+  ctx.strokeStyle=mine?'#8caace':'#1a8fba';ctx.lineWidth=mine?3:11;
+  ctx.beginPath();ctx.moveTo(p.x-nx*tail,p.y-ny*tail);ctx.lineTo(p.x,p.y);ctx.stroke();
+  ctx.globalAlpha=.95;ctx.strokeStyle=mine?'#d1e7ff':'#8cf5ff';ctx.lineWidth=mine?1.3:3.4;
+  ctx.beginPath();ctx.moveTo(p.x-nx*tail*.65,p.y-ny*tail*.65);ctx.lineTo(p.x,p.y);ctx.stroke();
+  ctx.shadowColor=mine?'#c4d3ec':'#36e9fd';ctx.shadowBlur=quality?(mine?8:19):0;
+  ctx.fillStyle=mine?'#d3e5f8':'#edfeff';ctx.beginPath();ctx.arc(p.x,p.y,mine?3.5:7,0,TAU);ctx.fill();
+  ctx.shadowBlur=0;
  }
  for(const b of arsenal.bursts){
-  const k=b.age/.5;ctx.globalAlpha=(1-k)*.65;ctx.strokeStyle=b.kind==='comet'?'#78f4ff':'#b1b9ff';
-  ctx.lineWidth=4*(1-k)+1;ctx.beginPath();ctx.arc(b.x,b.y,b.radius*(.28+.72*k),0,TAU);ctx.stroke();
+  const comet=b.kind==='comet',blocked=b.kind==='mineBlocked';
+  const duration=comet?.72:.52,k=clamp(b.age/duration,0,1);
+  const radius=b.radius*(.2+.8*k),fade=(1-k)*(1-k);
+  const bright=blocked?'#ffe3ab':comet?'#c5fbff':'#e2e3ff';
+  const outer=blocked?'#e0a66c':comet?'#4bdff4':'#8ba3f7';
+  ctx.globalAlpha=fade*.85;ctx.strokeStyle=outer;ctx.lineWidth=2.2+3*(1-k);
+  ctx.beginPath();ctx.arc(b.x,b.y,radius,0,TAU);ctx.stroke();
+  ctx.globalAlpha=fade*.75;ctx.strokeStyle=bright;ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.arc(b.x,b.y,radius*.72,0,TAU);ctx.stroke();
+  ctx.globalAlpha=fade*.3;ctx.fillStyle=bright;
+  ctx.beginPath();ctx.arc(b.x,b.y,b.radius*.28*(1-k),0,TAU);ctx.fill();
+  if(quality&&!blocked){
+   const shards=comet?12:7;ctx.strokeStyle=bright;ctx.lineWidth=comet?2.1:1.4;
+   for(let i=0;i<shards;i++){
+    const a=i*TAU/shards+.42,inner=b.radius*(.22+.43*k);
+    const outerEdge=inner+b.radius*(comet?.2:.14)*(1-k);
+    ctx.globalAlpha=fade*(i%3===0?.8:.48);
+    ctx.beginPath();ctx.moveTo(b.x+Math.cos(a)*inner,b.y+Math.sin(a)*inner);
+    ctx.lineTo(b.x+Math.cos(a)*outerEdge,b.y+Math.sin(a)*outerEdge);ctx.stroke();
+   }
+  }
  }
  const aim=game.mouseAim;if(aim&&['comet','mines'].includes(aim.kind)){
   const spec=aim.kind==='comet'?cometSpec(game.skillRanks):minesSpec(game.skillRanks);
@@ -174,6 +221,11 @@ export function drawMouseArsenal(ctx,game){
   }
   ctx.globalAlpha=.45;ctx.beginPath();ctx.moveTo(game.player.x,game.player.y);
   ctx.lineTo(aim.point.x,aim.point.y);ctx.stroke();
+  if(aim.kind==='comet'){
+   // The inner circle shows where the blast retains its strongest damage.
+   ctx.globalAlpha=.48;ctx.strokeStyle=good?'#d1fbff':'#ffc0b2';ctx.lineWidth=1.1;
+   ctx.beginPath();ctx.arc(aim.point.x,aim.point.y,spec.radius*.42,0,TAU);ctx.stroke();
+  }
   ctx.globalAlpha=.95;ctx.font='bold 10px system-ui';ctx.textAlign='center';
   ctx.fillText(good?(aim.kind==='comet'?'КОМЕТА · отпустите ЛКМ':'МИНЫ · отпустите ПКМ'):'ВНЕ ДАЛЬНОСТИ',aim.point.x,aim.point.y-previewRadius-13);
  }

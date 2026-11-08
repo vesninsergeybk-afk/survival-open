@@ -50,10 +50,10 @@ import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1';
-import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1';
+import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1';
 import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
-import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1';
+import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
@@ -79,7 +79,7 @@ import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,upda
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1-supply-stronghold-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel} from './target-designation.js?v=mouse-area-1';
-import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,drawMouseArsenal} from './mouse-arsenal.js?v=mouse-arms-1';
+import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,drawMouseArsenal} from './mouse-arsenal.js?v=mouse-arms-1-recorded-combat-1';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
@@ -973,6 +973,7 @@ export class ArcadeGame {
    const item=pickDesignatedTarget(this,worldPoint,Math.max(55,46*cam.w/Math.max(1,rect.width)));
    if(item){
     this.designatedTarget={target:item.target,expiresAt:this.time+3.5};
+   this.heritage?.play?.('targetMark',.2,item.target);
     const parasite=!!this.skillRanks.parasite;
     const mode=parasite?parasiteTargetMode(this):'guard';
     const active=this.enemies.some(e=>e.parasiteCapture&&e.hp>0);
@@ -5226,7 +5227,7 @@ export class ArcadeGame {
   }
   // Heading previews belong to the tactical world, not to the cockpit HUD.
   drawEnemyIntentions(c,cam,this,this.visuals.reducedMotion,this.fps);
-  drawMoteSwarms(c,this.enemies,cam,this.time,this.visuals.reducedMotion);
+  drawMoteSwarms(c,this.enemies,cam,this.time,this.visuals.reducedMotion,this.moteFormationFx);
   const signaledGroups=new Set();
   for(const e of this.enemies){
    if(outsideCamera(e.x,e.y,cam,e.r+30))continue;

@@ -59,6 +59,42 @@ test('one group uses one warned volley rather than a bullet per drone',()=>{
  assert.equal(game.shots.length,1,'the whole pack shares one cooldown');
 });
 
+test('swarm arrival, splitting, regrouping and attack warning have distinct one-off cues',()=>{
+ const game=scene(drones(10)),sounds=[];
+ game.heritage={play(kind){sounds.push(kind);}};
+ game.camera=()=>({x:100,y:-100,w:500,h:400});
+ updateMoteSwarmOrders(game);
+ assert.equal(sounds.filter(x=>x==='swarmArrival').length,1);
+ assert.equal(sounds.filter(x=>x==='swarmSplit').length,1);
+ assert.equal(game.moteFormationFx?.[0]?.kind,'split');
+ game.time=104;updateMoteSwarmOrders(game);
+ assert.equal(sounds.filter(x=>x==='swarmArrival').length,1,'split packs are not announced twice');
+ game.time=109;updateMoteSwarmOrders(game);
+ assert.equal(sounds.filter(x=>x==='swarmMerge').length,1);
+ assert.ok(game.moteFormationFx.some(f=>f.kind==='merge'));
+ const warningGame=scene(drones(3),101),warnings=[];
+ warningGame.heritage={play(kind){warnings.push(kind);}};
+ updateMoteSwarmOrders(warningGame);
+ warningGame.time=103;updateMoteSwarmOrders(warningGame);
+ warningGame.time=103.2;updateMoteSwarmOrders(warningGame);
+ assert.equal(warnings.filter(x=>x==='swarmWarning').length,1,
+  'the warning is attached to the shared volley, not to each member or update');
+ const words=[];
+ const c=new Proxy({fillText(label){words.push(label);}},
+  {get(target,key){return target[key]??(()=>{});}});
+ drawMoteSwarms(c,game.enemies,game.camera(),109.3,true,[{x:310,y:23,kind:'merge',bornAt:109}]);
+ assert.ok(words.includes('РОЙ ОБЪЕДИНЯЕТСЯ'));
+});
+
+test('swarm formation events outside the camera do not make distracting sounds',()=>{
+ const game=scene(drones(10)),sounds=[];
+ game.heritage={play(kind){sounds.push(kind);}};
+ game.camera=()=>({x:1900,y:1900,w:500,h:400});
+ updateMoteSwarmOrders(game);
+ assert.equal(sounds.length,0);
+ assert.equal(game.moteFormationFx.length,0);
+});
+
 test('first visible micro-drone pack shows its area-weapon hint once, even if the leader is offscreen',()=>{
  const group=drones(4),leader=group[0];
  leader.encounterLabel='РОЙ МИКРОДРОНОВ · используйте комету или мины';
