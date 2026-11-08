@@ -64,7 +64,17 @@ test('short landscape screens keep ship caption readable despite earlier 9px sty
  assert.match(section,/\.prog-domain strong \{font-size:12px\}/);
 });
 
+test('intermediate tablet widths and subgroup labels are not 9px',()=>{
+ const css=read('menu-refinement.css');
+ assert.match(css,/\.progression-ui \.prog-subtab-label \{font-size:12px/);
+ const start=css.indexOf('@media (min-width:521px) and (max-width:800px) and (min-height:541px)');
+ assert.ok(start>=0,'missing tablet rule');
+ const section=css.slice(start,css.indexOf('@media (prefers-reduced-motion',start));
+ assert.match(section,/\.prog-ship-caption span \{font-size:12px;line-height:1\.25\}/);
+ assert.match(section,/\.prog-domain strong \{font-size:12px\}/);
+});
+
 test('published HTML refreshes the stylesheet version for landscape readability fix',()=>{
  const html=read('index.html');
- assert.match(html,/menu-refinement\.css\?v=menu-unification-20261108-1-landscape-1/);
+ assert.match(html,/menu-refinement\.css\?v=menu-unification-20261108-1-landscape-1-midwidth-1/);
 });
