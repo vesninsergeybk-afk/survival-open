@@ -99,7 +99,8 @@ test('the actual spawn path creates small scout ships with one shared pack',()=>
  assert.equal(g.enemies.length,10);
  assert.ok(g.enemies.every(e=>e.microSwarm&&e.r===MOTE_SWARM.radius&&e.hp<20));
  assert.equal(new Set(g.enemies.map(e=>e.motePack)).size,1);
- assert.ok(g.enemies.every(e=>e._patrolRoute===null));
+ assert.ok(g.enemies.every(e=>e._patrolRoute&&e.moteApproach===e._patrolRoute),
+  'a routine swarm must have a traffic route, not omniscient player tracking');
 });
 
 test('a kill contract credits only a fully defeated collective, exactly once',()=>{
