@@ -73,10 +73,11 @@ import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHI
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2-menu-rebuild-1-menu-audit-1';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1-all-menus-1-menu-reaudit-1-menu-audit-1';
-import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons} from './ship-weapons.js?v=rpg-precision-1-rpg-audit-1-weapon-feel-1-opening-arc-1-expedition-1-campaign-1-opening-tactics-1-weapon-mechanics-2-unified-controls-1';
+import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons,RAIL_AIM_ASSIST} from './ship-weapons.js?v=mouse-area-1';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1-supply-stronghold-1';
-import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=living-world-2-expedition-1-campaign-1-first-loops-1';
-import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=living-world-3-expedition-1-campaign-1';
+import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1';
+import {pickDesignatedTarget,activeDesignatedTarget,designationLabel,TARGET_DESIGNATION} from './target-designation.js?v=mouse-area-1';
+import {planTargetArea,TARGET_AREA} from './target-area.js?v=mouse-area-1';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
@@ -238,6 +239,7 @@ export class ArcadeGame {
   this.enemyLearning=(this.visuals.capitalDamageQA||this.firstLoopsQA)?null:new EnemyLearning(hangarStorage);
   this.enemyComms=new EnemyComms();
   this.designatedTarget=null;
+  this.targetField=null;
   this.lastTargetHintAt=-Infinity;
   this.cruiseCharge=0;this.cruising=false;
   window.addEventListener?.('pagehide',()=>this.enemyLearning?.flush(this.time));
@@ -923,19 +925,13 @@ export class ArcadeGame {
  }
  designateTargetAt(worldPoint){
    const rect=this.canvas.getBoundingClientRect(),cam=this.camera();
-   const item=pickDesignatedTarget(this,worldPoint,Math.max(34,28*cam.w/Math.max(1,rect.width)));
-   if(!item){
-    if(this.designatedTarget){
-     this.designatedTarget=null;this.notice('Приоритет цели снят.',1.8);
-    }else if(this.time-this.lastTargetHintAt>=8){
-     this.lastTargetHintAt=this.time;
-     this.notice('Коснитесь видимой цели в пределах 900 м: автооружие будет выбирать её 14 с.',3.8);
-    }
-    return;
-   }
-   if(this.designatedTarget?.target===item.target){
-    this.designatedTarget=null;this.notice('Приоритет цели отменён',1.7);
-   }else{
+   const plan=planTargetArea(this,worldPoint);
+   if(!plan.ok){this.notice(plan.reason,2.4);return;}
+   // An exact deliberate click still works on a protected industrial worker.
+   // Otherwise any point near a moving group is enough to focus that sector.
+   const item=pickDesignatedTarget(this,worldPoint,Math.max(34,28*cam.w/Math.max(1,rect.width)))||plan.focus;
+   this.targetField=plan.area;
+   if(item){
     this.designatedTarget={target:item.target,expiresAt:this.time+TARGET_DESIGNATION.duration};
     const parasite=!!this.skillRanks.parasite;
     const mode=parasite?parasiteTargetMode(this):'guard';
@@ -945,8 +941,18 @@ export class ArcadeGame {
      mode==='capture'&&this.fieldEvolution.captureReadyAt>this.time?' Захват восстановится через '+Math.ceil(this.fieldEvolution.captureReadyAt-this.time)+' с.':
      mode==='capture'?' Добейте врага лично для захвата (1 ядро).':
      mode==='signal'?' Попадите по врагу с достаточной прочностью для разведки (1 ядро).':'';
-    this.notice('Приоритет: '+designationLabel(item)+' · '+TARGET_DESIGNATION.duration+
-     ' с. Автооружие выберет эту цель.'+action,4.3);
+    if(this.time-this.lastTargetHintAt>2.5||action){
+     this.lastTargetHintAt=this.time;
+     this.notice('СЕКТОР ОГНЯ · целей в круге: '+Math.max(plan.count,1)+' · '+TARGET_AREA.duration+
+      ' с. Приоритет: '+designationLabel(item)+'.'+action,3.2);
+    }
+   }else if(this.time-this.lastTargetHintAt>3){
+    this.lastTargetHintAt=this.time;
+    this.designatedTarget=null;
+    this.notice('СЕКТОР ОГНЯ · область отмечена на '+TARGET_AREA.duration+
+     ' с. Автооружие выберет появившихся в ней противников.',3.6);
+   }else{
+    this.designatedTarget=null;
    }
  }
  notice(text,seconds=3){this.message.textContent=text;this.messageUntil=this.time+seconds;}
@@ -1160,7 +1166,7 @@ export class ArcadeGame {
    label:kind==='intercept'?'Вражеский наводчик':'Аварийная капсула'};
   this.dismiss();
   this.notice(kind==='intercept'?
-   'Наводчик с охраной держит дистанцию. Сближайтесь рывком ('+this.controlLabel('dash')+'); коснитесь или нажмите ПКМ на нём для приоритета автоогня.':
+   'Наводчик с охраной держит дистанцию. Сближайтесь рывком ('+this.controlLabel('dash')+'); коснитесь или нажмите ПКМ рядом с ним: орудия сосредоточатся на отмеченном секторе.':
    'Капсула отмечена. Удерживайте '+(this.isTouchLayout?'«Действие»':this.controlLabel('interact'))+
     ' рядом: прогресс сохраняется после паузы, а на половине работы сработает её защитный импульс.',6);
  }
@@ -1692,7 +1698,7 @@ export class ArcadeGame {
   }
   this.heritage.play('upgrade',.14);
   this.notice(id==='parasite'?'ПАРАЗИТ · 1/2 ядра. Защита сработает сама при сильном ударе.':
-   id==='capture'?'ЗАХВАТ · ПКМ или касание по врагу → добейте его с ядром в запасе.':
+   id==='capture'?'ЗАХВАТ · ПКМ или касание рядом с врагом → добейте отмеченную цель с ядром в запасе.':
    id==='signal'?'ПЕРЕДАТЧИК · отметьте врага и попадите по нему с ядром в запасе.':
    'Улучшение: '+skill.title,3.6);
   if(SHIP_UPGRADES.has(id)){
@@ -2560,8 +2566,8 @@ export class ArcadeGame {
    this.selectedManualWeapon='rail';this.manualRailMode=!this.manualRailMode;
    this.canvas?.classList?.toggle('rail-manual',this.manualRailMode);
    this.notice(this.manualRailMode?
-    'РЕЛЬС · РУЧНОЙ РЕЖИМ. Нажмите на цель или точку выстрела. Остальные орудия работают автоматически.':
-    'РЕЛЬС · АВТООГОНЬ. Нажатие на врага снова назначает приоритетную цель.',4);
+    'РЕЛЬС · РУЧНОЙ РЕЖИМ. Щёлкните рядом с врагом: прицел подхватит ближайшую цель. Остальные орудия стреляют сами.':
+    'РЕЛЬС · АВТООГОНЬ. ПКМ отмечает целый сектор, в котором сосредоточится автоматический огонь.',4);
    this.heritage.ui('tab');this.hud();return true;
   }
   fireManualRailAt(point){
@@ -2655,7 +2661,7 @@ export class ArcadeGame {
   this.heritage.dead=false;
   this.deathSceneEnd=0;
   this.enemyComms=new EnemyComms();
-  this.designatedTarget=null;this.interactionFocus=null;this.weaponFx=[];
+  this.designatedTarget=null;this.targetField=null;this.interactionFocus=null;this.weaponFx=[];
   this.nearArsenalBonus=false;this.nearArsenalDefense=false;
   this.nearDockField=false;this.nearQuietLab=false;this.nearDock=null;
   if(this.enemyLearning){
@@ -2743,14 +2749,6 @@ export class ArcadeGame {
   this.hud();
  }
  syncControlUI(){
-  const tips=$('tips');
-  if(tips){
-   const flight=['up','left','down','right'].map(id=>this.controlLabel(id)).join('/');
-   const next=flight+' — полёт · '+this.controlLabel('dash')+' — рывок · '+this.controlLabel('interact')+
-    ' — действие · ЛКМ — ручное оружие / цель · ПКМ — приоритет · '+
-    this.controlLabel('field')+' — поле · Меню → Справка';
-   if(tips.textContent!==next)tips.textContent=next;
-  }
   const button=$('actionBtn');
   if(button){
    const focus=this.actionHeld||this.interactionFocus;
@@ -2786,9 +2784,9 @@ export class ArcadeGame {
    const status=$('fieldWeaponStatus');if(status){
     const manual=selectedManual(this.selectedManualWeapon,this.manualWeaponsHere());
     const manualText=manual==='rail'?(this.manualRailMode?'ЛКМ · РЕЛЬС (ручной)':'ЛКМ · РЕЛЬС (первый выстрел переводит в ручной режим)'):
-     manual==='howitzer'?'ЛКМ · ГАУБИЦА':'ЛКМ · ЦЕЛЬ АВТООГНЯ';
+     manual==='howitzer'?'ЛКМ · ГАУБИЦА':'ЛКМ · СЕКТОР ОГНЯ';
     const wheel=this.manualWeaponsHere().length>1?' · колесо — сменить оружие':'';
-    const text=[manualText+wheel,'ПКМ · приоритет',fitted?fieldText:tacticText].join(' · ');
+    const text=[manualText+wheel,'ПКМ · сектор огня',fitted?fieldText:tacticText].join(' · ');
     status.hidden=!text||this.paused||this.dead||!this.overlay.hidden;
     status.textContent=text;status.setAttribute('aria-label',text);
    }
@@ -2813,11 +2811,12 @@ export class ArcadeGame {
    const tip=$('tips');if(tip){
     const key=action=>readableKey((this.controls||DEFAULT_CONTROLS)[action]);
     const chosen=selectedManual(this.selectedManualWeapon,this.manualWeaponsHere());
-    const shot=chosen==='rail'?'рельс':chosen==='howitzer'?'гаубица':'цель';
-    const base='WASD / стрелки — полёт · '+key('dash')+' — рывок · '+key('interact')+
-     ' — действие · ЛКМ — '+shot+' · ПКМ — приоритет · '+key('field')+' — '+
+    const shot=chosen==='rail'?'рельс':chosen==='howitzer'?'гаубица':'сектор';
+    const flight=['up','left','down','right'].map(key).join('/');
+    const base=flight+' — полёт · '+key('dash')+' — рывок · '+key('interact')+
+     ' — действие · ЛКМ — '+shot+' · ПКМ — сектор огня · '+key('field')+' — '+
      (fitted?spec.short:tacticModule.short);
-    const extra=this.manualWeaponsHere().length>1?' · колесо — сменить орудие':'';
+    const extra=(this.manualWeaponsHere().length>1?' · колесо — сменить орудие':'')+' · Меню → Справка';
     if(tip.textContent!==base+extra)tip.textContent=base+extra;
    }
   const skills=$('skillBtn');
@@ -5028,6 +5027,31 @@ export class ArcadeGame {
   this.heritage.vfx.beginSurfaceLights();
   const chosenTarget=activeDesignatedTarget(this);
   drawEvolutionConnections(c,this,cam);
+  if(this.manualRailMode&&!this.isTouchLayout&&this.tacticalPointer&&this.overlay.hidden){
+   const rect=this.canvas.getBoundingClientRect(),pointer=this.tacticalPointer;
+   if(pointer.x>=rect.left&&pointer.x<=rect.right&&pointer.y>=rect.top&&pointer.y<=rect.bottom){
+    const mx=cam.x+(pointer.x-rect.left)/Math.max(1,rect.width)*cam.w;
+    const my=cam.y+(pointer.y-rect.top)/Math.max(1,rect.height)*cam.h;
+    c.save();c.globalAlpha=.55;c.strokeStyle='#92dbe9';c.lineWidth=1.2;
+    c.setLineDash([3,8]);c.beginPath();c.arc(mx,my,RAIL_AIM_ASSIST,0,TAU);c.stroke();
+    c.setLineDash([]);c.restore();
+   }
+  }
+  const zone=this.targetField;
+  if(zone&&zone.expiresAt>this.time&&!outsideCamera(zone.x,zone.y,cam,zone.radius+45)){
+   const left=Math.ceil(zone.expiresAt-this.time),r=zone.radius;
+   c.save();c.fillStyle='#72dfd7';c.globalAlpha=.055;
+   c.beginPath();c.arc(zone.x,zone.y,r,0,TAU);c.fill();
+   c.globalAlpha=.6;c.strokeStyle='#75e3d2';c.lineWidth=1.6;
+   c.setLineDash([10,12]);c.beginPath();c.arc(zone.x,zone.y,r,0,TAU);c.stroke();c.setLineDash([]);
+   for(let i=0;i<4;i++){
+    const a=i*Math.PI/2+Math.PI/4;
+    c.beginPath();c.arc(zone.x,zone.y,r,a-.15,a+.15);c.lineWidth=3;c.stroke();
+   }
+   c.globalAlpha=.9;c.textAlign='center';c.font='bold 10px system-ui';
+   c.fillStyle='#b2fff0';c.fillText('СЕКТОР ОГНЯ · '+left+' С',zone.x,zone.y-r-15);
+   c.restore();
+  }
   if(this.cruising){
    c.save();c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle='#9afce5';
    c.fillText('МАРШЕВЫЙ ПЕРЕЛЁТ ×'+EXPEDITION_CRUISE.multiplier,p.x,p.y+56);c.restore();

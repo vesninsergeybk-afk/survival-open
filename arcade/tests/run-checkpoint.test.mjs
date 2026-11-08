@@ -685,6 +685,7 @@ test('continuation renders the restored sector and terrain before the dock pause
  const g=scene();g.pendingCheckpoint=saved;g.vw=1200;g.vh=800;
  g.dead=true;g.heritage.dead=true;g.enemyComms=new EnemyComms();g.enemyComms.nextTick=900;
  g.designatedTarget={target:{hp:1},expiresAt:900};
+ g.targetField={x:500,y:300,radius:165,expiresAt:900};
  let sky=null,rendered=false;g.visuals={updateSky(x,y){sky=[x,y];}};
  g.heritage.pause=noop;g.hangarSession={begin:noop};
  g.renderDock=()=>{
@@ -695,6 +696,7 @@ test('continuation renders the restored sector and terrain before the dock pause
  g.continueRun();assert.ok(rendered);assert.equal(g.pendingCheckpoint,null);
  assert.equal(g.heritage.dead,false);assert.equal(g.enemyComms.nextTick,0);
  assert.equal(g.designatedTarget,null);
+ assert.equal(g.targetField,null,'a temporary mouse target area must not survive an earlier station save');
 });
 test('continuing at a dock pays an old unclaimed order exactly once',()=>{
  const original=scene(),b=original.docked;

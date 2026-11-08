@@ -258,7 +258,7 @@ export function restoreCheckpoint(game,data){
  // Convert older saves only once, retaining every already earned skill point.
  migrateLegacyPlayerExperience(game.player);
  inheritStrategicExperience(game.player,world);
- game.tactical=data.state.tactical||createTactical();game.tacticalPointer=null;
+ game.tactical=data.state.tactical||createTactical();game.tacticalPointer=null;game.targetField=null;
  game.openingArc=data.state.openingArc||{...createOpeningArc(world.home),status:'skipped'};
  game.openingRepairing=false;
  game.sortieReports=data.state.sortieReports||[];

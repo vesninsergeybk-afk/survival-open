@@ -167,6 +167,19 @@ test('manual fire can hit an investigating patrol that automatic weapons cannot 
  assert.equal(patrol.signalIntel.mode,'engaged','an attacked patrol now has a reason to respond');
 });
 
+test('manual rail gently snaps to a nearby fast scout while preserving its actual ray collision',()=>{
+ const g=game(['rail',null,null,null,null,null]);arm(g);g.manualRailMode=true;
+ const scout=enemy(210,50);g.grid.insert(scout);
+ const near=fireAimedRail(g,{x:210,y:112});
+ assert.equal(near.ok,true);assert.equal(near.hits,1);
+ assert.ok(scout.hp<300,'the click lands near the scout without pixel-perfect aim');
+ const far=game(['rail',null,null,null,null,null]);arm(far);far.manualRailMode=true;
+ const distant=enemy(210,50);far.grid.insert(distant);
+ const miss=fireAimedRail(far,{x:210,y:220});
+ assert.equal(miss.ok,true);assert.equal(miss.hits,0,
+  'aim assistance may not pull an arbitrary shot across the battlefield');
+});
+
 test('manual fire can deliberately aim at hostile mining equipment without automatic target designation',()=>{
  const g=game(['rail',null,null,null,null,null]);arm(g);g.manualRailMode=true;
  const worker={...enemy(210),centralWorker:true};
