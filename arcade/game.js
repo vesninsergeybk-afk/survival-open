@@ -875,7 +875,8 @@ export class ArcadeGame {
    return rect.width&&rect.height?{x:cam.x+(x-rect.left)/rect.width*cam.w,
     y:cam.y+(y-rect.top)/rect.height*cam.h}:null;
   };
-  let aimStart=null;
+  let aimStart=null,longPressTimer=null;
+  const cancelLongPress=()=>{if(longPressTimer!==null){clearTimeout(longPressTimer);longPressTimer=null;}};
   this.canvas?.addEventListener('pointerdown',e=>{
    if(this.paused||this.dead)return;
    this.tacticalPointer={x:e.clientX,y:e.clientY};
@@ -883,15 +884,32 @@ export class ArcadeGame {
     if(point)this.designateTargetAt(point);e.preventDefault();return;}
    if(e.button!==0)return;
    aimStart={id:e.pointerId,x:e.clientX,y:e.clientY};
+   // On touch, a manual rail uses a tap to shoot. Holding a target always
+   // remains an available way to designate it for automatic weapons.
+   if(e.pointerType==='touch'&&this.manualRailMode){
+    cancelLongPress();
+    const pointerId=e.pointerId;
+    longPressTimer=setTimeout(()=>{
+     longPressTimer=null;
+     if(!aimStart||aimStart.id!==pointerId||this.paused||this.dead)return;
+     aimStart.longPress=true;
+     const point=worldAt(aimStart.x,aimStart.y);
+     if(point)this.designateTargetAt(point);
+    },460);
+   }
   });
   this.canvas?.addEventListener('pointermove',e=>{
    if(e.pointerType==='mouse')this.tacticalPointer={x:e.clientX,y:e.clientY};
+   if(aimStart&&e.pointerId===aimStart.id&&
+    Math.hypot(e.clientX-aimStart.x,e.clientY-aimStart.y)>14)cancelLongPress();
   });
   this.canvas?.addEventListener('contextmenu',e=>e.preventDefault());
   this.canvas?.addEventListener('pointerup',e=>{
    if(!aimStart||e.pointerId!==aimStart.id)return;
+   cancelLongPress();
    const moved=Math.hypot(e.clientX-aimStart.x,e.clientY-aimStart.y);
-   aimStart=null;if(moved>14||this.paused||this.dead)return;
+   const held=!!aimStart.longPress;
+   aimStart=null;if(held||moved>14||this.paused||this.dead)return;
    const worldPoint=worldAt(e.clientX,e.clientY);if(!worldPoint)return;
    this.fireSelectedManualAt(worldPoint);
   });
@@ -901,7 +919,7 @@ export class ArcadeGame {
    if(this.manualWeaponsHere().length<2)return;
    e.preventDefault();this.switchManualWeapon(e.deltaY>0?1:-1);
   },{passive:false});
-  this.canvas?.addEventListener('pointercancel',()=>{aimStart=null;});
+  this.canvas?.addEventListener('pointercancel',()=>{cancelLongPress();aimStart=null;});
  }
  designateTargetAt(worldPoint){
    const rect=this.canvas.getBoundingClientRect(),cam=this.camera();
