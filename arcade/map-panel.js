@@ -1,13 +1,17 @@
 import {menuInfo,renderMapActions} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1';
-import {DEFAULT_CONTROLS,readableKey,interactionCopy,isMapShortcut} from './control-layout.js?v=swarm-controls-1';
+import {DEFAULT_CONTROLS,readableKey,interactionCopy,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1';
 
-// The footer must describe every active map shortcut, including alternatives
-// that do not steal a key from an explicitly remapped action.
+// Shortcuts honor user remapping; while open, Tab belongs to keyboard focus.
 export const mapKeysLabel=bindings=>{
  const controls=bindings||DEFAULT_CONTROLS;
  const keys=[controls.map,...['Tab','KeyM'].filter(code=>isMapShortcut(code,controls))];
  return [...new Set(keys)].map(readableKey).join(' / ');
+};
+export const mapCloseKeysLabel=bindings=>{
+ const controls=bindings||DEFAULT_CONTROLS;
+ const keys=[controls.map,'KeyM'].filter(code=>isMapCloseShortcut(code,controls));
+ return [...new Set(keys)].map(readableKey).concat('Esc').join(' / ');
 };
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
 import {pendingContourTrials} from './contour-trials.js?v=first-loops-1';
@@ -438,7 +442,7 @@ export function renderWorldMap(game){
   '<div class="map-objective"><span>ОБСТАНОВКА В СЕКТОРЕ</span><p>'+enc(territory)+'</p>'+
   (securedSupply.length?'<p>Зелёным отмечены перехваченные маршруты снабжения. В пределах 740 м от них вражеские патрули появляются реже.</p>':'')+'</div>'+
   '</details></aside></section><footer class="map-foot">'+
-  enc(mapKeysLabel(game.controls))+' — карта · '+
+  enc(mapCloseKeysLabel(game.controls))+' — назад · Tab — по кнопкам · '+
   enc(readableKey((game.controls||DEFAULT_CONTROLS).skills))+' — развитие · '+
   'Дистанции до сигналов приблизительные.</footer>'+renderMapActions(game)+'</div>',game.controls);
 }

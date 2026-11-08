@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,validControls,readControls,
- changeControl,readableKey,isPressed,isMapShortcut} from '../control-layout.js';
-import {manualWeapons,selectedManual,cycleManual,manualClick} from '../manual-weapon-controls.js';
+ changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from '../control-layout.js';
+import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from '../manual-weapon-controls.js';
 import {planHowitzer} from '../ship-weapons.js';
 import {game} from './weapons-scene.mjs';
 import {precisionRailUnlocked} from '../station-progression.js';
-import {mapKeysLabel} from '../map-panel.js';
+import {mapKeysLabel,mapCloseKeysLabel} from '../map-panel.js';
 
 test('new bindings are complete, one-action-per-key and survive storage',()=>{
  assert.equal(validControls(DEFAULT_CONTROLS),true);
@@ -50,6 +50,30 @@ test('Tab and M show the map, arrows remain movement aliases, and customized key
  assert.equal(mapKeysLabel(DEFAULT_CONTROLS),'Tab / M');
  assert.equal(mapKeysLabel(custom.bindings),'Tab','custom M binding must remove M from the footer');
  assert.equal(mapKeysLabel({...DEFAULT_CONTROLS,map:'KeyN'}),'N / Tab / M');
+ assert.ok(isMapCloseShortcut('KeyM',DEFAULT_CONTROLS));
+ assert.ok(!isMapCloseShortcut('Tab',DEFAULT_CONTROLS),
+  'Tab must remain free for keyboard navigation across the open interactive map');
+ assert.ok(!isMapCloseShortcut('KeyM',custom.bindings));
+ assert.ok(isMapCloseShortcut('KeyN',{...DEFAULT_CONTROLS,map:'KeyN'}));
+ assert.equal(mapCloseKeysLabel(DEFAULT_CONTROLS),'M / Esc');
+ assert.equal(mapCloseKeysLabel(custom.bindings),'Esc');
+ assert.equal(mapCloseKeysLabel({...DEFAULT_CONTROLS,map:'KeyN'}),'N / M / Esc');
+ assert.match(source,/this\.overlay\.dataset\.mode==='map'.*?isMapCloseShortcut\(e\.code,this\.controls\)/s);
+});
+
+test('optional Ctrl+LMB marks a priority target without firing the comet or mines',()=>{
+ const mouse=(button,extras={})=>({button,pointerType:'mouse',ctrlKey:false,altKey:false,metaKey:false,...extras});
+ assert.deepEqual(pointerWeaponAction(mouse(0),'comet'),{kind:'comet',mark:false});
+ assert.deepEqual(pointerWeaponAction(mouse(2),'comet'),{kind:'mines',mark:false});
+ assert.deepEqual(pointerWeaponAction(mouse(0,{ctrlKey:true}),'comet'),{kind:null,mark:true});
+ assert.deepEqual(pointerWeaponAction(mouse(0,{ctrlKey:true}),'rail'),{kind:null,mark:true});
+ assert.deepEqual(pointerWeaponAction(mouse(0,{ctrlKey:true,altKey:true}),'comet'),{kind:'comet',mark:false});
+ assert.deepEqual(pointerWeaponAction({button:0,pointerType:'touch',ctrlKey:false},'comet',true),
+  {kind:'mines',mark:false},'touch mine selection is not replaced by desktop marking');
+ const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ assert.match(source,/if\(mark\)\{if\(!held&&moved<=14\)this\.designateTargetAt\(worldPoint\);return;\}/);
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(html,/Приоритетная цель \(без выстрела\)/);
 });
 
 test('manual modes have a stable order, with a dedicated comet action',()=>{
@@ -129,7 +153,7 @@ test('the published UI offers mouse release attacks and separates everyday from 
  assert.match(gameText,/this\.fireSelectedManualAt\(worldPoint\)/);
  assert.match(gameText,/this\.designateTargetAt\(point\)/);
  assert.match(gameText,/this\.switchManualWeapon\(e\.deltaY>0\?1:-1\)/);
- assert.match(gameText,/e\.button===2\|\|e\.pointerType==='touch'&&this\.mobileMineArmed\?'mines'/);
+ assert.match(gameText,/pointerWeaponAction\(e,weapon,this\.mobileMineArmed\)/);
  assert.match(gameText,/if\(kind\)\{this\.fireActiveMouseWeapon\(kind,worldPoint\)/);
  assert.match(gameText,/this\.mouseAim=null/);
  assert.match(html,/id="minefieldBtn"/);
