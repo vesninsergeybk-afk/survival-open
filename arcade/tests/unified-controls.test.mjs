@@ -28,7 +28,7 @@ test('a duplicate, unsafe or malformed key mapping cannot silently break movemen
  assert.deepEqual(readControls({getItem:()=>JSON.stringify({...DEFAULT_CONTROLS,up:'KeyS'})}),DEFAULT_CONTROLS);
 });
 
-test('manual modes have a stable order while RMB priority remains independent',()=>{
+test('manual modes have a stable order, with a dedicated comet action',()=>{
  const both=manualWeapons({rail:true,howitzer:true},true);
  assert.deepEqual(both,['rail','howitzer']);
  assert.deepEqual(manualWeapons({rail:true,howitzer:true},false),['howitzer']);
@@ -42,6 +42,8 @@ test('manual modes have a stable order while RMB priority remains independent',(
  assert.equal(manualClick('howitzer',true),'howitzer');
  assert.equal(manualClick('howitzer',false,true),'designate','touch target selection remains available with heavy weapon installed');
  assert.equal(manualClick('rail',true,true),'rail','explicit touch precision mode still fires the rail');
+ assert.equal(manualClick('comet',false),'comet');
+ assert.equal(manualClick('comet',false,true),'comet');
  assert.equal(manualClick(null,false),'designate');
 });
 
@@ -62,12 +64,16 @@ test('actual game selection keeps manual rail and howitzer separate from automat
  g.world.stations.set(arsenal.id,arsenal);
  assert.equal(precisionRailUnlocked(g.world),true);
  g.syncManualWeaponSelection();
- assert.equal(g.selectedManualWeapon,'rail');
+ assert.equal(g.selectedManualWeapon,'comet','ordinary play defaults to the broad comet attack');
  assert.equal(g.manualRailMode,false,'installing the rail must preserve automatic fire');
  assert.equal(g.switchManualWeapon(),true);
- assert.equal(g.selectedManualWeapon,'howitzer');
+ assert.equal(g.selectedManualWeapon,'rail');
  assert.equal(g.manualRailMode,false);
  assert.ok(g.weaponProfile.plasma);
+ assert.equal(g.switchManualWeapon(),true);
+ assert.equal(g.selectedManualWeapon,'howitzer');
+ assert.equal(g.switchManualWeapon(),true);
+ assert.equal(g.selectedManualWeapon,'comet');
  assert.equal(g.switchManualWeapon(),true);
  assert.equal(g.selectedManualWeapon,'rail');
  assert.equal(g.manualRailMode,false,'returning to rail does not disable automatic fire before a manual shot');
@@ -77,13 +83,17 @@ test('actual game selection keeps manual rail and howitzer separate from automat
  assert.equal(g.manualRailMode,true,'normal loadout refresh does not erase the deliberate mode choice');
 });
 
-test('the published UI offers keyboard settings and a single cursor-directed manual action',()=>{
+test('the published UI offers mouse release attacks and separates everyday from advanced controls',()=>{
  const gameText=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(gameText,/this\.fireSelectedManualAt\(worldPoint\)/);
  assert.match(gameText,/this\.designateTargetAt\(point\)/);
  assert.match(gameText,/this\.switchManualWeapon\(e\.deltaY>0\?1:-1\)/);
- assert.match(gameText,/e\.button===2[\s\S]{0,110}this\.designateTargetAt/);
+ assert.match(gameText,/e\.button===2\|\|e\.pointerType==='touch'&&this\.mobileMineArmed\?'mines'/);
+ assert.match(gameText,/if\(kind\)\{this\.fireActiveMouseWeapon\(kind,worldPoint\)/);
+ assert.match(gameText,/this\.mouseAim=null/);
+ assert.match(html,/id="minefieldBtn"/);
+ assert.match(html,/Дополнительные команды/);
  assert.match(html,/id="controlsBindingList"/);
  assert.ok(html.indexOf('id="controlsBindingMessage"')<html.indexOf('id="controlsBindingList"'),
   'conflict feedback must be visible above the long list, without scrolling');

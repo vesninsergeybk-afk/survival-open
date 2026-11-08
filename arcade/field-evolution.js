@@ -8,9 +8,13 @@ export const FIELD_EVOLUTION_SKILLS=[
  {id:'wreck',branch:'Технологии',title:'Обломки-укрытия',max:1,from:2,
   desc:'После победы над тяжёлыми дронами остаются дрейфующие обломки. Они на время перекрывают вражеский огонь, но разрушаются от попаданий.'},
  {id:'capture',branch:'Технологии',title:'Паразитный захват',max:1,from:3,requires:'parasite',
-  desc:'Отметьте обычного врага приоритетной целью (ПКМ или касание), затем добейте его лично с энергоядром в запасе. За одно ядро он станет вашим союзником на 16 секунд. Повторный захват — через 22 секунды.'},
+  desc:'Попадите «Голубой кометой» по обычному врагу и добейте отмеченную цель лично с энергоядром в запасе. За одно ядро она станет союзником на 16 секунд. Повторный захват — через 22 секунды.'},
  {id:'signal',branch:'Технологии',title:'Паразит-передатчик',max:1,from:4,requires:'parasite',
-  desc:'В режиме «Разведка» отметьте обычного врага (ПКМ или касание) и попадите по нему, пока у него больше половины прочности. Одно ядро заставит его 16 секунд показывать соседние корабли на карте.'}
+  desc:'В режиме «Разведка» поразите обычного врага «Голубой кометой», пока у него больше половины прочности. Одно ядро заставит его 16 секунд показывать соседние корабли на карте.'},
+ {id:'cometRadius',branch:'Оружие',title:'Расширение кометы',max:2,from:2,
+  desc:'Каждый ранг увеличивает радиус взрыва «Голубой кометы» на 17 м. Урон в центре остаётся прежним.'},
+ {id:'mineArray',branch:'Оружие',title:'Минный строй',max:2,from:3,
+  desc:'Каждый ранг добавляет одну мину в веер, которым вы управляете ПКМ. Повторная установка заменяет предыдущие мины.'}
 ];
 
 export function createFieldEvolution(){
@@ -44,9 +48,12 @@ export function chooseEvolutionOffers(level,ranks,skills){
   eligible(s,level,ranks));
  const list=[...field,...other];
  if(list.length<=3)return list.map(s=>s.id);
- // The first field choices remain legible; later levels rotate alternatives.
- const rotation=Math.max(0,level-2)%list.length;
- return [...list.slice(rotation),...list.slice(0,rotation)].slice(0,3).map(s=>s.id);
+ // Do not bury the newly unlocked parasite follow-up behind the growing
+ // mouse-weapon catalog. The remaining slots rotate for build variety.
+ const priority=list.filter(s=>['capture','signal'].includes(s.id));
+ const rest=list.filter(s=>!['capture','signal'].includes(s.id));
+ const rotation=Math.max(0,level-2)%rest.length;
+ return [...priority,...rest.slice(rotation),...rest.slice(0,rotation)].slice(0,3).map(s=>s.id);
 }
 
 export function offerLevelCrystals(game,gained,skills){
