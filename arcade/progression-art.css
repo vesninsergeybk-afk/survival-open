@@ -155,3 +155,105 @@
  #overlay .prog-domain img{width:23px;height:23px;flex-basis:23px}
 }
 @media(prefers-reduced-motion:reduce){#overlay .prog-domain{transition:none}}
+
+/* V3: A navigable upgrade atlas. Tier rails are a visual level scale; only
+   explicit prerequisites are joined by the runtime SVG connector paths. */
+#overlay .progression-ui{--prog-line:#527888;--prog-soft:#a9c3cc}
+#overlay .progression-ui .prog-main{grid-template-columns:minmax(184px,194px) minmax(0,1fr);min-height:0}
+#overlay .progression-ui .prog-domains{padding:12px 11px}
+#overlay .progression-ui .prog-orbit-center{min-height:148px;height:auto;flex-direction:column;justify-content:center;gap:3px;padding:9px 7px}
+#overlay .progression-ui .prog-orbit-center img{width:89px;height:87px;flex:0 0 87px;object-fit:contain}
+#overlay .progression-ui .prog-ship-caption{text-align:center;gap:1px}
+#overlay .progression-ui .prog-ship-caption span{font-size:10px}
+#overlay .progression-ui .prog-ship-caption strong{font-size:15px}
+#overlay .progression-ui .prog-ship-caption small{font-size:11px}
+#overlay .progression-ui .prog-domain{min-height:59px;padding:6px 9px!important;gap:9px}
+#overlay .progression-ui .prog-domain img{height:40px;width:40px;flex-basis:40px}
+#overlay .progression-ui .prog-domain strong{font-size:14px}
+#overlay .progression-ui .prog-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,34%);gap:0 15px;padding:16px 17px 20px}
+#overlay .progression-ui .prog-workspace-head{margin-bottom:12px}
+#overlay .progression-ui .prog-tree{position:relative;grid-column:1;min-height:370px;max-height:none;overflow:hidden;padding:15px 19px 14px;
+ border-color:#496b78;background:#0a1c29 url('./assets/progression/background/atlas-grid-v3.svg') center / cover no-repeat;border-radius:7px}
+#overlay .progression-ui .prog-tree::before{content:"";position:absolute;left:116px;top:97px;bottom:66px;border-left:1px dashed #6c9aa08a;pointer-events:none}
+#overlay .progression-ui .prog-map-heading{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:end;gap:10px;
+ padding-bottom:14px;margin:0 0 13px;border-bottom:1px solid #43626c8a}
+#overlay .progression-ui .prog-map-heading>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+#overlay .progression-ui .prog-map-heading span{font-size:10px;letter-spacing:.13em;color:#8fb5c0;font-weight:750}
+#overlay .progression-ui .prog-map-heading strong{font-size:18px;color:#e8f3f1;font-weight:690}
+#overlay .progression-ui .prog-map-heading small{font-size:12px;color:#b0c6cd;white-space:nowrap;font-variant-numeric:tabular-nums}
+#overlay .progression-ui .prog-tree-links{z-index:1;left:0;top:0}
+#overlay .progression-ui .prog-tree-links path{stroke:#7cb9b7;stroke-width:2;stroke-dasharray:4 5;opacity:.85}
+#overlay .progression-ui .prog-tree-links path.mastered{stroke:#e5bf7c;stroke-dasharray:none}
+#overlay .progression-ui .prog-tier{display:grid;grid-template-columns:78px minmax(0,1fr);align-items:center;column-gap:28px;min-height:145px;
+ position:relative;z-index:2;margin:0 0 9px;padding:7px 0 13px;border-bottom:1px solid #53727b2d}
+#overlay .progression-ui .prog-tier::before{content:"";position:absolute;left:85px;top:calc(50% - 15px);width:30px;height:30px;
+ background:url('./assets/progression/chrome/tier-socket-v3.svg') center / contain no-repeat;pointer-events:none}
+#overlay .progression-ui .prog-tier h3{margin:0;padding:7px 5px;border:1px solid #5676848a;background:#142d39b8;border-radius:5px;
+ text-align:center;text-transform:none;letter-spacing:0;font-size:12px;font-weight:700;color:#c7dcdf}
+#overlay .progression-ui .prog-tier-nodes{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:10px 13px;align-items:start;justify-items:center}
+#overlay .progression-ui .prog-node{width:100%;max-width:158px;min-height:139px;flex:none;padding:7px 6px 9px;
+ background:#102b38d9!important;border:1px solid #436b78c2!important;border-radius:8px!important;box-shadow:0 4px 17px #03101840!important}
+#overlay .progression-ui .prog-node-art{width:70px;height:70px}
+#overlay .progression-ui .prog-node strong{font-size:13px;line-height:1.28;margin:4px 0 3px;color:#e3eef0}
+#overlay .progression-ui .prog-node small{font-size:11.5px;white-space:normal;text-align:center;line-height:1.3}
+#overlay .progression-ui .prog-node[aria-pressed=true]{background:#253c42e8!important;border-color:#ddb77a!important;
+ box-shadow:0 0 0 2px #d9b77744,0 5px 18px #020b1673!important}
+#overlay .progression-ui .prog-node[data-status=locked],#overlay .progression-ui .prog-node[data-status=waiting]{filter:none;opacity:.78}
+#overlay .progression-ui .prog-node[data-status=locked] .prog-node-art,#overlay .progression-ui .prog-node[data-status=waiting] .prog-node-art{filter:saturate(.6) brightness(.82)}
+#overlay .progression-ui .prog-node:hover{background:#244250e8!important;border-color:#94c2c6!important;opacity:1}
+#overlay .progression-ui .prog-map-note{position:relative;z-index:2;margin:15px 3px 7px 113px;padding:10px 12px;
+ border-left:2px solid #8aafad;color:#bdd1d4;font-size:13px;line-height:1.45;background:#16303b99}
+#overlay .progression-ui .prog-map-legend{position:relative;z-index:2;display:flex;align-items:center;gap:8px;margin:14px 0 0;
+ padding-top:11px;border-top:1px solid #58727b50;color:#a6c1c9;font-size:11.5px;line-height:1.4}
+#overlay .progression-ui .prog-map-legend i{display:block;flex:none;width:27px;border-top:2px dashed #7cb9b7}
+#overlay .progression-ui .prog-detail{grid-column:2;align-self:start;margin:0;padding:17px 17px 16px;border-color:#56717e;background:#142937;
+ border-radius:7px;min-width:0}
+#overlay .progression-ui .prog-detail-main{align-items:start;gap:11px;min-width:0}
+#overlay .progression-ui .prog-detail-icon{width:60px;height:60px;flex-basis:60px}
+#overlay .progression-ui .prog-detail h3{font-size:20px;line-height:1.22;overflow-wrap:break-word}
+#overlay .progression-ui .prog-detail p{font-size:13px;line-height:1.55;overflow-wrap:break-word}
+#overlay .progression-ui .prog-detail-facts{grid-template-columns:1fr;gap:12px;margin:18px 0}
+#overlay .progression-ui .prog-detail-facts>div{padding:4px 0 4px 13px;border-left-color:#70b5bd}
+#overlay .progression-ui .prog-detail-facts b{font-size:11.5px;letter-spacing:.05em}
+#overlay .progression-ui .prog-stat-change{white-space:nowrap;color:#f0d19c;font-variant-numeric:tabular-nums}
+#overlay .progression-ui .prog-cost{font-size:13px;line-height:1.4}
+#overlay .progression-ui .prog-detail-actions{align-items:stretch;gap:9px}
+#overlay .progression-ui .prog-action,#overlay .progression-ui .prog-secondary{min-height:44px;font-size:13px;padding:10px 13px!important}
+#overlay .progression-ui .prog-detail-reason{font-size:12.5px!important;line-height:1.45}
+#overlay .progression-ui .prog-ledger{font-size:13px}
+@media(max-width:1120px){
+ #overlay .progression-ui .prog-main{grid-template-columns:minmax(164px,185px) minmax(0,1fr)}
+ #overlay .progression-ui .prog-workspace{display:block}
+ #overlay .progression-ui .prog-detail{margin-top:13px}
+}
+@media(max-width:800px){
+ #overlay .progression-ui .prog-main{display:block}
+ #overlay .progression-ui .prog-orbit-center{grid-column:1/-1;display:flex;flex-direction:row;min-height:0;height:62px;gap:8px}
+ #overlay .progression-ui .prog-orbit-center img{width:48px;height:51px;flex:0 0 48px}
+ #overlay .progression-ui .prog-ship-caption{text-align:left}
+ #overlay .progression-ui .prog-domain{min-height:54px;gap:4px;padding:5px 2px!important;flex-direction:column}
+ #overlay .progression-ui .prog-domain img{width:27px;height:27px;flex-basis:27px}
+ #overlay .progression-ui .prog-domain strong{font-size:11px}
+ #overlay .progression-ui .prog-workspace{padding:11px}
+ #overlay .progression-ui .prog-tree{padding:11px 10px}
+ #overlay .progression-ui .prog-tree::before{left:96px}
+ #overlay .progression-ui .prog-tier{grid-template-columns:64px minmax(0,1fr);column-gap:27px}
+ #overlay .progression-ui .prog-tier::before{left:68px}
+ #overlay .progression-ui .prog-tier-nodes{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+ #overlay .progression-ui .prog-map-note{margin-left:92px}
+}
+@media(max-width:520px){
+ #overlay .progression-ui .prog-domain strong{font-size:10.5px}
+ #overlay .progression-ui .prog-map-heading{align-items:start;flex-wrap:wrap;gap:5px}
+ #overlay .progression-ui .prog-tree::before{left:80px}
+ #overlay .progression-ui .prog-tier{grid-template-columns:53px minmax(0,1fr);column-gap:22px}
+ #overlay .progression-ui .prog-tier::before{left:53px;width:27px;height:27px}
+ #overlay .progression-ui .prog-tier h3{font-size:11px;padding:6px 3px}
+ #overlay .progression-ui .prog-tier-nodes{grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:7px}
+ #overlay .progression-ui .prog-node{min-height:129px;padding:6px 4px}
+ #overlay .progression-ui .prog-node-art{width:57px;height:57px}
+ #overlay .progression-ui .prog-node strong{font-size:12.5px}
+ #overlay .progression-ui .prog-map-note{margin-left:75px}
+ #overlay .progression-ui .prog-detail-main{gap:8px}
+ #overlay .progression-ui .prog-detail-icon{width:49px;height:49px;flex-basis:49px}
+}

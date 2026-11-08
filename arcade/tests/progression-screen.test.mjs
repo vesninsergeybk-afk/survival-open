@@ -104,7 +104,24 @@ test('special weapons with no purchase tree still have a real route to fitting',
  assert.equal(model.nodes.length,1);
  assert.equal(model.nodes[0].action,'fitWeapon');
  assert.equal(model.nodes[0].actionId,'howitzer');
- assert.match(renderProgressionScreen(state(g,'weapons')),/data-act="fitWeapon" data-id="howitzer"/);
+ const html=renderProgressionScreen(state(g,'weapons'));
+ assert.match(html,/data-act="fitWeapon" data-id="howitzer"/);
+ assert.match(html,/data-layout="solo"/);
+ assert.match(html,/В этом направлении один узел/);
+ assert.doesNotMatch(html,/data-requires=/);
+});
+
+test('the visual atlas counts only real upgrades and never hides the purchase explanation',()=>{
+ const g=docked();g.developmentDomain='ship';
+ const model=progressionModel(state(g,'ship'));
+ const html=renderProgressionScreen(state(g,'ship'));
+ assert.match(html,new RegExp('Узлов: '+model.nodes.length+' · доступно: '+
+  model.nodes.filter(n=>n.status==='ready').length));
+ assert.match(html,/КАРТА УЛУЧШЕНИЙ/);
+ assert.match(html,/Линии между узлами показывают условия открытия/);
+ assert.match(html,/Что изменится/);
+ assert.match(html,/Как применять/);
+ assert.match(html,/Стоимость:/);
 });
 
 test('progression screen explains a remapped activation key and warns when field weapon occupies it',()=>{
