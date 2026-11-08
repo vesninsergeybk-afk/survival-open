@@ -47,6 +47,22 @@ test('manual modes have a stable order, with a dedicated comet action',()=>{
  assert.equal(manualClick(null,false),'designate');
 });
 
+test('flight status explains Space once and keeps the two mouse cooldowns separate',()=>{
+ const g=game(),originalDocument=globalThis.document;
+ const status={textContent:'',hidden:false,setAttribute(name,value){this[name]=value;}};
+ globalThis.document={getElementById:id=>id==='fieldWeaponStatus'?status:null};
+ try{
+  g.mouseArsenal={cometReadyAt:g.time+3,minesReadyAt:g.time+8,projectiles:[],mines:[],bursts:[]};
+  g.syncControlUI();
+  assert.match(status.textContent,/ЛКМ · КОМЕТА · 3 с/);
+  assert.match(status.textContent,/ПКМ · МИНЫ · 8 с/);
+  assert.equal((status.textContent.match(/Пробел/g)||[]).length,1);
+ }finally{
+  if(originalDocument===undefined)delete globalThis.document;
+  else globalThis.document=originalDocument;
+ }
+});
+
 test('manual howitzer really aims at mouse point, while F keeps its automatic target',()=>{
  const g=game();g.weaponProfile.howitzer=true;
  const aimed=planHowitzer(g,{x:215,y:120});

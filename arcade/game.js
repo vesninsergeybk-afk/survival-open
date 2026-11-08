@@ -2851,7 +2851,7 @@ export class ArcadeGame {
      manual==='howitzer'?'ЛКМ · ГАУБИЦА':'ЛКМ · КОМЕТА'+(cometRest?' · '+cometRest+' с':' · готова');
     const wheel=this.manualWeaponsHere().length>1?' · колесо — сменить оружие':'';
     const text=[manualText+wheel,'ПКМ · МИНЫ'+(mineRest?' · '+mineRest+' с':' · готовы'),
-     this.controlLabel('field')+' · '+(fitted?fieldText:tacticText)].join(' | ');
+     fitted?fieldText:tacticText].join(' | ');
     status.hidden=!text||this.paused||this.dead||!this.overlay.hidden;
     status.textContent=text;status.setAttribute('aria-label',text);
    }
