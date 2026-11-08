@@ -6,6 +6,9 @@ import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-rewar
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2-campaign-1';
 import {createTactical,validTactical} from './tactical-fields.js?v=tactical-field-2';
 import {validFieldEvolution} from './field-evolution.js?v=field-evolution-1-first-loops-1';
+import {validFieldLoot,createFieldLoot} from './field-loot.js?v=eye-loot-1';
+import {validCombatTempo,createCombatTempo} from './combat-tempo.js?v=tempo-1';
+import {validFortification} from './enemy-fortifications.js?v=industrial-forts-1';
 import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-campaign-1';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
@@ -28,7 +31,7 @@ const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal m
  'contract operation geoScanUntil overchargeUntil fieldLoan fieldTrialTaken fieldReturnAt ionMasteryAwarded '+
  'holdFire beamClock rocketClock zoneClock stationary lastX lastY hacks activeBases enemySerial '+
  'allySerial groupSerial heavyPortalShown lastEncounter lastEncounterLabelAt amberBeltSeen ionFieldSeen '+
- 'waypoint manualWaypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc fieldEvolution').split(' ');
+ 'waypoint manualWaypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc fieldEvolution fieldLoot combatTempo').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const cell=validStationId;
@@ -139,6 +142,7 @@ export function validateCheckpoint(data){
  if(s.openingArc!==undefined&&!validateOpeningArc(s.openingArc))return false;
  if(s.tactical!==undefined&&!validTactical(s.tactical,s.time))return false;
  if(s.fieldEvolution!==undefined&&!validFieldEvolution(s.fieldEvolution,s.time))return false;
+ if(!validFieldLoot(s.fieldLoot,s.time)||!validCombatTempo(s.combatTempo,s.time))return false;
  if(s.firstHardwareReward!==undefined&&s.firstHardwareReward!==null&&
   !['pending','rail','flak','plasma'].includes(s.firstHardwareReward))return false;
  if(['rail','flak','plasma'].includes(s.firstHardwareReward)&&
@@ -156,7 +160,7 @@ export function validateCheckpoint(data){
   const b=pair[1];
   if(!object(b)||b.id!==pair[0]||!['dock','arsenal','lab','carrier'].includes(b.type)||
    !finite(b.x)||!finite(b.y)||typeof b.active!=='boolean'||typeof b.enemy!=='boolean'||
-   !Array.isArray(b.turrets))return false;
+   !Array.isArray(b.turrets)||!validFortification(b,s.time))return false;
   // Persistent regional machine archives contain only bounded, dated threat
   // categories. Older checkpoints without this optional field remain valid.
   if(b.meshArchive!==undefined&&(!Array.isArray(b.meshArchive)||
@@ -248,6 +252,9 @@ export function restoreCheckpoint(game,data){
  }
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
+ game.fieldLoot=data.state.fieldLoot||createFieldLoot();
+ game.combatTempo=data.state.combatTempo||createCombatTempo();
+ game._nextFieldLootCheckAt=0;
  // Convert older saves only once, retaining every already earned skill point.
  migrateLegacyPlayerExperience(game.player);
  inheritStrategicExperience(game.player,world);

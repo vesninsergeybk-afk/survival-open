@@ -711,8 +711,47 @@ export class ArcadeVisuals {
       'ПОДЛЕТИТЕ · '+Math.round(Math.hypot(b.x-focusX,b.y-focusY))+' М',0,123);
   ctx.restore();
   if(hostile){
+   const shieldNode=b.turrets.find(t=>t.kind==='shield'&&t.hp>0);
+   if(shieldNode){
+    ctx.save();ctx.strokeStyle='#77ceff';ctx.lineWidth=1.4;
+    ctx.globalAlpha=.14+.08*Math.sin(time*2);
+    for(const t of b.turrets){
+     if(t===shieldNode||t.hp<=0)continue;
+     ctx.beginPath();ctx.moveTo(shieldNode.x,shieldNode.y);
+     ctx.lineTo(t.x,t.y);ctx.stroke();
+    }
+    ctx.restore();
+   }
    for(const t of b.turrets){
     if(t.hp<=0)continue;
+    if(t.kind&&t.kind!=='turret'){
+     ctx.save();ctx.translate(t.x,t.y);
+     const colors={construction:'#f4c18a',shield:'#83d9ff',repair:'#8ef5bc'};
+     const color=colors[t.kind]||'#e8a6f6';
+     ctx.strokeStyle=color;ctx.lineWidth=2.4;
+     ctx.globalAlpha=.7+.22*Math.sin(time*2.4);
+     ctx.beginPath();ctx.arc(0,0,26,0,Math.PI*2);ctx.stroke();
+     if(t.kind==='construction'){
+      ctx.setLineDash([5,5]);ctx.rotate(time*.3);
+      ctx.strokeRect(-19,-19,38,38);ctx.setLineDash([]);
+      const fraction=Math.max(0,Math.min(1,
+       (time-(t.startedAt??time))/Math.max(1,(t.finishAt??time)-(t.startedAt??time)+1e-9)));
+      ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,31,-Math.PI/2,
+       -Math.PI/2+Math.PI*2*fraction);ctx.stroke();
+     }else if(t.kind==='shield'){
+      for(let i=0;i<3;i++){
+       const a=i*Math.PI*2/3+time*.35;
+       ctx.beginPath();ctx.arc(Math.cos(a)*15,Math.sin(a)*15,5,0,Math.PI*2);ctx.stroke();
+      }
+     }else{
+      ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-12,0);ctx.lineTo(12,0);
+      ctx.moveTo(0,-12);ctx.lineTo(0,12);ctx.stroke();
+     }
+     ctx.fillStyle=color;ctx.font='bold 10px system-ui';ctx.textAlign='center';
+     ctx.globalAlpha=.95;ctx.fillText(t.kind==='construction'?'СБОРКА':
+      t.kind==='shield'?'ПОМЕХИ':'РЕМОНТ',0,-34);
+     ctx.restore();continue;
+    }
     const aim=Math.atan2(focusY-t.y,focusX-t.x);
     const path=b.type==='arsenal'?'rail':b.type==='carrier'?'missile':
       b.type==='lab'?'arc':'basic';
