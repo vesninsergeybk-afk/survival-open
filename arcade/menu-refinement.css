@@ -1,0 +1,130 @@
+/* Unified menu legibility pass. Loaded after station-menu-v2 and progression-art.
+ * Pure presentation: no new mission actions, purchases, map positions, input handlers,
+ * or fictional skill-tree prerequisites. See studio/menu-kit/INTEGRATION-2026-11-08.md. */
+#overlay .base-dialog,
+#overlay .progression-ui {
+  --ui-panel:#112532;
+  --ui-panel-strong:#172e3b;
+  --ui-ink:#edf2f4;
+  --ui-muted:#bfd0d8;
+  --ui-line:#54717e;
+  --ui-cyan:#93d9d7;
+  --ui-action:#e3b879;
+}
+#overlay .base-dialog :is(.base-next-step p,.base-quick-service p,.base-overview-sector small,
+  .base-mission-details p,.base-contract-copy,.base-module-reason,.base-secondary-body),
+#overlay .progression-ui :is(.prog-detail p,.prog-detail-reason,.prog-cost,.prog-graph-head small,
+  .prog-weapon-summary span,.prog-points-hint) {
+  overflow-wrap:break-word;
+  hyphens:auto;
+  line-height:1.5;
+}
+#overlay .base-dialog .base-view-intro p,
+#overlay .base-dialog .base-quick-service p,
+#overlay .base-dialog .base-overview-sector .base-route-actions small,
+#overlay .progression-ui .prog-detail p {
+  color:var(--ui-muted);
+  font-size:clamp(13px,1.04vw,15px);
+}
+/* The tier track is a visual timeline, not the left column of a table.
+   Real prerequisite connections remain the live SVG painted by progression-screen.js. */
+#overlay .progression-ui .prog-tier h3 {font-size:12px;line-height:1.35;letter-spacing:0}
+#overlay .progression-ui .prog-tier-nodes {
+  border-top:0;
+  padding-top:7px;
+  padding-bottom:12px;
+  border-radius:12px;
+  background:linear-gradient(90deg,#18334130,transparent 84%);
+}
+#overlay .progression-ui .prog-tier-nodes:has(>.prog-node:only-child) {
+  background:linear-gradient(90deg,#21425145,transparent 62%);
+}
+#overlay .progression-ui .prog-node {
+  min-height:129px;
+  padding:7px 7px 10px;
+  background:linear-gradient(155deg,#142b38eb,#0c1d29ef)!important;
+}
+#overlay .progression-ui .prog-node-art {width:69px;height:69px}
+#overlay .progression-ui .prog-node strong {font-size:13px;line-height:1.35}
+#overlay .progression-ui .prog-node small {font-size:12px;line-height:1.4}
+#overlay .progression-ui .prog-graph-key {font-size:12px}
+#overlay .progression-ui .prog-graph-head small {font-size:13px}
+#overlay .progression-ui .prog-points-hint,
+#overlay .progression-ui .prog-cost {font-size:13px}
+#overlay .progression-ui .prog-detail-reason {font-size:13px!important;line-height:1.5}
+#overlay .progression-ui .prog-detail-copy,
+#overlay .progression-ui .prog-detail-facts,
+#overlay .progression-ui .prog-detail-actions {min-width:0}
+#overlay .progression-ui :is(.prog-action,.prog-secondary,.prog-subtabs button) {
+  min-height:44px;
+  font-size:13px;
+  white-space:normal;
+  overflow-wrap:break-word;
+}
+#overlay .base-dialog .base-next-actions button,
+#overlay .base-overview-sector .base-route-actions button,
+#overlay .base-dialog .base-quick-buttons button {font-size:13px!important;line-height:1.35}
+#overlay .base-dialog .base-quick-service h3 {overflow-wrap:break-word}
+#overlay .base-dialog .base-overview-lead,
+#overlay .base-dialog .base-quick-services {min-width:0}
+#overlay .base-dialog .base-next-step,
+#overlay .base-dialog .base-overview-sector,
+#overlay .base-dialog .base-quick-service {min-width:0}
+#overlay .base-dialog :is(button,summary):focus-visible,
+#overlay .progression-ui :is(button,summary):focus-visible {
+  outline:3px solid #ffe2a6!important;
+  outline-offset:2px;
+}
+/* Intermediate widths: retain useful descriptions instead of crushing the inspector. */
+@media (min-width:801px) and (max-width:1240px) {
+  #overlay .progression-ui .prog-workspace {padding-inline:14px}
+  #overlay .progression-ui .prog-detail {padding:15px}
+}
+/* Portrait phones: five destinations remain simultaneously visible, with
+   two rows instead of unreadable five-column 10px captions. */
+@media (max-width:520px) {
+  #overlay .base-dialog .base-tabs {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:5px;
+  }
+  #overlay .base-dialog .base-tabs button {
+    font-size:12px!important;
+    line-height:1.25;
+    min-height:53px;
+    padding:6px 4px!important;
+    overflow-wrap:normal;
+    hyphens:auto;
+  }
+  #overlay .progression-ui .prog-orbit {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
+  }
+  #overlay .progression-ui .prog-domain,
+  #overlay .progression-ui .prog-domain.domain-pilot,
+  #overlay .progression-ui .prog-domain.domain-weapons,
+  #overlay .progression-ui .prog-domain.domain-ship,
+  #overlay .progression-ui .prog-domain.domain-tactics,
+  #overlay .progression-ui .prog-domain.domain-network {
+    min-height:58px;
+    padding:7px 5px!important;
+  }
+  #overlay .progression-ui .prog-domain strong {font-size:12px;line-height:1.2}
+  #overlay .progression-ui .prog-ship-caption span {font-size:11px}
+  #overlay .progression-ui .prog-tier {grid-template-columns:52px minmax(0,1fr);gap:7px}
+  #overlay .progression-ui .prog-tier h3 {font-size:12px}
+  #overlay .progression-ui .prog-tier-index {font-size:12px}
+  #overlay .progression-ui .prog-tier-nodes {gap:8px}
+  #overlay .progression-ui .prog-node {width:118px;flex:0 1 118px;min-height:128px}
+  #overlay .progression-ui .prog-node strong {font-size:13px}
+  #overlay .progression-ui .prog-node small {font-size:12px}
+  #overlay .progression-ui .prog-points-hint {font-size:13px}
+}
+/* Landscape mobiles have room for a single row, but still need tappable tabs. */
+@media (min-width:521px) and (max-height:540px) {
+  #overlay .base-dialog .base-tabs button {min-height:44px;font-size:12px!important}
+  #overlay .progression-ui .prog-domain strong {font-size:12px}
+}
+@media (prefers-reduced-motion:reduce) {
+  #overlay .progression-ui .prog-node {transition:none}
+}
