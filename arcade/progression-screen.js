@@ -219,9 +219,20 @@ function nodeHtml(node,selected){
 
 function treeHtml(nodes,selected){
  const groups=new Map();for(const node of nodes){const level=node.level||1;if(!groups.has(level))groups.set(level,[]);groups.get(level).push(node);}
- return '<div class="prog-tree" aria-label="Настоящие навыки и условия развития"><svg class="prog-tree-links" aria-hidden="true"></svg>'+
+ const available=nodes.filter(n=>n.status==='ready').length;
+ return '<div class="prog-tree" data-layout="'+(nodes.length===1?'solo':'branch')+'" aria-label="Настоящие навыки и условия развития">'+
+  '<div class="prog-map-heading"><div><span>КАРТА УЛУЧШЕНИЙ</span><strong>Путь развития</strong></div>'+
+  '<small>Узлов: '+nodes.length+' · доступно: '+available+'</small></div>'+
+  '<svg class="prog-tree-links" aria-hidden="true"></svg>'+
   [...groups].sort(([a],[b])=>a-b).map(([level,entries])=>'<section class="prog-tier"><h3>'+(entries.every(n=>n.kind==='navigation')?'Системы станции':'Уровень '+level)+'</h3><div class="prog-tier-nodes">'+
-    entries.map(n=>nodeHtml(n,selected)).join('')+'</div></section>').join('')+'</div>';
+    entries.map(n=>nodeHtml(n,selected)).join('')+'</div></section>').join('')+
+  (nodes.length===1?'<p class="prog-map-note">В этом направлении один узел. Его условия и результат показаны в карточке выбранного улучшения.</p>':'')+
+  '<div class="prog-map-legend"><i></i>Линии между узлами показывают условия открытия, если они есть.</div></div>';
+}
+
+function formatEffect(value){
+ return esc(value).replace(/([+−-]?\d+(?:[,.]\d+)?)\s*→\s*([+−-]?\d+(?:[,.]\d+)?)/g,
+  '<span class="prog-stat-change">$1&nbsp;→&nbsp;$2</span>');
 }
 
 function detailHtml(node,domain,weapon,state){
@@ -241,7 +252,7 @@ function detailHtml(node,domain,weapon,state){
  return '<aside class="prog-detail" aria-label="Выбранное улучшение"><div class="prog-detail-main">'+
   '<img src="'+esc(node.icon)+'" alt="" class="prog-detail-icon"><div class="prog-detail-copy"><span class="prog-detail-status" data-status="'+esc(node.status)+'">'+status+'</span><h3>'+esc(node.title)+'</h3>'+
   '<p>'+esc(node.description)+'</p></div></div><div class="prog-detail-facts">'+
-  '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p></div><div><b>Как применять</b><p>'+esc(activation)+'</p>'+
+  '<div><b>Что изменится</b><p>'+formatEffect(node.effect)+'</p></div><div><b>Как применять</b><p>'+esc(activation)+'</p>'+
   (fieldCollision?'<p class="prog-control-warning">'+esc(fieldCollision)+'</p>':'')+'</div></div>'+
   '<div class="prog-detail-actions"><span class="prog-cost">Стоимость: '+esc(node.cost)+'</span>'+cta+
   (domain==='weapons'&&node.kind!=='equipment'?'<button type="button" class="prog-secondary" data-act="fitWeapon" data-id="'+esc(weapon.family.id)+'">Оснастить корабль</button>':

@@ -25,8 +25,8 @@
 #overlay .base-dialog .emblem-ring{opacity:.35}
 #overlay .base-dialog .base-system-label{color:#9fbac8;font-size:11px;letter-spacing:.1em}
 #overlay .base-dialog .base-head h2{color:#f0f4f6;font-weight:680;font-size:clamp(21px,2vw,27px);margin:0 0 9px;text-shadow:none}
-#overlay .base-dialog .base-credits{gap:5px 14px;color:#a9c4d0;font-size:12px}
-#overlay .base-dialog .base-credits b{color:#e8eff0;font-size:12px}
+#overlay .base-dialog .base-credits{gap:5px 14px;color:#b6ced7;font-size:13px}
+#overlay .base-dialog .base-credits b{color:#e8eff0;font-size:13px}
 #overlay .base-dialog .base-pill{padding:7px 10px;margin-top:4px;background:#142832ad;border-color:#5b807a77;color:#afd7c7;box-shadow:none}
 
 /* Five destinations remain native tab controls with their existing keys,
@@ -39,7 +39,7 @@
 #overlay .base-dialog .base-tabs button{
  min-height:46px;margin:0!important;padding:8px 10px!important;
  background:#152734!important;border:1px solid #334d5d!important;border-radius:5px!important;
- box-shadow:none!important;color:#b5c8d3;font-size:12px!important;font-weight:650;
+ box-shadow:none!important;color:#c2d5dd;font-size:13px!important;font-weight:650;
  text-shadow:none;letter-spacing:.01em;
 }
 #overlay .base-dialog .base-tabs button:hover:not([aria-selected="true"]){background:#1b3442!important;border-color:#64818e!important;color:#e7f1f4}
@@ -66,10 +66,10 @@
 
 /* Overview: actual decision + actual local sector map. Unknown locations are
    already filtered in renderStationRoutePreview, never fabricated here. */
-.base-overview-lead{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);gap:12px;align-items:start;margin:0 0 12px}
+.base-overview-lead{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);gap:12px;align-items:stretch;margin:0 0 12px}
 #overlay .base-dialog .base-overview-lead .base-next-step{
- margin:0;padding:16px 19px;min-width:0;display:flex;flex-direction:column;
- align-items:flex-start;justify-content:flex-start;gap:12px;
+ margin:0;padding:16px 19px;min-width:0;min-height:100%;display:flex;flex-direction:column;
+ align-items:flex-start;justify-content:space-between;gap:12px;
  background:#142735;border:1px solid #567183;border-left:2px solid #dfb77d;
  border-radius:7px;box-shadow:none;
 }
@@ -81,7 +81,7 @@
  margin:0!important;min-height:44px;min-width:0;
  padding:10px 16px!important;background:#b58b57!important;border:1px solid #e5bd82!important;
  border-radius:5px!important;box-shadow:none!important;color:#191c1c!important;
- font-size:12px!important;font-weight:750;
+ font-size:13px!important;font-weight:750;
 }
 #overlay .base-dialog .base-next-actions button:hover:not(:disabled){background:#d1aa77!important}
 #overlay .base-dialog .base-next-actions button[data-act="abandonOperation"]{background:#283a46!important;color:#ccd9e0!important;border-color:#607584!important}
@@ -96,8 +96,8 @@
 .base-overview-sector .base-route-graphic{display:flex;flex:1;flex-direction:column;justify-content:space-between;gap:8px;min-width:0}
 .base-overview-sector .base-route-graphic svg{width:100%;height:auto;max-height:155px;background:#0a1b29;border:1px solid #324957;border-radius:5px}
 .base-overview-sector .base-route-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.base-overview-sector .base-route-actions small{color:#a6c1ce;font-size:12px}
-#overlay .base-overview-sector .base-route-actions button{min-height:44px;padding:8px 12px;margin:0;background:#1d3544;color:#d5e8ee;border:1px solid #547283;border-radius:4px;font-size:11px}
+.base-overview-sector .base-route-actions small{color:#b4cfda;font-size:12.5px}
+#overlay .base-overview-sector .base-route-actions button{min-height:44px;padding:8px 12px;margin:0;background:#1d3544;color:#d5e8ee;border:1px solid #547283;border-radius:4px;font-size:12.5px}
 
 /* Ship and wing summaries. Both values and the ship stage come from the live
    state; the stylized icon sheet is only an ornament. */
@@ -116,7 +116,7 @@
 }
 #overlay .base-dialog .base-quick-drones::after{background-position:33.333% 0}
 #overlay .base-dialog .base-quick-service h3{font-size:17px;font-weight:680;color:#e8f0f2;max-width:calc(100% - 87px);padding-right:0}
-#overlay .base-dialog .base-quick-service p{color:#abbfcb;font-size:12px;line-height:1.45;margin:0;padding:0}
+#overlay .base-dialog .base-quick-service p{color:#c0d0d8;font-size:13px;line-height:1.5;margin:0;padding:0}
 .base-ship-condition{display:flex;align-items:center;gap:14px;min-width:0;flex:1}
 .base-real-ship{display:block;flex:0 0 82px;width:82px;height:106px;object-fit:cover;object-position:center;
  mix-blend-mode:screen;mask-image:radial-gradient(ellipse at center,#000 53%,transparent 84%);
@@ -129,7 +129,7 @@
 .base-hull-meter::-moz-progress-bar{background:#82c7cf}
 #overlay .base-dialog .base-quick-buttons button{
  min-height:44px;padding:9px 13px!important;color:#d6e5eb;background:#203b4a;
- border:1px solid #547285;border-radius:5px;box-shadow:none;font-size:12px;
+ border:1px solid #547285;border-radius:5px;box-shadow:none;font-size:13px;
 }
 #overlay .base-dialog .base-quick-buttons button:hover:not(:disabled){background:#2b4b5a;border-color:#85a4b3;box-shadow:none}
 #overlay .base-dialog .base-home-strategy{margin-top:12px}
