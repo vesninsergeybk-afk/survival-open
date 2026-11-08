@@ -53,3 +53,13 @@ test('menu refinement does not inject gameplay handlers or duplicate skill prere
  assert.doesNotMatch(css,/data-act\s*=|data-requires\s*=|addEventListener|onclick|setInterval/);
  assert.match(css,/\.prog-tier-nodes:has\(>\.prog-node:only-child\)/);
 });
+
+test('short landscape screens keep ship caption readable despite earlier 9px styles',()=>{
+ const css=read('menu-refinement.css');
+ const needle='@media (min-width:521px) and (max-height:540px)';
+ const start=css.indexOf(needle);
+ assert.ok(start>=0);
+ const section=css.slice(start,css.indexOf('@media (prefers-reduced-motion',start));
+ assert.match(section,/\.prog-ship-caption span \{font-size:11px;line-height:1\.25\}/);
+ assert.match(section,/\.prog-domain strong \{font-size:12px\}/);
+});
