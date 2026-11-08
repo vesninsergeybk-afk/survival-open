@@ -928,6 +928,7 @@ export function renderBasePanel(base,state){
   quickTrial+
   '</section>'+
   '<section class="base-quick-service base-quick-drones"><span class="base-kicker">ПОДДЕРЖКА</span><h3>Боевые дроны</h3>'+
+  (state.allies>0?'<img class="base-drone-portrait" src="./assets/progression/weapons/allied_drone.webp" alt="" loading="lazy">':'')+
   '<p>В строю '+state.allies+' / '+o.cap+(state.droneDamage>0?' · есть повреждения':'')+'</p>'+
   '<button type="button" class="menu-info" data-help-only data-help="'+o.drone.desc+'" aria-label="О боевом дроне">i</button>'+
   '<div class="base-quick-buttons"><button type="button" data-act="openShipService">Обслуживание дронов →</button></div>'+
