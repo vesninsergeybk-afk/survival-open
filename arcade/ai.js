@@ -1,5 +1,5 @@
 import {theaterDestination} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2-mesh-strategy-v2-1';
-import {updateParasitizedEnemy} from './field-evolution.js?v=field-evolution-1-first-loops-1';
+import {updateParasitizedEnemy} from './field-evolution.js?v=parasite-clarity-1';
 import {stormSeek} from './regional-storms.js?v=regions-1';
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20';
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1';

@@ -82,6 +82,10 @@
 #gameMenuDialog .control-binding-row{min-height:42px;font-size:12px}.control-binding-row button{min-width:64px}
 .system-help{margin:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}.system-help>div{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #7188924a;font-size:12px}
 .system-help dt{color:#b0c4cb}.system-help dd{margin:0;color:#f0dec0;font-weight:600}.system-footer{bottom:-22px;font-size:12px;color:#a4c1b7;padding-bottom:2px}.system-footer>span::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#9ccbb6;margin-right:8px}
+.system-help-intro{margin:4px 0 14px;color:#c5d9dc;font-size:13px;line-height:1.5}
+#settings-pane-help .menu-explanation{margin-top:12px}
+#settings-pane-help .menu-explanation p{font-size:13px;line-height:1.6;color:#d1e2e3;margin:9px 0}
+#settings-pane-help .menu-explanation p strong{color:#f2e2c8}
 #overlay .map-dialog{padding:18px}.map-heading{gap:12px}.map-heading>div:first-child{position:relative;padding-right:40px}.map-heading>div:first-child>.menu-info{position:absolute;right:0;top:12px}
 #overlay .map-heading h2{font-size:26px;color:var(--screen-ink)!important;margin-bottom:4px}.map-kicker{color:#c7ad8c}
 #overlay .map-heading-actions button{font-size:12px;min-height:40px;padding:9px 11px}.map-heading-actions>span{color:#b1c4c9}

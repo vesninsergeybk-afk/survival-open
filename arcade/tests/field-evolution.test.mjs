@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,chooseEvolutionOffers,
  offerLevelCrystals,enemyFieldReward,collectParasiteCore,absorbParasiteImpact,
  markDashPass,fieldWeaponImpact,updateFieldEvolution,updateParasitizedEnemy,
- validFieldEvolution} from '../field-evolution.js';
+ validFieldEvolution,parasiteTargetMode,setParasiteTargetMode} from '../field-evolution.js';
+import {renderEvolutionMenu} from '../evolution-menu.js';
 import {makeRoomForDrop} from '../drop-capacity.js';
 
 const skills=[...FIELD_EVOLUTION_SKILLS,
@@ -112,6 +113,61 @@ test('implanting a spy costs a stored core, requires deliberate priority and exp
  g.time=target.parasiteSpyUntil;
  updateFieldEvolution(g,.1);
  assert.equal(g.fieldEvolution.spySerial,null);
+});
+
+test('with both parasite upgrades, shooting a marked enemy preserves the capture core by default',()=>{
+ const g=makeGame();g.skillRanks.parasite=1;g.skillRanks.capture=1;g.skillRanks.signal=1;
+ g.fieldEvolution.charge=1;
+ const target={...enemy(31,'fighter'),hp:75};
+ g.enemies=[target];g.designatedTarget={target,expiresAt:g.time+14};
+ assert.equal(parasiteTargetMode(g),'capture');
+ fieldWeaponImpact(g,target);
+ assert.equal(g.fieldEvolution.charge,1,'the spy implant must not steal the only capture charge');
+ assert.equal(g.fieldEvolution.spySerial,null);
+ target.hp=0;
+ assert.equal(enemyFieldReward(g,target,true).captured,true);
+ assert.equal(g.fieldEvolution.charge,0);
+});
+
+test('selecting scout mode spends one core on a fresh marked enemy and does not capture on kill',()=>{
+ const g=makeGame();g.skillRanks.parasite=1;g.skillRanks.capture=1;g.skillRanks.signal=1;
+ g.fieldEvolution.charge=1;
+ const target={...enemy(32,'scout'),hp:72};
+ g.enemies=[target];g.designatedTarget={target,expiresAt:g.time+14};
+ assert.equal(setParasiteTargetMode(g,'signal'),true);
+ assert.equal(parasiteTargetMode(g),'signal');
+ fieldWeaponImpact(g,target);
+ assert.equal(g.fieldEvolution.charge,0);
+ assert.equal(g.fieldEvolution.spySerial,32);
+ g.fieldEvolution.charge=1;target.hp=0;
+ assert.equal(enemyFieldReward(g,target,true).captured,false,
+  'a spy assignment should not turn into an unexpected capture');
+ assert.equal(g.fieldEvolution.charge,1);
+ assert.equal(setParasiteTargetMode(g,'capture'),true);
+ assert.equal(parasiteTargetMode(g),'capture');
+ assert.equal(setParasiteTargetMode(g,'nonexistent'),false);
+});
+
+test('the parasite mode is disabled until both abilities exist and older save fields stay compatible',()=>{
+ const g=makeGame();g.skillRanks.parasite=1;g.skillRanks.signal=1;
+ assert.equal(parasiteTargetMode(g),'signal');
+ assert.equal(setParasiteTargetMode(g,'capture'),false);
+ assert.equal(parasiteTargetMode(g),'signal');
+ const legacy=createFieldEvolution();delete legacy.targetMode;
+ assert.equal(validFieldEvolution(legacy,10),true);
+ legacy.targetMode='unknown';assert.equal(validFieldEvolution(legacy,10),false);
+});
+
+test('the ability screen explains passive defense and exposes an actionable, pressed parasite mode',()=>{
+ const g=makeGame();g.skillRanks.parasite=1;g.skillRanks.capture=1;g.skillRanks.signal=1;
+ g.fieldEvolution.charge=2;g.fieldEvolution.targetMode='signal';
+ g.menuBackLabel=()=>'';
+ const html=renderEvolutionMenu(g,FIELD_EVOLUTION_SKILLS);
+ assert.match(html,/Как пользоваться паразитом/);
+ assert.match(html,/Защита не требует кнопки/);
+ assert.match(html,/data-act="parasiteMode" data-mode="signal" aria-pressed="true"/);
+ assert.match(html,/data-act="parasiteMode" data-mode="capture" aria-pressed="false"/);
+ assert.match(html,/2\/2 ядра/);
 });
 
 test('an emergency core only intercepts serious hits, and stasis is local',()=>{

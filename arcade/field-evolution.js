@@ -2,21 +2,36 @@
 // dropped by ordinary kills are expendable combat resources, not experience.
 export const FIELD_EVOLUTION_SKILLS=[
  {id:'parasite',branch:'Технологии',title:'Энергетический паразит',max:1,from:2,
-  desc:'При изучении получите первый защитный заряд. Каждый третий лично побеждённый дрон оставляет энергоядро. Запас до двух зарядов: один автоматически поглощает до 25 ед. сильного удара.'},
+  desc:'Работает сам: при изучении даёт одно энергоядро. Каждый третий лично уничтоженный дрон оставляет новое — подберите его. Можно носить два. При сильном попадании ядро автоматически поглотит до 25 ед. урона.'},
  {id:'conduit',branch:'Корабль',title:'Разрядный проход',max:1,from:2,
   desc:'Рывок прошивает врагов электрическими метками. Попадите по помеченному кораблю — разряд на миг обездвижит его соседей.'},
  {id:'wreck',branch:'Технологии',title:'Обломки-укрытия',max:1,from:2,
   desc:'После победы над тяжёлыми дронами остаются дрейфующие обломки. Они на время перекрывают вражеский огонь, но разрушаются от попаданий.'},
  {id:'capture',branch:'Технологии',title:'Паразитный захват',max:1,from:3,requires:'parasite',
-  desc:'Отметьте врага приоритетной целью и добейте с запасом ядра: он на 16 секунд перейдёт на вашу сторону, сохранив роль разведчика, ремонтника или бойца.'},
+  desc:'Отметьте обычного врага приоритетной целью (ПКМ или касание), затем добейте его лично с энергоядром в запасе. За одно ядро он станет вашим союзником на 16 секунд. Повторный захват — через 22 секунды.'},
  {id:'signal',branch:'Технологии',title:'Паразит-передатчик',max:1,from:4,requires:'parasite',
-  desc:'Попадание по свежей приоритетной цели внедряет накопленный заряд. В течение 16 секунд враг невольно раскрывает расположение ближайшего звена патруля.'}
+  desc:'В режиме «Разведка» отметьте обычного врага (ПКМ или касание) и попадите по нему, пока у него больше половины прочности. Одно ядро заставит его 16 секунд показывать соседние корабли на карте.'}
 ];
 
 export function createFieldEvolution(){
  return {pending:0,offers:[],crystals:[],charge:0,kills:0,captureReadyAt:0,
+  targetMode:'capture',
   activeCapture:null,wrecks:[],reveals:[],spySerial:null,spyUntil:0,
   nextWreckAt:0,nextScanAt:0,levelAt:-10,pulseAt:-10};
+}
+// An old save can omit targetMode. A single unlocked ability needs no manual
+// setting; with both unlocked, capture is the predictable default.
+export function parasiteTargetMode(game){
+ const ranks=game?.skillRanks||{};
+ if(!ranks.capture)return ranks.signal?'signal':'guard';
+ if(!ranks.signal)return 'capture';
+ return game?.fieldEvolution?.targetMode==='signal'?'signal':'capture';
+}
+export function setParasiteTargetMode(game,mode){
+ if(!game?.fieldEvolution||!game?.skillRanks?.capture||!game?.skillRanks?.signal||
+  !['capture','signal'].includes(mode))return false;
+ game.fieldEvolution.targetMode=mode;
+ return true;
 }
 const eligible=(skill,level,ranks)=>level>=skill.from&&
  (!skill.requires||ranks[skill.requires]>0)&&(ranks[skill.id]||0)<skill.max;
@@ -54,6 +69,7 @@ export function validFieldEvolution(s,time){
  const bounded=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
  if(!Number.isInteger(s.pending)||s.pending<0||s.pending>100||
   !Number.isInteger(s.charge)||s.charge<0||s.charge>2||
+  (s.targetMode!==undefined&&!['capture','signal'].includes(s.targetMode))||
   !Number.isInteger(s.kills)||s.kills<0||s.kills>1e8||
   !Array.isArray(s.offers)||s.offers.length>3||
   s.offers.some(id=>!FIELD_EVOLUTION_SKILLS.some(k=>k.id===id)&&
@@ -91,7 +107,7 @@ export function enemyFieldReward(game,e,participated){
  const designation=game.designatedTarget;
  const marked=designation?.target===e&&designation.expiresAt>game.time;
  const active=game.enemies.some(other=>other.parasiteCapture&&other.hp>0&&other!==e);
- if(marked&&(game.skillRanks.capture||0)>0&&s.charge>0&&!active&&
+ if(marked&&parasiteTargetMode(game)==='capture'&&(game.skillRanks.capture||0)>0&&s.charge>0&&!active&&
   game.time>=s.captureReadyAt&&e.type!=='gunship'){
   s.charge--;captured=true;s.captureReadyAt=game.time+22;
   e.converted=true;e.parasiteCapture=true;e.parasiteRole=e.type;
@@ -124,7 +140,7 @@ export function collectParasiteCore(game){
  s.charge++;
  game.heritage?.play?.('pickup',.35);
  game.heritage?.vfx?.nova?.(game.player.x,game.player.y,39,'cyan');
- game.notice?.('ЭНЕРГОЯДРО · '+s.charge+'/2 · захват отмеченной цели или аварийный барьер',3);
+ game.notice?.('ЭНЕРГОЯДРО · '+s.charge+'/2 · защита автоматически; захват/разведка — после изучения навыков',3.3);
  return true;
 }
 
@@ -181,7 +197,7 @@ export function fieldWeaponImpact(game,e){
   game.heritage?.vfx?.nova?.(e.x,e.y,64,'cyan');
  }
  const marked=game.designatedTarget?.target===e&&game.designatedTarget.expiresAt>game.time;
- if(game.skillRanks.signal&&game.skillRanks.parasite&&marked&&s.charge>0&&
+ if(game.skillRanks.signal&&game.skillRanks.parasite&&parasiteTargetMode(game)==='signal'&&marked&&s.charge>0&&
   e.hp>e.maxHp*.48&&!(e.parasiteSpyUntil>game.time)&&e.type!=='gunship'&&
   !e.boss&&!e.missionStructure&&(s.spySerial===null||s.spyUntil<=game.time)){
   s.charge--;s.spySerial=e.serial;s.spyUntil=game.time+16;

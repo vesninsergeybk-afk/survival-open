@@ -136,7 +136,7 @@ test('two successive choices add permanent abilities; using a charge does not un
   assert.equal(absorbParasiteImpact(g,30),5);
   assert.equal(g.fieldEvolution.charge,0);assert.equal(installedEvolution(g.skillRanks).length,2);
   const html=renderEvolutionMenu(g,FIELD_EVOLUTION_SKILLS);
-  assert.match(html,/Уже действуют · 2/);assert.match(html,/Энергоядра · 0\/2/);
+  assert.match(html,/Уже действуют · 2/);assert.match(html,/Как пользоваться паразитом · 0\/2 ядра/);
   assert.match(html,/Ранее изученные навыки продолжают действовать/);
  }finally{globalThis.document=previous;}
 });
