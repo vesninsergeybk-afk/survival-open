@@ -19,7 +19,15 @@ const icons={beam:'calibration',range:'range',double:'split',rocket:'rocket',hul
  shield:'shield',engine:'engine',dodge:'engine',magnet:'magnet',mining:'mining',
  extractor:'mining',radar:'scanner',tactics:'doctrine',parasite:'energy_parasite',
  conduit:'dash_discharge',wreck:'hull',capture:'energy_parasite',signal:'radio_jam'};
-const semanticIcons=new Set(['dodge','extractor','wreck','capture','signal']);
+// Preserve the existing rendered 3D artwork. A small vector badge gives each
+// distinct mechanic a truthful symbol without replacing it with flat UI art.
+const semanticArtwork={
+ dodge:['tactics','dash_discharge'],
+ extractor:['upgrades','mining'],
+ wreck:['upgrades','hull'],
+ capture:['weapons','allied_drone'],
+ signal:['upgrades','scanner']
+};
 const branchVariants='./assets/progression/semantics/branch-variants.svg#';
 const activations={
  beam:'Автоматически усиливает установленное автооружие и ионную цепь.',
@@ -42,7 +50,7 @@ const activations={
  signal:'Попадите по свежей приоритетной цели с зарядом: враг раскроет расположение патруля.'
 };
 const iconFor=(id)=>{
- if(semanticIcons.has(id))return './assets/progression/semantics/'+id+'.svg';
+ if(Object.hasOwn(semanticArtwork,id))return art(...semanticArtwork[id]);
  const key=icons[id]||id;
  const group=['energy_parasite','dash_discharge','radio_jam'].includes(key)?'tactics':
   ['rocket'].includes(key)?'weapons':'upgrades';
@@ -58,6 +66,7 @@ function skillNode(skill,state,act='skill'){
   (state.pilotSkills||[]).find(s=>s.id===skill.requires)?.title+'»':
   level<skill.from?'Нужен уровень '+skill.from:points<1?'Нужно 1 очко развития':'';
  return {id:'skill-'+skill.id,kind:'skill',title:skill.title,icon:iconFor(skill.id),
+  variant:Object.hasOwn(semanticArtwork,skill.id)?'semantic-'+skill.id:null,
   level:skill.from,rank,max:skill.max,requires:skill.requires?'skill-'+skill.requires:null,
   status:complete?'mastered':!hasPrereq||level<skill.from?'locked':points<1?'waiting':'ready',
   description:skill.desc,effect:complete?'Полностью изучено':(state.nextSkillEffect?.(skill.id,rank,ranks)||skill.desc),
