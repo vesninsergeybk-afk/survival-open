@@ -47,6 +47,48 @@ test('the progression atlas spends exactly one real point on a general weapon up
  assert.equal(g.skillRanks.beam,1);
 });
 
+test('manual weapons have dedicated artwork, honest prerequisite trees and no ship fitting button',()=>{
+ const g=docked();g.player.level=5;g.player.points=3;
+ for(const [id,base,paths] of [
+  ['comet','cometRadius',['cometCore','cometCryo']],
+  ['mines','mineArray',['minePierce','mineSnare']]]){
+  g.developmentWeapon=id;
+  const model=progressionModel(state(g,'weapons'));
+  assert.equal(model.weapon.manual,true);
+  assert.deepEqual(model.nodes.map(n=>n.id),['skill-'+base,...paths.map(path=>'skill-'+path)]);
+  assert.ok(model.nodes.every(n=>n.action==='skill'));
+  assert.ok(model.nodes.slice(1).every(n=>n.requires==='skill-'+base&&n.status==='locked'));
+  const html=renderProgressionScreen(state(g,'weapons'));
+  assert.match(html,new RegExp('data-id="'+id+'" aria-pressed="true"'));
+  assert.match(html,/Доступно сразу/);
+  assert.doesNotMatch(html,/data-act="fitWeapon"/);
+  for(const image of [id,...paths.map(path=>({cometCore:'comet_core',cometCryo:'comet_cryo',
+   minePierce:'mine_pierce',mineSnare:'mine_snare'})[path])]){
+   assert.ok(existsSync(new URL('../assets/progression/weapons/'+image+'.webp',import.meta.url)));
+  }
+ }
+});
+
+test('manual upgrades spend ordinary level points, exclude the opposite path and gate mastery',()=>{
+ const g=docked();g.player.level=5;g.player.points=5;g.developmentWeapon='comet';
+ const before=JSON.stringify(g.shipLoadout);
+ let model=progressionModel(state(g,'weapons'));
+ assert.equal(model.nodes.find(n=>n.id==='skill-cometCore').canAct,false);
+ assert.equal(g.buySkill('cometCore'),false,'cannot bypass prerequisite');
+ assert.equal(g.buySkill('cometRadius'),true);
+ model=progressionModel(state(g,'weapons'));
+ assert.equal(model.nodes.find(n=>n.id==='skill-cometCore').canAct,true);
+ assert.equal(g.buySkill('cometCore'),true);
+ assert.equal(g.buySkill('cometCryo'),false,'cannot buy conflicting path through direct action');
+ assert.equal(g.buySkill('cometCore'),false,'mastery is gated by pilot level');
+ assert.equal(progressionModel(state(g,'weapons')).nodes.find(n=>n.id==='skill-cometCryo').status,'exclusive');
+ assert.match(progressionModel(state(g,'weapons')).nodes.find(n=>n.id==='skill-cometCore').reason,/уровне 9/);
+ g.player.level=9;assert.equal(g.buySkill('cometCore'),true);
+ assert.equal(g.skillRanks.cometCore,2);
+ assert.equal(g.player.points,2);
+ assert.equal(JSON.stringify(g.shipLoadout),before,'manual upgrade never mutates the installed ship modules');
+});
+
 test('ship frame nodes charge the actual alloy price, and preserve the existing loadout',()=>{
  const g=docked();g.player.level=4;g.player.ore=47;g.developmentDomain='ship';
  const before=JSON.stringify(g.shipLoadout.slots);

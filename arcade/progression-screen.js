@@ -18,7 +18,9 @@ const fieldSkills=new Set(['parasite','conduit','wreck','capture','signal','tact
 const icons={beam:'calibration',range:'range',double:'split',rocket:'rocket',hull:'hull',
  shield:'shield',engine:'engine',dodge:'dodge',magnet:'magnet',mining:'mining',
  extractor:'extractor',radar:'scanner',tactics:'doctrine',parasite:'energy_parasite',
- conduit:'dash_discharge',wreck:'wreck',capture:'capture',signal:'signal'};
+ conduit:'dash_discharge',wreck:'wreck',capture:'capture',signal:'signal',
+ cometRadius:'comet',mineArray:'mines',cometCore:'comet_core',cometCryo:'comet_cryo',
+ minePierce:'mine_pierce',mineSnare:'mine_snare'};
 const activations={
  beam:'Автоматически усиливает установленное автооружие и ионную цепь.',
  range:'Работает автоматически: у плазменного луча увеличивается дальность.',
@@ -37,12 +39,18 @@ const activations={
  parasite:'Автоматически после каждого третьего лично сбитого дрона появляется энергоядро. Заряды подбираются и могут поглотить сильный удар.',
  wreck:'После уничтожения тяжёлого противника появляются временные обломки-укрытия.',
  capture:'Отметьте противника приоритетной целью и уничтожьте его при наличии заряда: он временно перейдёт на вашу сторону.',
- signal:'Попадите по свежей приоритетной цели с зарядом: враг раскроет расположение патруля.'
+ signal:'Попадите по свежей приоритетной цели с зарядом: враг раскроет расположение патруля.',
+ cometRadius:'Зажмите ЛКМ и наведите круг. Отпустите: комета взорвётся в выбранной точке.',
+ mineArray:'Зажмите ПКМ и выберите место для веера. Отпустите: мины полетят туда и взведутся.',
+ cometCore:'ЛКМ: усиление действует автоматически в центре каждого взрыва кометы.',
+ cometCryo:'ЛКМ: пережившие взрыв кометы враги автоматически замедляются.',
+ minePierce:'ПКМ: урон минами по тяжёлым противникам увеличивается автоматически.',
+ mineSnare:'ПКМ: каждая сработавшая мина замедляет уцелевших противников.'
 };
 const iconFor=(id)=>{
  const key=icons[id]||id;
  const group=['energy_parasite','dash_discharge','radio_jam','capture','signal'].includes(key)?'tactics':
-  ['rocket'].includes(key)?'weapons':'upgrades';
+  ['rocket','comet','mines','comet_core','comet_cryo','mine_pierce','mine_snare'].includes(key)?'weapons':'upgrades';
  return art(group,key);
 };
 // Small, semantic path markers distinguish specializations that share a weapon/device
@@ -72,12 +80,15 @@ const mastered=(rank,max)=>rank>=max;
 function skillNode(skill,state,act='skill'){
  const ranks=state.skillRanks||{},rank=ranks[skill.id]||0,level=state.level||1,points=state.points||0;
  const complete=mastered(rank,skill.max),hasPrereq=!skill.requires||!!ranks[skill.requires];
- const reason=complete?'Максимальный ранг':!hasPrereq?'Сначала изучите «'+
+ const exclusive=!!skill.exclusiveWith&&!!ranks[skill.exclusiveWith];
+ const masteryLocked=!!skill.masteryLevel&&rank>0&&level<skill.masteryLevel;
+ const reason=complete?'Максимальный ранг':exclusive?'Выбрана другая специализация':!hasPrereq?'Сначала изучите «'+
   (state.pilotSkills||[]).find(s=>s.id===skill.requires)?.title+'»':
-  level<skill.from?'Нужен уровень '+skill.from:points<1?'Нужно 1 очко развития':'';
+  level<skill.from?'Нужен уровень '+skill.from:masteryLocked?'Второй ранг откроется на уровне '+skill.masteryLevel:
+  points<1?'Нужно 1 очко развития':'';
  return {id:'skill-'+skill.id,kind:'skill',title:skill.title,icon:iconFor(skill.id),
   level:skill.from,rank,max:skill.max,requires:skill.requires?'skill-'+skill.requires:null,
-  status:complete?'mastered':!hasPrereq||level<skill.from?'locked':points<1?'waiting':'ready',
+  status:complete?'mastered':exclusive?'exclusive':!hasPrereq||level<skill.from||masteryLocked?'locked':points<1?'waiting':'ready',
   description:skill.desc,effect:complete?'Полностью изучено':(state.nextSkillEffect?.(skill.id,rank,ranks)||skill.desc),
   activation:activations[skill.id]||'Действует автоматически после изучения.',
   reason,action:act,actionId:skill.id,actionLabel:'Изучить · 1 очко',canAct:!reason,cost:'1 очко развития'};
@@ -103,7 +114,20 @@ function pilotNodes(state){
 }
 
 function weaponNodes(state){
- const loadout=state.loadout||createLoadout(),id=state.hangarSession?.focusWeapon||'plasma';
+ const loadout=state.loadout||createLoadout(),id=state.developmentWeapon||state.hangarSession?.focusWeapon||'plasma';
+ if(id==='comet'||id==='mines'){
+  const comet=id==='comet',base=comet?'cometRadius':'mineArray';
+  const paths=comet?['cometCore','cometCryo']:['minePierce','mineSnare'];
+  const nodes=(state.pilotSkills||[]).filter(skill=>skill.id===base||paths.includes(skill.id))
+   .map(skill=>skillNode(skill,state));
+  const ranks=state.skillRanks||{},rank=ranks[base]||0;
+  return {nodes,family:{id,name:comet?'Голубая комета':'Минный веер',
+   role:comet?'Дистанционный взрыв по площади':'Дистанционная минная завеса',kind:'manual'},
+   installed:true,manual:true,stats:{range:comet?670:520,
+    summary:comet?'Радиус '+(90+rank*17)+' м · перезарядка 5,5 с':
+     (4+rank)+' мины · перезарядка 17 с'},
+   control:comet?'ЛКМ':'ПКМ'};
+ }
  const family=MODULES[id]||MODULES.plasma,installed=loadout.slots.includes(family.id);
  const relevant={plasma:['beam','range','double'],rail:['beam'],flak:['beam'],rocket:['beam','rocket'],
   ion:['beam'],resonator:[],howitzer:[]}[family.id]||[];
@@ -213,7 +237,13 @@ function networkNodes(state){
 function branchButtons(domain,state){
  if(domain==='pilot')return [['Корабль','Пилотирование'],['Технологии','Технологии'],['Добыча','Добыча']]
   .map(([id,name])=>'<button type="button" class="prog-subtab" data-act="devPilotBranch" data-id="'+id+'" aria-pressed="'+((state.skillBranch||'Корабль')===id)+'">'+name+'</button>').join('');
- if(domain==='weapons')return Object.values(MODULES).map(m=>'<button type="button" class="prog-subtab" data-act="devWeapon" data-id="'+m.id+'" aria-pressed="'+((state.hangarSession?.focusWeapon||'plasma')===m.id)+'">'+esc(m.short)+'</button>').join('');
+ if(domain==='weapons'){
+  const current=state.developmentWeapon||state.hangarSession?.focusWeapon||'plasma';
+  const tab=(id,name,manual=false)=>'<button type="button" class="prog-subtab'+(manual?' is-manual':'')+'" data-act="devWeapon" data-id="'+id+'" aria-pressed="'+(current===id)+'">'+
+   '<img src="'+art('weapons',id)+'" alt=""><span>'+esc(name)+'</span></button>';
+  return '<span class="prog-subtab-label">РУЧНОЕ</span>'+tab('comet','Комета · ЛКМ',true)+tab('mines','Мины · ПКМ',true)+
+   '<span class="prog-subtab-label">АВТО</span>'+Object.values(MODULES).map(m=>tab(m.id,m.short)).join('');
+ }
  if(domain==='tactics')return [...Object.entries(TACTICAL_DEVICES).map(([id,d])=>[id,d.short]),['abilities','Способности']]
   .map(([id,name])=>'<button type="button" class="prog-subtab" data-act="devTactic" data-id="'+id+'" aria-pressed="'+((state.developmentTactic||'pulse')===id)+'">'+esc(name)+'</button>').join('');
  return '';
@@ -274,7 +304,7 @@ function detailHtml(node,domain,weapon,state){
   '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p></div><div><b>Как применять</b><p>'+esc(activation)+'</p>'+
   (fieldCollision?'<p class="prog-control-warning">'+esc(fieldCollision)+'</p>':'')+'</div></div>'+
   '<div class="prog-detail-actions"><span class="prog-cost">Стоимость: '+esc(node.cost)+'</span>'+cta+
-  (domain==='weapons'&&node.kind!=='equipment'?'<button type="button" class="prog-secondary" data-act="fitWeapon" data-id="'+esc(weapon.family.id)+'">Оснастить корабль</button>':
+  (domain==='weapons'&&!weapon.manual&&node.kind!=='equipment'?'<button type="button" class="prog-secondary" data-act="fitWeapon" data-id="'+esc(weapon.family.id)+'">Оснастить корабль</button>':
    domain==='ship'?'<button type="button" class="prog-secondary" data-act="baseTab" data-role="hangar">Схема корабля</button>':'')+'</div>'+
   (node.reason?'<p class="prog-detail-reason">'+esc(node.reason)+'</p>':'')+'</aside>';
 }
@@ -319,7 +349,9 @@ export function renderProgressionScreen(state){
    ' title="'+esc(d.subtitle)+'"><img src="'+art('domains',d.id==='network'?'stations':d.id)+'" alt=""><strong>'+d.title+'</strong></button>').join('')+
   '</div></aside>';
  const weaponHead=weapon?'<div class="prog-weapon-summary"><img src="'+art('weapons',weapon.family.id)+'" alt=""><div><strong>'+esc(weapon.family.name)+'</strong><span>'+
-  (weapon.installed?'Установлено':'Не установлено')+' · '+esc(weapon.family.role)+' · дальность '+esc(weapon.stats?.range)+' м</span></div></div>':'';
+  (weapon.manual?'Доступно сразу · '+weapon.control:weapon.installed?'Установлено':'Не установлено')+
+  ' · '+esc(weapon.family.role)+' · дальность '+esc(weapon.stats?.range)+' м'+
+  (weapon.manual?' · '+esc(weapon.stats?.summary):'')+'</span></div></div>':'';
  const branch=branchButtons(domain,state);
  return '<section class="progression-ui" data-domain="'+domain+'">'+top+'<div class="prog-main">'+orbit+
   '<div class="prog-workspace"><div class="prog-workspace-head"><div><span>НАПРАВЛЕНИЕ</span><h2>'+meta.title+'</h2></div>'+

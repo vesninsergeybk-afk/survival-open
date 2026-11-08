@@ -14,7 +14,19 @@ export const FIELD_EVOLUTION_SKILLS=[
  {id:'cometRadius',branch:'Оружие',title:'Расширение кометы',max:2,from:2,
   desc:'Каждый ранг увеличивает радиус взрыва «Голубой кометы» на 17 м. Урон в центре остаётся прежним.'},
  {id:'mineArray',branch:'Оружие',title:'Минный строй',max:2,from:3,
-  desc:'Каждый ранг добавляет одну мину в веер, которым вы управляете ПКМ. Повторная установка заменяет предыдущие мины.'}
+  desc:'Каждый ранг добавляет одну мину в веер, которым вы управляете ПКМ. Повторная установка заменяет предыдущие мины.'},
+ {id:'cometCore',branch:'Оружие',title:'Сердцевина кометы',max:2,from:5,requires:'cometRadius',
+  exclusiveWith:'cometCryo',masteryLevel:9,
+  desc:'Сосредоточивает энергию в центре взрыва «Голубой кометы»: +25% / +45% урона в эпицентре. На краю зоны урон не меняется. Альтернатива охлаждению.'},
+ {id:'cometCryo',branch:'Оружие',title:'Криоволна кометы',max:2,from:5,requires:'cometRadius',
+  exclusiveWith:'cometCore',masteryLevel:9,
+  desc:'Пережившие взрыв противники замедляются на 2,2 / 3,2 с. Не действует на сооружения и союзников. Альтернатива усилению эпицентра.'},
+ {id:'minePierce',branch:'Оружие',title:'Бронебойные мины',max:2,from:5,requires:'mineArray',
+  exclusiveWith:'mineSnare',masteryLevel:9,
+  desc:'Мины наносят тяжёлым кораблям («Берсерк», «Канонерка») на 30% / 50% больше урона. Альтернатива замедляющему полю.'},
+ {id:'mineSnare',branch:'Оружие',title:'Сдерживающая сеть',max:2,from:5,requires:'mineArray',
+  exclusiveWith:'minePierce',masteryLevel:9,
+  desc:'Взрыв мины замедляет уцелевших противников на 1,8 / 2,8 с. Не действует на сооружения и союзников. Альтернатива бронебойности.'}
 ];
 
 export function createFieldEvolution(){
@@ -38,7 +50,9 @@ export function setParasiteTargetMode(game,mode){
  return true;
 }
 const eligible=(skill,level,ranks)=>level>=skill.from&&
- (!skill.requires||ranks[skill.requires]>0)&&(ranks[skill.id]||0)<skill.max;
+ (!skill.requires||ranks[skill.requires]>0)&&!ranks[skill.exclusiveWith]&&
+ (!skill.masteryLevel||(ranks[skill.id]||0)<1||level>=skill.masteryLevel)&&
+ (ranks[skill.id]||0)<skill.max;
 
 export function chooseEvolutionOffers(level,ranks,skills){
  const field=skills.filter(s=>FIELD_EVOLUTION_SKILLS.some(f=>f.id===s.id)&&eligible(s,level,ranks));
