@@ -9,14 +9,16 @@ import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-o
 
 export const FIELD_TACTICS=Object.freeze({shieldStrength:40,shieldHold:2.8,
  convoyRepairCost:6,convoyRepairStrength:35,convoyRepairHold:4,
- beaconDecodeSeconds:4.5,beaconDecodeRadius:240,convoyFullIntegrity:75});
+ beaconDecodeSeconds:4.5,beaconDecodeRadius:240,convoyFullIntegrity:75,
+ relaySyncSeconds:6.5,relaySyncHp:90,beaconUplinkSeconds:5.5,beaconUplinkHp:90,
+ reactorCoolSeconds:4,reactorCoolPeriod:11.6});
 const FIELD_PROP_CUTOUTS=Object.freeze({relay:[95,0,410,600],reactor:[649,60,561,520],
  beacon:[92,608,390,580],cargo:[620,690,655,420]});
 
 export const FIELD_OPERATIONS=Object.freeze({
  'line-break':{id:'line-break',name:'Линия разрыва',station:'dock',
   ore:25,data:23,partialOre:12,partialData:9,
-  desc:'Восстановите два узла связи в любом порядке. Во время ремонта автоматический огонь приостановлен. После первого узла враги атакуют оставшийся; можно отступить с частичной наградой.'},
+  desc:'Восстановите два узла связи в любом порядке, затем синхронизируйте линию в промежуточном пункте. Налётчики мешают работе; во время ремонта огонь приостановлен. После первого узла можно вернуться с частичной наградой.'},
  'deep-resonance':{id:'deep-resonance',name:'Глубинный резонанс',station:'lab',
   ore:26,data:25,partialOre:9,partialData:10,
   desc:'Получите два образца на богатых залежах. Раскалывающий удар портит образец. Шум привлекает патрули: на второй залежи возможен новый перехват. Можно прерывать добычу, чтобы снизить резонанс, или отступить после первого образца.'},
@@ -25,14 +27,14 @@ export const FIELD_OPERATIONS=Object.freeze({
   desc:'Запишите два сканирования опасного «зрачка». Для первого держитесь в 130–310 м, для второго придётся сблизиться до 170–270 м. Развитый враг может позвать прикрытие. Уничтожение цели раньше времени даст лишь часть данных.'},
  'false-call':{id:'false-call',name:'Чужой позывной',station:'lab',
   ore:17,data:30,partialOre:12,partialData:14,
-  desc:'По двойному фиолетовому импульсу найдите поддельный маяк среди трёх. После проверки удерживайте район, пока лаборатория перехватывает ответный сигнал: враг попытается помешать. Ошибочный выбор поднимет тревогу.'},
+  desc:'По двойному импульсу найдите поддельный маяк. Перехватите ответный сигнал, затем доберитесь до узла ретрансляции и закрепите запись под огнём. Ошибочные проверки вызывают охранение и снижают награду.'},
  'two-fronts':{id:'two-fronts',name:'Два фронта',station:'arsenal',
   ore:32,data:32,partialOre:17,partialData:17,
   desc:'Защитите два разнесённых узла. Перед атакой можно один раз вручную включить резервный щит на одном из них, но во время работы корабль не стреляет. Враги целятся в оборудование; спасение одного узла тоже засчитывается.'}
  ,
  'sleeping-reactor':{id:'sleeping-reactor',name:'Спящий реактор',station:'arsenal',
   ore:30,data:31,partialOre:12,partialData:11,
-  desc:'Извлеките обе кассеты. Начать с внешней безопаснее; если первой взять внутреннюю, реактор раньше перейдёт к частым выбросам. Ядро заранее предупреждает о разряде. После одной кассеты можно отступить.'},
+  desc:'Извлеките обе кассеты. Начать с внешней безопаснее; внутренняя первой ускоряет выбросы. После первой кассеты можно сделать крюк к охлаждающему клапану: это займёт время, но увеличит интервалы между разрядами. Можно отступить с одной кассетой.'},
  'broken-convoy':{id:'broken-convoy',name:'Конвой на изломе',station:'carrier',
   ore:34,data:31,partialOre:17,partialData:13,
   desc:'Сопроводите транспорт: короткий маршрут опаснее, обходной дольше. Если корпус сильно повреждён, можно один раз остановиться для ремонта за 6 сплава — под огнём, без автострельбы. После гибели транспорта можно спасти часть груза.'}
@@ -45,6 +47,12 @@ export const fieldThreatTier=(level=1,runs=0)=>Math.min(3,Math.max(0,
  Math.floor((Math.max(1,level)-1)/6),Math.floor(Math.max(0,runs)/3)));
 export const fieldRewardFactor=tier=>1+.2*Math.max(0,Math.min(3,tier||0));
 export const isFieldOperation=op=>!!op&&Object.hasOwn(FIELD_OPERATIONS,op.id);
+const fieldLink=op=>({x:(op.nodes[0].x+op.nodes[1].x)/2,
+ y:(op.nodes[0].y+op.nodes[1].y)/2,progress:0,goal:FIELD_TACTICS.relaySyncSeconds,
+ hp:FIELD_TACTICS.relaySyncHp,done:false});
+const fieldUplink=op=>({x:op.beacons[(op.correct+1)%3].x,
+ y:op.beacons[(op.correct+1)%3].y,progress:0,goal:FIELD_TACTICS.beaconUplinkSeconds,
+ hp:FIELD_TACTICS.beaconUplinkHp,done:false});
 // The first painted objective is not an invisible prerequisite for entering a
 // multi-site sortie. Use the same set of approachable sites for its cue and
 // phase transition; only uncompleted sites can attract the pilot afterward.
@@ -88,12 +96,28 @@ export function validFieldOperation(op){
   (op.decoding===undefined||typeof op.decoding==='boolean')&&
   (op.decodeProgress===undefined||Number.isFinite(op.decodeProgress)&&op.decodeProgress>=0&&
    op.decodeProgress<=FIELD_TACTICS.beaconDecodeSeconds)&&
-  (!op.decoding||Number.isFinite(op.decodeProgress)&&op.beacons[op.correct].checked);
+  (!op.decoding||Number.isFinite(op.decodeProgress)&&op.beacons[op.correct].checked)&&
+  (op.signalStage===undefined||['identify','uplink'].includes(op.signalStage))&&
+  (!op.uplink||Number.isFinite(op.uplink.x)&&Number.isFinite(op.uplink.y)&&
+   Number.isFinite(op.uplink.hp)&&op.uplink.hp>=0&&op.uplink.hp<=FIELD_TACTICS.beaconUplinkHp&&
+   Number.isFinite(op.uplink.goal)&&op.uplink.goal>0&&
+   Number.isFinite(op.uplink.progress)&&op.uplink.progress>=0&&
+   op.uplink.progress<=op.uplink.goal&&typeof op.uplink.done==='boolean');
  if(op.id==='line-break'||op.id==='sleeping-reactor')return Array.isArray(op.nodes)&&
   op.nodes.length===2&&op.nodes.every(n=>Number.isFinite(n.x)&&Number.isFinite(n.y)&&
    Number.isFinite(n.goal)&&n.goal>0&&Number.isFinite(n.progress)&&n.progress>=0&&n.progress<=n.goal&&
    (op.id!=='line-break'||Number.isFinite(n.hp)&&n.hp>=0&&n.hp<=100))&&
-  (op.id!=='sleeping-reactor'||op.innerFirst===undefined||typeof op.innerFirst==='boolean');
+  (op.id!=='sleeping-reactor'||op.innerFirst===undefined||typeof op.innerFirst==='boolean')&&
+  (op.id!=='sleeping-reactor'||op.cooled===undefined||typeof op.cooled==='boolean')&&
+  (op.id!=='sleeping-reactor'||!op.coolant||Number.isFinite(op.coolant.x)&&
+   Number.isFinite(op.coolant.y)&&Number.isFinite(op.coolant.goal)&&op.coolant.goal>0&&
+   Number.isFinite(op.coolant.progress)&&op.coolant.progress>=0&&
+   op.coolant.progress<=op.coolant.goal&&typeof op.coolant.done==='boolean')&&
+  (op.id!=='line-break'||!op.link||Number.isFinite(op.link.x)&&Number.isFinite(op.link.y)&&
+   Number.isFinite(op.link.hp)&&op.link.hp>=0&&op.link.hp<=FIELD_TACTICS.relaySyncHp&&
+   Number.isFinite(op.link.progress)&&op.link.progress>=0&&
+   Number.isFinite(op.link.goal)&&op.link.goal>0&&op.link.progress<=op.link.goal&&
+   typeof op.link.done==='boolean');
  if(op.id==='broken-convoy')return Number.isFinite(op.hp)&&op.hp>=0&&op.hp<=100&&
   Array.isArray(op.route)&&op.route.length===3&&Number.isInteger(op.routeIndex)&&
   op.routeIndex>=0&&op.routeIndex<=2&&op.route.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y))&&
@@ -174,7 +198,8 @@ export function createFieldOperation(id,base,world,attempt=0,routeChoice='safe',
  if(id==='line-break'){
   const a=siteNear(base,world,590,bearing+.3),b=siteNear(base,world,790,bearing+2.65);
   return {...common,x:a.x,y:a.y,nodes:[{...a,progress:0,goal:5,done:false,hp:100},
-   {...b,progress:0,goal:6,done:false,hp:100}],progress:0,alarmAt:0,guardsSent:false};
+   {...b,progress:0,goal:6,done:false,hp:100}],progress:0,alarmAt:0,
+   guardsSent:false,stage:'repair',linkThreatSent:false};
  }
  if(id==='false-call'){
   const beacons=[0,1,2].map(i=>({...siteNear(base,world,690,bearing+i*2.094),
@@ -182,13 +207,14 @@ export function createFieldOperation(id,base,world,attempt=0,routeChoice='safe',
   const signature=Math.sin((attempt+1)*12.9898+base.x*.015+base.y*.023)*100000;
   return {...common,x:beacons[0].x,y:beacons[0].y,beacons,
    correct:Math.abs(Math.trunc(signature))%3,checks:0,progress:0,
-   decoding:false,decodeProgress:0};
+   decoding:false,decodeProgress:0,signalStage:'identify',uplinkThreatSent:false};
  }
  if(id==='sleeping-reactor'){
   const outer={x:site.x+275,y:site.y+75,progress:0,goal:3.3,done:false};
   const inner={x:site.x+84,y:site.y-42,progress:0,goal:5,done:false};
   return {...common,core:{...site},nodes:[outer,inner],progress:0,pulseAt:0,pulseUntil:0,
-   innerFirst:false};
+   innerFirst:false,cooled:false,coolant:{x:site.x-315,y:site.y+250,
+    progress:0,goal:FIELD_TACTICS.reactorCoolSeconds,done:false}};
  }
  if(id==='broken-convoy'){
   const end=siteNear(base,world,1790,bearing+1.7);
@@ -241,14 +267,23 @@ export function fieldOperationCue(op,game){
  if(op.id==='reverse-hunt')return '◈ СКАНИРОВАНИЕ '+op.scans+'/2'+
   (op.scanUntil>game.time?' · ИМПУЛЬС!':op.scans===1?' · ДИСТАНЦИЯ 170–270 М':
    ' · ДИСТАНЦИЯ 130–310 М');
- if(op.id==='line-break')return '◈ ЛИНИЯ СВЯЗИ '+op.progress+'/2 · УЗЛЫ '+
+ if(op.id==='line-break')return op.stage==='sync'?
+  '◈ СИНХРОНИЗАЦИЯ ЛИНИИ · '+Math.round((op.link?.progress||0)/(op.link?.goal||1)*100)+
+  '% · УЗЕЛ '+Math.ceil(op.link?.hp||0)+'% · '+
+  (op.linkThreatSent?'ПЕРЕХВАТЧИК МЕШАЕТ СВЯЗИ':'ПОДОЙДИТЕ К УЗЛУ СОПРЯЖЕНИЯ')+workCue:
+  '◈ ЛИНИЯ СВЯЗИ '+op.progress+'/2 · УЗЛЫ '+
   op.nodes.map(n=>Math.round(n.hp)+'%').join(' / ')+' · ЗАЩИТИТЕ РЕМОНТ'+workCue;
  if(op.id==='false-call')return op.decoding?
   '◈ ПЕРЕХВАТ СИГНАЛА · '+Math.round((op.decodeProgress||0)/FIELD_TACTICS.beaconDecodeSeconds*100)+
   '% · ДЕРЖИТЕСЬ В '+FIELD_TACTICS.beaconDecodeRadius+' М ОТ МАЯКА':
+  op.signalStage==='uplink'?
+   '◈ ОТВЕТНЫЙ УЗЕЛ · ЗАПИСЬ '+Math.round((op.uplink?.progress||0)/(op.uplink?.goal||1)*100)+
+   '% · ПРОЧНОСТЬ '+Math.ceil(op.uplink?.hp||0)+'% · ЗАЩИТИТЕ ПЕРЕДАТЧИК'+workCue:
   '◈ МАЯКИ · ПРОВЕРЕНО '+op.checks+'/3 · ИЩИТЕ ДВОЙНОЙ ИМПУЛЬС'+workCue;
  if(op.id==='sleeping-reactor')return '◈ КАССЕТЫ '+op.progress+'/2'+
-  (op.pulseUntil>game.time?' · ВЫБРОС!':op.innerFirst?' · УСКОРЕННЫЙ ЦИКЛ':' · СЛЕДИТЕ ЗА ЯДРОМ')+workCue;
+  (op.pulseUntil>game.time?' · ВЫБРОС!':op.cooled?' · ОХЛАЖДЕНИЕ ВКЛЮЧЕНО':
+   op.innerFirst?' · УСКОРЕННЫЙ ЦИКЛ':' · СЛЕДИТЕ ЗА ЯДРОМ')+
+  (op.progress===1&&!op.cooled?' · КЛАПАН ДОСТУПЕН':'')+workCue;
  if(op.id==='broken-convoy')return '◈ КОНВОЙ · КОРПУС '+Math.ceil(op.hp)+'% · '+
   (op.routeIndex===2?'ПУНКТ НАЗНАЧЕНИЯ':op.fieldRepair?.used?'РЕМОНТ ИЗРАСХОДОВАН':
    op.hp<=78?(game.player?.ore!==undefined&&game.player.ore<FIELD_TACTICS.convoyRepairCost?
@@ -280,6 +315,19 @@ export function fieldOperationMining(op,rock,kind){
 export function fieldOperationInteraction(op,player){
  if(!isFieldOperation(op)||!['active','salvage'].includes(op.phase))return null;
  if(op.id==='false-call'&&op.decoding)return null;
+ if(op.id==='false-call'&&op.signalStage==='uplink'){
+  const uplink=op.uplink;
+  return uplink&&!uplink.done&&uplink.hp>0&&distance(uplink,player)<=125?
+   {kind:'field-work',target:uplink,label:'Закрепить запись',hold:true}:null;
+ }
+ if(op.id==='line-break'&&op.stage==='sync'){
+  const link=op.link;
+  return link&&!link.done&&link.hp>0&&distance(link,player)<=125?
+   {kind:'field-work',target:link,label:'Синхронизировать узлы',hold:true}:null;
+ }
+ if(op.id==='sleeping-reactor'&&op.progress===1&&!op.cooled&&op.coolant&&
+  distance(op.coolant,player)<=125)
+  return {kind:'field-work',target:op.coolant,label:'Охладить реактор',hold:true};
  if(op.id==='two-fronts'&&!op.shieldChargeUsed){
   const node=op.nodes.find(n=>n.hp>0&&!n.stabilized&&distance(n,player)<=125);
   if(node){node.goal??=FIELD_TACTICS.shieldHold;node.progress??=0;
@@ -305,8 +353,12 @@ function advanceFieldWork(game,op,dt){
  const held=game.actionHeld;
  if(held?.kind!=='field-work'||distance(game.player,held.target)>125)return;
  const target=held.target;
- const valid=op.id==='false-call'?op.beacons.includes(target)&&!target.checked:
+ const valid=op.id==='false-call'&&op.signalStage==='uplink'?
+  op.uplink===target&&!target.done&&target.hp>0:
+  op.id==='false-call'?op.beacons.includes(target)&&!target.checked:
+  op.id==='line-break'&&op.stage==='sync'?op.link===target&&!target.done&&target.hp>0:
   op.id==='line-break'?op.nodes.includes(target)&&!target.done&&target.hp>0:
+  op.id==='sleeping-reactor'&&op.coolant===target?op.progress===1&&!op.cooled&&!target.done:
   op.id==='sleeping-reactor'?op.nodes.includes(target)&&!target.done:
   op.id==='two-fronts'?op.nodes.includes(target)&&target.hp>0&&!op.shieldChargeUsed:
   op.id==='broken-convoy'&&op.phase==='active'?op.fieldRepair===target&&!target.used&&op.hp>0:
@@ -316,9 +368,28 @@ function advanceFieldWork(game,op,dt){
   op.lastWorkCueAt=game.time;
   game.heritage.play('fieldWork',.9,{x:target.x,y:target.y});
  }
- target.progress=Math.min(target.goal,target.progress+dt);
+ const pressured=(op.id==='false-call'&&op.signalStage==='uplink'||
+  op.id==='line-break'&&op.stage==='sync')&&game.enemies.some(e=>
+   e.fieldOperation===op.id&&e.hp>0&&!e.converted&&e.target===target);
+ target.progress=Math.min(target.goal,target.progress+dt*(pressured?.55:1));
  if(target.progress<target.goal)return;
- if(op.id==='two-fronts'){
+ if(op.id==='line-break'&&op.stage==='sync'){
+  target.done=true;op.phase='return';op.partial=false;
+  game.heritage.play('fieldLinkSync',.25,{x:target.x,y:target.y});
+  game.heritage.vfx.nova(target.x,target.y,105,'cyan');
+  game.notice('Оба узла работают как единая линия. Вернитесь в док и передайте результат.',5);
+ }else if(op.id==='false-call'&&op.signalStage==='uplink'){
+  target.done=true;op.phase='return';
+  game.heritage.play('fieldUplinkReady',.25,{x:target.x,y:target.y});
+  game.heritage.vfx.nova(target.x,target.y,88,'violet');
+  game.notice('Ответный маршрут перехвачен и запись сохранена. Возвращайтесь в лабораторию.',5);
+ }else if(op.id==='sleeping-reactor'&&target===op.coolant){
+  target.done=true;op.cooled=true;
+  op.pulseAt=Math.max(op.pulseAt,game.time+6);
+  game.heritage.play('fieldReactorCool',.25,{x:target.x,y:target.y});
+  game.heritage.vfx.nova(target.x,target.y,80,'cyan');
+  game.notice('Клапан охлаждения открыт. Разряды станут реже. Вернитесь к оставшейся кассете.',4.5);
+ }else if(op.id==='two-fronts'){
   target.stabilized=true;target.fieldShield=FIELD_TACTICS.shieldStrength;
   target.fieldPoweredAt=game.time;
   op.shieldChargeUsed=true;
@@ -375,9 +446,17 @@ function advanceFieldWork(game,op,dt){
    }
    game.notice('Один узел восстановлен. Противник атакует оставшийся: перехватите его. Можно отступить с частичной наградой.',5);
   }
-  if(op.progress>=2){op.phase='return';
-   game.notice(op.id==='line-break'?'Обе линии восстановлены. Вернитесь в док.':
-    'Обе кассеты извлечены. Уходите из опасной зоны к арсеналу.',5);
+   if(op.progress>=2){
+    if(op.id==='line-break'){
+     op.stage='sync';op.link??=fieldLink(op);
+     op.x=op.link.x;op.y=op.link.y;
+     for(const enemy of game.enemies)if(enemy.fieldOperation===op.id&&enemy.hp>0&&
+      enemy.missionStrike){delete enemy.missionStrike;delete enemy.missionFlight;
+      enemy.target=game.player;enemy.state='hunt';}
+     game.heritage.play('fieldLinkSync',.3,{x:op.link.x,y:op.link.y});
+     game.notice('Оба узла отремонтированы. Сойдитесь в промежуточном пункте, чтобы закрепить соединение. Противник ещё может сорвать передачу.',6);
+    }else{op.phase='return';
+     game.notice('Обе кассеты извлечены. Уходите из опасной зоны к арсеналу.',5);}
   }else{
    const next=op.nodes.find(n=>!n.done);op.x=next.x;op.y=next.y;
    if(op.id==='sleeping-reactor'){
@@ -428,6 +507,17 @@ function releaseFieldReturnThreats(game,op){
 }
 export function advanceFieldOperation(game,dt){
  const op=game.operation;if(!isFieldOperation(op)||game.dead)return;
+ // Missions saved by a previous build can continue with their newly added
+ // final phase. Do not invalidate or discard the pilot's existing sortie.
+ if(op.id==='line-break'){op.stage??='repair';op.link??=fieldLink(op);}
+ if(op.id==='false-call'){
+  op.signalStage??='identify';op.uplink??=fieldUplink(op);
+ }
+ if(op.id==='sleeping-reactor'){
+  op.cooled??=false;
+  op.coolant??={x:(op.core||op).x-315,y:(op.core||op).y+250,
+   progress:0,goal:FIELD_TACTICS.reactorCoolSeconds,done:false};
+ }
  if(op.phase==='return'){releaseFieldReturnThreats(game,op);return;}
  if(op.phase==='failed')return;
  if(op.phase==='approach'){
@@ -457,6 +547,22 @@ export function advanceFieldOperation(game,dt){
  advanceFieldWork(game,op,dt);
  if(op.phase==='return'){releaseFieldReturnThreats(game,op);return;}
  if(op.id==='line-break'){
+  if(op.stage==='sync'){
+   if(op.link.hp<=0){op.phase='return';op.partial=true;
+    game.notice('Промежуточный узел уничтожен. Ремонт сохранился, но линию не удалось связать. Вернитесь за частичной наградой.',5);
+    return;}
+   if(!op.linkThreatSent&&distance(game.player,op.link)<420){
+    const raider=spawnFieldEnemy(game,op,(op.threatTier||0)>=2?'fighter':'scout',
+     op.link,op.link,2);
+    if(raider){op.linkThreatSent=true;
+     game.heritage.play('fieldRaid',.2,{x:raider.x,y:raider.y});
+     game.notice('Перехватчик атакует узел сопряжения. Можно прервать синхронизацию и сбить его до залпа.',4.5);}
+   }
+   for(const enemy of game.enemies)if(enemy.fieldOperation===op.id&&enemy.hp>0&&
+    !enemy.converted&&enemy.missionStrike&&enemy.target===op.link)
+    game.updateMissionStrike(enemy,op.link);
+   return;
+  }
   const unserviced=op.nodes.find(n=>!n.done);
   if(unserviced?.hp<=0){
    op.partial=op.progress>0;op.phase=op.partial?'return':'failed';
@@ -572,12 +678,28 @@ export function advanceFieldOperation(game,dt){
    const hostile=game.enemies.some(e=>e.fieldOperation===op.id&&e.hp>0&&!e.converted);
    if(op.decodeProgress>=FIELD_TACTICS.beaconDecodeSeconds||
      op.decodeProgress>=1.8&&!hostile){
-    op.decoding=false;op.phase='return';
+    op.decoding=false;op.signalStage='uplink';op.uplink??=fieldUplink(op);
+    op.x=op.uplink.x;op.y=op.uplink.y;
     game.heritage.play('fieldScanCaptured',.3,{x:beacon.x,y:beacon.y});
     game.heritage.vfx.nova(beacon.x,beacon.y,75,'violet');
-    game.notice('Ответный позывной перехвачен. Вернитесь в лабораторию.'+
-     (op.partial?' Тревога после ошибки уменьшит награду.':''),5);
+    game.heritage.play('fieldUplinkStart',.4,{x:op.uplink.x,y:op.uplink.y});
+    game.notice('Ответный позывной принят, но запись неполная: сигнал перешёл на другой маяк. Доберитесь до отмеченного узла и закрепите данные под охраной.',6);
    }
+  }
+  if(op.signalStage==='uplink'){
+   if(op.uplink.hp<=0){op.phase='return';op.partial=true;
+    game.notice('Ответный узел уничтожен. Сохранилась лишь часть перехвата. Вернитесь в лабораторию.',5);
+    return;}
+   if(!op.uplinkThreatSent&&distance(game.player,op.uplink)<440){
+    const raider=spawnFieldEnemy(game,op,(op.threatTier||0)>=2?'flanker':'fighter',
+     op.uplink,op.uplink,2);
+    if(raider){op.uplinkThreatSent=true;
+     game.heritage.play('fieldRaid',.2,{x:raider.x,y:raider.y});
+     game.notice('Ответный маяк под атакой! Защитите его, затем удерживайте действие у передатчика.',5);}
+   }
+   for(const enemy of game.enemies)if(enemy.fieldOperation===op.id&&enemy.hp>0&&
+    !enemy.converted&&enemy.missionStrike&&enemy.target===op.uplink)
+    game.updateMissionStrike(enemy,op.uplink);
   }
  }else if(op.id==='two-fronts'){
   if(op.nodes.every(n=>n.hp<=0)){op.partial=false;op.phase='failed';return;}
@@ -615,7 +737,8 @@ export function advanceFieldOperation(game,dt){
   const core=op.core||op;
   if(game.time>=op.pulseAt&&op.pulseUntil<=game.time){
    op.pulseUntil=game.time+1.6;
-   op.pulseAt=game.time+(op.innerFirst?6.4:8.4)-.5*(op.threatTier||0);
+   op.pulseAt=game.time+(op.cooled?FIELD_TACTICS.reactorCoolPeriod:
+    op.innerFirst?6.4:8.4)-.5*(op.threatTier||0);
    game.heritage.play('fieldReactorCharge',.2,{x:core.x,y:core.y});
    game.notice('РЕАКТОР ЗАРЯЖАЕТСЯ! Выйдите за 270 м до выброса.',2.8);
   }
@@ -686,7 +809,7 @@ export function drawFieldOperation(game,c,cam){
  const op=game.operation;if(!isFieldOperation(op))return;
  if(['return','failed'].includes(op.phase)&&
   !['line-break','two-fronts','broken-convoy'].includes(op.id))return;
- if(op.phase==='active'&&['line-break','two-fronts','broken-convoy'].includes(op.id))
+ if(op.phase==='active'&&['line-break','false-call','two-fronts','broken-convoy'].includes(op.id))
   for(const enemy of game.enemies)if(enemy.fieldOperation===op.id&&enemy.missionStrike&&enemy.hp>0)
    game.drawMissionStrikeWarning(c,cam,enemy,enemy.target);
  const visible=p=>Math.abs(p.x-cam.x)<cam.w*.65+180&&Math.abs(p.y-cam.y)<cam.h*.65+180;
@@ -733,6 +856,18 @@ export function drawFieldOperation(game,c,cam){
   paintMissionImpact(game,c,'emp',op.lastScanX??op.x,op.lastScanY??op.y,
    op.lastScanAt,132,.58);
  }else if(op.id==='false-call'){
+  if(op.signalStage==='uplink'){
+   const p=op.uplink;
+   prop(p,'beacon',66,96);
+   ring(p,82,p.hp>0?'#c8a2ff':'#ff8d91',
+    'ОТВЕТНЫЙ УЗЕЛ · '+Math.ceil(p.hp)+'% · ЗАПИСЬ '+
+    Math.round(p.progress/p.goal*100)+'%',true);
+   activity(p,76,'#dcb8ff');
+   paintMissionImpact(game,c,'metal',p.x,p.y,p.fieldHullHitAt,78,.5);
+   if(p.progress>0&&visible(p))paintMissionCell(c,game.images?.missionImpacts,3,
+    p.x,p.y,73,73,{alpha:.2+.28*Math.sin(game.time*5)**2});
+   return;
+  }
   for(const [i,beacon] of op.beacons.entries()){
    if(beacon.checked&&!(op.decoding&&i===op.correct))continue;
    prop(beacon,'beacon',59,88);
@@ -795,6 +930,30 @@ export function drawFieldOperation(game,c,cam){
   activity(op.core||op,op.pulseUntil>game.time?256:80,'#e5a4ff');
   paintMissionImpact(game,c,'emp',(op.core||op).x,(op.core||op).y,
    op.lastPulseAt,252,.64);
+  if(op.progress>=1&&op.coolant&&visible(op.coolant)){
+   const valve=op.coolant;
+   paintMissionCell(c,game.images?.missionHardware,valve.done?1:0,
+    valve.x,valve.y,72,72);
+   // The coolant assembly is physically distinct from the removable
+   // cartridges: a framed pump and four rotating blades atop painted metal.
+   // Its moving part uses the existing clock and stops under reduced motion.
+   c.save();c.translate(valve.x,valve.y);
+   c.fillStyle='#1d3e4c';c.strokeStyle=valve.done?'#80e9db':'#dda565';
+   c.lineWidth=2;c.fillRect(-20,-20,40,40);c.strokeRect(-20,-20,40,40);
+   c.fillStyle=valve.done?'#438c9e':'#68534a';
+   c.fillRect(-16,-16,32,32);
+   c.rotate(valve.done&&!game.visuals?.reducedMotion?game.time*.6:0);
+   for(let blade=0;blade<4;blade++){
+    c.rotate(Math.PI/2);
+    c.fillStyle=valve.done?'#8ce4d5':'#c9a785';
+    c.fillRect(-4,-19,8,12);
+   }
+   c.beginPath();c.arc(0,0,7,0,Math.PI*2);
+   c.fillStyle=valve.done?'#b6fff1':'#ffcf8c';c.fill();c.restore();
+   ring(valve,59,valve.done?'#8fe0d5':'#ffc878',valve.done?
+    'КЛАПАН ОТКРЫТ':'ОХЛАЖДЕНИЕ · '+Math.round(valve.progress/valve.goal*100)+'%',true);
+   if(valve.done)activity(valve,49,'#8fe0d5');
+  }
   for(const [i,node] of op.nodes.entries()){
    if(node.done){
     const age=game.time-(node.extractedAt??-Infinity);
@@ -821,6 +980,15 @@ export function drawFieldOperation(game,c,cam){
    if(node.done)continue;
    ring(node,52,node.hp>0?'#7eead9':'#ff8585','УЗЕЛ '+(i+1)+' · '+
     (node.hp>0?Math.round(node.progress/node.goal*100)+'% · ЩИТ '+Math.ceil(node.hp)+'%':'РАЗРУШЕН'),true);
+  }
+  if(op.stage==='sync'&&op.link&&visible(op.link)){
+   const link=op.link;
+   paintMissionCell(c,game.images?.missionHardware,link.hp>0?2:3,
+    link.x,link.y,76,76);
+   ring(link,89,link.hp>0?'#83e6df':'#ff9791',
+    'СОПРЯЖЕНИЕ · '+Math.round(link.progress/link.goal*100)+'% · '+Math.ceil(link.hp)+'%',true);
+   activity(link,74,'#8cddde');
+   paintMissionImpact(game,c,'metal',link.x,link.y,link.fieldHullHitAt,82,.55);
   }
  }else if(op.id==='two-fronts')for(const [i,node] of op.nodes.entries()){
   if(!visible(node))continue;

@@ -70,3 +70,27 @@ test('mission markers keep their original object numbers when earlier objectives
  assert.match(html,/Маяк 2/);assert.match(html,/Маяк 3/);
  assert.doesNotMatch(html,/Маяк 1/,'completed beacon must not renumber the surviving targets');
 });
+
+test('the chart follows the new final mission stages without exposing obsolete markers',()=>{
+ const game=scenario();game.contract=null;game.waypoint=null;
+ game.operation={id:'line-break',name:'Линия разрыва',phase:'active',stage:'sync',baseId:'home',
+  x:950,y:0,progress:2,nodes:[{x:700,y:0,done:true},{x:1200,y:0,done:true}],
+  link:{x:950,y:0,progress:2,goal:6.5,hp:90,done:false}};
+ let html=renderWorldMap(game);
+ assert.match(html,/Сопряжение узлов/);assert.match(html,/Сопряжение/);
+ assert.doesNotMatch(html,/Узел 1/);
+ game.operation={id:'false-call',name:'Чужой позывной',phase:'active',
+  signalStage:'uplink',baseId:'lab1',x:1000,y:200,beacons:[],
+  uplink:{x:1000,y:200,progress:1,goal:5.5,hp:90,done:false}};
+ html=renderWorldMap(game);
+ assert.match(html,/Ответный маяк/);
+ assert.doesNotMatch(html,/Маяк 1/);
+ game.operation={id:'sleeping-reactor',name:'Спящий реактор',phase:'active',
+  baseId:'home',x:900,y:100,progress:1,cooled:false,
+  nodes:[{x:780,y:80,done:true},{x:900,y:100,done:false}],
+  coolant:{x:1150,y:260,progress:0,goal:4,done:false}};
+ html=renderWorldMap(game);
+ assert.match(html,/Клапан охлаждения/);
+ assert.match(html,/Кассета 2/);
+ assert.doesNotMatch(html,/Кассета 1/);
+});

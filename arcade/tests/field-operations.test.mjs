@@ -22,7 +22,7 @@ test('published module URLs expose the audited missions instead of cached statio
  assert.match(page,/src="\.\/game\.js\?v=[^"]*field-experience-1/);
  assert.match(page,/src="\.\/game\.js\?v=[^"]*mission-art-5/);
  assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1-menu-prof-1-mission-depth-1[^']*mission-integrity-2/);
- assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2'/);
+ assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1'/);
 });
 
 test('illustrated objective props are drawn from one compact transparent sprite atlas',()=>{
@@ -684,8 +684,50 @@ test('line repair needs sustained interaction, then changes to a guarded second 
   'a raider is actually aimed at destructible equipment');
  const second=op.nodes[1];game.player.x=second.x;game.player.y=second.y;
  game.actionHeld={kind:'field-work',target:second};game.time+=6.1;advanceFieldOperation(game,6.1);
- assert.equal(op.phase,'return');assert.equal(op.progress,2);
+ assert.equal(op.phase,'active');assert.equal(op.progress,2);
+ assert.equal(op.stage,'sync');assert.ok(op.link,'a third, defendable location must exist');
+ assert.equal(fieldOperationInteraction(op,game.player),null,'synchronization is not done remotely');
+ game.player.x=op.link.x;game.player.y=op.link.y;
+ assert.equal(fieldOperationInteraction(op,game.player)?.label,'Синхронизировать узлы');
+ game.time+=.1;advanceFieldOperation(game,.1);
+ assert.ok(op.linkThreatSent,'the final sync brings its own interceptor when approached');
+ game.enemies.forEach(e=>{if(e.target===op.link)e.hp=0;});
+ game.actionHeld={kind:'field-work',target:op.link};game.time+=7;advanceFieldOperation(game,7);
+ assert.equal(op.phase,'return');assert.equal(op.link.done,true);
  assert.ok(validFieldOperation(op));
+});
+
+test('an interrupted network sync preserves two repaired nodes but pays only partial',()=>{
+ const op=createFieldOperation('line-break',dock,world),game=fakeGame(op);
+ op.phase='active';op.stage='sync';op.progress=2;
+ op.nodes.forEach(n=>{n.done=true;n.progress=n.goal;});
+ op.link={x:op.x,y:op.y,goal:FIELD_TACTICS.relaySyncSeconds,progress:2,
+  hp:0,done:false};
+ advanceFieldOperation(game,.1);
+ assert.equal(op.phase,'return');assert.equal(op.partial,true);
+ assert.equal(op.progress,2);
+ assert.ok(validFieldOperation(unpackRun(packRun({operation:op})).operation));
+});
+
+test('new concluding stages paint dedicated world objects rather than only HUD text',()=>{
+ const hw={complete:true,naturalWidth:1024,naturalHeight:1024};
+ const beacon={complete:true,naturalWidth:1278,naturalHeight:1230};
+ const {ctx,calls}=canvasRecorder();ctx.globalAlpha=1;
+ const op=createFieldOperation('line-break',dock,world),game=fakeGame(op);
+ op.phase='active';op.stage='sync';op.link={x:op.x,y:op.y,progress:2,
+  goal:FIELD_TACTICS.relaySyncSeconds,hp:80,done:false};
+ game.images={missionHardware:hw};
+ drawFieldOperation(game,ctx,{x:op.x,y:op.y,w:5000,h:5000});
+ assert.ok(calls.some(call=>call[0]==='drawImage'&&call[1]===hw&&call[2]===0&&call[3]===512),
+  'link stage reuses the actual antenna sprite');
+ calls.length=0;
+ const other=createFieldOperation('false-call',lab,world),check=fakeGame(other);
+ other.signalStage='uplink';other.phase='active';other.uplink={x:other.x,y:other.y,
+  progress:1,goal:FIELD_TACTICS.beaconUplinkSeconds,hp:80,done:false};
+ check.images={fieldProps:beacon};
+ drawFieldOperation(check,ctx,{x:other.x,y:other.y,w:5000,h:5000});
+ assert.ok(calls.some(call=>call[0]==='drawImage'&&call[1]===beacon),
+  'second stage uses the painted signal beacon');
 });
 
 test('the second communication node can actually be destroyed, forcing a partial return',()=>{
@@ -737,7 +779,17 @@ test('false beacon gives an observable clue and punishes a rushed wrong choice',
  advanceFieldOperation(game,1);
  assert.equal(op.decodeProgress,before,'signal capture must pause outside the actual area');
  game.player.x=correct.x;game.time=6;advanceFieldOperation(game,3);
- assert.equal(op.phase,'return');assert.equal(op.partial,true);
+ assert.equal(op.phase,'active');assert.equal(op.signalStage,'uplink');
+ assert.equal(op.partial,true);
+ assert.match(fieldOperationCue(op,game),/ОТВЕТНЫЙ УЗЕЛ/);
+ assert.notDeepEqual([op.uplink.x,op.uplink.y],[correct.x,correct.y]);
+ game.player.x=op.uplink.x;game.player.y=op.uplink.y;
+ advanceFieldOperation(game,.1);
+ assert.ok(op.uplinkThreatSent,'the uplink is defended after the player can reach it');
+ game.enemies.forEach(e=>{if(e.target===op.uplink)e.hp=0;});
+ game.actionHeld={kind:'field-work',target:op.uplink};game.time+=6;
+ advanceFieldOperation(game,6);
+ assert.equal(op.phase,'return');assert.equal(op.uplink.done,true);
  assert.ok(validFieldOperation(op));
 });
 
@@ -753,8 +805,27 @@ test('correct beacon produces a short defendable signal capture and persists thr
  assert.equal(saved.decoding,true);assert.ok(validFieldOperation(saved));
  game.enemies.forEach(e=>e.hp=0);
  game.time=4;advanceFieldOperation(game,.3);
- assert.equal(op.phase,'return','defeating the interceptor should end the intercept promptly');
+ assert.equal(op.signalStage,'uplink','defeating the interceptor reveals another objective');
+ assert.equal(op.phase,'active');
+ assert.equal(fieldOperationInteraction(op,game.player),null,'uplink must be approached');
+ game.player.x=op.uplink.x;game.player.y=op.uplink.y;
+ game.time=5;advanceFieldOperation(game,.1);
+ game.enemies.forEach(e=>e.hp=0);
+ game.actionHeld={kind:'field-work',target:op.uplink};game.time=11;
+ advanceFieldOperation(game,6);
+ assert.equal(op.phase,'return');
  assert.equal(op.partial,false);
+ const result=unpackRun(packRun({operation:op})).operation;
+ assert.equal(result.uplink.done,true);assert.ok(validFieldOperation(result));
+});
+
+test('defending the wrong-beacon followup matters; destroying the uplink forces partial result',()=>{
+ const op=createFieldOperation('false-call',lab,world),game=fakeGame(op);
+ op.phase='active';op.signalStage='uplink';op.uplink={x:op.x+200,y:op.y,
+  goal:FIELD_TACTICS.beaconUplinkSeconds,progress:3,hp:0,done:false};
+ advanceFieldOperation(game,.1);
+ assert.equal(op.phase,'return');assert.equal(op.partial,true);
+ assert.ok(validFieldOperation(op));
 });
 
 test('reactor outer cassette is safe, inner cassette requires avoiding warned pulses',()=>{
@@ -786,6 +857,26 @@ test('taking the inner cassette first starts a telegraphed faster hazard cycle',
  assert.ok(op.pulseUntil>game.time,'the shortcut must still warn before damage');
  assert.ok(op.pulseAt-game.time<8.4,'the unsafe route has a faster pulse cycle');
  assert.ok(validFieldOperation(unpackRun(packRun({operation:op})).operation));
+});
+
+test('an optional coolant detour visibly lengthens the reactor hazard interval',()=>{
+ const op=createFieldOperation('sleeping-reactor',arsenal,world),game=fakeGame(op);
+ advanceFieldOperation(game,.1);
+ const outer=op.nodes[0];game.player.x=outer.x;game.player.y=outer.y;
+ game.actionHeld={kind:'field-work',target:outer};game.time=4;
+ advanceFieldOperation(game,4);
+ assert.equal(op.progress,1);assert.equal(op.cooled,false);
+ assert.match(fieldOperationCue(op,game),/КЛАПАН ДОСТУПЕН/);
+ const valve=op.coolant;game.player.x=valve.x;game.player.y=valve.y;
+ assert.equal(fieldOperationInteraction(op,game.player)?.label,'Охладить реактор');
+ game.actionHeld={kind:'field-work',target:valve};game.time=8.1;
+ advanceFieldOperation(game,4.1);
+ assert.equal(op.cooled,true);assert.equal(valve.done,true);
+ assert.equal(fieldOperationInteraction(op,game.player),null,'coolant cannot be purchased twice');
+ assert.ok(validFieldOperation(unpackRun(packRun({operation:op})).operation));
+ game.time=op.pulseAt;
+ advanceFieldOperation(game,.01);
+ assert.ok(op.pulseAt-game.time>10,'the new pulse interval is longer than the normal 8.4 seconds');
 });
 
 test('convoy route choice changes path and risk; destroyed cargo can still be recovered',()=>{
