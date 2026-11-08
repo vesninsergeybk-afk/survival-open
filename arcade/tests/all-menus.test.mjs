@@ -111,7 +111,7 @@ test('local map puts destinations above optional reports and displays remapped c
  const game={world,player:{x:0,y:0},time:0,skillRanks:{},enemyBasesUnlocked:()=>false,mapView:'targets',controls:{...DEFAULT_CONTROLS,map:'KeyG',skills:'KeyJ'}};
  const html=renderWorldMap(game);
  assert.ok(html.indexOf('Обнаруженные станции')<html.indexOf('<details class="map-world-details">'));
- assert.match(html,/G — карта · J — развитие/);assert.doesNotMatch(html,/Tab или M/);
+ assert.match(html,/G \/ Tab \/ M — карта · J — развитие/);
 });
 test('Escape opens pause even when the flight menu button has focus',()=>{
  const {doc,game,nodes}=nativeScene(),priorDoc=globalThis.document,priorWindow=globalThis.window;
