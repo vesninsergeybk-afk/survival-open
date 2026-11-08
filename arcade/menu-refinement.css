@@ -85,9 +85,11 @@
 @media (max-width:520px) {
   #overlay .base-dialog .base-tabs {
     display:grid;
-    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-columns:repeat(6,minmax(0,1fr));
     gap:5px;
   }
+  #overlay .base-dialog .base-tabs button {grid-column:span 2}
+  #overlay .base-dialog .base-tabs button:nth-last-child(-n+2) {grid-column:span 3}
   #overlay .base-dialog .base-tabs button {
     font-size:12px!important;
     line-height:1.25;
@@ -97,9 +99,11 @@
     hyphens:auto;
   }
   #overlay .progression-ui .prog-orbit {
-    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-columns:repeat(6,minmax(0,1fr));
     gap:6px;
   }
+  #overlay .progression-ui .prog-domain {grid-column:span 2}
+  #overlay .progression-ui .prog-domain:nth-last-child(-n+2) {grid-column:span 3}
   #overlay .progression-ui .prog-domain,
   #overlay .progression-ui .prog-domain.domain-pilot,
   #overlay .progression-ui .prog-domain.domain-weapons,
