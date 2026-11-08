@@ -1,6 +1,13 @@
 // Restore open details before scroll so the browser can reach the old position.
-const currentSection=root=>root.querySelector('[data-ship-view]')?.dataset.shipView||
- root.querySelector('.skill-branch-tabs [aria-pressed="true"]')?.dataset.id||'';
+const currentSection=root=>{
+ const progression=root.querySelector('.progression-ui');
+ if(progression?.dataset?.domain&&typeof progression.querySelector==='function'){
+  const subtab=progression.querySelector('.prog-subtabs [aria-pressed="true"]')?.dataset.id||'';
+  return progression.dataset.domain+':'+subtab;
+ }
+ return root.querySelector('[data-ship-view]')?.dataset.shipView||
+  root.querySelector('.skill-branch-tabs [aria-pressed="true"]')?.dataset.id||'';
+};
 export function captureHangarView(root){
  return {
   tab:root.querySelector('.base-tabs [aria-selected="true"]')?.dataset.role,

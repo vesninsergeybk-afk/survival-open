@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {World} from '../world.js';
 import {renderBasePanel} from '../base-panel.js';
 import {createLoadout} from '../ship-loadout.js';
@@ -55,4 +56,29 @@ test('changing station sections resets scroll; a purchase preserves the current 
  assert.equal(disclosure.open,true);
  tab='hangar';restoreHangarView(root,view);
  assert.equal(dialog.scrollTop,0);
+});
+
+test('selecting a deep progression node preserves scroll, but changing its weapon resets it',()=>{
+ const dialog={scrollTop:780};let weapon='plasma';
+ const progression={dataset:{domain:'weapons'},querySelector:()=>({dataset:{id:weapon}})};
+ const root={
+  querySelector:s=>s==='.progression-ui'?progression:s==='.base-dialog'?dialog:
+   s==='.base-tabs [aria-selected="true"]'?{dataset:{role:'development'}}:null,
+  querySelectorAll:()=>[]
+ };
+ const view=captureHangarView(root);
+ assert.equal(view.section,'weapons:plasma');
+ dialog.scrollTop=0;restoreHangarView(root,view);
+ assert.equal(dialog.scrollTop,780,'the selected upgrade must stay in view after its detail updates');
+ weapon='rail';restoreHangarView(root,view);
+ assert.equal(dialog.scrollTop,0,'a different weapon must start at its own tree top');
+ progression.dataset.domain='ship';restoreHangarView(root,view);
+ assert.equal(dialog.scrollTop,0,'another domain must not inherit the previous list position');
+});
+
+test('published script versions include the progression scroll fix',()=>{
+ const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(game,/hangar-view\.js\?v=[^'\n]*devscroll-1/);
+ assert.match(html,/game\.js\?v=[^"\n]*devscroll-1/);
 });

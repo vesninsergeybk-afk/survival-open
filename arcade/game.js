@@ -73,7 +73,7 @@ import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMar
 
 import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1';
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
-import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2-menu-rebuild-1-menu-audit-1';
+import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2-menu-rebuild-1-menu-audit-1-devscroll-1';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1-all-menus-1-menu-reaudit-1-menu-audit-1';
 import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons,RAIL_AIM_ASSIST} from './ship-weapons.js?v=mouse-area-1';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1-supply-stronghold-1';
