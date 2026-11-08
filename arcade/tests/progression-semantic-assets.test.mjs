@@ -20,24 +20,31 @@ const state=()=>({
  tactical:createTactical(),controls:{},station:{}
 });
 
-test('five field skills have unique, independent pictograms, not stand-ins',()=>{
+test('five field skills reuse rendered 3D artwork and add five distinct semantic markers',()=>{
  const g=state();
  g.pilotSkills=semantic.map(id=>({id,from:1,max:1,title:id,desc:id,branch:'Корабль'}));
  const pilot=progressionModel(g).nodes;
  g.developmentDomain='tactics';g.developmentTactic='abilities';
  const tactical=progressionModel(g).nodes;
+ const expected={
+  dodge:'tactics/dash_discharge.webp',
+  extractor:'upgrades/mining.webp',
+  wreck:'upgrades/hull.webp',
+  capture:'weapons/allied_drone.webp',
+  signal:'upgrades/scanner.webp'
+ };
+ const sprite=readFileSync(join(root,'assets/progression/semantics/branch-variants.svg'),'utf8');
  for(const id of semantic){
   const node=[...pilot,...tactical].find(n=>n.id==='skill-'+id);
   assert.ok(node,id+' absent');
-  assert.equal(node.icon,'./assets/progression/semantics/'+id+'.svg');
-  const file=join(root,'assets/progression/semantics/'+id+'.svg');
-  assert.ok(existsSync(file),file);
-  const svg=readFileSync(file,'utf8');
-  assert.match(svg,/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
-  assert.match(svg,/<\/svg>$/);
-  assert.doesNotMatch(svg,/<text\b|<image\b|<foreignObject\b/,
-   'Icons should contain clean vector geometry, not text or bitmap labels');
+  assert.equal(node.icon,'./assets/progression/'+expected[id]);
+  assert.equal(node.variant,'semantic-'+id);
+  assert.ok(existsSync(join(root,node.icon)),node.icon);
+  assert.ok(sprite.includes('<symbol id="semantic-'+id+'"'),id+' missing badge');
+  assert.equal(existsSync(join(root,'assets/progression/semantics/'+id+'.svg')),false,
+   'Flat full-size icons must not replace existing rendered artwork');
  }
+ assert.equal(semantic.length,5);
 });
 
 test('all real weapon specializations have visually unique, matching symbols',()=>{
