@@ -39,8 +39,10 @@ test('the menu uses the current coherent vector and sprite assets',()=>{
 test('portrait menu labels use accessible rows rather than 9px five-column captions',()=>{
  const css=read('menu-refinement.css');
  assert.match(css,/@media \(max-width:520px\)/);
- assert.match(css,/\.base-dialog \.base-tabs\s*\{[\s\S]*?grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
- assert.match(css,/\.progression-ui \.prog-orbit\s*\{[\s\S]*?grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+ assert.match(css,/\.base-dialog \.base-tabs\s*\{[\s\S]*?grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+ assert.match(css,/\.progression-ui \.prog-orbit\s*\{[\s\S]*?grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+ assert.match(css,/\.base-tabs button:nth-last-child\(-n\+2\) \{grid-column:span 3\}/);
+ assert.match(css,/\.prog-domain:nth-last-child\(-n\+2\) \{grid-column:span 3\}/);
  assert.match(css,/\.progression-ui \.prog-domain strong \{font-size:12px/);
  assert.match(css,/\.progression-ui \.prog-tier h3 \{font-size:12px/);
  assert.match(css,/\.base-dialog \.base-tabs button \{[\s\S]*?font-size:12px!important/);
