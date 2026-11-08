@@ -59,3 +59,14 @@ test('defend contract shows a real 650 m perimeter, then removes it upon complet
  game.contract=null;
  assert.doesNotMatch(renderWorldMap(game),/ЗОНА ЗАЩИТЫ · 650 М/);
 });
+
+test('mission markers keep their original object numbers when earlier objectives are finished',()=>{
+ const game=scenario();game.contract=null;game.waypoint=null;
+ game.operation={id:'false-call',name:'Чужой позывной',phase:'active',baseId:'lab1',
+  x:950,y:0,checks:1,correct:2,decoding:false,
+  beacons:[{x:950,y:0,checked:true},{x:1120,y:20,checked:false},
+   {x:1300,y:-20,checked:false}]};
+ const html=renderWorldMap(game);
+ assert.match(html,/Маяк 2/);assert.match(html,/Маяк 3/);
+ assert.doesNotMatch(html,/Маяк 1/,'completed beacon must not renumber the surviving targets');
+});

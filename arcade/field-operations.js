@@ -9,7 +9,7 @@ import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-o
 
 export const FIELD_TACTICS=Object.freeze({shieldStrength:40,shieldHold:2.8,
  convoyRepairCost:6,convoyRepairStrength:35,convoyRepairHold:4,
- beaconDecodeSeconds:4.5,beaconDecodeRadius:240});
+ beaconDecodeSeconds:4.5,beaconDecodeRadius:240,convoyFullIntegrity:75});
 const FIELD_PROP_CUTOUTS=Object.freeze({relay:[95,0,410,600],reactor:[649,60,561,520],
  beacon:[92,608,390,580],cargo:[620,690,655,420]});
 
@@ -45,6 +45,31 @@ export const fieldThreatTier=(level=1,runs=0)=>Math.min(3,Math.max(0,
  Math.floor((Math.max(1,level)-1)/6),Math.floor(Math.max(0,runs)/3)));
 export const fieldRewardFactor=tier=>1+.2*Math.max(0,Math.min(3,tier||0));
 export const isFieldOperation=op=>!!op&&Object.hasOwn(FIELD_OPERATIONS,op.id);
+// The first painted objective is not an invisible prerequisite for entering a
+// multi-site sortie. Use the same set of approachable sites for its cue and
+// phase transition; only uncompleted sites can attract the pilot afterward.
+export function fieldApproachSites(op){
+ if(!isFieldOperation(op))return [];
+ if(op.id==='line-break'||op.id==='sleeping-reactor')
+  return op.nodes.filter(n=>!n.done&&n.hp!==0);
+ if(op.id==='false-call')return op.beacons.filter(b=>!b.checked);
+ if(op.id==='deep-resonance')return op.samples.filter(s=>!s.done);
+ if(op.id==='two-fronts')return op.nodes.filter(n=>n.hp>0);
+ return [op];
+}
+export function fieldApproachDistance(op,player){
+ return Math.min(...fieldApproachSites(op).map(site=>distance(site,player)),Infinity);
+}
+export function convoyRaidPlan(op){
+ const fast=op.routeChoice==='fast',tier=op.threatTier||0;
+ // A safe detour brings fewer, weaker escorts despite its longer exposure.
+ // The direct route has more interceptors and faster flanking craft.
+ const marks=fast?[0,.29,.60]:[0,.48];
+ if(tier>=1&&!fast)marks.push(.76);
+ if(tier>=2&&fast)marks.push(.83);
+ if(tier>=3&&!fast)marks.push(.88);
+ return {marks,firstDelay:fast?4.5:7,interval:fast?3.2:4.5};
+}
 export function validFieldOperation(op){
  if(!isFieldOperation(op)||!['approach','active','return','salvage','failed'].includes(op.phase)||
   !Number.isFinite(op.x)||!Number.isFinite(op.y)||typeof op.baseId!=='string'||
@@ -126,12 +151,13 @@ function siteNear(base,world,radius,heading){
  }
  return {x:base.x+radius,y:base.y};
 }
-export function createFieldOperation(id,base,world,attempt=0,routeChoice='safe',pilotLevel=1){
+export function createFieldOperation(id,base,world,attempt=0,routeChoice='safe',pilotLevel=1,
+ completedRuns=attempt){
  const spec=FIELD_OPERATIONS[id];
  if(!spec||!base?.active||base.enemy||base.type!==spec.station)return null;
  const bearing=(attempt*2.17+(base.x*0.002+base.y*0.0007))%(Math.PI*2);
  const site=siteNear(base,world,710,bearing);
- const threatTier=fieldThreatTier(pilotLevel,attempt);
+ const threatTier=fieldThreatTier(pilotLevel,completedRuns);
  const common={...spec,baseId:base.id,x:site.x,y:site.y,phase:'approach',
   startedAt:0,attempt,partial:false,threatTier};
  if(id==='deep-resonance'){
@@ -192,7 +218,8 @@ export function fieldOperationOffer(base,op,now,id,pilotLevel=1){
  const active=op?.id===id&&op.baseId===base.id;
  const completed=base.fieldOperationRuns?.[id]||0;
  const wait=Math.max(0,Math.ceil((base.fieldOperationCooldowns?.[id]||0)-now));
- const threatTier=active?(op.threatTier||0):fieldThreatTier(pilotLevel,completed);
+ const threatTier=active?(op.threatTier||0):fieldThreatTier(pilotLevel,
+  base.fieldOperationFullRuns?.[id]??completed);
  const factor=fieldRewardFactor(threatTier)*(completed?.75:1);
  return {...spec,status:active?'active':!base.active?'locked':wait?'cooldown':'available',
   remaining:wait,runs:completed,threatTier,
@@ -206,7 +233,8 @@ export function fieldOperationCue(op,game){
   (op.crate?.progress>0?' · ИЗВЛЕЧЕНИЕ '+Math.round(op.crate.progress/op.crate.goal*100)+'%':'');
  if(op.phase==='failed')return '✕ ВЫЛАЗКА СОРВАНА · ВЕРНИТЕСЬ НА СТАНЦИЮ И ЗАКРОЙТЕ ЗАДАНИЕ';
  if(op.phase==='return')return '✓ '+op.name.toUpperCase()+' · ВЕРНИТЕСЬ НА СТАНЦИЮ';
- if(op.phase==='approach')return '◈ '+op.name.toUpperCase()+' · ДО ЦЕЛИ '+Math.round(distance(game.player,op))+' М';
+ if(op.phase==='approach')return '◈ '+op.name.toUpperCase()+' · ДО ЦЕЛИ '+
+  Math.round(fieldApproachDistance(op,game.player))+' М';
  const workCue=game.actionHeld?.kind==='field-work'?' · ОГОНЬ ПРИОСТАНОВЛЕН':'';
  if(op.id==='deep-resonance')return '◈ ОБРАЗЦЫ '+op.progress+'/2 · РЕЗОНАНС '+Math.round(op.resonance)+'%'+
   (op.pulseUntil>game.time?' · РАЗРЯД!':op.resonance>65?' · ПАТРУЛЬ СЛЫШИТ ДОБЫЧУ':'');
@@ -384,11 +412,26 @@ export function spawnFieldEnemy(game,op,type,location,target=null,index=0){
  }
  game.enemies.push(enemy);return enemy;
 }
+function releaseFieldReturnThreats(game,op){
+ if(op.returnThreatsReleased)return;
+ op.returnThreatsReleased=true;
+ let pursuers=0;
+ for(const enemy of game.enemies){
+  if(enemy.fieldOperation!==op.id||enemy.hp<=0||enemy.converted||!enemy.missionFlight)continue;
+  // A surviving raider can now chase the pilot rather than continuing to
+  // aim at an objective that has ceased to update after mission completion.
+  delete enemy.missionFlight;delete enemy.missionStrike;
+  enemy.relayChargeUntil=0;enemy.target=game.player;enemy.state='hunt';
+  pursuers++;
+ }
+ if(pursuers)game.notice('Задание выполнено, но уцелевшие налётчики преследуют вас. Возвращайтесь на станцию.',4);
+}
 export function advanceFieldOperation(game,dt){
  const op=game.operation;if(!isFieldOperation(op)||game.dead)return;
- if(op.phase==='return'||op.phase==='failed')return;
+ if(op.phase==='return'){releaseFieldReturnThreats(game,op);return;}
+ if(op.phase==='failed')return;
  if(op.phase==='approach'){
-  if(distance(game.player,op)>420)return;
+  if(fieldApproachDistance(op,game.player)>420)return;
   op.phase='active';op.startedAt=game.time;
   if(op.id==='reverse-hunt'){
    const enemy=spawnFieldEnemy(game,op,'scout',op);
@@ -403,7 +446,7 @@ export function advanceFieldOperation(game,dt){
    op.pulseAt=game.time+7;
    game.notice('Реактор просыпается. Внешняя кассета безопаснее; внутренняя первой ускорит выбросы. Следите за ядром.',5);
   }else if(op.id==='broken-convoy'){
-   op.started=true;op.nextRaidAt=game.time+(op.routeChoice==='fast'?5:12);
+   op.started=true;op.nextRaidAt=game.time+convoyRaidPlan(op).firstDelay;
    game.notice('Транспорт начал рейс. Держитесь ближе 500 м. Если корпус упадёт ниже 78%, можно разово остановить и починить его за 6 сплава.',5);
   }else if(op.id==='false-call'){
    game.notice('У фальшивого маяка двойной фиолетовый импульс. Наблюдайте сигналы перед проверкой.',5);
@@ -412,7 +455,7 @@ export function advanceFieldOperation(game,dt){
   }else game.notice('Две залежи отмечены на карте. Образцы даёт только удерживаемая добыча: раскалывающий удар испортит образец и усилит резонанс.',5);
  }
  advanceFieldWork(game,op,dt);
- if(op.phase==='return')return;
+ if(op.phase==='return'){releaseFieldReturnThreats(game,op);return;}
  if(op.id==='line-break'){
   const unserviced=op.nodes.find(n=>!n.done);
   if(unserviced?.hp<=0){
@@ -494,7 +537,8 @@ export function advanceFieldOperation(game,dt){
    // scan window; its autonomous predator logic keeps its own clock.
    enemy._missionScanStarted=game.time;enemy._missionScanUntil=op.scanUntil;
    game.heritage.play('fieldScan',.2,{x:enemy.x,y:enemy.y});
-   game.notice('ЗРАЧОК РАСКРЫВАЕТ СКАНЕР! Держитесь на дистанции 130–310 м.',2.7);
+   game.notice('ЗРАЧОК РАСКРЫВАЕТ СКАНЕР! Держитесь на дистанции '+
+    (op.scans===1?'170–270':'130–310')+' м.',2.7);
   }
   if(op.scanUntil>0&&game.time>=op.scanUntil){
    op.scanUntil=0;
@@ -605,20 +649,21 @@ export function advanceFieldOperation(game,dt){
    if(d>0){op.x+=(target.x-op.x)/d*step;op.y+=(target.y-op.y)/d*step;
     op.artMoving=step>.01;}
    if(d<=step+.001){op.routeIndex++;
-    if(op.routeIndex>=2){op.phase='return';op.partial=op.hp<50;
+    if(op.routeIndex>=2){op.phase='return';op.partial=op.hp<FIELD_TACTICS.convoyFullIntegrity;
      game.notice((op.partial?'Повреждённый':'Целый')+' транспорт доставлен. Возвращайтесь за наградой.',5);return;}}
   }
   op.fieldRepair.x=op.x;op.fieldRepair.y=op.y;
-  // A parked transport cannot exhaust all future ambushes. Only the
-  // opening patrol is time-triggered; later interceptors guard route sections.
-  const raidMarks=op.routeChoice==='fast'?[0,.34,.68]:[0,.58];
-  if((op.threatTier||0)>=1)raidMarks.push(.86);
-  if((op.threatTier||0)>=3&&op.routeChoice==='fast')raidMarks.push(.96);
+  // An escort's threats must have time to act before delivery. Separate route
+  // milestones keep pauses for repair from consuming all later encounters.
+  const raidPlan=convoyRaidPlan(op),raidMarks=raidPlan.marks;
   if(game.time>=op.nextRaidAt&&op.escortSerials.length<raidMarks.length&&
     convoyRouteProgress(op)>=raidMarks[op.escortSerials.length]){
-   const raid=spawnFieldEnemy(game,op,op.routeChoice==='fast'?'flanker':'fighter',op,op,op.escortSerials.length);
+   const index=op.escortSerials.length;
+   const type=(op.threatTier||0)>=3&&index===raidMarks.length-1?'gunship':
+    op.routeChoice==='fast'&&index!==1?'flanker':'fighter';
+   const raid=spawnFieldEnemy(game,op,type,op,op,index);
    if(raid){op.escortSerials.push(raid.serial);
-    op.nextRaidAt=game.time+(op.routeChoice==='fast'?7:18)*(1-.12*(op.threatTier||0));
+    op.nextRaidAt=game.time+raidPlan.interval;
     game.heritage.play('fieldRaid',.2,{x:raid.x,y:raid.y});
     game.notice('Нападение на конвой! Перехватите корабль до прицельного залпа.',4);}
   }

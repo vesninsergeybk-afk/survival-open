@@ -8,9 +8,9 @@ import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-w
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
 import {CORRIDOR_OPERATION,corridorPosition,corridorAmbush,corridorScanBonus,probeSearchArea,operationDestination,
  isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=station-operations-2-ops-audit-2';
-import {isFieldOperation,fieldOperationCue} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1';
+import {isFieldOperation,fieldOperationCue} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
-import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1';
+import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2';
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=station-operations-2-ops-audit-2';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
@@ -214,13 +214,15 @@ export function renderWorldMap(game){
     operation.phase==='return'?'Док · передать данные':'Глушитель'):
    previewProbe?'Область поиска зонда':previewRelay?'Ретранслятор':
    previewCarrier?'Район встречи':previewCorridor?'Источник помех':'Коридор открыт')+'</text>':'';
+ const numberedSites=sites=>sites.map((site,index)=>({site,index}));
  const fieldSites=isFieldOperation(operation)?(
-  operation.id==='deep-resonance'?operation.samples.filter(s=>!s.done):
-  operation.id==='two-fronts'?operation.nodes:
-  ['line-break','sleeping-reactor'].includes(operation.id)?operation.nodes.filter(s=>!s.done):
-  operation.id==='false-call'?operation.beacons.filter(s=>!s.checked):
-  operation.id==='broken-convoy'?(operation.crate?[operation.crate]:operation.route.slice(operation.routeIndex+1)):[]):[];
- const fieldMarks=fieldSites.map((site,i)=>{
+  operation.id==='deep-resonance'?numberedSites(operation.samples).filter(v=>!v.site.done):
+  operation.id==='two-fronts'?numberedSites(operation.nodes):
+  ['line-break','sleeping-reactor'].includes(operation.id)?numberedSites(operation.nodes).filter(v=>!v.site.done):
+  operation.id==='false-call'?numberedSites(operation.beacons).filter(v=>!v.site.checked):
+  operation.id==='broken-convoy'?(operation.crate?[{site:operation.crate,index:0}]:
+   numberedSites(operation.route).filter(v=>v.index>operation.routeIndex)):[]):[];
+ const fieldMarks=fieldSites.map(({site,index})=>{
   const mark=point(site.x,site.y,center,scale);
   if(!visible(mark))return '';
   const intact=site.hp===undefined||site.hp>0;
@@ -231,7 +233,7 @@ export function renderWorldMap(game){
    '" fill="#edd7fa" font-size="10">'+
    (['two-fronts','line-break'].includes(operation.id)?'Узел ':
     operation.id==='false-call'?'Маяк ':operation.id==='sleeping-reactor'?'Кассета ':
-    operation.id==='broken-convoy'?'Маршрут ':'Руда ')+(i+1)+'</text>';
+    operation.id==='broken-convoy'?'Маршрут ':'Руда ')+(index+1)+'</text>';
  }).join('');
  const ambush=operation?.radio==='sent'&&!operation.pursuitStarted&&world.stations.get(operation.baseId);
  const ambushMark=ambush?(()=>{

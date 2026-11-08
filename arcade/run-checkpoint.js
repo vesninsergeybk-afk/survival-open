@@ -17,7 +17,7 @@ import {createContours,validContours,autoConnectContours} from './territory-syst
 import {ensureTrialLedger} from './contour-trials.js?v=contour-trials-1-first-loops-1';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
-import {validFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1';
+import {validFieldOperation,FIELD_OPERATIONS} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
@@ -34,6 +34,16 @@ const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal m
  'waypoint manualWaypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc fieldEvolution fieldLoot combatTempo').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
+const validFieldCounters=counts=>counts===undefined||object(counts)&&
+ Object.entries(counts).length<=Object.keys(FIELD_OPERATIONS).length&&
+ Object.entries(counts).every(([id,count])=>Object.hasOwn(FIELD_OPERATIONS,id)&&
+  Number.isInteger(count)&&count>=0&&count<=100000);
+const validFieldHistory=history=>history===undefined||Array.isArray(history)&&
+ history.length<=8&&history.every(entry=>object(entry)&&
+  Object.hasOwn(FIELD_OPERATIONS,entry.id)&&typeof entry.full==='boolean'&&
+  (entry.seconds===null||Number.isInteger(entry.seconds)&&entry.seconds>=0&&entry.seconds<=1e7)&&
+  Number.isInteger(entry.tier)&&entry.tier>=0&&entry.tier<=3&&
+  (entry.convoyHp===null||Number.isInteger(entry.convoyHp)&&entry.convoyHp>=0&&entry.convoyHp<=100));
 const cell=validStationId;
 const hash=text=>{let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);return (h>>>0).toString(16);};
 
@@ -161,6 +171,10 @@ export function validateCheckpoint(data){
   if(!object(b)||b.id!==pair[0]||!['dock','arsenal','lab','carrier'].includes(b.type)||
    !finite(b.x)||!finite(b.y)||typeof b.active!=='boolean'||typeof b.enemy!=='boolean'||
    !Array.isArray(b.turrets)||!validFortification(b,s.time))return false;
+  if(!validFieldCounters(b.fieldOperationRuns)||
+   !validFieldCounters(b.fieldOperationFullRuns)||
+   !validFieldCounters(b.fieldOperationAttempts)||
+   !validFieldHistory(b.fieldOperationHistory))return false;
   // Persistent regional machine archives contain only bounded, dated threat
   // categories. Older checkpoints without this optional field remain valid.
   if(b.meshArchive!==undefined&&(!Array.isArray(b.meshArchive)||

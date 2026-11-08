@@ -8,7 +8,7 @@ import {RuntimeHarness} from './runtime-game.mjs';
 import {packRun,unpackRun} from '../run-checkpoint.js';
 import {createFieldOperation,fieldOperationIds,fieldOperationOffer,fieldOperationMining,
  advanceFieldOperation,validFieldOperation,fieldOperationCue,fieldOperationInteraction,fieldThreatTier,
- FIELD_TACTICS,drawFieldOperation} from '../field-operations.js';
+ FIELD_TACTICS,fieldApproachDistance,convoyRaidPlan,drawFieldOperation} from '../field-operations.js';
 
 const world=new World(20261107);
 const stations=world.nearbyStations(0,0,9000,false).filter(b=>!b.enemy);
@@ -21,8 +21,8 @@ test('published module URLs expose the audited missions instead of cached statio
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(page,/src="\.\/game\.js\?v=[^"]*field-experience-1/);
  assert.match(page,/src="\.\/game\.js\?v=[^"]*mission-art-5/);
- assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1-menu-prof-1-mission-depth-1/);
- assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1'/);
+ assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1-menu-prof-1-mission-depth-1[^']*mission-integrity-2/);
+ assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2'/);
 });
 
 test('illustrated objective props are drawn from one compact transparent sprite atlas',()=>{
@@ -252,8 +252,83 @@ test('station mission guidance uses actual ship position, not the docking anchor
   network:{armor:0,armament:0,engine:0,strikePower:0},baseTab:'operations',world,time:50,
   operation:op,position:ship};
  const html=renderBasePanel(lab,state);
- const actualDistance=Math.round(Math.hypot(op.x-ship.x,op.y-ship.y));
+ const actualDistance=Math.round(fieldApproachDistance(op,ship));
  assert.match(html,new RegExp('ДО ЦЕЛИ '+actualDistance+' М'));
+});
+
+test('approaching the second node or beacon first starts the operation without a hidden first-site gate',()=>{
+ const clearWorld={nearbyRocks:()=>[],nearbyStations:()=>[]};
+ for(const [id,base,key] of [['line-break',dock,'nodes'],['false-call',lab,'beacons']]){
+  const op=createFieldOperation(id,base,clearWorld),game=fakeGame(op);
+  game.player.x=op[key][1].x;game.player.y=op[key][1].y;
+  assert.ok(Math.hypot(op.x-game.player.x,op.y-game.player.y)>420,
+   'the regression must begin outside the old invisible first-site trigger');
+  assert.equal(fieldApproachDistance(op,game.player),0);
+  advanceFieldOperation(game,.1);
+  assert.equal(op.phase,'active',id+' should accept either marked starting point');
+  assert.ok(fieldOperationInteraction(op,game.player),id+' should expose the nearby action');
+ }
+});
+
+test('a real pilot can reach every convoy ambush before delivery on either route',()=>{
+ for(const routeChoice of ['safe','fast']){
+  const op=createFieldOperation('broken-convoy',carrier,world,0,routeChoice),game=fakeGame(op);
+  game.updateMissionStrike=()=>{};
+  const plan=convoyRaidPlan(op);
+  const expected=routeChoice==='fast'?3:2;
+  assert.equal(plan.marks.length,expected);
+  for(let step=0;step<500&&op.phase!=='return';step++){
+   game.time+=.1;game.player.x=op.x;game.player.y=op.y;
+   advanceFieldOperation(game,.1);
+  }
+  assert.equal(op.phase,'return',routeChoice+' must finish');
+  assert.equal(op.escortSerials.length,expected,
+   routeChoice+' must receive every planned interceptor while the cargo is still moving');
+ }
+});
+
+test('an undefended convoy suffers enough pressure to lose its full reward',()=>{
+ const op=createFieldOperation('broken-convoy',carrier,world,0,'safe'),game=fakeGame(op);
+ game.updateMissionStrike=(enemy,target)=>{
+  // Isolate the escort's combat rules from world obstacles and steering:
+  // each living raider remains in range and obeys its charged-shot cadence.
+  if(game.time<(enemy.relayCooldownUntil||0))return;
+  if(!enemy.relayChargeUntil){enemy.relayChargeUntil=game.time+enemy.missionStrike.charge;return;}
+  if(game.time>=enemy.relayChargeUntil){
+   target.hp=Math.max(0,target.hp-enemy.missionStrike.damage);
+   enemy.relayChargeUntil=0;enemy.relayCooldownUntil=game.time+2.1;
+  }
+ };
+ for(let step=0;step<500&&op.phase!=='return'&&op.phase!=='salvage';step++){
+  game.time+=.1;game.player.x=op.x;game.player.y=op.y;
+  advanceFieldOperation(game,.1);
+ }
+ assert.ok(op.phase==='salvage'||op.partial,
+  'doing nothing while raiders shoot must not produce a fully rewarded delivery');
+});
+
+test('surviving scripted attackers turn into actual pursuers on the return trip',()=>{
+ const op=createFieldOperation('broken-convoy',carrier,world),game=fakeGame(op);
+ op.phase='active';op.nextRaidAt=0;
+ advanceFieldOperation(game,.1);
+ const raider=game.enemies.find(e=>e.missionFlight);
+ assert.ok(raider);
+ op.phase='return';game.time=8;advanceFieldOperation(game,.1);
+ assert.equal(raider.missionFlight,undefined);
+ assert.equal(raider.missionStrike,undefined);
+ assert.equal(raider.target,game.player);
+ assert.equal(raider.state,'hunt');
+ assert.equal(op.returnThreatsReleased,true);
+});
+
+test('the second scanner warning uses the actual narrower safety band',()=>{
+ const op=createFieldOperation('reverse-hunt',lab,world),game=fakeGame(op),notices=[];
+ game.notice=message=>notices.push(message);
+ game.time=1;advanceFieldOperation(game,.1);
+ op.scans=1;op.scanAt=1.1;op.scanUntil=0;
+ game.time=1.2;advanceFieldOperation(game,.1);
+ assert.ok(notices.some(message=>message.includes('170–270 м')));
+ assert.ok(!notices.at(-1).includes('130–310 м'));
 });
 
 test('resonance requires actual marked mineral extraction, enables partial return, no double credit',()=>{
@@ -560,6 +635,38 @@ test('developed pilot payout exactly matches the station reward preview',()=>{
  assert.equal(RuntimeHarness.prototype.finishFieldOperation.call(game),true);
  assert.equal(game.player.ore,offer.rewardOre);
  assert.equal(game.player.data,offer.rewardData);
+});
+
+test('a partial extraction counts as a result but does not make the next sortie harder',()=>{
+ const base={...lab,fieldOperationRuns:{},fieldOperationFullRuns:{},fieldOperationCooldowns:{}};
+ const op=createFieldOperation('deep-resonance',base,world),game=fakeGame(op);
+ op.phase='return';op.startedAt=10;op.progress=1;op.partial=true;
+ game.time=48;game.docked=base;game.player={ore:0,data:0,level:1};
+ game.cockpit={resourceGain(){}};game.heritage.station=()=>{};
+ game.collect=function(item){this.player.data+=item.value;};
+ game.rewardNotice=()=>{};game.fieldLoan=null;
+ assert.equal(RuntimeHarness.prototype.finishFieldOperation.call(game),true);
+ assert.equal(base.fieldOperationRuns[op.id],1);
+ assert.equal(base.fieldOperationFullRuns[op.id],0);
+ assert.deepEqual(base.fieldOperationHistory.at(-1),{
+  id:op.id,full:false,seconds:38,tier:0,convoyHp:null});
+ const resumed=createFieldOperation('deep-resonance',base,world,1,'safe',1,
+  base.fieldOperationFullRuns[op.id]);
+ assert.equal(resumed.threatTier,0);
+});
+
+test('a previously XP-rewarded field guard counts once for a directly assisted kill contract',()=>{
+ const game=new RuntimeHarness(),base={id:'0:0',type:'dock',x:0,y:0};
+ game.time=100;game.world={stations:new Map([[base.id,base]])};
+ game.contract={baseId:base.id,kind:'kill',goal:2,progress:0};
+ game.notice=()=>{};
+ const enemy={type:'fighter',expAwarded:true,lastPlayerHitAt:98};
+ assert.equal(game.creditContractKill(enemy),true);
+ assert.equal(game.contract.progress,1);
+ assert.equal(game.creditContractKill(enemy),false);
+ assert.equal(game.contract.progress,1);
+ assert.equal(game.creditContractKill({type:'fighter',expAwarded:true}),true);
+ assert.equal(game.contract.progress,1,'an unattended field kill must not count');
 });
 
 test('line repair needs sustained interaction, then changes to a guarded second node',()=>{
