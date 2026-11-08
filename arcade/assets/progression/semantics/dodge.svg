@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-hidden="true">
+<defs>
+  <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e0edeb"/><stop offset=".43" stop-color="#8babaf"/><stop offset="1" stop-color="#315064"/></linearGradient>
+  <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a8faf1"/><stop offset=".55" stop-color="#41b9c5"/><stop offset="1" stop-color="#176b93"/></linearGradient>
+  <linearGradient id="amber" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe0a0"/><stop offset=".55" stop-color="#e5ae63"/><stop offset="1" stop-color="#9a6336"/></linearGradient>
+  <filter id="halo" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="4"/></filter>
+  <filter id="shade" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000c15" flood-opacity=".85"/></filter>
+</defs><g filter="url(#shade)" stroke-linejoin="round" stroke-linecap="round"><path d="M20 108Q48 126 64 116" stroke="#4ad1d5" stroke-width="7" fill="none" opacity=".58"/><path d="M140 52Q109 29 96 44" stroke="#9bf7e8" stroke-width="7" fill="none" opacity=".75"/>
+<path d="M38 85L63 45 74 63 53 103Z" fill="#1b6d81" stroke="#75c7cb" stroke-width="3" opacity=".35"/>
+<path d="M122 76L96 41 85 64 108 108Z" fill="#1b6d81" stroke="#75c7cb" stroke-width="3" opacity=".35"/>
+<path d="M77 20L94 69 115 79 88 93 80 133 72 93 45 79 66 69Z" fill="url(#steel)" stroke="#b2e2e4" stroke-width="4"/>
+<path d="M80 28L86 75 80 107 74 75Z" fill="url(#cyan)" stroke="#163949" stroke-width="2"/>
+<path d="M45 79H115" stroke="#183a46" stroke-width="3"/><path d="M33 114L22 118 26 106M127 45L139 43 134 55" stroke="url(#amber)" fill="none" stroke-width="6"/></g></svg>
