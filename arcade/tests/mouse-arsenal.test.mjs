@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createMouseArsenal,cometSpec,minesSpec,planMouseWeapon,fireMouseWeapon,
- updateMouseArsenal} from '../mouse-arsenal.js';
+ updateMouseArsenal,drawMouseArsenal} from '../mouse-arsenal.js';
 
 function scene(){
  const enemies=[];
@@ -12,7 +12,7 @@ function scene(){
   grid:{query(x,y,r){return enemies.filter(e=>e.hp>0&&Math.hypot(e.x-x,e.y-y)<=r);}},
   rockGrid:{query:()=>[]},enemyBasesUnlocked:()=>true,
   damageEnemy(e,damage){e.hp-=damage;},weaponHit(){},
-  heritage:{play(){},vfx:{nova(){}}}
+  playedSounds:[],heritage:{play(kind){game.playedSounds.push(kind);},vfx:{nova(){}}}
  };
  return game;
 }
@@ -116,4 +116,35 @@ test('a paused game cannot aim or fire mouse weapons, and mines still have indep
  assert.equal(fireMouseWeapon(g,'mines',{x:250,y:0}).ok,true,
   'the two active weapon slots have separate cooldowns');
  assert.equal(fireMouseWeapon(g,'mines',{x:250,y:0}).ok,false);
+});
+
+test('manual weapons play individual recorded cues for launch, impact and one mine arming',()=>{
+ const g=scene();
+ fireMouseWeapon(g,'comet',{x:300,y:0});
+ assert.deepEqual(g.playedSounds,['cometLaunch']);
+ g.time=.6;updateMouseArsenal(g,.6);
+ assert.deepEqual(g.playedSounds,['cometLaunch','cometBurst']);
+ fireMouseWeapon(g,'mines',{x:350,y:0});
+ assert.equal(g.playedSounds.at(-1),'mineLaunch');
+ g.time=1.3;updateMouseArsenal(g,.7);
+ assert.equal(g.playedSounds.filter(s=>s==='mineArm').length,0);
+ g.time=2.1;updateMouseArsenal(g,.8);
+ assert.equal(g.playedSounds.filter(s=>s==='mineArm').length,1,
+  'the entire array must arm as one salvo instead of playing four ticks');
+ g.time=2.5;updateMouseArsenal(g,.4);
+ assert.equal(g.playedSounds.filter(s=>s==='mineArm').length,1);
+ const mine=g.mouseArsenal.mines[0];g.enemies.push(scout(mine.x,mine.y,95));
+ g.time=2.7;updateMouseArsenal(g,.2);
+ assert.ok(g.playedSounds.includes('mineBurst'),'the first triggered mine needs its own impact');
+});
+
+test('comet and mine explosions expose distinct visual phases without relying on audio',()=>{
+ const g=scene(),circles=[],lines=[];
+ const c=new Proxy({arc(x,y,r){circles.push(r);},stroke(){lines.push(1);}},
+  {get(target,key){return target[key]??(()=>{});}});
+ fireMouseWeapon(g,'comet',{x:100,y:0});g.time=.2;updateMouseArsenal(g,.2);
+ drawMouseArsenal(c,g);
+ assert.ok(lines.length>=2,'flying comet has a layered visible trail');
+ g.time=.4;updateMouseArsenal(g,.2);drawMouseArsenal(c,g);
+ assert.ok(circles.some(r=>r>12),'the blast has rings beyond the projectile core');
 });

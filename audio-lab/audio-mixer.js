@@ -1,4 +1,4 @@
-import { SOUND_CATALOG, BUS_PRESET } from './sound-map.js?v=foley-autofire-03-mission-av-1-mission-variety-1-mission-choices-1';
+import { SOUND_CATALOG, BUS_PRESET } from './sound-map.js?v=foley-autofire-03-mission-av-1-mission-variety-1-mission-choices-1-recorded-combat-1';
 
 /**
  * Isolated sound-lab engine. Shared by the audio laboratory and the live production game. Native Web Audio; no dependencies and no network calls
@@ -46,8 +46,8 @@ export class AudioLabEngine {
       for (const name of ['weapons', 'impacts', 'ui', 'structures', 'ambience', 'music']) {
         const gain = this.ctx.createGain();
         gain.gain.value = this.busesLevel[name];
-        // 6–7 kHz soft low-pass removes brittle hiss from procedural
-        // weapons while preserving the low-frequency punch of impacts.
+        // 6–7 kHz soft low-pass tames bright recorded attacks while
+        // preserving the low-frequency punch of impacts.
         if (name === 'weapons' || name === 'impacts') {
           const warmth = this.ctx.createBiquadFilter();
           warmth.type = 'lowpass';

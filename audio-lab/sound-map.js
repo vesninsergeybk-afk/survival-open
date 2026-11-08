@@ -173,10 +173,45 @@ export const AUX_SOUNDS = {
   mission_relay_impact: cue('Удар по передатчику','impact',k('impactMetal_heavy_001'),.32,3,190,.4),
   mission_relay_online: cue('Связь ретранслятора восстановлена','structure',b('base_resonance_link'),.37,4,1800,1.3),
   mission_carrier_contact: cue('Выход вражеского грузовика','ambient',k('spaceEngineLarge_000'),.21,2,1500,1.0),
-  mission_carrier_boost: cue('Форсаж вражеского грузовика','ambient',k('thrusterFire_000'),.34,3,1700,.9)
+  mission_carrier_boost: cue('Форсаж вражеского грузовика','ambient',k('thrusterFire_000'),.34,3,1700,.9),
+  // Manual area weapons have separate physical Foley for release, arming and
+  // impact. The low-frequency body is a recorded sample, never an oscillator.
+  comet_launch: cue('Пуск Голубой кометы','energy',k('thrusterFire_001'),.36,4,300,.62),
+  comet_burst: cue('Удар Голубой кометы','impact',k('explosionCrunch_000'),.64,5,240,1.0),
+  mine_launch: cue('Сброс минного веера','mechanical',k('doorClose_001'),.31,3,320,.48),
+  mine_arm: cue('Мины встали на боевой взвод','mechanical',k('impactMetal_light_002'),.16,2,600,.32),
+  mine_burst: cue('Подрыв мин','impact',k('impactPunch_heavy_001'),.61,5,140,.78),
+  target_mark: cue('Назначена приоритетная цель','ui',k('impactGeneric_light_001'),.18,3,180,.34),
+  dash_burst: cue('Рывок корабля','mechanical',k('thrusterFire_002'),.35,3,350,.5),
+  swarm_arrival: cue('Приближение организованного роя','ambient',k('spaceEngineSmall_001'),.17,2,2100,.82),
+  swarm_split: cue('Рой делится','mechanical',k('spaceEngineSmall_001'),.22,3,1150,.65),
+  swarm_merge: cue('Рои объединяются','mechanical',k('forceField_004'),.21,3,1150,.65),
+  swarm_warning: cue('Рой готовит выстрел','ui',k('computerNoise_002'),.18,3,1600,.52)
 };
 
 AUX_SOUNDS.ui_slider.sampleUrls = [k('impactMetal_heavy_000'),k('impactMetal_heavy_001')];
+const recordedLayers = {
+  comet_launch:{main:[k('thrusterFire_001'),k('thrusterFire_002')],
+    layer:[k('impactMetal_medium_000'),k('impactMetal_medium_001')],gain:.18},
+  comet_burst:{main:[k('explosionCrunch_000'),k('explosionCrunch_002')],
+    layer:[k('lowFrequency_explosion_001'),k('lowFrequency_explosion_000')],gain:.57},
+  mine_launch:{main:[k('doorClose_001')],layer:[k('impactMetal_light_002')],gain:.32},
+  mine_arm:{main:[k('impactMetal_light_002')],layer:[k('forceField_004')],gain:.18},
+  mine_burst:{main:[k('impactPunch_heavy_001')],layer:[k('explosionCrunch_001')],gain:.56},
+  target_mark:{main:[k('impactGeneric_light_001')],layer:[k('forceField_004')],gain:.12},
+  dash_burst:{main:[k('thrusterFire_002'),k('thrusterFire_001')],
+    layer:[k('impactSoft_medium_000'),k('impactSoft_medium_001')],gain:.2},
+  swarm_arrival:{main:[k('spaceEngineSmall_001')],layer:[k('computerNoise_002')],gain:.2},
+  swarm_split:{main:[k('spaceEngineSmall_001')],layer:[k('impactMetal_light_002')],gain:.24},
+  swarm_merge:{main:[k('forceField_004')],layer:[k('impactPlate_heavy_002')],gain:.21},
+  swarm_warning:{main:[k('computerNoise_002')],layer:[k('impactGeneric_light_001')],gain:.32}
+};
+for(const [key,{main,layer,gain}] of Object.entries(recordedLayers)){
+  AUX_SOUNDS[key].sampleUrls=main;
+  AUX_SOUNDS[key].sampleLayerUrls=layer;
+  AUX_SOUNDS[key].layerGain=gain;
+  AUX_SOUNDS[key].fixedPitch=true;
+}
 
 export const SOUND_CATALOG = { ...WEAPON_SOUNDS, ...EVENT_SOUNDS, ...BASE_SOUNDS, ...AUX_SOUNDS };
 

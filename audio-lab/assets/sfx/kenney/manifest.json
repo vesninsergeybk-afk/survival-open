@@ -283,6 +283,78 @@
       "source": "assets/kenney/impact-sounds/Audio/impactSoft_medium_004.ogg",
       "blobSha": "532f620433217aae093353d65aaa445df07fb834",
       "size": 5438
+    },
+    {
+      "file": "thrusterFire_001.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/thrusterFire_001.ogg",
+      "blobSha": "12f12c4bc6507fc09ff8351c205a3dfa08e30873",
+      "size": 204218
+    },
+    {
+      "file": "thrusterFire_002.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/thrusterFire_002.ogg",
+      "blobSha": "ad07f5667b00f722f3a0dddb45955a12f9ce3169",
+      "size": 205657
+    },
+    {
+      "file": "lowFrequency_explosion_001.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/lowFrequency_explosion_001.ogg",
+      "blobSha": "a59f17869064eaf4eae14c722c60f55cef3f2e4e",
+      "size": 9408
+    },
+    {
+      "file": "explosionCrunch_000.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/explosionCrunch_000.ogg",
+      "blobSha": "019e53664abf859fc5529f95d0db23fa3ac1e42d",
+      "size": 28274
+    },
+    {
+      "file": "explosionCrunch_002.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/explosionCrunch_002.ogg",
+      "blobSha": "9d40201688aa0dbce9252b993400a195ce663c7b",
+      "size": 47907
+    },
+    {
+      "file": "computerNoise_002.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/computerNoise_002.ogg",
+      "blobSha": "f0c1b40ff067835d5bd964ea108877376eda1c4d",
+      "size": 130861
+    },
+    {
+      "file": "spaceEngineSmall_001.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/spaceEngineSmall_001.ogg",
+      "blobSha": "e67e0c2a309c995e259524e5658255c2f0107b7c",
+      "size": 133181
+    },
+    {
+      "file": "forceField_004.ogg",
+      "source": "assets/kenney/sci-fi-sounds/Audio/forceField_004.ogg",
+      "blobSha": "98b40368ea644d002ef150bd3bd9ae3d908e3b37",
+      "size": 26885
+    },
+    {
+      "file": "impactMetal_light_002.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactMetal_light_002.ogg",
+      "blobSha": "c18f397662e730412a137a6759d53abcd9202e30",
+      "size": 6804
+    },
+    {
+      "file": "impactPlate_heavy_002.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactPlate_heavy_002.ogg",
+      "blobSha": "ebdca4561aa516489cac72afb2a7a93e8a7838ed",
+      "size": 10188
+    },
+    {
+      "file": "impactPunch_heavy_001.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactPunch_heavy_001.ogg",
+      "blobSha": "6655951d3bb43d8b06bd23b8ae60580fd7584406",
+      "size": 10861
+    },
+    {
+      "file": "impactGeneric_light_001.ogg",
+      "source": "assets/kenney/impact-sounds/Audio/impactGeneric_light_001.ogg",
+      "blobSha": "42eae91020ef31a01cd2e656f9bd270fbc29a393",
+      "size": 5636
     }
   ]
 }

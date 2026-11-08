@@ -1,5 +1,5 @@
-import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1';
-import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1';
+import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1';
+import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1';
 import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
 import { MUSIC_TRACKS, MUSIC_POOLS, MusicRotation } from '../arcade/music-playlist.js?v=cinematic-rotation-01';
 
@@ -95,7 +95,10 @@ export class AudioEngine {
                 if (this._samplesPromise) return;
                 const root = new URL('../audio-lab/', import.meta.url);
                 // Decode a few CC0 effects at a time; mobile startup must stay playable.
-                const priority = ['starter_soft','magic_wand','knife','explosion_small',
+                const priority = ['starter_soft','comet_launch','comet_burst',
+                    'mine_launch','mine_arm','mine_burst','target_mark','dash_burst',
+                    'swarm_arrival','swarm_split','swarm_merge','swarm_warning',
+                    'magic_wand','knife','explosion_small',
                     'explosion_big','hit','armor_hit','rock_chip','rock_break','pickup',
                     'ui_tab','ui_open','player_damage','boss_warning','extractor_loop',
                     'shield_hit','field_shield_up','field_shield_break',
@@ -130,9 +133,8 @@ export class AudioEngine {
     applyVolumes() {
         if (!this.ctx) return;
         const s = this.settings;
-        // iter-13: a global `muted` flag (toggled by the M hotkey) zeroes the
-        // master gain without overwriting masterVolume so unmute restores
-        // exactly what the player had before.
+        // Global `muted` state zeroes master gain without overwriting volume,
+        // so unmuting restores the player's chosen level. M now opens the map.
         const muteMult = s.muted ? 0 : 1;
         this.masterGain.gain.value = (s.masterVolume ?? 0.6) * muteMult;
         this.sfxGain.gain.value = s.sfxVolume ?? 0.8;

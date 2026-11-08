@@ -1,5 +1,5 @@
 import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1';
-import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1';
+import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=foley-autofire-03';
 
@@ -16,7 +16,7 @@ const SOUND_IDS=Object.freeze({
  shieldHit:'shield_hit',shieldBreak:'field_shield_break',
  pickup:'pickup',levelUp:'level_up',damage:'player_damage',
  death:'player_death',hack:'base_resonance_link',boss:'boss_spawn',
- boost:'engine',allyShot:'orbit',ramWarning:'boss_warning',
+ boost:'dash_burst',allyShot:'orbit',ramWarning:'boss_warning',
  strikeCall:'drone_swarm',orbitalWarning:'base_raid_warning',
  ionWarning:'boss_warning',carrierPulse:'world_ion',criticalHull:'boss_warning',
  droneDestroyed:'explosion_small',capturedBase:'base_resonance_link',
@@ -37,7 +37,12 @@ const SOUND_IDS=Object.freeze({
  missionRelayWave:'mission_relay_wave',missionRelayImpact:'mission_relay_impact',
  missionRelayPrepare:'mission_relay_prepare',
  missionRelayOnline:'mission_relay_online',missionCarrierContact:'mission_carrier_contact',
- missionCarrierBoost:'mission_carrier_boost'
+ missionCarrierBoost:'mission_carrier_boost',
+ cometLaunch:'comet_launch',cometBurst:'comet_burst',
+ mineLaunch:'mine_launch',mineArm:'mine_arm',mineBurst:'mine_burst',
+ targetMark:'target_mark',swarmArrival:'swarm_arrival',
+ swarmSplit:'swarm_split',swarmMerge:'swarm_merge',swarmWarning:'swarm_warning',
+ dashBurst:'dash_burst'
 });
 function storedVolumes(){
  try{
