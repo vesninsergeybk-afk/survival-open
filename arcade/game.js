@@ -99,7 +99,7 @@ import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interce
 import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-2-contour-trials-1-first-loops-1-flux-build-1-support-three-1-triangle-defense-1';
 import {FLUX_ARTILLERY,EDGE_SLOT_UPGRADES,ARTILLERY_UPGRADES,edgeTurretLimit,edgeTurretUpgradeOffer,upgradeEdgeTurretCapacity,artilleryUpgradeOffer,upgradeArtillery,
  artilleryAt,artilleryOffer,deployArtillery,setArtilleryMode,
- advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-artillery-finish-1-support-three-1-triangle-defense-1-growth-1';
+ advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-artillery-finish-1-support-three-1-triangle-defense-1-growth-2';
 import {SUPPORT_TYPES,supportConfig,supportOffer,deploySupport,supportAt,
  setSupportMode,supportUpgradeOffer,upgradeSupport,
  advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=flux-supports-3-wreck-falloff-1-growth-1';
