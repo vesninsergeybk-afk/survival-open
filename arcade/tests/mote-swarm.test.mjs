@@ -192,6 +192,27 @@ test('swarms track last seen positions, not live player coordinates behind cover
  game.time=122;updateMoteSwarmOrders(game);
  assert.ok(game.enemies.every(e=>e.moteStatus==='search'));
  assert.ok(game.enemies.every(e=>Math.abs(e.moteOrder.x)<600));
+ game.time=160;updateMoteSwarmOrders(game);
+ assert.ok(game.enemies.every(e=>e.moteStatus==='search'),
+  'hunters must not silently return to routine patrol after 45 seconds');
+ assert.ok(game.enemies.every(e=>Math.abs(e.moteOrder.x)<900),
+  'persistent pursuit must still be bounded by the last real sighting');
+});
+
+test('micro-drones sidestep a tracked incoming missile without changing hitboxes or gaining speed',()=>{
+ const [e]=drones(1),game=scene([e],112);
+ e.moteOrder={x:0,y:0};e.hit=0;
+ game.missiles=[{target:e,x:e.x+60,y:e.y,life:2}];
+ moveMote(e,game,.04);
+ assert.ok(e.moteDodging,'an approaching homing missile should trigger evasive steering');
+ assert.ok(Number.isFinite(e.vx)&&Number.isFinite(e.vy));
+ assert.ok(Math.hypot(e.vx,e.vy)<MOTE_SWARM.speed*1.4,
+  'dodging must alter the course, not give an unrestricted speed bonus');
+ const y=e.y;
+ game.missiles=[];game.time=112.1;moveMote(e,game,.04);
+ assert.notEqual(e.y,y,'a dodge must cause real lateral displacement');
+ assert.equal(e.r,MOTE_SWARM.radius);
+ assert.equal(e.hp,MOTE_SWARM.hp);
 });
 
 test('a wing can receive another pack’s recent real sighting, not future player motion',()=>{

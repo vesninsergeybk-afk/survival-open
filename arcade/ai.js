@@ -13,7 +13,7 @@ import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1
 import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109';
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-2';
-import {moveMote} from './mote-swarm.js?v=swarm-controls-1-combat-hunt-20261109';
+import {moveMote} from './mote-swarm.js?v=swarm-controls-1-combat-hunt-20261109-dodge-audit-1';
 import {turretBranchRank} from './turret-growth.js';
 import {updateLastStand} from './enemy-last-stand.js';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};

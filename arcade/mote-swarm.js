@@ -6,7 +6,7 @@ export const MOTE_SWARM=Object.freeze({size:10,radius:6.5,hp:12,damage:3,
  fireRange:310,fireWarning:.5,fireCooldown:2.4,globalVolley:.48,
  rushRange:225,rushWarning:.6,rushTime:1.3,rushCooldown:6.6,
  rushMultiplier:2.35,escapeAt:2,escapeDistance:1000,
- reinforcementDelay:3.6,maxMotes:40,pursuitMemory:45});
+ reinforcementDelay:3.6,maxMotes:40,searchRadius:560});
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const crossed=(x1,y1,x2,y2,p,r)=>{
@@ -224,8 +224,11 @@ export function updateMoteSwarmOrders(game){
     state.lastKnown={...report};
   }
   const age=t-(state.lastKnown?.at??-Infinity);
-  const recent=age<4.5,pursuing=age<MOTE_SWARM.pursuitMemory;
-  const radius=Math.min(310,48+Math.max(0,age-4.5)*10);
+  // A confirmed hunter keeps searching until destroyed or contact is renewed.
+  // Its search is restricted to the LAST observed sector: it cannot use the
+  // player's current coordinates after losing optical contact.
+  const recent=age<4.5,pursuing=!!state.lastKnown;
+  const radius=Math.min(MOTE_SWARM.searchRadius,48+Math.max(0,age-4.5)*10);
   const searchAngle=t*.31+id*1.7;
   const waypoint=recent?state.lastKnown:pursuing?
    {x:state.lastKnown.x+Math.cos(searchAngle)*radius,
@@ -314,8 +317,29 @@ export function moveMote(e,game,dt){
  const speed=MOTE_SWARM.speed*(e._tacticalSpeed??1)*
   (e.moteBoosting?MOTE_SWARM.rushMultiplier:e.moteEscape?1.5:1);
  const avoid=game.avoidance?.(e.x,e.y,17)||{x:0,y:0};
- const aimX=dx/d*speed+avoid.x*speed*.65;
- const aimY=dy/d*speed+avoid.y*speed*.65;
+ // Individual drones make short lateral corrections under fire. These alter
+ // only their velocity: neither projectile tracking nor their hitbox changes.
+ let incoming=false;
+ if(!e.moteEscape&&!e.moteCourierReturning&&!e.moteBoosting){
+  for(const missile of game.missiles||[]){
+   if(missile.life>0&&missile.target===e&&distance(missile,e)<180){
+    incoming=true;break;
+   }
+  }
+ }
+ if((incoming||(e.hit||0)>.02)&&game.time>=(e._moteDodgeCooldown||0)&&
+    !e.moteEscape&&!e.moteCourierReturning&&!e.moteBoosting){
+  e._moteDodgeUntil=game.time+.55;
+  e._moteDodgeCooldown=game.time+2.2+(Math.abs(e.serial)%4)*.24;
+  e._moteDodgeSide=(Math.floor(game.time*2)+e.serial)%2?1:-1;
+ }
+ e.moteDodging=game.time<(e._moteDodgeUntil||0)&&
+   !e.moteEscape&&!e.moteBoosting;
+ const sway=e.moteEscape||e.moteBoosting?0:
+  Math.sin(game.time*2.4+e.serial*1.73)*speed*.22;
+ const lateral=sway+(e.moteDodging?e._moteDodgeSide*speed*.65:0);
+ const aimX=dx/d*speed+avoid.x*speed*.65-dy/d*lateral;
+ const aimY=dy/d*speed+avoid.y*speed*.65+dx/d*lateral;
  const blend=1-Math.exp(-5*Math.min(dt,.06));
  e.vx+=(aimX-e.vx)*blend;e.vy+=(aimY-e.vy)*blend;
  e.x+=e.vx*dt;e.y+=e.vy*dt;
@@ -421,6 +445,10 @@ export function drawMoteSwarms(c,enemies,cam,t,reducedMotion=false,formations=[]
   }else if(e.moteStatus==='windup'){
    c.strokeStyle='#ffa567';c.lineWidth=1.6;c.globalAlpha=.8;
    c.beginPath();c.arc(0,0,11,0,Math.PI*2);c.stroke();
+  }else if(e.moteDodging){
+   c.strokeStyle='#b7efff';c.lineWidth=1.4;c.globalAlpha=.72;
+   c.beginPath();c.moveTo(-10,-3);c.lineTo(-17,1);
+   c.moveTo(10,-3);c.lineTo(17,1);c.stroke();
   }
   c.restore();
  }
