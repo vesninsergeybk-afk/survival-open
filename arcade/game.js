@@ -34,9 +34,9 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1';
 import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1';
-import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1';
+import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
@@ -84,7 +84,7 @@ import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -99,10 +99,12 @@ import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interce
 import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-2-contour-trials-1-first-loops-1-flux-build-1-support-three-1-triangle-defense-1';
 import {FLUX_ARTILLERY,EDGE_SLOT_UPGRADES,ARTILLERY_UPGRADES,edgeTurretLimit,edgeTurretUpgradeOffer,upgradeEdgeTurretCapacity,artilleryUpgradeOffer,upgradeArtillery,
  artilleryAt,artilleryOffer,deployArtillery,setArtilleryMode,
- advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-artillery-finish-1-support-three-1-triangle-defense-1';
+ advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-artillery-finish-1-support-three-1-triangle-defense-1-growth-1';
 import {SUPPORT_TYPES,supportConfig,supportOffer,deploySupport,supportAt,
  setSupportMode,supportUpgradeOffer,upgradeSupport,
- advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=flux-supports-3-wreck-falloff-1';
+ advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=flux-supports-3-wreck-falloff-1-growth-1';
+import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,
+ buyTurretBranch,artilleryBarrels,hiveLimit} from './turret-growth.js';
 import {launchFluxSortie,advanceFluxSortie,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {recordIndustrialBreachHit,advanceIndustrialBreaches,INDUSTRIAL_BREACH} from './industrial-breach.js?v=territory-war-1-territory-war-1-breach-fix-1';
 import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from './contour-cover.js?v=territory-war-2-territory-war-1-topology-fix-1';
@@ -270,6 +272,7 @@ export class ArcadeGame {
   this.doctrine=null;this.lastDamageAt=-Infinity;
   this.network={armor:0,armament:0,engine:0,strikePower:0};
   this.enemies=[];this.allies=[];this.drops=[];this.shots=[];this.missiles=[];this.flakPellets=[];this.heavyShells=[];this.flashes=[];this.weaponFx=[];
+  this.artilleryDecoys=[];
    this.support={charges:0,cooldown:0,missions:[]};
   this.zones=[];this.images={};this.time=0;this.spawnClock=9;this.miningNoise=0;
   this.lastNoiseSource=null;this.noiseAlert=null;
@@ -402,7 +405,7 @@ export class ArcadeGame {
   this.buildPlanning.point={x:this.player.x+Math.min(230,this.vw*.25),y:this.player.y};
   $('buildRing').hidden=true;$('buildPlacement').hidden=false;
   const title=$('buildPlaceTitle');
-  if(title)title.textContent=(type==='artillery'?'АРТИЛЛЕРИЯ':SUPPORT_TYPES[type].name.toUpperCase())+
+  if(title)title.textContent=(type==='artillery'?'ГРОМОВАЯ БАТАРЕЯ':SUPPORT_TYPES[type].name.toUpperCase())+
    ' · ВЫБОР МЕСТА';
   this.updateBuildHint();this.pausedRenderPending=true;
  }
@@ -427,7 +430,7 @@ export class ArcadeGame {
   this.heritage?.play?.(type==='artillery'?'artilleryBuild':'supportBuild',.5,point);
   const cfg=type==='artillery'?FLUX_ARTILLERY:SUPPORT_TYPES[type];
   this.closeBuildPlanner();
-  this.notice((type==='artillery'?'Артиллерия':cfg.name)+' строится · '+cfg.buildSeconds+
+  this.notice((type==='artillery'?'Громовая батарея':cfg.name)+' строится · '+cfg.buildSeconds+
    ' с. Подключение к контуру: '+Math.round(placed.connection.cable)+
    ' м. '+(type==='hive'?'Новые дроны требуют 2,5 флюкса каждый.':
     'Заряды поступят по энергетической линии.'),5);
@@ -435,39 +438,51 @@ export class ArcadeGame {
  }
  artilleryModeMenu(show,turret=null,event=null){
   const menu=$('artilleryModeMenu');if(!menu)return;
+  const wasOpen=!menu.hidden;
+  if(show&&!wasOpen&&!this.paused&&!this.dead&&this.overlay?.hidden!==false){
+   this.paused=true;this._turretPausedGame=true;this.keys?.clear?.();
+   this.endInteraction?.();this.heritage?.pause?.('turret');this.pausedRenderPending=true;
+  }
+  if(!show&&wasOpen&&this._turretPausedGame){
+   this._turretPausedGame=false;this.paused=false;this.pausedRenderPending=true;
+   this.heritage?.resume?.();this.canvas?.focus?.({preventScroll:true});
+  }
   this.artilleryMenuTarget=show?turret:null;menu.hidden=!show;
   if(!show||!event)return;
-  const x=Math.min(Math.max(8,event.clientX+8),Math.max(8,window.innerWidth-203));
-  const y=Math.min(Math.max(8,event.clientY+8),Math.max(8,window.innerHeight-216));
-  menu.style.left=x+'px';menu.style.top=y+'px';
+  if(!event.refresh){
+   const x=Math.min(Math.max(8,event.clientX+8),Math.max(8,window.innerWidth-376));
+   const y=Math.min(Math.max(8,event.clientY+8),Math.max(8,window.innerHeight-535));
+   menu.style.left=x+'px';menu.style.top=y+'px';
+  }
   const stats=$('artilleryModeStats');
   const config=turret.kind==='flux-support'?supportConfig(turret):FLUX_ARTILLERY;
-  const name=turret.kind==='flux-support'?config.name:'Артиллерия';
+  const name=TURRET_GROWTH[turretGrowthType(turret)].name;
   const title=$('artilleryModeTitle');if(title)title.textContent='РЕЖИМ · '+name.toUpperCase();
   if(stats)stats.textContent=(turret.type==='hive'?
-   'Дроны: '+turret.drones.filter(x=>x.hp>0).length+'/'+Math.min(4,turret.level+1):
+   'Дроны: '+turret.drones.filter(x=>x.hp>0).length+'/'+hiveLimit(turret):
    'Заряды: '+turret.ammo+'/'+config.magazine)+
-   ' · ур. '+(turret.level||1)+' · '+(this.time<turret.readyAt?'сборка':'автономный огонь');
-  const upgrade=$('supportUpgrade'),hint=$('supportUpgradeHint');
-  if(upgrade){
-   upgrade.hidden=turret.hp<=0||turret.kind==='flux-support'&&(
-    turret.type==='arc'||turret.type==='laser'&&turret.level>=2||
-    turret.type==='hive'&&turret.level>=3)||turret.kind==='flux-artillery'&&turret.level>=3;
-   if(hint)hint.hidden=upgrade.hidden;
-   if(!upgrade.hidden){
-    const offer=turret.kind==='flux-support'?supportUpgradeOffer(this.world,this.player,turret,this.time):
-     artilleryUpgradeOffer(this.world,this.player,turret,this.time);
-    const artPrice=ARTILLERY_UPGRADES[(turret.level||1)-1];
-    upgrade.textContent=turret.kind==='flux-artillery'?
-     'Усилить ближнюю защиту · '+artPrice.ore+' сплава + '+artPrice.flux+' флюкса':
-     turret.type==='laser'?'Двойной лазер · 26 сплава + 2 флюкса':
-     'Расширить эскадрилью · '+(20+(turret.level-1)*9)+' сплава + '+
-     (2.5+(turret.level-1))+' флюкса';
-    upgrade.disabled=!offer.ok||this.time<turret.readyAt;
-    if(hint)hint.textContent=this.time<turret.readyAt?'Дождитесь завершения строительства':
-     offer.ok?turret.kind==='flux-artillery'?'Повышает урон и дальность ближней пушки':'Улучшение сохраняется до гибели сооружения':offer.reason;
+   (turret.kind==='flux-artillery'?' · стволов '+artilleryBarrels(turret):'')+
+   ' · '+(this.time<turret.readyAt?'сборка':'автономный огонь');
+  const list=$('turretGrowthList');
+  if(list){
+   list.replaceChildren();
+   for(const branch of turretGrowthRows(turret)){
+    const row=document.createElement('button');row.type='button';
+    row.className='growth-branch';row.dataset.growthBranch=branch.key;
+    const offer=turretBranchOffer(this.world,this.player,turret,branch.key,this.time);
+    const heading=document.createElement('strong');
+    heading.textContent=branch.name+' · '+branch.rank+'/'+branch.max;
+    const details=document.createElement('span');details.textContent=branch.summary;
+    const cost=document.createElement('small');
+    cost.textContent=branch.next?branch.next[0]+' · '+branch.next[1]+
+     ' сплава + '+branch.next[2]+' флюкса':'ВЕТКА ЗАВЕРШЕНА';
+    row.append(heading,details,cost);row.disabled=!offer.ok;
+    if(!offer.ok)row.title=offer.reason;
+    list.append(row);
    }
   }
+  if($('supportUpgrade'))$('supportUpgrade').hidden=true;
+  if($('supportUpgradeHint'))$('supportUpgradeHint').hidden=true;
   for(const button of menu.querySelectorAll('[data-art-mode]'))
    button.setAttribute('aria-pressed',String(button.dataset.artMode===turret.mode));
  }
@@ -573,6 +588,17 @@ export class ArcadeGame {
    if(result.ok)this.heritage?.play?.('supportUpgrade',.7,tower);
    this.artilleryModeMenu(false);
   });
+  $('turretGrowthList')?.addEventListener('click',e=>{
+   const button=e.target.closest?.('[data-growth-branch]');
+   if(!button||!this.artilleryMenuTarget)return;
+   const tower=this.artilleryMenuTarget;
+   const result=buyTurretBranch(this.world,this.player,tower,button.dataset.growthBranch,this.time);
+   this.notice(result.ok?'Установка: '+result.title+' · уровень ветки '+result.rank+'.':result.reason,3);
+   if(result.ok)this.heritage?.play?.('supportUpgrade',.7,tower);
+   this.artilleryModeMenu(true,tower,{refresh:true});
+   this.pausedRenderPending=true;
+  });
+  $('turretGrowthClose')?.addEventListener('click',()=>this.artilleryModeMenu(false));
   $('evolutionPrompt')?.addEventListener('click',event=>{
    const button=event.target.closest?.('[data-evolution]');
    if(!button)return;
@@ -607,6 +633,9 @@ export class ArcadeGame {
    if(this.artilleryMenuTarget&&e.code==='Escape'){
     e.preventDefault();this.artilleryModeMenu(false);return;
    }
+   // Choosing upgrades is a paused tactical decision. Flight shortcuts must
+   // not leak through a focused menu button or the canvas beneath the menu.
+   if(this.artilleryMenuTarget)return;
    // Escape belongs to the open screen, even if the focused element is a button.
    if(e.code==='Escape'){
     e.preventDefault();
@@ -1102,6 +1131,9 @@ export class ArcadeGame {
   let aimStart=null,longPressTimer=null;
   const cancelLongPress=()=>{if(longPressTimer!==null){clearTimeout(longPressTimer);longPressTimer=null;}};
   this.canvas?.addEventListener('pointerdown',e=>{
+   if(this.artilleryMenuTarget){
+    e.preventDefault();this.artilleryModeMenu(false);return;
+   }
    if(this.buildPlanning?.stage==='place'){
     if(e.button===0){e.preventDefault();try{this.canvas.setPointerCapture?.(e.pointerId);}catch{}}
     return;

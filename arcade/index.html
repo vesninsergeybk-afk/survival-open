@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="./station-menu-v2.css?v=station-menu-v2-8-sketch-semantic-1">
 <link rel="stylesheet" href="./menu-consistency.css?v=menu-consistency-6-sketch">
 <link rel="stylesheet" href="./menu-refinement.css?v=menu-unification-20261108-1-landscape-1-midwidth-1-hangar-legibility-1">
-<link rel="stylesheet" href="./flux-artillery.css?v=build-supply-four-1-triangle-defense-1">
+<link rel="stylesheet" href="./flux-artillery.css?v=build-supply-four-1-triangle-defense-1-growth-1">
 </head>
 <body>
 <div id="mobileLaunch" role="dialog" aria-modal="true" aria-labelledby="mobileLaunchTitle" aria-describedby="mobileLaunchHint" hidden>
@@ -234,7 +234,7 @@
   <span class="build-kicker">КОНСТРУКТОР · ФЛЮКС</span>
   <h2>Выберите сооружение</h2>
   <div class="build-options">
-   <button id="buildArtillery" type="button" data-build="artillery"><span class="build-glyph build-turret-art" aria-hidden="true"></span><strong>Артиллерия</strong><small>Удар по площади · 20 сплава + 1 флюкс</small></button>
+   <button id="buildArtillery" type="button" data-build="artillery"><span class="build-glyph build-turret-art" aria-hidden="true"></span><strong>Громовая батарея</strong><small>Многослойный удар по площади · 20 сплава + 1 флюкс</small></button>
    <button id="buildArc" type="button" data-build="arc"><span class="build-glyph build-turret-arc" aria-hidden="true"></span><strong>Разрядник</strong><small>Цепь и замедление · 24 сплава + 1,4 флюкса</small></button>
    <button id="buildLaser" type="button" data-build="laser"><span class="build-glyph build-turret-laser" aria-hidden="true"></span><strong>Лазерное гнездо</strong><small>Ближние очереди · 26 сплава + 1,8 флюкса</small></button>
    <button id="buildHive" type="button" data-build="hive"><span class="build-glyph build-turret-hive" aria-hidden="true"></span><strong>Дроновая матка</strong><small>Сборка дронов · 32 сплава + 4 флюкса</small></button>
@@ -247,18 +247,25 @@
   <button id="buildCancel" type="button" class="build-cancel">Отмена · Esc</button>
  </div>
  <div id="buildPlacement" class="build-placement" hidden>
-  <strong id="buildPlaceTitle">АРТИЛЛЕРИЯ · ВЫБОР МЕСТА</strong>
+  <strong id="buildPlaceTitle">ГРОМОВАЯ БАТАРЕЯ · ВЫБОР МЕСТА</strong>
   <span id="buildPlaceHint">Выберите место в радиусе корабля</span>
   <div><button id="buildBack" type="button">Выбрать другую</button><button id="buildPlaceCancel" type="button">Отмена</button></div>
  </div>
 </section>
 <div id="artilleryModeMenu" class="artillery-mode-menu" role="group" aria-label="Выбор режима боевого сооружения" hidden>
- <strong id="artilleryModeTitle">РЕЖИМ АРТИЛЛЕРИИ</strong>
+ <strong id="artilleryModeTitle">РЕЖИМ УСТАНОВКИ</strong>
  <span id="artilleryModeStats" class="artillery-mode-stats"></span>
- <button type="button" data-art-mode="smart">Автоматический</button>
- <button type="button" data-art-mode="group">Скопления</button>
- <button type="button" data-art-mode="strong">Сильные цели</button>
- <button type="button" data-art-mode="weak">Добивание</button>
+ <span class="turret-section-label">КОГО АТАКОВАТЬ</span>
+ <div class="turret-target-modes">
+  <button type="button" data-art-mode="smart">Автоматический</button>
+  <button type="button" data-art-mode="group">Скопления</button>
+  <button type="button" data-art-mode="strong">Сильные цели</button>
+  <button type="button" data-art-mode="weak">Добивание</button>
+ </div>
+ <span class="turret-section-label">ЧЕТЫРЕ ВЕТКИ РАЗВИТИЯ · СПЛАВ И ФЛЮКС</span>
+ <div id="turretGrowthList" class="turret-growth-list" role="group" aria-label="Улучшения выбранного сооружения"></div>
+ <small class="turret-growth-hint">Новые стволы и дроны расходуют больше флюкса. Дальний кабель замедляет снабжение.</small>
+ <button id="turretGrowthClose" type="button" class="turret-growth-close">Вернуться в бой · Esc</button>
  <button id="supportUpgrade" type="button" class="support-upgrade" hidden>Улучшить сооружение</button>
  <span id="supportUpgradeHint" class="artillery-mode-stats" hidden></span>
 </div>
@@ -301,6 +308,6 @@
  <p class="credits-legal">Упоминание авторов не означает, что они одобряют игру или участвуют в её разработке.</p>
 </dialog>
 <script type="module" src="./mobile-launch.js?v=mobile-gate-menu-focus-02"></script>
-<script type="module" src="./game.js?v=iris-pack-1-first-contract-reward-1-enemy-learning-1-enemy-comms-1-field-menu-1-enemy-intents-2-radio-checkpoint-1-regions-1-enemy-world-response-2-network-defense-4-living-world-4-station-flow-1-enemy-audit-5-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-1-weapon-feel-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-opening-balance-1-enemy-objectives-1-enemy-plans-1-opening-audit-1-radio-shadow-1-home-conflict-1-opening-audit-2-theater-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-opening-tactics-1-theater-audit-1-repair-qa-1-weapon-mechanics-2-mesh-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-2-backbone-2-contours-1-contour-visual-3-tactical-vfx-1-enemy-radio-2-world-feedback-1-direct-fit-2-living-atlas-3-orbital-terminal-1-contour-dynamics-2-enemy-economy-1-economy-hud-1-all-menus-1-enemy-domains-1-enemy-balance-2-global-constellations-1-spacing-1-early-xp-1-supply-stronghold-1-xp-feedback-pass1-2-strategic-xp-pass2-1-menu-flow-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-map-ux-1-menu-focus-1-flux-reserve-1-station-terminal-art-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-development-tree-1-devux-3-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-field-evolution-1-auto-reward-1-reward-feedback-1-contour-audit-2-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-3-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-mission-qa-2-field-experience-1-menu-consistency-1-menu-prof-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-2-living-combat-loop-1-menu-shortcuts-2-parasite-clarity-2-mouse-area-1-mission-integrity-2-mouse-arms-2-mission-variety-1-swarm-controls-1-swarm-map-label-1-mission-choices-1-control-audit-2-recorded-combat-1-menu-sketch-1-realfoley-2-first-cue-1-semantic-1-manual-weapon-1-devscroll-1-manual-qa-2-radar-lethal-1-enemy-growth-1-flux-build-1-flux-vfx-1-artillery-anim-2-artillery-finish-1-support-three-2-flight-zoom-1-triangle-defense-1-flight-zoom-audit-1-turret-gesture-1-support-wreck-falloff-1-qa-layout-1-swarm-siege-1-rewards-1"></script>
+<script type="module" src="./game.js?v=iris-pack-1-first-contract-reward-1-enemy-learning-1-enemy-comms-1-field-menu-1-enemy-intents-2-radio-checkpoint-1-regions-1-enemy-world-response-2-network-defense-4-living-world-4-station-flow-1-enemy-audit-5-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-1-weapon-feel-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-opening-balance-1-enemy-objectives-1-enemy-plans-1-opening-audit-1-radio-shadow-1-home-conflict-1-opening-audit-2-theater-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-opening-tactics-1-theater-audit-1-repair-qa-1-weapon-mechanics-2-mesh-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-2-backbone-2-contours-1-contour-visual-3-tactical-vfx-1-enemy-radio-2-world-feedback-1-direct-fit-2-living-atlas-3-orbital-terminal-1-contour-dynamics-2-enemy-economy-1-economy-hud-1-all-menus-1-enemy-domains-1-enemy-balance-2-global-constellations-1-spacing-1-early-xp-1-supply-stronghold-1-xp-feedback-pass1-2-strategic-xp-pass2-1-menu-flow-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-map-ux-1-menu-focus-1-flux-reserve-1-station-terminal-art-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-development-tree-1-devux-3-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-field-evolution-1-auto-reward-1-reward-feedback-1-contour-audit-2-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-3-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-mission-qa-2-field-experience-1-menu-consistency-1-menu-prof-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-2-living-combat-loop-1-menu-shortcuts-2-parasite-clarity-2-mouse-area-1-mission-integrity-2-mouse-arms-2-mission-variety-1-swarm-controls-1-swarm-map-label-1-mission-choices-1-control-audit-2-recorded-combat-1-menu-sketch-1-realfoley-2-first-cue-1-semantic-1-manual-weapon-1-devscroll-1-manual-qa-2-radar-lethal-1-enemy-growth-1-flux-build-1-flux-vfx-1-artillery-anim-2-artillery-finish-1-support-three-2-flight-zoom-1-triangle-defense-1-flight-zoom-audit-1-turret-gesture-1-support-wreck-falloff-1-qa-layout-1-swarm-siege-1-rewards-1-growth-1"></script>
 </body>
 </html>

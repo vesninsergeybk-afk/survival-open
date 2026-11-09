@@ -45,8 +45,11 @@
 .build-placement strong{color:#ffdda4;font-size:12px;letter-spacing:.06em}
 .build-placement span{color:#cfebf0;font-size:12px}
 .build-placement>div{display:flex;justify-content:center;gap:9px}
-.artillery-mode-menu{position:fixed;z-index:9;width:190px;padding:10px;background:#0a2539f5;
- border:1px solid #69cbe0a8;box-shadow:0 10px 30px #0009;border-radius:13px;display:grid;gap:5px}
+.artillery-mode-menu{position:fixed;z-index:9;width:min(360px,calc(100vw - 16px));
+ max-height:min(580px,calc(100dvh - 16px));overflow:auto;overscroll-behavior:contain;
+ padding:12px;background:linear-gradient(150deg,#0d2b3ef5,#071622f8);
+ border:1px solid #69cbe0a8;box-shadow:0 10px 34px #000b;border-radius:13px;
+ display:grid;gap:7px;scrollbar-color:#4c8193 #0c2c3b}
 .artillery-mode-menu strong{font-size:10px;letter-spacing:.1em;color:#ffcb83}
 .artillery-mode-stats{font-size:11px;color:#abd5e6;background:#15364a;
  padding:6px 7px;border:1px solid #568fa44b;border-radius:6px}
@@ -58,6 +61,23 @@
  margin-top:5px;font-weight:700}
 .artillery-mode-menu .support-upgrade:disabled{opacity:.5;cursor:not-allowed}
 .artillery-mode-menu #supportUpgradeHint{line-height:1.4}
+.turret-section-label{color:#e2be88;letter-spacing:.095em;font-size:10px;
+ padding-top:4px;font-weight:750}
+.turret-target-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.turret-growth-list{display:grid;grid-template-columns:1fr;gap:7px}
+.artillery-mode-menu .growth-branch{display:grid;gap:4px;padding:9px 10px;
+ background:linear-gradient(115deg,#194158,#102e43);border:1px solid #4383979e}
+.growth-branch strong{font-size:13px!important;letter-spacing:0!important;color:#dff8ff!important}
+.growth-branch span{font-size:11px;color:#a9cbd9;line-height:1.4}
+.growth-branch small{font-size:11px;color:#ffd49a;font-variant-numeric:tabular-nums}
+.artillery-mode-menu .growth-branch:disabled{opacity:.66;cursor:not-allowed}
+.growth-branch:focus-visible{outline:2px solid #ffe2aa;outline-offset:2px}
+.turret-growth-hint{font-size:10px;line-height:1.45;color:#91b8c6}
+.artillery-mode-menu .turret-growth-close{text-align:center;background:#284959;
+ border-color:#81c4c9;color:#d9fafb;font-weight:700}
+@media(max-height:600px){.artillery-mode-menu{max-height:calc(100dvh - 12px)}
+ .turret-growth-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .artillery-mode-menu .growth-branch{padding:7px 8px}}
 @media(pointer:coarse){.build-placement{top:max(7px,env(safe-area-inset-top));left:55%;max-width:360px}
  .build-ring{padding:12px}.build-ring h2{font-size:15px;margin-bottom:9px}
  .build-options button{min-height:76px;padding:8px}.build-options .build-glyph{font-size:22px}

@@ -23,6 +23,17 @@ export function hitFriendlyShip(game,shot){
     game.hitAlly(ally,shot.damage*(1-(game.network?.armor||0)*.07));
     return true;
   }
+  for(const decoy of game.artilleryDecoys||[]){
+    if(decoy.hp<=0||decoy.until<=game.time||
+      Math.hypot(shot.x-decoy.x,shot.y-decoy.y)>=shot.r+decoy.r)continue;
+    shot.alive=false;decoy.hp=Math.max(0,decoy.hp-shot.damage);
+    game.heritage?.vfx?.hullImpact?.(shot.x,shot.y,false);
+    if(decoy.hp<=0){
+      game.heritage?.vfx?.shipExplosion?.(decoy.x,decoy.y,18,'#a6e7ff');
+      game.heritage?.play?.('supportDroneLost',.3,decoy);
+    }
+    return true;
+  }
   for(const turret of game.world?.contours?.artillery||[]){
     if(turret.hp<=0||game.time<turret.readyAt||
       Math.hypot(shot.x-turret.x,shot.y-turret.y)>=shot.r+turret.r)continue;

@@ -14,8 +14,8 @@ import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
 import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-flux-offense-1-territory-war-1';
 import {createContours,validContours,autoConnectContours} from './territory-system.js?v=automatic-contours-1-contour-trials-1-support-three-1-triangle-defense-1';
-import {validFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-support-three-1-triangle-defense-1';
-import {validFluxSupports} from './flux-supports.js?v=flux-supports-3-wreck-falloff-1';
+import {validFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-support-three-1-triangle-defense-1-growth-1';
+import {validFluxSupports} from './flux-supports.js?v=flux-supports-3-wreck-falloff-1-growth-1';
 import {ensureTrialLedger} from './contour-trials.js?v=swarm-siege-1';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
@@ -283,6 +283,7 @@ export function restoreCheckpoint(game,data){
  migrateLegacyPlayerExperience(game.player);
  inheritStrategicExperience(game.player,world);
  game.tactical=data.state.tactical||createTactical();game.tacticalPointer=null;game.targetField=null;
+ game.artilleryDecoys=[]; // Temporary battlefield signatures never survive docking.
  game.mouseAim=null;game.mobileMineArmed=false;
  game.buildPlanning=null;game.artilleryMenuTarget=null;
  if(game.mouseArsenal)game.mouseArsenal={cometReadyAt:0,minesReadyAt:0,projectiles:[],mines:[],bursts:[]};

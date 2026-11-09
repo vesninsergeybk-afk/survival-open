@@ -14,6 +14,7 @@ import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-a
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-2';
 import {moveMote} from './mote-swarm.js?v=swarm-controls-1';
+import {turretBranchRank} from './turret-growth.js';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -168,6 +169,30 @@ const findHealer=(enemy,game)=>{
   }
   return best;
 };
+/** Pick a nearby destructible false signature before an ordinary enemy
+ * resumes pursuing the player. Scripted orders and bosses are unaffected. */
+export function turretDistractionTarget(e,game){
+  if(e.openingCommander||e.relayAssault||e.stationRaid||e.boss||
+     !['scout','flanker','fighter','gunship'].includes(e.type))return null;
+  let nearest=null,closest=Infinity;
+  for(const decoy of game.artilleryDecoys||[]){
+    if(decoy.hp<=0||decoy.until<=game.time)continue;
+    const range=dist(e,decoy);
+    if(range<340&&range<closest){nearest=decoy;closest=range;}
+  }
+  for(const hive of game.world?.contours?.supportTurrets||[]){
+    const lure=turretBranchRank(hive,'anomaly');
+    if(hive.type!=='hive'||hive.hp<=0||lure<1||game.time<hive.readyAt)continue;
+    for(const drone of hive.drones||[]){
+      if(drone.hp<=0)continue;
+      const range=dist(e,drone);
+      if(range<310+lure*40&&range<closest&&game.enemyCanSee?.(e,drone)){
+        nearest=drone;closest=range;
+      }
+    }
+  }
+  return nearest;
+}
 const pickTarget=(e,game)=>{
   if(e.ramOrder?.squad&&e.ramOrder.target?.hp>0&&game.time<e.ramOrder.squad.until)
     return e.ramOrder.target;
@@ -201,6 +226,9 @@ const pickTarget=(e,game)=>{
       if(z<290&&game.enemyCanSee?.(e,ally)&&z*priority<d){d=z*priority;target=ally;}
     }
   }
+  // Experimental shells and hive drones draw ordinary fighters away. The
+  // chosen target remains a real, destructible world object.
+  if(target===game.player)target=turretDistractionTarget(e,game)||target;
   // A firing field artillery platform is a local, observable threat. Keep
   // scripted rescue/escort orders and actual sightings ahead of this choice.
   if(target===game.player&&e.type!=='healer'&&!e.relayAssault&&!e.stationRaid){

@@ -26,6 +26,7 @@ button[aria-pressed="true"]{background:#67472e;border-color:#ffb276}
 <button data-type="arc" aria-pressed="true">Цепной разрядник</button>
 <button data-type="laser" aria-pressed="false">Лазерное гнездо</button>
 <button data-type="hive" aria-pressed="false">Дроновая матка</button>
+<button id="maxGrowth">Развить все ветки</button>
 <button id="upgrade">Улучшить</button><button id="damage">Повредить</button>
 <button id="wreck">Разрушить</button><button id="restart">Построить заново</button>
 <button id="sound" aria-pressed="false">Включить звук</button>
@@ -35,7 +36,8 @@ button[aria-pressed="true"]{background:#67472e;border-color:#ffb276}
 </main>
 <script type="module">
 import {createContours,connectContour} from '../territory-system.js?v=support-three-1';
-import {deploySupport,advanceFluxSupports,drawFluxSupports,upgradeSupport,SUPPORT_TYPES} from '../flux-supports.js?v=support-three-3-wreck-falloff-1';
+import {deploySupport,advanceFluxSupports,drawFluxSupports,upgradeSupport,SUPPORT_TYPES} from '../flux-supports.js?v=support-three-3-wreck-falloff-1-growth-1';
+import {buyTurretBranch,turretGrowthRows} from '../turret-growth.js';
 import {ArcadeHeritage} from '../heritage.js?v=support-three-1';
 const canvas=document.getElementById('stage'),ctx=canvas.getContext('2d',{alpha:false}),status=document.getElementById('status');
 const random=i=>{const x=Math.sin(i*117.34+15.7)*41682.31;return x-Math.floor(x);};
@@ -66,6 +68,13 @@ for(const button of document.querySelectorAll('[data-type]'))button.addEventList
  reset();
 });
 document.getElementById('restart').addEventListener('click',reset);
+document.getElementById('maxGrowth').addEventListener('click',()=>{
+ if(!tower||tower.hp<=0)return;
+ tower.readyAt=game.time;
+ for(const branch of turretGrowthRows(tower))for(let i=0;i<branch.max;i++)
+  buyTurretBranch(world,player,tower,branch.key,game.time);
+ if(tower.type!=='hive')tower.ammo=SUPPORT_TYPES[tower.type].magazine;
+});
 document.getElementById('upgrade').addEventListener('click',()=>{
  if(tower&&upgradeSupport(world,player,tower,game.time).ok)heritage.play('supportUpgrade',.15,tower);
 });

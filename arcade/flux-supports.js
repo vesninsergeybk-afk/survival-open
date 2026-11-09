@@ -1,5 +1,8 @@
 import {artilleryLinks,artilleryConnection,edgeTurretOccupancy,edgeTurretLimit,ARTILLERY_MODES,FLUX_ARTILLERY,
  turnArtilleryGun} from './flux-artillery.js';
+import {arcChainCount,arcCooldown,arcSlowSeconds,laserEmitters,laserCooldown,
+ laserBurst,laserRange,hiveLimit,hiveRange,hiveArmor,supportSupply,turretBranchRank,
+ validTurretBranches} from './turret-growth.js';
 
 // All three structures spend delivered flux. A nest pays for each replacement
 // drone; the other two consume prepaid charges instead of free damage ticks.
@@ -73,7 +76,7 @@ export function deploySupport(world,player,point,time,type){
   chargeCredit:0,readyAt:time+cfg.buildSeconds,nextShotAt:time,
   lastShotAt:-1,lastChargeAt:-1,lastDestroyedAt:-1,gunAngle:-Math.PI/2,
   aimX:point.x,aimY:point.y,burstLeft:0,burstAt:0,
-  initialReady:false,drones:[]};
+  initialReady:false,drones:[],branches:{}};
  s.supportTurrets.push(turret);return {ok:true,turret,connection:offer.connection};
 }
 export function supportAt(world,point,radius=49){
@@ -142,13 +145,12 @@ const fx=(game,data)=>{
  game.fluxSupportFx??=[];game.fluxSupportFx.push({...data,at:game.time});
  if(game.fluxSupportFx.length>80)game.fluxSupportFx.splice(0,game.fluxSupportFx.length-80);
 };
-const droneLimit=t=>Math.min(4,t.level+1);
-const droneRadius=t=>260+(t.level-1)*85;
 function createDrone(t,time){
  const slot=Math.max(0,...t.drones.map(x=>x.slot))+1;
- if(t.drones.filter(x=>x.hp>0).length>=droneLimit(t))return;
+ if(t.drones.filter(x=>x.hp>0).length>=hiveLimit(t))return;
  // Broken drones are kept only as a short death animation, not as extra slots.
- t.drones.push({slot,x:t.x+22,y:t.y+12,hp:28,maxHp:28,r:10,
+ const armor=hiveArmor(t);
+ t.drones.push({slot,x:t.x+22,y:t.y+12,hp:armor,maxHp:armor,r:10,
   nextShotAt:time+1.1,angle:slot*2.39996,lastShotAt:-1});
  if(t.drones.length>20)t.drones=t.drones.filter(x=>x.hp>0);
 }
@@ -161,36 +163,63 @@ function chargePacket(t,link,cfg,time,charges,kind){
 function electricShot(game,t,cfg){
  const first=chooseTarget(game,t,cfg.range,t.mode);if(!first)return false;
  const pool=availableTargets(game,t,cfg.range),hits=[first];
- while(hits.length<3){
+ while(hits.length<arcChainCount(t)){
   const previous=hits.at(-1).object;
-  const next=pool.filter(x=>!hits.some(hit=>hit.object===x.object)&&d(x.object,previous)<155)
+  const next=pool.filter(x=>!hits.some(hit=>hit.object===x.object)&&
+    d(x.object,previous)<155+15*turretBranchRank(t,'chain'))
    .sort((a,b)=>d(a.object,previous)-d(b.object,previous))[0];
   if(!next)break;hits.push(next);
  }
  for(const [i,target]of hits.entries()){
-  damageTarget(game,target,cfg.damage*(1-i*.18),t);
+  const experimental=turretBranchRank(t,'anomaly');
+  damageTarget(game,target,(cfg.damage+experimental*1.2)*Math.max(.28,1-i*.13),t);
   if(target.kind==='enemy'&&target.object.hp>0){
    const enemy=target.object,now=game.time;
    if((enemy.tacticalSlowUntil||0)>now)
     enemy.tacticalSlowFactor=Math.min(enemy.tacticalSlowFactor||1,.55);
    else enemy.tacticalSlowFactor=.55;
-   enemy.tacticalSlowUntil=Math.max(enemy.tacticalSlowUntil||0,now+2.5);
+   enemy.tacticalSlowUntil=Math.max(enemy.tacticalSlowUntil||0,now+arcSlowSeconds(t));
+   if(turretBranchRank(t,'hold')>=3&&enemy.type!=='boss'&&!enemy.openingCommander&&
+     !enemy.relayAssault&&!enemy.stationRaid)
+    enemy.stasisUntil=Math.max(enemy.stasisUntil||0,now+.26);
   }
+ }
+ const experimental=turretBranchRank(t,'anomaly');
+ if(experimental>=2&&hits.length>1){
+  const bounce=hits[0],last=hits.at(-1);
+  damageTarget(game,bounce,cfg.damage*(experimental===3?.75:.4),t);
+  fx(game,{kind:'arc',points:[{x:last.object.x,y:last.object.y},
+   {x:bounce.object.x,y:bounce.object.y}]});
  }
  fx(game,{kind:'arc',points:[{x:t.x,y:t.y},...hits.map(x=>({x:x.object.x,y:x.object.y}))]});
  game.heritage?.play?.('supportArc',.45,t);return true;
 }
 function laserPulse(game,t,cfg){
- const target=chooseTarget(game,t,cfg.range,t.mode);if(!target)return;
- const range=d(t,target.object),falloff=laserFalloff(range,cfg.range);
- const shots=t.level>=2?2:1;
+ const target=chooseTarget(game,t,laserRange(t),t.mode);if(!target)return;
+ const range=d(t,target.object),falloff=laserFalloff(range,laserRange(t));
+ const shots=laserEmitters(t);
  damageTarget(game,target,cfg.damage*falloff*shots,t);
  t.aimX=target.object.x;t.aimY=target.object.y;
  fx(game,{kind:'laser',x:t.x,y:t.y,tx:target.object.x,ty:target.object.y,
   fade:falloff,shots});
+ const heat=turretBranchRank(t,'anomaly'),victim=target.object;
+ if(heat&&target.kind==='enemy'&&victim.hp>0){
+  if((victim.fluxHeatUntil||0)<game.time)victim.fluxHeatStacks=0;
+  victim.fluxHeatUntil=game.time+2.2;
+  victim.fluxHeatStacks=(victim.fluxHeatStacks||0)+1;
+  if(victim.fluxHeatStacks>=Math.max(3,7-heat)){
+   victim.fluxHeatStacks=0;
+   damageTarget(game,target,(5+heat*3)*falloff,t);
+   fx(game,{kind:'heat',x:victim.x,y:victim.y,r:24+heat*12});
+   if(heat>=3)for(const other of availableTargets(game,victim,75)){
+    if(other===target||other.object===victim||other.kind!=='enemy')continue;
+    damageTarget(game,other,3*falloff,t);
+   }
+  }
+ }
 }
 function updateDrones(game,t,cfg,dt){
- const radius=droneRadius(t),now=game.time;
+ const radius=hiveRange(t),now=game.time;
  const target=chooseTarget(game,t,radius,t.mode);
  for(const drone of t.drones){
   if(drone.hp<=0)continue;
@@ -207,7 +236,12 @@ function updateDrones(game,t,cfg,dt){
   if(!engaged||d(drone,enemy)>200||now<drone.nextShotAt||
      d(game.player,t)>Math.max(1400,game.vw||1200))continue;
   drone.nextShotAt=now+cfg.cooldown;drone.lastShotAt=now;
-  damageTarget(game,target,cfg.damage*(t.level>=3?1.3:1),t);
+  const tactic=turretBranchRank(t,'anomaly');
+  damageTarget(game,target,cfg.damage*(t.level>=3?1.3:1)*(1+tactic*.09),t);
+  if(tactic>=2&&target.kind==='enemy'&&enemy.hp>0){
+   enemy.tacticalSlowFactor=Math.min(enemy.tacticalSlowFactor||1,tactic>=3?.72:.86);
+   enemy.tacticalSlowUntil=Math.max(enemy.tacticalSlowUntil||0,now+(tactic>=3?1.6:.75));
+  }
   fx(game,{kind:'drone',x:drone.x,y:drone.y,tx:enemy.x,ty:enemy.y});
   game.heritage?.play?.('supportDroneShot',.3,drone);
  }
@@ -263,11 +297,12 @@ export function advanceFluxSupports(game,dt){
    const congestion=counts.get(link.edgeId)||1,
     supply=(1+link.cable/FLUX_ARTILLERY.cableScale)**-2;
    t.chargeCredit=Math.min(cfg.chargeCost,
-    t.chargeCredit+cfg.fluxPerMinute/60*supply/congestion*Math.max(0,dt));
+    t.chargeCredit+supportSupply(t,cfg.fluxPerMinute)/60*
+     supply/congestion*Math.max(0,dt));
    const pending=s.supportPackets.filter(p=>p.turretId===t.id)
     .reduce((sum,p)=>sum+p.charges,0);
    const liveDrones=t.type==='hive'?t.drones.filter(x=>x.hp>0).length:0;
-   const needed=t.type==='hive'?droneLimit(t)-liveDrones-pending:
+   const needed=t.type==='hive'?hiveLimit(t)-liveDrones-pending:
     cfg.magazine-t.ammo-pending;
    const affordable=Math.floor((s.flux+1e-8)/cfg.chargeCost),
     earned=Math.floor((t.chargeCredit+1e-8)/cfg.chargeCost);
@@ -287,21 +322,21 @@ export function advanceFluxSupports(game,dt){
    }
    continue;
   }
-  const target=chooseTarget(game,t,cfg.range,t.mode);
+  const target=chooseTarget(game,t,t.type==='laser'?laserRange(t):cfg.range,t.mode);
   if(target){
    t.aimX=target.object.x;t.aimY=target.object.y;
    const angle=Math.atan2(t.aimY-t.y,t.aimX-t.x);
    t.gunAngle=turnArtilleryGun(t.gunAngle,angle,Math.max(0,dt));
   }
-  if(!target||now<t.nextShotAt||t.ammo<(t.type==='laser'&&t.level>=2?2:1)||
+  if(!target||now<t.nextShotAt||t.ammo<(t.type==='laser'?laserEmitters(t):1)||
     d(game.player,t)>Math.max(1400,game.vw||1200))continue;
   if(Math.abs(Math.atan2(Math.sin(Math.atan2(t.aimY-t.y,t.aimX-t.x)-t.gunAngle),
     Math.cos(Math.atan2(t.aimY-t.y,t.aimX-t.x)-t.gunAngle)))>.24)continue;
-  t.nextShotAt=now+cfg.cooldown;t.lastShotAt=now;
+  t.nextShotAt=now+(t.type==='arc'?arcCooldown(t):laserCooldown(t));t.lastShotAt=now;
   if(t.type==='arc'){
    t.ammo--;electricShot(game,t,cfg);
   }else{
-   t.ammo-=t.level>=2?2:1;t.burstLeft=8;t.burstAt=now;
+   t.ammo-=laserEmitters(t);t.burstLeft=laserBurst(t);t.burstAt=now;
    game.heritage?.play?.('supportLaser',.65,t);
   }
  }
@@ -384,10 +419,21 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
   if(!live)ctx.globalAlpha*=.7;
   if(t.type==='laser'){
    // Keep the octagonal foot perfectly still; only its independently centered
-   // head turns. The single/twin gun art swaps without changing the pivot.
+   // head turns. Beyond two emitters, identical pods share the same pivot:
+   // no sprite-frame jumping, and each added muzzle is actually visible.
    imageAt(ctx,'laserBase',83);
    ctx.rotate(t.gunAngle+Math.PI/2);
-   imageAt(ctx,t.level>=2?'laserTwin':'laserSingle',83);
+   const count=laserEmitters(t);
+   if(count<=2)imageAt(ctx,count===2?'laserTwin':'laserSingle',83);
+   else{
+    const pods=count===6?3:count;
+    for(let i=0;i<pods;i++){
+     ctx.save();ctx.translate((i-(pods-1)/2)*(count===6?16:12),0);
+     ctx.scale(count===6?.58:.65,count===6?.58:.65);
+     imageAt(ctx,count===6?'laserTwin':'laserSingle',83);
+     ctx.restore();
+    }
+   }
   }else imageAt(ctx,t.type,t.type==='hive'?99:83);
   ctx.restore();
   if(t.type==='arc'&&!building&&live&&!reduced){
@@ -414,7 +460,7 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
     ctx.beginPath();ctx.arc(Math.sin(now+i)*13,-15-age*(10+i*2),4+i+age,0,Math.PI*2);ctx.fill();
    }
   }
-  const remaining=t.type==='hive'?t.drones.filter(x=>x.hp>0).length+'/'+droneLimit(t):
+  const remaining=t.type==='hive'?t.drones.filter(x=>x.hp>0).length+'/'+hiveLimit(t):
    t.ammo+'/'+cfg.magazine;
   ctx.fillStyle='rgba(5,19,32,.93)';ctx.fillRect(-38,-61,76,18);
   ctx.font='bold 11px system-ui';ctx.textAlign='center';
@@ -437,6 +483,11 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
      drone.y<cam.y-30||drone.y>cam.y+cam.h+30)continue;
    ctx.save();ctx.translate(drone.x,drone.y);ctx.rotate(drone.angle+Math.PI/2);
    ctx.shadowColor=cfg.color;ctx.shadowBlur=6;imageAt(ctx,'drone',30);
+   const hull=turretBranchRank(t,'hull');
+   if(hull){
+    ctx.strokeStyle=`rgba(161,243,223,${.22+hull*.1})`;
+    ctx.lineWidth=1+hull*.35;ctx.beginPath();ctx.arc(0,0,16,0,Math.PI*2);ctx.stroke();
+   }
    ctx.restore();
   }
  }
@@ -459,11 +510,15 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
     }
     ctx.lineTo(b.x,b.y);ctx.stroke();
    }
+  }else if(effect.kind==='heat'){
+   ctx.strokeStyle=`rgba(255,147,84,${fade})`;ctx.lineWidth=4*fade;
+   ctx.shadowColor='#ff944d';ctx.shadowBlur=15;
+   ctx.beginPath();ctx.arc(effect.x,effect.y,effect.r*(1-fade*.65),0,Math.PI*2);ctx.stroke();
   }else{
    const dx=effect.tx-effect.x,dy=effect.ty-effect.y,length=Math.max(1,Math.hypot(dx,dy));
    const normalX=-dy/length,normalY=dx/length;
    for(let i=0;i<(effect.kind==='laser'?effect.shots:1);i++){
-    const offset=effect.kind==='laser'?(i?10:-10):0;
+    const offset=effect.kind==='laser'?(i-(effect.shots-1)/2)*8:0;
     ctx.shadowColor=effect.kind==='laser'?'#ff8256':'#6ef6b9';ctx.shadowBlur=12;
     ctx.strokeStyle=effect.kind==='laser'?`rgba(255,147,84,${fade*effect.fade})`:
      `rgba(107,245,184,${fade})`;
@@ -508,25 +563,25 @@ export function validFluxSupports(s){
     !finite(t.x,-1e9)||!finite(t.y,-1e9)||
     !finite(t.hp,0,cfg.maxHp)||t.maxHp!==cfg.maxHp||t.r!==cfg.r||
     !Number.isInteger(t.level)||t.level<1||t.level>(t.type==='hive'?3:t.type==='laser'?2:1)||
-    !ARTILLERY_MODES.includes(t.mode)||!Number.isInteger(t.ammo)||
+    !ARTILLERY_MODES.includes(t.mode)||!validTurretBranches(t)||!Number.isInteger(t.ammo)||
     t.ammo<0||t.ammo>cfg.magazine||!finite(t.chargeCredit,0,cfg.chargeCost+.0001)||
     !finite(t.readyAt)||!finite(t.nextShotAt)||!finite(t.lastShotAt,-1)||
     !finite(t.lastChargeAt,-1)||!finite(t.lastDestroyedAt,-1)||
     !finite(t.aimX,-1e9)||!finite(t.aimY,-1e9)||
     !finite(t.gunAngle,-Math.PI-.0001,Math.PI+.0001)||
-    !Number.isInteger(t.burstLeft)||t.burstLeft<0||t.burstLeft>8||
+    !Number.isInteger(t.burstLeft)||t.burstLeft<0||t.burstLeft>16||
     !finite(t.burstAt)||typeof t.initialReady!=='boolean'||
     !Array.isArray(t.drones)||t.drones.length>20)return false;
   const slots=new Set();
   for(const drone of t.drones){
    if(t.type!=='hive'||!Number.isInteger(drone.slot)||drone.slot<1||drone.slot>1e9||
       slots.has(drone.slot)||!finite(drone.x,-1e9)||!finite(drone.y,-1e9)||
-      !finite(drone.hp,0,28)||drone.maxHp!==28||drone.r!==10||
+      !finite(drone.hp,0,hiveArmor(t))||drone.maxHp!==hiveArmor(t)||drone.r!==10||
       !finite(drone.nextShotAt)||!finite(drone.lastShotAt,-1)||
       !finite(drone.angle,-Math.PI*4,Math.PI*4))return false;
    slots.add(drone.slot);
   }
-  if(t.type==='hive'&&t.drones.filter(x=>x.hp>0).length>droneLimit(t))return false;
+  if(t.type==='hive'&&t.drones.filter(x=>x.hp>0).length>hiveLimit(t))return false;
   ids.add(t.id);
  }
  for(const p of s.supportPackets){
