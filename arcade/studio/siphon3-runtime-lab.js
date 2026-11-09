@@ -201,30 +201,30 @@ function drawHud(){
   ctx.textAlign='left';ctx.font='bold 12px system-ui,sans-serif';ctx.fillStyle='#8ecbd3';
   ctx.fillText('КОНТУР ЗАМКНУТ · 3 СТАНЦИИ',32,39);
   ctx.fillStyle='#fbd78c';ctx.font='bold 17px system-ui,sans-serif';
-  ctx.fillText('ПОТОК '+formatValue(lab.world.contours.flux)+' / '+CONTOURS.fluxCap,32,62);
+  ctx.fillText('ПОТОК '+formatValue(lab.world.contours.flux)+' · БЕЗ ПРЕДЕЛА',32,62);
   roundedRect(W-213,19,196,56,10,'#061724d6');
   ctx.fillStyle='#99bdd2';ctx.font='bold 12px system-ui,sans-serif';
   ctx.fillText('ДОБЫТЧИКОВ',W-199,40);
   ctx.font='bold 19px system-ui,sans-serif';ctx.fillStyle='#aef7e7';
-  ctx.fillText(`${lab.world.contours.harvesters.length} / 2`,W-199,63);
+  ctx.fillText(`${lab.world.contours.harvesters.length} / ${CONTOURS.maxHarvestersPerField}`,W-199,63);
 }
 
 function updateUi(){
   const state=lab.world.contours,workers=state.harvesters;
   byId('sim-status').textContent=running?'ИДЁТ':'ПАУЗА';
   byId('sim-clock').textContent=formatTime(lab.clock)+' игрового времени';
-  byId('flux').innerHTML=formatValue(state.flux)+' <i>/ '+CONTOURS.fluxCap+'</i>';
+  byId('flux').innerHTML=formatValue(state.flux)+' <i>без предела</i>';
   byId('delivered').textContent=formatValue(state.delivered);
-  byId('workers').textContent=workers.length+' / 2';
+  byId('workers').textContent=workers.length+' / '+CONTOURS.maxHarvestersPerField;
   byId('lost').textContent=state.lost;
-  byId('spawn').disabled=!running||workers.length>=2;
+  byId('spawn').disabled=!running||workers.length>=CONTOURS.maxHarvestersPerField;
   byId('intercept').disabled=!running||workers.length===0||Boolean(lab.attackPosition);
   byId('pause').textContent=running?'Пауза':'Продолжить';
   const leader=workers[0];
   const states={out:['К источнику','Летит от станции по маршруту к центру поля.'],
     gather:['Сбор энергии','Принимает энергию из воронки. После этого вернётся на станцию.'],
     back:['Возвращение с грузом','Энергия поступит в сеть только после прибытия.']};
-  const info=leader?states[leader.phase]:['Ожидаем рейса','Через 45 игровых секунд наступит очередной вылет; можно выпустить жука вручную.'];
+  const info=leader?states[leader.phase]:['Ожидаем рейса','Каждые 5 игровых секунд отправляется новый добытчик; можно выпустить жука вручную.'];
   byId('phase').textContent=lab.attackPosition?'Перехват добытчика':info[0];
   byId('phase-detail').textContent=lab.attackPosition?'Сборщик получает урон по правилам игры. Сумеет ли доставить груз?':info[1];
   byId('scene-caption').textContent=lab.attackPosition?
@@ -265,7 +265,7 @@ function restart(){
 
 byId('spawn').addEventListener('click',()=>{
   const before=lab.world.contours.harvesters.length;
-  if(before>=2)return;
+  if(before>=CONTOURS.maxHarvestersPerField)return;
   forceLaunch(lab);
   if(lab.world.contours.harvesters.length>before){
     logEvent(`${formatTime(lab.clock)} · Принудительный запуск для испытания.`);
