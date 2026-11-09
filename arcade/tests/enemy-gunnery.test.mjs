@@ -235,6 +235,35 @@ test('the warned lance can hit a stationary player but cannot begin offscreen',(
  assert.notEqual(hidden._gunAiming.profile.kind,'gunship-lance');
 });
 
+test('a heavy lance cannot fire after leaving the viewport or moving away from its warning line',()=>{
+ const e=ship('gunship',12,265),game=scene([e]),strikes=[];
+ e.state='standoff';e._enemyLearningSaw=true;e._gunCycle=1;e._gunNextAt=0;
+ game.camera=()=>({x:-300,y:-250,w:600,h:500});
+ game.hurt=damage=>strikes.push(damage);
+ game.time=260;updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunAiming.profile.kind,'gunship-lance');
+ e.x=350;game.time=261.3;
+ assert.equal(updateEnemyGunnery(e,game,game.player),false);
+ assert.equal(strikes.length,0,'no invisible instant attack from beyond camera');
+ assert.equal(e._gunAiming,null);
+ e.x=265;e._gunNextAt=0;game.time=269;
+ updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunAiming.profile.kind,'gunship-lance');
+ e.y+=85;game.time=270.3;
+ assert.equal(updateEnemyGunnery(e,game,game.player),false);
+ assert.equal(strikes.length,0,'a moving gunship cannot sweep a previously warned ray');
+});
+
+test('only one instant lance can charge at a time, including under the reduced-FPS warning limit',()=>{
+ const ships=Array.from({length:4},(_,index)=>ship('gunship',index+10,180+index*55));
+ const game=scene(ships);game.time=270;
+ for(const e of ships){e.state='standoff';e._enemyLearningSaw=true;
+  e._gunCycle=1;e._gunNextAt=0;}
+ for(const e of ships)updateEnemyGunnery(e,game,game.player);
+ assert.equal(ships.filter(e=>e._gunAiming?.profile?.kind==='gunship-lance').length,1,
+  'multiple instant beams could otherwise be hidden by the low-FPS drawing cap');
+});
+
 test('an instant-beam warning is never hidden behind the ordinary warning cap',()=>{
  const crowd=Array.from({length:7},(_,i)=>ship('fighter',i+1,130+i*9));
  const heavy=ship('gunship',19,390);heavy.state='standoff';
@@ -249,6 +278,20 @@ test('an instant-beam warning is never hidden behind the ordinary warning cap',(
  game.playerCanInspectEnemyIntent=()=>true;
  assert.equal(drawEnemyGunWarnings(ctx,game,{x:0,y:0,w:500,h:300},60),4);
  assert.equal(starts[0],heavy.x);
+});
+
+test('a charged shot keeps its visible marker while another volley delays firing',()=>{
+ const e=ship('gunship',12,270),game=scene([e]);game.time=260;
+ e.state='standoff';e._enemyLearningSaw=true;e._gunCycle=1;e._gunNextAt=0;
+ updateEnemyGunnery(e,game,game.player);
+ game.time=261.45;game._enemyRegularVolleyAt=261.8;
+ assert.equal(updateEnemyGunnery(e,game,game.player),false);
+ assert.ok(e._gunAiming,'the shot still has a pending charge');
+ game.playerCanInspectEnemyIntent=()=>true;
+ const ctx={save(){},restore(){},setLineDash(){},beginPath(){},moveTo(){},
+  lineTo(){},stroke(){},arc(){}};
+ assert.equal(drawEnemyGunWarnings(ctx,game,{x:-300,y:-250,w:600,h:500}),1,
+  'a postponed instant shot may not become invisible after the nominal charge time');
 });
 
 test('a visible aim draws a warning; hidden pilots and low FPS stay bounded',()=>{

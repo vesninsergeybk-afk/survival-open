@@ -199,6 +199,71 @@ test('swarms track last seen positions, not live player coordinates behind cover
   'persistent pursuit must still be bounded by the last real sighting');
 });
 
+test('a swarm does not announce a new visual contact while a lost target remains hidden',()=>{
+ const motes=drones(9),game=scene(motes,100);
+ for(const e of motes){e.x=135;e.moteReformUntil=200;}
+ updateMoteSwarmOrders(game);
+ game.time=102.5;updateMoteSwarmOrders(game);
+ assert.ok(motes.some(e=>e.moteStatus==='windup'));
+ game.enemyCanSee=()=>false;game.time=108;
+ updateMoteSwarmOrders(game);
+ assert.ok(motes.every(e=>e.moteStatus==='search'),
+  'expired dash warning must return to searching, not claim contact');
+});
+
+test('returning reinforcements do not claim they rediscovered a hidden player',()=>{
+ const motes=drones(3),game=scene(motes,101);
+ for(const e of motes){e.moteReturnUntil=102;e.moteLastSeen={x:0,y:0,at:99};}
+ game.enemyCanSee=()=>false;
+ updateMoteSwarmOrders(game);
+ assert.equal(motes[0].moteStatus,'return');
+ game.time=103;updateMoteSwarmOrders(game);
+ assert.equal(motes[0].moteStatus,'search');
+});
+
+test('a fleeing courier never joins an active pack merely because they pass nearby',()=>{
+ const escape=drones(2,7),hunters=drones(5,8);
+ for(const e of escape){e.moteEscape=true;e.moteEscapeGoal={x:2000,y:2000};}
+ for(const e of hunters){e.serial+=10;e.x+=30;e.moteReformUntil=0;}
+ const game=scene([...escape,...hunters]);
+ updateMoteSwarmOrders(game);
+ assert.ok(escape.every(e=>e.motePack===7));
+ assert.ok(hunters.every(e=>e.motePack===8));
+});
+
+test('a rushing micro-drone hits solid asteroid cover rather than passing through it',()=>{
+ const [e]=drones(1),game=scene([e],150);
+ e.x=20;e.y=0;e.vx=400;e.vy=0;e.moteBoosting=true;
+ e.moteOrder={x:300,y:0};game.player.x=260;
+ game.rockGrid={query:()=>[{x:105,y:0,r:36,hp:300,alive:true}]};
+ moveMote(e,game,.32);
+ assert.equal(e.hp,0,'a physical charge cannot tunnel through an asteroid');
+ assert.ok(e.x<105);
+});
+
+test('a charging drone hits the pilot before cover behind them, including low-FPS jumps',()=>{
+ const [e]=drones(1),game=scene([e],150);
+ e.x=-40;e.y=0;e.vx=650;e.vy=0;e.moteBoosting=true;
+ e.moteOrder={x:300,y:0};game.player.r=19;game.player.invul=0;
+ game.hurt=damage=>{game.received=damage;};
+ game.rockGrid={query:()=>[{x:125,y:0,r:36,alive:true}]};
+ moveMote(e,game,.62);
+ assert.equal(game.received,MOTE_SWARM.damage);
+ assert.equal(e.hp,0);
+});
+
+test('an asteroid remains solid cover even when the pilot is standing close to it',()=>{
+ const [e]=drones(1),game=scene([e],150);
+ e.x=-100;e.y=0;e.vx=650;e.vy=0;e.moteBoosting=true;
+ e.moteOrder={x:300,y:0};game.player.x=55;game.player.r=19;
+ game.hurt=damage=>{game.received=damage;};
+ game.rockGrid={query:()=>[{x:20,y:0,r:36,alive:true}]};
+ moveMote(e,game,.62);
+ assert.equal(game.received,undefined,'cover near the pilot must not be skipped');
+ assert.equal(e.hp,0);
+ assert.ok(e.x<0);
+});
+
 test('micro-drones sidestep a tracked incoming missile without changing hitboxes or gaining speed',()=>{
  const [e]=drones(1),game=scene([e],112);
  e.moteOrder={x:0,y:0};e.hit=0;
@@ -265,6 +330,18 @@ test('the actual support factory enters from offscreen with two capped squads',(
   'reinforcement cannot materialize on camera');
 });
 
+test('reinforcements wait until the entire formation can enter offscreen',()=>{
+ const g=actualGame();g.time=220;g.vw=800;g.vh=600;
+ g.camera=()=>({x:0,y:0,w:800,h:600});
+ const courier={x:-121,y:270,hp:1,r:6.5};
+ const sighting={x:-101,y:800,at:210};
+ assert.equal(g.spawnMoteReinforcements(courier,sighting,16),0,
+  'a courier just beyond the edge must not materialize companions in view');
+ courier.x=-410;
+ assert.equal(g.spawnMoteReinforcements(courier,sighting,16),16);
+ assert.ok(g.enemies.every(e=>e.x<0||e.x>800||e.y<0||e.y>600));
+});
+
 test('late micro-drone encounters contain two real eight-member packs',()=>{
  const g=actualGame();g.vw=1200;g.vh=800;g.time=230;
  g.lastEncounter='';
@@ -281,13 +358,19 @@ test('late micro-drone encounters contain two real eight-member packs',()=>{
 
 test('staggered boosts have warnings, genuine velocity and vulnerable contact',()=>{
  const members=drones(9),game=scene(members);
+ const rushSounds=[];game.heritage={play(name){rushSounds.push(name);}};
  for(const e of members){e.x=145+e.serial;e.moteReformUntil=200;}
  game.player.r=19;game.player.invul=0;game.hurt=damage=>{game.received=damage;};
  updateMoteSwarmOrders(game);
  game.time=102.5;updateMoteSwarmOrders(game);
  assert.ok(members.every(e=>e.moteStatus==='windup'));
  assert.ok(members.every(e=>!e.moteBoosting));
+ const warnedPacks=rushSounds.filter(name=>name==='swarmWarning').length;
+ assert.ok(warnedPacks>=1&&warnedPacks<=2,
+  'each attacking pack must warn before its acceleration begins');
  game.time=103.2;updateMoteSwarmOrders(game);
+ assert.equal(rushSounds.filter(name=>name==='swarmWarning').length,warnedPacks,
+  'the impact phase must not repeat the already delivered warning');
  const boosted=members.filter(e=>e.moteBoosting);
  assert.ok(boosted.length>=2&&boosted.length<members.length);
  const e=boosted[0];e.x=-30;e.y=0;e.vx=240;e.vy=0;

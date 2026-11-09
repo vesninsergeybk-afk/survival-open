@@ -113,8 +113,17 @@ test('создатель обычных встреч не блокируется
   spawnEntryCamera:()=>({x:-600,y:-400,w:1200,h:800})});
  const previous=game.enemies.length;
  ArcadeGame.prototype.spawnGroup.call(game,openingThreat(205));
- assert.equal(game.enemies.length-previous,7,
-  'местная эскадрилья появляется, хотя вдали уже есть 43 корабля');
+ const spawned=game.enemies.slice(previous);
+ // At 205 seconds the legal random encounter is either seven ordinary
+ // patrol ships or two eight-drone packs. Both demonstrate that distant
+ // traffic did not starve the local encounter budget.
+ assert.ok([7,16].includes(spawned.length),
+  'местное звено появляется, хотя вдали уже есть 43 корабля');
+ assert.ok(spawned.every(e=>e._patrolRoute),
+  'оба типа встреч входят по настоящим маршрутам из-за экрана');
+ if(spawned.length===16)
+  assert.ok(spawned.every(e=>e.microSwarm),
+   'двойная встреча из 16 кораблей допустима только для микророёв');
 });
 
 test('старые сохранения получают новую броню, сохраняя долю здоровья и вложенные очки',()=>{

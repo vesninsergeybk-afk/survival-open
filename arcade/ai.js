@@ -10,12 +10,12 @@ import {contourIrisDirective,contourIrisRushContacts} from './contour-trial-iris
 import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2-trial-focus-1-pressure-response-1-combat-balance-1';
 import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1';
-import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109';
+import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1';
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-2';
-import {moveMote} from './mote-swarm.js?v=swarm-controls-1-combat-hunt-20261109-dodge-audit-1';
+import {moveMote} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1';
 import {turretBranchRank} from './turret-growth.js';
-import {updateLastStand} from './enemy-last-stand.js';
+import {updateLastStand} from './enemy-last-stand.js?v=redteam-20261109-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -665,7 +665,12 @@ export function updateEnemy(e,game,dt){
     }
   }
   const beforeX=e.x,beforeY=e.y;
-  steer(e,goalX,goalY,speed,dt,{x:extraX,y:extraY});
+  if(e._gunAiming?.profile?.kind==='gunship-lance'){
+    // The capital gun must stabilise while charging. Otherwise its moving
+    // origin rotates the supposedly fixed warning line across the pilot.
+    const drag=Math.exp(-9*dt);
+    e.vx*=drag;e.vy*=drag;e.x+=e.vx*dt;e.y+=e.vy*dt;
+  }else steer(e,goalX,goalY,speed,dt,{x:extraX,y:extraY});
   e.healFlash=Math.max(0,(e.healFlash||0)-dt);
   updateEnemyGunnery(e,game,selected);
   if(e.type==='scout'&&!search&&trialDive?.phase!=='rush'&&
