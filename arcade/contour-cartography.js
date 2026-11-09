@@ -97,8 +97,13 @@ export function atlasStars(seed=0,center,scale,overview){
 export function atlasLiveObjects(game,center,scale,overview){
  const world=game.world,player=game.player;
  const layers={rocks:[],storms:[],cargo:[],contacts:[],relay:[],viewport:''};
- const cameraWidth=Number.isFinite(game.vw)?game.vw:1200;
- const cameraHeight=Number.isFinite(game.vh)?game.vh:760;
+ // The flight camera may show more (or less) world than the fixed logical
+ // viewport. The atlas outline must represent what the pilot actually sees.
+ const flightCamera=typeof game.camera==='function'?game.camera():null;
+ const cameraWidth=Number.isFinite(flightCamera?.w)&&flightCamera.w>0?
+  flightCamera.w:Number.isFinite(game.vw)&&game.vw>0?game.vw:1200;
+ const cameraHeight=Number.isFinite(flightCamera?.h)&&flightCamera.h>0?
+  flightCamera.h:Number.isFinite(game.vh)&&game.vh>0?game.vh:760;
  if(!overview){
   const q=atlasPoint(player,center,scale);
   const w=cameraWidth*scale,h=cameraHeight*scale;

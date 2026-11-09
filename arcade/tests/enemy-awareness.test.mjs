@@ -31,10 +31,28 @@ test('ambient patrols cross authored traffic lanes and cannot know a moving pilo
   assert.ok(side===0?destination.x>cam.x+cam.w:side===1?destination.x<cam.x:
    side===2?destination.y>cam.y+cam.h:destination.y<cam.y);
   const e={...enemy(),_patrolRoute:destination},g=game();
-  assert.deepEqual({x:enemyPursuitTarget(e,g).x,y:enemyPursuitTarget(e,g).y},destination);
+  assert.deepEqual({x:enemyPursuitTarget(e,g).x,y:enemyPursuitTarget(e,g).y},
+   {x:destination.x,y:destination.y});
   g.player.x=50000;g.player.y=-50000;g.time=3;
-  assert.deepEqual({x:enemyPursuitTarget(e,g).x,y:enemyPursuitTarget(e,g).y},destination,
+  assert.deepEqual({x:enemyPursuitTarget(e,g).x,y:enemyPursuitTarget(e,g).y},
+   {x:destination.x,y:destination.y},
    'unobserved patrols cannot acquire live player position after spawning');
+ }
+});
+
+test('zoomed-out patrols extend their traffic lane until they really leave the visible field',()=>{
+ const base={x:-600,y:-400,w:1200,h:800};
+ const zoomed={x:-600/.55,y:-400/.55,w:1200/.55,h:800/.55};
+ const g=game();g.time=50;g.camera=()=>zoomed;
+ for(let side=0;side<4;side++){
+  const route=ambientPatrolRoute(base,side,.45,3);
+  const e={...enemy(),x:route.x,y:route.y,_patrolRoute:route};
+  const starting={x:route.x,y:route.y};
+  assert.equal(patrolCanLeave(e,g),false,'a patrol may not vanish while visible');
+  assert.equal(route.x,starting.x+(side===0?500:side===1?-500:0));
+  assert.equal(route.y,starting.y+(side===2?500:side===3?-500:0));
+  e.x=route.x;e.y=route.y;
+  assert.equal(patrolCanLeave(e,g),true,`patrol from side ${side} can exit beyond the zoomed view`);
  }
 });
 
