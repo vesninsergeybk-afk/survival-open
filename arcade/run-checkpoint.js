@@ -291,6 +291,17 @@ export function restoreCheckpoint(game,data){
  }
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
+ // Formation decisions and reinforcement timers are reconstructed at runtime.
+ // A courier that had already left the screen must not become stuck waiting
+ // for a queue which deliberately is not part of the saved data graph.
+ game._moteSquadStates=new Map();game._moteSeenRoots=new Set();
+ game._moteReinforcementQueue=[];game._nextMoteSwarmAt=0;
+ for(const enemy of game.enemies){
+  if(!enemy.microSwarm||!enemy.moteCourierReturning)continue;
+  enemy.moteCourierReturning=false;enemy.moteEscape=true;
+  enemy.moteCourier=true;
+  enemy.moteEscapeGoal??={x:enemy.x,y:enemy.y};
+ }
  rebaseSavedHull(game.player,game.skillRanks?.hull);
  game.fieldLoot=data.state.fieldLoot||createFieldLoot();
  game.combatTempo=data.state.combatTempo||createCombatTempo();

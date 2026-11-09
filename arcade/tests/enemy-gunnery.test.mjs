@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ENEMY_GUNNERY,updateEnemyGunnery,drawEnemyGunWarnings,
+import {ENEMY_GUNNERY,gunProfile,updateEnemyGunnery,drawEnemyGunWarnings,
  drawEnemyDefenseGoals}
  from '../enemy-gunnery.js';
 import {updateEnemy} from '../ai.js';
@@ -150,6 +150,105 @@ test('independent cells also share a small global cap on hostile salvos',()=>{
   game.time=2.15;
   assert.equal(updateEnemyGunnery(b,game,game.player),true);
   assert.equal(game.shots.length,2);
+});
+
+test('later fighters fire two spaced bolts at an old warning point, never a tracking burst',()=>{
+ const e=ship('fighter',3,250),game=scene([e]);
+ game.time=155;e._enemyLearningSaw=true;e._gunNextAt=0;
+ assert.equal(gunProfile(e.type,155).shots,2);
+ updateEnemyGunnery(e,game,game.player);
+ const locked={...e._gunAiming};
+ game.time=155.8;updateEnemyGunnery(e,game,game.player);
+ assert.equal(game.shots.length,1);
+ assert.equal(game.shots[0].options.kind,'fighter-burst');
+ assert.equal(game.shots[0].damage,6);
+ game.player.x=300;game.player.y=300;
+ game.time=155.9;updateEnemyGunnery(e,game,game.player);
+ assert.equal(game.shots.length,1,'the second bolt obeys a real gap');
+ game.time=156.2;updateEnemyGunnery(e,game,game.player);
+ assert.equal(game.shots.length,2);
+ assert.ok(Math.hypot(game.shots[1].tx-locked.x,game.shots[1].ty-locked.y)<20);
+ assert.equal(e._gunBurst,null);
+});
+
+test('interceptors use a faster, clearly warned needle and heavy ships fire a fanned cannon',()=>{
+ const flanker=ship('flanker',5,280),game=scene([flanker]);
+ game.time=210;flanker._enemyLearningSaw=true;flanker._gunNextAt=0;
+ updateEnemyGunnery(flanker,game,game.player);
+ assert.ok(flanker._gunAiming.until-game.time>=.8);
+ game.time=211;updateEnemyGunnery(flanker,game,game.player);
+ assert.equal(game.shots[0].options.kind,'flanker-needle');
+ assert.equal(game.shots[0].options.speed,510);
+ const heavy=ship('gunship',7,360);heavy.state='standoff';
+ game.enemies=[heavy];heavy._enemyLearningSaw=true;heavy._gunNextAt=0;
+ game.time=215;updateEnemyGunnery(heavy,game,game.player);
+ game.time=216.2;updateEnemyGunnery(heavy,game,game.player);
+ assert.equal(game.shots.at(-1).options.kind,'gunship-cannon');
+ game.time=216.6;updateEnemyGunnery(heavy,game,game.player);
+ game.time=217;updateEnemyGunnery(heavy,game,game.player);
+ assert.equal(game.shots.filter(s=>s.options.kind==='gunship-cannon').length,3);
+ assert.ok(new Set(game.shots.slice(-3).map(s=>s.ty)).size>1,
+  'the heavy cannon has a spread pattern');
+});
+
+test('a burst stops at cover or lost target; no stale shot leaks through it',()=>{
+ const e=ship('fighter',3,240),game=scene([e]);
+ game.time=155;e._enemyLearningSaw=true;e._gunNextAt=0;
+ updateEnemyGunnery(e,game,game.player);
+ game.time=155.8;updateEnemyGunnery(e,game,game.player);
+ assert.ok(e._gunBurst);
+ game.enemyCanSee=()=>false;
+ game.time=156.2;updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunBurst,null);assert.equal(game.shots.length,1);
+});
+
+test('a heavy ship telegraphs an instantaneous lance which misses after a real dodge',()=>{
+ const e=ship('gunship',12,280),game=scene([e]);
+ e.state='standoff';e._enemyLearningSaw=true;e._gunCycle=1;e._gunNextAt=0;
+ game.time=260;game.player.x=0;game.player.y=40;
+ const strikes=[];game.hurt=damage=>strikes.push(damage);
+ const flashes=[];game.flash=(...args)=>flashes.push(args);
+ updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunAiming.profile.kind,'gunship-lance');
+ assert.equal(e._gunAiming.until-game.time,ENEMY_GUNNERY.lance.charge);
+ const warning={...e._gunAiming};
+ game.player.x=0;game.player.y=180;
+ game.time=261.3;assert.equal(updateEnemyGunnery(e,game,game.player),true);
+ assert.equal(strikes.length,0,'the beam never snaps to a dodging player');
+ assert.equal(game.shots.length,0,'instant beam is not a fast simulated bullet');
+ assert.equal(flashes.length,1);
+ assert.equal(flashes[0][2],warning.x);
+ assert.equal(game._enemyLanceNextAt,game.time+4.8);
+});
+
+test('the warned lance can hit a stationary player but cannot begin offscreen',()=>{
+ const e=ship('gunship',12,280),game=scene([e]);
+ e.state='standoff';e._enemyLearningSaw=true;e._gunCycle=1;e._gunNextAt=0;
+ game.time=260;const strikes=[];game.hurt=damage=>strikes.push(damage);
+ updateEnemyGunnery(e,game,game.player);
+ game.time=261.3;updateEnemyGunnery(e,game,game.player);
+ assert.deepEqual(strikes,[ENEMY_GUNNERY.lance.damage]);
+ const hidden=ship('gunship',15,280),far=scene([hidden]);
+ hidden.state='standoff';hidden._enemyLearningSaw=true;hidden._gunCycle=1;hidden._gunNextAt=0;
+ far.time=270;far.camera=()=>({x:-250,y:-150,w:400,h:300});
+ updateEnemyGunnery(hidden,far,far.player);
+ assert.notEqual(hidden._gunAiming.profile.kind,'gunship-lance');
+});
+
+test('an instant-beam warning is never hidden behind the ordinary warning cap',()=>{
+ const crowd=Array.from({length:7},(_,i)=>ship('fighter',i+1,130+i*9));
+ const heavy=ship('gunship',19,390);heavy.state='standoff';
+ const game=scene([...crowd,heavy]);game.time=260;
+ for(const e of crowd)e._gunAiming={x:20,y:25,started:260,until:261,
+  target:game.player};
+ heavy._gunAiming={x:10,y:20,started:260,until:261.25,
+  target:game.player,profile:ENEMY_GUNNERY.lance};
+ const starts=[];
+ const ctx={save(){},restore(){},setLineDash(){},beginPath(){},
+  moveTo(x){starts.push(x);},lineTo(){},stroke(){},arc(){}};
+ game.playerCanInspectEnemyIntent=()=>true;
+ assert.equal(drawEnemyGunWarnings(ctx,game,{x:0,y:0,w:500,h:300},60),4);
+ assert.equal(starts[0],heavy.x);
 });
 
 test('a visible aim draws a warning; hidden pilots and low FPS stay bounded',()=>{

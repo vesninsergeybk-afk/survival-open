@@ -10,11 +10,12 @@ import {contourIrisDirective,contourIrisRushContacts} from './contour-trial-iris
 import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2-trial-focus-1-pressure-response-1-combat-balance-1';
 import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1';
-import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1';
+import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109';
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-2';
-import {moveMote} from './mote-swarm.js?v=swarm-controls-1';
+import {moveMote} from './mote-swarm.js?v=swarm-controls-1-combat-hunt-20261109';
 import {turretBranchRank} from './turret-growth.js';
+import {updateLastStand} from './enemy-last-stand.js';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -265,7 +266,7 @@ const pickTarget=(e,game)=>{
 export function updateEnemy(e,game,dt){
   if(e.hp<=0)return;
   if(e.trialRetreatUntil){
-    e._gunAiming=null;e._irisChargeStarted=null;e._commsIntent=null;
+    e._gunAiming=null;e._gunBurst=null;e._irisChargeStarted=null;e._commsIntent=null;
     if(game.time>=e.trialRetreatUntil){e.hp=0;e.expAwarded=true;e.visualDeath=true;return;}
     const from=e.trialRetreatFrom||game.player;
     const dx=e.x-from.x,dy=e.y-from.y;
@@ -274,18 +275,19 @@ export function updateEnemy(e,game,dt){
   }
   // A successfully hacked craft is friendly immediately, even if an earlier
   // hostile stasis pulse has not expired yet.
-  if(e.converted){e._commsIntent=null;e._gunAiming=null;updateConverted(e,game,dt);return;}
+  if(e.converted){e._commsIntent=null;e._gunAiming=null;e._gunBurst=null;updateConverted(e,game,dt);return;}
   // A connected station briefly locks ordinary hostile craft in place.
   // Authored mission targets, bosses and cargo never receive this status.
   if(game.time<(e.stasisUntil||0)){
     e._commsIntent=null;
-    e._gunAiming=null;
+    e._gunAiming=null;e._gunBurst=null;
     e._irisChargeStarted=null;
     e.vx*=Math.exp(-8*dt);e.vy*=Math.exp(-8*dt);
     e.x+=e.vx*dt;e.y+=e.vy*dt;
     return;
   }
   if(e.microSwarm){moveMote(e,game,dt);return;}
+  if(updateLastStand(e,game,dt))return;
   // Every visible intent must be renewed by real steering this frame.
   e._commsIntent=null;e._theaterIntent=null;
   if(e.missionFlight){
@@ -293,10 +295,10 @@ export function updateEnemy(e,game,dt){
     const speed=Math.min(goal.speed,remaining*3);
     const detour=enemyRockDetour(e,game,goal.x,goal.y);
     steer(e,goal.x,goal.y,speed,dt,{x:detour.x*speed,y:detour.y*speed});
-    e._gunAiming=null;
+    e._gunAiming=null;e._gunBurst=null;
     return;
   }
-  if(stormSeek(e,game,dt)){e._gunAiming=null;return;}
+  if(stormSeek(e,game,dt)){e._gunAiming=null;e._gunBurst=null;return;}
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;
   const ram=e.ramOrder,squad=ram?.squad;
@@ -326,13 +328,13 @@ export function updateEnemy(e,game,dt){
   const packTactic=e.type==='scout'&&localContact?
     irisPackDirective(e,game):null;
   if(updateIrisPerception(e,game,dt)){
-    e._gunAiming=null;
+    e._gunAiming=null;e._gunBurst=null;
     if(e.type==='scout')scoutAttack(e,game,
       e.signalIntel?.combatFocus||game.player,true);
     return;
   }
   if(signalOrder){
-    e._gunAiming=null;
+    e._gunAiming=null;e._gunBurst=null;
     const avoid=game.avoidance(e.x,e.y,38);
     const speed=ENEMY_TYPES[e.type].speed*signalOrder.speed*
       (e.type==='scout'?irisBurstThrust(e,game.time):1);
@@ -655,13 +657,6 @@ export function updateEnemy(e,game,dt){
      (localContact||(selected!==game.player&&game.enemyCanSee?.(e,selected))))
     scoutAttack(e,game,selected,
     e._irisScanMode==='acquire'&&game.time<(e._irisScanUntil||0));
-  if(e.type==='gunship'&&!e.relayAssault&&e.fire<=0&&
-     (!targetingPlayer||e._enemyLearningSaw)&&dist(e,p)<535){
-    e.fire=1.65;
-    if(game.enemyShot(e.x,e.y,p.x,p.y,15,
-      {learnToken:game.enemyLearning?.shotToken(e)})!==false)
-      game.enemyLearning?.fired(e);
-  }
   if(!targetingPlayer&&p.hp>0&&dist(e,p)<e.r+p.r){
     p.hp=Math.max(0,p.hp-e.damage*dt*1.4);
     if(p.hp<=0)game.heritage.vfx.shipExplosion(p.x,p.y,24,'#9aefff');

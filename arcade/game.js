@@ -42,22 +42,23 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1';
-import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1';
+import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109';
 import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1-combat-balance-1';
-import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
-import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1';
+import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30-combat-hunt-20261109';
+import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1';
-import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2';
+import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109';
+import {armLastStand,sweptRamHit} from './enemy-last-stand.js';
 import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1-triangle-defense-1-turret-gesture-1-turret-preload-20261109-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction,drawMiningNoiseRings} from './mining.js?v=checkpoint-1-rock-sleep-1-noise-pressure-1-pressure-response-1';
 import {clearCoreRocks} from './core-rock-clearance.js';
@@ -94,7 +95,7 @@ import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1-frontier-siege-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1-sector-density-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -4279,6 +4280,8 @@ export class ArcadeGame {
   // A dock checkpoint may be captured before the next death-processing frame.
   // Health must already satisfy the saved enemy state contract at that point.
   e.hp=Math.max(0,e.hp-damage);e.hit=.12;
+  if(aggressor===this.player&&damage>0)
+   armLastStand(e,this,hpBefore,sawAttacker);
   if(aggressor&&damage>0){
    const warned=alertFleetUnderFire(this,e,impactEstimate);
    if(warned&&this.time>=(this._nextCombatAlarmNoticeAt||0)){
@@ -4587,7 +4590,7 @@ export class ArcadeGame {
   const side=Math.floor(Math.random()*4),middle=this.time<118?
    .34+Math.random()*.32:.2+Math.random()*.6;
   const ambient={...director,allowMotes:!noiseSignal&&
-   this.enemies.filter(e=>e.microSwarm&&e.hp>0).length<16};
+   this.enemies.filter(e=>e.microSwarm&&e.hp>0).length<25};
   // A noise report coordinates two approach lanes even in the first sortie:
   // either a wide search sweep or a genuine pincer. Ordinary traffic retains
   // its stage-gated encounter patterns and never learns the pilot's position.
@@ -4598,6 +4601,8 @@ export class ArcadeGame {
   if(!plan.members.length)return 0;
   if(!noiseSignal)this.lastEncounter=plan.pattern;
   const group=++this.groupSerial,cam=this.spawnEntryCamera(),created=[];
+  const doubleMotePack=plan.pattern==='motes'&&plan.members.length>10;
+  const secondMotePack=doubleMotePack?++this.groupSerial:group;
   const intelSource=noiseSignal;
   const strongholdTier=Math.max(1,Math.min(5,director.strongholdTier||1));
   const industrialTech=Math.max(0,Math.min(3,director.industrialTech||0));
@@ -4621,11 +4626,15 @@ export class ArcadeGame {
       ambientPatrolRoute(cam,member.side,member.position,serial),
     stormAdapted:regionAt(xy.x,xy.y).id==='azure'&&type==='flanker',
     entryPortalPending:type==='gunship'&&!this.heavyPortalShown};
-   if(microSwarm)Object.assign(enemy,{microSwarm:true,moteRoot:group,motePack:group,
+   if(microSwarm){
+    const pack=doubleMotePack&&i>=8?secondMotePack:group;
+    Object.assign(enemy,{microSwarm:true,moteRoot:pack,motePack:pack,
+    moteOriginCount:doubleMotePack?8:plan.members.length,
     moteSpawnedAt:this.time,moteFlank:0,moteReformUntil:0,
     // Enter as an ordinary traffic formation; only local sensing may
     // replace this route with a last-known position of the moving player.
     moteApproach:enemy._patrolRoute});
+   }
    if(intelSource){
     const signalIntel=createSignalIntel(intelSource.x,intelSource.y,this.time);
     // Zoomed-out cameras place honest off-screen entries much farther away.
@@ -4648,6 +4657,35 @@ export class ArcadeGame {
   }
   this.enemies.push(...created);
   return plan.pause;
+ }
+ spawnMoteReinforcements(courier,lastKnown,count=16){
+  if(!courier?.hp||!lastKnown||this.enemies.length+count>RULES.maxEnemies||
+     this.enemies.filter(e=>e.microSwarm&&e.hp>0).length+count>MOTE_SWARM.maxMotes||
+     !outsideCamera(courier.x,courier.y,this.camera(),120))return 0;
+  const unit=Math.min(8,Math.floor(count/2)),newShips=[];
+  const toward=Math.atan2(lastKnown.y-courier.y,lastKnown.x-courier.x);
+  for(let packNo=0;packNo<2;packNo++){
+   const group=++this.groupSerial;
+   for(let i=0;i<unit;i++){
+    const serial=++this.enemySerial;
+    const side=(packNo===0?-1:1)*95+(i-(unit-1)/2)*13;
+    const back=(i%3)*15+packNo*32;
+    const x=courier.x-Math.cos(toward)*back-Math.sin(toward)*side;
+    const y=courier.y-Math.sin(toward)*back+Math.cos(toward)*side;
+    const hp=MOTE_SWARM.hp*(1+Math.min(.65,this.time/1600));
+    newShips.push({serial,group,type:'scout',x,y,vx:0,vy:0,
+     r:MOTE_SWARM.radius,hp,maxHp:hp,damage:MOTE_SWARM.damage,
+     microSwarm:true,motePack:group,moteRoot:group,moteOriginCount:unit,
+     moteCallUsed:true,moteApproach:{...lastKnown},moteSpawnedAt:this.time,
+     moteReformUntil:this.time+3.2,moteFlank:packNo===0?-1:1,
+     state:'hunt',angle:toward+Math.PI/2,hit:0,fire:1,think:.2,
+     commitUntil:0,expAwarded:false,scenario:'motes-reinforcement',
+     moteReturnUntil:this.time+3.2});
+   }
+  }
+  this.enemies.push(...newShips);
+  this.heritage?.play?.('swarmArrival',1.6,courier);
+  return newShips.length;
  }
  handleFieldMining(rock,kind){
   const op=this.operation;
@@ -5186,6 +5224,7 @@ export class ArcadeGame {
   advanceFluxSupports(this,dt);
   for(const s of this.shots){
    if(!s.alive)continue;
+   const oldShotX=s.x,oldShotY=s.y;
    const nextX=s.x+s.vx*dt,nextY=s.y+s.vy*dt;
    const travel=Math.hypot(nextX-s.x,nextY-s.y);
    const candidates=this.rockGrid.query((s.x+nextX)*.5,(s.y+nextY)*.5,65+travel*.5);
@@ -5208,7 +5247,7 @@ export class ArcadeGame {
    }
    if(s.life<=0)s.alive=false;
    if(s.alive){
-    if(!hitFriendlyShip(this,s)&&dist(s,p)<s.r+p.r){
+    if(!hitFriendlyShip(this,s)&&sweptRamHit(oldShotX,oldShotY,s.x,s.y,p,s.r+p.r)){
       s.alive=false;
       const before=p.hp+p.shield;
       this.hurt(s.damage,{x:s.x,y:s.y});
@@ -5277,7 +5316,8 @@ export class ArcadeGame {
   this.enemies=this.enemies.filter(e=>{
    const probe=e.missionStrike?.target==='probe'&&this.world.stations.get(e.probeAssault)?.probeMission;
    const retained=e.hp>0&&(e.trialId===this.contourTrial?.entry?.id||
-    e.noiseCourierEscaping||e.interceptCargo||e.relayAssault||e.stationRaid||
+    e.noiseCourierEscaping||e.moteEscape||e.moteCourierReturning||
+    e.interceptCargo||e.relayAssault||e.stationRaid||
     (isFieldOperation(this.operation)&&e.fieldOperation===this.operation.id)||
     (e.probeAssault&&e.probeAssault===this.operation?.baseId)||(probe&&probe.strikerSerial===e.serial)||
     (e.corridorCourier&&e.serial===(this.world.home.corridorMission||this.operation)?.radioSerial)||
@@ -5944,6 +5984,20 @@ export class ArcadeGame {
     c.strokeStyle='#77ffcb';c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,e.r+8,0,TAU);c.stroke();
    }else if(e.type==='healer'){
     c.strokeStyle='#8be5a7';c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,e.r+7,0,TAU);c.stroke();
+   }else if(e._lastStand){
+    const charging=this.time>=e._lastStand.chargeAt;
+    const pulse=this.visuals.reducedMotion?0:Math.sin(this.time*(charging?24:13))*3;
+    c.save();c.strokeStyle=charging?'#ff503e':'#ff9760';
+    c.shadowColor='#ff371c';c.shadowBlur=charging?19:10;
+    c.lineWidth=charging?3.6:2.5;
+    c.beginPath();c.arc(e.x,e.y,e.r+9+pulse,0,TAU);c.stroke();
+    if(charging){
+     const v=Math.hypot(e.vx,e.vy)||1;
+     c.strokeStyle='#ff7248';c.lineWidth=4.2;c.globalAlpha=.78;
+     c.beginPath();c.moveTo(e.x-e.vx/v*e.r,e.y-e.vy/v*e.r);
+     c.lineTo(e.x-e.vx/v*40,e.y-e.vy/v*40);c.stroke();
+    }
+    c.restore();
    }else if(e.state==='charge'||e.state==='windup'){
     const preparing=e.state==='windup';
     c.strokeStyle=preparing?'#ffc070':'#ff7552';c.lineWidth=preparing?2.5:3;
@@ -5962,6 +6016,21 @@ export class ArcadeGame {
    if(!this.visuals.drawEnemy(c,e,this.time)&&
       !this.drawSprite(this.images[spriteKey],e.x,e.y,e.r*3,e.r*3,e.angle)){
     c.fillStyle=e.converted?'#6fe7ba':'#f07887';c.beginPath();c.arc(e.x,e.y,e.r,0,TAU);c.fill();
+   }
+   if(e._lastStand){
+    const charging=this.time>=e._lastStand.chargeAt;
+    const pulse=this.visuals.reducedMotion?0:.14*Math.sin(this.time*19+e.serial);
+    c.save();c.globalCompositeOperation='screen';
+    const ember=c.createRadialGradient(e.x,e.y,2,e.x,e.y,e.r*2.25);
+    ember.addColorStop(0,charging?'rgba(255,76,28,.85)':'rgba(255,96,48,.55)');
+    ember.addColorStop(.55,'rgba(255,65,38,.27)');
+    ember.addColorStop(1,'rgba(255,36,28,0)');
+    c.globalAlpha=(charging?.76:.53)+pulse;c.fillStyle=ember;
+    c.beginPath();c.arc(e.x,e.y,e.r*2.25,0,TAU);c.fill();c.restore();
+    c.save();c.textAlign='center';c.font='bold '+worldLabelSize(10,this.cameraZoom)+'px system-ui';
+    c.fillStyle=charging?'#ffb9a0':'#ffd2ac';
+    c.fillText(charging?'ТАРАН':'КРИТИЧЕСКИЙ РАЗГОН',e.x,e.y-e.r-25,160);
+    c.restore();
    }
    this.heritage.vfx.renderSurfaceLight(c,e.x,e.y,e.r);
    drawStormCharge(c,e,this.time);
@@ -6084,8 +6153,9 @@ export class ArcadeGame {
    if(outsideCamera(s.x,s.y,cam,15))continue;
    if(this.fps>=28&&this.visuals.drawHostileShot(c,s))continue;
    const d=Math.hypot(s.vx,s.vy)||1,ux=s.vx/d,uy=s.vy/d;
-   c.save();c.strokeStyle=s.kind==='iris'?'#c49aff':'#ff7186';
-   c.lineWidth=s.kind==='iris'?3.2:4;c.lineCap='round';
+   c.save();c.strokeStyle=s.kind==='iris'?'#c49aff':s.kind==='mote'?'#8bdcff':
+    s.kind==='flanker-needle'?'#b58dff':s.kind==='fighter-burst'?'#ffbd7c':'#ff7186';
+   c.lineWidth=s.kind==='iris'||s.kind==='mote'?3.2:4;c.lineCap='round';
    c.beginPath();c.moveTo(s.x-ux*12,s.y-uy*12);
    c.lineTo(s.x+ux*5,s.y+uy*5);c.stroke();c.restore();
   }

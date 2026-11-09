@@ -46,6 +46,16 @@ test('a verified scout report travels to a caller and the shared order travels b
  assert.equal(net.directiveFor(scout,game.time).mode,'intercept');
 });
 
+test('micro-drone packs do not receive conflicting ordinary pilot radio orders',()=>{
+ const pilot=ship(1,'fighter',90),motes=Array.from({length:10},(_,i)=>({
+  ...ship(i+10,'scout',125+i*4),microSwarm:true,motePack:8,moteRoot:8}));
+ const game=scene([pilot,...motes]);
+ game.enemyComms.update(game);
+ assert.ok(game.enemyComms.cells.every(cell=>cell.members.every(e=>!e.microSwarm)));
+ assert.ok(motes.every(e=>!e._commsCell));
+ assert.equal(game.enemyComms.reportSight(motes[0],game.player,game.time),false);
+});
+
 test('a transient jammer cannot silently consume a wingmans undelivered observations',()=>{
  const witness=ship(1,'scout',90),leader=ship(2,'fighter',160);
  const game=scene([witness,leader]),net=game.enemyComms;
