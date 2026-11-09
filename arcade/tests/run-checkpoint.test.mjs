@@ -113,7 +113,7 @@ test('artillery magazines and reserved flux packets survive a real dock checkpoi
  state.artillery=[{id:1,kind:'flux-artillery',x:g.player.x+240,y:g.player.y+80,
   r:28,hp:110,maxHp:110,ammo:4,chargeCredit:.13,readyAt:120,
   nextShotAt:250,aimingUntil:0,aimX:g.player.x+280,aimY:g.player.y+80,
-  mode:'group',lastShotAt:230,lastImpactAt:230,
+  mode:'group',lastShotAt:230,lastImpactAt:230,gunAngle:.8,
   lastImpactX:g.player.x+280,lastImpactY:g.player.y+80}];
  state.artilleryPackets=[{turretId:1,edgeId:'node-a|node-b',amount:.5,charges:2,
   launchedAt:242,arriveAt:246,path:[{x:100,y:100},{x:200,y:100},
@@ -127,6 +127,7 @@ test('artillery magazines and reserved flux packets survive a real dock checkpoi
  assert.equal(restored.world.contours.flux,72.75);
  assert.equal(restored.world.contours.artillery[0].ammo,4);
  assert.equal(restored.world.contours.artillery[0].mode,'group');
+ assert.equal(restored.world.contours.artillery[0].gunAngle,.8);
  assert.equal(restored.world.contours.artilleryPackets[0].charges,2);
  assert.equal(restored.world.contours.artilleryPackets[0].amount,.5);
  assert.equal(restored.world.contours.artilleryShells.length,1);
