@@ -63,6 +63,9 @@ export function impactRock(rock,damage,sourceX,sourceY,kind='auto') {
 }
 export function updateRockMotion(rock,dt) {
  if(!rock.alive)return;
+ // Most procedural rocks are untouched. Their position, angle and overlays
+ // cannot change until an impact wakes them, even in the wider zoomed view.
+ if(!rock.vx&&!rock.vy&&!rock.spinVelocity&&!rock.flash&&!rock.heat)return;
  rock.flash=Math.max(0,(rock.flash||0)-dt*2.7);
  rock.heat=Math.max(0,(rock.heat||0)-dt*.65);
  const drag=Math.exp(-3.1*dt);

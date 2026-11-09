@@ -441,8 +441,10 @@ test('a claimed field contract is credited to its completed flight and saved exa
  g.sortieReports=[];g.sortieStart=startSortie(g);
  g.contract={baseId:b.id,kind:'kill',goal:1,progress:0,choiceId:'standard',
   name:'Перехват',ore:16,data:15};
+ g.player.x=b.x+460;g.player.y=b.y;
  g.advanceContract('kill',{type:'scout',x:b.x,y:b.y,lastPlayerHitAt:g.time});
  assert.equal(g.contract.completedSortieId,g.sortieStart.id);
+ g.player.x=b.x;g.player.y=b.y; // The pilot returns to dock to claim and save.
  g.time+=45;g.player.data+=7;
  g.sortieReports=appendSortieReport(g.sortieReports,finishSortie(g.sortieStart,g,b));
  g.sortieStart=null;g.renderDock=noop;

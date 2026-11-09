@@ -19,6 +19,10 @@ import {stripCapitalMatte,CAPITAL_PAINTINGS} from './capital-art.js?v=arcade-cap
 import {drawCapitalDamage} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 
 const TAU=Math.PI*2;
+// Canvas is zoomed in world coordinates. Keep readable station names at their
+// normal on-screen size when zooming out; never magnify their geometry or range.
+export const worldLabelSize=(size,zoom=1)=>
+ size/Math.min(1,Math.max(.55,Number.isFinite(zoom)?zoom:1));
 const HULLS=Object.freeze({
  dock:[[-34,-68],[33,-68],[70,-34],[70,31],[34,69],[-34,69],[-70,31],[-70,-34]],
  arsenal:[[-35,-75],[0,-83],[35,-75],[77,-41],[58,0],[77,41],[35,75],[0,83],[-35,75],[-77,41],[-58,0],[-77,-41]],
@@ -618,7 +622,7 @@ export class ArcadeVisuals {
   }
   ctx.restore();
  }
- drawBase(ctx,b,time,focusX,focusY,network=null,linked=false){
+ drawBase(ctx,b,time,focusX,focusY,network=null,linked=false,zoom=1){
   const hostile=b.enemy&&!b.captured;
   const color=hostile?'#f45b6e':b.type==='dock'?'#69e5e4':
     b.type==='carrier'?'#aaa9ff':b.type==='arsenal'?'#ffc17f':'#c9a3ff';
@@ -699,11 +703,12 @@ export class ArcadeVisuals {
   ctx.globalAlpha=pulse;ctx.beginPath();ctx.arc(0,0,11,0,TAU);ctx.fill();
   ctx.globalAlpha=1;
   }
-  ctx.fillStyle='#eaf6ff';ctx.textAlign='center';ctx.font='bold 13px system-ui';
+  ctx.fillStyle='#eaf6ff';ctx.textAlign='center';
+  ctx.font='bold '+worldLabelSize(13,zoom)+'px system-ui';
   ctx.fillText(hostile?'ВРАЖЕСКАЯ БАЗА':
    {dock:'Ремонтный док',arsenal:'Военный арсенал',
     carrier:'Авианосец',lab:'Лаборатория'}[b.type],0,-118);
-  ctx.font='11px system-ui';ctx.fillStyle=color;
+  ctx.font=worldLabelSize(11,zoom)+'px system-ui';ctx.fillStyle=color;
   const nearPanel=Math.hypot(b.x-focusX,b.y-focusY)<=RULES.baseInteract;
   ctx.fillText(hostile?(b.coreExposed?'ЯДРО ОТКРЫТО · АТАКУЙТЕ':'Оборона '+b.rank):
    nearPanel?(powered?'E · УСЛУГИ БАЗЫ':'E · ОТКРЫТЬ БАЗУ'):

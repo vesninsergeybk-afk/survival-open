@@ -182,7 +182,7 @@
  height:3px;margin:0;background:#2744519c}
 .cockpit-hud .burst-meter .boost-rail>span{background:#81F4E4;box-shadow:none}
 .cockpit-hud .burst-meter .hud-ability-key{bottom:0}
-.cockpit-hud .interaction-cue{bottom:132px;padding:7px 11px;
+.cockpit-hud .interaction-cue{bottom:168px;padding:7px 11px;
  background:#0B2634dd;border:1px solid #96E4EDa3;
  border-radius:0;clip-path:polygon(0 0,96% 0,100% 40%,100% 100%,0 100%)}
 #hud.cockpit-hud.is-critical .wing-left{background-image:url('./studio/hud-kit/panel-left.svg');
