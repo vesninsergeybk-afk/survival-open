@@ -22,7 +22,8 @@ const properCross=(a,b,c,e)=>{
 
 export const createContours=()=>({links:[],flux:0,launches:{},harvesters:[],delivered:0,lost:0,
  nextLaunchAt:0,pulseReadyAt:0,reserve:null,sortie:null,nextSortieAt:0,
- trials:newTrialLedger(),artillery:[],artilleryPackets:[],artilleryShells:[],artillerySerial:0});
+ trials:newTrialLedger(),artillery:[],artilleryPackets:[],artilleryShells:[],artillerySerial:0,
+ supportTurrets:[],supportPackets:[],supportSerial:0});
 
 export function contourLinkOffer(world,firstId,secondId){
  const state=world.contours,a=world.stations.get(firstId),b=world.stations.get(secondId);

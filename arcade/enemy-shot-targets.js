@@ -37,5 +37,31 @@ export function hitFriendlyShip(game,shot){
     }
     return true;
   }
+  for(const turret of game.world?.contours?.supportTurrets||[]){
+    if(turret.hp<=0||game.time<turret.readyAt)continue;
+    // The small escorts are intentionally vulnerable: losing one forces a
+    // paid, visible delivery of replacement flux to the mothership.
+    for(const drone of turret.drones||[]){
+      if(drone.hp<=0||Math.hypot(shot.x-drone.x,shot.y-drone.y)>=shot.r+drone.r)continue;
+      shot.alive=false;drone.hp=Math.max(0,drone.hp-shot.damage);
+      const point=contactOnCircle(drone.x,drone.y,drone.r,shot.x,shot.y);
+      if(drone.hp<=0){
+        game.heritage?.vfx?.shipExplosion?.(drone.x,drone.y,21,'#83f5c9');
+        game.heritage?.play?.('supportDroneLost',.4,drone);
+      }else game.heritage?.vfx?.hullImpact?.(point?.x??drone.x,point?.y??drone.y,false,point);
+      return true;
+    }
+    if(Math.hypot(shot.x-turret.x,shot.y-turret.y)>=shot.r+turret.r)continue;
+    shot.alive=false;turret.hp=Math.max(0,turret.hp-shot.damage);
+    const point=contactOnCircle(turret.x,turret.y,turret.r,shot.x,shot.y);
+    if(turret.hp<=0){
+      game.heritage?.vfx?.shipExplosion?.(turret.x,turret.y,40,'#ffa87e');
+      game.heritage?.play?.('supportDestroyed',.8,turret);
+    }else{
+      game.heritage?.vfx?.hullImpact?.(point?.x??turret.x,point?.y??turret.y,false,point);
+      game.heritage?.play?.('supportHit',.2,turret);
+    }
+    return true;
+  }
   return false;
 }

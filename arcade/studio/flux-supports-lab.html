@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Выживший · полигон вспомогательных турелей</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#050c16;color:#d9e9f4}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 0,#173349 0,#050c16 66%)}
+main{max-width:1140px;margin:auto;padding:20px 18px 32px}header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+h1{font-size:clamp(1.2rem,3vw,1.8rem);font-weight:650;margin:0}p{color:#aac0d1;line-height:1.5;margin:10px 0 16px}
+a{color:#89e1ec}.stage{border:1px solid #2d5b6e;border-radius:14px;overflow:hidden;box-shadow:0 14px 60px #0009}
+canvas{display:block;width:100%;height:auto;aspect-ratio:960/590;background:#050e1a}
+.panel{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px;align-items:center}
+button{cursor:pointer;color:#eaf8ff;background:#13364c;border:1px solid #3c7486;border-radius:8px;padding:10px 12px;font:inherit;font-size:.88rem}
+button:hover,button:focus-visible{background:#22536a;outline:2px solid #7edfe7;outline-offset:1px}
+button[aria-pressed="true"]{background:#67472e;border-color:#ffb276}
+#status{color:#a0d8e2;font-size:.84rem;font-variant-numeric:tabular-nums;margin:12px 0 0}
+</style>
+</head>
+<body>
+<main>
+<header><h1>ОБОРОНИТЕЛЬНЫЕ УСТАНОВКИ · ПОЛИГОН</h1><a href="../">← Вернуться в игру</a></header>
+<p>Здесь действуют настоящие игровые модули: цепной разрядник замедляет группу, лазерное гнездо выпускает частые залпы, а матка выпускает сбиваемых дронов. Оранжевые импульсы — оплаченные флюксом поставки по энергетическому кабелю.</p>
+<div class="stage"><canvas id="stage" width="960" height="590" aria-label="Проверка турелей, добычи флюкса, снарядов и дронов"></canvas></div>
+<div class="panel">
+<button data-type="arc" aria-pressed="true">Цепной разрядник</button>
+<button data-type="laser" aria-pressed="false">Лазерное гнездо</button>
+<button data-type="hive" aria-pressed="false">Дроновая матка</button>
+<button id="upgrade">Улучшить</button><button id="damage">Повредить</button>
+<button id="wreck">Разрушить</button><button id="restart">Построить заново</button>
+<button id="sound" aria-pressed="false">Включить звук</button>
+</div>
+<p id="status" aria-live="polite">Создание треугольника…</p>
+<p><small>Постройки, боевые действия, поставки, повреждения и звуки вызываются из тех же модулей, что и в основной игре. Звук включается только по нажатию.</small></p>
+</main>
+<script type="module">
+import {createContours,connectContour} from '../territory-system.js?v=support-three-1';
+import {deploySupport,advanceFluxSupports,drawFluxSupports,upgradeSupport,SUPPORT_TYPES} from '../flux-supports.js?v=support-three-1';
+import {ArcadeHeritage} from '../heritage.js?v=support-three-1';
+const canvas=document.getElementById('stage'),ctx=canvas.getContext('2d',{alpha:false}),status=document.getElementById('status');
+const random=i=>{const x=Math.sin(i*117.34+15.7)*41682.31;return x-Math.floor(x);};
+const stars=Array.from({length:150},(_,i)=>({x:random(i)*960,y:random(i+300)*590,r:.4+random(i+520)*1.1}));
+const stations=new Map([['A',100,25],['B',857,25],['C',495,564]].map(([id,x,y])=>
+ [id,{id,x,y,active:true,enemy:false,suppressed:false,type:'dock',turrets:[]} ]));
+const world={stations,contours:createContours(),nearbyStations(x,y,r){
+ return [...stations.values()].filter(s=>Math.hypot(s.x-x,s.y-y)<r);}};
+for(const [a,b] of [['A','B'],['B','C'],['C','A']])connectContour(world,a,b);
+world.contours.trials.completed=1;
+const player={x:320,y:340,ore:9999};
+const heritage=new ArcadeHeritage();heritage.listener={x:480,y:290};heritage.viewWidth=960;
+const game={world,player,time:0,vw:960,visuals:{reducedMotion:false},heritage,enemies:[],
+ damageEnemy(e,amount){e.hp=Math.max(0,e.hp-amount);},
+ hitTurret(t,amount){t.hp=Math.max(0,t.hp-amount);},
+ hitEnemyBase(b,amount){b.hp=Math.max(b.maxHp*.2,b.hp-amount);}};
+let kind='arc',tower,lastNow=0;
+function reset(){
+ world.contours.supportTurrets=[];world.contours.supportPackets=[];world.contours.supportSerial=0;
+ world.contours.flux=300;game.time=0;game.fluxSupportFx=[];
+ tower=deploySupport(world,player,{x:485,y:316},0,kind).turret;
+ game.enemies=Array.from({length:5},(_,i)=>({x:725,y:190+i*72,hp:150,maxHp:150,r:14,vx:0,vy:0}));
+ heritage.play('supportBuild',.15,tower);
+}
+for(const button of document.querySelectorAll('[data-type]'))button.addEventListener('click',()=>{
+ kind=button.dataset.type;document.querySelectorAll('[data-type]').forEach(b=>
+  b.setAttribute('aria-pressed',String(b===button)));
+ reset();
+});
+document.getElementById('restart').addEventListener('click',reset);
+document.getElementById('upgrade').addEventListener('click',()=>{
+ if(tower&&upgradeSupport(world,player,tower,game.time).ok)heritage.play('supportUpgrade',.15,tower);
+});
+document.getElementById('damage').addEventListener('click',()=>{
+ if(tower?.hp>0){tower.hp=Math.max(12,tower.hp-48);heritage.play('supportHit',.1,tower);}
+});
+document.getElementById('wreck').addEventListener('click',()=>{
+ if(tower?.hp>0){tower.hp=0;tower.lastDestroyedAt=game.time;heritage.play('supportDestroyed',.1,tower);}
+});
+document.getElementById('sound').addEventListener('click',e=>{
+ const enabled=heritage.toggleSound();heritage.audio.stopMusic();heritage.settings.musicEnabled=false;
+ e.currentTarget.setAttribute('aria-pressed',String(enabled));
+ e.currentTarget.textContent=enabled?'Выключить звук':'Включить звук';
+});
+function background(){
+ ctx.fillStyle='#050e1a';ctx.fillRect(0,0,960,590);
+ for(const s of stars){ctx.fillStyle=`rgba(155,218,240,${.25+Math.sin(game.time*.4+s.x)*.13})`;
+  ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();}
+ ctx.fillStyle='rgba(36,109,147,.08)';ctx.beginPath();ctx.moveTo(100,25);ctx.lineTo(857,25);
+ ctx.lineTo(495,564);ctx.closePath();ctx.fill();
+ for(const [a,b]of [['A','B'],['B','C'],['C','A']]){
+  const p=stations.get(a),q=stations.get(b);
+  ctx.strokeStyle='#327b9960';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();
+  ctx.strokeStyle='#76d9f0ac';ctx.lineWidth=2;ctx.stroke();
+ }
+ for(const s of stations.values()){
+  ctx.fillStyle='#1f4d66';ctx.strokeStyle='#76d5e9';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(s.x,s.y,17,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#d1f4f5';ctx.font='11px system-ui';ctx.textAlign='center';ctx.fillText(s.id,s.x,s.y+4);
+ }
+ ctx.save();ctx.translate(player.x,player.y);ctx.rotate(.55);
+ ctx.fillStyle='#588db0';ctx.strokeStyle='#a3e3ec';ctx.beginPath();ctx.moveTo(20,0);
+ ctx.lineTo(-14,-12);ctx.lineTo(-7,0);ctx.lineTo(-14,12);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+}
+function foes(dt){
+ for(let i=0;i<game.enemies.length;i++){
+  const e=game.enemies[i],theta=game.time*(.65+i*.08)+i*.8;
+  const x=702+Math.cos(theta)*105,y=280+Math.sin(theta)*(95+i*8);
+  e.vx=(x-e.x)/Math.max(dt,.001);e.vy=(y-e.y)/Math.max(dt,.001);
+  // Slowdown is applied in the real game by tactical-fields; simulate its motion here.
+  const slow=e.tacticalSlowUntil>game.time?(e.tacticalSlowFactor||.6):1;
+  e.x+=(x-e.x)*slow;e.y+=(y-e.y)*slow;
+  if(e.hp<=0)e.hp=e.maxHp;
+  ctx.save();ctx.translate(e.x,e.y);ctx.rotate(game.time*1.1+i);
+  ctx.shadowColor='#a886e6';ctx.shadowBlur=10;
+  ctx.fillStyle='#413464';ctx.strokeStyle=e.tacticalSlowUntil>game.time?'#b7b4ff':'#c292e6';ctx.lineWidth=2;
+  ctx.beginPath();for(let j=0;j<6;j++){
+   const a=j*Math.PI/3,r=j%2?8:15;
+   if(j===0)ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+   else ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+  }ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+ }
+}
+function frame(now){
+ const dt=Math.min(.043,(now-lastNow)/1000||.016);lastNow=now;game.time+=dt;
+ heritage.vfx.clock=game.time;
+ background();foes(dt);advanceFluxSupports(game,dt);
+ drawFluxSupports(ctx,game,{x:0,y:0,w:960,h:590});
+ const cfg=SUPPORT_TYPES[kind],drones=tower?.drones.filter(d=>d.hp>0).length||0;
+ const ammo=tower?.type==='hive'?`${drones}/${Math.min(4,tower.level+1)} дронов`:
+  `${tower?.ammo||0}/${cfg.magazine} зарядов`;
+ status.textContent=`${cfg.name} · ${tower?.hp<=0?'разрушена':game.time<tower.readyAt?'строится':'уровень '+tower.level}`+
+  ` · ${ammo} · флюкс ${world.contours.flux.toFixed(1)} · корпус ${tower?.hp||0}/${cfg.maxHp}`;
+ requestAnimationFrame(frame);
+}
+reset();requestAnimationFrame(frame);
+</script>
+</body>
+</html>

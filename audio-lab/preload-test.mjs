@@ -17,7 +17,8 @@ test('combat sample preparation does not ask to resume or play audio',async()=>{
   await first;
   assert.equal(audio.unlocked,false,'preparation is allowed while sound is muted');
   for(const key of ['ui_audio_on','starter_soft','comet_launch','comet_burst',
-   'artillery_launch','artillery_impact','mine_launch','mine_arm',
+   'artillery_launch','artillery_impact','support_arc','support_laser',
+   'support_drone_launch','support_drone_shot','mine_launch','mine_arm',
    'mine_burst','target_mark','dash_burst','swarm_arrival','swarm_split','swarm_merge','swarm_warning']){
    assert(events.some(entry=>entry.key===key),'missing preload cue '+key);
   }

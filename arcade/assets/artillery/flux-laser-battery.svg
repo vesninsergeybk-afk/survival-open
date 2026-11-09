@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Лазерное гнездо">
+ <defs><linearGradient id="metal" x2="1" y2="1"><stop stop-color="#7d9fb0"/><stop offset=".48" stop-color="#2c4357"/><stop offset="1" stop-color="#111b2d"/></linearGradient><linearGradient id="gun"><stop stop-color="#9dacae"/><stop offset=".45" stop-color="#33495b"/><stop offset="1" stop-color="#171f32"/></linearGradient><radialGradient id="core"><stop stop-color="#fff2cc"/><stop offset=".35" stop-color="#ffb967"/><stop offset="1" stop-color="#a04428"/></radialGradient></defs>
+ <path d="M64 4L85 19L109 24L117 48L125 64L115 83L106 106L84 113L64 124L43 114L22 106L11 84L3 64L13 45L20 21L43 18Z" fill="url(#metal)" stroke="#99b7c6" stroke-width="2"/>
+ <path d="M64 14L85 29L102 32L112 64L101 94L84 102L64 114L44 102L27 94L16 64L27 32L43 29Z" fill="#172437" stroke="#496a7e" stroke-width="3"/>
+ <path d="M22 52L36 49L39 80L21 84ZM106 52L92 49L89 80L107 84Z" fill="#506a79" stroke="#99b9c9" stroke-width="1.8"/>
+ <g stroke="#91b2c7" stroke-width="2" fill="url(#gun)"><path d="M45 64L40 14L52 10L59 63Z"/><path d="M69 63L76 10L88 14L83 64Z"/></g>
+ <path d="M43 15L50 10L52 38L46 39ZM78 10L85 15L82 39L76 38Z" fill="#d7e6e8"/>
+ <g fill="#ffb46b"><rect x="44" y="17" width="9" height="8" rx="2"/><rect x="75" y="17" width="9" height="8" rx="2"/><path d="M43 47L55 45L57 55L44 56ZM73 45L85 47L84 56L71 55Z"/></g>
+ <circle cx="64" cy="70" r="30" fill="#213447" stroke="#87a8b8" stroke-width="3"/>
+ <path d="M64 41L85 54L87 77L64 98L41 77L43 54Z" fill="#273b50" stroke="#8babbf" stroke-width="2"/>
+ <circle cx="64" cy="70" r="18" fill="#0b1728" stroke="#ffac70" stroke-width="3"/><circle cx="64" cy="70" r="11" fill="url(#core)"/>
+ <path d="M32 95H48M80 95H96" stroke="#ffa25e" stroke-width="4" stroke-linecap="round"/>
+ <g fill="#a1bfd0"><circle cx="24" cy="64" r="3"/><circle cx="104" cy="64" r="3"/><circle cx="64" cy="112" r="3"/></g>
+</svg>

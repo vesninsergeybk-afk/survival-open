@@ -213,6 +213,23 @@ const pickTarget=(e,game)=>{
     }
     if(nearest)target=nearest;
   }
+  if(target===game.player&&e.type!=='healer'&&!e.relayAssault&&!e.stationRaid){
+    let closest=Infinity,nearest=null;
+    for(const platform of game.world?.contours?.supportTurrets||[]){
+      if(platform.hp<=0||game.time<platform.readyAt)continue;
+      const active=platform.type==='hive'&&platform.drones?.some(dr=>dr.hp>0)||
+        game.time-platform.lastShotAt<9;
+      if(!active)continue;
+      for(const unit of [platform,...(platform.type==='hive'?(platform.drones||[]):[])]){
+        if(unit.hp<=0)continue;
+        const distance=dist(e,unit);
+        if(distance<420&&distance<closest&&game.enemyCanSee?.(e,unit)){
+          nearest=unit;closest=distance;
+        }
+      }
+    }
+    if(nearest)target=nearest;
+  }
   return target;
 };
 export function updateEnemy(e,game,dt){

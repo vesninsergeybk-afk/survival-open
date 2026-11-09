@@ -204,7 +204,18 @@ export const AUX_SOUNDS = {
   artillery_launch: cue('Выстрел артиллерийской гаубицы','ballistic',f('rd_cannon_01'),.45,4,950,1.94),
   artillery_impact: cue('Попадание тяжёлого снаряда','impact',f('rd_bang_10'),.48,5,650,1.7),
   artillery_hit: cue('Попадание по артиллерийскому корпусу','impact',f('om_clamour1'),.24,3,250,.9),
-  artillery_destroyed: cue('Артиллерийская платформа разрушена','impact',f('rd_cannon_02'),.49,5,1200,1.96)
+  artillery_destroyed: cue('Артиллерийская платформа разрушена','impact',f('rd_cannon_02'),.49,5,1200,1.96),
+  support_build: cue('Монтаж боевой платформы','structure',b('base_section_construct'),.37,3,700,1.4),
+  support_online: cue('Подключение платформы к контуру','structure',b('base_resonance_link'),.24,3,1000,1.4),
+  support_charge: cue('Заряд из энергетической сети','mechanical',f('om_toasterstep2'),.12,2,470,.7),
+  support_arc: cue('Цепной разряд','energy',f('rd_fw_05'),.35,4,550,1.4),
+  support_laser: cue('Лазерная очередь','ballistic',f('rd_shot_01'),.32,4,700,.8),
+  support_drone_launch: cue('Создан и запущен дрон','mechanical',b('base_escort_launch'),.26,3,800,1.4),
+  support_drone_shot: cue('Выстрел дрона матки','ballistic',f('rd_shot_03'),.16,2,300,.6),
+  support_drone_lost: cue('Дрон сбит','impact',f('rd_bang_02'),.29,3,450,1.5),
+  support_upgrade: cue('Усиление полевой платформы','structure',b('upgrade_drones'),.35,3,600,1.2),
+  support_hit: cue('Броня платформы повреждена','impact',f('om_clamour1'),.23,3,260,.9),
+  support_destroyed: cue('Боевая платформа разрушена','impact',f('rd_bang_10'),.49,5,1200,1.5)
 };
 
 AUX_SOUNDS.ui_slider.sampleUrls = [k('impactMetal_heavy_000'),k('impactMetal_heavy_001')];
@@ -236,7 +247,11 @@ const recordedLayers = {
   artillery_impact:{main:[f('rd_bang_10'),f('rd_bang_08')],
     layer:[f('rd_bang_08'),f('rd_bang_10')],gain:.25},
   artillery_destroyed:{main:[f('rd_cannon_02'),f('rd_bang_10')],
-    layer:[f('om_scrape2'),f('om_clamour1')],gain:.25}
+    layer:[f('om_scrape2'),f('om_clamour1')],gain:.25},
+  support_arc:{main:[f('rd_fw_05'),f('rd_fw_03')],
+    layer:[f('om_scrape1'),f('om_clamour6')],gain:.16},
+  support_laser:{main:[f('rd_shot_01'),f('rd_shot_02')],
+    layer:[f('om_toasterstep1'),f('om_toasterstep2')],gain:.13}
 };
 for(const [key,{main,layer,gain}] of Object.entries(recordedLayers)){
   AUX_SOUNDS[key].sampleUrls=main;
