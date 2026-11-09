@@ -1,4 +1,4 @@
-import {REGIONS,regionAt} from './regions.js?v=regions-1';
+import {REGIONS,regionAt} from './regions.js?v=regions-1-living-world-population-1';
 import {warFronts,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {CONTOURS,contourFields,contourArea,connectContour} from './territory-system.js?v=contours-1-triangle-defense-1';
 
@@ -6,7 +6,7 @@ import {CONTOURS,contourFields,contourArea,connectContour} from './territory-sys
 // It is not an independent free spawning economy. Only the five surveyed
 // regions advance, and only while the game simulation advances.
 export const EXPANSION=Object.freeze({interval:85,firstAt:90,cycle:180,cost:2,
- maxLinks:45,maxFields:24});
+ maxLinks:180,maxFields:90});
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const key=(a,b)=>[a,b].sort().join('|');
 const hostile=s=>!!s?.enemy&&!s.captured&&!s.suppressed&&s.hp>0;
