@@ -4,7 +4,7 @@ import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1-ene
 import {drawContourVortexArt} from './contour-vortex-art.js?v=contour-vortex-80frames-1';
 import {drawUnstableContour} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1-first-loops-1';
 import {trialBlockingField} from './contour-trials.js?v=contour-trials-1-first-loops-1';
-import {drawSiphon3,SIPHON3_WORLD_SIZE} from './siphon3-art.js?v=siphon3-rig-3';
+import {drawSiphon3,SIPHON3_WORLD_SIZE} from './siphon3-art.js?v=siphon3-rig-3-flux-build-1';
 
 const visible=(p,cam,r=200)=>p.x>=cam.x-r&&p.x<=cam.x+cam.w+r&&
  p.y>=cam.y-r&&p.y<=cam.y+cam.h+r;
@@ -238,7 +238,7 @@ export function drawContourWorld(game,c,cam){
   // Keep the former low-cost icon only if the texture is still loading.
   const direction=Math.atan2(field.center.y-field.anchor.y,field.center.x-field.anchor.x)+
    (h.phase==='back'?Math.PI:0);
-  const seed=[...field.id].reduce((sum,ch)=>sum+ch.charCodeAt(0),0);
+  const seed=[...field.id].reduce((sum,ch)=>sum+ch.charCodeAt(0),0)+(h.launchedAt||0)*.67;
   if(!drawSiphon3(c,{x,y,angle:direction,phase:h.phase,progress:h.progress,
    time:now,seed,size:SIPHON3_WORLD_SIZE,reducedMotion:calm})){
    c.save();c.translate(x,y);c.rotate(direction+Math.PI/2);
@@ -272,7 +272,7 @@ export function drawContourWorld(game,c,cam){
    c.beginPath();c.arc(fluxSortie.x,fluxSortie.y,26+(calm?0:Math.sin(now*6)*3),0,Math.PI*2);c.stroke();c.restore();
    if(!drawSiphon3(c,{x:fluxSortie.x,y:fluxSortie.y,angle,
     phase:'out',progress:Math.min(1,(now-fluxSortie.launchedAt)/18),time:now,
-    seed:27,size:SIPHON3_WORLD_SIZE*1.18,reducedMotion:calm})){
+    seed:27,size:84*1.18,reducedMotion:calm})){
     c.save();c.translate(fluxSortie.x,fluxSortie.y);c.rotate(angle);
     c.fillStyle='#aefff1';c.beginPath();c.ellipse(0,0,10,6,0,0,Math.PI*2);c.fill();c.restore();
    }
