@@ -910,10 +910,7 @@ export function renderBasePanel(base,state){
   '<span class="base-kicker">ЗАКАЗ ЗАВЕРШЁН</span><strong>Награда зачислена</strong>'+
   '<span class="base-auto-contract-values">+'+receipt.ore+' сплава · +'+receipt.data+
   ' опыта</span></section>':'';
- const dashboard=earnedReward+'<div class="base-overview-lead">'+homeUrgent+sectorPreview+'</div>'+suppression+
-  (threats?'<aside class="base-alert" role="status"><span>Противник угрожает связи станций.</span>'+
-   action('baseTab','Посмотреть угрозы','','network')+'</aside>':'')+
-  '<div class="base-quick-services">'+
+ const quickServices='<div class="base-quick-services">'+
   '<section class="base-quick-service base-quick-ship"><span class="base-kicker">КОРАБЛЬ</span><h3>Корпус и оружие</h3>'+
   '<button type="button" class="menu-info" data-help-only data-help="'+repairHint+(base.type==='dock'?' Бесплатно: отстыкуйтесь, оставайтесь в 165 м от дока, не получайте попаданий 4 с. Затем корпус восстанавливается примерно на 3 ед./с. Меню останавливает время.':'')+'" aria-label="Условия ремонта">i</button>'+
   '<div class="base-ship-condition"><img class="base-real-ship" src="'+heroArt+'" alt="Текущий облик корабля пилота" loading="lazy">'+
@@ -937,7 +934,17 @@ export function renderBasePanel(base,state){
   (o.reasons.hire?'<small class="base-action-reason">'+o.reasons.hire+'</small>':'')+
   (state.droneDamage>0?action('repairDrones','Починить дронов · '+o.droneRepairCost+' сплава',o.reasons.drones)+
    (o.reasons.drones?'<small class="base-action-reason">'+o.reasons.drones+'</small>':''):'')+
-  '</div></section></div>'+(capturedWing||supply)+'<div class="base-home-strategy">'+renderTerritoryProgress(state.world,state.position)+'</div>'+
+  '</div></section></div>';
+ // Repair and hire are the first routine station actions. A reward which can
+ // actually be collected here must still come first, before any purchase.
+ const rewardFirst=completedOrder&&state.contract?.baseId===base.id||
+  state.firstHardwareReward==='pending'&&!completedOrder;
+ const leadRow='<div class="base-overview-lead">'+homeUrgent+sectorPreview+'</div>';
+ const dashboard=earnedReward+suppression+
+  (threats?'<aside class="base-alert" role="status"><span>Противник угрожает связи станций.</span>'+
+   action('baseTab','Посмотреть угрозы','','network')+'</aside>':'')+
+  (rewardFirst?leadRow:'')+quickServices+(rewardFirst?'':leadRow)+
+  (capturedWing||supply)+'<div class="base-home-strategy">'+renderTerritoryProgress(state.world,state.position)+'</div>'+
   '<details class="base-secondary-info"><summary>Станция · '+brief[0]+' · карта и подробности</summary>'+
   '<div class="base-secondary-body"><p><b>'+brief[1]+'.</b> '+brief[2]+'</p>'+
   '<p>Архив данных · '+(state.data||0)+' · статистика вылета</p></div></details>'+

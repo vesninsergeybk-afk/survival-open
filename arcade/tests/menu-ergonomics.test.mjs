@@ -38,6 +38,17 @@ test('repair and drone hire are direct, mutually affordable choices and keep the
  assert.ok(baseOffer(hire.docked,hire.baseState()).reasons.repair.startsWith('Не хватает'));
 });
 
+test('overview starts with repair and hire before the tall mission and map preview',()=>{
+ const g=station(),html=renderBasePanel(g.docked,g.baseState());
+ const quick=html.indexOf('class="base-quick-services"');
+ const lead=html.indexOf('class="base-overview-lead"');
+ assert.ok(quick>=0&&lead>quick,'the two direct station services must precede the tall briefing');
+ const firstBlock=html.slice(quick,lead);
+ assert.match(firstBlock,/data-act="repair"/);
+ assert.match(firstBlock,/data-act="hire"/);
+ assert.doesNotMatch(firstBlock,/class="base-overview-sector"/);
+});
+
 test('plasma development honestly shows the mounted slot and shared calibration',()=>{
  const g=station();g.baseTab='development';
  let html=renderProgressionScreen(g.baseState());
@@ -168,4 +179,8 @@ test('the published page refreshes the entire changed menu import and style chai
    assert.ok(line?.includes(version),file+' should refresh '+path+' after deployment');
   }
  }
+ assert.match(source('index.html'),/station-menu-v2\.css\?v=[^"']*overview-first-1/);
+ assert.match(source('index.html'),/game\.js\?v=[^"']*overview-free-close-1/);
+ assert.match(source('game.js'),/base-panel\.js\?v=[^"']*overview-first-1/);
+ assert.match(source('game.js'),/flux-artillery\.js\?v=[^"']*free-close-1/);
 });

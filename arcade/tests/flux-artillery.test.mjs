@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {createContours,connectContour,contourFields} from '../territory-system.js';
-import {FLUX_ARTILLERY,ARTILLERY_MODES,artilleryOffer,maxArtilleryPreload,artilleryConnection,
+import {FLUX_ARTILLERY,ARTILLERY_MODES,artilleryOffer,maxArtilleryPreload,artilleryConnection,closeDefenseTarget,
  artilleryLinks,deployArtillery,advanceFluxArtillery,chooseArtilleryAim,
  setArtilleryMode,validFluxArtillery,drawFluxArtillery,turnArtilleryGun} from '../flux-artillery.js';
 import {readControls,DEFAULT_CONTROLS} from '../control-layout.js';
@@ -150,20 +150,42 @@ test('sustained fire uses complete three-shell salvos and recharges within an ei
  assert.equal(validFluxArtillery(world.contours),true);
 });
 
-test('close-range defense cannot fire on empty flux and spends a paid charge when ready',()=>{
+test('built-in close-range gun protects against rammers without spending flux or artillery rounds',()=>{
  const {world,player,point,game}=fixture();world.contours.trials.completed=1;
  world.contours.flux=1;
  const turret=deployArtillery(world,player,point,0,0).turret;
- turret.readyAt=0;
- const target={x:point.x+130,y:point.y,vx:0,vy:0,hp:100,maxHp:100,r:15};
+ turret.readyAt=0;turret.nextShotAt=999;
+ const target={type:'berserker',x:point.x+130,y:point.y,vx:0,vy:0,hp:100,maxHp:100,r:15};
  game.enemies=[target];game.time=.1;advanceFluxArtillery(game,.1);
- assert.equal(game.damaged.length,0,'an empty tower must wait for actual flux delivery');
- turret.ammo=3;game.time=.2;advanceFluxArtillery(game,.1);
- assert.equal(game.damaged.length,0,'three main-salvo rounds are protected from close-range spending');
- turret.ammo=4;game.time=.3;advanceFluxArtillery(game,.1);
- assert.equal(game.damaged.length,1);
- assert.equal(turret.ammo,3);
+ assert.equal(game.damaged.length,1,'a built turret fires without paid ammo');
+ assert.equal(turret.ammo,0);
  assert.equal(world.contours.flux,0);
+ turret.ammo=3;game.time=.31;advanceFluxArtillery(game,.21);
+ assert.equal(game.damaged.length,2);
+ assert.equal(turret.ammo,3,'the point-defence gun never consumes reserved artillery rounds');
+ world.stations.get('B').suppressed=true;
+ assert.equal(artilleryLinks(world).length,0);
+ game.time=.52;advanceFluxArtillery(game,.21);
+ assert.equal(game.damaged.length,3,'local point defence still works when its flux cable is broken');
+ assert.equal(turret.ammo,3);assert.equal(world.contours.flux,0);
+});
+
+test('free point defence cannot mow down ranged patrols and obeys its target priority',()=>{
+ const {world,player,point,game}=fixture();world.contours.trials.completed=1;
+ world.contours.flux=1;
+ const turret=deployArtillery(world,player,point,0,0).turret;
+ turret.readyAt=0;turret.nextShotAt=999;
+ const ranged={type:'fighter',x:point.x+40,y:point.y,hp:100,maxHp:100,r:16};
+ game.enemies=[ranged];game.time=.1;advanceFluxArtillery(game,.1);
+ assert.equal(game.damaged.length,0,'a normal fighter at point-blank range is still a ranged threat');
+ assert.equal(closeDefenseTarget(game,turret),null);
+ const charging={...ranged,x:point.x+175,state:'charge'};
+ const ordered={...ranged,x:point.x+140,ramOrder:{target:turret}};
+ game.enemies=[ranged,charging,ordered];
+ assert.equal(closeDefenseTarget(game,turret),ordered,'a ramming squad aimed at this battery takes priority');
+ game.time=.31;advanceFluxArtillery(game,.21);
+ assert.equal(game.damaged[0].e,ordered);
+ assert.equal(turret.ammo,0,'free close defence needs no manufactured ammunition');
 });
 
 test('cable anchors to a productive triangle edge, and broken links stop resupply',()=>{

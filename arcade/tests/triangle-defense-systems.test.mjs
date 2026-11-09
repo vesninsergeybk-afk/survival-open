@@ -55,7 +55,7 @@ test('right-click artillery upgrade consumes flux and improves real close-range 
   heritage:{play(){},vfx:{shipExplosion(){}}}};
  advanceFluxArtillery(g,.1);
  assert.equal(enemy.hp,84,'upgraded close gun reaches 260 m and inflicts 16 damage');
- assert.equal(turret.ammo,3,'the close shot uses one paid charge');
+ assert.equal(turret.ammo,4,'the close shot must preserve all prepaid artillery charges');
 });
 
 test('rammer squad warns for more than two seconds before an actual coordinated charge',()=>{

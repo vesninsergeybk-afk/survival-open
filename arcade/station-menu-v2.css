@@ -76,7 +76,7 @@
 
 /* Overview: actual decision + actual local sector map. Unknown locations are
    already filtered in renderStationRoutePreview, never fabricated here. */
-.base-overview-lead{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);gap:12px;align-items:stretch;margin:0 0 12px}
+.base-overview-lead{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);gap:12px;align-items:stretch;margin:12px 0}
 #overlay .base-dialog .base-overview-lead .base-next-step{
  margin:0;padding:16px 19px;min-width:0;display:flex;flex-direction:column;
  align-items:flex-start;justify-content:flex-start;gap:12px;
