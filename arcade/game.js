@@ -1105,6 +1105,7 @@ export class ArcadeGame {
    }else if(Math.hypot(e.clientX-aimStart.x,e.clientY-aimStart.y)>14)cancelLongPress();
   });
   this.canvas?.addEventListener('contextmenu',e=>e.preventDefault());
+  this.canvas?.addEventListener('pointerleave',()=>{this.tacticalPointer=null;});
   this.canvas?.addEventListener('pointerup',e=>{
    if(this.buildPlanning?.stage==='place'){
     if(e.button===0){e.preventDefault();const point=worldAt(e.clientX,e.clientY);

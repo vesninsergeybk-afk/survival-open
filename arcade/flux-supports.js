@@ -321,6 +321,10 @@ function pointOnPath(path,fraction){
 export function drawFluxSupports(ctx,game,cam,preview=null){
  const s=game.world?.contours;if(!s)return;
  const now=game.time,reduced=!!game.visuals?.reducedMotion,edges=artilleryLinks(game.world);
+ const pointer=game.tacticalPointer,rect=pointer&&game.canvas?.getBoundingClientRect?.();
+ const hover=rect?.width&&rect?.height?{
+  x:cam.x+(pointer.x-rect.left)/rect.width*cam.w,
+  y:cam.y+(pointer.y-rect.top)/rect.height*cam.h}:null;
  for(const packet of s.supportPackets||[]){
   const p=pointOnPath(packet.path,(now-packet.launchedAt)/
    Math.max(.001,packet.arriveAt-packet.launchedAt));
@@ -395,6 +399,12 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
   if(live){
    ctx.fillStyle='#143747';ctx.fillRect(-30,44,60,5);
    ctx.fillStyle=cfg.color;ctx.fillRect(-30,44,60*t.hp/t.maxHp,5);
+  }
+  if(live&&hover&&d(hover,t)<t.r+14&&!building&&!preview){
+   ctx.strokeStyle='#9ae9f3';ctx.lineWidth=1.7;ctx.setLineDash([4,5]);
+   ctx.beginPath();ctx.arc(0,0,t.r+12,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+   ctx.fillStyle='#d9f7ff';ctx.font='bold 11px system-ui';ctx.textAlign='center';
+   ctx.fillText('ПКМ · РЕЖИМ / УЛУЧШЕНИЕ',0,71);
   }
   ctx.restore();
   if(t.type!=='hive')continue;
