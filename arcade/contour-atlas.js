@@ -16,8 +16,8 @@ import {firstContourPlan} from './contour-plan.js?v=map-ux-1';
 import {fluxSortieOffer,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
-import {productiveContourFields,unresolvedContourTrials,trialBlockingField} from './contour-trials.js?v=triangle-defense-1-triangle-defense-1';
-import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1-first-loops-1-triangle-defense-1';
+import {productiveContourFields,unresolvedContourTrials,trialBlockingField} from './contour-trials.js?v=swarm-siege-1';
+import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=swarm-siege-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':

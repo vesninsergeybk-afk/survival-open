@@ -1,4 +1,4 @@
-import {CONTOUR_TRIALS,unresolvedContourTrials,trialBlockingField,planContourTrial,trialQuota} from './contour-trials.js?v=triangle-defense-1-triangle-defense-1';
+import {CONTOUR_TRIALS,unresolvedContourTrials,trialBlockingField,planContourTrial,trialQuota} from './contour-trials.js?v=swarm-siege-1';
 
 // The unstable core is visible in the physical world before the real
 // vortex can start producing flux. Follows the field across camera movement.
@@ -72,14 +72,16 @@ export function drawContourTrialHUD(c,game){
  const defeated=event.waveIds?.filter(id=>event.defeatedIds?.has(id)).length||0;
  const total=event.waveIds?.length||0;
  const quota=event.required??trialQuota(total,event.plan.tier);
- const seconds=Math.max(0,Math.ceil(CONTOUR_TRIALS.maxWaveSeconds-(game.time-(event.waveStartedAt??game.time))));
+ const seconds=Math.max(0,Math.ceil((event.plan.waveSeconds||CONTOUR_TRIALS.maxWaveSeconds)-
+  (game.time-(event.waveStartedAt??game.time))));
  const subtitle=event.outsideFor>0?'ВЕРНИТЕСЬ В ЗОНУ · '+Math.max(0,Math.ceil(CONTOUR_TRIALS.retreatSeconds-event.outsideFor))+' С':
   event.waitingForSpace?'ДРУГОЙ БОЙ ЗАНИМАЕТ СЕКТОР · НАПАДЕНИЕ ОЖИДАЕТ':
   phase==='warning'?'АТАКА ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С · ВСЕГО ВОЛН: '+event.plan.waves.length:
   phase==='rest'?'ВОЛНА ОТРАЖЕНА · СЛЕДУЮЩАЯ ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С':
   'ВОЛНА '+(event.waveIndex+1)+' ИЗ '+event.plan.waves.length+' · ПОБЕДИТЬ '+Math.min(defeated,quota)+' / '+quota+' · '+seconds+' С';
  const hint=phase==='wave'?(irisRush?'Зрачок бросается по красной линии — уйдите поперёк неё':
-  'Уничтожайте отмеченных врагов. Покинуть зону можно на 7 секунд.'):
+  'Построение: '+(event.plan.formations?.[event.waveIndex]||'рой')+
+  ' · орбитальные круги опасны для всех кораблей'):
   'Победа даст сплав и усилит вашу территорию. Станции при отходе сохранятся.';
  c.save();c.scale(uiScale,uiScale);c.fillStyle='rgba(8,20,33,.94)';c.strokeStyle=event.outsideFor?'#ff7e85':'#ffb673';
  c.lineWidth=1.4;c.beginPath();c.roundRect(x,y,w,81,10);c.fill();c.stroke();

@@ -67,27 +67,41 @@ test('a subdivision of the same land never adds a trial; a new neighbouring face
  assert.equal(validContours(world.contours,[...world.stations]),true);
 });
 
-test('first three stages contain the promised scout and fighter waves',()=>{
+test('three growing siege waves bring real IRIS packs and heavy support',()=>{
  const [a,b,c]=[1,2,3].map(tier=>planContourTrial(tier,tier));
  assert.equal(a.waves.length,3);
- assert.deepEqual(a.waves[0],{scout:2});
- assert.ok(a.waves[1].fighter>0&&a.waves[2].berserker>0);
+ assert.ok(a.waves.every(w=>w.scout>=10));
+ assert.ok(a.waves[0].fighter>=2&&a.waves[1].berserker>0&&a.waves[2].gunship>0);
+ const count=w=>Object.values(w).reduce((sum,n)=>sum+n,0);
+ assert.ok(count(a.waves[0])>=12&&count(a.waves[1])>=18&&count(a.waves[2])>=24);
+ assert.ok(count(a.waves[0])<count(a.waves[1])&&count(a.waves[1])<count(a.waves[2]));
  assert.equal(b.waves.length,3);
  assert.equal(c.waves.length,3);
  assert.ok(c.waves[0].scout>0&&c.waves[1].fighter>0);
  assert.equal(planContourTrial(999,100).tier,12);
 });
 
-test('all ten tactical variants occur, higher tiers remain bounded',()=>{
+test('procedural sieges stay deterministic, varied and capped as they escalate',()=>{
  const kinds=new Set();
+ const firstWaveVariants=new Set(),lastWaveVariants=new Set(),formations=new Set();
  for(let tier=1;tier<=12;tier++)for(let serial=1;serial<=100;serial++){
   const plan=planContourTrial(tier,serial);
   for(const v of plan.variants)kinds.add(v.id);
+  assert.deepEqual(plan,planContourTrial(tier,serial),'a failed attempt must not reroll');
+  formations.add(plan.formations.join('/'));
+  if(tier===1)firstWaveVariants.add(JSON.stringify(plan.waves));
+  if(tier===10)lastWaveVariants.add(JSON.stringify(plan.waves));
   assert.ok(plan.waves.length<=3);
-  assert.ok(plan.waves.every(w=>Object.values(w).reduce((s,n)=>s+n,0)<=15));
+  assert.ok(plan.waves.every(w=>Object.values(w).reduce((s,n)=>s+n,0)<=66));
+  assert.ok(plan.waves.every(w=>w.scout>=10));
   assert.ok(plan.strikeInterval>=5);
  }
  assert.deepEqual(kinds,new Set(TRIAL_VARIANTS.map(v=>v.id)));
+ assert.ok(firstWaveVariants.size>5&&lastWaveVariants.size>5&&formations.size>20);
+ const first=planContourTrial(1,1),tenth=planContourTrial(10,10);
+ assert.ok(tenth.waves.every((w,i)=>Object.values(w).reduce((s,n)=>s+n,0)>
+  Object.values(first.waves[i]).reduce((s,n)=>s+n,0)*1.7));
+ assert.ok(tenth.recommendedLevel>=17&&tenth.strikeCount===3);
 });
 
 test('an existing checkpoint shape stays valid; malformed trial records fail safely',()=>{
@@ -111,10 +125,13 @@ test('a local trial spawns three waves, then requires a manual vortex activation
  assert.equal(g.enemies.length,0);
  g.time+=6;updateContourTrials(g,.1);
  assert.equal(g.contourTrial.phase,'wave');
- assert.equal(g.enemies.length,2);
+ assert.ok(g.enemies.length>=12);
  assert.ok(g.enemies.every(e=>e.trialId===entries[0].id&&e.expAwarded));
- assert.equal(g.enemies.filter(e=>e._trialDiveEnabled).length,1,
-  'one of two new-field IRIS scouts must telegraph aggressive dives');
+ assert.equal(g.enemies.filter(e=>e._trialDiveEnabled).length,3,
+  'several IRIS scouts can coordinate telegraphed dives, with a separate rush cap');
+ const packs=new Map();for(const e of g.enemies)packs.set(e.group,(packs.get(e.group)||0)+1);
+ assert.ok([...packs.values()].every(count=>count<=6),'the IRIS network needs bounded wings');
+ assert.ok(packs.size>=2,'the fleet must arrive in multiple coordinated groups');
  g.zones.push({x:g.player.x,y:g.player.y,r:66,fuse:2,trialId:entries[0].id});
  clearWaves(g,entries[0]);
  assert.equal(g.contourTrial,null);
@@ -152,11 +169,11 @@ test('enemies disappearing outside the camera cannot grant an automatic victory'
  g.camera=()=>({x:g.player.x-300,y:g.player.y-250,w:600,h:500});
  g.zones=[];g.enemies=[];g.time=20;
  updateContourTrials(g,.1);g.time+=6;updateContourTrials(g,.1);
- assert.equal(g.enemies.length,2);
+ const originalCount=g.enemies.length;assert.ok(originalCount>=12);
  // The game's normal distance culler may remove live ships mid-flight.
  g.enemies=[];g.time+=1;updateContourTrials(g,.1);
  assert.equal(g.contourTrial.phase,'wave');
- assert.equal(g.enemies.length,2,'lost attackers rejoin this wave, not restart the entire trial');
+ assert.equal(g.enemies.length,originalCount,'lost attackers rejoin this wave, not restart the entire trial');
  assert.equal(w.contours.trials.completed,0);
  assert.equal(pendingContourTrials(w).length,1);
 });
@@ -176,7 +193,8 @@ test('each wave has a finite resolution: battered enemies retreat; inaction fail
  assert.equal(activateContourVortex(defended.g,defended.entry),true);
  assert.equal(defended.w.contours.trials.completed,1);
  assert.equal(defended.g.contourTrial,null);
- const inactive=setup();inactive.g.time+=71;updateContourTrials(inactive.g,.1);
+ const inactive=setup();inactive.g.time+=inactive.g.contourTrial.plan.waveSeconds+1;
+ updateContourTrials(inactive.g,.1);
  assert.equal(inactive.g.contourTrial,null);
  assert.equal(inactive.w.contours.trials.completed,0);
  inactive.g.time+=1;updateContourTrials(inactive.g,.1);
@@ -211,4 +229,42 @@ test('three-wave defence warns before the stronger stages and strikes are telegr
  assert.equal(w.contours.trials.completed,0);
  assert.equal(activateContourVortex(g,entry),true);
  assert.equal(w.contours.trials.completed,1);
+});
+
+test('tenth triangle starts an actual multi-wing assault under triple orbital fire',()=>{
+ const g=game(),w=territory(),entry=claim(w)[0];entry.tier=10;
+ g.world=w;g.contourTrial=null;g.operation=null;g.enemies=[];g.zones=[];g.time=20;
+ g.player.x=entry.x;g.player.y=entry.y;
+ g.camera=()=>({x:g.player.x-350,y:g.player.y-270,w:700,h:540});
+ updateContourTrials(g,.1);g.time+=7;updateContourTrials(g,.1);
+ const event=g.contourTrial;
+ assert.equal(event.phase,'wave');assert.ok(g.enemies.length>=30);
+ assert.ok(g.enemies.filter(e=>e.type==='scout').length>=10);
+ assert.ok(g.enemies.some(e=>e.type==='fighter'));
+ const sizes=new Map();for(const e of g.enemies)sizes.set(e.group,(sizes.get(e.group)||0)+1);
+ assert.ok(sizes.size>=5&&[...sizes.values()].every(n=>n<=6));
+ assert.equal(event.required,Math.ceil(g.enemies.length*.76));
+ g.time+=4;updateContourTrials(g,.1);
+ const strikes=g.zones.filter(z=>z.trialId===entry.id);
+ assert.equal(strikes.length,3,'endgame uses three announced, dodgeable target areas');
+ assert.ok(strikes.every(z=>z.fuse>=2));
+ assert.ok(new Set(strikes.map(z=>Math.round(z.x))).size>1);
+ assert.equal(w.contours.trials.completed,0);
+ assert.equal(entry.status,'pending');
+});
+
+test('destroying less than the announced quota cannot complete a mass assault',()=>{
+ const g=game(),w=territory(),entry=claim(w)[0];
+ g.world=w;g.contourTrial=null;g.operation=null;g.enemies=[];g.zones=[];g.time=20;
+ g.player.x=entry.x;g.player.y=entry.y;
+ g.camera=()=>({x:g.player.x-300,y:g.player.y-250,w:600,h:500});
+ updateContourTrials(g,.1);g.time+=7;updateContourTrials(g,.1);
+ const quota=g.contourTrial.required;
+ for(const e of g.enemies.slice(0,quota-1))e.hp=0;
+ g.time+=9;updateContourTrials(g,.1);
+ assert.equal(g.contourTrial.phase,'wave');
+ assert.equal(entry.status,'pending');
+ g.enemies[quota-1].hp=0;g.time+=.2;updateContourTrials(g,.1);
+ assert.equal(g.contourTrial.phase,'rest');
+ assert.equal(entry.status,'pending');
 });

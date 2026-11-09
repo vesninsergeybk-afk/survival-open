@@ -110,9 +110,9 @@ import {territoryTech,TERRITORY_TECH} from './territory-tech.js?v=territory-war-
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1-auto-1-contour-trials-1-counterattack-1-first-loops-1-flux-build-1';
 import {syncContourDynamics,resumeContourTransition} from './contour-dynamics.js?v=contour-dynamics-3-auto-1';
-import {registerContourTrials,productiveContourFields,pendingContourTrials,readyContourTrials,unresolvedContourTrials,CONTOUR_TRIALS} from './contour-trials.js?v=triangle-defense-1-triangle-defense-1';
-import {updateContourTrials,activateContourVortex} from './contour-trial-director.js?v=triangle-defense-1-triangle-defense-1';
-import {drawContourTrialHUD} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-triangle-defense-1';
+import {registerContourTrials,productiveContourFields,pendingContourTrials,readyContourTrials,unresolvedContourTrials,CONTOUR_TRIALS} from './contour-trials.js?v=swarm-siege-1';
+import {updateContourTrials,activateContourVortex} from './contour-trial-director.js?v=swarm-siege-1';
+import {drawContourTrialHUD} from './contour-trial-vfx.js?v=swarm-siege-1';
 import {drawBranchedInteraction} from './interaction-arcs.js?v=triangle-defense-1';
 import {updateRamSquads,drawRamSquads} from './ram-squads.js?v=triangle-defense-1';
 import {TURRET_REPAIR,repairableTurret,turretRepairQuote,repairTurret} from './turret-repair.js?v=triangle-defense-1';
@@ -4762,7 +4762,7 @@ export class ArcadeGame {
    this.miningNoiseWarned=true;
    this.notice('Сигнал добычи усиливается. Следующий патруль может засечь вас!',3.6);
   }
-  if(this.miningNoise>=MINING_NOISE.patrol&&this.time>=MINING_NOISE.firstPatrolAt){
+  if(!this.contourTrial&&this.miningNoise>=MINING_NOISE.patrol&&this.time>=MINING_NOISE.firstPatrolAt){
    const alarm=this.sectorDirector(openingThreat(this.time,this.player.level));
    if(this.enemies.length<alarm.cap){
     const before=this.enemies.length;
