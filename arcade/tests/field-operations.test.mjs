@@ -530,6 +530,7 @@ test('ore discharge keeps its original deposit even when the sample advances',()
 
 test('two-front defense attacks separate assets and accepts one surviving node',()=>{
  const op=createFieldOperation('two-fronts',arsenal,world),game=fakeGame(op);
+ game.player.x=op.nodes[0].x;game.player.y=op.nodes[0].y;
  assert.ok(validFieldOperation(op));
  assert.ok(Math.hypot(op.nodes[0].x-op.nodes[1].x,op.nodes[0].y-op.nodes[1].y)>180);
  advanceFieldOperation(game,.1);assert.equal(op.phase,'active');
@@ -585,6 +586,7 @@ test('intermission transfers only the surviving shield charge and spends ore onc
 
 test('developed pilots face an additional, stronger defense wave',()=>{
  const op=createFieldOperation('two-fronts',arsenal,world,0,'safe',13),game=fakeGame(op);
+ game.player.x=op.nodes[0].x;game.player.y=op.nodes[0].y;
  assert.equal(op.wavesTotal,3);assert.equal(op.threatTier,2);
  advanceFieldOperation(game,.1);
  for(let wave=1;wave<=3;wave++){
@@ -1046,6 +1048,7 @@ test('real steering and charged strikes can damage an undefended moving convoy',
 
 test('checkpoint graph preserves the exact mission and attacker target after docking',()=>{
  const op=createFieldOperation('two-fronts',arsenal,world),game=fakeGame(op);
+ game.player.x=op.nodes[0].x;game.player.y=op.nodes[0].y;
  advanceFieldOperation(game,.1);game.time=op.nextWaveAt;advanceFieldOperation(game,.1);
  const snapshot={operation:op,station:{fieldMission:op},enemies:game.enemies};
  const restored=unpackRun(packRun(snapshot));

@@ -11,7 +11,8 @@ import {createLoadout,createThermal} from '../ship-loadout.js';
 import {createCorridorOperation} from '../operations.js';
 import {createCarrierInterception} from '../carrier-interception.js';
 import {createIonLoan} from '../ion-conductor.js';
-import {RUN_KEYS,RunCheckpointStore,captureCheckpoint,restoreCheckpoint,packRun,unpackRun,validateCheckpoint} from '../run-checkpoint.js';
+import {RUN_KEYS,MAX_CHECKPOINT_LENGTH,RunCheckpointStore,captureCheckpoint,restoreCheckpoint,packRun,unpackRun,validateCheckpoint} from '../run-checkpoint.js';
+import {updatePopulationWorld} from '../population-runtime.js';
 import {startSortie,finishSortie,appendSortieReport} from '../sortie-economy.js';
 import {emptyEconomyExpenses,recordEconomyExpense} from '../sortie-ledger.js';
 import {transitCost} from '../base-panel.js';
@@ -260,7 +261,42 @@ test('a new colony keeps damaged factories, ship reserves, cargo and siege state
  assert.equal(copy.shield.segments[0].hp,180);
  assert.equal(restored.world.stations.get(c.id+':factory').hp,
   world.stations.get(c.id+':factory').hp);
- assert.equal(restored.world.populationStations.length,150);
+ assert.equal(restored.world.populationStations.length,1500);
+});
+test('the 30-colony checkpoint expands without refilling previously damaged industry',()=>{
+ const g=scene(),save=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ const keep=new Set(save.world.population.colonies.filter(c=>c.index<6).map(c=>c.id));
+ save.world.population.colonies=save.world.population.colonies.filter(c=>keep.has(c.id));
+ save.world.stations=save.world.stations.filter(([id,b])=>!b.colonyId||keep.has(b.colonyId));
+ const existing=new Set(save.world.stations.map(([id])=>id));
+ save.world.enemyExpansion.links=save.world.enemyExpansion.links.filter(([a,b])=>
+  existing.has(a)&&existing.has(b));
+ const damaged=save.world.population.colonies[0];
+ damaged.pool=7;damaged.ready=2;
+ assert.ok(validateCheckpoint(save),'previous 30-colony format stays valid');
+ const earlierLinks=save.world.enemyExpansion.links.length;
+ const restored=scene();restoreCheckpoint(restored,save);
+ assert.equal(restored.world.population.colonies.length,300);
+ assert.equal(restored.world.stations.get('colony:amethyst:59:factory')?.enemy,true);
+ const original=restored.world.population.colonies.find(c=>c.id===damaged.id);
+ assert.equal(original.pool,7);assert.equal(original.ready,2);
+ assert.ok(restored.world.enemyExpansion.links.length>earlierLinks);
+ assert.ok(validateCheckpoint(unpackRun(packRun(captureCheckpoint(restored,restored.docked)))));
+});
+test('one hour of heavy fleet production remains a compact, restorable checkpoint',()=>{
+ const g=scene();g.camera=()=>({x:-700,y:-480,w:1400,h:960});
+ for(let t=30;t<=3600;t+=30){g.time=t;updatePopulationWorld(g,30);}
+ const saved=captureCheckpoint(g,g.docked);
+ assert.ok(validateCheckpoint(saved));
+ const body=packRun(saved);
+ assert.ok(body.length<MAX_CHECKPOINT_LENGTH/1.5,
+  `two-slot storage must retain headroom: ${body.length} characters`);
+ const restored=scene();restoreCheckpoint(restored,unpackRun(body));
+ assert.equal(restored.world.population.clock,3600);
+ assert.deepEqual(restored.world.population.convoys,g.world.population.convoys);
+ assert.equal(restored.world.population.colonies.reduce((n,c)=>n+c.sorties.length,0),
+  g.world.population.colonies.reduce((n,c)=>n+c.sorties.length,0));
+ assert.ok(validateCheckpoint(unpackRun(packRun(captureCheckpoint(restored,restored.docked)))));
 });
 test('frontier economy, finite wrecks and new station IDs survive a real checkpoint roundtrip',()=>{
  const g=scene();advanceRegionalSupply(g.world,g.time);
@@ -759,7 +795,13 @@ test('new resources from a world event persist even before their first mining hi
  assert.equal(restored.world.rockCell(3,2).filter(r=>r.id===added.id).length,1);
 });
 test('an oversized next snapshot leaves its smaller predecessor available',()=>{
- const g=scene(),{store,storage}=save(g);g.player.note='x'.repeat(850000);
+ const g=scene(),{store,storage}=save(g);
+ let state=182947;const chars=new Array(1800000);
+ for(let i=0;i<chars.length;i++){
+  state^=state<<13;state^=state>>>17;state^=state<<5;
+  chars[i]=String.fromCharCode(33+((state>>>0)%90));
+ }
+ g.player.note=chars.join('');
  assert.equal(store.save(captureCheckpoint(g,g.docked)).reason,'too-large');
  assert.equal(new RunCheckpointStore(storage).load().state.player.ore,20);
 });

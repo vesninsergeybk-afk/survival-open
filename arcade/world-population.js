@@ -4,7 +4,7 @@ import {REGIONS} from './regions.js';
 // A fixed, seeded civilization already occupies the sector at launch.
 // Distant factories and transports advance as orders, not hundreds of AI actors.
 export const POPULATION=Object.freeze({
- radius:55000, coloniesPerRegion:6, activeLimit:160,
+ radius:55000, coloniesPerRegion:60, activeLimit:160, convoyLimit:1000,
  miningPerSecond:.78, oreCapacity:80, cargoCost:9,
  launchInterval:24, cargoSpeed:210, convoyHp:180,
  cargoCapacity:2, buildCost:9, buildSeconds:21, shipsPerBuild:3,
@@ -36,22 +36,26 @@ const warped=(x,y,rotation)=>({
 const regionName=id=>REGIONS.find(r=>r.id===id)?.name||id;
 
 function colonyPosition(seed,region,index){
- const k=index+1,offset=(hash(k,region.length,seed)-.5);
+ const k=index+1,offset=hash(k,region.length,seed)-.5;
  if(region==='amethyst'){
-  const angle=(index+.18+offset*.13)/POPULATION.coloniesPerRegion*TAU;
-  const radius=6800+(index%3)*3500+Math.floor(index/3)*1600+
-   hash(index,27,seed)*700;
+  // A spiral, spaced by area, covers the middle rather than forming one ring.
+  const fraction=(index+.5)/POPULATION.coloniesPerRegion;
+  const radius=Math.sqrt(6900**2+fraction*(22700**2-6900**2));
+  const angle=index*2.399963229728653+offset*.24;
   return {x:Math.cos(angle)*radius,y:Math.sin(angle)*radius};
  }
- const angle=regionAngle[region]+(index-2.5)*.215+offset*.075;
- const radius=28200+index*3450+hash(index,35,seed)*900;
+ // Ten angular lanes in six offset radial belts: no barren diagonal wedges.
+ const lane=index%10,belt=Math.floor(index/10);
+ const angle=regionAngle[region]+((lane+.5+(belt%2)*.3)/10-.5)*1.54+
+  offset*.035;
+ const radius=27000+(belt+.45+hash(index,35,seed)*.18)*4250;
  return {x:Math.cos(angle)*radius,y:Math.sin(angle)*radius};
 }
 
 function colony(seed,region,index){
  const center=colonyPosition(seed,region,index),id='colony:'+region+':'+index;
  const rotation=hash(index,region.length,seed+87)*TAU;
- const tier=region==='amethyst'?1+Math.floor(index/2):
+ const tier=region==='amethyst'?Math.min(5,1+Math.floor(index/2)):
   Math.min(5,2+Math.floor(index/2));
  const fortress=index===5&&region!=='amethyst';
  const buildings=roles.map((role,i)=>{
@@ -87,6 +91,17 @@ export function createPopulation(seed=20261102,time=0){
   {length:POPULATION.coloniesPerRegion},(_,index)=>colony(seed,region.id,index)));
  return {version:1,seed,clock:Math.floor(time),colonies,convoys:[],
   serial:0,launched:0,intercepted:0,arrived:0,events:[]};
+}
+
+// Populate old 30-colony checkpoints without moving, healing or refilling
+// their existing industrial districts. Newly added districts begin at the
+// restored simulation clock, so resumed games retain the player's progress.
+export function expandSavedPopulation(state,seed,time){
+ if(!state)return createPopulation(seed,time);
+ if(state.colonies.length>=REGIONS.length*POPULATION.coloniesPerRegion)return state;
+ const template=createPopulation(seed,time),ids=new Set(state.colonies.map(c=>c.id));
+ for(const c of template.colonies)if(!ids.has(c.id))state.colonies.push(c);
+ return state;
 }
 
 const live=(world,id)=>{const s=world.stations.get(id);
@@ -157,7 +172,7 @@ export function seedPopulationTerritory(world){
  if(!state?.links)return;
  const seen=new Set(state.links.map(([a,b])=>[a,b].sort().join('|')));
  for(const colony of world.population.colonies){
-  if(colony.index%2===0&&!colony.fortress)continue;
+  if(colony.index%3!==1&&!colony.fortress)continue;
   const ids=['extractor','factory','relay'].map(role=>roleId(colony,role));
   for(let i=0;i<3;i++){
    const a=ids[i],b=ids[(i+1)%3],key=[a,b].sort().join('|');
@@ -265,6 +280,9 @@ export function advancePopulation(world,time){
  if(!state||!Number.isFinite(time)||time<state.clock)return events;
  while(state.clock<Math.floor(time)){
   const t=++state.clock;
+  const outboundCounts=new Map();
+  for(const cargo of state.convoys)if(cargo.hp>0)
+   outboundCounts.set(cargo.colonyId,(outboundCounts.get(cargo.colonyId)||0)+1);
   for(const c of state.colonies){
    const source=roleId(c,'extractor'),factory=roleId(c,'factory');
    updatePopulationMiners(world,c,t);
@@ -304,11 +322,11 @@ export function advancePopulation(world,time){
     c.pool-=POPULATION.buildCost;c.buildQueued=true;
     c.buildUntil=t+POPULATION.buildSeconds;
    }
-   const outbound=state.convoys.filter(v=>v.colonyId===c.id&&v.hp>0).length;
+   const outbound=outboundCounts.get(c.id)||0;
    if(t>=c.nextDispatch&&c.ore>=POPULATION.cargoCost&&
       outbound<POPULATION.cargoCapacity){
     const sent=launch(world,state,c,t);
-    if(sent)events.push(sent);
+    if(sent){events.push(sent);outboundCounts.set(c.id,outbound+1);}
     c.nextDispatch=t+POPULATION.launchInterval+
      Math.floor(hash(t,c.index,state.seed)*8);
    }
@@ -390,13 +408,13 @@ export function validPopulation(state,stations,time){
  if(state===undefined)return true;
  if(!state||state.version!==1||!Number.isInteger(state.seed)||
   !Number.isInteger(state.clock)||state.clock<0||state.clock>time||
-  !Array.isArray(state.colonies)||state.colonies.length!==REGIONS.length*POPULATION.coloniesPerRegion||
-  !Array.isArray(state.convoys)||state.convoys.length>POPULATION.activeLimit||
+  !Array.isArray(state.colonies)||![30,REGIONS.length*POPULATION.coloniesPerRegion].includes(state.colonies.length)||
+  !Array.isArray(state.convoys)||state.convoys.length>POPULATION.convoyLimit||
   !Number.isInteger(state.serial)||state.serial<0||state.serial>1e9||
   !Array.isArray(state.events)||state.events.length>30)return false;
  const ids=new Set(stations.map(([id])=>id)),seen=new Set();
  for(const c of state.colonies){
-  if(!c||!/^colony:(amethyst|amber|azure|lilac|teal):[0-5]$/.test(c.id)||
+  if(!c||!/^colony:(amethyst|amber|azure|lilac|teal):(?:[0-9]|[1-5][0-9])$/.test(c.id)||
    seen.has(c.id)||!Number.isFinite(c.x)||!Number.isFinite(c.y)||
    !Number.isFinite(c.ore)||c.ore<0||c.ore>POPULATION.oreCapacity+1||
    !Number.isFinite(c.deposit)||c.deposit<0||c.deposit>5000||

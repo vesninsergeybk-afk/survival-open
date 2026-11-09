@@ -101,6 +101,12 @@ test('territorial spending preserves logistics reserves during a 30-minute cargo
   assert.equal(world.enemyExpansion.spent-spentBefore,invested.length*2,
    'each new territory link is purchased exactly once');
   for(const event of invested){
+   if(event.paidBy==='colony'){
+    const colony=world.population.colonies.find(c=>c.id===event.colonyId);
+    assert.ok(colony&&colony.pool>=0,
+     'local territorial expansion must spend its own industrial stock');
+    investments++;continue;
+   }
    const front=fronts.find(f=>f.key===event.front);
    const stock=front.key==='home'||front.key==='north'?'ore':'resource';
    assert.ok(front.pool[stock]>=expansionReserve(front)-1e-7,
