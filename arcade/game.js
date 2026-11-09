@@ -1,7 +1,7 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1-manual-qa-1';
 import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2';
-import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1';
+import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
@@ -51,7 +51,7 @@ import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-b
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2';
-import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1-triangle-defense-1';
+import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction,turretMenuGesture} from './manual-weapon-controls.js?v=control-audit-1-triangle-defense-1-turret-gesture-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-sfx-2-artillery-finish-1-support-three-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
@@ -1107,10 +1107,11 @@ export class ArcadeGame {
     return;
    }
    if(this.paused||this.dead||!this.overlay.hidden||aimStart)return;
+   let tower=null;
    if(e.button===0||e.button===2){
     const point=worldAt(e.clientX,e.clientY)||{x:Infinity,y:Infinity};
-    const tower=supportAt(this.world,point)||artilleryAt(this.world,point);
-    if(tower&&(e.button===2||e.pointerType==='touch')){
+    tower=supportAt(this.world,point)||artilleryAt(this.world,point);
+    if(tower&&e.pointerType==='touch'){
      e.preventDefault();this.artilleryModeMenu(true,tower,e);return;
     }
     this.artilleryModeMenu(false);
@@ -1123,9 +1124,12 @@ export class ArcadeGame {
    const {kind,mark}=pointerWeaponAction(e,weapon,this.mobileMineArmed);
    if(kind==='comet'||kind==='mines'){
     const ready=canAimMouseWeapon(this,kind);
-    if(!ready.ok){this.notice(ready.reason,1.5);e.preventDefault();return;}
+    if(!ready.ok&&!(tower&&e.button===2)){
+     this.notice(ready.reason,1.5);e.preventDefault();return;
+    }
    }
-   aimStart={id:e.pointerId,x:e.clientX,y:e.clientY,kind,button:e.button,mark};
+   aimStart={id:e.pointerId,x:e.clientX,y:e.clientY,kind,button:e.button,mark,
+    turret:e.button===2?tower:null,startedAt:e.timeStamp};
    const point=worldAt(e.clientX,e.clientY);
    if(kind&&point)this.mouseAim={kind,point,clientX:e.clientX,clientY:e.clientY};
    try{this.canvas.setPointerCapture?.(e.pointerId);}catch{}
@@ -1170,8 +1174,11 @@ export class ArcadeGame {
    cancelLongPress();
    const moved=Math.hypot(e.clientX-aimStart.x,e.clientY-aimStart.y);
    const held=!!aimStart.longPress,kind=aimStart.kind,mark=aimStart.mark;
+   const turret=aimStart.turret;
+   const turretTap=turret&&e.button===2&&turretMenuGesture(e.timeStamp-aimStart.startedAt,moved);
    aimStart=null;this.mouseAim=null;
    if(this.paused||this.dead||!this.overlay.hidden)return;
+   if(turretTap){this.artilleryModeMenu(true,turret,e);return;}
    const worldPoint=worldAt(e.clientX,e.clientY);if(!worldPoint)return;
    if(mark){if(!held&&moved<=14)this.designateTargetAt(worldPoint);return;}
    if(kind){
@@ -2760,7 +2767,7 @@ export class ArcadeGame {
   if(next!==this.selectedManualWeapon){
    this.selectedManualWeapon=next;
    // Merely fitting a rail must not silently remove it from auto-fire.
-   // The first desktop LMB shot switches this mount to manual operation.
+   // The first deliberate manual rail shot switches this mount from auto-fire.
    this.manualRailMode=false;
   }else if(next!=='rail')this.manualRailMode=false;
   this.canvas?.classList?.toggle('rail-manual',!!this.manualRailMode);
