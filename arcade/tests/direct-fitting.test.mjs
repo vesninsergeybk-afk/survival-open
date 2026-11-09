@@ -61,7 +61,7 @@ test('the ordinary slot catalog includes free trial weapons beside owned and pur
  for(const id of ['ion','resonator']){
   g.hangarSession.dispatch({act:'hgFocusWeapon',id},{loadout:g.shipLoadout});
   const focused=renderBasePanel(g.docked,{...g.baseState(),baseTab:'hangar'});
-  assert.match(focused,/data-act="openShipService"[^>]*>Оформить прокат в обслуживании/);
+  assert.match(focused,/data-act="openShipService"[^>]*>Оформить прокат в Обзоре/);
   assert.doesNotMatch(focused,/data-act="hgBorrow"/);
  }
  assert.doesNotMatch(html,/data-act="hgInstall"|class="hg-inspector"/);

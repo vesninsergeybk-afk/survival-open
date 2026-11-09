@@ -28,7 +28,7 @@ test('all five progression domains show only real station actions and never muta
   for(const node of model.nodes){
    assert.match(html,new RegExp('data-act="devFocus" data-id="'+node.id+'"'));
    if(node.action!=='baseTab')assert.ok(['skill','doctrine','fitWeapon','hgUpgrade','hgSpec','hgFrame',
-    'hgTacticEquip','hgTacticUnlock','hgTacticUpgrade','hgNetworkSlots'].includes(node.action),node.action);
+    'openEquipmentTactic','hgTacticUpgrade','hgNetworkSlots'].includes(node.action),node.action);
   }
  }
  assert.equal(JSON.stringify([g.shipLoadout,g.skillRanks,g.tactical,g.player.ore,g.player.points]),before);
@@ -102,7 +102,7 @@ test('manual weapons have dedicated artwork, honest prerequisite trees and no sh
   assert.ok(model.nodes.slice(1).every(n=>n.requires==='skill-'+base&&n.status==='locked'));
   const html=renderProgressionScreen(state(g,'weapons'));
   assert.match(html,new RegExp('data-id="'+id+'" aria-pressed="true"'));
-  assert.match(html,/Доступно сразу/);
+  assert.match(html,/Доступно в полёте/);
   assert.doesNotMatch(html,/data-act="fitWeapon"/);
   for(const image of [id,...paths.map(path=>({cometCore:'comet_core',cometCryo:'comet_cryo',
    minePierce:'mine_pierce',mineSnare:'mine_snare'})[path])]){
@@ -141,7 +141,7 @@ test('manual paths advertise mastery before purchase and explain desktop versus 
  assert.match(renderProgressionScreen(state(g,'weapons')),/Выберите «Голубую комету» колесом мыши/);
  const touch=renderProgressionScreen({...state(g,'weapons'),isTouchLayout:true});
  assert.match(touch,/Коснитесь точки взрыва на поле боя/);
- assert.match(touch,/Доступно сразу · касание поля боя/);
+ assert.match(touch,/Доступно в полёте · касание поля боя/);
  assert.doesNotMatch(touch,/Зажмите ЛКМ/);
  g.developmentWeapon='mines';g.developmentFocus='skill-mineArray';
  const mines=renderProgressionScreen({...state(g,'weapons'),isTouchLayout:true});
@@ -192,13 +192,12 @@ test('weapon specializations and tactical branches honor actual level, stations,
  assert.equal(progressionModel(state(g,'tactics')).nodes.find(n=>n.id==='tactic-pulse-burst').canAct,false);
 });
 
-test('network tree links station services and offers one real flux-funded emplacement upgrade',()=>{
+test('network tree offers only the real flux-funded upgrade, without redirect cards',()=>{
  const g=docked(),model=progressionModel(state(g,'network'));
- assert.equal(model.nodes.length,4);
+ assert.equal(model.nodes.length,1);
  assert.equal(model.nodes[0].action,'hgNetworkSlots');
- assert.ok(model.nodes.slice(1).every(n=>n.action==='baseTab'&&n.actionId==='network'));
  const html=renderProgressionScreen(state(g,'network'));
- assert.match(html,/data-act="baseTab" data-id="network" data-role="network"/);
+ assert.doesNotMatch(html,/data-act="baseTab" data-id="network" data-role="network"/);
  g.developmentFocus='network-turret-slots';
  assert.match(renderProgressionScreen(state(g,'network')),/data-act="hgNetworkSlots"/);
  assert.match(html,/Вместимость опорных линий/);

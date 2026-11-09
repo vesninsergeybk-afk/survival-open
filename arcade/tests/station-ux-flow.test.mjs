@@ -103,9 +103,10 @@ test('maintenance is accessible on the home screen; statistics stay optional',()
   sortieReports:[{seconds:80,ore:10,data:4,hull:-10,levels:0}],
   economyExpenses:{weapons:0,drones:0,repairs:0,stations:0,services:0,travel:0}}));
  const summary=visiblePanel(html);
- assert.match(summary,/data-act="openShipService">Ремонт и обслуживание/);
- assert.match(summary,/data-act="openShipService">Обслуживание дронов/);
- assert.doesNotMatch(summary,/data-act="repair"|data-act="repairDrones"/);
+ assert.match(summary,/data-act="repair">Починить/);
+ assert.match(summary,/data-act="repairDrones">Починить дронов/);
+ assert.match(summary,/data-act="hire"/);
+ assert.doesNotMatch(summary,/data-act="openShipService"/);
  assert.match(summary,/<details class="base-secondary-info base-report-details"><summary>Итоги последнего вылета/);
  assert.doesNotMatch(summary,/<details class="base-secondary-info base-report-details" open/);
 });
@@ -133,10 +134,9 @@ test('an active special mission from another station points back to the map',()=
 test('unspent pilot points are actionable inside a dock, even after a level-up at claim',()=>{
  const html=renderBasePanel(home,state({level:2,points:1,xp:0,nextXp:68,
   lastContractReceipt:{ore:16,data:15,levelsGained:1}}));
- assert.match(html,/Свободные очки · 1/);
- assert.match(html,/очки <b>1<\/b>/);
- assert.match(html,/data-act="openDevelopment" data-id="pilot">Открыть дерево развития/);
+ assert.match(html,/Очки развития <b>1<\/b> · распределить/);
+ assert.match(html,/data-act="openDevelopment" data-id="pilot">Очки развития/);
  assert.doesNotMatch(html,/Данные <b>0<\/b> \(опыт\)/);
  const spent=renderBasePanel(home,state({level:2,points:0,xp:0,nextXp:68}));
- assert.doesNotMatch(spent,/aria-label="Свободные очки"/);
+ assert.doesNotMatch(spent,/class="base-points-badge"/);
 });

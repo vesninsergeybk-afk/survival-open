@@ -63,7 +63,7 @@ test('station operations expose risk, consequences, route and preparation withou
  assert.match(renderBasePanel(b,stationState(w)),/Архив данных · 0 · статистика вылета/);
  assert.doesNotMatch(h,/Данные <b>0<\/b> \(опыт\)/);
  assert.match(h,/aria-controls="base-panel-hangar"/);
- const prep=renderBasePanel(b,stationState(w,{baseTab:'hangar',hangarView:'services',hp:30}));
+ const prep=renderBasePanel(b,stationState(w,{baseTab:'summary',hp:30}));
  assert.match(prep,/ГОТОВНОСТЬ К ВЫЛЕТУ/);
  assert.match(prep,/Корпус сильно повреждён/);
  assert.match(prep,/после покупки останется 0 сплава/);
@@ -112,7 +112,7 @@ test('preparation follows the actual active mission, even when visiting another 
  const b=home(),w=world([b]);
  const operation={id:PROBE_OPERATION.id,name:PROBE_OPERATION.name,
   baseId:'1:0',repair:25,x:700,y:200};
- const html=renderBasePanel(b,stationState(w,{baseTab:'hangar',hangarView:'services',operation}));
+ const html=renderBasePanel(b,stationState(w,{baseTab:'summary',operation}));
  const hangar=html.slice(html.indexOf('ГОТОВНОСТЬ К ВЫЛЕТУ'));
  assert.match(hangar,/Операция «Последний сигнал»: при ремонте зонда/);
  assert.doesNotMatch(hangar,/Операция «Глухой коридор»: у глушителя/);

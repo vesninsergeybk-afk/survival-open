@@ -36,14 +36,15 @@ test('ordinary contracts use the whole task board on desktop without breaking mo
  assert.match(css,/@media\(max-width:760px\)[\s\S]*?\.base-task-group\.regular \.base-contract-choices\{grid-template-columns:1fr\}/);
 });
 
-test('service menu concentrates on maintenance and does not advertise an unaccepted mission',()=>{
- const html=panel(renderBasePanel(dock,state({baseTab:'hangar',hangarView:'services'})),'hangar');
- assert.match(html,/Условия доступных заданий можно посмотреть в разделе «Задания»/);
- assert.doesNotMatch(html,/Операция «Глухой коридор»/);
- assert.match(html,/ТЕХОБСЛУЖИВАНИЕ/);
- assert.match(html,/БОЕВОЙ ДРОН/);
+test('overview owns direct maintenance and keeps uncommon local offers in one disclosure',()=>{
+ const html=panel(renderBasePanel(dock,state({baseTab:'summary',hp:55,droneDamage:10})),'summary');
+ assert.match(html,/data-act="repair"/);
+ assert.match(html,/data-act="repairDrones"/);
+ assert.match(html,/data-act="hire"/);
+ assert.match(html,/class="base-secondary-info base-overview-other-services"/);
+ assert.match(html,/МЕСТНАЯ УСЛУГА/);
  assert.match(html,/base-field-illustration/);
- assert.doesNotMatch(html,/0[1-6] · (?:БОЕВОЙ ДРОН|ТЕХОБСЛУЖИВАНИЕ|МЕСТНАЯ УСЛУГА)/);
+ assert.doesNotMatch(html,/data-act="openShipService"/);
 });
 
 test('installed weapons show upgrade paths; absent weapons show installation only',()=>{
@@ -77,12 +78,11 @@ test('ship handles fitting, tactical equipment and repair; development owns all 
  const weapons=renderShipHangar(shared,session);
  const tactics=renderShipHangar({...shared,hangarView:'tactics'},session);
  const upgrades=renderBasePanel(dock,{...shared,hangarView:'upgrades'});
- const services=panel(renderBasePanel(dock,{...shared,hangarView:'services'}),'hangar');
- for(const html of [weapons,tactics,services]){
+ const services=panel(renderBasePanel(dock,{...shared,baseTab:'summary'}),'summary');
+ for(const html of [weapons,tactics]){
   assert.match(html,/data-act="hgView" data-id="weapons"/);
   assert.match(html,/data-act="hgView" data-id="tactics"/);
-  assert.match(html,/data-act="hgView" data-id="upgrades"/);
-  assert.match(html,/data-act="hgView" data-id="services"/);
+  assert.doesNotMatch(html,/data-act="hgView" data-id="upgrades"|data-act="hgView" data-id="services"/);
  }
  assert.doesNotMatch(weapons,/data-act="hgTacticUnlock"/);
  assert.match(tactics,/data-act="hgFocusTactic" data-id="decoy"/);
@@ -90,8 +90,9 @@ test('ship handles fitting, tactical equipment and repair; development owns all 
  assert.match(tactics,/data-act="openDevelopment" data-id="tactics"/);
  assert.doesNotMatch(tactics,/<details class="hg-tactic-upgrade-details"/);
  assert.doesNotMatch(upgrades,/data-act="hgFrame"|data-act="hgUpgrade"/);
- assert.match(upgrades,/data-act="openDevelopment" data-id="ship"/);
- assert.match(services,/data-act="repair"/);
+ assert.match(upgrades,/data-ship-view="weapons"/);
+ assert.doesNotMatch(upgrades,/СОСТОЯНИЕ КОРАБЛЯ/);
+ assert.match(services,/data-act="baseTab" data-role="hangar"/);
  assert.match(services,/data-act="hire"/);
  assert.doesNotMatch(services,/<details class="hg-services"/);
 });
@@ -102,7 +103,7 @@ test('inspecting and switching sections preserves unfinished weapon blueprints',
  session.dispatch({act:'hgFocusWeapon',id:'rocket'},{loadout});
  const upgradeHtml=renderBasePanel(dock,state({loadout,hangarSession:session,baseTab:'hangar',hangarView:'upgrades'}));
  const weaponsHtml=renderShipHangar(state({loadout,hangarSession:session}),session);
- assert.match(upgradeHtml,/В ангаре есть неприменённая сборка/);
+ assert.match(upgradeHtml,/В «Оснащении» есть неприменённая сборка/);
  assert.match(weaponsHtml,/Предварительная сборка/);
  assert.match(weaponsHtml,/<h3>Самонаводящиеся ракеты<\/h3>/);
  assert.equal(session.draft.slots[1],'rail');
