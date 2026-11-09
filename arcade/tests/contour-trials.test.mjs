@@ -26,8 +26,14 @@ function clearWaves(g,entry){
    assert.equal(g.contourTrial.waveIndex,index+1);
   }
  }
- assert.equal(g.contourTrial,null);
- assert.equal(entry.status,'ready');
+ assert.equal(g.contourTrial.phase,'wave');
+ assert.equal(g.contourTrial.quotaReached,true);
+ assert.equal(entry.status,'pending');
+}
+function chargeCore(g,entry){
+ g.actionHeld={kind:'vortex',target:entry,source:'keyboard',progress:18};
+ assert.equal(activateContourVortex(g,entry),true);
+ g.actionHeld=null;
 }
 
 test('a new triangle queues one trial and pays no flux before victory',()=>{
@@ -155,12 +161,16 @@ test('a local trial spawns three waves, then requires a manual vortex activation
  assert.ok(packs.size>=2,'the fleet must arrive in multiple coordinated groups');
  g.zones.push({x:g.player.x,y:g.player.y,r:66,fuse:2,trialId:entries[0].id});
  clearWaves(g,entries[0]);
- assert.equal(g.contourTrial,null);
- assert.equal(g.zones.filter(z=>z.trialId===entries[0].id).length,0,
-  'orbital shells cannot fall after the victory announcement');
+ assert.equal(g.contourTrial.phase,'wave');
+ assert.ok(g.zones.some(z=>z.trialId===entries[0].id),
+  'orbital warnings remain active while the pilot must charge the core');
  assert.equal(w.contours.trials.completed,0);
- assert.equal(readyContourTrials(w).length,1);
- assert.equal(activateContourVortex(g,entries[0]),true);
+ assert.equal(readyContourTrials(w).length,0);
+ assert.equal(activateContourVortex(g,entries[0]),false,
+  'defeating every ship is insufficient without a held core charge');
+ chargeCore(g,entries[0]);
+ assert.equal(g.zones.filter(z=>z.trialId===entries[0].id).length,0,
+  'orbital shells cannot land after the actual activation');
  assert.equal(w.contours.trials.completed,1);
  assert.match(g.lastReward,/Воронка открыта/);
  assert.equal(pendingContourTrials(w).length,0);
@@ -187,7 +197,8 @@ test('each actually spawned formation matches the planned wave and visible warni
  }
  assert.deepEqual(announced,formations,
   'the last wave must not silently fall back to a swarm');
- assert.equal(entry.status,'ready');
+ assert.equal(entry.status,'pending');
+ assert.equal(g.contourTrial.quotaReached,true);
 });
 
 test('retreat resets only this encounter and preserves every station',()=>{
@@ -234,7 +245,7 @@ test('each wave has a finite resolution: battered enemies retreat; inaction fail
  };
  const defended=setup();clearWaves(defended.g,defended.entry);
  assert.equal(defended.w.contours.trials.completed,0);
- assert.equal(activateContourVortex(defended.g,defended.entry),true);
+ chargeCore(defended.g,defended.entry);
  assert.equal(defended.w.contours.trials.completed,1);
  assert.equal(defended.g.contourTrial,null);
  const inactive=setup();inactive.g.time+=inactive.g.contourTrial.plan.waveSeconds+1;
@@ -269,9 +280,10 @@ test('three-wave defence warns before the stronger stages and strikes are telegr
  for(const e of g.enemies)e.hp=0;
  g.time+=8;
  updateContourTrials(g,.1);
- assert.equal(entry.status,'ready');
+ assert.equal(entry.status,'pending');
+ assert.equal(g.contourTrial.quotaReached,true);
  assert.equal(w.contours.trials.completed,0);
- assert.equal(activateContourVortex(g,entry),true);
+ chargeCore(g,entry);
  assert.equal(w.contours.trials.completed,1);
 });
 

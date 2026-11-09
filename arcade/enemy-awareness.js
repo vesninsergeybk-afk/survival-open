@@ -3,7 +3,7 @@
  * pursuit. An encounter may start with a dispatch coordinate, but the ship
  * cannot silently follow a moving player across the whole sector. */
 export const ENEMY_AWARENESS=Object.freeze({
-  directRange:290,visualGrace:.58,personalMemory:4.8,
+  directRange:620,visualGrace:.58,personalMemory:5.8,
   dispatchMemory:9,impactMemory:3.7,radioLead:.12,maxLead:26
 });
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);

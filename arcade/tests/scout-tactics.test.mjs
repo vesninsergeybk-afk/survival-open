@@ -58,7 +58,8 @@ test('a nearby player missile is treated as a threat, not hostile projectiles',(
   game.missiles.push({x:e.x-90,y:e.y,target:e,life:2});
   game.time=.55;
   updateEnemy(e,game,1/60);
-  assert.equal(e._scoutDodgeStarted,.55);
+  assert.ok(e._scoutDodgeStarted===.55||e._irisScanEvadeUntil>game.time,
+    'an incoming player missile must trigger either the normal jink or scan evasion');
 });
 
 test('scouts remain stable in a 200-drone simulation',()=>{

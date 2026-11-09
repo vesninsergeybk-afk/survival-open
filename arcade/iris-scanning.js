@@ -2,7 +2,7 @@
  * During the scan the drone follows an inertial, evasive arc around its last
  * contact, then accelerates out of the scan with a brief sideways burst.
  * Existing extraction patrols keep their own shared signal-intelligence AI. */
-import {irisCanSense,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
+import {irisCanSense,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2-pressure-response-1';
 export const IRIS_SCAN=Object.freeze({
   sweep:1.08,open:.48,hold:.61,close:.46,
   cruise:94,maxScanSpeed:190,acceleration:265,evadeAcceleration:345,
@@ -165,7 +165,9 @@ export function updateIrisPerception(e,game,dt){
   if(now<(e._irisScanUntil??0)){
     // Actual damage interrupts the scouting arc; the open shell keeps its
     // warning animation while the ordinary flight solver handles escape.
-    if(now<(e._irisRetreatUntil||0))return false;
+    // A physical hit interrupts scanning, so the ordinary dodge activates.
+    // Missiles keep the specialized outward scan-evade arc in flyScanningArc.
+    if(now<(e._irisRetreatUntil||0)||(e.hit||0)>.025)return false;
     flyScanningArc(e,game,dt);
     return true;
   }

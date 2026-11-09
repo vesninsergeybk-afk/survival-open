@@ -1,8 +1,8 @@
 import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1';
 import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';
 import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
-import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-domains-1-supply-stronghold-1-territory-war-1-living-world-population-1-sector-density-2';
-import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-menu-focus-1';
+import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-domains-1-supply-stronghold-1-territory-war-1-living-world-population-1-sector-density-2-pressure-response-1';
+import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-menu-focus-1-pressure-response-1';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2-campaign-1';
 import {createTactical,validTactical} from './tactical-fields.js?v=tactical-field-2';
 import {validFieldEvolution} from './field-evolution.js?v=parasite-clarity-1';
@@ -16,7 +16,8 @@ import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-
 import {createContours,validContours,autoConnectContours} from './territory-system.js?v=automatic-contours-1-contour-trials-1-support-three-1-triangle-defense-1';
 import {validFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-support-three-1-triangle-defense-1-growth-3';
 import {validFluxSupports} from './flux-supports.js?v=flux-supports-3-wreck-falloff-1-growth-1';
-import {ensureTrialLedger} from './contour-trials.js?v=swarm-siege-1';
+import {ensureTrialLedger} from './contour-trials.js?v=swarm-siege-1-pressure-response-1';
+import {clearCoreRocks} from './core-rock-clearance.js';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1-living-world-population-1-sector-density-2';
 import {expandSavedPopulation,ensurePopulationStations,seedPopulationTerritory,validPopulation} from './world-population.js?v=sector-density-2';
@@ -273,6 +274,10 @@ export function restoreCheckpoint(game,data){
    else throw new Error('unknown-rock');
   }
  }
+ // Older checkpoints may contain rocks inside a previously formed socket.
+ // Reconcile their patches against the persistent territorial layout.
+ for(const core of world.contours.trials?.entries||[])
+  clearCoreRocks(world,core,false);
  // Commit only after the complete world has been reconstructed successfully.
  // Older saves may contain three powered nodes but only two manually drawn
  // links. Complete the mesh now, without awarding retroactive rewards.

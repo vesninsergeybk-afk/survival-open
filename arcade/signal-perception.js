@@ -1,7 +1,7 @@
 // A small, readable investigation state machine for patrols drawn by extraction.
 // Ordinary arcade encounters retain their existing tactics and tempo.
 export const SIGNAL_AI=Object.freeze({
-  detectRadius:290,closeRadius:88,arrivalRadius:78,
+  detectRadius:560,closeRadius:88,arrivalRadius:78,
   investigateLimit:18,searchSeconds:5.5,loseSeconds:3.4
 });
 // Automatic weapons ignore a patrol still investigating an unconfirmed signal.

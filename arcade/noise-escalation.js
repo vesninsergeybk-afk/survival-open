@@ -1,10 +1,10 @@
-import {MINING_NOISE} from './mining.js';
+import {MINING_NOISE} from './mining.js?v=pressure-response-1';
 
 /** Mining draws an investigating wing. A scout must actually spot the pilot,
  * survive a visible withdrawal, and escape before reinforcements are called.
  * All positions are last-known signals, never a hidden live player target. */
 export const NOISE_ESCALATION=Object.freeze({
- initialWing:4,reinforcementWing:7,patrolCooldown:22,
+ initialWing:7,reinforcementWing:11,patrolCooldown:19,
  reportDelay:1.8,reinforcementDelay:5.5,escapeDistance:1050,
  escapeSpeed:260
 });

@@ -1,4 +1,5 @@
 import {contactOnCircle} from './impact-geometry.js?v=arcade-impact-51';
+import {advanceCoreRepulsion} from './core-rock-clearance.js';
 
 /* Lightweight resource interaction: deterministic local rocks, no new particles or physics engine. */
 // Holding E starts extraction: the primary alloy source. Incidental beam and meteor
@@ -64,6 +65,9 @@ export function impactRock(rock,damage,sourceX,sourceY,kind='auto') {
 }
 export function updateRockMotion(rock,dt) {
  if(!rock.alive)return;
+ // A newly formed territorial socket is stronger than ordinary hit recoil.
+ // Let its dedicated animation finish before applying the cell-bound leash.
+ if(advanceCoreRepulsion(rock,dt))return;
  // Most procedural rocks are untouched. Their position, angle and overlays
  // cannot change until an impact wakes them, even in the wider zoomed view.
  if(!rock.vx&&!rock.vy&&!rock.spinVelocity&&!rock.flash&&!rock.heat)return;

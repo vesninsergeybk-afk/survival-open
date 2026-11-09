@@ -41,7 +41,7 @@ test('scouts orbit in effective range and keep shooting after the first scan',()
  const distance=Math.hypot(enemy.x-game.player.x,enemy.y-game.player.y);
  assert.ok(distance>85&&distance<315,`sustained range: ${distance}`);
  assert.ok(shots.length>=3,`a functioning hunter fires repeatedly: ${shots.length}`);
- assert.ok(shots.every(s=>s.damage<=6),'danger comes from pressure, not inflated damage');
+ assert.ok(shots.every(s=>s.damage<=8),'the stronger swarm still uses bounded, dodgeable bolts');
 });
 
 test('a scout cannot fire before identifying the target or through cover',()=>{

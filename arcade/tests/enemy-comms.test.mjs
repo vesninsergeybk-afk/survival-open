@@ -695,7 +695,8 @@ test('living witnesses learn signatures from lethal strikes; isolated deaths tea
  const harness=new RuntimeHarness();
  Object.assign(harness,{player:game.player,enemyComms:net,
   enemyLearning:{damaged(){}},heritage:{play(){},vfx:{hullImpact(){}}},
-  visuals:{},grid:game.grid,enemyCanSee:game.enemyCanSee,time:0});
+  visuals:{},grid:game.grid,enemyCanSee:game.enemyCanSee,time:0,
+  notice(){}});
  net.update(game);
  for(const [victim,at] of [[victimA,1],[victimB,2.4]]){
   game.time=harness.time=at;
@@ -744,7 +745,8 @@ test('real player damage beyond sight becomes an uncertain, executed radio respo
  const harness=new RuntimeHarness();
  Object.assign(harness,{player:game.player,enemyComms:net,
   enemyLearning:{damaged(){}},heritage:{play(){},vfx:{hullImpact(){}}},
-  visuals:{},time:0});
+  visuals:{},grid:game.grid,enemyCanSee:game.enemyCanSee,time:0,
+  notice:text=>notices.push(text)});
  net.update(game);
  for(const [e,now,weapon] of [[wing,1.0,'rail'],[leader,2.4,'rocket']]){
   game.time=harness.time=now;
@@ -752,8 +754,10 @@ test('real player damage beyond sight becomes an uncertain, executed radio respo
   harness.damageEnemy(e,5,weapon,hit);
   net.update(game);execute(game);
   if(now===1.0){
-   assert.equal(net.cells[0].mode,null,'a single hit is not a combat strategy');
-   assert.equal(notices.length,0);
+   assert.equal(net.cells[0].mode,'intercept',
+    'an attacked wing immediately searches the reported impact sector');
+   assert.equal(net.cells[0].intel?.estimated,true,
+    'search orders must not reveal the unseen player');
   }
  }
  const directive=net.directiveFor(wing,game.time);
@@ -762,7 +766,8 @@ test('real player damage beyond sight becomes an uncertain, executed radio respo
  assert.equal(directive.intel.vx,0,'an unseen target has no live motion track');
  assert.equal(wing._commsIntent?.mode,'close','the wingman actually obeys');
  assert.equal(net.intercepted(game.time)[0].mode,'close');
- assert.ok(notices.some(text=>text.includes('бьёт издалека')));
+ assert.ok(notices.some(text=>text.includes('РАДИОТРЕВОГА')),
+  'the player hears an intercepted warning when the hit reaches an allied ship');
  game.time=10;net.update(game);
  assert.equal(net.directiveFor(wing,10),null,'a firing sector must expire');
 });

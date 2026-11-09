@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {CARRIER_INTERCEPTION as C,createCarrierInterception,advanceCarrierSystems,
  moveCarrierCargo,carrierPulseState,carrierAspect,hitCarrierCargo,carrierTacticalCue} from '../carrier-interception.js';
-import {createLoadout,createThermal,coolWeapons,loadoutProfile} from '../ship-loadout.js';
+import {createLoadout,createThermal,coolWeapons,loadoutProfile,moduleStats} from '../ship-loadout.js';
 import {loadoutAnalysis} from '../loadout-analysis.js';
 import {renderShipHangar} from '../hangar-panel.js';
 import {HangarSession} from '../ship-loadout.js';
@@ -69,7 +69,7 @@ test('plasma marks transport for the ion chain and a rented beam boost also affe
  Object.assign(g.player,position(op,'side'));
  g.fieldLoan=createIonLoan(base.id);g.weaponProfile.ion=true;g.overchargeUntil=5;g.grid.insert(op);
  const previous=op.hp;g.updateShipWeapons(.01);
- const expected=18*1.2;assert.ok(Math.abs(previous-op.hp-expected)<1e-8);assert.ok(op.ionMarkUntil>g.time);
+ const expected=moduleStats('plasma').damage*1.2;assert.ok(Math.abs(previous-op.hp-expected)<1e-8);assert.ok(op.ionMarkUntil>g.time);
  const plan=planIonDischarge(g.enemies,g.player,g.time,g.fieldLoan);
  assert.equal(plan.ok,true);assert.ok(plan.targets.includes(op));
 });
@@ -152,7 +152,7 @@ test('telemetry payout remains one-time and creates an actual post-mission breat
 });
 test('hangar compares distance and heat without multiplying single-target flak by its victim count',()=>{
  const ship=createLoadout(),initial=loadoutAnalysis(ship);
- assert.ok(Math.abs(initial.dps[0]-18/.63)<1e-8);assert.equal(initial.dps[2],0);
+ assert.ok(Math.abs(initial.dps[0]-moduleStats('plasma').damage/moduleStats('plasma').interval)<1e-8);assert.equal(initial.dps[2],0);
  ship.slots=['rail',null,null,null,null,null];const rail=loadoutAnalysis(ship);
  assert.equal(rail.dps[0],rail.dps[2]);
  ship.slots=['flak',null,null,null,null,null];assert.equal(loadoutAnalysis(ship).dps[0],14/1.15);

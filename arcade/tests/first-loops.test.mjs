@@ -34,7 +34,8 @@ function defendThree(g,entry){
   g.time+=8;updateContourTrials(g,.1);
   if(index<2){g.time+=5;updateContourTrials(g,.1);}
  }
- assert.equal(entry.status,'ready');
+ assert.equal(entry.status,'pending');
+ assert.equal(g.contourTrial?.quotaReached,true);
 }
 
 test('the first three territorial rewards have real effects only inside a stable powered field',()=>{
@@ -70,6 +71,7 @@ test('a completed defence pays alloy once and immediately demonstrates its shiel
  start(g);g.shots=[{trialId:entry.id,alive:true},{alive:true}];
  defendThree(g,entry);
  assert.equal(world.contours.trials.completed,0);
+ g.actionHeld={kind:'vortex',target:entry,progress:18};
  assert.equal(activateContourVortex(g,entry),true);
  assert.equal(world.contours.trials.completed,1);assert.equal(g.player.ore,before+reward.alloy);
  assert.equal(g.player.shield,18);assert.equal(g.shots.length,1);

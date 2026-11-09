@@ -92,7 +92,7 @@ test('focused plasma damage falls monotonically instead of gaining damage halfwa
  for(const rank of [1,2]){let previous=Infinity;for(let d=0;d<=435;d+=5){const value=beamDamage(18,d,115,435,.28)*plasmaDamageFactor({path:'focus',rank},d,435);assert.ok(value<=previous+1e-8);previous=value;}}
 });
 test('splitting plasma preserves lone-target power and shares a finite salvo across a group',()=>{
- for(const count of [1,2,3]){const g=game();g.skillRanks.double=2;const targets=Array.from({length:count},(_,i)=>enemy(80,i*4));for(const e of targets)g.grid.insert(e);g.updateShipWeapons(.01);const factor=count===1?1:count===2?.6:.45;for(const e of targets)near(300-e.hp,18*factor);near(g.weaponThermal.current,6);}
+ for(const count of [1,2,3]){const g=game();g.skillRanks.double=2;const targets=Array.from({length:count},(_,i)=>enemy(80,i*4));for(const e of targets)g.grid.insert(e);g.updateShipWeapons(.01);const factor=count===1?1:count===2?.6:.45;for(const e of targets)near(300-e.hp,moduleStats('plasma').damage*factor);near(g.weaponThermal.current,6);}
 });
 test('one free choice is shared by both field modules and at most one Space action is installed',()=>{
  const g=game();g.paused=true;g.baseTab='hangar';g.overlay.hidden=false;g.baseAction('loanField','resonator');

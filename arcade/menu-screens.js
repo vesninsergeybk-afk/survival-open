@@ -1,6 +1,6 @@
 import {OPENING_ARC,runClock} from './opening-arc.js?v=opening-arc-5';
-import {baseNames} from './balance.js?v=arcade-network-20';
-import {MODULES,slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-focus-1';
+import {baseNames} from './balance.js?v=arcade-network-20-pressure-response-1';
+import {MODULES,slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-focus-1-pressure-response-1';
 export const escapeMenu=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const menuSymbol=kind=>{
  const paths={resume:'m8 4 13 8-13 8z',signal:'M12 9v6M9 12h6M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14',
@@ -72,7 +72,7 @@ export function renderOpeningSignals(interact){
 }
 export function renderOpeningHardware(loadout){
  const free=loadout?.slots.some((id,i)=>id===null&&slotOpen(loadout,i));
- const options=[['rail','Рельс','Дальний бой · 700 м'],['flak','Картечь','Против роя · 245 м'],['plasma','Плазма','Ближний бой · 435 м']];
+ const options=[['rail','Рельс','Дальний бой · 700 м'],['flak','Картечь','Против роя · 245 м'],['plasma','Плазма','Ближний бой · 365 м']];
  return '<div class="dialog screen-dialog opening-choice reward-dialog" role="dialog" aria-modal="true" aria-labelledby="opening-reward-title">'+
   screenHead('weapon','НАГРАДА · БЕСПЛАТНОЕ ОСНАЩЕНИЕ','Выберите оружие','opening-reward-title')+
   '<p class="screen-lead">'+(free?'Модуль сразу установится в свободный узел.':'Свободного узла нет: модуль поступит на склад ангара.')+'</p>'+

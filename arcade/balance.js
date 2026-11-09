@@ -9,7 +9,7 @@ export const RULES = Object.freeze({
   maxParticles: 240,
   maxShots: 220,
   nearBeam: 115,
-  beamRange: 435,
+  beamRange: 365,
   beamMinFactor: .28,
   asteroidRange: 245,
   baseInteract: 165,
@@ -66,11 +66,11 @@ export const outsideCamera = (x, y, camera, radius = 0) =>
 // Staged early pressure. Low caps protect performance and leave room to learn.
 export function openingThreat(time, level = 1) {
  if(time<9)return {cap:0,interval:9,groupSize:0,types:[]};
- if(time<36)return {cap:4,interval:8,groupSize:2,types:['scout']};
- if(time<75)return {cap:7,interval:6.2,groupSize:2,types:['scout','fighter']};
- if(time<118)return {cap:11,interval:5.3,groupSize:2,types:['scout','fighter','flanker']};
- if(time<155)return {cap:16,interval:4.6,groupSize:3,types:['scout','fighter','flanker','berserker']};
- if(time<205)return {cap:21,interval:4,groupSize:3,types:['scout','fighter','flanker','berserker','healer']};
+ if(time<36)return {cap:9,interval:7,groupSize:4,types:['scout']};
+ if(time<75)return {cap:15,interval:5.8,groupSize:5,types:['scout','fighter']};
+ if(time<118)return {cap:22,interval:5.2,groupSize:6,types:['scout','fighter','flanker']};
+ if(time<155)return {cap:28,interval:4.6,groupSize:7,types:['scout','fighter','flanker','berserker']};
+ if(time<205)return {cap:33,interval:4,groupSize:7,types:['scout','fighter','flanker','berserker','healer']};
  const elapsed=time-205;
  return {
   // The late game becomes more dangerous through tougher ships and formations,
