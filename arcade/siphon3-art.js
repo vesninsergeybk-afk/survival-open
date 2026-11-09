@@ -6,7 +6,8 @@ export const SIPHON3_ATLAS_ROWS=8;
 export const SIPHON3_TILE=128;
 export const SIPHON3_FRAME_COUNT=80;
 export const SIPHON3_FRAME_RATE=20;
-export const SIPHON3_WORLD_SIZE=84;
+// Mining vessels should read as small industrial workers, not combat ships.
+export const SIPHON3_WORLD_SIZE=42;
 
 let sprite=null;
 let rigImage=null;
