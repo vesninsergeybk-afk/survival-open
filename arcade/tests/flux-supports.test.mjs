@@ -104,6 +104,16 @@ test('laser burst is pulsed, weakens with distance and can be upgraded to twin e
  assert.equal(validFluxSupports(world.contours),true);
 });
 
+test('nearby laser receives a genuinely usable first volley within the first ten seconds',()=>{
+ const {world,player,point,game}=fixture();
+ const t=deploySupport(world,player,point,0,'laser').turret;
+ tick(game,.25,10,.25);
+ assert.ok(t.ammo>=1,'a rapid-fire defense should not idle for most of a skirmish');
+ assert.ok(world.contours.flux<200-SUPPORT_TYPES.laser.fluxCost,
+  'the first charge must actually deduct operating flux');
+ assert.equal(validFluxSupports(world.contours),true);
+});
+
 test('mothership launches one prepaid drone, makes replacements for flux and drones can be destroyed',()=>{
  const {world,player,point,game}=fixture();
  const hive=deploySupport(world,player,point,0,'hive').turret;
