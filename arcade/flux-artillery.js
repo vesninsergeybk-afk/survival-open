@@ -250,11 +250,16 @@ function impactShell(game,state,shell){
  }
 }
 export function barrelMount(turret,index=0){
- const count=artilleryBarrels(turret),cols=Math.min(5,count);
- const scale=count===1?1:count<=4?.77:.58;
+ const count=artilleryBarrels(turret),cols=count<=4?count:Math.ceil(count/2);
+ // Ten independently readable heads form two five-gun decks. Their source
+ // artwork has a 102px footprint, so shrink it as the array widens instead
+ // of layering ten near-full-size sprites on a single pivot.
+ const scale=count===1?1:count<=4?.77:count===6?.46:.32;
  const column=index%cols,row=Math.floor(index/cols);
- return {side:(column-(cols-1)/2)*(count<=4?21:18),
-  back:row*19,scale,forward:60*scale-row*19};
+ const step=count<=4?21:count===6?32:28;
+ const back=row*29;
+ return {side:(column-(cols-1)/2)*step,
+  back,scale,forward:60*scale-back};
 }
 function fireBarrel(game,state,turret,time){
  if(turret.ammo<=0||state.artilleryShells.length>=FLUX_ARTILLERY.maxShells){

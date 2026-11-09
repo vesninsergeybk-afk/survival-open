@@ -62,6 +62,11 @@ test('ten-barrel battery fires ten paid individual shells in a staggered salvo',
  assert.equal(artilleryBlast(t),185);assert.equal(artilleryCooldown(t),4);
  assert.ok(artillerySupply(t)>7,'fast salvos also feed the magazine faster');
  assert.notDeepEqual(barrelMount(t,0),barrelMount(t,9),'real heads occupy two rows');
+ const mounts=Array.from({length:10},(_,index)=>barrelMount(t,index));
+ assert.equal(new Set(mounts.map(m=>`${m.side}:${m.back}`)).size,10,
+  'the salvo has ten distinct muzzle positions');
+ assert.ok(mounts[4].side-mounts[0].side>=100,
+  'large batteries spread their barrels into a readable gun deck');
  t.readyAt=0;t.ammo=10;world.contours.flux=0;
  game.enemies=[{x:900,y:310,hp:10000,maxHp:10000,r:19,vx:0,vy:0}];
  game.time=.1;advanceFluxArtillery(game,.1);
