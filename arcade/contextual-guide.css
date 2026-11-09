@@ -1,0 +1,82 @@
+/* Contextual training uses the restrained brass / deep-blue menu palette.
+   Every illustration is an original vector diagram, not a simulated game capture. */
+.learning-tip[hidden],.learning-tip [hidden]{display:none!important}
+.learning-tip{position:fixed;z-index:7;left:50%;bottom:190px;transform:translateX(-50%);
+ display:flex;align-items:flex-start;gap:13px;width:min(438px,calc(100vw - 32px));max-height:min(42dvh,220px);
+ padding:12px 36px 12px 12px;overflow:auto;pointer-events:auto;
+ color:#eafaff;text-shadow:none;background:linear-gradient(125deg,#113347ef,#091d31f7 72%);
+ border:1px solid #83d8d0a6;border-left:3px solid #c3aa7b;border-radius:12px;
+ box-shadow:0 14px 30px #010912b0,inset 0 1px 0 #ffffff12}
+.learning-tip[data-mode="combat"]{border-left-color:#ebac76}
+.learning-tip-image{flex:0 0 54px;width:54px;height:54px;object-fit:contain;
+ background:#102c3c;border:1px solid #79c4b45e;border-radius:10px;padding:5px}
+.learning-tip-copy{min-width:0;flex:1}
+.learning-eyebrow{display:block;font:800 9px/1.3 system-ui,sans-serif;letter-spacing:.15em;
+ color:#e1bd84;text-transform:uppercase}
+.learning-tip h2{font:800 16px/1.25 system-ui,sans-serif;margin:3px 0 5px;color:#ebfff9}
+.learning-tip p{font:500 12px/1.45 system-ui,sans-serif;margin:0;color:#cfdfeb}
+.learning-tip button{font:600 11px system-ui,sans-serif;color:#e2f9f2;cursor:pointer}
+.learning-tip .learning-more{border:0;background:transparent;border-bottom:1px solid #7ebdb3;
+ padding:0;margin-top:8px;text-align:left}
+.learning-tip .learning-tip-close{position:absolute;right:5px;top:5px;width:29px;height:29px;
+ border:1px solid #7aa3a46e;border-radius:7px;background:#061d2b;color:#d6e6eb;
+ font-size:20px;line-height:1}
+.learning-tip button:focus-visible{outline:2px solid #ffdc96;outline-offset:3px}
+/* The siege banner is the objective during a live trial. Do not draw the
+   unrelated mission ribbon through its text on narrow viewports. */
+#hud.cockpit-hud.has-contour-trial .contract-objective{display:none!important}
+.system-dialog .settings-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+#settings-pane-learning{color:#cee0e8}
+.learning-head h3{font-size:22px;line-height:1.22;color:#effff5;margin:4px 0 7px}
+.learning-head p{font-size:12px;line-height:1.45;margin:0 0 12px;color:#bcd6df}
+.learning-options{display:flex;align-items:center;justify-content:space-between;gap:11px;flex-wrap:wrap;
+ padding:9px 11px;background:#092536;border:1px solid #6baab263;border-radius:8px;margin-bottom:13px}
+.learning-switch{display:flex;align-items:center;gap:9px;font-size:12px;color:#e1f7f1;font-weight:650}
+.learning-switch input{width:18px;height:18px;accent-color:#75dbc6}
+.system-dialog .learning-options button{padding:7px 9px;font-size:11px;min-height:0}
+.learning-journal{display:grid;grid-template-columns:minmax(155px,.85fr) minmax(0,1.3fr);gap:12px}
+.learning-index{min-width:0}
+.learning-index label{font-size:11px;font-weight:700;color:#bfe2e4}
+.learning-index input{width:100%;min-width:0;margin:5px 0 8px;padding:9px 10px;
+ border:1px solid #648c9c;border-radius:7px;background:#081b2a;color:#f1ffff;font:12px system-ui}
+#learningArticleList{display:grid;gap:5px;max-height:300px;overflow-y:auto;padding-right:2px}
+.system-dialog #learningArticleList button{display:flex;align-items:center;text-align:left;gap:8px;
+ margin:0;padding:7px 8px;border-radius:7px;min-width:0;min-height:0;background:#122d40}
+#learningArticleList button[aria-current="true"]{background:#21483f;border-color:#96bca2;color:#fff0c7}
+#learningArticleList img{width:28px;height:28px;flex:none}
+#learningArticleList span{min-width:0}#learningArticleList strong{display:block;font-size:11px;line-height:1.2}
+#learningArticleList small{display:block;font-size:9px;color:#99b9c3;margin-top:2px}
+.learning-article{min-width:0;background:linear-gradient(150deg,#102e3d,#0b1d2e);
+ border:1px solid #5c92958a;border-radius:9px;padding:14px}
+.learning-article-head{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.learning-article-head img{width:65px;height:65px;object-fit:contain;
+ padding:6px;background:#0b2634;border:1px solid #6ebcb477;border-radius:11px}
+.learning-article h3{margin:4px 0 0;font-size:18px;line-height:1.2;color:#ebfff0}
+.learning-article p{font-size:12px;line-height:1.5;color:#c6dde4;margin:0 0 10px}
+.learning-article .learning-article-summary{color:#f0f7e5;font-weight:650}
+.learning-article-foot{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:13px}
+.system-dialog .learning-article-foot button{padding:8px;font-size:11px;min-height:0}
+.learning-article-foot span{color:#b9d8d2;font-size:10px}
+.learning-footnote{margin:13px 0 0;font-size:11px;color:#a9cbd4;line-height:1.45}
+@media(max-width:680px){
+ .learning-journal{grid-template-columns:1fr}
+ #learningArticleList{display:flex;max-height:112px;overflow:auto}
+ .system-dialog #learningArticleList button{flex:0 0 148px}
+ .learning-article{padding:11px}
+ .learning-article-head img{height:51px;width:51px}
+ .learning-article h3{font-size:16px}
+ .system-dialog .settings-tabs button{padding:9px 3px;font-size:11px}
+}
+@media(max-width:510px){
+ .learning-tip{bottom:170px;padding:9px 32px 9px 9px;gap:8px;max-height:32dvh}
+ .learning-tip-image{flex-basis:38px;width:38px;height:38px}
+ .learning-tip h2{font-size:14px}
+ .learning-tip p{font-size:11px}
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:420px){
+ .learning-tip{bottom:120px;left:55%;width:min(360px,55vw);max-height:45dvh}
+ .learning-tip-image{width:35px;height:35px;flex-basis:35px}
+ .learning-tip h2{font-size:12px}
+ .learning-tip p{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){.learning-tip{scroll-behavior:auto}}

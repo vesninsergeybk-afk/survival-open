@@ -55,7 +55,10 @@ export function drawContourTrialHUD(c,game){
  if(game.dead)return;
  const virtualWidth=game.vw||1200,vw=game.canvas?.clientWidth||virtualWidth;
  const uiScale=virtualWidth/vw,w=Math.min(470,vw-26),x=(vw-w)/2;
- const y=game.isTouchLayout?76:20;
+ // A narrow desktop window is just as constrained as a portrait phone.
+ // Leave the HUD sector plaque unobstructed in either case.
+ const compact=vw<620;
+ const y=game.isTouchLayout||compact?76:20;
  if(!event){
   const result=game.contourFeedback;
   if(!result?.victory||game.time-result.at>7)return;
@@ -83,12 +86,17 @@ export function drawContourTrialHUD(c,game){
   'Построение: '+(event.plan.formations?.[event.waveIndex]||'рой')+
   ' · орбитальные круги опасны для всех кораблей'):
   'Победа даст сплав и усилит вашу территорию. Станции при отходе сохранятся.';
+ const briefTitle=compact?'АТАКА НА ТРЕУГОЛЬНИК':'ВРАГ ОБНАРУЖИЛ НОВЫЙ ТРЕУГОЛЬНИК';
+ const briefSubtitle=compact&&phase==='wave'?
+  'ВОЛНА '+(event.waveIndex+1)+'/'+event.plan.waves.length+' · ЦЕЛЕЙ '+Math.min(defeated,quota)+'/'+quota+' · '+seconds+' С':subtitle;
+ const briefHint=compact?(phase==='wave'?'Уклоняйтесь от орбитальных ударов.':
+  'Отход сохранит станции, но бой придётся повторить.'):hint;
  c.save();c.scale(uiScale,uiScale);c.fillStyle='rgba(8,20,33,.94)';c.strokeStyle=event.outsideFor?'#ff7e85':'#ffb673';
  c.lineWidth=1.4;c.beginPath();c.roundRect(x,y,w,81,10);c.fill();c.stroke();
  c.fillStyle='#ffe7c2';c.font='bold 12px system-ui';c.textAlign='center';
- c.fillText('ВРАГ ОБНАРУЖИЛ НОВЫЙ ТРЕУГОЛЬНИК',vw/2,y+19,w-16);
- c.fillStyle='#ffbe8b';c.font='bold 12px system-ui';c.fillText(subtitle,vw/2,y+39,w-16);
- c.fillStyle='#cee0e5';c.font='11px system-ui';c.fillText(hint,vw/2,y+58,w-16);
+ c.fillText(briefTitle,vw/2,y+19,w-16);
+ c.fillStyle='#ffbe8b';c.font='bold 12px system-ui';c.fillText(briefSubtitle,vw/2,y+39,w-16);
+ c.fillStyle='#cee0e5';c.font='11px system-ui';c.fillText(briefHint,vw/2,y+58,w-16);
  const fraction=phase==='wave'?(event.waveIndex+Math.min(1,defeated/Math.max(1,quota)))/event.plan.waves.length:
   phase==='rest'?(event.waveIndex+1)/event.plan.waves.length:0;
  c.fillStyle='#ffbe7e26';c.fillRect(x+12,y+70,w-24,3);
