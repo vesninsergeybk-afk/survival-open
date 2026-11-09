@@ -38,14 +38,17 @@ export function amberBeltDensity(x,y){
  * Only visibly large rocks stop hostile shots. Smaller mining fragments do not.
  * A rock overlapping the player never grants invisible immunity.
  */
-export function firstRockImpact(x0,y0,x1,y1,rocks,shotRadius=0,player=null){
+export function firstRockImpact(x0,y0,x1,y1,rocks,shotRadius=0,player=null,bodyCollision=false){
  const vx=x1-x0,vy=y1-y0,a=vx*vx+vy*vy;
  let best=null,bestT=Infinity;
  for(const rock of rocks){
   if(!rock.alive||rock.r<34)continue;
   if(player&&Math.hypot(player.x-rock.x,player.y-rock.y)<
      rock.r+(player.r||0)+3)continue;
-  const r=rock.r+Math.min(4,Math.max(0,shotRadius)*.5);
+  // Projectiles have a restrained collision margin; a charging ship needs
+  // its full physical radius to stop before its hull enters the asteroid.
+  const r=rock.r+(bodyCollision?Math.max(0,shotRadius):
+    Math.min(4,Math.max(0,shotRadius)*.5));
   const fx=x0-rock.x,fy=y0-rock.y;
   // Cheap bounding check before the quadratic calculation.
   if(rock.x<Math.min(x0,x1)-r||rock.x>Math.max(x0,x1)+r||

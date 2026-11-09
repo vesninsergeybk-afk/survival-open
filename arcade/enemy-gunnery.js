@@ -2,7 +2,7 @@
  * A pilot needs its own recent optical contact, commits to a visible aim
  * point, then fires one dodgeable bolt. Radio orders alter positioning, not
  * damage, accuracy or the projectile budget. */
-import {sweptRamHit} from './enemy-last-stand.js';
+import {sweptRamHit} from './enemy-last-stand.js?v=redteam-20261109-1';
 export const ENEMY_GUNNERY=Object.freeze({
   fighter:Object.freeze({range:405,charge:.62,reload:2.7,speed:290,damage:10,
     upgradeAt:135,upgraded:Object.freeze({range:405,charge:.7,reload:3.1,
@@ -24,12 +24,23 @@ export const gunProfile=(type,time)=>{
 };
 function lanceAvailable(e,game,target){
  if(e.type!=='gunship'||target!==game.player||game.time<245||
-    (e._gunCycle||0)%2===0||game.time<(game._enemyLanceNextAt||0))return false;
+    (e._gunCycle||0)%2===0||game.time<(game._enemyLanceNextAt||0)||
+    game.enemies?.some(other=>other!==e&&other.hp>0&&
+      other._gunAiming?.profile?.kind==='gunship-lance'))return false;
  // A dangerous instantaneous attack must never originate offscreen without
  // its full charge line being visible to the player.
  const cam=game.camera?.();
  return !cam||e.x>=cam.x+15&&e.x<=cam.x+cam.w-15&&
    e.y>=cam.y+15&&e.y<=cam.y+cam.h-15;
+}
+function lanceWarningStillValid(e,game,aim){
+ if(aim?.profile?.kind!=='gunship-lance')return true;
+ // Recheck throughout the warning, not just when it begins. No offscreen
+ // instant damage or a ray sweeping sideways away from its original marker.
+ const cam=game.camera?.();
+ return (!cam||e.x>=cam.x+15&&e.x<=cam.x+cam.w-15&&
+   e.y>=cam.y+15&&e.y<=cam.y+cam.h-15)&&
+   distance(e,{x:aim.originX,y:aim.originY})<=26;
 }
 
 function fireBolt(e,game,profile,aim,index=0){
@@ -109,6 +120,9 @@ export function updateEnemyGunnery(e,game,target){
     e._gunAiming=null;e._gunNextAt=Math.max(now,e._gunNextAt||0);
     return false;
   }
+  if(aim&&!lanceWarningStillValid(e,game,aim)){
+    e._gunAiming=null;e._gunNextAt=now+.8;return false;
+  }
   if(!aim){
     if(now<e._gunNextAt)return false;
     // Lock a bounded prediction. The marker does not follow a subsequent
@@ -117,7 +131,8 @@ export function updateEnemyGunnery(e,game,target){
       clamp(distance(e,target)/profile.speed*.29,.08,.31);
     e._gunAiming={x:target.x+clamp((target.vx||0)*lead,-55,55),
       y:target.y+clamp((target.vy||0)*lead,-55,55),
-      started:now,until:now+profile.charge,target,profile};
+      started:now,until:now+profile.charge,target,profile,
+      ...(profile.kind==='gunship-lance'?{originX:e.x,originY:e.y}:{})};
     if(profile.kind==='gunship-lance')game.heritage?.play?.('ramWarning',.65,e);
     return false;
   }
@@ -164,7 +179,9 @@ export function drawEnemyGunWarnings(ctx,game,cam,fps=60){
   for(const e of aiming){
     if(drawn>=limit)break;
     const aim=e._gunAiming;
-    if(!aim||e.hp<=0||e.converted||game.time>aim.until||
+    // Keep the warning visible if another cell's volley postpones the shot.
+    // It is removed only once the fire command actually succeeds or cancels.
+    if(!aim||e.hp<=0||e.converted||
        distance(e,game.player)>ENEMY_GUNNERY.warningRange||
        e.x<cam.x-30||e.x>cam.x+cam.w+30||
        e.y<cam.y-30||e.y>cam.y+cam.h+30||

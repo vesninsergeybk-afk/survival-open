@@ -4,6 +4,14 @@ import {World} from '../world.js';
 import {SpatialGrid} from '../balance.js';
 import {amberBeltDensity,inAmberCorridor,nearAmberBelt,firstRockImpact} from '../terrain.js';
 
+test('charging hulls stop at their full radius without widening ordinary bullets',()=>{
+ const rock={x:100,y:0,r:36,hp:100,alive:true};
+ const bullet=firstRockImpact(0,0,200,0,[rock],14);
+ const body=firstRockImpact(0,0,200,0,[rock],14,null,true);
+ assert.ok(body.x<bullet.x,'the ship hull must touch the rock sooner than a bolt');
+ assert.ok(Math.abs(body.x-(100-36-14))<.01);
+});
+
 test('amber belt has two dense flanks and an open, navigable corridor',()=>{
  assert.ok(nearAmberBelt(7200,1450));
  assert.ok(inAmberCorridor(7200,1450));

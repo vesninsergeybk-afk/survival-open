@@ -1,5 +1,6 @@
 // Tiny drones share one tactical decision per pack. Members remain individual
 // damageable ships; a split changes their formation, never their hit points.
+import {firstRockImpact} from './terrain.js?v=arcade-belt-26-redteam-20261109-1';
 export const MOTE_SWARM=Object.freeze({size:10,radius:6.5,hp:12,damage:3,
  speed:177,interval:.34,splitAt:480,splitCount:8,splitHold:7.4,
  mergeDistance:315,allianceDistance:710,maxAlliance:3,
@@ -162,7 +163,7 @@ export function updateMoteSwarmOrders(game){
    e.moteReformUntil=t+MOTE_SWARM.splitHold;
   }
  }
- packs=groupsOf(motes);
+ packs=groupsOf(motes.filter(e=>!e.moteEscape&&!e.moteCourierReturning));
  // Sibling packs rejoin only after their split commitment expires. A surviving
  // pair of motes is still a pack; there is no minimum group size for AI.
  const entries=[...packs];
@@ -249,24 +250,25 @@ export function updateMoteSwarmOrders(game){
   if(allies.length>1&&canSee&&t>=(state.rushUntil||0)&&t>=(state.cueUntil||0))
    statusCue(state,'flank',id,t);
   if(t<(members[0].moteReturnUntil||0))statusCue(state,'return',id,t);
-  else if(state.phase==='return')statusCue(state,'found',id,t);
+  else if(state.phase==='return')statusCue(state,canSee?'found':'search',id,t);
   if((!recent||within>MOTE_SWARM.rushRange+80)&&state.rushChargeAt){
-   state.rushChargeAt=0;statusCue(state,'found',id,t);
+   state.rushChargeAt=0;statusCue(state,canSee?'found':'search',id,t);
   }
   const preparingRush=recent&&within<MOTE_SWARM.rushRange&&
    t>=(state.nextRushAt??Infinity)&&t>=(game._moteGlobalRushAt||0);
   if(preparingRush&&!state.rushChargeAt){
    state.rushChargeAt=t+MOTE_SWARM.rushWarning;
    statusCue(state,'windup',id,t);
+   game.heritage?.play?.('swarmWarning',.85,center);
   }
   if(state.rushChargeAt&&t>=state.rushChargeAt){
    state.rushChargeAt=0;state.rushUntil=t+MOTE_SWARM.rushTime;
    state.nextRushAt=t+MOTE_SWARM.rushCooldown;
    game._moteGlobalRushAt=t+2.0;
    statusCue(state,'rush',id,t);
-   game.heritage?.play?.('swarmWarning',.85,center);
   }
-  if(t>=(state.rushUntil||0)&&state.phase==='rush')statusCue(state,'found',id,t);
+  if(t>=(state.rushUntil||0)&&state.phase==='rush')
+   statusCue(state,canSee?'found':'search',id,t);
   members.forEach((e,index)=>{
    const row=Math.floor(index/3),column=index%3-1;
    const jitter=Math.sin(t*1.55+e.serial*.81)*2.5;
@@ -344,14 +346,22 @@ export function moveMote(e,game,dt){
  e.vx+=(aimX-e.vx)*blend;e.vy+=(aimY-e.vy)*blend;
  e.x+=e.vx*dt;e.y+=e.vy*dt;
  if(Math.hypot(e.vx,e.vy)>10)e.angle=Math.atan2(e.vy,e.vx)+Math.PI/2;
+ let hitRock=false;
+ if(e.moteBoosting&&game.rockGrid?.query){
+  const travel=Math.hypot(e.x-oldX,e.y-oldY);
+  const rocks=game.rockGrid.query((oldX+e.x)/2,(oldY+e.y)/2,travel/2+e.r+65);
+  const impact=firstRockImpact(oldX,oldY,e.x,e.y,rocks,e.r,null,true);
+  if(impact){e.x=impact.x;e.y=impact.y;hitRock=true;}
+ }
  // Normal micro-drones can be dangerous at contact. A dash sacrifices the
  // attacker, so immunity frames still prevent a whole swarm from one-shotting.
  const p=game.player;
- if(!e.moteEscape&&!e.moteCourierReturning&&p?.hp>0&&e.moteBoosting&&
-    crossed(oldX,oldY,e.x,e.y,p,e.r+(p.r||0))){
+ const hitPilot=!e.moteEscape&&!e.moteCourierReturning&&p?.hp>0&&
+   e.moteBoosting&&crossed(oldX,oldY,e.x,e.y,p,e.r+(p.r||0));
+ if(hitPilot){
   if(p.invul<=0)game.hurt?.(e.damage??MOTE_SWARM.damage,{x:e.x,y:e.y});
-  e.hp=0;
  }
+ if(hitRock||hitPilot){e.hp=0;e.moteBoosting=false;}
 }
 
 export function drawMoteSwarms(c,enemies,cam,t,reducedMotion=false,formations=[]){

@@ -36,6 +36,14 @@ test('no magic charging from blind damage, special missions or crowded attack la
  assert.equal(armLastStand(e,game,37,true),false);
 });
 
+test('a critical ram never starts beyond the visible edge of the player camera',()=>{
+ const e=ship(),game=scene(e);
+ game.camera=()=>({x:-100,y:-100,w:200,h:200});
+ assert.equal(armLastStand(e,game,37,true),false,
+  'damage by long-range weapons must not arm an unseen unavoidable charge');
+ assert.equal(e._lastStand,undefined);
+});
+
 test('high speed impact uses a swept hitbox; avoidance and destruction still work',()=>{
  assert.equal(sweptRamHit(-90,0,90,0,{x:0,y:0},25),true);
  assert.equal(sweptRamHit(-90,40,90,40,{x:0,y:0},25),false);
@@ -58,4 +66,38 @@ test('without another real sighting the chase expires instead of tracking throug
  assert.equal(updateLastStand(e,game,.05),false);
  assert.equal(e._lastStand,null);
  assert.equal(e.hp,17);
+});
+
+test('a suicidal fighter hits an asteroid before the pilot and does not play two explosions',()=>{
+ const e=ship(),game=scene(e);let explosions=0;
+ game.heritage.vfx.shipExplosion=()=>{explosions++;};
+ game.rockGrid={query:()=>[{x:-92,y:0,r:36,hp:300,alive:true}]};
+ assert.equal(armLastStand(e,game,37,true),true);
+ game.time=121;e.x=-170;e.vx=465;
+ updateLastStand(e,game,.38);
+ assert.equal(e.hp,0,'solid cover must intercept a high-speed charge');
+ assert.ok(e.x<-40,'the craft must stop at the rock rather than passing through it');
+ assert.equal(game.damage,undefined,'the player remains safe on the far side of cover');
+ assert.equal(explosions,0,'the normal death processor owns the only explosion');
+});
+
+test('a pilot hit before an asteroid still takes damage from the physical charge',()=>{
+ const e=ship(),game=scene(e);
+ game.rockGrid={query:()=>[{x:105,y:0,r:36,alive:true}]};
+ assert.equal(armLastStand(e,game,37,true),true);
+ game.time=121;e.x=-45;e.vx=520;
+ updateLastStand(e,game,.52);
+ assert.equal(e.hp,0);
+ assert.equal(game.damage,LAST_STAND.damage,
+  'cover behind the pilot must not erase a collision which happened first');
+});
+
+test('a charge cannot slip through a rock during its visible windup',()=>{
+ const e=ship(),game=scene(e);
+ game.rockGrid={query:()=>[{x:-105,y:0,r:36,alive:true}]};
+ assert.equal(armLastStand(e,game,37,true),true);
+ game.time=120.2;e.x=-190;e.vx=390;
+ updateLastStand(e,game,.52);
+ assert.ok(e.x<=-155,'the hull stops at the obstacle before charging');
+ assert.ok(e.hp>0,'the windup itself does not explode the fighter');
 });
