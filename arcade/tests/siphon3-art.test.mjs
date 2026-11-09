@@ -42,7 +42,7 @@ test('sprite animation changes atlas cell while a harvester flies',()=>{
  assert.deepEqual(draws[0].args.slice(5),[-40,-40,80,80]);
  assert.equal(c.calls.filter(x=>x.name==='save').length,2);
  assert.equal(c.calls.filter(x=>x.name==='restore').length,2);
- assert.ok(SIPHON3_WORLD_SIZE>=70);
+ assert.equal(SIPHON3_WORLD_SIZE,42,'mine workers are half their old world size');
 });
 
 test('returning and extracting harvester have different readable cues',()=>{

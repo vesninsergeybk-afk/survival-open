@@ -11,7 +11,7 @@ test('HUD contract: unique live element IDs, cache versions and mobile layout',(
  assert.equal(new Set(ids).size,ids.length,'duplicate element IDs');
  for(const id of ['hud','cockpitFrame','radar','hp','hpbar','hpmeter','shield','xpbar',
    'xpmeter','level','burst','burstbar','bursttext','burstBtn','ore','oreResource',
-   'data','bases','wing','hack','interactionCue','contractObjective','message',
+   'data','bases','flux','hack','interactionCue','contractObjective','message',
    'miningStatus','stateText','flightDistance','flightMode','wingStatus',
    'hudThermal','hudThermalLabel','hudThermalText','hudThermalMeter']){
   assert.ok(ids.includes(id),id+' is missing from the page');
@@ -85,12 +85,13 @@ test('HUD reads game state and changes contextual prompts without changing simul
    probeRepairing:false,time:2,messageUntil:0,holdFire:false,paused:false,
    dead:false,overlay:{hidden:true},
    interactionFocus:{kind:'station'},
-   nearbyEnemyBase:()=>null,world:{nearbyStations:()=>[]},zones:[]
+   nearbyEnemyBase:()=>null,world:{nearbyStations:()=>[],contours:{flux:9.25}},zones:[]
   };
   hud.update(game,100,5);
   assert.equal(node('hp').textContent,'28 / 100');
   assert.equal(node('data').textContent,'4');
   assert.equal(node('ore').textContent,'12');
+  assert.equal(node('flux').textContent,'9,3','the flight HUD shows spendable flux');
   assert.equal(node('xpValue').textContent,'20 / 100');
   assert.equal(node('xpmeter')['aria-valuenow'],'20');
   assert.equal(node('xpmeter')['aria-valuemax'],'100');

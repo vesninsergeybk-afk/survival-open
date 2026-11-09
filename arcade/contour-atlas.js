@@ -445,7 +445,7 @@ export function renderContourMap(game){
  return `<div class="dialog map-dialog contour-dialog" role="dialog" aria-modal="true" aria-labelledby="map-menu-title">
   <header class="map-heading"><div><span class="map-kicker">СТРАТЕГИЧЕСКАЯ СЕТЬ</span><h2 id="map-menu-title">Контуры территорий</h2>
   ${menuInfo('Как пользоваться контурами','Захватывайте и включайте станции. Подходящие соседние станции соединяются автоматически. Три замкнутых узла образуют территорию. Новое поле отмечено восклицательным знаком: подлетите к нему, отбейте нападение, и воронка начнёт добывать флюкс. Нажатие на станцию показывает её состояние и ближайшие цели; на карте можно поставить путевую метку. Линии вручную строить не нужно.')}</div>
-  <div class="map-heading-actions"><span class="contour-wallet">Флюкс <b>${digits(world.contours.flux)}</b> / ${CONTOURS.fluxCap}</span></div></header>
+  <div class="map-heading-actions"><span class="contour-wallet">Флюкс <b>${digits(world.contours.flux)}</b> · без предела</span></div></header>
   <nav class="map-view-switch" aria-label="Режим карты"><button data-act="mapView" data-id="map" aria-pressed="false">${menuIcon('map')}Рядом</button>
   <button data-act="mapView" data-id="territory" aria-pressed="true">${menuIcon('network')}Территории</button><button data-act="mapView" data-id="targets" aria-pressed="false">${menuIcon('navigation')}Цели</button></nav>
   ${renderTerritoryProgress(world,player,{map:true})}

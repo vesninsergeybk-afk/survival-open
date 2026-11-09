@@ -3,7 +3,7 @@ import {newTrialLedger,productiveContourFields,validContourTrials} from './conto
 // Territorial links appear automatically between powered friendly stations.
 // They remain distinct from the shorter-range radio tree for station services.
 export const CONTOURS=Object.freeze({maxLength:2800,maxDegree:5,maxLinks:160,
- minFaceArea:200000,launchInterval:45,cycleSeconds:180,fluxCap:30,
+ minFaceArea:200000,launchInterval:5,cycleSeconds:180,maxHarvestersPerField:6,
  reserveCost:6,reserveArmSeconds:12});
 const EPS=1e-7;
 const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -22,7 +22,7 @@ const properCross=(a,b,c,e)=>{
 
 export const createContours=()=>({links:[],flux:0,launches:{},harvesters:[],delivered:0,lost:0,
  nextLaunchAt:0,pulseReadyAt:0,reserve:null,sortie:null,nextSortieAt:0,
- trials:newTrialLedger()});
+ trials:newTrialLedger(),artillery:[],artilleryPackets:[],artilleryShells:[],artillerySerial:0});
 
 export function contourLinkOffer(world,firstId,secondId){
  const state=world.contours,a=world.stations.get(firstId),b=world.stations.get(secondId);
@@ -280,9 +280,9 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
  if(fields.length&&time>=state.nextLaunchAt){
   state.nextLaunchAt=time+CONTOURS.launchInterval;
   for(const field of fields){
-   if(state.harvesters.filter(h=>h.fieldId===field.id).length>=2)continue;
+   if(state.harvesters.filter(h=>h.fieldId===field.id).length>=CONTOURS.maxHarvestersPerField)continue;
    state.launches[field.id]=time;
-   state.harvesters.push({fieldId:field.id,progress:0,phase:'out',hp:2,
+   state.harvesters.push({fieldId:field.id,progress:0,phase:'out',hp:2,launchedAt:time,
     value:production*(field.area/area)*CONTOURS.launchInterval/CONTOURS.cycleSeconds});
   }
  }
@@ -294,10 +294,9 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
   if(h.phase==='out'&&h.progress>=1){h.phase='gather';h.progress=0;}
   else if(h.phase==='gather'&&h.progress>=.24){h.phase='back';h.progress=0;}
   else if(h.phase==='back'&&h.progress>=1){
-   const before=state.flux;
-   state.flux=Math.min(CONTOURS.fluxCap,state.flux+h.value);
-   state.delivered+=Math.max(0,state.flux-before);h.phase='done';
-   events.push({kind:'delivered',amount:Math.max(0,state.flux-before),fieldId:h.fieldId});continue;
+   state.flux+=h.value;
+   state.delivered+=h.value;h.phase='done';
+   events.push({kind:'delivered',amount:h.value,fieldId:h.fieldId});continue;
   }
   const t=h.phase==='out'?Math.min(1,h.progress):h.phase==='back'?1-Math.min(1,h.progress):1;
   const x=field.anchor.x+(field.center.x-field.anchor.x)*t;
@@ -322,7 +321,7 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
 export function validContours(state,stations){
  if(!state||typeof state!=='object'||!Array.isArray(state.links)||state.links.length>CONTOURS.maxLinks||
   !validContourTrials(state.trials)||
-  !Number.isFinite(state.flux)||state.flux<0||state.flux>CONTOURS.fluxCap||
+  !Number.isFinite(state.flux)||state.flux<0||state.flux>1e12||
   !Number.isFinite(state.delivered)||state.delivered<0||
   !Number.isInteger(state.lost)||state.lost<0||
   !Number.isFinite(state.nextLaunchAt??0)||(state.nextLaunchAt??0)<0||
@@ -358,6 +357,7 @@ export function validContours(state,stations){
  if(Object.values(state.launches).some(v=>!Number.isFinite(v)||v<0||v>1e9))return false;
  for(const h of state.harvesters)if(!h||typeof h.fieldId!=='string'||
   !['out','gather','back'].includes(h.phase)||!Number.isFinite(h.progress)||h.progress<0||h.progress>2||
-  !Number.isFinite(h.value)||h.value<0||h.value>100||!Number.isFinite(h.hp)||h.hp<0||h.hp>2)return false;
+  !Number.isFinite(h.value)||h.value<0||h.value>100||!Number.isFinite(h.hp)||h.hp<0||h.hp>2||
+  (h.launchedAt!==undefined&&(!Number.isFinite(h.launchedAt)||h.launchedAt<0||h.launchedAt>1e9)))return false;
  return true;
 }

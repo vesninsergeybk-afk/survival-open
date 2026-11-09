@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Сифон‑3 · испытание добытчика · Выживший</title>
 <link rel="stylesheet" href="./siphon3-runtime-lab.css?v=2">
-<script type="module" src="./siphon3-runtime-lab.js?v=3"></script>
+<script type="module" src="./siphon3-runtime-lab.js?v=4"></script>
 <script type="module" src="./siphon3-pose-preview.js?v=3"></script>
 </head>
 <body>
@@ -37,7 +37,7 @@
    <aside class="control-pane" aria-label="Управление испытанием">
     <div class="pane-heading"><span class="eyebrow">НАБЛЮДЕНИЕ</span><h2>Что делает добытчик</h2></div>
     <div class="metrics">
-     <div><small>Энергия в сети</small><strong id="flux">0,0 <i>/ 30</i></strong></div>
+     <div><small>Энергия в сети</small><strong id="flux">0,0 <i>без предела</i></strong></div>
      <div><small>Доставлено за опыт</small><strong id="delivered">0,0</strong></div>
      <div><small>На маршруте</small><strong id="workers">0 / 2</strong></div>
      <div><small>Потеряно</small><strong id="lost">0</strong></div>
@@ -58,7 +58,7 @@
     </div>
     <div class="control"><label class="check"><input id="labels" type="checkbox" checked> Подписывать действия над жуком</label></div>
     <div class="log-box"><h3>События рейса</h3><ol id="event-log" aria-live="polite"><li>Ожидаем загрузки сцены.</li></ol></div>
-    <p class="micro">В механике игры вылеты происходят примерно раз в 45 игровых секунд, одновременно допускаются два сборщика на область. Кнопка выпуска запускает дополнительный рейс для испытания.</p>
+    <p class="micro">В механике игры каждые 5 игровых секунд отправляется небольшой добытчик. На одном маршруте одновременно может находиться до шести корабликов. Общее количество добытого флюкса от частоты рейсов не увеличивается. Кнопка выпуска запускает дополнительный рейс для испытания.</p>
    </aside>
   </section>
   <section class="rig-preview" aria-labelledby="pose-title">

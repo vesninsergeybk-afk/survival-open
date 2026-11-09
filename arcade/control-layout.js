@@ -13,6 +13,7 @@ export const CONTROL_ACTIONS=Object.freeze([
  {id:'hack',name:'Перепрограммирование',code:'KeyQ'},
  {id:'strike',name:'Авиаудар',code:'KeyB'},
  {id:'howitzer',name:'Гаубица (доп.)',code:'KeyF'},
+ {id:'build',name:'Построить турель',code:'KeyT'},
  {id:'railMode',name:'Рельс: авто / вручную',code:'KeyR'},
  {id:'map',name:'Карта',code:'Tab'},
  {id:'skills',name:'Развитие',code:'KeyU'}
@@ -38,7 +39,18 @@ export function validControls(candidate){
 }
 export function readControls(storage){
  try{const saved=JSON.parse(storage?.getItem(CONTROL_STORAGE_KEY)||'null');
-  if(validControls(saved))return saved;}catch{}
+  if(validControls(saved))return saved;
+  // Existing players may have remapped every key before construction existed.
+  // Keep those choices; assign the new action the first unused suitable key.
+  if(saved&&typeof saved==='object'&&!Array.isArray(saved)&&
+    Object.keys(saved).length===CONTROL_ACTIONS.length-1&&
+    Object.keys(saved).every(k=>k!=='build'&&Object.hasOwn(DEFAULT_CONTROLS,k))){
+   const used=new Set(Object.values(saved));
+   const free=['KeyT','KeyG','KeyY','KeyH','KeyV'].find(k=>!used.has(k));
+   if(free){const migrated={...saved,build:free};
+    if(validControls(migrated))return migrated;}
+  }
+ }catch{}
  return {...DEFAULT_CONTROLS};
 }
 export function changeControl(bindings,action,code){

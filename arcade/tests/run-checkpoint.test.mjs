@@ -107,6 +107,43 @@ test('a map marker survives save and leaves the mission waypoint untouched',()=>
  assert.ok(validateCheckpoint(legacy));
 });
 
+test('artillery magazines and reserved flux packets survive a real dock checkpoint',()=>{
+ const g=scene(),state=g.world.contours;
+ state.flux=72.75;state.artillerySerial=1;
+ state.artillery=[{id:1,kind:'flux-artillery',x:g.player.x+240,y:g.player.y+80,
+  r:28,hp:110,maxHp:110,ammo:4,chargeCredit:.13,readyAt:120,
+  nextShotAt:250,aimingUntil:0,aimX:g.player.x+280,aimY:g.player.y+80,
+  mode:'group',lastShotAt:230,lastImpactAt:230,
+  lastImpactX:g.player.x+280,lastImpactY:g.player.y+80}];
+ state.artilleryPackets=[{turretId:1,edgeId:'node-a|node-b',amount:.5,charges:2,
+  launchedAt:242,arriveAt:246,path:[{x:100,y:100},{x:200,y:100},
+   {x:state.artillery[0].x,y:state.artillery[0].y}]}];
+ state.artilleryShells=[{turretId:1,startX:state.artillery[0].x,startY:state.artillery[0].y,
+  targetX:state.artillery[0].aimX,targetY:state.artillery[0].aimY,
+  launchedAt:243,arriveAt:243.35}];
+ const saved=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(saved),true);
+ const restored=scene();restoreCheckpoint(restored,saved);
+ assert.equal(restored.world.contours.flux,72.75);
+ assert.equal(restored.world.contours.artillery[0].ammo,4);
+ assert.equal(restored.world.contours.artillery[0].mode,'group');
+ assert.equal(restored.world.contours.artilleryPackets[0].charges,2);
+ assert.equal(restored.world.contours.artilleryPackets[0].amount,.5);
+ assert.equal(restored.world.contours.artilleryShells.length,1);
+ assert.equal(restored.world.contours.artilleryShells[0].targetX,state.artilleryShells[0].targetX);
+ const forged=unpackRun(packRun(saved));
+ forged.world.contours.artilleryPackets[0].charges=99;
+ assert.equal(validateCheckpoint(forged),false);
+ const old=unpackRun(packRun(saved));
+ delete old.world.contours.artillery;delete old.world.contours.artilleryPackets;
+ delete old.world.contours.artilleryShells;
+ delete old.world.contours.artillerySerial;
+ assert.equal(validateCheckpoint(old),true);
+ const oldRestored=scene();restoreCheckpoint(oldRestored,old);
+ assert.deepEqual(oldRestored.world.contours.artillery,[]);
+ assert.deepEqual(oldRestored.world.contours.artilleryShells,[]);
+});
+
 test('field mission attempts, full wins and bounded results survive a station checkpoint',()=>{
  const g=scene(),base=g.docked;
  base.fieldOperationRuns={'line-break':3};

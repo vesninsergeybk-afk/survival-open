@@ -14,6 +14,7 @@ import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
 import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-flux-offense-1-territory-war-1';
 import {createContours,validContours,autoConnectContours} from './territory-system.js?v=automatic-contours-1-contour-trials-1';
+import {validFluxArtillery} from './flux-artillery.js?v=flux-artillery-vfx-1';
 import {ensureTrialLedger} from './contour-trials.js?v=contour-trials-1-first-loops-1';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
@@ -207,7 +208,8 @@ export function validateCheckpoint(data){
  if(!home||!dock?.active||dock.enemy||Math.hypot(p.x-dock.x,p.y-dock.y)>210||
   w.discovered.some(id=>!ids.has(id)))return false;
  if(p.strategicXp!==undefined&&!validStrategicExperience(p.strategicXp,w.stations))return false;
- if(w.contours!==undefined&&!validContours(w.contours,w.stations))return false;
+ if(w.contours!==undefined&&(!validContours(w.contours,w.stations)||
+   !validFluxArtillery(w.contours)))return false;
  if(!validEnemyExpansion(w.enemyExpansion,w.stations,s.time))return false;
  if(s.enemies.some(e=>e.stationRaid&&!ids.has(e.stationRaid.stationId))||
    w.regionalSupply?.command?.reports.some(r=>!ids.has(r.stationId)))return false;
@@ -243,6 +245,10 @@ export function restoreCheckpoint(game,data){
  world.ensureRegionalStations();
  world.regionalSupply=data.world.regionalSupply||createRegionalSupply(data.state.time);
  world.contours=data.world.contours||createContours();
+ world.contours.artillery??=[];
+ world.contours.artilleryPackets??=[];
+ world.contours.artilleryShells??=[];
+ world.contours.artillerySerial??=0;
  world.enemyExpansion=data.world.enemyExpansion||createEnemyExpansion(data.state.time);
  for(const b of world.stations.values())if(b.suppressed&&b.suppressedUntil<=data.state.time)b.suppressed=false;
  for(const [key,patches] of data.world.rocks){
@@ -274,6 +280,7 @@ export function restoreCheckpoint(game,data){
  inheritStrategicExperience(game.player,world);
  game.tactical=data.state.tactical||createTactical();game.tacticalPointer=null;game.targetField=null;
  game.mouseAim=null;game.mobileMineArmed=false;
+ game.buildPlanning=null;game.artilleryMenuTarget=null;
  if(game.mouseArsenal)game.mouseArsenal={cometReadyAt:0,minesReadyAt:0,projectiles:[],mines:[],bursts:[]};
  game.openingArc=data.state.openingArc||{...createOpeningArc(world.home),status:'skipped'};
  game.openingRepairing=false;

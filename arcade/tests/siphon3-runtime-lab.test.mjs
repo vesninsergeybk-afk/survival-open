@@ -12,7 +12,7 @@ test('Siphon-3 workshop uses a valid triangle and the live game territory rules'
  assert.equal(lab.fields.length,1);
  assert.ok(lab.fields[0].area>CONTOURS.minFaceArea);
  assert.equal(lab.world.contours.flux,0);
- assert.equal(CONTOURS.launchInterval,45);
+ assert.equal(CONTOURS.launchInterval,5);
 });
 
 test('Siphon-3 returns from a real-game collection cycle and deposits flux',()=>{
@@ -47,10 +47,10 @@ test('test interceptor destroys an exposed harvester without a fictional reward'
  assert.equal(lab.world.contours.harvesters.length,0);
 });
 
-test('manual playtest launches never exceed the two-worker live-game limit',()=>{
+test('manual playtest launches never exceed the six-worker live-game limit',()=>{
  const lab=createLabWorld();
- forceLaunch(lab);forceLaunch(lab);forceLaunch(lab);
- assert.equal(lab.world.contours.harvesters.length,2);
+ for(let i=0;i<12;i++)forceLaunch(lab);
+ assert.equal(lab.world.contours.harvesters.length,6);
 });
 
 test('workshop loads the authored sprite atlas and is linked from concept studio',()=>{

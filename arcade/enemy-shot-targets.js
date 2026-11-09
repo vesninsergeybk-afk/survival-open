@@ -23,5 +23,14 @@ export function hitFriendlyShip(game,shot){
     game.hitAlly(ally,shot.damage*(1-(game.network?.armor||0)*.07));
     return true;
   }
+  for(const turret of game.world?.contours?.artillery||[]){
+    if(turret.hp<=0||game.time<turret.readyAt||
+      Math.hypot(shot.x-turret.x,shot.y-turret.y)>=shot.r+turret.r)continue;
+    shot.alive=false;turret.hp=Math.max(0,turret.hp-shot.damage);
+    const point=contactOnCircle(turret.x,turret.y,turret.r,shot.x,shot.y);
+    if(turret.hp<=0)game.heritage?.vfx?.shipExplosion?.(turret.x,turret.y,40,'#ffae6e');
+    else game.heritage?.vfx?.hullImpact?.(point?.x??turret.x,point?.y??turret.y,false,point);
+    return true;
+  }
   return false;
 }
