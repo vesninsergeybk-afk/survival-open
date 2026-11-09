@@ -1,8 +1,8 @@
 import {artilleryLinks,artilleryConnection,edgeTurretOccupancy,edgeTurretLimit,ARTILLERY_MODES,FLUX_ARTILLERY,
- turnArtilleryGun} from './flux-artillery.js?v=turret-preload-20261109-1';
+ turnArtilleryGun} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1';
 import {arcChainCount,arcRange,arcCooldown,arcSlowSeconds,laserEmitters,laserCooldown,
  laserBurst,laserRange,hiveLimit,hiveRange,hiveArmor,supportSupply,turretBranchRank,
- validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1';
+ validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1-audit-1';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 
 // All three structures spend delivered flux. A nest pays for each replacement
@@ -123,17 +123,45 @@ const availableTargets=(game,center,range)=>{
  }
  return targets;
 };
+const supportTargetCache=new WeakMap(),SUPPORT_TARGET_SCAN_SECONDS=.12;
 function chooseTarget(game,origin,range,mode='smart'){
- const list=availableTargets(game,origin,range);let best=null,score=-Infinity;
+ const previous=supportTargetCache.get(origin),now=game.time;
+ if(previous&&now>=previous.at&&now-previous.at<SUPPORT_TARGET_SCAN_SECONDS&&
+   previous.range===range&&previous.mode===mode&&previous.enemies===game.enemies&&
+   previous.enemyCount===(game.enemies||[]).length&&
+   (!previous.target||(previous.target.object.hp>0&&
+    d(origin,previous.target.object)<=range&&
+    (previous.target.kind!=='enemy'||
+     (!previous.target.object.converted&&!previous.target.object.trialRetreatUntil))&&
+    (previous.target.kind!=='base'||
+     (previous.target.object.enemy&&!previous.target.object.captured)))))return previous.target;
+ const list=availableTargets(game,origin,range),cell=160,limit2=cell*cell,
+  buckets=new Map();
+ for(let i=0;i<list.length;i++){
+  const o=list[i].object,ix=Math.floor(o.x/cell),iy=Math.floor(o.y/cell),key=ix+','+iy;
+  if(!buckets.has(key))buckets.set(key,[]);
+  buckets.get(key).push(i);
+ }
+ let best=null,score=-Infinity;
  for(const target of list){
   const o=target.object,dist=d(origin,o),hp=o.hp||1,maxHp=o.maxHp||hp;
-  const cluster=list.filter(x=>d(x.object,o)<160).length;
+  const ix=Math.floor(o.x/cell),iy=Math.floor(o.y/cell);
+  let cluster=0;
+  // Sixteen nearby targets already represent a saturated swarm. A hard cap
+  // keeps tightly packed late-game waves from reintroducing an O(n²) scan.
+  clusterSearch: for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)
+   for(const index of buckets.get((ix+x)+','+(iy+y))||[]){
+    const other=list[index].object,dx=other.x-o.x,dy=other.y-o.y;
+    if(dx*dx+dy*dy<limit2&&++cluster>=16)break clusterSearch;
+   }
   const value=mode==='weak'?-hp-dist*.02:
    mode==='strong'?maxHp-dist*.04:
    mode==='group'?cluster*75-dist*.06:
    cluster*24+Math.min(130,maxHp)*.17-dist*.08;
   if(value>score){score=value;best=target;}
  }
+ supportTargetCache.set(origin,{at:now,range,mode,enemies:game.enemies,
+  enemyCount:(game.enemies||[]).length,target:best});
  return best;
 }
 function damageTarget(game,target,power,source){
@@ -221,6 +249,7 @@ function laserPulse(game,t,cfg){
 }
 function updateDrones(game,t,cfg,dt){
  const radius=hiveRange(t),now=game.time;
+ if(!t.drones.some(drone=>drone.hp>0))return;
  const target=chooseTarget(game,t,radius,t.mode);
  for(const drone of t.drones){
   if(drone.hp<=0)continue;
@@ -323,6 +352,7 @@ export function advanceFluxSupports(game,dt){
    }
    continue;
   }
+  if(t.ammo<(t.type==='laser'?laserEmitters(t):1))continue;
   const target=chooseTarget(game,t,t.type==='laser'?laserRange(t):
    t.type==='arc'?arcRange(t):cfg.range,t.mode);
   if(target){

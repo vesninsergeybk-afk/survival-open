@@ -1,8 +1,9 @@
 import {contourFields} from './territory-system.js';
 import {productiveContourFields} from './contour-trials.js';
 import {artilleryBarrels,artilleryCooldown,artilleryBlast,artilleryRange,artillerySupply,
- artilleryShotUnits,artilleryShellDamage,artilleryMagazine,turretBranchRank,
- validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1';
+ artilleryShotUnits,artilleryShellDamage,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
+ ARTILLERY_BASE_FLUX_PER_MINUTE,turretBranchRank,
+ validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1-audit-1';
 
 // A field emplacement is ammunition-fed, not another player ship. The pilot
 // must finish the first territorial trial before any emplacement is available.
@@ -11,7 +12,7 @@ export const FLUX_ARTILLERY=Object.freeze({
  buildRadius:560,clearance:125,stationClearance:105,oreCost:20,fluxCost:1,
  maxHp:110,magazine:15,chargeCost:.25,damage:18,blastRadius:110,
  range:740,aimSeconds:.42,cooldown:8,buildSeconds:3,
- cableScale:700,baseFluxPerMinute:3.6,packetSpeed:520,maxTurrets:72,maxPackets:256,
+ cableScale:700,baseFluxPerMinute:ARTILLERY_BASE_FLUX_PER_MINUTE,packetSpeed:520,maxTurrets:72,maxPackets:256,
  maxShells:96,shellSpeed:830,impactLifetime:.9,wreckLifetime:5,
  collisionRadius:38,turnSpeed:2.9,muzzleOffset:60,
  closeRange:235,closeDamage:11,closeCooldown:.19
@@ -390,7 +391,7 @@ export function advanceFluxArtillery(game,dt){
   }
   // The close-defense pulse spends a quarter-flux charge, but may only use
   // surplus rounds: the battery always keeps one full main salvo in reserve.
-  const primaryReserve=Math.max(3,artilleryBarrels(turret))*artilleryShotUnits(turret);
+  const primaryReserve=artillerySalvoSize(turret)*artilleryShotUnits(turret);
   if(link&&turret.ammo>primaryReserve&&time>=(turret.closeNextShotAt??0)){
    const threat=(game.enemies||[]).filter(e=>e.hp>0&&!e.converted&&!e.trialRetreatUntil&&
     distance(e,turret)<=FLUX_ARTILLERY.closeRange+25*((turret.level||1)-1))
@@ -442,18 +443,17 @@ export function advanceFluxArtillery(game,dt){
     turret.aimingUntil=time+.1;continue;
    }
    turret.aimingUntil=0;
-   if(turret.ammo<artilleryShotUnits(turret))continue;
+   if(turret.ammo<artillerySalvoSize(turret)*artilleryShotUnits(turret))continue;
    if(state.artilleryShells.length>=FLUX_ARTILLERY.maxShells)continue;
+   if(FLUX_ARTILLERY.maxShells-state.artilleryShells.length<artillerySalvoSize(turret))continue;
    turret.nextShotAt=time+artilleryCooldown(turret);
-   turret.salvoLeft=Math.min(Math.max(3,artilleryBarrels(turret)),
-    Math.floor(turret.ammo/artilleryShotUnits(turret)),
-    FLUX_ARTILLERY.maxShells-state.artilleryShells.length);
+   turret.salvoLeft=artillerySalvoSize(turret);
    turret.salvoFired=0;turret.salvoNextAt=time;turret.barrelLastShots=[];
    fireBarrel(game,state,turret,time);
    continue;
   }
   // Distant autonomous battles are not silently simulated or rewarded.
-  if(turret.salvoLeft>0||turret.ammo<artilleryShotUnits(turret)||time<turret.nextShotAt||
+  if(turret.salvoLeft>0||turret.ammo<artillerySalvoSize(turret)*artilleryShotUnits(turret)||time<turret.nextShotAt||
     distance(game.player,turret)>Math.max(1400,game.vw||1200))continue;
   const aim=chooseArtilleryAim(game,turret);
   if(aim){
@@ -755,9 +755,9 @@ export function drawFluxArtillery(ctx,game,cam,preview=null){
   }
   ctx.fillStyle='rgba(5,19,32,.9)';ctx.fillRect(-33,-58,66,18);
   ctx.font='bold 12px system-ui';ctx.textAlign='center';
-  ctx.fillStyle=live?(turret.ammo?'#ffd8a2':'#8aaec2'):'#f3997b';
+  ctx.fillStyle=live?(artilleryReadyShells(turret)>=artillerySalvoSize(turret)?'#ffd8a2':'#8aaec2'):'#f3997b';
   ctx.fillText(!live?'РАЗРУШЕНА':building?'СБОРКА':
-    `${turret.ammo}/${artilleryMagazine(turret)} · ×${artilleryBarrels(turret)}`,0,-44);
+    `${artilleryReadyShells(turret)}/${Math.floor(artilleryMagazine(turret)/artilleryShotUnits(turret))} · ×${artilleryBarrels(turret)}`,0,-44);
   if(live){
    ctx.fillStyle='#23495a';ctx.fillRect(-29,43,58,5);
    ctx.fillStyle='#7ae6dd';ctx.fillRect(-29,43,58*clamp(turret.hp/turret.maxHp,0,1),5);

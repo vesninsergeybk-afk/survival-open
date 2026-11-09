@@ -100,7 +100,8 @@ export function validTurretBranches(t){
 }
 export const artilleryBarrels=t=>[1,2,3,4,6,10][turretBranchRank(t,'salvo')]||1;
 export const artilleryCooldown=t=>[8,6.8,5.7,4.7,4][turretBranchRank(t,'tempo')]||8;
-export const artillerySupply=t=>3.6*(1+.35*turretBranchRank(t,'tempo'))*
+export const ARTILLERY_BASE_FLUX_PER_MINUTE=15;
+export const artillerySupply=t=>ARTILLERY_BASE_FLUX_PER_MINUTE*(1+.35*turretBranchRank(t,'tempo'))*
  [1,1.5,2.4,4,7][turretBranchRank(t,'power')];
 export const artilleryBlast=t=>[110,126,145,165,185][turretBranchRank(t,'radius')]||110;
 export const artilleryRange=t=>[740,850,980,1160][turretBranchRank(t,'reach')]||740;
@@ -108,6 +109,8 @@ export const artilleryShotUnits=t=>[1,2,4,8,20][turretBranchRank(t,'power')]||1;
 export const artilleryShellDamage=t=>[18,36,82,185,480][turretBranchRank(t,'power')]||18;
 export const artilleryShotFlux=t=>artilleryShotUnits(t)*.25;
 export const artilleryMagazine=t=>Math.max(15,Math.max(3,artilleryBarrels(t))*artilleryShotUnits(t));
+export const artillerySalvoSize=t=>Math.max(3,artilleryBarrels(t));
+export const artilleryReadyShells=t=>Math.floor(Math.max(0,t?.ammo||0)/artilleryShotUnits(t));
 export const arcChainCount=t=>[3,4,5,7][turretBranchRank(t,'chain')]||3;
 export const arcRange=t=>[440,520,610,720][turretBranchRank(t,'reach')]||440;
 export const arcCooldown=t=>[3.5,3,2.55,2.15][turretBranchRank(t,'tempo')]||3.5;

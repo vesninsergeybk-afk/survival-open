@@ -6,7 +6,8 @@ import {deployArtillery,advanceFluxArtillery,chooseArtilleryAim,barrelMount,vali
 import {deploySupport,advanceFluxSupports,validFluxSupports} from '../flux-supports.js';
 import {TURRET_GROWTH,turretGrowthRows,turretBranchOffer,buyTurretBranch,
  artilleryBarrels,artilleryBlast,artilleryRange,arcRange,artilleryShotUnits,artilleryShotFlux,
- artilleryShellDamage,artilleryMagazine,artilleryCooldown,artillerySupply,arcChainCount,supportSupply,
+ artilleryShellDamage,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
+ artilleryCooldown,artillerySupply,arcChainCount,supportSupply,
  laserEmitters,laserBurst,hiveLimit,hiveArmor,hiveRange} from '../turret-growth.js';
 import {hitFriendlyShip} from '../enemy-shot-targets.js';
 import {turretDistractionTarget} from '../ai.js';
@@ -63,13 +64,23 @@ test('heavy rounds consume prepaid quarter-flux units and reach five flux per sh
  assert.equal(artilleryShotFlux(t),5);
  assert.equal(artilleryShellDamage(t),480);
  assert.equal(artilleryMagazine(t),60);
- t.readyAt=0;t.ammo=20;world.contours.flux=0;
+ t.readyAt=0;t.ammo=19;world.contours.flux=0;
+ assert.equal(artilleryReadyShells(t),0,'19 quarter-flux units are not 19 heavy shells');
+ t.ammo=20;
  game.enemies=[{x:850,y:300,hp:1000,maxHp:1000,r:18,vx:0,vy:0}];
+ assert.equal(artilleryReadyShells(t),1,'the magazine counts whole expensive shells');
+ assert.equal(artillerySalvoSize(t),3);
+ for(let i=0;i<60;i++){game.time+=.05;advanceFluxArtillery(game,.05);}
+ assert.equal(world.contours.artilleryShells.length,0,
+  'one heavy round must wait until a whole three-round salvo can be afforded');
+ t.ammo=60;assert.equal(artilleryReadyShells(t),3);
  for(let i=0;i<120&&world.contours.artilleryShells.length===0;i++){
   game.time+=.05;advanceFluxArtillery(game,.05);
  }
  const shell=world.contours.artilleryShells[0];
- assert.equal(shell.damage,480);assert.equal(t.ammo,0);
+ assert.equal(shell.damage,480);
+ for(let i=0;i<8&&t.salvoLeft>0;i++){game.time+=.05;advanceFluxArtillery(game,.05);}
+ assert.equal(t.salvoLeft,0);assert.equal(t.ammo,0);
  assert.equal(world.contours.flux,0,'firing spends the already delivered charge, never charges global flux twice');
  assert.equal(validFluxArtillery(world.contours),true);
  shell.damage=Infinity;assert.equal(validFluxArtillery(world.contours),false);

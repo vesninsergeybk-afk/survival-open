@@ -127,6 +127,29 @@ test('one stock barrel fires three low-power paid shells at different locations'
  assert.equal(validFluxArtillery(world.contours),true);
 });
 
+test('sustained fire uses complete three-shell salvos and recharges within an eight-second cycle near the edge',()=>{
+ const {world,player,point,game}=fixture();world.contours.trials.completed=1;
+ world.contours.flux=100;
+ const t=deployArtillery(world,player,point,0,4).turret;
+ game.enemies=[{x:1100,y:300,vx:0,vy:0,r:15,hp:1e7,maxHp:1e7}];
+ const launches=[];let last=-1;
+ for(let i=1;i<=1200;i++){
+  game.time=i*.05;advanceFluxArtillery(game,.05);
+  if(t.lastShotAt>=0&&t.lastShotAt!==last){last=t.lastShotAt;launches.push(game.time);}
+ }
+ const salvos=[];
+ for(const time of launches){
+  if(!salvos.length||time-salvos.at(-1).at(-1)>1)salvos.push([time]);
+  else salvos.at(-1).push(time);
+ }
+ assert.ok(salvos.length>=5,'one uncongested nearby battery needs several real salvos each minute');
+ assert.ok(salvos.every(x=>x.length===3),
+  'every reload must produce the complete three-projectile area salvo: '+JSON.stringify(salvos));
+ assert.ok(salvos.slice(1).every((s,i)=>s[0]-salvos[i][0]<11),
+  'delivery at 300m cable distance must not make an eight-second gun wait tens of seconds');
+ assert.equal(validFluxArtillery(world.contours),true);
+});
+
 test('close-range defense cannot fire on empty flux and spends a paid charge when ready',()=>{
  const {world,player,point,game}=fixture();world.contours.trials.completed=1;
  world.contours.flux=1;
@@ -200,7 +223,7 @@ test('shell flies visibly before its real area hit, even if the gun is destroyed
  const {world,game,player,point}=fixture();world.contours.trials.completed=1;
  world.contours.flux=10;
  const turret=deployArtillery(world,player,point,0).turret;
- turret.readyAt=0;turret.ammo=1;
+ turret.readyAt=0;turret.ammo=3;
  const enemy={x:1030,y:300,hp:120,maxHp:120,r:20};game.enemies=[enemy];
  game.time=1;advanceFluxArtillery(game,.1);
  assert.ok(turret.aimingUntil>game.time);
@@ -234,7 +257,7 @@ test('artillery rotation is bounded, takes the shortest arc, and shells leave th
  const {world,game,player,point}=fixture();world.contours.trials.completed=1;
  world.contours.flux=10;
  const turret=deployArtillery(world,player,point,0).turret;
- turret.readyAt=0;turret.ammo=1;
+ turret.readyAt=0;turret.ammo=3;
  game.enemies=[{x:850,y:300,hp:100,maxHp:100,r:18}];
  game.time=1;advanceFluxArtillery(game,sixty);
  const before=turret.gunAngle;

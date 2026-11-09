@@ -1,5 +1,5 @@
-import {artilleryLinks,artilleryConnection,FLUX_ARTILLERY} from './flux-artillery.js';
-import {supportConfig} from './flux-supports.js';
+import {artilleryLinks,artilleryConnection,FLUX_ARTILLERY} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1';
+import {supportConfig} from './flux-supports.js?v=turret-preload-20261109-1-audit-1';
 
 export const TURRET_REPAIR=Object.freeze({range:128,seconds:3});
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);

@@ -80,6 +80,50 @@ test('chain lightning damages up to three nearby enemies, slows them and costs a
  assert.equal(setSupportMode(t,'imaginary'),false);
 });
 
+test('a dense hostile swarm does not cause quadratic target scans every frame, especially with an empty turret',()=>{
+ const {world,player,point,game}=fixture();
+ const t=deploySupport(world,player,point,0,'arc').turret;
+ t.readyAt=0;t.nextShotAt=1e6;
+ game.enemies=Array.from({length:400},(_,i)=>({
+  x:point.x+Math.cos(i*2.39996)*Math.sqrt(i/400)*350,
+  y:point.y+Math.sin(i*2.39996)*Math.sqrt(i/400)*350,
+  hp:100,maxHp:100,r:15}));
+ const original=Math.hypot;let distanceCalls=0;
+ Math.hypot=(...args)=>{distanceCalls++;return original(...args);};
+ try{
+  t.ammo=0;game.time=1;advanceFluxSupports(game,.05);
+  assert.ok(distanceCalls<2000,'an empty gun must not score hundreds of enemies');
+  t.ammo=1;game.time=2;distanceCalls=0;advanceFluxSupports(game,.05);
+  assert.ok(distanceCalls<12000,'grid scoring avoids all-pairs distance checks: '+distanceCalls);
+ }finally{Math.hypot=original;}
+ assert.equal(validFluxSupports(world.contours),true);
+});
+
+test('a cached target is immediately discarded when the enemy is converted into an ally',()=>{
+ const {world,player,point,game}=fixture();
+ const t=deploySupport(world,player,point,0,'laser').turret;
+ t.readyAt=0;t.ammo=2;t.gunAngle=0;t.nextShotAt=10;
+ const enemy={x:point.x+120,y:point.y,hp:100,maxHp:100,r:15};
+ game.enemies=[enemy];game.time=1;advanceFluxSupports(game,.05);
+ enemy.converted=true;t.nextShotAt=0;
+ game.time=1.05;advanceFluxSupports(game,.05);
+ assert.equal(game.hits.length,0,'laser may not spend charges attacking a newly allied ship');
+ assert.equal(t.ammo,2);
+});
+
+test('one extremely dense enemy cluster has bounded target-selection work',()=>{
+ const {world,player,point,game}=fixture();
+ const t=deploySupport(world,player,point,0,'arc').turret;
+ t.readyAt=0;t.ammo=1;t.nextShotAt=1e6;
+ let xReads=0;
+ game.enemies=Array.from({length:1000},()=>({
+  get x(){xReads++;return point.x+105;},y:point.y,
+  hp:100,maxHp:100,r:15}));
+ game.time=1;advanceFluxSupports(game,.05);
+ assert.ok(xReads<100000,'packed targets must not cause an O(n²) scan: '+xReads);
+ assert.equal(t.ammo,1);
+});
+
 test('laser burst is pulsed, weakens with distance and can be upgraded to twin emitters',()=>{
  const near=fixture(),far=fixture(),both=[near,far];
  for(const pack of both){
