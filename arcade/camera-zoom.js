@@ -1,6 +1,11 @@
 // Zoom affects the view only; weapon range and spawning remain in world units.
 export const CAMERA_ZOOM=Object.freeze({min:.55,max:1.5,keyStep:1.16});
 
+// Text and its backing should stay readable in screen pixels when the world
+// zooms out. Gameplay geometry (including ranges and collision radii) must not.
+export const worldTextScale=(zoom=1)=>1/Math.min(1,
+ Math.max(CAMERA_ZOOM.min,Number.isFinite(zoom)?zoom:1));
+
 export const clampCameraZoom=value=>Number.isFinite(value)?
  Math.max(CAMERA_ZOOM.min,Math.min(CAMERA_ZOOM.max,value)):1;
 
@@ -19,6 +24,10 @@ export function flightZoomKey(code,bindings={}){
 
 export const stepCameraZoom=(current,direction)=>
  clampCameraZoom(current*CAMERA_ZOOM.keyStep**direction);
+
+// Horizontal-only gestures must never change the selected weapon.
+export const manualWheelDirection=deltaY=>
+ Number.isFinite(deltaY)&&Math.abs(deltaY)>=.01?(deltaY>0?1:-1):0;
 
 // Wheel units vary between mice and touchpads; cap one large wheel event.
 export function wheelCameraZoom(current,deltaY,deltaMode=0,pageHeight=800){

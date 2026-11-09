@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {ArcadeGame} from './runtime-game.mjs';
+import {SpatialGrid,spawnOutside} from '../balance.js';
 import {CAMERA_ZOOM,flightCamera,flightZoomKey,stepCameraZoom,
- wheelCameraZoom,pointerInFlightWorld} from '../camera-zoom.js';
+ wheelCameraZoom,pointerInFlightWorld,manualWheelDirection,worldTextScale} from '../camera-zoom.js';
 
 const near=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-7,`${actual} != ${expected}`);
 
@@ -42,23 +43,70 @@ test('Ctrl+wheel changes view gradually with bounded deltas; ordinary wheel stil
  assert.ok(wheelCameraZoom(1,1,1)<1);
  assert.equal(wheelCameraZoom(1,0),1);
  assert.equal(wheelCameraZoom(1,Infinity),1);
+ assert.equal(manualWheelDirection(0),0);
+ assert.equal(manualWheelDirection(NaN),0);
+ assert.equal(manualWheelDirection(.001),0);
+ assert.equal(manualWheelDirection(120),1);
+ assert.equal(manualWheelDirection(-120),-1);
  assert.equal(wheelCameraZoom(1,100000),wheelCameraZoom(1,180));
  const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(source,/if\(e\.ctrlKey\)\{\s*e\.preventDefault\(\);\s*this\.setCameraZoom\(wheelCameraZoom/);
- assert.match(source,/this\.switchManualWeapon\(e\.deltaY>0\?1:-1\)/);
+ assert.match(source,/const direction=manualWheelDirection\(e\.deltaY\)/);
+ assert.match(source,/if\(!direction\)return;\s*e\.preventDefault\(\);this\.switchManualWeapon\(direction\)/);
 });
 
-test('live camera zoom does not expand the spawning camera or screen-range hacking',()=>{
+test('world text remains readable without magnifying the physical world',()=>{
+ assert.equal(worldTextScale(1),1);
+ assert.equal(worldTextScale(1.5),1);
+ near(worldTextScale(.55)*.55,1);
+ near(worldTextScale(.8)*.8,1);
+ assert.equal(worldTextScale(NaN),1);
+});
+
+test('asteroid spatial lookup preserves obstacle avoidance at both camera extremes',()=>{
+ const game=Object.create(ArcadeGame.prototype);
+ game.time=17;game.zones=[];
+ game.nearRocks=Array.from({length:420},(_,i)=>({
+  x:Math.sin(i*2.73)*1800,y:Math.cos(i*3.31)*1400,
+  r:5+(i*17)%46,alive:i%19!==0
+ }));
+ game.avoidanceRockGrid=new SpatialGrid(200);
+ for(const rock of game.nearRocks)if(rock.alive)game.avoidanceRockGrid.insert(rock);
+ const indexedGrid=game.avoidanceRockGrid;
+ for(const zoom of [.55,1,1.5]){
+  game.cameraZoom=zoom;
+  for(let i=0;i<90;i++){
+   const x=Math.sin(i*.77)*1100,y=Math.cos(i*.39)*850;
+   const indexed=game.avoidance(x,y,12+i%25);
+   game.avoidanceRockGrid=null;
+   const fullScan=game.avoidance(x,y,12+i%25);
+   near(indexed.x,fullScan.x);near(indexed.y,fullScan.y);
+   game.avoidanceRockGrid=indexedGrid;
+  }
+ }
+});
+
+test('wide camera entries stay offscreen while screen-range hacking keeps its old bounds',()=>{
  const game=Object.create(ArcadeGame.prototype);
  game.player={x:1234,y:5678};game.vw=1200;game.vh=800;game.cameraZoom=.55;
  const visual=game.camera(),spawn=game.spawnCamera();
  assert.ok(visual.w>spawn.w&&visual.h>spawn.h);
  assert.equal(spawn.w,1200);
  assert.equal(spawn.h,800);
+ const arrival=game.spawnEntryCamera();
+ assert.deepEqual(arrival,visual);
+ for(const side of [0,1,2,3]){
+  const point=spawnOutside(arrival,side,.5,125);
+  assert.ok(point.x<visual.x||point.x>visual.x+visual.w||
+   point.y<visual.y||point.y>visual.y+visual.h);
+ }
+ game.cameraZoom=1.5;
+ assert.deepEqual(game.spawnEntryCamera(),game.spawnCamera());
+ game.cameraZoom=.55;
  assert.deepEqual(game.player, {x:1234,y:5678});
  const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(source,/const charge=this\.hacks\.shift\(\),cam=this\.spawnCamera\(\)/);
- assert.match(source,/const group=\+\+this\.groupSerial,cam=this\.spawnCamera\(\)/);
+ assert.match(source,/const group=\+\+this\.groupSerial,cam=this\.spawnEntryCamera\(\)/);
  assert.match(source,/c\.scale\(this\.cameraZoom,this\.cameraZoom\)/);
 });
 

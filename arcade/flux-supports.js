@@ -3,6 +3,7 @@ import {artilleryLinks,artilleryConnection,edgeTurretOccupancy,edgeTurretLimit,A
 import {arcChainCount,arcCooldown,arcSlowSeconds,laserEmitters,laserCooldown,
  laserBurst,laserRange,hiveLimit,hiveRange,hiveArmor,supportSupply,turretBranchRank,
  validTurretBranches} from './turret-growth.js';
+import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 
 // All three structures spend delivered flux. A nest pays for each replacement
 // drone; the other two consume prepaid charges instead of free damage ticks.
@@ -376,6 +377,7 @@ function pointOnPath(path,fraction){
   y:path[segment].y+(path[segment+1].y-path[segment].y)*part};
 }
 export function drawFluxSupports(ctx,game,cam,preview=null){
+ const textScale=worldTextScale(game.cameraZoom);
  const s=game.world?.contours;if(!s)return;
  const now=game.time,reduced=!!game.visuals?.reducedMotion,edges=artilleryLinks(game.world);
  const pointer=game.tacticalPointer,rect=pointer&&game.canvas?.getBoundingClientRect?.();
@@ -462,10 +464,12 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
   }
   const remaining=t.type==='hive'?t.drones.filter(x=>x.hp>0).length+'/'+hiveLimit(t):
    t.ammo+'/'+cfg.magazine;
+  ctx.save();ctx.scale(textScale,textScale);
   ctx.fillStyle='rgba(5,19,32,.93)';ctx.fillRect(-38,-61,76,18);
   ctx.font='bold 11px system-ui';ctx.textAlign='center';
   ctx.fillStyle=!live?'#ef9d81':cfg.color;
   ctx.fillText(!live?'РАЗРУШЕНА':building?'СБОРКА':remaining,0,-48);
+  ctx.restore();
   if(live){
    ctx.fillStyle='#143747';ctx.fillRect(-30,44,60,5);
    ctx.fillStyle=cfg.color;ctx.fillRect(-30,44,60*t.hp/t.maxHp,5);
@@ -473,8 +477,10 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
   if(live&&hover&&d(hover,t)<t.r+14&&!building&&!preview){
    ctx.strokeStyle='#9ae9f3';ctx.lineWidth=1.7;ctx.setLineDash([4,5]);
    ctx.beginPath();ctx.arc(0,0,t.r+12,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+   ctx.save();ctx.scale(textScale,textScale);
    ctx.fillStyle='#d9f7ff';ctx.font='bold 11px system-ui';ctx.textAlign='center';
    ctx.fillText('ПКМ · РЕЖИМ / УЛУЧШЕНИЕ',0,71);
+   ctx.restore();
   }
   ctx.restore();
   if(t.type!=='hive')continue;

@@ -11,6 +11,7 @@ import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 import {advanceEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
 import {advanceEnemyFortifications,FORT_STAGES} from './enemy-fortifications.js?v=industrial-forts-1';
+import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 /** Translate *completed simulation events*, never a speculative plan, into a
@@ -333,7 +334,7 @@ export function spawnFrontierRaid(game,director){
  const pause=game.spawnGroup(director);
  if(game.enemies.length<=before||game.enemies.length>=cap)return false;
  const retaliating=Boolean(emergencyReady),origin=retaliating?cfg.source:cfg.depot;
- const cam=game.spawnCamera?.()||game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
+ const cam=game.spawnEntryCamera?.()||game.spawnCamera?.()||game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
  const side=Math.abs(dx)>Math.abs(dy)?(dx>0?1:0):(dy>0?3:2);
  ++game.groupSerial;
  const pos=spawnOutside(cam,side,.5,170);
@@ -371,7 +372,7 @@ export function spawnCentralRaid(game,director){
   game.enemies.length+ambientRoom+HOME_CONFLICT.raidShips>limit)return false;
  const ambientRecovery=ambientRoom>0?game.spawnGroup(director):0;
  if(game.enemies.length+HOME_CONFLICT.raidShips>limit)return false;
- const cam=game.spawnCamera?.()||game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
+ const cam=game.spawnEntryCamera?.()||game.spawnCamera?.()||game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
  const side=Math.abs(dx)>Math.abs(dy)?(dx>0?1:0):(dy>0?3:2);
  ++game.groupSerial;
  let lead=null;
@@ -402,7 +403,7 @@ export function spawnRegionalRaid(game,director){
  const before=game.enemies.length;
  const pause=game.spawnGroup(director);
  if(game.enemies.length<=before||game.enemies.length>=Math.min(RULES.maxEnemies,director.cap))return false;
- const cam=game.spawnCamera?.()||game.camera(),origin=game.world.stations.get(SUPPLY.militaryId);
+ const cam=game.spawnEntryCamera?.()||game.spawnCamera?.()||game.camera(),origin=game.world.stations.get(SUPPLY.militaryId);
  const dx=origin.x-game.player.x,dy=origin.y-game.player.y;
  const side=Math.abs(dx)>Math.abs(dy)?(dx>0?1:0):(dy>0?3:2);
  ++game.groupSerial;
@@ -462,6 +463,7 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
 }
 export function drawRegionalWorld(game,c,cam){
  const p=game.player,s=game.world.regionalSupply;if(!s)return;
+ const readable=worldTextScale(game.cameraZoom);
  drawStationInterdiction(game,c,cam);
  const delta=Math.abs(Math.hypot(p.x,p.y)-centralBoundary(Math.atan2(p.y,p.x)));
  if(delta<Math.max(cam.w,cam.h)){
@@ -490,7 +492,7 @@ export function drawRegionalWorld(game,c,cam){
    c.beginPath();c.arc(depot.x,depot.y,136,-Math.PI/2,-Math.PI/2+Math.PI*2*
     (assembling?Math.max(0,1-(central.assemblyUntil-game.time)/CENTRAL_INDUSTRY.assembly):1));c.stroke();
   }
-  c.fillStyle='#ffe3b8';c.font='13px sans-serif';c.textAlign='center';
+  c.fillStyle='#ffe3b8';c.font=13*readable+'px sans-serif';c.textAlign='center';
   c.fillText(unloading?'РАЗГРУЗКА МАТЕРИАЛОВ':pending?
    'ОТРЯД ОПЛАЧЕН · '+(pending.readyAt>game.time?Math.ceil(pending.readyAt-game.time)+' с':'ГОТОВ'):
    assembling?'СБОРКА ОТРЯДА · '+Math.ceil(central.assemblyUntil-game.time)+' с':
@@ -504,7 +506,7 @@ export function drawRegionalWorld(game,c,cam){
    c.fillStyle='#153d3e';c.strokeStyle='#81f4d3';c.lineWidth=3;
    c.beginPath();c.arc(0,0,15,0,Math.PI*2);c.fill();c.stroke();
    for(let i=0;i<4;i++){const a=i*Math.PI/2;c.fillStyle='#60dfce';c.fillRect(Math.cos(a)*21-4,Math.sin(a)*21-4,8,8);}
-   c.restore();c.save();c.fillStyle='#b7ffe3';c.font='11px system-ui';c.textAlign='center';
+   c.restore();c.save();c.fillStyle='#b7ffe3';c.font=11*readable+'px system-ui';c.textAlign='center';
    c.fillText(w.phase==='mining'?'ДОБЫЧА · ВЫБЕРИТЕ ЦЕЛЬ':'РАБОЧИЙ · ВЫБЕРИТЕ ЦЕЛЬ',pos.x,pos.y-34);c.restore();
   }
  }
@@ -515,7 +517,7 @@ export function drawRegionalWorld(game,c,cam){
   c.beginPath();c.moveTo(0,-43);c.lineTo(32,-20);c.lineTo(32,32);c.lineTo(-32,32);c.lineTo(-32,-20);c.closePath();c.fill();c.stroke();
   for(const x of [-18,0,18]){c.fillStyle='#9c693d';c.fillRect(x-6,-18,12,40);}
   c.fillStyle='#78dcff';c.fillRect(-23,33,12,8);c.fillRect(11,33,12,8);c.restore();
-  c.save();c.textAlign='center';c.font='bold 12px system-ui';c.fillStyle='#ffe1b5';
+  c.save();c.textAlign='center';c.font='bold '+12*readable+'px system-ui';c.fillStyle='#ffe1b5';
   c.fillText('РУДНЫЙ ТРАНСПОРТ',cargo.x,cargo.y-68);
   c.fillStyle='#382c32';c.fillRect(cargo.x-40,cargo.y-59,80,5);
   c.fillStyle='#ffc17c';c.fillRect(cargo.x-40,cargo.y-59,80*cargo.hp/cargo.maxHp,5);c.restore();
@@ -526,7 +528,7 @@ export function drawRegionalWorld(game,c,cam){
   c.fillStyle='#1b3937';c.strokeStyle=cargo.hit?'#fff':'#82f0cc';c.lineWidth=3;
   c.beginPath();c.moveTo(0,-29);c.lineTo(23,13);c.lineTo(0,24);c.lineTo(-23,13);c.closePath();c.fill();c.stroke();
   c.fillStyle='#efba65';c.fillRect(-9,-8,18,25);c.restore();
-  c.save();c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle='#b9ffed';
+  c.save();c.textAlign='center';c.font='bold '+11*readable+'px system-ui';c.fillStyle='#b9ffed';
   c.fillText('МЕСТНЫЙ ГРУЗ',cargo.x,cargo.y-45);
   c.fillStyle='#23383b';c.fillRect(cargo.x-32,cargo.y-38,64,4);
   c.fillStyle='#82f0cc';c.fillRect(cargo.x-32,cargo.y-38,64*cargo.hp/cargo.maxHp,4);c.restore();
@@ -557,7 +559,7 @@ export function drawRegionalWorld(game,c,cam){
     c.fillStyle='#294444';c.strokeStyle='#76cbbf';c.lineWidth=3;
     c.beginPath();c.moveTo(-39,-13);c.lineTo(16,-30);c.lineTo(35,5);
     c.lineTo(4,28);c.lineTo(-29,17);c.closePath();c.fill();c.stroke();c.restore();
-    c.save();c.font='11px system-ui';c.textAlign='center';c.fillStyle='#b6f5db';
+    c.save();c.font=11*readable+'px system-ui';c.textAlign='center';c.fillStyle='#b6f5db';
     c.fillText('ОБЛОМКИ · ВЫБЕРИТЕ ЦЕЛЬ',wreck.x,wreck.y-47);
     c.fillText('МАТЕРИАЛ '+Math.ceil(wreck.stock),wreck.x,wreck.y+51);c.restore();
     const driftAge=game.time-(wreck.driftAt??-1e9);
@@ -565,7 +567,7 @@ export function drawRegionalWorld(game,c,cam){
      c.save();c.strokeStyle='#a3ffe1';c.lineWidth=2;
      c.globalAlpha=Math.max(0,1-driftAge/12);
      c.beginPath();c.arc(wreck.x,wreck.y,48+driftAge*5,0,Math.PI*2);c.stroke();
-     c.font='bold 12px system-ui';c.textAlign='center';c.fillStyle='#cbfff0';
+     c.font='bold '+12*readable+'px system-ui';c.textAlign='center';c.fillStyle='#cbfff0';
      c.fillText('НОВЫЕ ОБЛОМКИ +5',wreck.x,wreck.y-66);c.restore();
     }
    }
@@ -577,7 +579,7 @@ export function drawRegionalWorld(game,c,cam){
      c.fillStyle='#153c35';c.strokeStyle='#c6ffe5';c.lineWidth=3;
      c.fillRect(-14,-14,28,28);c.strokeRect(-14,-14,28,28);
      for(const x of [-22,22]){c.fillStyle='#71cf9e';c.fillRect(x-4,-5,8,10);}
-     c.restore();c.save();c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle='#b8ffe8';
+     c.restore();c.save();c.textAlign='center';c.font='bold '+11*readable+'px system-ui';c.fillStyle='#b8ffe8';
      c.fillText('СБОРЩИК · ВЫБЕРИТЕ ЦЕЛЬ',pos.x,pos.y-31);c.restore();
     }
    }
@@ -591,12 +593,12 @@ export function drawRegionalWorld(game,c,cam){
    c.beginPath();c.moveTo(0,-32);c.lineTo(28,-5);c.lineTo(25,23);
    c.lineTo(-25,23);c.lineTo(-28,-5);c.closePath();c.fill();c.stroke();
    c.fillStyle=electric?'#c1f9ff':'#cfb38a';c.fillRect(-12,-8,24,25);c.restore();
-   c.save();c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle=color;
+   c.save();c.textAlign='center';c.font='bold '+11*readable+'px system-ui';c.fillStyle=color;
    c.fillText(cargo.screened?'УСИЛЕННАЯ ОХРАНА':
     (electric?'ЭНЕРГОТРАНСПОРТ':'РЕМОНТНЫЙ ГРУЗ'),cargo.x,cargo.y-49);
    if(source?.discovered&&source.enemy){
     const onAir=frontierRadioCoverage(game.world,id,cargo);
-    c.font='10px system-ui';c.fillStyle=onAir?'#a6f3d0':'#ffe0a5';
+    c.font=10*readable+'px system-ui';c.fillStyle=onAir?'#a6f3d0':'#ffe0a5';
     c.fillText(onAir?'НА СВЯЗИ':'РАДИОТЕНЬ',cargo.x,cargo.y-65);
    }
    c.fillStyle='#22313e';c.fillRect(cargo.x-33,cargo.y-42,66,4);
@@ -610,7 +612,7 @@ export function drawRegionalWorld(game,c,cam){
    c.beginPath();c.moveTo(0,-33);c.lineTo(27,-9);c.lineTo(22,20);
    c.lineTo(-22,20);c.lineTo(-27,-9);c.closePath();c.fill();c.stroke();
    c.fillStyle='#f1bb7e';c.fillRect(-14,-3,28,15);c.restore();
-   c.save();c.textAlign='center';c.font='bold 11px system-ui';c.fillStyle='#ffe0ad';
+   c.save();c.textAlign='center';c.font='bold '+11*readable+'px system-ui';c.fillStyle='#ffe0ad';
    c.fillText('РЕМОНТНАЯ ЭКСПЕДИЦИЯ',repair.x,repair.y-49);
    c.fillStyle='#493a36';c.fillRect(repair.x-34,repair.y-41,68,4);
    c.fillStyle='#ffc78b';c.fillRect(repair.x-34,repair.y-41,68*repair.hp/repair.maxHp,4);

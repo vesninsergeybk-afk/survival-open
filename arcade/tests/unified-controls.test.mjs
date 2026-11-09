@@ -179,7 +179,8 @@ test('the published UI offers mouse release attacks and separates everyday from 
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(gameText,/this\.fireSelectedManualAt\(worldPoint\)/);
  assert.match(gameText,/this\.designateTargetAt\(point\)/);
- assert.match(gameText,/this\.switchManualWeapon\(e\.deltaY>0\?1:-1\)/);
+ assert.match(gameText,/this\.switchManualWeapon\(direction\)/);
+ assert.match(gameText,/const direction=manualWheelDirection\(e\.deltaY\)/);
  assert.match(gameText,/pointerWeaponAction\(e,weapon,this\.mobileMineArmed\)/);
  assert.match(gameText,/if\(kind==='comet'\|\|kind==='mines'\)this\.fireActiveMouseWeapon\(kind,worldPoint\)/);
  assert.match(gameText,/this\.mouseAim=null/);

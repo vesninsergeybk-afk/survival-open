@@ -2,6 +2,7 @@
 // It exists to make returning to a station a tactical choice, not to make
 // the connected territory safe enough to farm indefinitely.
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
+import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 
 export const STATION_DEFENSE=Object.freeze({
  soloRadius:270,linkedRadius:345,
@@ -238,7 +239,7 @@ export function updateStationDefense(game){
  }
 }
 
-export function drawStationDefense(c,base,linked,now,player,lowMotion=false,enemies=[]){
+export function drawStationDefense(c,base,linked,now,player,lowMotion=false,enemies=[],zoom=1){
  if(!base.active||base.enemy||distance(base,player)>defenseRadius(linked)+55)return;
  const status=defenseStatus(base,linked,now),state=base.defense;
  const meteorDisabled=!status.meteorEnabled;
@@ -266,16 +267,18 @@ export function drawStationDefense(c,base,linked,now,player,lowMotion=false,enem
  // mission banners and the station itself already has a title and E prompt.
  const readoutX=base.x+status.radius*.72;
  const readoutY=base.y+status.radius*.66;
+ c.translate(readoutX,readoutY);
+ c.scale(worldTextScale(zoom),worldTextScale(zoom));
  c.fillStyle='rgba(5,22,34,.82)';
- c.fillRect(readoutX-70,readoutY-14,140,panelHeight);
+ c.fillRect(-70,-14,140,panelHeight);
  c.strokeStyle='rgba(135,243,222,.52)';c.lineWidth=.85;
- c.strokeRect(readoutX-70,readoutY-14,140,panelHeight);
+ c.strokeRect(-70,-14,140,panelHeight);
  c.fillStyle=status.charges?'#a7f6e8':'#bbcbd2';c.textAlign='center';
  c.font='bold 10px system-ui';
  lines.forEach((line,i)=>{
   c.fillStyle=line.startsWith('СТАЗИС')?'#d9b5ff':line.startsWith('ОРБ.')?'#f6cca2':
    i===0?'#a7f6e8':'#b8dce3';
-  c.fillText(line,readoutX,readoutY+1+i*lineHeight,132);
+  c.fillText(line,0,1+i*lineHeight,132);
  });
  c.restore();
 }
