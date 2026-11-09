@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Выживший · испытательный полигон артиллерии</title>
+<title>Выживший · полигон Громовой батареи</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#050c16;color:#d9e9f4}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 48% 0,#12283c 0,#050c16 65%);min-height:100vh}
@@ -18,11 +18,12 @@ button:hover,button:focus-visible{background:#1b4c62;outline:2px solid #79d6e7;o
 </head>
 <body>
 <main>
- <header><h1>АРТИЛЛЕРИЯ · ВИЗУАЛЬНЫЙ ПОЛИГОН</h1><a href="../">← В игру</a></header>
- <p>Здесь работает та же артиллерия, что и в бою: отдельная поворотная башня, плавное наведение, откат, снаряд из дула, зарядные импульсы и повреждения. Корабль и станции служат ориентиром масштаба.</p>
+ <header><h1>ГРОМОВАЯ БАТАРЕЯ · ПОЛИГОН РАЗВИТИЯ</h1><a href="../">← В игру</a></header>
+ <p>Здесь работают игровые модули наведения и доставки флюкса. Попробуйте десять стволов, ионные взрывы и рой помех: каждый выстрел по-прежнему расходует отдельный заряд.</p>
  <div class="stage"><canvas id="stage" width="960" height="590" aria-label="Артиллерийская турель на территории треугольника станций с подвижными вражескими кораблями"></canvas></div>
  <div class="panel">
   <button id="restart">Новая турель</button>
+  <button id="maxGrowth">Развить все четыре ветки · 10 стволов</button>
   <button id="damage">Повредить корпус</button>
   <button id="wreck">Разрушить турель</button>
   <button id="motion" aria-pressed="false">Замедлить движение</button>
@@ -33,7 +34,8 @@ button:hover,button:focus-visible{background:#1b4c62;outline:2px solid #79d6e7;o
 </main>
 <script type="module">
 import {createContours,connectContour} from '../territory-system.js';
-import {deployArtillery,advanceFluxArtillery,drawFluxArtillery,FLUX_ARTILLERY} from '../flux-artillery.js?v=flux-artillery-anim-2-artillery-finish-1';
+import {deployArtillery,advanceFluxArtillery,drawFluxArtillery,FLUX_ARTILLERY} from '../flux-artillery.js?v=flux-artillery-anim-2-artillery-finish-1-growth-1';
+import {buyTurretBranch,turretGrowthRows,artilleryBarrels} from '../turret-growth.js';
 import {ArcadeHeritage} from '../heritage.js?v=flux-artillery-sfx-2-artillery-finish-1';
 
 const canvas=document.getElementById('stage'),ctx=canvas.getContext('2d',{alpha:false});
@@ -54,11 +56,19 @@ const game={world,player,time:0,vw:960,enemies:[],heritage,visuals:{reducedMotio
 let turret,slow=false,lastNow=0,elapsed=0;
 function reset(){
  world.contours.artillery=[];world.contours.artilleryPackets=[];world.contours.artilleryShells=[];
- world.contours.artillerySerial=0;world.contours.flux=250;game.time=0;game.fluxArtilleryFx=[];elapsed=0;
+ world.contours.artillerySerial=0;world.contours.flux=250;game.time=0;
+ game.fluxArtilleryFx=[];game.artilleryDecoys=[];elapsed=0;
  turret=deployArtillery(world,player,{x:485,y:316},game.time).turret;
  game.enemies=Array.from({length:4},(_,i)=>({x:720,y:200+i*75,hp:110,maxHp:110,r:12,vx:0,vy:0}));
 }
 document.getElementById('restart').addEventListener('click',reset);
+document.getElementById('maxGrowth').addEventListener('click',()=>{
+ if(!turret||turret.hp<=0)return;
+ turret.readyAt=game.time;
+ for(const branch of turretGrowthRows(turret))for(let i=0;i<branch.max;i++)
+  buyTurretBranch(world,player,turret,branch.key,game.time);
+ turret.ammo=FLUX_ARTILLERY.magazine;
+});
 document.getElementById('damage').addEventListener('click',()=>{if(turret?.hp>0)turret.hp=Math.max(15,turret.hp-58);});
 document.getElementById('wreck').addEventListener('click',()=>{if(turret?.hp>0){turret.hp=0;turret.lastDestroyedAt=game.time;heritage.play('artilleryDestroyed',.3,turret);}});
 document.getElementById('motion').addEventListener('click',e=>{slow=!slow;e.currentTarget.setAttribute('aria-pressed',String(slow));});
@@ -114,7 +124,7 @@ function frame(now){
  field();drawEnemies();drawFluxArtillery(ctx,game,{x:0,y:0,w:960,h:590});
  if(turret)status.textContent=turret.hp<=0?'Корпус разрушен':game.time<turret.readyAt?
   `Монтаж ${Math.max(0,turret.readyAt-game.time).toFixed(1)} с`:
-  `Заряды ${turret.ammo}/${FLUX_ARTILLERY.magazine} · корпус ${Math.round(100*turret.hp/turret.maxHp)}%`;
+  `Стволы ${artilleryBarrels(turret)} · заряды ${turret.ammo}/${FLUX_ARTILLERY.magazine} · корпус ${Math.round(100*turret.hp/turret.maxHp)}%`;
  requestAnimationFrame(frame);
 }
 reset();requestAnimationFrame(frame);

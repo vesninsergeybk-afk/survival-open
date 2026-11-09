@@ -203,7 +203,9 @@ test('stable centered sprites, interaction, saves, hostile fire and recorded eff
  }
  const supportModule=readFileSync(new URL('../flux-supports.js',import.meta.url),'utf8');
  assert.match(supportModule,/imageAt\(ctx,'laserBase',83\)/);
- assert.match(supportModule,/t\.level>=2\?'laserTwin':'laserSingle'/);
+ assert.match(supportModule,/count===2\?'laserTwin':'laserSingle'/);
+ assert.match(supportModule,/count===6\?'laserTwin':'laserSingle'/,
+  'six emitters must draw three independently centered twin pods');
  const entry=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(entry,/advanceFluxSupports\(this,dt\)/);
  assert.match(entry,/drawFluxSupports\(c,this,cam/);

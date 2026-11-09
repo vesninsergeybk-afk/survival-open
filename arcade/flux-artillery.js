@@ -1,9 +1,12 @@
 import {contourFields} from './territory-system.js';
 import {productiveContourFields} from './contour-trials.js';
+import {artilleryBarrels,artilleryCooldown,artilleryBlast,artillerySupply,turretBranchRank,
+ validTurretBranches} from './turret-growth.js';
 
 // A field emplacement is ammunition-fed, not another player ship. The pilot
 // must finish the first territorial trial before any emplacement is available.
 export const FLUX_ARTILLERY=Object.freeze({
+ name:'Громовая батарея',
  buildRadius:560,clearance:125,stationClearance:105,oreCost:20,fluxCost:1,
  maxHp:110,magazine:15,chargeCost:.25,damage:50,blastRadius:110,
  range:740,aimSeconds:1.45,cooldown:8,buildSeconds:3,
@@ -143,7 +146,8 @@ export function deployArtillery(world,player,point,time){
   chargeCredit:0,readyAt:time+FLUX_ARTILLERY.buildSeconds,nextShotAt:time,
   aimingUntil:0,aimX:point.x,aimY:point.y,mode:'smart',lastShotAt:-1,
   lastImpactAt:-1,lastImpactX:point.x,lastImpactY:point.y,lastChargeAt:-1,
-  lastDestroyedAt:-1,gunAngle:-Math.PI/2};
+  lastDestroyedAt:-1,gunAngle:-Math.PI/2,branches:{},
+  salvoLeft:0,salvoFired:0,salvoNextAt:0,barrelLastShots:[]};
  turret.level=1;
  state.artillery.push(turret);
  return {ok:true,turret,connection:offer.connection};
@@ -208,24 +212,73 @@ export function chooseArtilleryAim(game,turret){
 }
 function impactShell(game,state,shell){
  const center={x:shell.targetX,y:shell.targetY};
+ const blast=shell.blastRadius||FLUX_ARTILLERY.blastRadius;
  const source=state.artillery.find(t=>t.id===shell.turretId)||
   {kind:'flux-artillery',id:shell.turretId,x:shell.startX,y:shell.startY};
  for(const target of targetsInRange(game,center)){
   const victim=target.object,range=distance(victim,center);
-  if(range>FLUX_ARTILLERY.blastRadius+(victim.r||0))continue;
-  const fraction=clamp(range/FLUX_ARTILLERY.blastRadius,0,1);
+  if(range>blast+(victim.r||0))continue;
+  const fraction=clamp(range/blast,0,1);
   const damage=FLUX_ARTILLERY.damage*(1-.67*fraction*fraction);
-  if(target.kind==='enemy')game.damageEnemy(victim,damage,source);
+  if(target.kind==='enemy'){
+   game.damageEnemy(victim,damage,source);
+   if(victim.hp>0&&shell.anomaly>=1){
+    victim.tacticalSlowFactor=Math.min(victim.tacticalSlowFactor||1,.72);
+    victim.tacticalSlowUntil=Math.max(victim.tacticalSlowUntil||0,game.time+2.8);
+    if(shell.anomaly>=3&&victim.type!=='boss'&&!victim.openingCommander&&
+       !victim.relayAssault&&!victim.stationRaid)
+     victim.stasisUntil=Math.max(victim.stasisUntil||0,game.time+.42);
+   }
+  }
   else if(target.kind==='fort')game.hitTurret(victim,damage,null,'artillery');
   else game.hitEnemyBase(victim,damage,'artillery');
  }
  source.lastImpactAt=game.time;source.lastImpactX=center.x;source.lastImpactY=center.y;
  game.fluxArtilleryFx??=[];
- game.fluxArtilleryFx.push({x:center.x,y:center.y,at:game.time,
+ game.fluxArtilleryFx.push({x:center.x,y:center.y,at:game.time,r:blast,
   id:shell.turretId+shell.launchedAt*31});
  if(game.fluxArtilleryFx.length>32)game.fluxArtilleryFx.splice(0,game.fluxArtilleryFx.length-32);
- game.heritage?.vfx?.rocketImpact?.(center.x,center.y,FLUX_ARTILLERY.blastRadius*.75);
+ game.heritage?.vfx?.rocketImpact?.(center.x,center.y,blast*.75);
  game.heritage?.play?.('artilleryImpact',.32,center);
+ if(shell.anomaly>=2&&shell.barrelIndex%3===0){
+  game.artilleryDecoys??=[];
+  if(game.artilleryDecoys.length<12){
+   game.artilleryDecoys.push({x:center.x,y:center.y,hp:28,maxHp:28,r:13,
+    until:game.time+(shell.anomaly>=3?6:4.2),createdAt:game.time});
+   game.heritage?.play?.('supportDroneLaunch',.5,center);
+  }
+ }
+}
+export function barrelMount(turret,index=0){
+ const count=artilleryBarrels(turret),cols=Math.min(5,count);
+ const scale=count===1?1:count<=4?.77:.58;
+ const column=index%cols,row=Math.floor(index/cols);
+ return {side:(column-(cols-1)/2)*(count<=4?21:18),
+  back:row*19,scale,forward:60*scale-row*19};
+}
+function fireBarrel(game,state,turret,time){
+ if(turret.ammo<=0||state.artilleryShells.length>=FLUX_ARTILLERY.maxShells){
+  turret.salvoLeft=0;return false;
+ }
+ const barrel=turret.salvoFired||0,angle=turret.gunAngle;
+ const mount=barrelMount(turret,barrel);
+ const nx=-Math.sin(angle),ny=Math.cos(angle);
+ const startX=turret.x+Math.cos(angle)*mount.forward+nx*mount.side;
+ const startY=turret.y+Math.sin(angle)*mount.forward+ny*mount.side;
+ const spread=barrel===0?0:Math.min(13,artilleryBlast(turret)*.07);
+ const targetX=turret.aimX+Math.cos(barrel*2.39996)*spread;
+ const targetY=turret.aimY+Math.sin(barrel*2.39996)*spread;
+ const travel=distance({x:startX,y:startY},{x:targetX,y:targetY});
+ state.artilleryShells.push({turretId:turret.id,startX,startY,targetX,targetY,
+  launchedAt:time,arriveAt:time+.25+travel/FLUX_ARTILLERY.shellSpeed,
+  blastRadius:artilleryBlast(turret),anomaly:turretBranchRank(turret,'anomaly'),
+  barrelIndex:barrel});
+ turret.ammo--;turret.lastShotAt=time;
+ turret.barrelLastShots??=[];turret.barrelLastShots[barrel]=time;
+ turret.salvoFired=barrel+1;turret.salvoLeft--;
+ turret.salvoNextAt=time+.095;
+ game.heritage?.play?.('artilleryLaunch',.18,turret);
+ return true;
 }
 function segmentPosition(path,fraction){
  let total=0;for(let i=1;i<path.length;i++)total+=distance(path[i-1],path[i]);
@@ -241,6 +294,8 @@ function segmentPosition(path,fraction){
 }
 export function advanceFluxArtillery(game,dt){
  const state=artilleryState(game.world),time=game.time;
+ if(game.artilleryDecoys)game.artilleryDecoys=game.artilleryDecoys.filter(
+  decoy=>decoy.hp>0&&decoy.until>time);
  // Fired shells survive the loss of their gun. Hits happen only at impact.
  for(const shell of state.artilleryShells){
   if(time<shell.arriveAt)continue;
@@ -289,6 +344,11 @@ export function advanceFluxArtillery(game,dt){
   }
   if(time<turret.readyAt)continue;
   if(time-dt<turret.readyAt)game.heritage?.play?.('artilleryOnline',.9,turret);
+  // A salvo is a brief sequence of independently paid shells. Its pending
+  // barrels cannot fire after destruction or without ammunition.
+  if(turret.salvoLeft>0&&time>=turret.salvoNextAt){
+   fireBarrel(game,state,turret,time);
+  }
   // A short-range anti-ram gun uses its own clock. It never fires artillery
   // shells, spends artillery magazine charges or reaches distant gunships.
   if(link&&time>=(turret.closeNextShotAt??0)){
@@ -312,7 +372,7 @@ export function advanceFluxArtillery(game,dt){
    // The farther the platform is from the powered side, the less energy it
    // receives per second. The offset avoids a singularity on the edge.
    const cableRate=Math.pow(1+link.cable/FLUX_ARTILLERY.cableScale,-2);
-   const rate=FLUX_ARTILLERY.baseFluxPerMinute/60*cableRate/congestion;
+   const rate=artillerySupply(turret)/60*cableRate/congestion;
    turret.chargeCredit=Math.min(1,turret.chargeCredit+rate*dt);
    const pending=state.artilleryPackets.filter(p=>p.turretId===turret.id)
     .reduce((sum,p)=>sum+p.charges,0);
@@ -334,19 +394,15 @@ export function advanceFluxArtillery(game,dt){
    turret.aimingUntil=0;
    if(turret.ammo<=0)continue;
    if(state.artilleryShells.length>=FLUX_ARTILLERY.maxShells)continue;
-   turret.ammo--;turret.nextShotAt=time+FLUX_ARTILLERY.cooldown;
-   turret.lastShotAt=time;
-   const startX=turret.x+Math.cos(turret.gunAngle)*FLUX_ARTILLERY.muzzleOffset;
-   const startY=turret.y+Math.sin(turret.gunAngle)*FLUX_ARTILLERY.muzzleOffset;
-   const travel=distance({x:startX,y:startY},{x:turret.aimX,y:turret.aimY});
-   state.artilleryShells.push({turretId:turret.id,startX,startY,
-    targetX:turret.aimX,targetY:turret.aimY,launchedAt:time,
-    arriveAt:time+.25+travel/FLUX_ARTILLERY.shellSpeed});
-   game.heritage?.play?.('artilleryLaunch',.18,turret);
+   turret.nextShotAt=time+artilleryCooldown(turret);
+   turret.salvoLeft=Math.min(artilleryBarrels(turret),turret.ammo,
+    FLUX_ARTILLERY.maxShells-state.artilleryShells.length);
+   turret.salvoFired=0;turret.salvoNextAt=time;turret.barrelLastShots=[];
+   fireBarrel(game,state,turret,time);
    continue;
   }
   // Distant autonomous battles are not silently simulated or rewarded.
-  if(turret.ammo<=0||time<turret.nextShotAt||
+  if(turret.salvoLeft>0||turret.ammo<=0||time<turret.nextShotAt||
     distance(game.player,turret)>Math.max(1400,game.vw||1200))continue;
   const aim=chooseArtilleryAim(game,turret);
   if(aim){
@@ -454,7 +510,7 @@ function drawDamage(ctx,turret,time,deadAge=null,reduced=false){
 }
 function drawWarning(ctx,turret,time,reduced=false){
  const countdown=clamp((turret.aimingUntil-time)/FLUX_ARTILLERY.aimSeconds,0,1);
- const radius=FLUX_ARTILLERY.blastRadius;
+ const radius=artilleryBlast(turret);
  ctx.save();ctx.translate(turret.aimX,turret.aimY);
  ctx.fillStyle='rgba(255,135,41,.035)';ctx.beginPath();ctx.arc(0,0,radius,0,Math.PI*2);ctx.fill();
  ctx.strokeStyle='rgba(255,175,91,.83)';ctx.lineWidth=2;
@@ -472,7 +528,7 @@ function drawWarning(ctx,turret,time,reduced=false){
 }
 function drawImpact(ctx,burst,time,reduced=false){
  const age=time-burst.at,phase=clamp(age/FLUX_ARTILLERY.impactLifetime,0,1);
- const r=FLUX_ARTILLERY.blastRadius,fade=(1-phase)**1.7;
+ const r=burst.r||FLUX_ARTILLERY.blastRadius,fade=(1-phase)**1.7;
  ctx.save();ctx.translate(burst.x,burst.y);
  const bloom=ctx.createRadialGradient(0,0,4,0,0,r*.9);
  bloom.addColorStop(0,`rgba(255,238,169,${.45*fade})`);
@@ -554,7 +610,19 @@ export function drawFluxArtillery(ctx,game,cam,preview=null){
   ctx.globalAlpha*=building?.2+.8*progress:live?1:.6;
   drawArtilleryChassis(ctx);
   const angle=Number.isFinite(turret.gunAngle)?turret.gunAngle:-Math.PI/2;
-  drawGun(ctx,angle+(wreckAge===null?0:.05*clamp(wreckAge/.8,0,1)),recoil,fire);
+  const barrels=artilleryBarrels(turret),nx=-Math.sin(angle),ny=Math.cos(angle);
+  for(let i=barrels-1;i>=0;i--){
+   const mount=barrelMount(turret,i);
+   const fired=(turret.barrelLastShots||[])[i]??(barrels===1?turret.lastShotAt:-1);
+   const individualAge=time-fired;
+   ctx.save();ctx.translate(nx*mount.side-Math.cos(angle)*mount.back,
+    ny*mount.side-Math.sin(angle)*mount.back);
+   ctx.scale(mount.scale,mount.scale);
+   drawGun(ctx,angle+(wreckAge===null?0:.05*clamp(wreckAge/.8,0,1)),
+    live?recoilAt(individualAge):0,
+    live&&individualAge>=0?clamp(1-individualAge/.16,0,1):0);
+   ctx.restore();
+  }
   drawDamage(ctx,turret,time,wreckAge,reduced);
   ctx.restore();
   if(building){
@@ -582,7 +650,8 @@ export function drawFluxArtillery(ctx,game,cam,preview=null){
   ctx.fillStyle='rgba(5,19,32,.9)';ctx.fillRect(-33,-58,66,18);
   ctx.font='bold 12px system-ui';ctx.textAlign='center';
   ctx.fillStyle=live?(turret.ammo?'#ffd8a2':'#8aaec2'):'#f3997b';
-  ctx.fillText(!live?'РАЗРУШЕНА':building?'СБОРКА':`${turret.ammo}/${FLUX_ARTILLERY.magazine}`,0,-44);
+  ctx.fillText(!live?'РАЗРУШЕНА':building?'СБОРКА':
+   `${turret.ammo}/${FLUX_ARTILLERY.magazine} · ×${artilleryBarrels(turret)}`,0,-44);
   if(live){
    ctx.fillStyle='#23495a';ctx.fillRect(-29,43,58,5);
    ctx.fillStyle='#7ae6dd';ctx.fillRect(-29,43,58*clamp(turret.hp/turret.maxHp,0,1),5);
@@ -621,6 +690,21 @@ export function drawFluxArtillery(ctx,game,cam,preview=null){
     impact.y<cam.y-140||impact.y>cam.y+cam.h+140)continue;
   drawImpact(ctx,impact,time,reduced);
  }
+ for(const decoy of game.artilleryDecoys||[]){
+  if(decoy.x<cam.x-30||decoy.x>cam.x+cam.w+30||
+     decoy.y<cam.y-30||decoy.y>cam.y+cam.h+30)continue;
+  const fade=clamp((decoy.until-time)/1.5,0,1);
+  ctx.save();ctx.translate(decoy.x,decoy.y);ctx.globalAlpha=fade;
+  ctx.strokeStyle='#a6e7ff';ctx.lineWidth=2;ctx.shadowColor='#8fa8ff';ctx.shadowBlur=12;
+  const spin=reduced?0:(time-decoy.createdAt)*2.8;
+  for(let i=0;i<4;i++){
+   const a=spin+i*Math.PI/2;
+   ctx.beginPath();ctx.moveTo(Math.cos(a)*7,Math.sin(a)*7);
+   ctx.lineTo(Math.cos(a+.35)*19,Math.sin(a+.35)*19);ctx.stroke();
+  }
+  ctx.fillStyle='#ddfbff';ctx.beginPath();ctx.arc(0,0,3.2,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+ }
  if(preview){
   const {point,player}=preview;
   ctx.save();ctx.strokeStyle='#76dbe5b0';ctx.lineWidth=1.8;ctx.setLineDash([12,9]);
@@ -655,7 +739,8 @@ export function validFluxArtillery(state){
     t.kind!=='flux-artillery'||!finite(t.x,-1e9)||!finite(t.y,-1e9)||
     !finite(t.hp,0,FLUX_ARTILLERY.maxHp)||t.maxHp!==FLUX_ARTILLERY.maxHp||
     !Number.isInteger(t.ammo)||t.ammo<0||t.ammo>FLUX_ARTILLERY.magazine||
-    !ARTILLERY_MODES.includes(t.mode)||!finite(t.chargeCredit,0,1.00001)||
+    !ARTILLERY_MODES.includes(t.mode)||!validTurretBranches(t)||
+    !finite(t.chargeCredit,0,1.00001)||
     !finite(t.readyAt)||!finite(t.nextShotAt)||!finite(t.aimingUntil)||
     !finite(t.aimX,-1e9)||!finite(t.aimY,-1e9)||
     !finite(t.lastShotAt,-1)||!finite(t.lastImpactAt,-1)||
@@ -664,7 +749,12 @@ export function validFluxArtillery(state){
     (t.gunAngle!==undefined&&(!Number.isFinite(t.gunAngle)||
      Math.abs(t.gunAngle)>Math.PI+.00001))||
     (t.lastChargeAt!==undefined&&!finite(t.lastChargeAt,-1))||
-    (t.lastDestroyedAt!==undefined&&!finite(t.lastDestroyedAt,-1)))return false;
+    (t.lastDestroyedAt!==undefined&&!finite(t.lastDestroyedAt,-1))||
+    (t.salvoLeft!==undefined&&(!Number.isInteger(t.salvoLeft)||t.salvoLeft<0||t.salvoLeft>10))||
+    (t.salvoFired!==undefined&&(!Number.isInteger(t.salvoFired)||t.salvoFired<0||t.salvoFired>10))||
+    (t.salvoNextAt!==undefined&&!finite(t.salvoNextAt))||
+    (t.barrelLastShots!==undefined&&(!Array.isArray(t.barrelLastShots)||
+      t.barrelLastShots.length>10||t.barrelLastShots.some(v=>!finite(v,-1)))))return false;
   ids.add(t.id);
  }
  for(const p of state.artilleryPackets){
@@ -680,7 +770,10 @@ export function validFluxArtillery(state){
     !finite(s.startX,-1e9)||!finite(s.startY,-1e9)||
     !finite(s.targetX,-1e9)||!finite(s.targetY,-1e9)||
     !finite(s.launchedAt)||!finite(s.arriveAt,s.launchedAt)||
-    s.arriveAt-s.launchedAt>2)return false;
+    s.arriveAt-s.launchedAt>2||
+    (s.blastRadius!==undefined&&!finite(s.blastRadius,90,185))||
+    (s.anomaly!==undefined&&(!Number.isInteger(s.anomaly)||s.anomaly<0||s.anomaly>3))||
+    (s.barrelIndex!==undefined&&(!Number.isInteger(s.barrelIndex)||s.barrelIndex<0||s.barrelIndex>9)))return false;
  }
  return true;
 }
