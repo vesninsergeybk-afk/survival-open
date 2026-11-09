@@ -1,4 +1,4 @@
-import {REGIONS} from './regions.js?v=regions-1';
+import {REGIONS} from './regions.js?v=regions-1-living-world-population-1';
 
 export const MAP_WIDTH=680;
 export const MAP_HEIGHT=480;
