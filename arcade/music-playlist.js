@@ -21,9 +21,9 @@ export const MUSIC_TRACKS = Object.freeze({
 export const MUSIC_POOLS = Object.freeze({
   opening: Object.freeze(['starfire','aphelion','shadows_and_dust']),
   exploration: Object.freeze(['starfire','aphelion','shadows_and_dust','decoherence','meanwhile']),
-  tension: Object.freeze(['nightfall','convergence']),
-  combat: Object.freeze(['pursuit','simulacra','red']),
-  boss: Object.freeze(['eyes_in_the_void','ambush'])
+  tension: Object.freeze(['nightfall','convergence','decoherence','meanwhile']),
+  combat: Object.freeze(['pursuit','simulacra','red','ambush','starfire']),
+  boss: Object.freeze(['eyes_in_the_void','ambush','convergence','red'])
 });
 
 const STORAGE_KEY = 'survivor_arcade_music_rotation_v1';

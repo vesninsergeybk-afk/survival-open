@@ -1,5 +1,6 @@
 import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1';
-import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-finish-1-support-three-1';
+import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-finish-1-support-three-1-frontier-siege-1';
+import {frontierThreatNear} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=foley-autofire-03';
 
@@ -238,9 +239,10 @@ export class ArcadeHeritage {
   const p=game.player,nearby=(game.enemies||[]).filter(e=>
    e.hp>0&&!e.converted&&Math.hypot(e.x-p.x,e.y-p.y)<620);
   const heavy=nearby.some(e=>e.type==='gunship');
-  const siege=!!game.enemyBasesUnlocked?.()&&!!game.nearbyEnemyBase?.(650);
+  const siege=(!!game.enemyBasesUnlocked?.()&&!!game.nearbyEnemyBase?.(650))||
+   frontierThreatNear(game.world,p,1350);
   const warning=(game.zones||[]).some(z=>z.fuse>0&&
-   Math.hypot(z.x-p.x,z.y-p.y)<z.r+135);
+   Math.hypot(z.x-p.x,z.y-p.y)<z.r+135)||frontierThreatNear(game.world,p,2800);
   const result=this.music.update(this.musicElapsed,{
    nearby:nearby.length,heavy,siege,warning,
    recentDamage:game.time-(game.lastDamageAt??-Infinity)<5,

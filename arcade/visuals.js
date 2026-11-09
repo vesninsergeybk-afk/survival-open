@@ -625,12 +625,12 @@ export class ArcadeVisuals {
  }
  drawBase(ctx,b,time,focusX,focusY,network=null,linked=false,zoom=1){
   const hostile=b.enemy&&!b.captured;
-  const color=hostile?'#f45b6e':b.type==='dock'?'#69e5e4':
+  const color=b.ruined?'#a88586':hostile?'#f45b6e':b.type==='dock'?'#69e5e4':
     b.type==='carrier'?'#aaa9ff':b.type==='arsenal'?'#ffc17f':'#c9a3ff';
   const powered=b.active||b.captured;
   // Captured hostile docks retain their original battle-damaged structure.
   // A change of ownership cannot instantly replace the entire metal hull.
-  const friendlyDock=b.type==='dock'&&!hostile&&!b.captured;
+  const friendlyDock=b.type==='dock'&&!hostile&&!b.captured&&!b.ruined;
   ctx.save();ctx.translate(b.x,b.y);
   if(friendlyDock){
    // Full replacement, not an overlay: old generic hull/art/arms are hidden.
@@ -641,7 +641,7 @@ export class ArcadeVisuals {
     b.type==='carrier'||b.type==='lab'?'violet':'cyan');
   // A substantial silhouette stays visible even when individual modular
   // atlas cells are transparent: no hollow square-placeholder stations.
-  const hull=hostile?'#3b1826':powered?'#17354b':'#162b3b';
+  const hull=b.ruined?'#2e242c':hostile?'#3b1826':powered?'#17354b':'#162b3b';
   openPolygon(ctx,HULLS[b.type]||HULLS.dock,hull,color);
   ctx.fillStyle=hostile?'#562132':'#102738';
   ctx.fillRect(-45,-42,90,84);
@@ -653,7 +653,14 @@ export class ArcadeVisuals {
    ctx.moveTo(side*40,30);ctx.lineTo(side*72,46);ctx.stroke();
   }
   const art=STATION_PARTS[b.type]??STATION_PARTS.outpost;
-  drawStationPart(ctx,art,0,0,156,0,powered?1:.67);
+  drawStationPart(ctx,art,0,0,156,0,b.ruined?.52:(powered?1:.67));
+  if(b.ruined){
+   ctx.save();ctx.strokeStyle='#f09f85';ctx.globalAlpha=.62;ctx.lineWidth=2.6;
+   ctx.beginPath();ctx.moveTo(-58,-70);ctx.lineTo(-20,-21);
+   ctx.lineTo(-39,9);ctx.lineTo(-2,51);ctx.moveTo(18,-53);
+   ctx.lineTo(5,-3);ctx.lineTo(39,17);ctx.lineTo(61,68);ctx.stroke();
+   ctx.restore();
+  }
   // Role-specific details, borrowed from the existing station design.
   if(b.type==='carrier'){
    ctx.strokeStyle='#b0b6fa';ctx.lineWidth=3;
@@ -706,12 +713,13 @@ export class ArcadeVisuals {
   }
   ctx.fillStyle='#eaf6ff';ctx.textAlign='center';
   ctx.font='bold '+worldLabelSize(13,zoom)+'px system-ui';
-  ctx.fillText(hostile?'ВРАЖЕСКАЯ БАЗА':
+  ctx.fillText(b.ruined?'РАЗРУШЕННАЯ СТАНЦИЯ':hostile?'ВРАЖЕСКАЯ БАЗА':
    {dock:'Ремонтный док',arsenal:'Военный арсенал',
     carrier:'Авианосец',lab:'Лаборатория'}[b.type],0,-118);
   ctx.font=worldLabelSize(11,zoom)+'px system-ui';ctx.fillStyle=color;
   const nearPanel=Math.hypot(b.x-focusX,b.y-focusY)<=RULES.baseInteract;
-  ctx.fillText(hostile?(b.coreExposed?'ЯДРО ОТКРЫТО · АТАКУЙТЕ':'Оборона '+b.rank):
+  ctx.fillText(b.ruined?'НЕЙТРАЛЬНЫЕ РУИНЫ · УДЕРЖИВАЙТЕ E ДЛЯ ЗАХВАТА':
+   hostile?(b.coreExposed?'ЯДРО ОТКРЫТО · АТАКУЙТЕ':'Оборона '+b.rank):
    nearPanel?(powered?'E · УСЛУГИ БАЗЫ':'E · ОТКРЫТЬ БАЗУ'):
     powered?(linked?'СЕТЬ ПОДКЛЮЧЕНА':'АВТОНОМНЫЙ УЗЕЛ'):
       'ПОДЛЕТИТЕ · '+Math.round(Math.hypot(b.x-focusX,b.y-focusY))+' М',0,123);

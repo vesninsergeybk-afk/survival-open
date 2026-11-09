@@ -1,6 +1,6 @@
 // Two deliberately aimed weapons complement the ship's automatic guns.
 // Gameplay uses world units; these values are prototypes, not pixel sizes.
-import {combatTargets,targetDistance,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1';
+import {combatTargets,targetDistance,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1-frontier-siege-1';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 
 const TAU=Math.PI*2;

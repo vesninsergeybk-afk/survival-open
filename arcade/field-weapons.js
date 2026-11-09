@@ -1,4 +1,4 @@
-import {combatTargets,targetAlive,targetDistance,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1-triangle-defense-1';
+import {combatTargets,targetAlive,targetDistance,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1-triangle-defense-1-frontier-siege-1';
 import {contactOnCircle} from './impact-geometry.js?v=arcade-impact-51';
 import {emitWeaponFx} from './weapon-fx.js';
 

@@ -3,9 +3,9 @@ import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight} fr
 import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2-unified-controls-1-menu-focus-1-combat-balance-1';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1-triangle-defense-1';
+import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1-triangle-defense-1-frontier-siege-1';
 import {emitWeaponFx} from './weapon-fx.js';
-import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js';
+import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js?v=frontier-siege-1';
 
 export {updateFlakPellets,drawBallisticWeapons};
 

@@ -5,6 +5,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {World} from '../world.js';
+import {ruinEnemyIndustry,claimRuinedIndustry} from '../enemy-station-salvage.js';
+import {orderFrontierNetwork,advanceFrontierNetwork} from '../enemy-frontier-network.js';
 import {advanceRegionalSupply} from '../regional-supply.js';
 import {FRONTIERS} from '../frontier-industry.js';
 import {createLoadout,createThermal} from '../ship-loadout.js';
@@ -51,6 +53,24 @@ function save(g,storage=memory()){
  const store=new RunCheckpointStore(storage,()=>1234);store.load();assert.ok(store.startNew().ok);
  assert.ok(store.save(captureCheckpoint(g,g.docked)).ok);return {storage,store};
 }
+test('damaged hostile frontier and neutral ruins survive checkpoint validation and restoration',()=>{
+ const g=scene(),c=g.world.population.colonies.find(c=>c.tier===1&&!c.fronts.length);
+ const front=orderFrontierNetwork(g.world,c,{x:c.x+3700,y:c.y},g.time);
+ assert.ok(front);
+ advanceFrontierNetwork(g.world,c,g.time+8);
+ const station=g.world.stations.get(c.id+':factory');
+ assert.equal(ruinEnemyIndustry(station,g.time),true);
+ assert.equal(station.suppressed,false,'ruins do not forge a perpetual suppression timer');
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(snapshot),true);
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ assert.equal(restored.world.stations.get(station.id).ruined,true);
+ assert.equal(restored.world.stations.get(station.id).captured,false);
+ assert.equal(restored.world.population.colonies.find(x=>x.id===c.id).fronts.length,1);
+ const fake=unpackRun(packRun(snapshot));
+ fake.world.population.colonies.find(x=>x.id===c.id).fronts[0].nodes[2].colonyId='colony:alien:77';
+ assert.equal(validateCheckpoint(fake),false,'corrupt foreign buoy must be rejected');
+});
 test('a lethal hit before the next frame cannot invalidate a station checkpoint',()=>{
  const g=scene(),e={serial:1,type:'fighter',x:g.player.x+100,y:g.player.y,
   r:14,hp:10,maxHp:70,expAwarded:false};
