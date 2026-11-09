@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {game} from './weapons-scene.mjs';
 import {createContours,autoConnectContours,contourFields} from '../territory-system.js';
 import {registerContourTrials,prepareContourVortex,completeContourTrial,trialQuota} from '../contour-trials.js';
-import {updateContourTrials,activateContourVortex} from '../contour-trial-director.js';
+import {updateContourTrials,activateContourVortex,contourVictoryRewards} from '../contour-trial-director.js';
 import {territoryBenefits,updateTerritoryBenefits,territoryNextStep} from '../territory-benefits.js';
 import {createFieldEvolution,offerLevelCrystals,refreshEvolutionOffers,FIELD_EVOLUTION_SKILLS,absorbParasiteImpact,enemyFieldReward} from '../field-evolution.js';
 import {renderEvolutionMenu,installedEvolution} from '../evolution-menu.js';
@@ -65,15 +65,23 @@ test('territorial recharge pauses under damage and during a menu, and is indepen
 
 test('a completed defence pays alloy once and immediately demonstrates its shield',()=>{
  const {g,world,entry}=trial();const before=g.player.ore;
+ const reward=contourVictoryRewards(entry.tier,entry.id);
+ assert.ok(reward.alloy>24&&reward.xp>21,'the large siege needs a proportionate prize');
  start(g);g.shots=[{trialId:entry.id,alive:true},{alive:true}];
  defendThree(g,entry);
  assert.equal(world.contours.trials.completed,0);
  assert.equal(activateContourVortex(g,entry),true);
- assert.equal(world.contours.trials.completed,1);assert.equal(g.player.ore,before+24);
+ assert.equal(world.contours.trials.completed,1);assert.equal(g.player.ore,before+reward.alloy);
  assert.equal(g.player.shield,18);assert.equal(g.shots.length,1);
  assert.equal(g.contourFeedback.unlocked,'Контурный щит');
  assert.equal(completeContourTrial(world,entry.id),false);
- updateContourTrials(g,.1);assert.equal(g.player.ore,before+24);
+ updateContourTrials(g,.1);assert.equal(g.player.ore,before+reward.alloy);
+});
+
+test('late-game sieges award more XP and alloy without any per-ship combat drops',()=>{
+ const first=contourVictoryRewards(1,1),tenth=contourVictoryRewards(10,10);
+ assert.deepEqual(first,{xp:62,alloy:38});
+ assert.deepEqual(tenth,{xp:152,alloy:91});
 });
 
 test('the timeout never silently reduces the displayed kill requirement',()=>{
