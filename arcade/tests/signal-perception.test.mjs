@@ -211,7 +211,7 @@ test('gameplay and HUD use the same player-facing signal state',async()=>{
  const {readFileSync}=await import('node:fs');
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  const hud=readFileSync(new URL('../hud.js',import.meta.url),'utf8');
- assert.match(game,/this\.spawnGroup\(noisePatrolDirector\(alarm,before\),source\)/);
+ assert.match(game,/this\.spawnGroup\(noisePatrolDirector\(alarm,before,false,this\.time\),source\)/);
  assert.match(game,/armNoiseCourier\(this,this\.enemies\.slice\(before\),source\)/);
  assert.match(game,/this\.lastNoiseSource=\{x:rock\.x,y:rock\.y\}/);
  assert.match(game,/this\.noiseAlert=\{x:source\.x,y:source\.y,/);

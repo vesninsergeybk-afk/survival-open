@@ -2,7 +2,7 @@ import {CENTRAL_INDUSTRY,centralCargoRemaining,centralCargoSpeed,centralRoute,ce
 import {cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2-territory-war-1';
 import {labLogisticsIntel} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1';
 
-export const HOME_CONFLICT=Object.freeze({radius:10500,offerAt:150,backgroundCap:14,raidShips:3});
+export const HOME_CONFLICT=Object.freeze({radius:10500,offerAt:150,backgroundCap:36,raidShips:3});
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const localStations=world=>({source:world.stations.get(CENTRAL_INDUSTRY.sourceId),
@@ -18,16 +18,22 @@ export function homeIndustryState(world){
   outcome:!depot?.enemy?'captured':!working&&!payload?'starved':null};
 }
 
-// The home theatre has a bounded ambient population. Time still unlocks enemy
-// roles, but cannot undo a successful blockade with an ever-growing swarm.
-// Ready industrial sorties have three extra slots; they are paid elsewhere.
+// A functioning enemy industry does not override the starter threat curve:
+// that would silently turn every planned 4–8 ship formation into two scouts.
+// Its *paid* raids remain a separate source of danger. Destroying its supply
+// still earns the pilot the old, strong and lasting reduction of ambient traffic.
 export function homeConflictPressure(director,world,player){
  const state=homeIndustryState(world);
  if(!state||!world.home||distance(player,world.home)>HOME_CONFLICT.radius||!director.types?.length)return director;
- const cap=state.outcome==='captured'?7:state.outcome==='starved'?9:HOME_CONFLICT.backgroundCap;
- const interval=state.outcome==='captured'?12:state.outcome==='starved'?10:6.5;
+ const cap=state.outcome==='captured'?7:state.outcome==='starved'?9:
+  Math.min(HOME_CONFLICT.backgroundCap,Math.max(8,Math.ceil(director.cap*.75)));
+ const interval=state.outcome==='captured'?12:state.outcome==='starved'?10:
+  director.interval*1.07;
+ const groupSize=state.outcome==='captured'?2:state.outcome==='starved'?3:
+  Math.max(2,Math.ceil(director.groupSize*.72));
  return {...director,cap:Math.min(director.cap,cap),
-  interval:Math.max(director.interval,interval),groupSize:Math.min(director.groupSize,2)};
+  interval:Math.max(director.interval,interval),
+  groupSize:Math.min(director.groupSize,groupSize)};
 }
 
 export function homeConflictTarget(game,plan){

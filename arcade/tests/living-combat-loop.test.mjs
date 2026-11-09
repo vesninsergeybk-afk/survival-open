@@ -74,6 +74,18 @@ test('ordinary fighting earns a quiet period but scouts return, and story assaul
  assert.equal(ambientTempoPlan(game,director,()=>0).mode,'normal');
  assert.equal(validCombatTempo(game.combatTempo,game.time),true);
 });
+test('late patrol tempo preserves rising danger instead of imposing the old fixed caps',()=>{
+ const game={time:1500,player:{x:0,y:0},enemies:[],combatTempo:createCombatTempo()};
+ const director={cap:70,interval:2,groupSize:8,types:['scout','fighter','gunship']};
+ const flock=ambientTempoPlan(game,director,()=>0);
+ const normal=ambientTempoPlan(game,director,()=>0);
+ assert.equal(flock.mode,'flock');
+ assert.ok(flock.director.cap>28&&flock.director.cap<=director.cap);
+ assert.ok(flock.director.groupSize>=6);
+ assert.equal(normal.mode,'normal');
+ assert.ok(normal.director.cap>34&&normal.director.cap<=director.cap);
+ assert.equal(normal.director.groupSize,7);
+});
 test('an enemy depot builds visible intercept, shield and repair modules only with paid stock',()=>{
  const w=new World();const depot=w.stations.get('industry:depot');
  w.regionalSupply.central.ore=16;

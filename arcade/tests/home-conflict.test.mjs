@@ -26,8 +26,10 @@ test('home pressure stays bounded over hours; starving and capturing have lastin
  const g=game(),p=g.player,w=g.world;
  const at=t=>homeConflictPressure(openingThreat(t,25),w,p);
  assert.equal(at(0).cap,0);
- assert.equal(at(800).cap,14);assert.equal(at(8000).cap,14);
- assert.ok(at(8000).interval>=6.5);
+ assert.ok(at(800).cap>14,'активная промышленность не подавляет весь рост опасности');
+ assert.equal(at(8000).cap,36,'местные фоновые патрули сохраняют жёсткий предел');
+ assert.ok(at(8000).interval>=openingThreat(8000,25).interval);
+ assert.ok(at(8000).groupSize>2,'одна война не ограничивает все поздние волны парой кораблей');
  const far={x:35000,y:7000},raw=openingThreat(8000,25);
  assert.deepEqual(homeConflictPressure(raw,w,far),raw);
  w.regionalSupply.central.worker.hp=0;

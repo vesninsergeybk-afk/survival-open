@@ -105,15 +105,18 @@ export function openingThreat(time, level = 1) {
    Math.floor(Math.max(0,level-1)*1.2*Math.min(1,elapsed/90))),
   interval:Math.max(1.6,3.8-elapsed/300-
    Math.max(0,level-1)*.025*Math.min(1,elapsed/90)),
-  groupSize:Math.min(4+Math.floor(elapsed/220),5),
+  // Do not replace the seven-ship stage with a four-ship stage at 205 s.
+  // The later tempo director may create a smaller wave as a deliberate rest.
+  groupSize:Math.min(7+Math.floor(elapsed/260),8),
   types:['scout','fighter','flanker','berserker','healer','gunship']
  };
 }
-// Opening patrols are budgeted by LOCAL contact, not only by every ship alive
-// somewhere in the sector. A second ambient budget prevents offscreen buildup.
+// Ambient patrols use a local contact budget throughout the flight. The
+// independent ambient budget bounds distant traffic; the absolute cap still
+// includes industrial, mission, and other ships. Never switch to a global-only
+// local encounter budget while far-away enemies remain alive.
 export function openingSpawnRoom(time,director,globalCount,localCount,ambientCount){
  const globalRoom=RULES.maxEnemies-globalCount;
- if(time>=205)return Math.max(0,Math.min(director.cap-globalCount,globalRoom));
  return Math.max(0,Math.min(director.cap-localCount,
   director.cap*2-ambientCount,globalRoom));
 }

@@ -26,7 +26,7 @@ import {createStrategicExperience,claimStationActivation,claimStationCapture,cla
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
 import {createFieldLoot,rewardEyeKill,collectFieldLoot,updateFieldLoot,
  fieldLootDamage,fieldLootArmor,chainFieldLoot,drawFieldLootAura,BOOSTS} from './field-loot.js?v=eye-loot-1';
-import {createCombatTempo,recordCombatContact,ambientTempoPlan} from './combat-tempo.js?v=tempo-1';
+import {createCombatTempo,recordCombatContact,ambientTempoPlan} from './combat-tempo.js?v=tempo-1-balance-audit-1';
 import {fortificationShield} from './enemy-fortifications.js?v=industrial-forts-1';
 import {renderEvolutionMenu,installedEvolution} from './evolution-menu.js?v=mouse-arms-1';
 import {updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
@@ -35,7 +35,7 @@ import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,offerLevelCrystals,refreshEv
  updateFieldEvolution,parasiteTargetMode,setParasiteTargetMode} from './field-evolution.js?v=mouse-arms-1-manual-weapon-1';
 import {drawEvolutionEnvironment,drawParasiteCore,drawEvolutionEnemy,
  drawEvolutionConnections,drawEvolutionPlayer} from './field-evolution-vfx.js?v=field-evolution-1-first-loops-1';
-import {RULES, STARTER_COMBAT, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, openingSpawnRoom, burstStats} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1-combat-balance-1';
+import {RULES, STARTER_COMBAT, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, openingSpawnRoom, burstStats} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1-combat-balance-1-balance-audit-1';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1-supply-stronghold-1-flux-reserve-1-flux-offense-1-territory-war-1-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4-zoomread-2-territory-logistics-1';
@@ -63,7 +63,7 @@ import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction,drawMiningNoiseRings} from './mining.js?v=checkpoint-1-rock-sleep-1-noise-pressure-1-pressure-response-1';
 import {clearCoreRocks} from './core-rock-clearance.js';
 import {alertFleetUnderFire} from './enemy-attack-alarm.js';
-import {NOISE_ESCALATION,preserveEarlyNoiseSignal,noisePatrolDirector,armNoiseCourier,updateNoiseEscalation} from './noise-escalation.js?v=noise-pressure-2-pressure-response-1';
+import {NOISE_ESCALATION,preserveEarlyNoiseSignal,noisePatrolDirector,armNoiseCourier,updateNoiseEscalation} from './noise-escalation.js?v=noise-pressure-2-pressure-response-1-balance-audit-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-sfx-2-artillery-finish-1-support-three-1-frontier-siege-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
@@ -100,8 +100,8 @@ import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
- openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-5-early-xp-1-combat-balance-1';
-import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
+ openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-5-early-xp-1-combat-balance-1-balance-audit-1';
+import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2-balance-audit-1';
 import {ambientPatrolRoute,patrolCanLeave,ENEMY_AWARENESS} from './enemy-awareness.js?v=living-world-roaming-patrol-2-flight-zoom-audit-1-pressure-response-1-combat-balance-1';
 import {recordWorldFeedback,recordContourFeedback,advanceWorldFeedback,drawWorldFeedback,drawImpactInvestigation} from './world-feedback.js?v=world-feedback-1-flux-reserve-1';
 import {regionalCampaignPressure,campaignDestination,strongholdThreat} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1-stronghold-1-territory-war-1-enemy-growth-1-living-world-population-1-sector-density-2';
@@ -4634,11 +4634,11 @@ export class ArcadeGame {
   const cap=Math.min(RULES.maxEnemies,director.cap);
   // Unalerted traffic far from the pilot must not empty the local encounter
   // budget. Keep an independent bound for offscreen ambient formations.
-  const earlyAmbient=!noiseSignal&&this.time<205;
-  const nearby=earlyAmbient?this.enemies.filter(e=>e.hp>0&&dist(e,this.player)<1400).length:0;
-  const ambientCount=earlyAmbient?this.enemies.filter(e=>e.hp>0&&e._patrolRoute&&
+  const ambientPatrol=!noiseSignal;
+  const nearby=ambientPatrol?this.enemies.filter(e=>e.hp>0&&dist(e,this.player)<1400).length:0;
+  const ambientCount=ambientPatrol?this.enemies.filter(e=>e.hp>0&&e._patrolRoute&&
    !e.populationSortieId).length:0;
-  const available=earlyAmbient?
+  const available=ambientPatrol?
    openingSpawnRoom(this.time,{...director,cap},this.enemies.length,nearby,ambientCount):
    cap-this.enemies.length;
   if(available<=0)return 0;
@@ -5202,7 +5202,7 @@ export class ArcadeGame {
    if(this.enemies.length<RULES.maxEnemies-NOISE_ESCALATION.initialWing){
     const before=this.enemies.length;
     const source=this.pendingNoiseAlarm||this.lastNoiseSource||{x:p.x,y:p.y};
-    const recovery=this.spawnGroup(noisePatrolDirector(alarm,before),source);
+    const recovery=this.spawnGroup(noisePatrolDirector(alarm,before,false,this.time),source);
     if(this.enemies.length>before){
      armNoiseCourier(this,this.enemies.slice(before),source);
      this.noiseAlert={x:source.x,y:source.y,startedAt:this.time,until:this.time+2.8};

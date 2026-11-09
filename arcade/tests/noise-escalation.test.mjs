@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NOISE_ESCALATION,preserveEarlyNoiseSignal,noisePatrolDirector,armNoiseCourier,
+import {NOISE_ESCALATION,noiseWingSize,preserveEarlyNoiseSignal,noisePatrolDirector,armNoiseCourier,
  updateNoiseEscalation} from '../noise-escalation.js';
 import {MINING_NOISE,drawMiningNoiseRings,updateRockMotion} from '../mining.js';
 import {enemyPursuitTarget} from '../enemy-awareness.js';
@@ -27,6 +27,14 @@ test('one mined ordinary rock can trigger visible escalating patrol pressure',()
  const next=noisePatrolDirector({cap:6,groupSize:2,types:['scout']},4,true);
  assert.equal(next.groupSize,11);
  assert.equal(next.cap,15);
+ assert.equal(noiseWingSize(20),4,'первый вылет вызывает разведку, а не семь кораблей сразу');
+ assert.equal(noiseWingSize(20,true),7,'первое подкрепление ограничено');
+ assert.equal(noiseWingSize(100),6);
+ assert.equal(noiseWingSize(200),NOISE_ESCALATION.initialWing);
+ assert.equal(noiseWingSize(200,true),NOISE_ESCALATION.reinforcementWing);
+ const early=noisePatrolDirector({cap:4,groupSize:2,types:['scout']},2,false,20);
+ assert.equal(early.groupSize,4);
+ assert.equal(early.cap,6);
 });
 
 test('early extraction report survives natural decay until the first patrol may launch',()=>{
@@ -60,7 +68,8 @@ test('scout must spot player and physically escape before another wing arrives',
  game.time+=NOISE_ESCALATION.reinforcementDelay+.1;
  updateNoiseEscalation(game);
  assert.equal(game.noiseEscalation,null);
- assert.equal(game.lastCall.director.groupSize,11);
+ assert.equal(game.lastCall.director.groupSize,7,
+  'ранняя добыча приводит ограниченное подкрепление');
  assert.deepEqual(game.lastCall.source,{x:30,y:40},'reinforcements know only the reported sighting');
  assert.ok(messages.some(s=>s.includes('ПОДКРЕПЛЕНИЕ')));
 });
