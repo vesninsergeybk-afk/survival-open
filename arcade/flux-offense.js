@@ -1,7 +1,7 @@
 // A paid, physical sortie launched from an owned territorial contour.
 // It jams one KNOWN industrial dispatch station for a short window; it never
 // removes an already launched ship, consumes enemy stock, or deals damage.
-import {contourFields} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
+import {contourFields} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1-triangle-defense-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 
 export const FLUX_SORTIE=Object.freeze({cost:8,maxRange:3600,speed:210,

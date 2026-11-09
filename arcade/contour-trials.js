@@ -3,7 +3,8 @@ import {insidePolygon} from './territory-system.js';
 // One completed territorial expansion earns one trial. A change to the
 // triangulation of land already owned never creates another challenge.
 export const CONTOUR_TRIALS=Object.freeze({maxTier:12,maxEntries:256,engageRadius:990,
- retreatRadius:1650,warningSeconds:5,retreatSeconds:7,maxWaveSeconds:70,maxWaitSeconds:12});
+ retreatRadius:1650,warningSeconds:5,retreatSeconds:7,maxWaveSeconds:70,maxWaitSeconds:12,
+ activationRadius:145,activationSeconds:2.2,minWaveSeconds:7});
 
 export const trialQuota=(count,tier)=>tier<=3?count:Math.ceil(count*.75);
 
@@ -65,9 +66,15 @@ export function registerContourTrials(world,oldFields,newFields,gainedArea){
 export function pendingContourTrials(world){
  return world?.contours?.trials?.entries.filter(e=>e.status==='pending')||[];
 }
+export function readyContourTrials(world){
+ return world?.contours?.trials?.entries.filter(e=>e.status==='ready')||[];
+}
+export function unresolvedContourTrials(world){
+ return world?.contours?.trials?.entries.filter(e=>e.status!=='complete')||[];
+}
 
 export function trialBlockingField(world,field){
- return world?.contours?.trials?.entries.find(e=>e.status==='pending'&&within(e,field))||null;
+ return unresolvedContourTrials(world).find(e=>within(e,field))||null;
 }
 
 export function productiveContourFields(world,fields){
@@ -76,8 +83,13 @@ export function productiveContourFields(world,fields){
 
 export function completeContourTrial(world,id){
  const ledger=ensureTrialLedger(world),entry=ledger?.entries.find(e=>e.id===id);
- if(!entry||entry.status!=='pending')return false;
+ if(!entry||entry.status!=='ready')return false;
  entry.status='complete';ledger.completed++;return true;
+}
+export function prepareContourVortex(world,id){
+ const entry=ensureTrialLedger(world)?.entries.find(e=>e.id===id);
+ if(!entry||entry.status!=='pending')return false;
+ entry.status='ready';return true;
 }
 
 export function validContourTrials(trials){
@@ -92,7 +104,7 @@ export function validContourTrials(trials){
    !Number.isFinite(e.x)||!Number.isFinite(e.y)||
    Math.abs(e.x)>1e9||Math.abs(e.y)>1e9||
    !Number.isInteger(e.tier)||e.tier<1||e.tier>CONTOUR_TRIALS.maxTier||
-   !['pending','complete'].includes(e.status))return false;
+   !['pending','ready','complete'].includes(e.status))return false;
   unique.add(e.id);
  }
  return trials.completed>=trials.entries.filter(e=>e.status==='complete').length;
@@ -101,14 +113,14 @@ export function validContourTrials(trials){
 // The first three steps introduce threats in the agreed order. Higher steps
 // use a bounded mix of the ten encounter variants, never infinite enemy growth.
 const STAGES=[
- [{scout:2}],
- [{scout:2},{scout:3}],
- [{scout:3},{fighter:2}],
- [{scout:2,fighter:2},{flanker:2,scout:2}],
- [{fighter:3},{berserker:2,scout:2}],
- [{scout:3,flanker:2},{fighter:3,healer:1}],
- [{fighter:3,berserker:2},{gunship:1,scout:3}],
- [{flanker:3,scout:3},{fighter:3,healer:1,berserker:2}],
+ [{scout:2},{scout:2,fighter:1},{fighter:1,berserker:1}],
+ [{scout:2},{scout:3},{fighter:2,scout:1}],
+ [{scout:3},{fighter:2,scout:1},{fighter:2,flanker:1}],
+ [{scout:2,fighter:2},{flanker:2,scout:2},{fighter:2,berserker:1}],
+ [{fighter:3},{berserker:2,scout:2},{fighter:2,flanker:2}],
+ [{scout:3,flanker:2},{fighter:3,healer:1},{berserker:2,fighter:2}],
+ [{fighter:3,berserker:2},{gunship:1,scout:3},{fighter:3,flanker:2}],
+ [{flanker:3,scout:3},{fighter:3,healer:1,berserker:2},{gunship:1,fighter:3}],
  [{scout:4,berserker:2},{gunship:1,fighter:3},{flanker:3,healer:1}],
  [{gunship:1,scout:4},{fighter:4,flanker:2},{berserker:3,healer:1}],
  [{flanker:3,fighter:3},{gunship:1,healer:1,berserker:2},{gunship:1,scout:4}],

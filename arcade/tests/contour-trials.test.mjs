@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createContours,autoConnectContours,contourFields,advanceContours,validContours} from '../territory-system.js';
 import {registerContourTrials,pendingContourTrials,productiveContourFields,
- completeContourTrial,planContourTrial,TRIAL_VARIANTS} from '../contour-trials.js';
-import {updateContourTrials} from '../contour-trial-director.js';
+ prepareContourVortex,readyContourTrials,completeContourTrial,planContourTrial,TRIAL_VARIANTS} from '../contour-trials.js';
+import {updateContourTrials,activateContourVortex} from '../contour-trial-director.js';
 import {game} from './weapons-scene.mjs';
 
 const station=(id,x,y)=>({id,x,y,active:true,enemy:false,suppressed:false,type:'dock'});
@@ -15,6 +15,20 @@ const claim=w=>{
  autoConnectContours(w);
  return registerContourTrials(w,before,contourFields(w),770000);
 };
+function clearWaves(g,entry){
+ for(let index=0;index<3;index++){
+  for(const enemy of g.enemies.filter(e=>e.trialId===entry.id))enemy.hp=0;
+  g.time+=8;updateContourTrials(g,.1);
+  if(index<2){
+   assert.equal(g.contourTrial?.phase,'rest');
+   g.time+=5;updateContourTrials(g,.1);
+   assert.equal(g.contourTrial?.phase,'wave');
+   assert.equal(g.contourTrial.waveIndex,index+1);
+  }
+ }
+ assert.equal(g.contourTrial,null);
+ assert.equal(entry.status,'ready');
+}
 
 test('a new triangle queues one trial and pays no flux before victory',()=>{
  const world=territory(),created=claim(world);
@@ -24,6 +38,9 @@ test('a new triangle queues one trial and pays no flux before victory',()=>{
  for(let t=1;t<=100;t++)advanceContours(world,t,1,[],{x:0,y:0});
  assert.equal(world.contours.flux,0);
  assert.equal(world.contours.harvesters.length,0);
+ assert.equal(completeContourTrial(world,created[0].id),false,'closing the triangle does not activate its core');
+ assert.equal(prepareContourVortex(world,created[0].id),true);
+ assert.equal(productiveContourFields(world,contourFields(world)).length,0,'three waves alone do not start mining');
  assert.equal(completeContourTrial(world,created[0].id),true);
  assert.equal(completeContourTrial(world,created[0].id),false,'a second claim cannot pay out');
  assert.equal(productiveContourFields(world,contourFields(world)).length,1);
@@ -52,10 +69,11 @@ test('a subdivision of the same land never adds a trial; a new neighbouring face
 
 test('first three stages contain the promised scout and fighter waves',()=>{
  const [a,b,c]=[1,2,3].map(tier=>planContourTrial(tier,tier));
- assert.deepEqual(a.waves,[{scout:2}]);
- assert.equal(b.waves.length,2);
- assert.ok(b.waves.every(w=>Object.keys(w).every(type=>type==='scout')));
- assert.equal(c.waves.length,2);
+ assert.equal(a.waves.length,3);
+ assert.deepEqual(a.waves[0],{scout:2});
+ assert.ok(a.waves[1].fighter>0&&a.waves[2].berserker>0);
+ assert.equal(b.waves.length,3);
+ assert.equal(c.waves.length,3);
  assert.ok(c.waves[0].scout>0&&c.waves[1].fighter>0);
  assert.equal(planContourTrial(999,100).tier,12);
 });
@@ -81,7 +99,7 @@ test('an existing checkpoint shape stays valid; malformed trial records fail saf
  assert.equal(validContours({...world.contours,trials:{...valid,entries:[valid.entries[0],valid.entries[0]]}},[...world.stations]),false);
 });
 
-test('a local trial automatically spawns its waves and unlocks flux once',()=>{
+test('a local trial spawns three waves, then requires a manual vortex activation',()=>{
  const g=game(),w=territory(),entries=claim(w);
  g.world=w;g.contourTrial=null;g.operation=null;g.heavyPortalShown=false;
  g.player.x=entries[0].x;g.player.y=entries[0].y;
@@ -98,11 +116,13 @@ test('a local trial automatically spawns its waves and unlocks flux once',()=>{
  assert.equal(g.enemies.filter(e=>e._trialDiveEnabled).length,1,
   'one of two new-field IRIS scouts must telegraph aggressive dives');
  g.zones.push({x:g.player.x,y:g.player.y,r:66,fuse:2,trialId:entries[0].id});
- for(const e of g.enemies)e.hp=0;
- updateContourTrials(g,.1);
+ clearWaves(g,entries[0]);
  assert.equal(g.contourTrial,null);
  assert.equal(g.zones.filter(z=>z.trialId===entries[0].id).length,0,
   'orbital shells cannot fall after the victory announcement');
+ assert.equal(w.contours.trials.completed,0);
+ assert.equal(readyContourTrials(w).length,1);
+ assert.equal(activateContourVortex(g,entries[0]),true);
  assert.equal(w.contours.trials.completed,1);
  assert.match(g.lastReward,/Воронка открыта/);
  assert.equal(pendingContourTrials(w).length,0);
@@ -151,8 +171,9 @@ test('each wave has a finite resolution: battered enemies retreat; inaction fail
   updateContourTrials(g,.1);g.time+=6;updateContourTrials(g,.1);
   return {g,w,entry};
  };
- const defended=setup();for(const enemy of defended.g.enemies)enemy.hp=0;
- defended.g.time+=71;updateContourTrials(defended.g,.1);
+ const defended=setup();clearWaves(defended.g,defended.entry);
+ assert.equal(defended.w.contours.trials.completed,0);
+ assert.equal(activateContourVortex(defended.g,defended.entry),true);
  assert.equal(defended.w.contours.trials.completed,1);
  assert.equal(defended.g.contourTrial,null);
  const inactive=setup();inactive.g.time+=71;updateContourTrials(inactive.g,.1);
@@ -162,7 +183,7 @@ test('each wave has a finite resolution: battered enemies retreat; inaction fail
  assert.equal(inactive.g.contourTrial,null,'failure has a short retry pause');
 });
 
-test('two-wave defence warns before the stronger second wave and strikes are telegraphed',()=>{
+test('three-wave defence warns before the stronger stages and strikes are telegraphed',()=>{
  const g=game(),w=territory(),entry=claim(w)[0];entry.tier=3;
  g.world=w;g.contourTrial=null;g.operation=null;g.heavyPortalShown=false;
  g.player.x=entry.x;g.player.y=entry.y;
@@ -173,11 +194,21 @@ test('two-wave defence warns before the stronger second wave and strikes are tel
  g.time+=4;updateContourTrials(g,.1);
  assert.ok(g.zones.some(z=>z.trialId===entry.id&&z.fuse>=2));
  for(const e of g.enemies)e.hp=0;
+ g.time+=4;
  updateContourTrials(g,.1);
  assert.equal(g.contourTrial.phase,'rest');
  g.time+=5;updateContourTrials(g,.1);
  assert.ok(g.enemies.some(e=>e.type==='fighter'&&e.hp>0));
  for(const e of g.enemies)e.hp=0;
+ g.time+=8;updateContourTrials(g,.1);
+ assert.equal(g.contourTrial.phase,'rest');
+ g.time+=5;updateContourTrials(g,.1);
+ assert.ok(g.enemies.some(e=>e.hp>0));
+ for(const e of g.enemies)e.hp=0;
+ g.time+=8;
  updateContourTrials(g,.1);
+ assert.equal(entry.status,'ready');
+ assert.equal(w.contours.trials.completed,0);
+ assert.equal(activateContourVortex(g,entry),true);
  assert.equal(w.contours.trials.completed,1);
 });

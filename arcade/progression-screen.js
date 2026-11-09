@@ -40,8 +40,8 @@ const activations={
  wreck:'После уничтожения тяжёлого противника появляются временные обломки-укрытия.',
  capture:'Отметьте противника приоритетной целью и уничтожьте его при наличии заряда: он временно перейдёт на вашу сторону.',
  signal:'Попадите по свежей приоритетной цели с зарядом: враг раскроет расположение патруля.',
- cometRadius:'Выберите «Голубую комету» колесом мыши, если доступно другое ручное орудие. Зажмите ЛКМ для прицеливания, отпустите для выстрела.',
- mineArray:'Зажмите ПКМ, укажите место для минного веера и отпустите кнопку для запуска.',
+ cometRadius:'Выберите «Голубую комету» колесом мыши. Зажмите ПКМ для прицеливания, отпустите для выстрела.',
+ mineArray:'Выберите «Минный веер» колесом мыши. Зажмите ПКМ, укажите место установки и отпустите кнопку для запуска.',
  cometCore:'Бонус действует автоматически в центре каждого взрыва «Голубой кометы».',
  cometCryo:'Пережившие взрыв «Голубой кометы» враги замедляются автоматически.',
  minePierce:'Бонус к урону срабатывает автоматически, когда мина поражает тяжёлый корабль.',
@@ -131,7 +131,7 @@ function weaponNodes(state){
     summary:comet?'Радиус '+(90+rank*17)+' м · перезарядка 5,5 с':
      (4+rank)+' мины · перезарядка 17 с'},
    control:state.isTouchLayout?(comet?'касание поля боя':'кнопка «Мины · выбор»'):
-    (comet?'ЛКМ (выбор оружия — колесом)':'ПКМ')};
+    'ПКМ (выбор оружия — колесом)'};
  }
  const family=MODULES[id]||MODULES.plasma,installed=loadout.slots.includes(family.id);
  const relevant={plasma:['beam','range','double'],rail:['beam'],flak:['beam'],rocket:['beam','rocket'],
@@ -222,7 +222,7 @@ function tacticalNodes(state){
 
 function networkNodes(state){
  const base=state.station||{},linked=state.connectedBases||0;
- return [
+ const navigation=[
   {id:'network-tech',title:'Технологии станций',icon:art('tactics','flux_capacitor'),level:1,
    description:'Каждая станция может один раз вложить сплав в общую технологию флота.',
    effect:'Улучшения оплачиваются сплавом, очки развития пилота не расходуются.',
@@ -237,6 +237,17 @@ function networkNodes(state){
    activation:'Откройте раздел «Станция»: там указаны реальные маршруты и условия связи.'}
  ].map(n=>({...n,kind:'navigation',rank:0,max:1,status:'ready',reason:'',action:'baseTab',actionId:'network',
   actionLabel:'Открыть раздел станции',canAct:true,cost:'По условиям станции'}));
+ const rank=state.turretSlotRank||0,price=[{ore:15,flux:4},{ore:25,flux:8}][rank];
+ const reason=!price?'Максимальная вместимость':!state.activeContourTrials?
+  'Сначала защитите первый треугольник':(state.ore||0)<price.ore?'Нужно '+price.ore+' сплава':
+  (state.flux||0)<price.flux?'Нужно '+price.flux+' флюкса':'';
+ return [{id:'network-turret-slots',title:'Вместимость опорных линий',
+  icon:art('tactics','station_triangle'),level:1,rank,max:2,status:!price?'mastered':reason?'waiting':'ready',
+  description:'На каждой грани треугольника сначала помещается одна боевая установка. Улучшение открывает вторую, затем третью.',
+  effect:'Текущий предел: '+(rank+1)+' сооружения на каждой грани. Действует на артиллерию, разрядники, лазерные гнёзда и дроновые матки.',
+  activation:'Выберите улучшение здесь на станции или через меню строительства во время вылета.',
+  reason,action:'hgNetworkSlots',actionId:'',actionLabel:price?'Расширить сеть':'Улучшено полностью',
+  canAct:!reason,cost:price?price.ore+' сплава + '+price.flux+' флюкса':'—'},...navigation];
 }
 
 function branchButtons(domain,state){

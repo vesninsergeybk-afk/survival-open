@@ -3,7 +3,7 @@ import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight} fr
 import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2-unified-controls-1-menu-focus-1';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1';
+import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1-triangle-defense-1';
 import {emitWeaponFx} from './weapon-fx.js';
 import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js';
 
@@ -122,6 +122,7 @@ export function updateAutomaticWeapons(game,dt,allowed){
 // A small tap assist centres a shot only on a genuinely nearby visible target;
 // the beam still stops at the first hostile hull or solid asteroid on its line.
 export const RAIL_AIM_ASSIST=60;
+export const RAIL_SWEEP=Object.freeze({duration:5,pulse:.105,damageScale:2.3});
 const shotCircle=(from,to,centre,radius)=>{
  const dx=to.x-from.x,dy=to.y-from.y,fx=from.x-centre.x,fy=from.y-centre.y;
  const a=dx*dx+dy*dy,b=2*(fx*dx+fy*dy),c=fx*fx+fy*fy-radius*radius;
@@ -133,6 +134,76 @@ const shotCircle=(from,to,centre,radius)=>{
  return t>=0&&t<=1?t:null;
 };
 const onRay=(from,to,t)=>({x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t});
+export function startRailSweep(game,point){
+ if(!game.weaponProfile?.rail)return {ok:false,reason:'Установите рельсовое орудие в ангаре'};
+ if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))return {ok:false,reason:'Укажите направление луча'};
+ if(game.railSweep||game.holdFire||game.mining?.active||game.probeRepairing||game.openingRepairing||game.actionHeld)
+  return {ok:false,reason:'Сейчас рельсовый луч недоступен'};
+ if(game.weaponThermal.locked)return {ok:false,reason:'Оружие перегрето'};
+ if((game.moduleClocks?.rail||0)>0)return {ok:false,reason:'Рельс перезаряжается: '+Math.ceil(game.moduleClocks.rail*10)/10+' с'};
+ const dx=point.x-game.player.x,dy=point.y-game.player.y;
+ if(Math.hypot(dx,dy)<12)return {ok:false,reason:'Укажите направление дальше от корабля'};
+ const stats=statsFor(game,'rail');
+ game.railSweep={startedAt:game.time,until:game.time+RAIL_SWEEP.duration,
+  angle:Math.atan2(dy,dx),lastPulse:game.time-RAIL_SWEEP.pulse,
+  stats,pulses:0,lastEnd:null};
+ game.moduleClocks.rail=RAIL_SWEEP.duration+stats.interval*1.3;
+ heatWeapons(game.weaponThermal,MODULES.rail.heat*game.weaponProfile.rail);
+ game.heritage?.play?.('railShot',.36,game.player);
+ return {ok:true,duration:RAIL_SWEEP.duration,cooldown:game.moduleClocks.rail};
+}
+export function updateRailSweep(game){
+ const sweep=game.railSweep;if(!sweep)return;
+ if(game.dead||game.paused||game.time>=sweep.until||!game.weaponProfile?.rail){game.railSweep=null;return;}
+ const point=game.tacticalPointer;
+ if(point&&game.canvas?.getBoundingClientRect&&game.camera){
+  const r=game.canvas.getBoundingClientRect(),cam=game.camera();
+  if(r.width>0&&r.height>0){
+   const x=cam.x+(point.x-r.left)/r.width*cam.w,y=cam.y+(point.y-r.top)/r.height*cam.h;
+   if(Math.hypot(x-game.player.x,y-game.player.y)>12)sweep.angle=Math.atan2(y-game.player.y,x-game.player.x);
+  }
+ }
+ const from=game.player,ux=Math.cos(sweep.angle),uy=Math.sin(sweep.angle);
+ const end={x:from.x+ux*sweep.stats.range,y:from.y+uy*sweep.stats.range};
+ const rock=firstRockImpact(from.x,from.y,end.x,end.y,
+  game.rockGrid?.query((from.x+end.x)*.5,(from.y+end.y)*.5,sweep.stats.range*.5+80)||[],2,from);
+ const targets=combatTargets(game,sweep.stats.range+50,from,true).filter(item=>targetAlive(game,item,true))
+  .map(item=>({item,t:shotCircle(from,end,item.target,targetRadius(item))}))
+  .filter(hit=>hit.t!==null&&(!rock||hit.t<=rock.t+1e-7)).sort((a,b)=>a.t-b.t);
+ sweep.lastEnd=targets.length?onRay(from,end,targets[0].t):rock?{x:rock.x,y:rock.y}:end;
+ const elapsed=Math.min(game.time,sweep.until)-sweep.lastPulse;
+ const ticks=Math.min(5,Math.floor(elapsed/RAIL_SWEEP.pulse));
+ for(let i=0;i<ticks;i++){
+  const first=targets[0],second=targets[1];
+  const totalDamage=sweep.stats.damage*RAIL_SWEEP.damageScale*RAIL_SWEEP.pulse/RAIL_SWEEP.duration;
+  for(const hit of [first,second].filter(Boolean)){
+   const factor=hit===first?1:.28;
+   const target=hit.item.target;
+   const damage=totalDamage*factor*weaponDamageFactor(game.shipLoadout,'rail',target);
+   damageTarget(game,hit.item,damage,'rail',onRay(from,end,hit.t),false,true);
+  }
+  if(!first&&rock&&rock.rock?.alive){
+   game.damageRock(rock.rock,totalDamage*.6,from.x,from.y,'auto',true,
+    contactAtPoint(rock.rock.x,rock.rock.y,rock.x,rock.y));
+  }
+  sweep.pulses++;
+  if(sweep.pulses%3===1)emitWeaponFx(game,'rail',from,sweep.lastEnd,{impact:!!first||!!rock,blocked:!!rock});
+ }
+ sweep.lastPulse+=ticks*RAIL_SWEEP.pulse;
+}
+export function drawRailSweep(ctx,game){
+ const sweep=game.railSweep;if(!sweep)return;
+ const end=sweep.lastEnd||{x:game.player.x+Math.cos(sweep.angle)*sweep.stats.range,
+  y:game.player.y+Math.sin(sweep.angle)*sweep.stats.range};
+ ctx.save();ctx.lineCap='round';
+ ctx.shadowColor='#83f3ff';ctx.shadowBlur=game.visuals?.reducedMotion?0:17;
+ ctx.strokeStyle='rgba(86,206,246,.36)';ctx.lineWidth=17;
+ ctx.beginPath();ctx.moveTo(game.player.x,game.player.y);ctx.lineTo(end.x,end.y);ctx.stroke();
+ ctx.strokeStyle='#e5fbff';ctx.lineWidth=3.4;
+ ctx.beginPath();ctx.moveTo(game.player.x,game.player.y);ctx.lineTo(end.x,end.y);ctx.stroke();
+ ctx.shadowBlur=0;ctx.fillStyle='#a9ffff';ctx.beginPath();ctx.arc(end.x,end.y,5,0,Math.PI*2);ctx.fill();
+ ctx.restore();
+}
 export function fireAimedRail(game,point){
  if(!game.manualRailMode||!game.weaponProfile?.rail)return {ok:false,reason:'Включите ручной режим установленного рельсового орудия'};
  if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))return {ok:false,reason:'Укажите точку выстрела'};

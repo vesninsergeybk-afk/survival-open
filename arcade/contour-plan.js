@@ -1,4 +1,4 @@
-import {CONTOURS,connectContour,contourFields,contourArea,createContours} from './territory-system.js?v=contours-1';
+import {CONTOURS,connectContour,contourFields,contourArea,createContours} from './territory-system.js?v=contours-1-triangle-defense-1';
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const area=(a,b,c)=>Math.abs((b.x-a.x)*(c.y-a.y)-(c.x-a.x)*(b.y-a.y))/2;

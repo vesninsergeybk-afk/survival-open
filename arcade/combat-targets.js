@@ -4,6 +4,22 @@ import {canAutoTarget} from './signal-perception.js?v=arcade-perception-61-first
 
 export const targetDistance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const targetRadius=item=>item.target.r||({jammer:30,turret:22,base:60}[item.kind])||18;
+// A hostile contact attacker that is already inside the ship's defensive
+// envelope must be engaged even if radio/sensor bookkeeping has not yet
+// changed its patrol state to "engaged". This does not reveal distant patrols.
+export function immediateContactThreat(game,item){
+ if(item?.kind!=='enemy')return false;
+ const e=item.target;
+ if(!e||e.converted||e.hp<=0||e.microSwarm)return false;
+ if(!['berserker','fighter','flanker','scout','gunship'].includes(e.type))return false;
+ const player=game.player;
+ const directThreat=e.type==='berserker'||e.state==='charge'||!!e.ramOrder;
+ if(player&&targetDistance(player,e)<(directThreat?195:90)+(e.r||0))return true;
+ const emplacements=[...(game.world?.contours?.artillery||[]),
+  ...(game.world?.contours?.supportTurrets||[])];
+ return emplacements.some(t=>t.hp>0&&targetDistance(e,t)<120&&
+  (e.target===t||e.ramOrder?.target===t));
+}
 export function targetAlive(game,item,manual=false){
  const t=item?.target;if(!t||!(t.hp>0)||t.converted||t===game.player||game.allies?.includes(t))return false;
  if(t.interceptCargo&&t.phase==='approach')return false;
@@ -13,7 +29,7 @@ export function targetAlive(game,item,manual=false){
  if(t===game.operation&&!t.interceptCargo)return false;
  // Deliberate physical aim can strike an unconfirmed investigating patrol.
  // Auto weapons and escorts still obey sensor/engagement restrictions.
- return manual||canAutoTarget(t);
+ return manual||canAutoTarget(t)||immediateContactThreat(game,item);
 }
 // A single catalog includes world objectives, never friendly repair/defense nodes.
 // Object identity deduplicates the cargo which is also present in the AI grid.
@@ -75,6 +91,7 @@ export function selectTargets(game,range,limit=1,precision=false){
  return combatTargets(game,range).sort((a,b)=>
   (focus?(a.target===focus?-1:b.target===focus?1:0):0)||
   (precision?precisionRank(a)-precisionRank(b):0)||
+  (immediateContactThreat(game,a)?-1:0)-(immediateContactThreat(game,b)?-1:0)||
   targetDistance(game.player,a.target)-targetDistance(game.player,b.target)).slice(0,limit);
 }
 export function rockOnLine(game,from,to,padding=2,ignoreOrigin=true){

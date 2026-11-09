@@ -61,13 +61,16 @@ test('Tab and M show the map, arrows remain movement aliases, and customized key
  assert.match(source,/this\.overlay\.dataset\.mode==='map'.*?isMapCloseShortcut\(e\.code,this\.controls\)/s);
 });
 
-test('optional Ctrl+LMB marks a priority target without firing the comet or mines',()=>{
+test('RMB fires the selected manual weapon; LMB only marks a priority target',()=>{
  const mouse=(button,extras={})=>({button,pointerType:'mouse',ctrlKey:false,altKey:false,metaKey:false,...extras});
- assert.deepEqual(pointerWeaponAction(mouse(0),'comet'),{kind:'comet',mark:false});
- assert.deepEqual(pointerWeaponAction(mouse(2),'comet'),{kind:'mines',mark:false});
+ assert.deepEqual(pointerWeaponAction(mouse(0),'comet'),{kind:null,mark:false});
+ assert.deepEqual(pointerWeaponAction(mouse(2),'comet'),{kind:'comet',mark:false});
+ assert.deepEqual(pointerWeaponAction(mouse(2),'mines'),{kind:'mines',mark:false});
+ assert.deepEqual(pointerWeaponAction(mouse(2),'rail'),{kind:'rail',mark:false});
+ assert.deepEqual(pointerWeaponAction(mouse(2),'howitzer'),{kind:'howitzer',mark:false});
  assert.deepEqual(pointerWeaponAction(mouse(0,{ctrlKey:true}),'comet'),{kind:null,mark:true});
  assert.deepEqual(pointerWeaponAction(mouse(0,{ctrlKey:true}),'rail'),{kind:null,mark:true});
- assert.deepEqual(pointerWeaponAction(mouse(0,{ctrlKey:true,altKey:true}),'comet'),{kind:'comet',mark:false});
+ assert.deepEqual(pointerWeaponAction(mouse(0,{ctrlKey:true,altKey:true}),'comet'),{kind:null,mark:false});
  assert.deepEqual(pointerWeaponAction({button:0,pointerType:'touch',ctrlKey:false},'comet',true),
   {kind:'mines',mark:false},'touch mine selection is not replaced by desktop marking');
  const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
@@ -79,14 +82,14 @@ test('optional Ctrl+LMB marks a priority target without firing the comet or mine
  assert.match(html,/Приоритетная цель \(без выстрела\)/);
 });
 
-test('manual modes have a stable order, with a dedicated comet action',()=>{
+test('four manual modes have a stable wheel order and separate selection',()=>{
  const both=manualWeapons({rail:true,howitzer:true},true);
- assert.deepEqual(both,['rail','howitzer']);
- assert.deepEqual(manualWeapons({rail:true,howitzer:true},false),['howitzer']);
- assert.equal(selectedManual('missing',both),'rail');
+ assert.deepEqual(both,['comet','mines','rail','howitzer']);
+ assert.deepEqual(manualWeapons({rail:true,howitzer:true},false),['comet','mines','howitzer']);
+ assert.equal(selectedManual('missing',both),'comet');
  assert.equal(cycleManual('rail',both,1),'howitzer');
- assert.equal(cycleManual('howitzer',both,1),'rail');
- assert.equal(cycleManual('rail',both,-1),'howitzer');
+ assert.equal(cycleManual('howitzer',both,1),'comet');
+ assert.equal(cycleManual('rail',both,-1),'mines');
  assert.equal(manualClick('rail',true),'rail');
  assert.equal(manualClick('rail',false),'rail');
  assert.equal(manualClick('rail',false,true),'designate');
@@ -94,6 +97,7 @@ test('manual modes have a stable order, with a dedicated comet action',()=>{
  assert.equal(manualClick('howitzer',false,true),'designate','touch target selection remains available with heavy weapon installed');
  assert.equal(manualClick('rail',true,true),'rail','explicit touch precision mode still fires the rail');
  assert.equal(manualClick('comet',false),'comet');
+ assert.equal(manualClick('mines',false),'mines');
  assert.equal(manualClick('comet',false,true),'comet');
  assert.equal(manualClick(null,false),'designate');
 });
@@ -105,7 +109,8 @@ test('flight status explains Space once and keeps the two mouse cooldowns separa
  try{
   g.mouseArsenal={cometReadyAt:g.time+3,minesReadyAt:g.time+8,projectiles:[],mines:[],bursts:[]};
   g.syncControlUI();
-  assert.match(status.textContent,/ЛКМ · КОМЕТА · 3 с/);
+  assert.match(status.textContent,/ПКМ · КОМЕТА · 3 с/);
+  g.selectedManualWeapon='mines';g.syncControlUI();
   assert.match(status.textContent,/ПКМ · МИНЫ · 8 с/);
   assert.equal((status.textContent.match(/Пробел/g)||[]).length,1);
  }finally{
@@ -134,6 +139,8 @@ test('actual game selection keeps manual rail and howitzer separate from automat
  assert.equal(g.selectedManualWeapon,'comet','ordinary play defaults to the broad comet attack');
  assert.equal(g.manualRailMode,false,'installing the rail must preserve automatic fire');
  assert.equal(g.switchManualWeapon(),true);
+ assert.equal(g.selectedManualWeapon,'mines');
+ assert.equal(g.switchManualWeapon(),true);
  assert.equal(g.selectedManualWeapon,'rail');
  assert.equal(g.manualRailMode,false);
  assert.ok(g.weaponProfile.plasma);
@@ -142,10 +149,13 @@ test('actual game selection keeps manual rail and howitzer separate from automat
  assert.equal(g.switchManualWeapon(),true);
  assert.equal(g.selectedManualWeapon,'comet');
  assert.equal(g.switchManualWeapon(),true);
+ assert.equal(g.selectedManualWeapon,'mines');
+ assert.equal(g.switchManualWeapon(),true);
  assert.equal(g.selectedManualWeapon,'rail');
  assert.equal(g.manualRailMode,false,'returning to rail does not disable automatic fire before a manual shot');
  assert.equal(g.fireSelectedManualAt({x:190,y:30}),true);
- assert.equal(g.manualRailMode,true,'a deliberate desktop LMB shot enters precision control');
+ assert.equal(g.manualRailMode,true,'a deliberate desktop RMB shot enters precision control');
+ assert.equal(g.railSweep?.until-g.railSweep?.startedAt,5);
  g.syncManualWeaponSelection();
  assert.equal(g.manualRailMode,true,'normal loadout refresh does not erase the deliberate mode choice');
 });
@@ -157,7 +167,7 @@ test('the published UI offers mouse release attacks and separates everyday from 
  assert.match(gameText,/this\.designateTargetAt\(point\)/);
  assert.match(gameText,/this\.switchManualWeapon\(e\.deltaY>0\?1:-1\)/);
  assert.match(gameText,/pointerWeaponAction\(e,weapon,this\.mobileMineArmed\)/);
- assert.match(gameText,/if\(kind\)\{this\.fireActiveMouseWeapon\(kind,worldPoint\)/);
+ assert.match(gameText,/if\(kind==='comet'\|\|kind==='mines'\)this\.fireActiveMouseWeapon\(kind,worldPoint\)/);
  assert.match(gameText,/this\.mouseAim=null/);
  assert.match(html,/id="minefieldBtn"/);
  assert.match(html,/Дополнительные команды/);

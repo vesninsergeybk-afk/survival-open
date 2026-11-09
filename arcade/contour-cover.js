@@ -1,6 +1,6 @@
 // Network territory is a place where already-paid carrier sorties can defend
 // the pilot. A carrier must itself be a functioning vertex of that network.
-import {contourFields,fieldAt} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1';
+import {contourFields,fieldAt} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1-triangle-defense-1';
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {territoryTech} from './territory-tech.js?v=territory-war-1-territory-war-1';
 

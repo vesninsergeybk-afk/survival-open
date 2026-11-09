@@ -1,7 +1,7 @@
 /** Short, witnessed cause-and-effect records. The industrial and radio systems
  * remain the source of truth; these entries never change enemy resources.
  * Undiscovered stations and invisible radio traffic must not reach this API. */
-import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1';
+import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1-triangle-defense-1';
 const html=s=>String(s).replace(/[&<>"']/g,c=>({
  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 }[c]));

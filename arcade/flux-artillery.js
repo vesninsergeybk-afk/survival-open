@@ -9,9 +9,12 @@ export const FLUX_ARTILLERY=Object.freeze({
  range:740,aimSeconds:1.45,cooldown:8,buildSeconds:3,
  cableScale:700,baseFluxPerMinute:3.6,packetSpeed:520,maxTurrets:72,maxPackets:256,
  maxShells:96,shellSpeed:830,impactLifetime:.9,wreckLifetime:5,
- collisionRadius:38,turnSpeed:2.9,muzzleOffset:60
+ collisionRadius:38,turnSpeed:2.9,muzzleOffset:60,
+ closeRange:235,closeDamage:11,closeCooldown:.19
 });
 export const ARTILLERY_MODES=Object.freeze(['smart','group','strong','weak']);
+export const EDGE_SLOT_UPGRADES=Object.freeze([{ore:15,flux:4},{ore:25,flux:8}]);
+export const ARTILLERY_UPGRADES=Object.freeze([{ore:23,flux:2},{ore:34,flux:4}]);
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
 const normalizeAngle=a=>Math.atan2(Math.sin(a),Math.cos(a));
@@ -57,6 +60,40 @@ export function artilleryConnection(point,edges){
  }
  return chosen;
 }
+export const edgeTurretLimit=world=>1+Math.min(2,Math.max(0,world?.contours?.turretSlotRank||0));
+export function edgeTurretOccupancy(world,edgeId,edges=artilleryLinks(world)){
+ return [...(world?.contours?.artillery||[]),...(world?.contours?.supportTurrets||[])]
+  .filter(t=>artilleryConnection(t,edges)?.edgeId===edgeId).length;
+}
+export function edgeTurretUpgradeOffer(world,player){
+ const rank=world?.contours?.turretSlotRank||0,price=EDGE_SLOT_UPGRADES[rank];
+ if(!price)return {ok:false,reason:'На каждой грани уже можно установить три сооружения'};
+ if(!(world?.contours?.trials?.completed>0))return {ok:false,reason:'Сначала защитите первый треугольник'};
+ if((player?.ore||0)<price.ore)return {ok:false,reason:'Нужно '+price.ore+' сплава',...price};
+ if((world?.contours?.flux||0)+1e-8<price.flux)return {ok:false,reason:'Нужно '+price.flux+' флюкса',...price};
+ return {ok:true,...price};
+}
+export function upgradeEdgeTurretCapacity(world,player){
+ const quote=edgeTurretUpgradeOffer(world,player);if(!quote.ok)return quote;
+ player.ore-=quote.ore;world.contours.flux-=quote.flux;
+ world.contours.turretSlotRank=(world.contours.turretSlotRank||0)+1;
+ return {ok:true,limit:edgeTurretLimit(world)};
+}
+export function artilleryUpgradeOffer(world,player,t,time=0){
+ if(!t||t.kind!=='flux-artillery'||t.hp<=0)return {ok:false,reason:'Сооружение разрушено: сначала восстановите его'};
+ const price=ARTILLERY_UPGRADES[(t.level||1)-1];
+ if(!price)return {ok:false,reason:'Достигнут максимальный уровень'};
+ if(time<t.readyAt)return {ok:false,reason:'Дождитесь окончания строительства'};
+ if((player?.ore||0)<price.ore)return {ok:false,reason:'Нужно '+price.ore+' сплава',...price};
+ if((world?.contours?.flux||0)<price.flux)return {ok:false,reason:'Нужно '+price.flux+' флюкса',...price};
+ return {ok:true,...price};
+}
+export function upgradeArtillery(world,player,t,time=0){
+ const quote=artilleryUpgradeOffer(world,player,t,time);if(!quote.ok)return quote;
+ player.ore-=quote.ore;world.contours.flux-=quote.flux;
+ t.level=(t.level||1)+1;
+ return {ok:true,level:t.level};
+}
 const artilleryState=world=>{
  const state=world.contours;
  state.artillery??=[];state.artilleryPackets??=[];state.artilleryShells??=[];
@@ -83,6 +120,8 @@ export function artilleryOffer(world,player,point){
   return {ok:false,reason:'Слишком близко к станции'};
  const connection=artilleryConnection(point,edges);
  if(!connection)return {ok:false,reason:'Не удалось подключиться к сети'};
+ if(edgeTurretOccupancy(world,connection.edgeId,edges)>=edgeTurretLimit(world))
+  return {ok:false,reason:'Грань занята · улучшите вместимость опорных линий за флюкс'};
  if((player.ore||0)<FLUX_ARTILLERY.oreCost)
   return {ok:false,reason:'Недостаточно сплава: нужно '+FLUX_ARTILLERY.oreCost};
  if(state.flux+1e-8<FLUX_ARTILLERY.fluxCost)
@@ -105,6 +144,7 @@ export function deployArtillery(world,player,point,time){
   aimingUntil:0,aimX:point.x,aimY:point.y,mode:'smart',lastShotAt:-1,
   lastImpactAt:-1,lastImpactX:point.x,lastImpactY:point.y,lastChargeAt:-1,
   lastDestroyedAt:-1,gunAngle:-Math.PI/2};
+ turret.level=1;
  state.artillery.push(turret);
  return {ok:true,turret,connection:offer.connection};
 }
@@ -209,12 +249,10 @@ export function advanceFluxArtillery(game,dt){
  state.artilleryShells=state.artilleryShells.filter(s=>!s.done);
  if(game.fluxArtilleryFx)game.fluxArtilleryFx=game.fluxArtilleryFx.filter(
   fx=>time>=fx.at&&time-fx.at<FLUX_ARTILLERY.impactLifetime);
- // Keep dead chassis long enough to show damage, but not as active buildings.
+ // A destroyed emplacement keeps its socket for deliberate E repair.
  for(const turret of state.artillery)if(turret.hp<=0&&
    (!Number.isFinite(turret.lastDestroyedAt)||turret.lastDestroyedAt<0))
   turret.lastDestroyedAt=time;
- state.artillery=state.artillery.filter(t=>t.hp>0||
-  time-(t.lastDestroyedAt??time)<FLUX_ARTILLERY.wreckLifetime);
  const edges=artilleryLinks(game.world),edgeMap=new Map(edges.map(e=>[e.id,e]));
  const links=new Map();const sideCounts=new Map();
  for(const turret of state.artillery){
@@ -251,6 +289,24 @@ export function advanceFluxArtillery(game,dt){
   }
   if(time<turret.readyAt)continue;
   if(time-dt<turret.readyAt)game.heritage?.play?.('artilleryOnline',.9,turret);
+  // A short-range anti-ram gun uses its own clock. It never fires artillery
+  // shells, spends artillery magazine charges or reaches distant gunships.
+  if(link&&time>=(turret.closeNextShotAt??0)){
+   const threat=(game.enemies||[]).filter(e=>e.hp>0&&!e.converted&&!e.trialRetreatUntil&&
+    distance(e,turret)<=FLUX_ARTILLERY.closeRange+25*((turret.level||1)-1))
+    .sort((a,b)=>(a.type==='berserker'?-50:0)+distance(a,turret)-
+      ((b.type==='berserker'?-50:0)+distance(b,turret)))[0];
+   if(threat){
+    turret.closeNextShotAt=time+FLUX_ARTILLERY.closeCooldown;
+    turret.lastCloseAt=time;
+    game.damageEnemy(threat,FLUX_ARTILLERY.closeDamage+5*((turret.level||1)-1),turret);
+    game.fluxArtilleryFx??=[];
+    game.fluxArtilleryFx.push({kind:'close',x:turret.x,y:turret.y,
+     tx:threat.x,ty:threat.y,at:time});
+    if(game.fluxArtilleryFx.length>48)game.fluxArtilleryFx.shift();
+    game.heritage?.play?.('supportDroneShot',.20,turret);
+   }
+  }
   if(link){
    const congestion=sideCounts.get(link.edgeId)||1;
    // The farther the platform is from the powered side, the less energy it
@@ -493,7 +549,7 @@ export function drawFluxArtillery(ctx,game,cam,preview=null){
   const recoil=live?recoilAt(shotAge):0;
   const wreckAge=live?null:Math.max(0,time-(turret.lastDestroyedAt??time));
   ctx.translate(turret.x,turret.y);
-  if(!live)ctx.globalAlpha=1-clamp((wreckAge-3.8)/1.2,0,1);
+  if(!live)ctx.globalAlpha=Math.max(.42,1-clamp((wreckAge-3.8)/1.2,0,1));
   ctx.save();
   ctx.globalAlpha*=building?.2+.8*progress:live?1:.6;
   drawArtilleryChassis(ctx);
@@ -554,6 +610,13 @@ export function drawFluxArtillery(ctx,game,cam,preview=null){
   drawFlyingShell(ctx,shell,time,reduced);
  }
  for(const impact of game.fluxArtilleryFx||[]){
+  if(impact.kind==='close'){
+   const fade=clamp(1-(time-impact.at)/.18,0,1);if(!fade)continue;
+   ctx.save();ctx.globalAlpha=fade;ctx.strokeStyle='#a6f6ff';ctx.lineWidth=2.5;
+   ctx.beginPath();ctx.moveTo(impact.x,impact.y);ctx.lineTo(impact.tx,impact.ty);ctx.stroke();
+   ctx.fillStyle='#ffdb99';ctx.beginPath();ctx.arc(impact.x,impact.y,4,0,Math.PI*2);ctx.fill();
+   ctx.restore();continue;
+  }
   if(impact.x<cam.x-140||impact.x>cam.x+cam.w+140||
     impact.y<cam.y-140||impact.y>cam.y+cam.h+140)continue;
   drawImpact(ctx,impact,time,reduced);
@@ -596,6 +659,7 @@ export function validFluxArtillery(state){
     !finite(t.readyAt)||!finite(t.nextShotAt)||!finite(t.aimingUntil)||
     !finite(t.aimX,-1e9)||!finite(t.aimY,-1e9)||
     !finite(t.lastShotAt,-1)||!finite(t.lastImpactAt,-1)||
+    (t.level!==undefined&&(!Number.isInteger(t.level)||t.level<1||t.level>3))||
     !finite(t.lastImpactX,-1e9)||!finite(t.lastImpactY,-1e9)||
     (t.gunAngle!==undefined&&(!Number.isFinite(t.gunAngle)||
      Math.abs(t.gunAngle)>Math.PI+.00001))||

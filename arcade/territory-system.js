@@ -1,4 +1,4 @@
-import {newTrialLedger,productiveContourFields,validContourTrials} from './contour-trials.js?v=first-loops-1';
+import {newTrialLedger,productiveContourFields,validContourTrials} from './contour-trials.js?v=first-loops-1-triangle-defense-1';
 
 // Territorial links appear automatically between powered friendly stations.
 // They remain distinct from the shorter-range radio tree for station services.
@@ -23,7 +23,7 @@ const properCross=(a,b,c,e)=>{
 export const createContours=()=>({links:[],flux:0,launches:{},harvesters:[],delivered:0,lost:0,
  nextLaunchAt:0,pulseReadyAt:0,reserve:null,sortie:null,nextSortieAt:0,
  trials:newTrialLedger(),artillery:[],artilleryPackets:[],artilleryShells:[],artillerySerial:0,
- supportTurrets:[],supportPackets:[],supportSerial:0});
+ supportTurrets:[],supportPackets:[],supportSerial:0,turretSlotRank:0});
 
 export function contourLinkOffer(world,firstId,secondId){
  const state=world.contours,a=world.stations.get(firstId),b=world.stations.get(secondId);
@@ -324,6 +324,8 @@ export function validContours(state,stations){
   !validContourTrials(state.trials)||
   !Number.isFinite(state.flux)||state.flux<0||state.flux>1e12||
   !Number.isFinite(state.delivered)||state.delivered<0||
+  (state.turretSlotRank!==undefined&&(!Number.isInteger(state.turretSlotRank)||
+   state.turretSlotRank<0||state.turretSlotRank>2))||
   !Number.isInteger(state.lost)||state.lost<0||
   !Number.isFinite(state.nextLaunchAt??0)||(state.nextLaunchAt??0)<0||
   !Number.isFinite(state.pulseReadyAt??0)||(state.pulseReadyAt??0)<0||

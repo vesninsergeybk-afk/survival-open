@@ -169,6 +169,8 @@ const findHealer=(enemy,game)=>{
   return best;
 };
 const pickTarget=(e,game)=>{
+  if(e.ramOrder?.squad&&e.ramOrder.target?.hp>0&&game.time<e.ramOrder.squad.until)
+    return e.ramOrder.target;
   if(e.relayAssault&&!e.relayScreen&&game.operation?.id==='relay-defense'&&
      game.operation.baseId===e.relayAssault&&game.operation.hp>0)return game.operation;
   const focus=e.signalIntel?.combatFocus;
@@ -205,7 +207,7 @@ const pickTarget=(e,game)=>{
     let nearest=null,closest=Infinity;
     for(const tower of game.world?.contours?.artillery||[]){
       if(tower.hp<=0||game.time<tower.readyAt||
-        game.time-tower.lastShotAt>10)continue;
+        game.time-Math.max(tower.lastShotAt??-Infinity,tower.lastCloseAt??-Infinity)>10)continue;
       const d=dist(e,tower);
       if(d<420&&d<closest&&game.enemyCanSee?.(e,tower)){
         nearest=tower;closest=d;
@@ -269,6 +271,23 @@ export function updateEnemy(e,game,dt){
   if(stormSeek(e,game,dt)){e._gunAiming=null;return;}
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;
+  const ram=e.ramOrder,squad=ram?.squad;
+  if(e.type==='berserker'&&squad&&game.time<squad.until&&ram.target?.hp>0){
+    const charge=game.time>=squad.chargeAt,target=ram.target;
+    const goal=charge?target:ram;
+    const speed=charge?238:118;
+    const avoid=game.avoidance(e.x,e.y,38);
+    steer(e,goal.x,goal.y,speed,dt,
+      {x:avoid.x*speed*(charge?.14:.6),y:avoid.y*speed*(charge?.14:.6)});
+    e._commsIntent={x:target.x,y:target.y,mode:charge?'ram-charge':'ram-rally',at:game.time};
+    if(charge&&dist(e,target)<e.r+(target.r||30)+4){
+      target.hp=Math.max(0,target.hp-e.damage*1.4);
+      e.hp=0;e.expAwarded=true;
+      game.heritage?.vfx?.shipExplosion?.(e.x,e.y,18,'#ff8759');
+      if(target.hp<=0)game.heritage?.vfx?.shipExplosion?.(target.x,target.y,25,'#9aefff');
+    }
+    return;
+  }
   const signalOrder=updateSignalIntent(e,game,dt);
   updateEnemyAwareness(e,game);
   const localContact=e._enemyLearningSaw||

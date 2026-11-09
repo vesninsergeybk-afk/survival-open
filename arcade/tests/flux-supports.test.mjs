@@ -16,6 +16,7 @@ function fixture(){
  for(const [a,b]of [['A','B'],['B','C'],['C','A']])assert.ok(connectContour(world,a,b).ok);
  const player={x:500,y:300,ore:1000},point={x:700,y:300};
  world.contours.trials.completed=1;world.contours.flux=200;
+ world.contours.turretSlotRank=2; // Independent weapon tests predate the new one-slot starting limit.
  const game={world,player,enemies:[],time:0,vw:1200,visuals:{reducedMotion:true},
   heritage:{play(){},vfx:{hullImpact(){},shipExplosion(){}}},damageEnemy(e,amount,source){
    e.hp=Math.max(0,e.hp-amount);this.hits.push({e,amount,source});},
@@ -38,13 +39,14 @@ test('all three structures require a real contour, pilot range and both currenci
   assert.equal(result.turret.readyAt,10+cfg.buildSeconds);
   assert.equal(validFluxSupports(world.contours),true);
   assert.equal(supportOffer(world,player,point,type).ok,false,'overlap rejected');
-  // Wrecks are removed after their animation and do not block a subsequent build.
+  // Destroyed nests persist and reserve their edge slot for repair.
   result.turret.hp=0;
  }
  world.contours.trials.completed=0;
  assert.equal(supportOffer(world,player,point,'arc').ok,false);
  world.contours.trials.completed=1;
  assert.equal(supportOffer(world,player,{x:3000,y:3300},'arc').ok,false);
+ world.contours.supportTurrets=[]; // Isolate the resource check from the full edge.
  world.contours.flux=0;
  assert.match(supportOffer(world,player,point,'arc').reason,/флюкса/);
 });

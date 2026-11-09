@@ -1,4 +1,4 @@
-import {contourFields,contourArea} from './territory-system.js?v=contours-1-world-feedback-1';
+import {contourFields,contourArea} from './territory-system.js?v=contours-1-world-feedback-1-triangle-defense-1';
 
 // A presentation-only timeline. Ownership, production and raids continue to
 // come exclusively from the world simulation. Frozen geometry prevents a

@@ -1,8 +1,8 @@
-import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
+import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
 import {menuInfo,renderMapActions} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {baseNames} from './balance.js?v=arcade-network-20';
-import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt,contourReserveEligible} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1-contour-trials-1';
+import {CONTOURS,contourFields,contourArea,contourProduction,fieldAt,contourReserveEligible} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1-contour-trials-1-triangle-defense-1';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
@@ -16,8 +16,8 @@ import {firstContourPlan} from './contour-plan.js?v=map-ux-1';
 import {fluxSortieOffer,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
-import {productiveContourFields,pendingContourTrials,trialBlockingField} from './contour-trials.js?v=contour-trials-1-first-loops-1';
-import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1-first-loops-1';
+import {productiveContourFields,unresolvedContourTrials,trialBlockingField} from './contour-trials.js?v=triangle-defense-1-triangle-defense-1';
+import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1-first-loops-1-triangle-defense-1';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -302,7 +302,7 @@ export function renderContourMap(game){
   return p.x>18&&p.x<662&&p.y>18&&p.y<462;});
  const fields=contourFields(world),area=contourArea(fields),
   production=contourProduction(productiveContourFields(world,fields));
- const trials=pendingContourTrials(world);
+ const trials=unresolvedContourTrials(world);
  const plan=region&&!fields.length?firstContourPlan(world,[...map.values()],
   game.contourFirst||game.contourSelection,game.player):null;
  // This also materializes the surveyed station locations for the full atlas.
@@ -341,8 +341,9 @@ export function renderContourMap(game){
  const player=at(game.player,center,scale),visiblePlayer=player.x>14&&player.x<666&&player.y>14&&player.y<466;
  const regions='<button data-act="contourRegion" data-id="all" aria-pressed="'+!region+'">Вся карта</button>'+
   REGIONS.map(r=>'<button data-act="contourRegion" data-id="'+r.id+'" aria-pressed="'+(region?.id===r.id)+'">'+r.number+' · '+esc(r.name)+'</button>').join('');
- const stage=trials.length?'Враг обнаружил новые территории: '+trials.length+
-  ' · подлетите к знаку «!», чтобы отбить контратаку и открыть воронку':
+ const stage=trials.some(t=>t.status==='ready')?'Контратака отражена · подлетите к красному ядру и удерживайте E для запуска воронки':
+  trials.length?'Неустойчивых территорий: '+trials.length+
+  ' · отбейте три волны и активируйте ядро вручную':
   transition?.kind==='claim'?'Контур замкнут · энергия заполняет новую территорию':
   transition?.kind==='loss'?'Связь потеряна · границы поля отступают':
   area>0?'Поле действует · сборщики перевозят флюкс':

@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {game} from './weapons-scene.mjs';
 import {createContours,autoConnectContours,contourFields} from '../territory-system.js';
-import {registerContourTrials,completeContourTrial,trialQuota} from '../contour-trials.js';
-import {updateContourTrials} from '../contour-trial-director.js';
+import {registerContourTrials,prepareContourVortex,completeContourTrial,trialQuota} from '../contour-trials.js';
+import {updateContourTrials,activateContourVortex} from '../contour-trial-director.js';
 import {territoryBenefits,updateTerritoryBenefits,territoryNextStep} from '../territory-benefits.js';
 import {createFieldEvolution,offerLevelCrystals,refreshEvolutionOffers,FIELD_EVOLUTION_SKILLS,absorbParasiteImpact,enemyFieldReward} from '../field-evolution.js';
 import {renderEvolutionMenu,installedEvolution} from '../evolution-menu.js';
@@ -28,11 +28,19 @@ function trial(tier=1){
  return {g,world,entry};
 }
 function start(g){updateContourTrials(g,.1);g.time+=6;updateContourTrials(g,.1);}
+function defendThree(g,entry){
+ for(let index=0;index<3;index++){
+  for(const enemy of g.enemies.filter(e=>e.trialId===entry.id))enemy.hp=0;
+  g.time+=8;updateContourTrials(g,.1);
+  if(index<2){g.time+=5;updateContourTrials(g,.1);}
+ }
+ assert.equal(entry.status,'ready');
+}
 
 test('the first three territorial rewards have real effects only inside a stable powered field',()=>{
  const {g,world,entry}=trial();
  assert.equal(territoryBenefits(world,g.player).inside,false);
- completeContourTrial(world,entry.id);g.lastDamageAt=0;
+ prepareContourVortex(world,entry.id);completeContourTrial(world,entry.id);g.lastDamageAt=0;
  updateTerritoryBenefits(g,1);assert.equal(g.player.shield,3);
  for(let i=0;i<10;i++)updateTerritoryBenefits(g,1);
  assert.equal(g.player.shield,18);assert.equal(g.territorySupport.dashRate,1);
@@ -46,7 +54,7 @@ test('the first three territorial rewards have real effects only inside a stable
 });
 
 test('territorial recharge pauses under damage and during a menu, and is independent of FPS',()=>{
- const {g,world,entry}=trial();completeContourTrial(world,entry.id);
+ const {g,world,entry}=trial();prepareContourVortex(world,entry.id);completeContourTrial(world,entry.id);
  g.lastDamageAt=g.time-2;updateTerritoryBenefits(g,1);assert.equal(g.player.shield,0);
  g.lastDamageAt=0;g.paused=true;updateTerritoryBenefits(g,1);assert.equal(g.player.shield,0);
  g.paused=false;for(let i=0;i<25;i++)updateTerritoryBenefits(g,1/25);
@@ -58,8 +66,9 @@ test('territorial recharge pauses under damage and during a menu, and is indepen
 test('a completed defence pays alloy once and immediately demonstrates its shield',()=>{
  const {g,world,entry}=trial();const before=g.player.ore;
  start(g);g.shots=[{trialId:entry.id,alive:true},{alive:true}];
- for(const enemy of g.enemies)enemy.hp=0;
- updateContourTrials(g,.1);
+ defendThree(g,entry);
+ assert.equal(world.contours.trials.completed,0);
+ assert.equal(activateContourVortex(g,entry),true);
  assert.equal(world.contours.trials.completed,1);assert.equal(g.player.ore,before+24);
  assert.equal(g.player.shield,18);assert.equal(g.shots.length,1);
  assert.equal(g.contourFeedback.unlocked,'Контурный щит');
@@ -91,6 +100,7 @@ test('survivors visibly retreat, cease fire and disappear without an explosion o
  const {g}=trial(4);start(g);assert.equal(g.enemies.length,4);
  for(const enemy of g.enemies.slice(0,3))enemy.hp=0;
  const survivor=g.enemies[3],x=survivor.x,y=survivor.y;
+ g.time+=8;
  updateContourTrials(g,.1);
  assert.equal(g.contourTrial.phase,'rest');assert.ok(survivor.hp>0);
  assert.equal(canAutoTarget(survivor),false);assert.equal(survivor.damage,0);
@@ -103,6 +113,7 @@ test('a friendly converted trial participant is not erased with retreating enemi
  const {g}=trial(4);start(g);
  for(const enemy of g.enemies.slice(0,2))enemy.hp=0;
  const converted=g.enemies[2];converted.converted=true;
+ g.time+=8;
  updateContourTrials(g,.1);
  assert.equal(g.contourTrial.phase,'rest');assert.ok(g.enemies.includes(converted));
  assert.equal(converted.trialId,undefined);assert.equal(converted.trialRetreatUntil,undefined);

@@ -1,4 +1,4 @@
-import {CONTOUR_TRIALS,pendingContourTrials,trialBlockingField,planContourTrial,trialQuota} from './contour-trials.js?v=clarity-pass-1-first-loops-1';
+import {CONTOUR_TRIALS,unresolvedContourTrials,trialBlockingField,planContourTrial,trialQuota} from './contour-trials.js?v=triangle-defense-1-triangle-defense-1';
 
 // The unstable core is visible in the physical world before the real
 // vortex can start producing flux. Follows the field across camera movement.
@@ -6,25 +6,26 @@ export function drawUnstableContour(c,game,field,now){
  const pending=trialBlockingField(game.world,field);
  if(!pending)return false;
  const event=game.contourTrial?.entry?.id===pending.id?game.contourTrial:null;
+ const ready=pending.status==='ready';
  const pulse=game.visuals?.reducedMotion?0:.5+.5*Math.sin(now*3.2+pending.id);
  const x=pending.x,y=pending.y,r=43+pulse*13;
  c.save();c.translate(x,y);
  c.globalCompositeOperation='lighter';
  const glow=c.createRadialGradient(0,0,7,0,0,r*2.6);
- glow.addColorStop(0,event?'rgba(248,66,119,.30)':'rgba(240,158,75,.19)');
+ glow.addColorStop(0,ready?'rgba(255,44,66,.45)':event?'rgba(248,66,119,.30)':'rgba(240,158,75,.19)');
  glow.addColorStop(.45,event?'rgba(207,89,236,.13)':'rgba(250,150,65,.10)');
  glow.addColorStop(1,'rgba(255,170,90,0)');
  c.fillStyle=glow;c.beginPath();c.arc(0,0,r*2.6,0,Math.PI*2);c.fill();
  c.globalCompositeOperation='source-over';
- c.strokeStyle=event?'rgba(255,113,160,.9)':'rgba(255,175,106,.75)';c.lineWidth=2.5;
+ c.strokeStyle=ready?'rgba(255,83,94,.95)':event?'rgba(255,113,160,.9)':'rgba(255,175,106,.75)';c.lineWidth=2.5;
  c.setLineDash([11,10]);c.lineDashOffset=-now*18;
  c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.stroke();
  c.setLineDash([]);c.fillStyle='rgba(32,11,28,.88)';
  c.beginPath();c.arc(0,0,12,0,Math.PI*2);c.fill();
- c.fillStyle=event?'#ffe1ec':'#ffd69d';c.font='bold 17px system-ui';c.textAlign='center';
- c.textBaseline='middle';c.fillText('!',0,1);
+ c.fillStyle=ready?'#ffe0d9':event?'#ffe1ec':'#ffd69d';c.font='bold 17px system-ui';c.textAlign='center';
+ c.textBaseline='middle';c.fillText(ready?'⚡':'!',0,1);
  c.font='bold 10px system-ui';
- c.fillText(event?'ОБОРОНА КОНТУРА':'ТРЕУГОЛЬНИК НЕСТАБИЛЕН',0,-r-14);
+ c.fillText(ready?'ВОРОНКА ГОТОВА · УДЕРЖИВАЙТЕ E':event?'ОБОРОНА КОНТУРА':'ТРЕУГОЛЬНИК НЕСТАБИЛЕН',0,-r-14);
  c.restore();
  if(event){
   // Illuminate up to three ACTUAL supporting stations: the event belongs
@@ -93,14 +94,15 @@ export function drawContourTrialHUD(c,game){
 }
 
 export function pendingTrialMapArtwork(world,center,scale,atlasPoint){
- return pendingContourTrials(world).map(e=>{
+ return unresolvedContourTrials(world).map(e=>{
   const p=atlasPoint(e,center,scale);
   if(p.x<12||p.x>668||p.y<12||p.y>468)return '';
   const count=planContourTrial(e.tier,e.id).waves.length;
   const wording=count===1?'одну волну':count===2?'две волны':'три волны';
-  return `<g class="contour-pending-trial" role="img" aria-label="Нестабильный контур. Отразите ${wording}" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})">
-   <circle r="17" fill="#321c24ee" stroke="#ffba74" stroke-width="2" stroke-dasharray="5 4"/>
-   <text text-anchor="middle" y="5" fill="#ffe8cc" font-size="14" font-weight="900">!</text>
-   <title>Враг обнаружил новый треугольник. Подлетите к полю и отразите ${wording}, чтобы запустить добычу.</title></g>`;
+  const ready=e.status==='ready';
+  return `<g class="contour-pending-trial" role="img" aria-label="${ready?'Запуск воронки доступен':'Нестабильный контур. Отразите '+wording}" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})">
+   <circle r="17" fill="#321c24ee" stroke="${ready?'#ff696a':'#ffba74'}" stroke-width="2" stroke-dasharray="5 4"/>
+   <text text-anchor="middle" y="5" fill="#ffe8cc" font-size="14" font-weight="900">${ready?'⚡':'!'}</text>
+   <title>${ready?'Волны отражены. Подлетите к ядру и удерживайте E для активации.':'Враг обнаружил треугольник. Отразите '+wording+', затем запустите воронку вручную.'}</title></g>`;
  }).join('');
 }

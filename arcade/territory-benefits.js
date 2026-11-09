@@ -1,5 +1,5 @@
 import {contourFields,fieldAt} from './territory-system.js';
-import {trialBlockingField,pendingContourTrials,planContourTrial} from './contour-trials.js?v=first-loops-1';
+import {trialBlockingField,pendingContourTrials,readyContourTrials,planContourTrial} from './contour-trials.js?v=triangle-defense-1-triangle-defense-1';
 import {firstContourPlan} from './contour-plan.js';
 
 export const TERRITORY_BENEFITS=Object.freeze([
@@ -31,6 +31,10 @@ export function updateTerritoryBenefits(game,dt){
 
 export function territoryNextStep(world,player={x:0,y:0}){
  const fields=world?.contours?contourFields(world):[];
+ const ready=readyContourTrials(world).filter(e=>fieldAt(world,e.x,e.y,fields))
+  .sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
+ if(ready)return {pending:ready,title:'Запустите защищённую воронку',
+  description:'Все три волны отражены. Подлетите к красному ядру и удерживайте E около 2 секунд. Только после этого сборщики начнут доставлять флюкс.'};
  const waiting=pendingContourTrials(world);
  const pending=waiting.filter(e=>fieldAt(world,e.x,e.y,fields)).sort((a,b)=>
   Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
@@ -41,7 +45,7 @@ export function territoryNextStep(world,player={x:0,y:0}){
   return {pending,title:'Защитите новый треугольник',
    description:'Подлетите к оранжевому знаку !. Нападение начнётся автоматически: '+waves+
     (waves===1?' волна. ':' волны. ')+(completed<3?'Новая возможность: '+next.name+'. ':'Расширится территория действия ваших сетевых способностей. ')+
-    'После победы получите сплав; сборщики начнут доставлять флюкс.'};
+    'После трёх волн удерживайте E у ядра, чтобы запустить добычу.'};
  }
  if(waiting.length)return {pending:null,blocked:true,title:'Восстановите опорные станции',
   description:'Новое поле потеряло питание. На карте контуров найдите отключённые или подавленные станции и восстановите их. Пока связи не работают, оборона не начнётся.'};
@@ -56,7 +60,7 @@ export function renderTerritoryProgress(world,player,{map=false}={}){
  const step=territoryNextStep(world,player),benefit=territoryBenefits(world,player);
  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  return '<section class="territory-progress" aria-label="Следующий шаг захвата территории"><span class="base-kicker">ТЕРРИТОРИЯ · ЗАЩИЩЕНО '+benefit.completed+'</span><h3>'+step.title+'</h3><p>'+step.description+'</p>'+
-  (step.pending?'<button type="button" data-act="'+(map?'trialWaypoint':'trialRoute')+'" data-id="'+step.pending.id+'">'+(map?'Проложить курс к обороне':'Показать место обороны')+'</button>':
+  (step.pending?'<button type="button" data-act="'+(map?'trialWaypoint':'trialRoute')+'" data-id="'+step.pending.id+'">'+(step.pending.status==='ready'?'Проложить курс к запуску':map?'Проложить курс к обороне':'Показать место обороны')+'</button>':
    '<button type="button" '+(map?'data-act="mapView" data-id="'+(step.blocked?'territory':'map')+'"':'data-act="baseContours"')+'>'+(step.blocked?'Открыть контуры':'Посмотреть соседние станции')+'</button>')+
   (benefit.unlocked.length?'<details class="territory-unlocked"><summary>Сетевые способности · '+benefit.unlocked.length+'</summary>'+benefit.unlocked.map(b=>'<p><b>'+esc(b.name)+'</b> · '+esc(b.effect)+'</p>').join('')+'</details>':'')+'</section>';
 }
