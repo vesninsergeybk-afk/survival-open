@@ -31,11 +31,11 @@ import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './stat
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=menu-rebuild-territory-war-20261106-enemy-growth-1';
 import {renderStationThreats} from './strategic-command.js?v=menu-rebuild-territory-war-20261106';
-import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1-contour-trials-1-counterattack-1-first-loops-1-menu-audit-1-flux-build-1-triangle-defense-1';
+import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1-contour-trials-1-counterattack-1-first-loops-1-menu-audit-1-flux-build-1-triangle-defense-1-flight-zoom-audit-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
-import {atlasStars} from './contour-cartography.js?v=living-atlas-3-map-ux-1-map-art-1';
+import {atlasStars} from './contour-cartography.js?v=living-atlas-3-map-ux-1-map-art-1-flight-zoom-audit-1';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>

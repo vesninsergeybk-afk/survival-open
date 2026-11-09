@@ -61,3 +61,25 @@ test('live camera zoom does not expand the spawning camera or screen-range hacki
  assert.match(source,/const group=\+\+this\.groupSerial,cam=this\.spawnCamera\(\)/);
  assert.match(source,/c\.scale\(this\.cameraZoom,this\.cameraZoom\)/);
 });
+
+test('trackpad zoom cannot force a full world and station query on every wheel event',()=>{
+ const game=Object.create(ArcadeGame.prototype);
+ const oldDocument=globalThis.document;
+ const label={hidden:true,textContent:''};
+ globalThis.document={getElementById:()=>label};
+ try{
+  game.cameraZoom=1;game.worldQueryClock=.17;
+  assert.equal(game.setCameraZoom(.8),true);
+  near(game.worldQueryClock,.09);
+  near(game.cameraZoom,.8);
+  near(Number.parseInt(label.textContent.match(/\d+/)[0],10),80);
+  game.worldQueryClock=.04;
+  game.setCameraZoom(.65);
+  near(game.worldQueryClock,.04,'an already scheduled refresh may not be postponed');
+  game.setCameraZoom(.9);
+  near(game.worldQueryClock,.04,'zooming in does not require new outer rock cells');
+  assert.equal(game.setCameraZoom(.9),false);
+  game.setCameraZoom(1);
+  assert.equal(label.hidden,true);
+ }finally{globalThis.document=oldDocument;}
+});

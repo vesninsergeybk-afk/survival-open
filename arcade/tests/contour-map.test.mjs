@@ -301,6 +301,23 @@ test('physical atlas shows nearby generated rocks and radar contacts but no dist
  assert.doesNotMatch(global.signals,/class="contour-radar-contact"/);
 });
 
+test('the atlas flight outline follows the actual camera at both zoom extremes',()=>{
+ const game=harness();game.vw=1200;game.vh=800;
+ const rectangle=zoom=>{
+  game.camera=()=>({x:-600/zoom,y:-400/zoom,w:1200/zoom,h:800/zoom});
+  const {signals}=atlasLiveObjects(game,{x:0,y:0},.055,false);
+  const match=signals.match(/<rect class="contour-flight-window"[^>]*width="([\d.]+)" height="([\d.]+)"/);
+  assert.ok(match,'the regional atlas displays its flight-window outline');
+  return {width:Number(match[1]),height:Number(match[2])};
+ };
+ assert.deepEqual(rectangle(1),{width:66,height:44});
+ assert.deepEqual(rectangle(.55),{width:120,height:80});
+ assert.deepEqual(rectangle(1.5),{width:44,height:29.3});
+ delete game.camera;
+ assert.match(atlasLiveObjects(game,{x:0,y:0},.055,false).signals,/width="66\.0" height="44\.0"/,
+  'map test fixtures without a flight camera continue to use logical viewport dimensions');
+});
+
 test('a distant once-seen cargo is not magically tracked without a live signal',()=>{
  const game=harness(),world=game.world;
  world.regionalSupply.convoys=[{id:'known',x:30000,y:11000,seen:true,hp:3},

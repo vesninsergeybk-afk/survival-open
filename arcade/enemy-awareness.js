@@ -19,10 +19,10 @@ export function ambientPatrolRoute(camera,side,lane,serial=0){
   const drift=((Math.abs(Math.trunc(serial))%3)-1)*.065;
   if(side===0||side===1)return {
     x:side===0?camera.x+camera.w+270:camera.x-270,
-    y:camera.y+clamp(t+drift,.12,.88)*camera.h};
+    y:camera.y+clamp(t+drift,.12,.88)*camera.h,_exitSide:side};
   if(side===2||side===3)return {
     x:camera.x+clamp(t+drift,.12,.88)*camera.w,
-    y:side===2?camera.y+camera.h+270:camera.y-270};
+    y:side===2?camera.y+camera.h+270:camera.y-270,_exitSide:side};
   return null;
 }
 
@@ -48,10 +48,20 @@ export function patrolCanLeave(e,game){
   const cam=game.camera();
   const offscreen=e.x<cam.x-55||e.x>cam.x+cam.w+55||
     e.y<cam.y-55||e.y>cam.y+cam.h+55;
-  if(!offscreen)return false;
   const radio=game.enemyComms?.directiveFor?.(e,game.time);
   const strategic=game.enemyComms?.strategicDirectiveFor?.(e,game.time);
-  return !!unalertedPatrolRoute(e,game,radio,strategic);
+  if(!unalertedPatrolRoute(e,game,radio,strategic))return false;
+  if(offscreen)return true;
+  // A zoomed-out pilot may still see a patrol at its original exit waypoint.
+  // Extend the SAME straight traffic lane, rather than letting the ship orbit
+  // inside the view and permanently consume an enemy slot. Each extension has
+  // a fixed direction, so a patrol cannot learn the moving pilot's position.
+  const stride=500;
+  if(route._exitSide===0)route.x+=stride;
+  else if(route._exitSide===1)route.x-=stride;
+  else if(route._exitSide===2)route.y+=stride;
+  else if(route._exitSide===3)route.y-=stride;
+  return false;
 }
 const point=(data,now)=>({
   x:data.x+clamp((data.vx||0)*Math.min(ENEMY_AWARENESS.radioLead,
