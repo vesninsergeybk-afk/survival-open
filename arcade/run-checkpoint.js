@@ -1,7 +1,7 @@
 import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1';
-import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1';
+import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';
 import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
-import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-domains-1-supply-stronghold-1-territory-war-1-living-world-population-1';
+import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-domains-1-supply-stronghold-1-territory-war-1-living-world-population-1-sector-density-2';
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-menu-focus-1';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2-campaign-1';
 import {createTactical,validTactical} from './tactical-fields.js?v=tactical-field-2';
@@ -9,7 +9,7 @@ import {validFieldEvolution} from './field-evolution.js?v=parasite-clarity-1';
 import {validFieldLoot,createFieldLoot} from './field-loot.js?v=eye-loot-1';
 import {validCombatTempo,createCombatTempo} from './combat-tempo.js?v=tempo-1';
 import {validFortification} from './enemy-fortifications.js?v=industrial-forts-1';
-import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-campaign-1';
+import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-campaign-1-sector-density-2';
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
 import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-flux-offense-1-territory-war-1';
@@ -17,9 +17,10 @@ import {createContours,validContours,autoConnectContours} from './territory-syst
 import {validFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-support-three-1-triangle-defense-1-growth-3';
 import {validFluxSupports} from './flux-supports.js?v=flux-supports-3-wreck-falloff-1-growth-1';
 import {ensureTrialLedger} from './contour-trials.js?v=swarm-siege-1';
-import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1';
-import {validStationId} from './station-ids.js?v=living-world-checkpoint-1-living-world-population-1';
-import {createPopulation,ensurePopulationStations,seedPopulationTerritory,validPopulation} from './world-population.js';
+import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
+import {validStationId} from './station-ids.js?v=living-world-checkpoint-1-living-world-population-1-sector-density-2';
+import {expandSavedPopulation,ensurePopulationStations,seedPopulationTerritory,validPopulation} from './world-population.js?v=sector-density-2';
+import {compressCheckpoint,decompressCheckpoint} from './checkpoint-compression.js?v=sector-density-2';
 import {validFieldOperation,FIELD_OPERATIONS} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
@@ -77,12 +78,13 @@ export function packRun(root){
   })];
  }
  const text=JSON.stringify({entry,nodes});
- if(text.length>MAX_CHECKPOINT_LENGTH)throw new Error('too-large');
- return text;
+ const body=text.length>320000?compressCheckpoint(text):text;
+ if(body.length>MAX_CHECKPOINT_LENGTH)throw new Error('too-large');
+ return body;
 }
 export function unpackRun(text){
  if(typeof text!=='string'||text.length>MAX_CHECKPOINT_LENGTH)throw new Error('too-large');
- const graph=JSON.parse(text);
+ const graph=JSON.parse(decompressCheckpoint(text));
  if(!object(graph)||!Array.isArray(graph.nodes)||graph.nodes.length>40000)throw new Error('bad-graph');
  const values=graph.nodes.map(n=>{
   if(!Array.isArray(n)||n.length!==2||!['array','object'].includes(n[0])||!Array.isArray(n[1]))throw new Error('bad-node');
@@ -247,7 +249,8 @@ export function restoreCheckpoint(game,data){
  world.stations=new Map(data.world.stations);world.home=world.stations.get('0:0');
  world.discovered=new Set(data.world.discovered);
  world.ensureRegionalStations();
- world.population=data.world.population||createPopulation(data.seed,data.state.time);
+ const legacyPopulation=data.world.population?.colonies.length===30;
+ world.population=expandSavedPopulation(data.world.population,data.seed,data.state.time);
  ensurePopulationStations(world);
  world.regionalSupply=data.world.regionalSupply||createRegionalSupply(data.state.time);
  world.contours=data.world.contours||createContours();
@@ -259,7 +262,7 @@ export function restoreCheckpoint(game,data){
  world.contours.supportPackets??=[];
  world.contours.supportSerial??=0;
  world.enemyExpansion=data.world.enemyExpansion||createEnemyExpansion(data.state.time);
- if(!data.world.population||!data.world.enemyExpansion)seedPopulationTerritory(world);
+ if(!data.world.population||!data.world.enemyExpansion||legacyPopulation)seedPopulationTerritory(world);
  for(const b of world.stations.values())if(b.suppressed&&b.suppressedUntil<=data.state.time)b.suppressed=false;
  for(const [key,patches] of data.world.rocks){
   const [x,y]=key.split(':').map(Number),list=world.rockCell(x,y);
