@@ -78,12 +78,11 @@ test('a completed defence pays alloy once and immediately demonstrates its shiel
 
 test('the timeout never silently reduces the displayed kill requirement',()=>{
  const {g,world}=trial();const before=g.player.ore;start(g);
- assert.equal(g.contourTrial.required,2);g.enemies[0].hp=0;
- g.time+=71;updateContourTrials(g,.1);
+ assert.ok(g.contourTrial.required>=10);g.enemies[0].hp=0;
+ g.time+=g.contourTrial.plan.waveSeconds+1;updateContourTrials(g,.1);
  assert.equal(g.contourTrial,null);assert.equal(world.contours.trials.completed,0);
  assert.equal(g.player.ore,before);assert.match(g.lastNotice,/неудачей/);
- for(const tier of [1,2,3])assert.equal(trialQuota(4,tier),4);
- assert.equal(trialQuota(4,4),3);
+ for(const tier of [1,2,3,4])assert.equal(trialQuota(20,tier),16);
 });
 
 test('crowding postpones an attack within a bounded time without awarding a victory',()=>{
@@ -97,9 +96,9 @@ test('crowding postpones an attack within a bounded time without awarding a vict
 });
 
 test('survivors visibly retreat, cease fire and disappear without an explosion or loot',()=>{
- const {g}=trial(4);start(g);assert.equal(g.enemies.length,4);
- for(const enemy of g.enemies.slice(0,3))enemy.hp=0;
- const survivor=g.enemies[3],x=survivor.x,y=survivor.y;
+ const {g}=trial(4);start(g);assert.ok(g.enemies.length>=18);
+ for(const enemy of g.enemies.slice(0,-1))enemy.hp=0;
+ const survivor=g.enemies.at(-1),x=survivor.x,y=survivor.y;
  g.time+=8;
  updateContourTrials(g,.1);
  assert.equal(g.contourTrial.phase,'rest');assert.ok(survivor.hp>0);
@@ -111,8 +110,8 @@ test('survivors visibly retreat, cease fire and disappear without an explosion o
 
 test('a friendly converted trial participant is not erased with retreating enemies',()=>{
  const {g}=trial(4);start(g);
- for(const enemy of g.enemies.slice(0,2))enemy.hp=0;
- const converted=g.enemies[2];converted.converted=true;
+ for(const enemy of g.enemies.slice(0,-1))enemy.hp=0;
+ const converted=g.enemies.at(-1);converted.converted=true;
  g.time+=8;
  updateContourTrials(g,.1);
  assert.equal(g.contourTrial.phase,'rest');assert.ok(g.enemies.includes(converted));

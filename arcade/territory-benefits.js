@@ -1,5 +1,5 @@
 import {contourFields,fieldAt} from './territory-system.js';
-import {trialBlockingField,pendingContourTrials,readyContourTrials,planContourTrial} from './contour-trials.js?v=triangle-defense-1-triangle-defense-1';
+import {trialBlockingField,pendingContourTrials,readyContourTrials,planContourTrial} from './contour-trials.js?v=swarm-siege-1';
 import {firstContourPlan} from './contour-plan.js';
 
 export const TERRITORY_BENEFITS=Object.freeze([

@@ -14,8 +14,8 @@ export const mapCloseKeysLabel=bindings=>{
  return [...new Set(keys)].map(readableKey).concat('Esc').join(' / ');
 };
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
-import {unresolvedContourTrials} from './contour-trials.js?v=triangle-defense-1-triangle-defense-1';
-import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=first-loops-1-triangle-defense-1';
+import {unresolvedContourTrials} from './contour-trials.js?v=swarm-siege-1';
+import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=swarm-siege-1';
 import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-enemy-growth-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
 import {CORRIDOR_OPERATION,corridorPosition,corridorAmbush,corridorScanBonus,probeSearchArea,operationDestination,

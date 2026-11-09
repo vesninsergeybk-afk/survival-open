@@ -1,6 +1,6 @@
 import {recordSortieIncome} from './sortie-ledger.js';
 import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,readyContourTrials,prepareContourVortex,completeContourTrial,
- planContourTrial,trialQuota} from './contour-trials.js?v=clarity-pass-1-first-loops-1-triangle-defense-1';
+ planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-1';
 import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
 import {contourFields,fieldAt} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js';
@@ -30,25 +30,37 @@ function spawnTrialWave(game,event){
  delete event.blockedSince;
  event.waitingForSpace=false;
  event.waveIndex++;
- const group=++game.groupSerial,cam=game.spawnCamera?.()||game.camera();let i=0,scoutCount=0;
- event.waveIds=[];event.waveTemplates=new Map();event.defeatedIds??=new Set();
- event.required=trialQuota(total,event.plan.tier);
- event.waveStartedAt=game.time;
- const pincer=event.plan.variants.some(v=>v.id==='pincer');
- const rear=event.plan.variants.some(v=>v.id==='elite');
+ const cam=game.spawnCamera?.()||game.camera(),random=trialRandom(event.plan.tier,event.entry.id,event.waveIndex+1);
+ const roster=Object.entries(wave).flatMap(([type,count])=>Array(count).fill(type));
+ // A fixed seed keeps a retried defence honest and gives each triangle a
+ // different mix of flanking groups. Six ships coordinate as one IRIS wing.
+ for(let i=roster.length-1;i>0;i--){const j=Math.floor(random()*(i+1));
+  [roster[i],roster[j]]=[roster[j],roster[i]];}
+ const formation=event.plan.formations?.[event.waveIndex+1]||'рой';
  const angle=game.player.angle||0;
  const rearSide=Math.abs(Math.cos(angle))>Math.abs(Math.sin(angle))?
   (Math.cos(angle)>0?0:1):(Math.sin(angle)>0?2:3);
- for(const [type,count] of Object.entries(wave))for(let j=0;j<count;j++){
+ const seedSide=Math.floor(random()*4);
+ const groupIds=[];let scoutCount=0;
+ event.waveIds=[];event.waveTemplates=new Map();event.defeatedIds??=new Set();
+ event.required=trialQuota(total,event.plan.tier);
+ event.waveStartedAt=game.time;
+ for(let i=0;i<roster.length;i++){
+  const type=roster[i];
   const def=ENEMY_TYPES[type];if(!def)continue;
   // A small subset of IRIS scouts answer the new field's EM pulse with
   // panicked high-speed dives; ordinary patrol scouts never inherit it.
-  const dive=type==='scout'&&scoutCount++<Math.min(3,1+Math.floor((event.plan.tier-1)/5));
-  const side=rear?rearSide:pincer?(i%2===0?0:1):
-   (event.waveIndex+i+event.entry.id)%4;
-  const xy=spawnOutside(cam,side,.18+((i*7+event.entry.id)%13)/20,150+i*8);
+  const dive=type==='scout'&&scoutCount++<Math.min(8,3+Math.floor(event.plan.tier/2));
+  const squad=Math.floor(i/6),member=i%6;
+  if(groupIds[squad]===undefined)groupIds[squad]=++game.groupSerial;
+  const side=formation==='окружение'?(seedSide+squad)%4:
+   formation==='клещи'?(seedSide+(squad%2)*2)%4:
+   formation==='авангард'?(squad===0?rearSide:(rearSide+squad%3)%4):
+   (seedSide+Math.floor(squad/2))%4;
+  const position=Math.max(.09,Math.min(.91,.24+(squad%3)*.23+(random()-.5)*.18));
+  const xy=spawnOutside(cam,side,position,155+(squad%3)*34+member*7);
   const tier=event.plan.tier,hp=def.hp*(1+.085*(tier-1));
-  const enemy={serial:++game.enemySerial,group,type,x:xy.x,y:xy.y,vx:0,vy:0,
+  const enemy={serial:++game.enemySerial,group:groupIds[squad],type,x:xy.x,y:xy.y,vx:0,vy:0,
    r:type==='gunship'?22:14,hp,maxHp:hp,damage:def.dmg*(1+.035*(tier-1)),
    think:.15+(i%5)*.05,fire:.8+(i%4)*.17,state:'hunt',
    commitUntil:0,target:game.player,angle:0,hit:0,
@@ -58,16 +70,15 @@ function spawnTrialWave(game,event){
    _trialDiveEnabled:dive,_trialDiveTier:tier,
    entryPortalPending:type==='gunship'&&!game.heavyPortalShown,
    _patrolRoute:null};
-  game.enemies.push(enemy);i++;
+  game.enemies.push(enemy);
   event.waveIds.push(enemy.serial);
   event.waveTemplates.set(enemy.serial,{...enemy});
  }
  event.phase='wave';
- if(!Number.isFinite(event.nextStrikeAt))
-  event.nextStrikeAt=game.time+3.6;
+ event.nextStrikeAt=game.time+3.6;
  game.notice?.('ОБОРОНА ТРЕУГОЛЬНИКА · волна '+
   (event.waveIndex+1)+' из '+event.plan.waves.length+' · подавите '+event.required+' из '+total+' кораблей.'+
-  (scoutCount?' Зрачки готовят резкие таранные рывки!':' Уклоняйтесь от орбитального огня!'),4.5);
+  ' Построение: '+formation+'. Орбитальные залпы уже наведены!',4.5);
  game.heritage?.play?.('orbitalWarning',.9,game.player);
  return true;
 }
@@ -77,7 +88,8 @@ function scheduleTrialStrike(game,event){
  const plan=event.plan,p=game.player;
  const aim=Math.atan2(p.vy||0,p.vx||0)+.55;
  for(let i=0;i<plan.strikeCount;i++){
-  const offset=plan.strikeCount===2?(i===0?-115:115):45;
+  const offset=plan.strikeCount===3?(i-1)*135:
+   plan.strikeCount===2?(i===0?-115:115):45;
   const x=p.x+(p.vx||0)*.7+Math.cos(aim)*offset;
   const y=p.y+(p.vy||0)*.7+Math.sin(aim)*offset;
   const zone={x,y,r:plan.tier>=9?78:66,fuse:plan.tier>=9?2:2.5,
@@ -213,12 +225,15 @@ export function updateContourTrials(game,dt){
  // Never count a ship culled beyond the camera as a kill. Restore a lost
  // participant to the approach instead of silently restarting the *entire*
  // defence and throwing away the previous completed waves.
+ const liveWave=new Map(game.enemies.filter(e=>e.trialId===event.entry.id)
+  .map(e=>[e.serial,e]));
  for(const serial of event.waveIds||[]){
   if(event.defeatedIds.has(serial))continue;
-  const enemy=game.enemies.find(e=>e.serial===serial&&e.trialId===event.entry.id);
+  const enemy=liveWave.get(serial);
   if(!enemy){
    const original=event.waveTemplates?.get(serial);
    if(!original)continue;
+   if(game.enemies.length>=RULES.maxEnemies)continue;
    const cam=game.spawnCamera?.()||game.camera(),side=(serial+event.entry.id)%4;
    const pos=spawnOutside(cam,side,.2+((serial*7)%11)/18,125);
    game.enemies.push({...original,...pos,vx:0,vy:0,hp:original.maxHp,
@@ -229,7 +244,7 @@ export function updateContourTrials(game,dt){
  }
  const waveIds=event.waveIds||[],defeated=waveIds.filter(id=>event.defeatedIds.has(id)).length;
  const enough=defeated>=(event.required??trialQuota(waveIds.length,event.plan.tier));
- const timeout=game.time-event.waveStartedAt>=CONTOUR_TRIALS.maxWaveSeconds;
+ const timeout=game.time-event.waveStartedAt>=(event.plan.waveSeconds||CONTOUR_TRIALS.maxWaveSeconds);
  if(!enough&&!timeout||enough&&!timeout&&
   game.time-event.waveStartedAt<CONTOUR_TRIALS.minWaveSeconds)return;
  if(timeout&&!enough){

@@ -3,10 +3,12 @@ import {insidePolygon} from './territory-system.js';
 // One completed territorial expansion earns one trial. A change to the
 // triangulation of land already owned never creates another challenge.
 export const CONTOUR_TRIALS=Object.freeze({maxTier:12,maxEntries:256,engageRadius:990,
- retreatRadius:1650,warningSeconds:5,retreatSeconds:7,maxWaveSeconds:70,maxWaitSeconds:12,
+ retreatRadius:1650,warningSeconds:6,retreatSeconds:7,maxWaveSeconds:100,maxWaitSeconds:12,
  activationRadius:145,activationSeconds:2.2,minWaveSeconds:7});
 
-export const trialQuota=(count,tier)=>tier<=3?count:Math.ceil(count*.75);
+// Most of the fleet must be defeated; isolated survivors break away instead
+// of turning a large battle into a frustrating search for one last scout.
+export const trialQuota=count=>Math.max(1,Math.ceil(count*.76));
 
 export const TRIAL_VARIANTS=Object.freeze([
  {id:'orbital',name:'Орбитальная наводка',minTier:1},
@@ -110,31 +112,50 @@ export function validContourTrials(trials){
  return trials.completed>=trials.entries.filter(e=>e.status==='complete').length;
 }
 
-// The first three steps introduce threats in the agreed order. Higher steps
-// use a bounded mix of the ten encounter variants, never infinite enemy growth.
-const STAGES=[
- [{scout:2},{scout:2,fighter:1},{fighter:1,berserker:1}],
- [{scout:2},{scout:3},{fighter:2,scout:1}],
- [{scout:3},{fighter:2,scout:1},{fighter:2,flanker:1}],
- [{scout:2,fighter:2},{flanker:2,scout:2},{fighter:2,berserker:1}],
- [{fighter:3},{berserker:2,scout:2},{fighter:2,flanker:2}],
- [{scout:3,flanker:2},{fighter:3,healer:1},{berserker:2,fighter:2}],
- [{fighter:3,berserker:2},{gunship:1,scout:3},{fighter:3,flanker:2}],
- [{flanker:3,scout:3},{fighter:3,healer:1,berserker:2},{gunship:1,fighter:3}],
- [{scout:4,berserker:2},{gunship:1,fighter:3},{flanker:3,healer:1}],
- [{gunship:1,scout:4},{fighter:4,flanker:2},{berserker:3,healer:1}],
- [{flanker:3,fighter:3},{gunship:1,healer:1,berserker:2},{gunship:1,scout:4}],
- [{gunship:1,flanker:3},{gunship:1,healer:1,fighter:4},{gunship:2,berserker:3,flanker:2}]
-];
+// Seeded wave compositions and approach patterns: a failed assault can be
+// retried fairly, but a different triangle will not repeat the same attack.
+export function trialRandom(tier,serial,wave=0){
+ let state=(Math.imul(tier,0x9e3779b1)^Math.imul(serial,0x85ebca6b)^
+  Math.imul(wave+1,0xc2b2ae35))>>>0;
+ return ()=>{
+  state^=state<<13;state^=state>>>17;state^=state<<5;
+  return (state>>>0)/4294967296;
+ };
+}
+
+export const TRIAL_FORMATIONS=Object.freeze(['рой','клещи','окружение','авангард']);
+
+function planWave(tier,serial,index){
+ const random=trialRandom(tier,serial,index);
+ const total=Math.min(64,Math.round([14,20,27][index]+(tier-1)*[2,2.5,3][index]+(random()-.5)*4));
+ const gunship=index===2?1+Math.floor((tier-1)/5):tier>=5&&index===1?1:0;
+ const healer=tier>=4&&index>=1?1+Math.floor((tier-4)/6):0;
+ const berserker=index===0?(tier>=4?1+Math.floor(tier/6):0):
+  1+index+Math.floor((tier-1)/4)+(random()>.64?1:0);
+ const flanker=tier>=3?(index+1)*Math.floor(tier/4)+(random()>.5?1:0):index===2?1:0;
+ const fighter=Math.max(2,Math.round(total*(.22+index*.035)+(random()-.5)*3));
+ const wave={scout:total-gunship-healer-berserker-flanker-fighter,
+  fighter,berserker,flanker,healer,gunship};
+ // Every wave contains a real IRIS pack, including late assaults with armor.
+ if(wave.scout<10){wave.fighter-=10-wave.scout;wave.scout=10;}
+ for(const type of Object.keys(wave))if(!wave[type])delete wave[type];
+ return {wave,formation:TRIAL_FORMATIONS[Math.floor(random()*TRIAL_FORMATIONS.length)]};
+}
 
 export function planContourTrial(tier,serial=1){
  const t=Math.max(1,Math.min(CONTOUR_TRIALS.maxTier,Math.floor(tier)||1));
+ const seed=Math.max(1,Math.floor(serial)||1);
  const available=TRIAL_VARIANTS.filter(v=>v.minTier<=t);
- const first=available[(serial+t-2)%available.length];
+ const first=available[(seed+t-2)%available.length];
  const variants=[first];
- if(t>=7){const second=available[(serial+t+2)%available.length];if(second!==first)variants.push(second);}
- if(t>=11){const third=available[(serial+t+6)%available.length];if(!variants.includes(third))variants.push(third);}
- const waveSets=STAGES[t-1].map(wave=>({...wave}));
+ if(t>=7){const second=available[(seed+t+2)%available.length];if(second!==first)variants.push(second);}
+ if(t>=11){const third=available[(seed+t+6)%available.length];if(!variants.includes(third))variants.push(third);}
+ const encounters=[0,1,2].map(index=>planWave(t,seed,index));
+ const waveSets=encounters.map(({wave})=>wave);
+ const formations=encounters.map(({formation})=>formation);
+ if(variants.some(v=>v.id==='pincer'))formations[1]='клещи';
+ if(variants.some(v=>v.id==='swarm'))formations[2]='рой';
+ if(variants.some(v=>v.id==='elite'))formations[2]='авангард';
  const last=waveSets[waveSets.length-1];
  for(const v of variants){
   if(v.id==='swarm')last.scout=(last.scout||0)+Math.min(4,1+Math.floor(t/4));
@@ -145,10 +166,18 @@ export function planContourTrial(tier,serial=1){
   if(v.id==='elite')last.flanker=(last.flanker||0)+2;
   if(v.id==='reinforcements')waveSets[0].scout=(waveSets[0].scout||0)+2;
  }
- return {tier:t,serial,variants,waves:waveSets,
-  recommendedLevel:[2,3,4,5,6,7,8,9,10,11,12,14][t-1],
-  strikeInterval:Math.max(7.5,20-(t-1)*1.03)-
-   (variants.some(v=>v.id==='orbital')?2.2:0),
-  strikeCount:variants.some(v=>v.id==='crossfire')?2:1,
+ // Tactical variants may add ships, but can never overrun the encounter
+ // cap on lower-end devices. Keep at least one genuine IRIS pack.
+ for(const wave of waveSets){
+  const excess=Math.max(0,Object.values(wave).reduce((sum,n)=>sum+n,0)-64);
+  if(excess)wave.scout-=excess;
+ }
+ return {tier:t,serial:seed,variants,waves:waveSets,
+  formations,
+  recommendedLevel:[2,3,5,6,8,10,12,14,16,18,20,22][t-1],
+  waveSeconds:CONTOUR_TRIALS.maxWaveSeconds+Math.min(20,(t-1)*2),
+  strikeInterval:Math.max(7.5,13-(t-1)*.53)-
+   (variants.some(v=>v.id==='orbital')?1.1:0),
+  strikeCount:t>=9?3:t>=4||variants.some(v=>v.id==='crossfire')?2:1,
   intermission:variants.some(v=>v.id==='reinforcements')?2.5:4.5};
 }
