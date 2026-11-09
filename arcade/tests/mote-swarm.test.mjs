@@ -183,6 +183,16 @@ test('two full packs coordinate flanks without merging or doubling hull health',
  assert.equal(new Set(game.enemies.map(e=>e.moteRoot)).size,2);
 });
 
+test('the flank radio call matches the wing’s actual left or right manoeuvre',()=>{
+ const a=drones(8,7),b=drones(8,8);
+ for(const e of a){e.moteFlank=-1;e.moteReformUntil=200;}
+ for(const e of b){e.serial+=8;e.x+=115;e.moteFlank=1;e.moteReformUntil=200;}
+ const game=scene([...a,...b]);updateMoteSwarmOrders(game);
+ game.time=104;updateMoteSwarmOrders(game);
+ assert.ok(a.every(e=>e.moteStatusCue==='ОБХОД СЛЕВА'));
+ assert.ok(b.every(e=>e.moteStatusCue==='ОБХОД СПРАВА'));
+});
+
 test('two intact ten-drone wings physically combine into one twenty-drone wing',()=>{
  const a=drones(10,7),b=drones(10,8);
  for(const e of a)e.x=790+e.serial*2;

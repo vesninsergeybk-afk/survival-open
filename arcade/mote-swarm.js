@@ -50,19 +50,20 @@ const onScreen=(game,point)=>{
  return !cam||point.x>=cam.x-35&&point.y>=cam.y-35&&
   point.x<=cam.x+cam.w+35&&point.y<=cam.y+cam.h+35;
 };
-const cueText=(phase,id)=>({
+const cueText=(phase,id,flank=0)=>({
   found:['ЦЕЛЬ ОБНАРУЖЕНА · СХОЖУСЬ','КОНТАКТ ПОДТВЕРЖДЁН · ПРЕСЛЕДУЮ',
     'ВИЖУ ЦЕЛЬ · НАЧИНАЮ ОХОТУ'][id%3],
-  flank:['ОБХОД СЛЕВА','ОБХОД СПРАВА','ЗАЖИМАЕМ ЦЕЛЬ'][id%3],
+  flank:flank<0?'ОБХОД СЛЕВА':flank>0?'ОБХОД СПРАВА':'ЗАЖИМАЕМ ЦЕЛЬ',
   windup:'ФОРСАЖ · ГОТОВЛЮ РЫВОК',rush:'ФОРСАЖ · АТАКУЮ',
   search:'КОНТАКТ ПОТЕРЯН · ПРОВЕРЯЮ СЕКТОР',
   evade:'ПОД ОГНЁМ · РАССЕИВАЮСЬ',
   escape:'ЗВЕНО ПОТЕРЯНО · УХОЖУ ЗА ПОДМОГОЙ',
   return:'ПОДМОГА ПРИБЫЛА · ВОЗОБНОВЛЯЮ ОХОТУ'
 })[phase]||'';
-function statusCue(state,phase,id,now){
- if(state.phase===phase)return;
- state.phase=phase;state.cue=cueText(phase,Math.abs(id));
+function statusCue(state,phase,id,now,flank=0){
+ const cue=cueText(phase,Math.abs(id),flank);
+ if(state.phase===phase&&state.cue===cue)return;
+ state.phase=phase;state.cue=cue;
  state.cueUntil=now+2.9;
 }
 function escapePoint(game,e){
@@ -303,7 +304,7 @@ export function updateMoteSwarmOrders(game){
   if(!canSee&&state.lastCueContact&&pursuing)statusCue(state,'search',id,t);
   state.lastCueContact=!!canSee;
   if(allies.length>1&&canSee&&t>=(state.rushUntil||0)&&t>=(state.cueUntil||0))
-   statusCue(state,'flank',id,t);
+   statusCue(state,'flank',id,t,flank);
   if(t<(members[0].moteReturnUntil||0))statusCue(state,'return',id,t);
   else if(state.phase==='return')statusCue(state,canSee?'found':'search',id,t);
   if(evading){
