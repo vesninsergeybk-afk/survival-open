@@ -135,7 +135,7 @@ test('рост напряжения после трёх минут ограни�
     const next=openingThreat(t,12);
     assert.ok(next.cap<=70,'слишком много врагов: t='+t);
     assert.ok(next.interval>=1.6,'слишком частые группы: t='+t);
-    assert.ok(next.groupSize<=5,'слишком плотные группы: t='+t);
+    assert.ok(next.groupSize<=8,'слишком плотные группы: t='+t);
     assert.ok(next.cap>=previous.cap);
     previous=next;
   }

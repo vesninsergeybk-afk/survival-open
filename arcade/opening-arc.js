@@ -2,7 +2,8 @@
 // but change the local threat in opposite ways. The arc is data-only so a
 // station checkpoint can restore it without creating duplicate enemies.
 export const OPENING_ARC=Object.freeze({
- offerAt:16,deadline:155,repairSeconds:3.5,repairRange:155,
+ // Present the first decision before off-screen scouts can open sustained fire.
+ offerAt:11,deadline:155,repairSeconds:3.5,repairRange:155,
  interceptRewardData:27,interceptRewardOre:8,
  rescueRewardOre:28,rescueRewardXp:18,rescueShield:35,
  interceptRelief:120,rescueAlarm:100,

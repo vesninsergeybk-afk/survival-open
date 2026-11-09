@@ -27,11 +27,12 @@ export function ambientTempoPlan(game,director,random=Math.random){
  // Powerful ships arrive less frequently, but still require positioning.
  if(s.encounters%3===1){
   return {mode:'flock',delay:0,director:{...director,
-   types:['scout'],groupSize:Math.min(6,Math.max(4,director.groupSize+1)),
-   cap:Math.min(28,director.cap)}};
+   types:['scout'],groupSize:Math.min(8,Math.max(4,director.groupSize+1)),
+   cap:Math.min(director.cap,Math.max(28,Math.ceil(director.cap*.72)))}};
  }
  return {mode:'normal',delay:0,director:{...director,
-  groupSize:Math.min(5,director.groupSize),cap:Math.min(34,director.cap)}};
+  groupSize:Math.min(7,director.groupSize),
+  cap:Math.min(director.cap,Math.max(34,Math.ceil(director.cap*.85)))}};
 }
 export function validCombatTempo(s,time){
  if(s===undefined)return true;

@@ -10,6 +10,14 @@ export const NOISE_ESCALATION=Object.freeze({
 });
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+// The first mining accident must be a fight a level-one pilot can survive.
+// Later extraction still calls larger fleets, and a surviving scout remains
+// dangerous because it can bring a separate second wave.
+export const noiseWingSize=(time,reinforcement=false)=>{
+ if(time<75)return reinforcement?7:4;
+ if(time<140)return reinforcement?9:6;
+ return reinforcement?NOISE_ESCALATION.reinforcementWing:NOISE_ESCALATION.initialWing;
+};
 // A pilot can finish the first extraction before patrols are permitted to
 // spawn. Preserve that *historical* acoustic report so decay cannot erase
 // the consequence; quiet extraction must still stay below the same threshold.
@@ -18,8 +26,8 @@ export function preserveEarlyNoiseSignal(previous,noise,source,time){
     noise<MINING_NOISE.scout)return previous;
  return {x:source.x,y:source.y};
 }
-export function noisePatrolDirector(director,liveCount=0,reinforcement=false){
- const size=reinforcement?NOISE_ESCALATION.reinforcementWing:NOISE_ESCALATION.initialWing;
+export function noisePatrolDirector(director,liveCount=0,reinforcement=false,time=Infinity){
+ const size=noiseWingSize(time,reinforcement);
  return {...director,
   // Noise contacts are an exception to the quiet early ambient traffic cap.
   // Still honour the world's hard maximum inside spawnGroup.
@@ -45,7 +53,7 @@ export function updateNoiseEscalation(game){
   const before=game.enemies.length;
   const alarm=game.sectorDirector({cap:Math.max(8,before+NOISE_ESCALATION.reinforcementWing),
    groupSize:NOISE_ESCALATION.reinforcementWing,types:['scout','fighter','flanker'],interval:5});
-  game.spawnGroup(noisePatrolDirector(alarm,before,true),state.source);
+  game.spawnGroup(noisePatrolDirector(alarm,before,true,game.time),state.source);
   if(game.enemies.length===before){state.at=game.time+3;return;}
   game.notice?.('ПОДКРЕПЛЕНИЕ ПРИБЫЛО! Связной привёл новую эскадрилью к последней известной позиции.',5);
   game.noiseEscalation=null;

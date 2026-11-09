@@ -52,6 +52,8 @@ test('защищённые девять секунд переходят в пл�
  assert.ok(!second.types.includes('gunship'));
  assert.ok(openingThreat(205).cap>=openingThreat(204.99).cap,
   'усиление по числу противников не должно внезапно исчезать');
+ assert.ok(openingThreat(205).groupSize>=openingThreat(204.99).groupSize,
+  'после 205-й секунды обычная эскадрилья не должна резко уменьшаться');
  for(const t of [9,36,75,118,155,205,300]){
   const {cap,groupSize}=openingThreat(t);
   assert.ok(groupSize<=cap&&cap<=RULES.maxEnemies);
@@ -67,8 +69,14 @@ test('дальние неосведомлённые патрули не пере
   'в насыщенном бою новые корабли не появляются поверх игрока');
  assert.equal(openingSpawnRoom(20,stage,30,0,3),stage.cap,
   'далёкие корабли других операций не отменяют местные патрули');
- assert.equal(openingSpawnRoom(205,openingThreat(205),22,0,0),11,
-  'переход к позднему этапу сохраняет плотность угрозы без провала');
+ assert.equal(openingSpawnRoom(205,openingThreat(205),22,0,0),openingThreat(205).cap,
+  'дальние враги не расходуют квоту местных столкновений после 205-й секунды');
+ assert.equal(openingSpawnRoom(204,openingThreat(204),46,0,30),33,
+  'старый локальный бюджет учитывает дальние патрули отдельно');
+ assert.equal(openingSpawnRoom(205,openingThreat(205),43,0,27),33,
+  'при переходе на 205-й секунде местный бюджет не должен внезапно стать нулём');
+ assert.equal(openingSpawnRoom(205,openingThreat(205),RULES.maxEnemies,0,0),0,
+  'общий абсолютный предел по-прежнему защищает производительность');
 });
 
 test('настоящий создатель встреч выпускает группу при заполненном далёкими патрулями лимите',()=>{
@@ -94,6 +102,19 @@ test('промышленные эскадры нового мира не зан�
  const before=game.enemies.length;
  ArcadeGame.prototype.spawnGroup.call(game,openingThreat(20));
  assert.equal(game.enemies.length-before,4);
+});
+
+test('создатель обычных встреч не блокируется дальними кораблями после 205 секунд',()=>{
+ const game=Object.create(ArcadeGame.prototype);
+ Object.assign(game,{time:205,player:{x:0,y:0,level:1,hp:90},
+  enemies:Array.from({length:43},(_,i)=>({x:8500+i*50,y:0,hp:28,
+   _patrolRoute:{x:9500,y:0}})),groupSerial:0,enemySerial:43,
+  lastEncounter:null,lastEncounterLabelAt:-Infinity,
+  spawnEntryCamera:()=>({x:-600,y:-400,w:1200,h:800})});
+ const previous=game.enemies.length;
+ ArcadeGame.prototype.spawnGroup.call(game,openingThreat(205));
+ assert.equal(game.enemies.length-previous,7,
+  'местная эскадрилья появляется, хотя вдали уже есть 43 корабля');
 });
 
 test('старые сохранения получают новую броню, сохраняя долю здоровья и вложенные очки',()=>{
