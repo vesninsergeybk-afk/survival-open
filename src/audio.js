@@ -93,7 +93,8 @@ export class AudioEngine {
             return Promise.resolve();
         this.init();
         if (!this.sfxLab) return Promise.resolve();
-        const keys = ['ui_audio_on','starter_soft','comet_launch','comet_burst','artillery_launch','artillery_impact',
+        const keys = ['ui_audio_on','starter_soft','comet_launch','comet_burst',
+            'artillery_launch','artillery_impact','mine_launch',
             'mine_arm','mine_burst','target_mark','dash_burst','swarm_arrival',
             'swarm_split','swarm_merge','swarm_warning'];
         const root = new URL('../audio-lab/', import.meta.url);
