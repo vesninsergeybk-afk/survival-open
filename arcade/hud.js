@@ -48,7 +48,7 @@ export class CockpitDisplay {
    hudThermalText:el('hudThermalText'),hudThermalMeter:el('hudThermalMeter'),
    droneIcons:[el('hudDrone0'),el('hudDrone1')],
    ore:el('ore'),data:el('data'),bases:el('bases'),
-   wing:el('wing'),hack:el('hack'),fps:el('fps'),enemies:el('enemies'),
+   flux:el('flux'),hack:el('hack'),fps:el('fps'),enemies:el('enemies'),
    points:el('points'),burst:el('burst'),burstbar:el('burstbar'),
    bursttext:el('bursttext'),hudHackSlot:el('hudHackSlot'),hudStrikeSlot:el('hudStrikeSlot'),flightMode:el('flightMode'),
    wingStatus:el('wingStatus'),stateText:el('stateText'),flightStatus:el('flightStatus'),flightDistance:el('flightDistance'),
@@ -90,8 +90,10 @@ export class CockpitDisplay {
   n.shieldmeter.setAttribute('aria-valuenow',String(Math.ceil(p.shield)));
   n.shieldmeter.setAttribute('aria-valuemax',String(Math.ceil(shieldCap)));
   display(n.ore,p.ore);display(n.data,p.data);display(n.bases,game.activeBases);
+  if(n.flux)display(n.flux,(game.world?.contours?.flux||0).toLocaleString('ru-RU',
+   {maximumFractionDigits:1}));
   this.trackWallet(p,game.time);
-  display(n.wing,game.allies.length);display(n.hack,game.hacks.length);
+  display(n.hack,game.hacks.length);
   display(n.fps,Math.round(game.fps));display(n.enemies,game.enemies.length);
   const strikes=game.support?.charges||0;
   const bombers=game.support?.missions?.length||0;
