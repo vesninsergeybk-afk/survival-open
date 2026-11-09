@@ -89,13 +89,13 @@ test('redrawing a contour cannot restart the resource shipment clock',()=>{
  assert.equal(w.contours.harvesters.length,2);
 });
 
-test('collectors physically travel and deliver bounded flux; a nearby raid can destroy them',()=>{
+test('collectors physically travel and deliver uncapped flux; a nearby raid can destroy them',()=>{
  const w=triangle(),player={x:0,y:0};
  let deliveries=0;
  for(let t=1;t<=75;t++)deliveries+=advanceContours(w,t,1,[],player)
   .filter(e=>e.kind==='delivered').length;
  assert.ok(deliveries>0);
- assert.ok(w.contours.flux>0&&w.contours.flux<=CONTOURS.fluxCap);
+ assert.ok(w.contours.flux>0);
  const fields=contourFields(w),field=fields[0];
  w.contours.harvesters=[];w.contours.launches={};
  advanceContours(w,100,1,[],player);
@@ -114,10 +114,26 @@ test('collectors physically travel and deliver bounded flux; a nearby raid can d
  assert.ok(w.contours.lost>=1);
 });
 
+test('frequent miniature collectors form a visible convoy without multiplying production',()=>{
+ const w=triangle(),fields=contourFields(w),expected=contourProduction(fields);
+ let simultaneously=0,shipments=0;
+ for(let time=1;time<=180;time++){
+  shipments+=advanceContours(w,time,1).filter(e=>e.kind==='delivered').length;
+  simultaneously=Math.max(simultaneously,w.contours.harvesters.length);
+ }
+ assert.ok(simultaneously>=2,'two or more little ships should overlap on a normal route');
+ assert.ok(shipments>=20,'flux reaches the station in repeated small deliveries');
+ assert.ok(Math.abs(w.contours.delivered-expected)/expected<.1,
+  'shortening the departure interval must not fabricate more total flux');
+ assert.equal(w.contours.flux,w.contours.delivered);
+});
+
 test('the field state is saveable and rejects forged resources and broken links',()=>{
  const w=triangle(),rows=[...w.stations];
  assert.equal(validContours(w.contours,rows),true);
- assert.equal(validContours({...w.contours,flux:CONTOURS.fluxCap+1},rows),false);
+ assert.equal(validContours({...w.contours,flux:30000},rows),true,
+  'a large, finite stock is legal; the 30-unit gameplay cap is removed');
+ assert.equal(validContours({...w.contours,flux:Infinity},rows),false);
  assert.equal(validContours({...w.contours,links:[['missing','B']]},rows),false);
  assert.equal(validContours({...w.contours,links:[['B','C'],['C','B']]},rows),false);
 });
