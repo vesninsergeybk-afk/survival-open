@@ -144,6 +144,10 @@ test('a local trial spawns three waves, then requires a manual vortex activation
  assert.equal(g.contourTrial.phase,'wave');
  assert.ok(g.enemies.length>=12);
  assert.ok(g.enemies.every(e=>e.trialId===entries[0].id&&e.expAwarded));
+ assert.ok(g.enemies.every(e=>e.trialObjective?.x===entries[0].x&&
+  e.trialObjective?.y===entries[0].y),
+ 'every attacking ship must receive the fixed core destination');
+ assert.equal(g.contourTrial.plan.strikeCount,2,'even the first siege has crossfire');
  assert.equal(g.enemies.filter(e=>e._trialDiveEnabled).length,3,
   'several IRIS scouts can coordinate telegraphed dives, with a separate rush cap');
  const packs=new Map();for(const e of g.enemies)packs.set(e.group,(packs.get(e.group)||0)+1);

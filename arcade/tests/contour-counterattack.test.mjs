@@ -65,14 +65,14 @@ test('a warning never bypasses genuine line of sight or becomes a global scout b
  assert.equal(contourIrisDirective(enemy,game),null);
 });
 
-test('only two nearby IRIS can telegraph a rush at once',()=>{
+test('no more than four nearby IRIS can telegraph a coordinated rush at once',()=>{
  const {game,enemy}=scene();
- const other=[32,33,34].map(serial=>({
+ const other=[32,33,34,35,36].map(serial=>({
   ...enemy,serial,x:350, _trialDive:undefined
  }));
  game.enemies.push(...other);
  for(const unit of game.enemies)contourIrisDirective(unit,game);
- assert.equal(game.enemies.filter(unit=>unit._trialDive?.phase==='windup').length,2);
+ assert.equal(game.enemies.filter(unit=>unit._trialDive?.phase==='windup').length,4);
 });
 
 test('a high-speed dive cannot tunnel through the player on a low-FPS frame',()=>{

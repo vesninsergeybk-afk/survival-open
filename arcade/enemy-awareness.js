@@ -110,6 +110,11 @@ export function enemyPursuitTarget(e,game){
   const dispatch=e._awarenessDispatch;
   if(dispatch&&now-dispatch.at<=ENEMY_AWARENESS.dispatchMemory)
     return point({...dispatch,vx:0,vy:0},now);
+  // A siege fleet knows the position of the newly activated *territorial
+  // transmitter*, not the moving pilot. It must reach that target even if
+  // the pilot temporarily stays behind asteroid cover or zooms the camera.
+  if(e.trialObjective&&e.trialId===game.contourTrial?.entry?.id)
+    return point({x:e.trialObjective.x,y:e.trialObjective.y,vx:0,vy:0,at:now},now);
   if(e._patrolRoute)return point({...e._patrolRoute,vx:0,vy:0,at:now},now);
   // Search locally around the last known point, then return to patrol.
   // This position depends only on this pilot's state, not on player.x/y.

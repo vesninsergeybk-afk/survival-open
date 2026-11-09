@@ -177,8 +177,10 @@ export function planContourTrial(tier,serial=1){
   formations,
   recommendedLevel:[2,3,5,6,8,10,12,14,16,18,20,22][t-1],
   waveSeconds:CONTOUR_TRIALS.maxWaveSeconds+Math.min(20,(t-1)*2),
-  strikeInterval:Math.max(7.5,13-(t-1)*.53)-
+  // Orbital fire must remain an active movement test throughout all three
+  // waves, even on the first field; telegraphs still give 2+ s to evade.
+  strikeInterval:Math.max(7.2,10.5-(t-1)*.32)-
    (variants.some(v=>v.id==='orbital')?1.1:0),
-  strikeCount:t>=9?3:t>=4||variants.some(v=>v.id==='crossfire')?2:1,
+  strikeCount:t>=6?3:2,
   intermission:variants.some(v=>v.id==='reinforcements')?2.5:4.5};
 }

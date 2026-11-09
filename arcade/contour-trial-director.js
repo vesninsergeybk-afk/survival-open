@@ -1,6 +1,6 @@
 import {recordSortieIncome} from './sortie-ledger.js';
 import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,readyContourTrials,prepareContourVortex,completeContourTrial,
- planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-2-rank';
+ planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1';
 import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
 import {contourFields,fieldAt} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js';
@@ -68,6 +68,7 @@ function spawnTrialWave(game,event){
    // Trial rewards are paid once on victory. Retreating and restarting waves
    // must not become an infinite source of combat XP or free alloy.
    expAwarded:true,trialId:event.entry.id,scenario:'contour-trial',protect:null,
+   trialObjective:{x:event.entry.x,y:event.entry.y},
    _trialDiveEnabled:dive,_trialDiveTier:tier,
    entryPortalPending:type==='gunship'&&!game.heavyPortalShown,
    _patrolRoute:null};
