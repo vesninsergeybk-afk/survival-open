@@ -1,7 +1,7 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1-menu-audit-1-pressure-response-1';
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1-manual-qa-1';
-import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1';
-import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1-loadout-clarity-1-menu-ergonomics-1';
+import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1';
+import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1';
 import {mountContextualGuide} from './contextual-guide-ui.js?v=prototype-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
@@ -69,7 +69,7 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
@@ -818,17 +818,7 @@ export class ArcadeGame {
     return;
    }
    if(act==='menuContextBack'&&this.stationMenuContext){
-    const previous=this.stationMenuContext;this.stationMenuContext=null;
-    if(previous.origin==='development'){
-     this.baseTab='development';this.developmentDomain=previous.domain;
-     this.developmentFocus=previous.focus;this.developmentWeapon=previous.weapon;
-    }else if(previous.origin==='hangar'){
-     this.baseTab='hangar';this.hangarView=previous.view;
-     this.hangarSession.slot=previous.slot;
-     this.hangarSession.focusWeapon=previous.weapon;
-     this.hangarSession.catalog=previous.catalog;
-    }
-    this.heritage.ui('tab');this.renderDock();return;
+    this.restoreStationMenuContext();return;
    }
    if(act==='openDevelopment'){
     this.openDevelopment(b.dataset.id,b.dataset.focus,b.dataset.upgrade);return;
@@ -853,7 +843,8 @@ export class ArcadeGame {
    if(act==='fitWeapon'){this.focusFittingWeapon(b.dataset.id);return;}
    if(act==='openEquipmentTactic'&&this.docked?.active&&Object.hasOwn(TACTICAL_DEVICES,b.dataset.id)){
     this.stationMenuContext=this.baseTab==='development'?{origin:'development',
-     domain:this.developmentDomain,focus:this.developmentFocus,weapon:this.developmentWeapon}:null;
+     domain:this.developmentDomain,focus:this.developmentFocus,weapon:this.developmentWeapon,
+     returnFocus:captureMenuControl(this.overlay)}:null;
     this.hangarSession.focusTactic=b.dataset.id;
     this.baseTab='hangar';this.hangarView='tactics';this.heritage.ui('tab');this.renderDock();return;
    }
@@ -1984,10 +1975,30 @@ export class ArcadeGame {
    this.heritage.ui('tab');
    this.renderMap();
   }
+ restoreStationMenuContext(){
+  const previous=this.stationMenuContext;
+  if(!previous)return false;
+  this.stationMenuContext=null;
+  if(previous.origin==='development'){
+   this.baseTab='development';this.developmentDomain=previous.domain;
+   this.developmentFocus=previous.focus;this.developmentWeapon=previous.weapon;
+  }else if(previous.origin==='hangar'){
+   this.baseTab='hangar';this.hangarView=previous.view;
+   this.hangarSession.slot=previous.slot;
+   this.hangarSession.focusWeapon=previous.weapon;
+   this.hangarSession.catalog=previous.catalog;
+  }else return false;
+  this.heritage.ui('tab');
+  this.renderDock({restoreFocus:previous.returnFocus,
+   focusFallback:previous.origin==='development'?'.prog-node[aria-pressed="true"]':
+    '[data-act="hgSlot"][aria-pressed="true"], [data-act="hgView"][aria-pressed="true"]'});
+  return true;
+ }
  openDevelopment(category='weapons',focus='',upgrade=''){
   if(this.dead||!this.docked?.active)return;
   this.stationMenuContext=this.baseTab==='hangar'?{origin:'hangar',view:this.hangarView,
-   slot:this.hangarSession.slot,weapon:this.hangarSession.focusWeapon,catalog:this.hangarSession.catalog}:null;
+   slot:this.hangarSession.slot,weapon:this.hangarSession.focusWeapon,catalog:this.hangarSession.catalog,
+   returnFocus:captureMenuControl(this.overlay)}:null;
   const target=developmentTab(category==='station'?'network':category);
   this.baseTab='development';this.developmentDomain=target;this.developmentFocus='';
   if(target==='weapons'){
@@ -2010,7 +2021,8 @@ export class ArcadeGame {
  focusFittingWeapon(id){
   if(this.dead||!this.docked?.active||!Object.hasOwn(MODULES,id))return;
   this.stationMenuContext=this.baseTab==='development'?{origin:'development',
-   domain:this.developmentDomain,focus:this.developmentFocus,weapon:this.developmentWeapon}:null;
+   domain:this.developmentDomain,focus:this.developmentFocus,weapon:this.developmentWeapon,
+   returnFocus:captureMenuControl(this.overlay)}:null;
   const heavy=MODULES[id].kind==='heavy';
   const matches=(value,i)=>slotOpen(this.shipLoadout,i)&&(i===5)===heavy;
   const same=this.shipLoadout.slots.findIndex((value,i)=>value===id&&matches(value,i));
@@ -3159,9 +3171,9 @@ export class ArcadeGame {
   this.stationViews||={};
   if(view.tab)this.stationViews[view.tab+':'+(view.section||'')]=view;
  }
- renderDock(){
+ renderDock(options={}){
   if(!this.docked)return;
-  const focusIdentity=captureMenuControl(this.overlay);
+  const focusIdentity=Object.hasOwn(options,'restoreFocus')?options.restoreFocus:captureMenuControl(this.overlay);
   this.pendingStationModule=null;
   if(this.fieldLoan?.returnDue)this.returnBorrowedWeapon();
   this.syncShipLoadout();
@@ -3177,7 +3189,7 @@ export class ArcadeGame {
   if(this.stationViews[key])restoreHangarView(this.overlay,this.stationViews[key]);
   this.presentMenu();
   paintProgressionLinks(this.overlay.querySelector('.prog-tree'));
-  restoreMenuControl(this.overlay,focusIdentity,'[data-act="baseTab"][aria-selected="true"]');
+  restoreMenuControl(this.overlay,focusIdentity,options.focusFallback||'[data-act="baseTab"][aria-selected="true"]');
   this.hud();
  }
  returnBorrowedWeapon(){

@@ -43,17 +43,23 @@ test('plasma development honestly shows the mounted slot and shared calibration'
  let html=renderProgressionScreen(g.baseState());
  assert.match(html,/✓ На корабле · 1 шт\. · узел 1/);
  assert.match(html,/Общая технология: усиливает всё автоматическое оружие/);
- assert.doesNotMatch(html,/data-act="fitWeapon" data-id="plasma"/,
-  'у уже установленной плазмы не должно быть лишней кнопки перехода к установке');
+ assert.match(html,/class="prog-weapon-fit" data-act="fitWeapon" data-id="plasma">Посмотреть узел №1/,
+  'из дерева развития можно открыть действительно установленный узел');
+ assert.equal((html.match(/data-act="fitWeapon" data-id="plasma"/g)||[]).length,1,
+  'один понятный переход без дублирования на панели подробностей');
  assert.doesNotMatch(html,/>Оснастить корабль<\/button>/);
  assert.equal(progressionModel(g.baseState()).nodes.find(n=>n.id==='skill-beam').shared,true);
  g.developmentWeapon='rail';html=renderProgressionScreen(g.baseState());
  assert.match(html,/Не установлено на корабле/);
+ assert.match(html,/class="prog-weapon-fit" data-act="fitWeapon" data-id="rail">Перейти к установке/);
  assert.equal(progressionModel(g.baseState()).nodes.find(n=>n.id==='skill-beam').rank,0);
  g.hangarAction({act:'hgUpgrade',id:'beam'});
  assert.equal(g.player.points,1);assert.equal(g.skillRanks.beam,1);
  g.developmentWeapon='plasma';
  assert.equal(progressionModel(g.baseState()).nodes.find(n=>n.id==='skill-beam').rank,1);
+ g.developmentWeapon='ion';html=renderProgressionScreen(g.baseState());
+ assert.equal((html.match(/data-act="fitWeapon" data-id="ion"/g)||[]).length,1,
+  'для оружия без отдельной ветки технология не должна создавать второй переход');
 });
 
 test('fitting an already mounted gun opens the ship scheme and remembers the exact return target',()=>{
@@ -63,10 +69,48 @@ test('fitting an already mounted gun opens the ship scheme and remembers the exa
  assert.equal(g.baseTab,'hangar');assert.equal(g.hangarSession.catalog,false);
  assert.equal(g.hangarSession.slot,0);
  assert.deepEqual(g.stationMenuContext,{origin:'development',domain:'weapons',
-  focus:'skill-beam',weapon:'plasma'});
+  focus:'skill-beam',weapon:'plasma',returnFocus:null});
  assert.match(renderShipHangar({...g.baseState(),stationMenuContext:g.stationMenuContext},g.hangarSession),
   /data-act="menuContextBack">← Назад к развитию/);
  assert.equal(JSON.stringify([g.shipLoadout,g.player.points,g.player.ore]),before);
+});
+
+test('round trip development → mounted weapon → development returns to its original control and costs nothing',()=>{
+ const g=station();g.baseTab='development';
+ const initial=JSON.stringify([g.shipLoadout,g.player.points,g.player.ore]);
+ const origin={dataset:{act:'fitWeapon',id:'plasma',role:'',target:'',focus:''}};
+ g.overlay.ownerDocument={activeElement:origin};g.overlay.contains=el=>el===origin;
+ let focusRequest;
+ g.renderDock=options=>{focusRequest=options;};
+ g.focusFittingWeapon('plasma');
+ assert.deepEqual(g.stationMenuContext.returnFocus,
+  {act:'fitWeapon',id:'plasma',role:'',target:'',focus:''});
+ assert.equal(g.restoreStationMenuContext(),true);
+ assert.equal(g.baseTab,'development');
+ assert.equal(g.developmentDomain,'weapons');assert.equal(g.developmentFocus,'skill-beam');
+ assert.equal(g.developmentWeapon,'plasma');assert.equal(g.stationMenuContext,null);
+ assert.deepEqual(focusRequest.restoreFocus,{act:'fitWeapon',id:'plasma',role:'',target:'',focus:''});
+ assert.match(focusRequest.focusFallback,/prog-node/);
+ assert.equal(JSON.stringify([g.shipLoadout,g.player.points,g.player.ore]),initial);
+});
+
+test('round trip fitting → development → fitting restores the selected slot and keyboard target',()=>{
+ const g=station();g.baseTab='hangar';g.hangarSession.slot=2;g.hangarSession.catalog=true;
+ const initial=JSON.stringify([g.shipLoadout,g.player.points,g.player.ore]);
+ const origin={dataset:{act:'openDevelopment',id:'weapons',focus:'plasma'}};
+ g.overlay.ownerDocument={activeElement:origin};g.overlay.contains=el=>el===origin;
+ let focusRequest;g.renderDock=options=>{focusRequest=options;};
+ g.openDevelopment('weapons','plasma');
+ assert.equal(g.stationMenuContext.origin,'hangar');
+ assert.deepEqual(g.stationMenuContext.returnFocus,
+  {act:'openDevelopment',id:'weapons',role:'',target:'',focus:'plasma'});
+ assert.equal(g.restoreStationMenuContext(),true);
+ assert.equal(g.baseTab,'hangar');assert.equal(g.hangarView,'weapons');
+ assert.equal(g.hangarSession.slot,2);assert.equal(g.hangarSession.catalog,true);
+ assert.deepEqual(focusRequest.restoreFocus,
+  {act:'openDevelopment',id:'weapons',role:'',target:'',focus:'plasma'});
+ assert.match(focusRequest.focusFallback,/hgSlot/);
+ assert.equal(JSON.stringify([g.shipLoadout,g.player.points,g.player.ore]),initial);
 });
 
 test('an absent gun goes directly to its actual fitting choice without paying for browsing',()=>{
@@ -104,7 +148,24 @@ test('small screens keep the two equipment sections, focus indicators and contex
  assert.match(css,/\.hg-view-nav\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.match(css,/\.menu-context-return/);
+ assert.match(css,/\.prog-weapon-fit/);
  const g=station();g.baseTab='development';g.stationMenuContext={origin:'hangar'};
  assert.match(renderProgressionScreen({...g.baseState(),stationMenuContext:g.stationMenuContext}),
   /data-act="menuContextBack">← Назад к оснащению/);
+});
+
+test('the published page refreshes the entire changed menu import and style chain',()=>{
+ const source=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
+ const version='menu-audit-fix-1';
+ for(const [file,paths] of [
+  ['index.html',['game.js','menu-consistency.css']],
+  ['game.js',['base-panel.js','development-panel.js','progression-screen.js']],
+  ['base-panel.js',['development-panel.js']],
+  ['development-panel.js',['progression-screen.js']]]){
+  const html=source(file);
+  for(const path of paths){
+   const line=html.split('\n').find(line=>line.includes(path+'?v='));
+   assert.ok(line?.includes(version),file+' should refresh '+path+' after deployment');
+  }
+ }
 });

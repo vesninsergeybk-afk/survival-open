@@ -53,8 +53,8 @@ test('weapon browsing clearly distinguishes equipped plasma from absent flak wit
  const plasma=renderProgressionScreen(state(g,'weapons'));
  assert.match(plasma,/data-id="plasma" aria-pressed="true"[^>]*>[\s\S]*?На корабле · 1/);
  assert.match(plasma,/ВЫБРАНО ДЛЯ ПРОСМОТРА[\s\S]*?✓ На корабле · 1 шт\./);
- assert.doesNotMatch(plasma,/data-act="fitWeapon" data-id="plasma"/,
-  'installed plasma must not prompt a redundant installation');
+ assert.match(plasma,/data-act="fitWeapon" data-id="plasma">Посмотреть узел №1/,
+  'installed plasma offers its actual ship slot without suggesting another purchase');
 
  g.developmentWeapon='flak';
  const absent=progressionModel(state(g,'weapons'));
