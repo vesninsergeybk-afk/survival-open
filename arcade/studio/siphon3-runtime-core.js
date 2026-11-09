@@ -33,7 +33,7 @@ export function harvesterPosition(field,harvester){
 }
 
 export function forceLaunch(lab){
-  if(lab.world.contours.harvesters.length>=2)return [];
+  if(lab.world.contours.harvesters.length>=CONTOURS.maxHarvestersPerField)return [];
   lab.world.contours.nextLaunchAt=lab.clock;
   return stepLab(lab,.001);
 }
