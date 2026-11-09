@@ -83,7 +83,8 @@ for(const name of ['field_work','field_shield_up','field_shield_break',
  assert(AUX_SOUNDS[name]?.sampleUrl,'Mission scene has no recorded cue: '+name);
 }
 for(const name of ['comet_launch','comet_burst','mine_launch','mine_arm','mine_burst',
- 'target_mark','dash_burst','swarm_arrival','swarm_split','swarm_merge','swarm_warning']){
+ 'target_mark','dash_burst','swarm_arrival','swarm_split','swarm_merge','swarm_warning',
+ 'artillery_servo','artillery_launch','artillery_impact','artillery_destroyed']){
  const def=AUX_SOUNDS[name];
  assert(def?.sampleUrls?.length&&def?.sampleLayerUrls?.length,
   'Combat mechanic needs a separately mixed, recorded attack and body: '+name);
@@ -93,6 +94,13 @@ for(const name of ['comet_launch','comet_burst','mine_launch','mine_arm','mine_b
   .map(url=>durations.get(url.split('/').at(-1))||0));
  assert(def.maxDuration>=longest-.02,
   'Combat effect is being truncated: '+name+' '+def.maxDuration+' < '+longest);
+}
+for(const name of ['artillery_build','artillery_online','artillery_charge',
+ 'artillery_servo','artillery_acquire','artillery_launch','artillery_impact',
+ 'artillery_hit','artillery_destroyed']){
+ const def=AUX_SOUNDS[name];
+ assert(def?.sampleUrl,'Field artillery sound must exist: '+name);
+ assert(['recorded'].includes(def.profile),'No synthesised artillery cue: '+name);
 }
 assert.equal(Object.keys(BASE_SOUNDS).length,29);
 assert.equal(Object.keys(EVENT_SOUNDS).length,13);

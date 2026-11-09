@@ -79,15 +79,16 @@ test('rockets use the real sound catalog key instead of an absent weapon',()=>{
  assert.deepEqual(shots,['knife']);
 });
 
-test('artillery construction, targeting, charging and destruction use distinct recorded cues',()=>{
+test('artillery construction, aiming, firing and destruction use their own recorded cues',()=>{
  const h=new ArcadeHeritage(),events=[];
  h.soundOn=true;h.audio={playEvent:key=>events.push(key)};
- for(const event of ['artilleryBuild','artilleryOnline','artilleryCharge','artilleryAcquire',
+ for(const event of ['artilleryBuild','artilleryOnline','artilleryCharge','artilleryServo','artilleryAcquire',
   'artilleryLaunch','artilleryImpact','artilleryHit','artilleryDestroyed']){
   assert.equal(h.play(event,0),true,'missing artillery cue: '+event);
  }
- assert.deepEqual(events,['base_turret_construct','base_resonance_link','base_repair_pulse',
-  'target_mark','comet_launch','explosion_big','armor_hit','base_destroyed']);
+ assert.deepEqual(events,['artillery_build','artillery_online','artillery_charge',
+  'artillery_servo','artillery_acquire','artillery_launch','artillery_impact',
+  'artillery_hit','artillery_destroyed']);
 });
 
 test('field operation feedback maps to dedicated recorded sound events',()=>{
