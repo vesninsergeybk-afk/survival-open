@@ -114,14 +114,24 @@ function disengage(game,event,reason){
  game.notice?.(reason,4.5);
 }
 
+// Trial attackers do not drop normal combat XP or alloy, so the single
+// completion reward must reflect the much larger fleet being defeated.
+// Recalculating from the saved entry is stable after reloading a ready core.
+export function contourVictoryRewards(tier,serial){
+ const plan=planContourTrial(tier,serial);
+ const ships=plan.waves.reduce((sum,wave)=>sum+
+  Object.values(wave).reduce((waveSum,count)=>waveSum+count,0),0);
+ return {xp:18+tier*5+Math.round(ships*.65),
+  alloy:20+tier*4+Math.round(ships*.24)};
+}
+
 function finishTrial(game,entry){
  if(!completeContourTrial(game.world,entry.id))return false;
  // Nothing hostile should explode AFTER the victory banner and the
  // reopening of the vortex; the current encounter has actually ended.
  game.zones=game.zones.filter(zone=>zone.trialId!==entry.id);
  const previousLevel=game.player.level;
- const gained=14+entry.tier*7;
- const alloy=20+entry.tier*4;
+ const {xp:gained,alloy}=contourVictoryRewards(entry.tier,entry.id);
  game.player.ore=(game.player.ore||0)+alloy;
  recordSortieIncome(game,'ore','operation',alloy);
  game.cockpit?.resourceGain?.(alloy,game.time);
