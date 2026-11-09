@@ -7,7 +7,7 @@ import {clamp} from './balance.js';
 export const CONTOUR_IRIS=Object.freeze({
  minimumRange:135,maximumRange:445,windup:.78,rush:.79,
  correctionAt:.32,recovery:1.25,baseSpeed:338,maxSpeed:385,
- maxSimultaneous:2
+ maxSimultaneous:4
 });
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);

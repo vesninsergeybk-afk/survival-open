@@ -103,3 +103,20 @@ test('an unalerted fighter can fly around a large asteroid to a known patrol exi
   assert.ok(minimumSeparation>rock.r+e.r-5,
     `pilot clipped the rock at separation ${minimumSeparation.toFixed(1)}`);
 });
+
+test('siege fighters actually close on the fixed triangle core without knowing player position',()=>{
+ const e={x:-780,y:0,vx:0,vy:0,r:14,serial:24,type:'fighter',
+  hp:58,maxHp:58,damage:12,think:0,fire:5,state:'hunt',commitUntil:0,
+  trialId:9,trialObjective:{x:0,y:0}};
+ const game={time:100,player:{x:3400,y:2400,r:19,hp:100,invul:999},
+  contourTrial:{entry:{id:9}},zones:[],nearRocks:[],
+  rockGrid:{query:()=>[]},allies:[],enemies:[e],missiles:[],shots:[],
+  grid:{query:()=>[]},enemyCanSee:()=>false,enemyShot:()=>false,
+  avoidance:()=>({x:0,y:0}),
+  heritage:{play(){},vfx:{shipExplosion(){}}},hurt(){}};
+ for(let i=0;i<720;i++){game.time+=1/60;updateEnemy(e,game,1/60);}
+ assert.ok(Math.hypot(e.x,e.y)<230,
+  `a siege fleet must reach its visible objective, not circle the entry point: ${e.x.toFixed(0)}`);
+ assert.ok(Math.hypot(e.x-game.player.x,e.y-game.player.y)>3000,
+  'the AI must not magically pursue a pilot whom nobody has spotted');
+});

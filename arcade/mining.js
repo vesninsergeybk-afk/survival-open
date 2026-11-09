@@ -6,7 +6,8 @@ import {contactOnCircle} from './impact-geometry.js?v=arcade-impact-51';
 // Extractor emissions create a visible trade-off: richer ore is louder.
 // A response patrol can arrive only after the opening encounter has begun.
 export const MINING_NOISE=Object.freeze({
- ordinary:27,rich:42,warn:45,patrol:75,clear:20,decay:2.4,firstPatrolAt:24
+ ordinary:27,rich:42,warn:15,scout:20,patrol:75,clear:12,
+ decay:2.4,firstPatrolAt:12
 });
 export const miningSignal=noise=>Math.max(0,Math.min(100,
  Math.round(Math.max(0,noise)/MINING_NOISE.patrol*100)));
@@ -138,5 +139,22 @@ export function drawExtraction(ctx,player,rock,time,rank,active) {
  ctx.save();ctx.font='600 10px Inter,system-ui,sans-serif';ctx.textAlign='center';
  ctx.fillStyle=active?'#b7fff6':'#91d9e7';ctx.shadowColor='#000';ctx.shadowBlur=4;
  if(active)ctx.fillText('РАСЩЕПЛЕНИЕ · '+Math.round(progress*100)+'%',rock.x,rock.y-rock.r-19);
+ ctx.restore();
+}
+
+/** Cheap world-space sonar rings: the player can see each working extractor's
+ * acoustic footprint even before an investigating patrol arrives. */
+export function drawMiningNoiseRings(ctx,rock,time,quiet=false,reducedMotion=false){
+ if(!rock?.alive)return;
+ const waves=reducedMotion?1:3;
+ ctx.save();ctx.lineWidth=2;ctx.setLineDash([]);
+ for(let i=0;i<waves;i++){
+  const phase=reducedMotion?.55:((time*1.35+i/waves)%1);
+  const radius=rock.r+14+phase*(quiet?105:205);
+  const fade=(1-phase)*(quiet?.24:.55);
+  ctx.strokeStyle=quiet?'rgba(118,246,221,'+fade.toFixed(3)+')':
+   'rgba(255,194,111,'+fade.toFixed(3)+')';
+  ctx.beginPath();ctx.arc(rock.x,rock.y,radius,0,Math.PI*2);ctx.stroke();
+ }
  ctx.restore();
 }

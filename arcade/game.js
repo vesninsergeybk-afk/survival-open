@@ -53,7 +53,8 @@ import {chooseInteraction,activeInteraction,automaticFireAllowed} from './contro
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2';
 import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction,turretMenuGesture} from './manual-weapon-controls.js?v=control-audit-1-triangle-defense-1-turret-gesture-1';
-import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1-rock-sleep-1';
+import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction,drawMiningNoiseRings} from './mining.js?v=checkpoint-1-rock-sleep-1-noise-pressure-1';
+import {NOISE_ESCALATION,noisePatrolDirector,armNoiseCourier,updateNoiseEscalation} from './noise-escalation.js?v=noise-pressure-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-sfx-2-artillery-finish-1-support-three-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
@@ -113,13 +114,13 @@ import {territoryTech,TERRITORY_TECH} from './territory-tech.js?v=territory-war-
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1-auto-1-contour-trials-1-counterattack-1-first-loops-1-flux-build-1';
 import {syncContourDynamics,resumeContourTransition} from './contour-dynamics.js?v=contour-dynamics-3-auto-1';
-import {registerContourTrials,productiveContourFields,pendingContourTrials,readyContourTrials,unresolvedContourTrials,CONTOUR_TRIALS} from './contour-trials.js?v=swarm-siege-2-rank';
-import {updateContourTrials,activateContourVortex} from './contour-trial-director.js?v=swarm-siege-rewards-2-formation-zoomread-2';
+import {registerContourTrials,productiveContourFields,pendingContourTrials,readyContourTrials,unresolvedContourTrials,CONTOUR_TRIALS} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1';
+import {updateContourTrials,activateContourVortex} from './contour-trial-director.js?v=swarm-siege-rewards-2-formation-zoomread-2-pressure-1';
 import {drawContourTrialHUD} from './contour-trial-vfx.js?v=swarm-siege-1-learning-hud-1';
 import {drawBranchedInteraction} from './interaction-arcs.js?v=triangle-defense-1';
 import {updateRamSquads,drawRamSquads} from './ram-squads.js?v=triangle-defense-1';
 import {TURRET_REPAIR,repairableTurret,turretRepairQuote,repairTurret} from './turret-repair.js?v=triangle-defense-1';
-import {drawContourIrisCharge} from './contour-trial-iris.js?v=contour-counterattack-1';
+import {drawContourIrisCharge} from './contour-trial-iris.js?v=contour-counterattack-1-pressure-1';
 
 const $=id=>document.getElementById(id);
 const TAU=Math.PI*2;
@@ -278,7 +279,8 @@ export class ArcadeGame {
   this.artilleryDecoys=[];
    this.support={charges:0,cooldown:0,missions:[]};
   this.zones=[];this.images={};this.time=0;this.spawnClock=9;this.miningNoise=0;
-  this.lastNoiseSource=null;this.noiseAlert=null;
+  this.lastNoiseSource=null;this.noiseAlert=null;this.noiseEscalation=null;
+  this.nextNoisePatrolAt=0;
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';
   this.hangarView='weapons';this.developmentDomain='pilot';this.developmentFocus='';this.developmentWeapon=null;
@@ -1746,6 +1748,7 @@ export class ArcadeGame {
   const after=contourFields(this.world);
   const gain=Math.max(0,contourArea(after)-oldArea);
   const newTrials=registerContourTrials(this.world,oldFields,after,gain);
+  for(const entry of newTrials)this.clearContourCoreRocks(entry);
   const fluxGain=Math.max(0,contourProduction(productiveContourFields(this.world,after))-oldProduction);
   this.cachedWorldLinks=[];this.contourVisualAt=-Infinity;this.pausedRenderPending=true;
   syncContourDynamics(this);
@@ -1784,6 +1787,23 @@ export class ArcadeGame {
   if(!this.docked||!this.stationExitArmed)return false;
   this.mapReturnToBase=false;this.overlay.dataset.mode='base';this.overlay.hidden=false;
   this.heritage.pause('base');this.renderDock();return true;
+ }
+ clearContourCoreRocks(entry){
+  // The new socket is a physical event. Push loose rocks out of its immediate
+  // interaction space; never destroy ore or move a rock beyond its cell bound.
+  for(const rock of this.world.nearbyRocks(entry.x,entry.y,155)){
+   if(!rock.alive)continue;
+   const dx=rock.x-entry.x,dy=rock.y-entry.y;
+   const d=Math.hypot(dx,dy);
+   const clearance=rock.r+78;
+   if(d>=clearance)continue;
+   const phase=(rock.originX*.071+rock.originY*.047);
+   const nx=d>1?dx/d:Math.cos(phase),ny=d>1?dy/d:Math.sin(phase);
+   const impulse=Math.min(275,130+Math.max(0,clearance-d)*1.4);
+   rock.vx=(rock.vx||0)+nx*impulse;
+   rock.vy=(rock.vy||0)+ny*impulse;
+   rock.spinVelocity=(rock.spinVelocity||0)+((phase%2)-1)*.6;
+  }
  }
  requestRunAction(action){
   if(!['run-start','death'].includes(this.overlay.dataset.mode)||!['runNew','restart'].includes(action))return false;
@@ -4372,8 +4392,13 @@ export class ArcadeGame {
   const side=Math.floor(Math.random()*4),middle=.2+Math.random()*.6;
   const ambient={...director,allowMotes:!noiseSignal&&
    this.enemies.filter(e=>e.microSwarm&&e.hp>0).length<16};
-  const plan=planEncounter(this.time,ambient,available,side,middle,
-    Math.random(),noiseSignal?'':this.lastEncounter);
+  // A noise report coordinates two approach lanes even in the first sortie:
+  // either a wide search sweep or a genuine pincer. Ordinary traffic retains
+  // its stage-gated encounter patterns and never learns the pilot's position.
+  const encounterTime=noiseSignal?Math.max(this.time,118):this.time;
+  const encounterRoll=noiseSignal ? .34+Math.random()*.66 : Math.random();
+  const plan=planEncounter(encounterTime,ambient,available,side,middle,
+    encounterRoll,noiseSignal?'':this.lastEncounter);
   if(!plan.members.length)return 0;
   if(!noiseSignal)this.lastEncounter=plan.pattern;
   const group=++this.groupSerial,cam=this.spawnEntryCamera(),created=[];
@@ -4405,9 +4430,16 @@ export class ArcadeGame {
     // Enter as an ordinary traffic formation; only local sensing may
     // replace this route with a last-known position of the moving player.
     moteApproach:enemy._patrolRoute});
-   if(intelSource)Object.assign(enemy,{signalIntel:createSignalIntel(
-      intelSource.x,intelSource.y,this.time),signalLeader:i===0,
+   if(intelSource){
+    const signalIntel=createSignalIntel(intelSource.x,intelSource.y,this.time);
+    // Zoomed-out cameras place honest off-screen entries much farther away.
+    // Let the squad reach the *reported* mining site before giving up search.
+    const journey=Math.hypot(xy.x-intelSource.x,xy.y-intelSource.y)/
+     Math.max(85,ENEMY_TYPES[type].speed);
+    signalIntel.investigateUntil=this.time+Math.max(18,journey*1.7+8);
+    Object.assign(enemy,{signalIntel,signalLeader:i===0,
      signalSlot:i,signalExitX:xy.x,signalExitY:xy.y});
+   }
    if(!intelSource&&i===0&&plan.label&&this.time-this.lastEncounterLabelAt>=14){
     enemy.encounterLabel=plan.label;this.lastEncounterLabelAt=this.time;
    }
@@ -4817,22 +4849,23 @@ export class ArcadeGame {
    this.miningNoiseWarned=true;
    this.notice('Сигнал добычи усиливается. Следующий патруль может засечь вас!',3.6);
   }
-  if(!this.contourTrial&&this.miningNoise>=MINING_NOISE.patrol&&this.time>=MINING_NOISE.firstPatrolAt){
+  if(!this.contourTrial&&!this.noiseEscalation&&
+     this.miningNoise>=MINING_NOISE.scout&&
+     this.time>=Math.max(MINING_NOISE.firstPatrolAt,this.nextNoisePatrolAt||0)){
    const alarm=this.sectorDirector(openingThreat(this.time,this.player.level));
-   if(this.enemies.length<alarm.cap){
+   if(this.enemies.length<RULES.maxEnemies-NOISE_ESCALATION.initialWing){
     const before=this.enemies.length;
     const source=this.lastNoiseSource||{x:p.x,y:p.y};
-    const responders=alarm.types.filter(type=>
-      type==='scout'||type==='fighter'||type==='flanker');
-    const recovery=this.spawnGroup({...alarm,types:responders,
-      groupSize:Math.min(2,alarm.groupSize)},source);
+    const recovery=this.spawnGroup(noisePatrolDirector(alarm,before),source);
     if(this.enemies.length>before){
+     armNoiseCourier(this,this.enemies.slice(before),source);
      this.noiseAlert={x:source.x,y:source.y,startedAt:this.time,until:this.time+2.8};
      // The patrol replaces the next scheduled group instead of surrounding
      // the player with two unrelated arrivals in the same moment.
      this.spawnClock=Math.max(this.spawnClock,4.5+recovery);
      this.miningNoise=0;this.miningNoiseWarned=false;
-     this.notice('Экстрактор выдал позицию! Патруль идёт на сигнал.',4);
+     this.nextNoisePatrolAt=this.time+NOISE_ESCALATION.patrolCooldown;
+     this.notice('ЭКСТРАКТОР ВЫДАЛ ПОЗИЦИЮ! Разведывательная эскадрилья идёт на шум.',4.5);
     }
    }
   }
@@ -4882,6 +4915,7 @@ export class ArcadeGame {
    }
   }
   this.activeEnemyFirer=null;
+  updateNoiseEscalation(this);
   this.enemyComms?.confirmExecution(this);
   for(const a of this.allies){
    a.hit=Math.max(0,(a.hit||0)-dt);
@@ -4988,7 +5022,8 @@ export class ArcadeGame {
   }
   this.enemies=this.enemies.filter(e=>{
    const probe=e.missionStrike?.target==='probe'&&this.world.stations.get(e.probeAssault)?.probeMission;
-   const retained=e.hp>0&&(e.interceptCargo||e.relayAssault||e.stationRaid||
+   const retained=e.hp>0&&(e.trialId===this.contourTrial?.entry?.id||
+    e.noiseCourierEscaping||e.interceptCargo||e.relayAssault||e.stationRaid||
     (isFieldOperation(this.operation)&&e.fieldOperation===this.operation.id)||
     (e.probeAssault&&e.probeAssault===this.operation?.baseId)||(probe&&probe.strikerSerial===e.serial)||
     (e.corridorCourier&&e.serial===(this.world.home.corridorMission||this.operation)?.radioSerial)||
@@ -5539,7 +5574,11 @@ export class ArcadeGame {
   }
   drawEvolutionEnvironment(c,this,cam);
   if((!this.contourTrial||this.mining.active)&&this.mining.target?.alive && !outsideCamera(this.mining.target.x,this.mining.target.y,cam,50))
+  {
+   if(this.mining.active)drawMiningNoiseRings(c,this.mining.target,this.time,
+    !!this.nearQuietLab||(this.skillRanks.mining||0)>=1,this.visuals.reducedMotion);
    drawExtraction(c,p,this.mining.target,this.time,this.skillRanks.extractor||0,this.mining.active);
+  }
   // A brief field pulse connects the intercepted emission with its source.
   const intercept=this.noiseAlert;
   if(intercept&&intercept.until>this.time&&!outsideCamera(intercept.x,intercept.y,cam,180)){
@@ -5671,6 +5710,16 @@ export class ArcadeGame {
    }
    this.heritage.vfx.renderSurfaceLight(c,e.x,e.y,e.r);
    drawStormCharge(c,e,this.time);
+   if(e.noiseCourier&&e.signalIntel?.mode==='engaged'&&!e.converted){
+    const escaping=!!e.noiseCourierEscaping;
+    c.save();c.strokeStyle=escaping?'#ff707b':'#ffc079';c.lineWidth=2.2;
+    c.setLineDash([5,4]);c.beginPath();c.arc(e.x,e.y,e.r+13,0,TAU);c.stroke();
+    c.setLineDash([]);c.translate(e.x,e.y-e.r-32);
+    c.scale(worldTextScale(this.cameraZoom),worldTextScale(this.cameraZoom));
+    c.fillStyle=escaping?'#ffabb5':'#ffe3a5';c.textAlign='center';
+    c.font='bold 11px system-ui';
+    c.fillText(escaping?'СВЯЗНОЙ УХОДИТ':'ВЫЗЫВАЕТ ПОДМОГУ',0,0);c.restore();
+   }
    if(e.frontierRole){
     const specialist=e.stormAdapted?'ЭНЕРГО':e.type==='healer'?'РЕМОНТ':'ОХРАНА';
     c.save();c.strokeStyle=e.frontierRole==='azure'?'#8de4ff':'#94e8b7';

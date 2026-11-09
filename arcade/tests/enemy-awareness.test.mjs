@@ -84,6 +84,36 @@ test('real encounter spawner routes routine ships, but noise responders have a r
   'real drilling noise still gives a specific, investigateable sector');
 });
 
+test('at wide camera zoom noise scouts have enough time to reach their reported ore site',()=>{
+ const g=fixtureGame();g.time=45;g.vw=2400;g.vh=1600;
+ g.spawnEntryCamera=()=>({x:-2000,y:-1300,w:4000,h:2600});
+ g.spawnGroup({cap:9,groupSize:4,types:['scout','fighter'],interval:7},{x:0,y:0});
+ assert.ok(g.enemies.length>=4);
+ for(const enemy of g.enemies){
+  const d=Math.hypot(enemy.x,enemy.y);
+  assert.ok(enemy.signalIntel.investigateUntil-g.time>18,
+   `scout started ${Math.round(d)} m away but timed out before reaching the source`);
+ }
+});
+
+test('early noise patrols approach in coordinated sweeps or pincers, not loose traffic',()=>{
+ const g=fixtureGame();g.time=12;g.vw=1200;g.vh=800;
+ const original=Math.random;
+ try{
+  Math.random=()=>0;
+  g.spawnGroup({cap:9,groupSize:4,types:['scout','fighter'],interval:7},{x:50,y:75});
+  assert.equal(g.enemies.length,4);
+  assert.equal(g.enemies[0].scenario,'sweep');
+  g.enemies=[];
+  Math.random=()=>.99;
+  g.spawnGroup({cap:9,groupSize:4,types:['scout','fighter'],interval:7},{x:50,y:75});
+  assert.equal(g.enemies.length,4);
+  assert.equal(g.enemies[0].scenario,'pincer');
+  assert.equal(new Set(g.enemies.map(e=>e.group)).size,1,
+   'wingmen remain one communications group while using different entry lanes');
+ }finally{Math.random=original;}
+});
+
 test('every routine ship type actually crosses the screen and leaves without granting XP',()=>{
  for(const type of Object.keys(ENEMY_TYPES)){
   const p={x:0,y:0,vx:0,vy:0,r:19,hp:5000,invul:100};
