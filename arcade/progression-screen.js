@@ -244,7 +244,7 @@ function networkNodes(state){
  return [{id:'network-turret-slots',title:'Вместимость опорных линий',
   icon:art('tactics','station_triangle'),level:1,rank,max:2,status:!price?'mastered':reason?'waiting':'ready',
   description:'На каждой грани треугольника сначала помещается одна боевая установка. Улучшение открывает вторую, затем третью.',
-  effect:'Текущий предел: '+(rank+1)+' сооружения на каждой грани. Действует на артиллерию, разрядники, лазерные гнёзда и дроновые матки.',
+  effect:'Места для сооружений на каждой грани: '+(rank+1)+'. Действует на артиллерию, разрядники, лазерные гнёзда и дроновые матки.',
   activation:'Выберите улучшение здесь на станции или через меню строительства во время вылета.',
   reason,action:'hgNetworkSlots',actionId:'',actionLabel:price?'Расширить сеть':'Улучшено полностью',
   canAct:!reason,cost:price?price.ore+' сплава + '+price.flux+' флюкса':'—'},...navigation];

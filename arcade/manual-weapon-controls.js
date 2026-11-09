@@ -14,6 +14,10 @@ export function cycleManual(current,available,step=1){
 export const manualClick=(weapon,railEnabled,touch=false)=>touch?
  (weapon==='comet'?'comet':weapon==='mines'?'mines':weapon==='rail'&&railEnabled?'rail':'designate'):
  ['comet','mines','rail','howitzer'].includes(weapon)?weapon:'designate';
+// A short RMB tap on an emplacement opens its upgrade menu. Holding or
+// dragging RMB still aims the selected weapon, even directly across a turret.
+export const turretMenuGesture=(durationMs,movementPx)=>
+ Number.isFinite(durationMs)&&durationMs>=0&&durationMs<=350&&movementPx<=14;
 // Optional precision marking must not consume either mouse weapon's shot.
 export function pointerWeaponAction(event,weapon,mobileMineArmed=false){
  const mark=event.button===0&&event.pointerType==='mouse'&&event.ctrlKey&&
