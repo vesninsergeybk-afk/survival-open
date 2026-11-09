@@ -54,7 +54,7 @@ import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,change
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2';
 import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction,turretMenuGesture} from './manual-weapon-controls.js?v=control-audit-1-triangle-defense-1-turret-gesture-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction,drawMiningNoiseRings} from './mining.js?v=checkpoint-1-rock-sleep-1-noise-pressure-1';
-import {NOISE_ESCALATION,noisePatrolDirector,armNoiseCourier,updateNoiseEscalation} from './noise-escalation.js?v=noise-pressure-1';
+import {NOISE_ESCALATION,preserveEarlyNoiseSignal,noisePatrolDirector,armNoiseCourier,updateNoiseEscalation} from './noise-escalation.js?v=noise-pressure-2';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-sfx-2-artillery-finish-1-support-three-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
@@ -280,6 +280,7 @@ export class ArcadeGame {
    this.support={charges:0,cooldown:0,missions:[]};
   this.zones=[];this.images={};this.time=0;this.spawnClock=9;this.miningNoise=0;
   this.lastNoiseSource=null;this.noiseAlert=null;this.noiseEscalation=null;
+  this.pendingNoiseAlarm=null;
   this.nextNoisePatrolAt=0;
   this.miningNoiseWarned=false;this.miningIntroShown=false;this.coverWearWarned=false;
   this.contract=null;this.operation=null;this.probeRepairing=false;this.baseTab='summary';
@@ -4844,18 +4845,20 @@ export class ArcadeGame {
   this.shotGrid.clear();
   for(const s of this.shots)if(s.alive)this.shotGrid.insert(s);
   this.miningNoise=Math.max(0,Math.min(110,this.miningNoise-dt*MINING_NOISE.decay));
+  this.pendingNoiseAlarm=preserveEarlyNoiseSignal(this.pendingNoiseAlarm,
+   this.miningNoise,this.lastNoiseSource,this.time);
   if(this.miningNoise<MINING_NOISE.clear)this.miningNoiseWarned=false;
   if(this.miningNoise>=MINING_NOISE.warn&&!this.miningNoiseWarned){
    this.miningNoiseWarned=true;
    this.notice('Сигнал добычи усиливается. Следующий патруль может засечь вас!',3.6);
   }
   if(!this.contourTrial&&!this.noiseEscalation&&
-     this.miningNoise>=MINING_NOISE.scout&&
+     (this.miningNoise>=MINING_NOISE.scout||this.pendingNoiseAlarm)&&
      this.time>=Math.max(MINING_NOISE.firstPatrolAt,this.nextNoisePatrolAt||0)){
    const alarm=this.sectorDirector(openingThreat(this.time,this.player.level));
    if(this.enemies.length<RULES.maxEnemies-NOISE_ESCALATION.initialWing){
     const before=this.enemies.length;
-    const source=this.lastNoiseSource||{x:p.x,y:p.y};
+    const source=this.pendingNoiseAlarm||this.lastNoiseSource||{x:p.x,y:p.y};
     const recovery=this.spawnGroup(noisePatrolDirector(alarm,before),source);
     if(this.enemies.length>before){
      armNoiseCourier(this,this.enemies.slice(before),source);
@@ -4864,6 +4867,7 @@ export class ArcadeGame {
      // the player with two unrelated arrivals in the same moment.
      this.spawnClock=Math.max(this.spawnClock,4.5+recovery);
      this.miningNoise=0;this.miningNoiseWarned=false;
+     this.pendingNoiseAlarm=null;
      this.nextNoisePatrolAt=this.time+NOISE_ESCALATION.patrolCooldown;
      this.notice('ЭКСТРАКТОР ВЫДАЛ ПОЗИЦИЮ! Разведывательная эскадрилья идёт на шум.',4.5);
     }

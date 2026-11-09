@@ -1,3 +1,5 @@
+import {MINING_NOISE} from './mining.js';
+
 /** Mining draws an investigating wing. A scout must actually spot the pilot,
  * survive a visible withdrawal, and escape before reinforcements are called.
  * All positions are last-known signals, never a hidden live player target. */
@@ -8,6 +10,14 @@ export const NOISE_ESCALATION=Object.freeze({
 });
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+// A pilot can finish the first extraction before patrols are permitted to
+// spawn. Preserve that *historical* acoustic report so decay cannot erase
+// the consequence; quiet extraction must still stay below the same threshold.
+export function preserveEarlyNoiseSignal(previous,noise,source,time){
+ if(previous||!source||time>=MINING_NOISE.firstPatrolAt||
+    noise<MINING_NOISE.scout)return previous;
+ return {x:source.x,y:source.y};
+}
 export function noisePatrolDirector(director,liveCount=0,reinforcement=false){
  const size=reinforcement?NOISE_ESCALATION.reinforcementWing:NOISE_ESCALATION.initialWing;
  return {...director,

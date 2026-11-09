@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NOISE_ESCALATION,noisePatrolDirector,armNoiseCourier,
+import {NOISE_ESCALATION,preserveEarlyNoiseSignal,noisePatrolDirector,armNoiseCourier,
  updateNoiseEscalation} from '../noise-escalation.js';
 import {MINING_NOISE,drawMiningNoiseRings,updateRockMotion} from '../mining.js';
 import {enemyPursuitTarget} from '../enemy-awareness.js';
@@ -27,6 +27,17 @@ test('one mined ordinary rock can trigger visible escalating patrol pressure',()
  const next=noisePatrolDirector({cap:6,groupSize:2,types:['scout']},4,true);
  assert.equal(next.groupSize,7);
  assert.equal(next.cap,11);
+});
+
+test('early extraction report survives natural decay until the first patrol may launch',()=>{
+ const ore={x:115,y:-40};
+ const before=preserveEarlyNoiseSignal(null,MINING_NOISE.scout+1,ore,3);
+ assert.deepEqual(before,ore);
+ assert.equal(preserveEarlyNoiseSignal(before,0,{x:1000,y:1000},11),before);
+ assert.equal(preserveEarlyNoiseSignal(null,MINING_NOISE.scout-1,ore,3),null,
+  'a quieter extraction below threshold never causes an unavoidable attack');
+ assert.equal(preserveEarlyNoiseSignal(null,100,ore,13),null,
+  'later high noise is handled by the ordinary immediate dispatch path');
 });
 
 test('scout must spot player and physically escape before another wing arrives',()=>{
