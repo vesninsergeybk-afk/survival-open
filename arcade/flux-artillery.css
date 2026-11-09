@@ -45,6 +45,14 @@
 .build-placement strong{color:#ffdda4;font-size:12px;letter-spacing:.06em}
 .build-placement span{color:#cfebf0;font-size:12px}
 .build-placement>div{display:flex;justify-content:center;gap:9px}
+#buildPreloadGroup[hidden]{display:none}
+.build-placement .build-preload{display:flex;align-items:center;justify-content:center;
+ flex-wrap:wrap;gap:6px 10px;padding:8px;border:1px solid #52798b88;border-radius:9px;
+ background:#0f3145c9}
+.build-preload label{font-size:12px;color:#ffe0b0}
+.build-preload input{width:74px;padding:7px 6px;border-radius:7px;border:1px solid #81d4d9;
+ color:#f3fcff;background:#0b2434;text-align:center;font:600 14px system-ui}
+.build-preload small{flex-basis:100%;color:#c9dfdf;font-size:11px}
 .artillery-mode-menu{position:fixed;z-index:9;width:min(360px,calc(100vw - 16px));
  max-height:min(580px,calc(100dvh - 16px));overflow:auto;overscroll-behavior:contain;
  padding:12px;background:linear-gradient(150deg,#0d2b3ef5,#071622f8);

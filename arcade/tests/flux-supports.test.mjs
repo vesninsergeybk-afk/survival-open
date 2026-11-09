@@ -125,6 +125,22 @@ test('nearby laser receives a genuinely usable first volley within the first ten
  assert.equal(validFluxSupports(world.contours),true);
 });
 
+test('selected support turrets draw their actual range, including an upgraded drone patrol',()=>{
+ const {world,player,point,game}=fixture();
+ const hive=deploySupport(world,player,point,0,'hive').turret;
+ const radii=[];
+ const ctx=new Proxy({}, {get:(obj,key)=>key in obj?obj[key]:
+  key==='createRadialGradient'?()=>({addColorStop(){}}):
+  key==='arc'?(_x,_y,r)=>radii.push(r):()=>{},
+  set:(obj,key,value)=>(obj[key]=value,true)});
+ game.artilleryMenuTarget=hive;
+ drawFluxSupports(ctx,game,{x:0,y:0,w:1600,h:1100});
+ assert.ok(radii.includes(260));
+ hive.branches={reach:1};radii.length=0;
+ drawFluxSupports(ctx,game,{x:0,y:0,w:1600,h:1100});
+ assert.ok(radii.includes(335));
+});
+
 test('mothership launches one prepaid drone, makes replacements for flux and drones can be destroyed',()=>{
  const {world,player,point,game}=fixture();
  const hive=deploySupport(world,player,point,0,'hive').turret;

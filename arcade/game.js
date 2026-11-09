@@ -56,7 +56,7 @@ import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-b
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2';
-import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction,turretMenuGesture} from './manual-weapon-controls.js?v=control-audit-1-triangle-defense-1-turret-gesture-1';
+import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1-triangle-defense-1-turret-gesture-1-turret-preload-20261109-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction,drawMiningNoiseRings} from './mining.js?v=checkpoint-1-rock-sleep-1-noise-pressure-1-pressure-response-1';
 import {clearCoreRocks} from './core-rock-clearance.js';
 import {alertFleetUnderFire} from './enemy-attack-alarm.js';
@@ -106,13 +106,14 @@ import {updateStationInterdiction,interruptStationInterdiction,threatenedStation
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-2-contour-trials-1-first-loops-1-flux-build-1-support-three-1-triangle-defense-1';
 import {FLUX_ARTILLERY,EDGE_SLOT_UPGRADES,ARTILLERY_UPGRADES,edgeTurretLimit,edgeTurretUpgradeOffer,upgradeEdgeTurretCapacity,artilleryUpgradeOffer,upgradeArtillery,
- artilleryAt,artilleryOffer,deployArtillery,setArtilleryMode,
- advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-artillery-finish-1-support-three-1-triangle-defense-1-growth-3';
+ artilleryAt,artilleryOffer,deployArtillery,maxArtilleryPreload,setArtilleryMode,
+ advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1';
 import {SUPPORT_TYPES,supportConfig,supportOffer,deploySupport,supportAt,
  setSupportMode,supportUpgradeOffer,upgradeSupport,
- advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=flux-supports-3-wreck-falloff-1-growth-1-zoomread-2';
-import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,
- buyTurretBranch,artilleryBarrels,hiveLimit} from './turret-growth.js';
+ advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1';
+import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,turretCombatRadii,
+ artilleryShotFlux,artilleryMagazine,
+ buyTurretBranch,artilleryBarrels,hiveLimit} from './turret-growth.js?v=turret-preload-20261109-1';
 import {launchFluxSortie,advanceFluxSortie,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {recordIndustrialBreachHit,advanceIndustrialBreaches,INDUSTRIAL_BREACH} from './industrial-breach.js?v=territory-war-1-territory-war-1-breach-fix-1';
 import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from './contour-cover.js?v=territory-war-2-territory-war-1-topology-fix-1';
@@ -391,11 +392,28 @@ export class ArcadeGame {
    this.notice('Строительство откроется после защиты первого треугольника.',4);return false;
   }
   this.artilleryModeMenu(false);
-  this.buildPlanning={stage:'menu',point:null,type:'artillery'};this.paused=true;
+  this.buildPlanning={stage:'menu',point:null,type:'artillery',
+   preload:Math.min(4,maxArtilleryPreload(this.world))};this.paused=true;
   this.keys.clear();this.endInteraction();this.pausedRenderPending=true;
   $('buildPlanning').hidden=false;$('buildRing').hidden=false;$('buildPlacement').hidden=true;
   this.updateEdgeSlotUpgradeUI();
+  this.updateArtilleryPreloadUI();
   $('buildArtillery')?.focus({preventScroll:true});return true;
+ }
+ updateArtilleryPreloadUI(){
+  const control=$('buildPreload'),group=$('buildPreloadGroup');
+  if(!this.buildPlanning||!control||!group)return;
+  const active=this.buildPlanning.type==='artillery',max=maxArtilleryPreload(this.world);
+  group.hidden=!active;
+  if(!active)return;
+  const requested=this.buildPlanning.preload||0;
+  this.buildPlanning.preload=Math.min(max,Math.max(0,Math.floor(requested)));
+  control.max=String(max);control.value=String(this.buildPlanning.preload);
+  const cost=$('buildPreloadCost');
+  if(cost)cost.textContent='Снаряды: '+this.buildPlanning.preload+' × 0,25 = '+
+   (this.buildPlanning.preload*FLUX_ARTILLERY.chargeCost).toFixed(2)+
+   ' флюкса · всего с постройкой '+
+   (FLUX_ARTILLERY.fluxCost+this.buildPlanning.preload*FLUX_ARTILLERY.chargeCost).toFixed(2);
  }
  updateEdgeSlotUpgradeUI(){
   const rank=this.world.contours?.turretSlotRank||0,limit=edgeTurretLimit(this.world);
@@ -419,6 +437,7 @@ export class ArcadeGame {
   this.buildPlanning.stage='place';
   this.buildPlanning.point={x:this.player.x+Math.min(230,this.vw*.25),y:this.player.y};
   $('buildRing').hidden=true;$('buildPlacement').hidden=false;
+  this.updateArtilleryPreloadUI();
   const title=$('buildPlaceTitle');
   if(title)title.textContent=(type==='artillery'?'ГРОМОВАЯ БАТАРЕЯ':SUPPORT_TYPES[type].name.toUpperCase())+
    ' · ВЫБОР МЕСТА';
@@ -427,19 +446,22 @@ export class ArcadeGame {
  updateBuildHint(){
   if(this.buildPlanning?.stage!=='place')return;
   const type=this.buildPlanning.type;
-  const result=type==='artillery'?artilleryOffer(this.world,this.player,this.buildPlanning.point):
+  const result=type==='artillery'?artilleryOffer(this.world,this.player,this.buildPlanning.point,
+   this.buildPlanning.preload):
    supportOffer(this.world,this.player,this.buildPlanning.point,type);
   const cfg=type==='artillery'?FLUX_ARTILLERY:SUPPORT_TYPES[type];
   const hint=$('buildPlaceHint');
   if(hint)hint.textContent=result.ok?
-   'ЛКМ: построить · '+cfg.oreCost+' сплава + '+cfg.fluxCost+
-   ' флюкс · линия '+Math.round(result.connection.cable)+' м':result.reason;
+   'ЛКМ: построить · '+cfg.oreCost+' сплава + '+
+   (cfg.fluxCost+(type==='artillery'?this.buildPlanning.preload*cfg.chargeCost:0)).toFixed(2)+
+   ' флюкса · линия '+Math.round(result.connection.cable)+' м':result.reason;
  }
  placeBuildArtillery(point){
   if(this.buildPlanning?.stage!=='place')return false;
   this.buildPlanning.point=point;
   const type=this.buildPlanning.type;
-  const placed=type==='artillery'?deployArtillery(this.world,this.player,point,this.time):
+  const placed=type==='artillery'?deployArtillery(this.world,this.player,point,this.time,
+   this.buildPlanning.preload):
    deploySupport(this.world,this.player,point,this.time,type);
   if(!placed.ok){this.updateBuildHint();this.pausedRenderPending=true;return false;}
   this.heritage?.play?.(type==='artillery'?'artilleryBuild':'supportBuild',.5,point);
@@ -447,7 +469,8 @@ export class ArcadeGame {
   this.closeBuildPlanner();
   this.notice((type==='artillery'?'Громовая батарея':cfg.name)+' строится · '+cfg.buildSeconds+
    ' с. Подключение к контуру: '+Math.round(placed.connection.cable)+
-   ' м. '+(type==='hive'?'Новые дроны требуют 2,5 флюкса каждый.':
+   ' м. '+(type==='artillery'?'Стартовых снарядов: '+placed.preload+'.':
+    type==='hive'?'Новые дроны требуют 2,5 флюкса каждый.':
     'Заряды поступят по энергетической линии.'),5);
   return true;
  }
@@ -475,7 +498,9 @@ export class ArcadeGame {
   const title=$('artilleryModeTitle');if(title)title.textContent='РЕЖИМ · '+name.toUpperCase();
   if(stats)stats.textContent=(turret.type==='hive'?
    'Дроны: '+turret.drones.filter(x=>x.hp>0).length+'/'+hiveLimit(turret):
-   'Заряды: '+turret.ammo+'/'+config.magazine)+
+   'Заряды: '+turret.ammo+'/'+(turret.kind==='flux-artillery'?artilleryMagazine(turret):config.magazine))+
+   (turret.kind==='flux-artillery'?' · '+artilleryShotFlux(turret).toFixed(2)+' флюкса за снаряд':'')+
+   (turret.kind==='flux-artillery'&&turret.stockpile?' · склад '+turret.stockpile:'')+
    (turret.kind==='flux-artillery'?' · стволов '+artilleryBarrels(turret):'')+
    ' · '+(this.time<turret.readyAt?'сборка':'автономный огонь');
   const list=$('turretGrowthList');
@@ -488,6 +513,17 @@ export class ArcadeGame {
     const heading=document.createElement('strong');
     heading.textContent=branch.name+' · '+branch.rank+'/'+branch.max;
     const details=document.createElement('span');details.textContent=branch.summary;
+    const before=turretCombatRadii(turret);
+    const nextTower={...turret,branches:{...turret.branches,[branch.key]:branch.rank+1}};
+    const after=branch.next?turretCombatRadii(nextTower):before;
+    if(branch.next&&before&&after){
+     const delta=after.range!==before.range?' Дальность: '+before.range+' → '+after.range+'.':
+      after.blast!==before.blast?' Взрыв: '+before.blast+' → '+after.blast+'.':'';
+     details.textContent+=delta;
+     if(turret.kind==='flux-artillery'&&artilleryShotFlux(nextTower)!==artilleryShotFlux(turret))
+      details.textContent+=' Цена снаряда: '+artilleryShotFlux(turret).toFixed(2)+' → '+
+       artilleryShotFlux(nextTower).toFixed(2)+' флюкса.';
+    }
     const cost=document.createElement('small');
     cost.textContent=branch.next?branch.next[0]+' · '+branch.next[1]+
      ' сплава + '+branch.next[2]+' флюкса':'ВЕТКА ЗАВЕРШЕНА';
@@ -576,6 +612,17 @@ export class ArcadeGame {
    this.updateEdgeSlotUpgradeUI();this.pausedRenderPending=true;
   });
   $('buildArtillery')?.addEventListener('click',()=>this.selectBuildArtillery());
+  $('buildPreload')?.addEventListener('input',e=>{
+   if(this.buildPlanning?.type!=='artillery')return;
+   const value=Number(e.target.value);
+   this.buildPlanning.preload=Number.isFinite(value)?Math.max(0,Math.floor(value)):0;
+   this.updateArtilleryPreloadUI();this.updateBuildHint();this.pausedRenderPending=true;
+  });
+  $('buildPreloadAll')?.addEventListener('click',()=>{
+   if(this.buildPlanning?.type!=='artillery')return;
+   this.buildPlanning.preload=maxArtilleryPreload(this.world);
+   this.updateArtilleryPreloadUI();this.updateBuildHint();this.pausedRenderPending=true;
+  });
   for(const type of Object.keys(SUPPORT_TYPES))
    $('build'+type[0].toUpperCase()+type.slice(1))?.addEventListener('click',
     ()=>this.selectBuildArtillery(type));
@@ -584,6 +631,7 @@ export class ArcadeGame {
   $('buildBack')?.addEventListener('click',()=>{
    if(this.buildPlanning){this.buildPlanning.stage='menu';
     $('buildRing').hidden=false;$('buildPlacement').hidden=true;
+    this.updateArtilleryPreloadUI();
     this.pausedRenderPending=true;}
   });
   $('artilleryModeMenu')?.addEventListener('click',e=>{
@@ -608,7 +656,12 @@ export class ArcadeGame {
    const button=e.target.closest?.('[data-growth-branch]');
    if(!button||!this.artilleryMenuTarget)return;
    const tower=this.artilleryMenuTarget;
+   const before=turretCombatRadii(tower);
    const result=buyTurretBranch(this.world,this.player,tower,button.dataset.growthBranch,this.time);
+   const after=turretCombatRadii(tower);
+   if(result.ok&&before&&after&&(before.range!==after.range||before.blast!==after.blast))
+    this.turretRangeBefore={turret:tower,range:before.range,blast:before.blast,
+     expires:this.time+2.4};
    this.notice(result.ok?'Установка: '+result.title+' · уровень ветки '+result.rank+'.':result.reason,3);
    if(result.ok)this.heritage?.play?.('supportUpgrade',.7,tower);
    this.artilleryModeMenu(true,tower,{refresh:true});
@@ -1166,6 +1219,10 @@ export class ArcadeGame {
    if(e.button===0||e.button===2){
     const point=worldAt(e.clientX,e.clientY)||{x:Infinity,y:Infinity};
     tower=supportAt(this.world,point)||artilleryAt(this.world,point);
+    if(tower&&e.button===2){
+     e.preventDefault();this.mouseAim=null;
+     this.artilleryModeMenu(true,tower,e);return;
+    }
     if(tower&&e.pointerType==='touch'){
      e.preventDefault();this.artilleryModeMenu(true,tower,e);return;
     }
@@ -1183,8 +1240,7 @@ export class ArcadeGame {
      this.notice(ready.reason,1.5);e.preventDefault();return;
     }
    }
-   aimStart={id:e.pointerId,x:e.clientX,y:e.clientY,kind,button:e.button,mark,
-    turret:e.button===2?tower:null,startedAt:e.timeStamp};
+   aimStart={id:e.pointerId,x:e.clientX,y:e.clientY,kind,button:e.button,mark};
    const point=worldAt(e.clientX,e.clientY);
    if(kind&&point)this.mouseAim={kind,point,clientX:e.clientX,clientY:e.clientY};
    try{this.canvas.setPointerCapture?.(e.pointerId);}catch{}
@@ -1229,11 +1285,8 @@ export class ArcadeGame {
    cancelLongPress();
    const moved=Math.hypot(e.clientX-aimStart.x,e.clientY-aimStart.y);
    const held=!!aimStart.longPress,kind=aimStart.kind,mark=aimStart.mark;
-   const turret=aimStart.turret;
-   const turretTap=turret&&e.button===2&&turretMenuGesture(e.timeStamp-aimStart.startedAt,moved);
    aimStart=null;this.mouseAim=null;
    if(this.paused||this.dead||!this.overlay.hidden)return;
-   if(turretTap){this.artilleryModeMenu(true,turret,e);return;}
    const worldPoint=worldAt(e.clientX,e.clientY);if(!worldPoint)return;
    if(mark){if(!held&&moved<=14)this.designateTargetAt(worldPoint);return;}
    if(kind){

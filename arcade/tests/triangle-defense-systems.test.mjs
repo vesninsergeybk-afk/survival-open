@@ -43,7 +43,7 @@ test('one edge begins with one slot, flux upgrades it, and wrecks reserve a repa
 
 test('right-click artillery upgrade consumes flux and improves real close-range shots',()=>{
  const {world,pilot,point}=setup();
- const turret=deployArtillery(world,pilot,point,0).turret;
+ const turret=deployArtillery(world,pilot,point,0,4).turret;
  assert.equal(artilleryUpgradeOffer(world,pilot,turret,1).ok,false);
  const prevFlux=world.contours.flux;
  assert.equal(upgradeArtillery(world,pilot,turret,5).level,2);
@@ -55,6 +55,7 @@ test('right-click artillery upgrade consumes flux and improves real close-range 
   heritage:{play(){},vfx:{shipExplosion(){}}}};
  advanceFluxArtillery(g,.1);
  assert.equal(enemy.hp,84,'upgraded close gun reaches 260 m and inflicts 16 damage');
+ assert.equal(turret.ammo,3,'the close shot uses one paid charge');
 });
 
 test('rammer squad warns for more than two seconds before an actual coordinated charge',()=>{

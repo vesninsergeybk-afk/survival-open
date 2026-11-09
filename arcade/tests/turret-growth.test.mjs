@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createContours,connectContour} from '../territory-system.js';
-import {deployArtillery,advanceFluxArtillery,barrelMount,validFluxArtillery} from '../flux-artillery.js';
+import {deployArtillery,advanceFluxArtillery,chooseArtilleryAim,barrelMount,validFluxArtillery} from '../flux-artillery.js';
 import {deploySupport,advanceFluxSupports,validFluxSupports} from '../flux-supports.js';
 import {TURRET_GROWTH,turretGrowthRows,turretBranchOffer,buyTurretBranch,
- artilleryBarrels,artilleryBlast,artilleryCooldown,artillerySupply,arcChainCount,supportSupply,
+ artilleryBarrels,artilleryBlast,artilleryRange,arcRange,artilleryShotUnits,artilleryShotFlux,
+ artilleryShellDamage,artilleryMagazine,artilleryCooldown,artillerySupply,arcChainCount,supportSupply,
  laserEmitters,laserBurst,hiveLimit,hiveArmor,hiveRange} from '../turret-growth.js';
 import {hitFriendlyShip} from '../enemy-shot-targets.js';
 import {turretDistractionTarget} from '../ai.js';
@@ -32,13 +33,13 @@ function buyAll(pack,t,key){
  for(let i=0;i<max;i++)assert.ok(buyTurretBranch(pack.world,pack.player,t,key,5).ok);
 }
 
-test('all four structures have four real, separately purchasable paths and cap prices',()=>{
+test('all four structures have real, separately purchasable paths including range',()=>{
  for(const type of Object.keys(TURRET_GROWTH)){
   const pack=fixture(),t=type==='artillery'?
    deployArtillery(pack.world,pack.player,pack.point,0).turret:
    deploySupport(pack.world,pack.player,pack.point,0,type).turret;
   const branches=turretGrowthRows(t);
-  assert.equal(branches.length,4,type);
+  assert.equal(branches.length,type==='artillery'?6:type==='arc'?5:4,type);
   const first=branches[0],ore=pack.player.ore,flux=pack.world.contours.flux;
   assert.match(turretBranchOffer(pack.world,pack.player,t,first.key,0).reason,/строительства/);
   const paid=buyTurretBranch(pack.world,pack.player,t,first.key,5);
@@ -52,6 +53,48 @@ test('all four structures have four real, separately purchasable paths and cap p
   pack.player.ore=3000;pack.world.contours.flux=0;
   assert.match(turretBranchOffer(pack.world,pack.player,t,first.key,5).reason,/флюкса/);
  }
+});
+
+test('heavy rounds consume prepaid quarter-flux units and reach five flux per shell',()=>{
+ const pack=fixture(),{world,player,game,point}=pack;
+ const t=deployArtillery(world,player,point,0).turret;
+ buyAll(pack,t,'power');
+ assert.equal(artilleryShotUnits(t),20);
+ assert.equal(artilleryShotFlux(t),5);
+ assert.equal(artilleryShellDamage(t),480);
+ assert.equal(artilleryMagazine(t),60);
+ t.readyAt=0;t.ammo=20;world.contours.flux=0;
+ game.enemies=[{x:850,y:300,hp:1000,maxHp:1000,r:18,vx:0,vy:0}];
+ for(let i=0;i<120&&world.contours.artilleryShells.length===0;i++){
+  game.time+=.05;advanceFluxArtillery(game,.05);
+ }
+ const shell=world.contours.artilleryShells[0];
+ assert.equal(shell.damage,480);assert.equal(t.ammo,0);
+ assert.equal(world.contours.flux,0,'firing spends the already delivered charge, never charges global flux twice');
+ assert.equal(validFluxArtillery(world.contours),true);
+ shell.damage=Infinity;assert.equal(validFluxArtillery(world.contours),false);
+});
+
+test('buying range upgrades truly expands targeting of artillery and chain nodes',()=>{
+ const pack=fixture(),{world,player,point,game}=pack;
+ const battery=deployArtillery(world,player,point,0).turret;
+ const farEnemy={x:point.x+800,y:point.y,hp:100,maxHp:100,r:12};
+ game.enemies=[farEnemy];
+ assert.equal(artilleryRange(battery),740);
+ assert.equal(chooseArtilleryAim(game,battery),null);
+ assert.equal(buyTurretBranch(world,player,battery,'reach',5).ok,true);
+ assert.equal(artilleryRange(battery),850);
+ assert.ok(chooseArtilleryAim(game,battery),'far enemy is now targetable');
+ const arc=deploySupport(world,player,{x:960,y:300},0,'arc').turret;
+ arc.readyAt=0;arc.ammo=1;arc.gunAngle=0;
+ assert.equal(arcRange(arc),440);
+ const arcEnemy={x:arc.x+480,y:arc.y,hp:100,maxHp:100,r:12};
+ game.enemies=[arcEnemy];game.time=.1;advanceFluxSupports(game,.1);
+ assert.equal(game.hits.length,0);
+ assert.equal(buyTurretBranch(world,player,arc,'reach',5).ok,true);
+ assert.equal(arcRange(arc),520);
+ game.time=.2;advanceFluxSupports(game,.1);
+ assert.equal(game.hits.length,1);
 });
 
 test('ten-barrel battery fires ten paid individual shells in a staggered salvo',()=>{
@@ -71,7 +114,9 @@ test('ten-barrel battery fires ten paid individual shells in a staggered salvo',
  game.enemies=[{x:900,y:310,hp:10000,maxHp:10000,r:19,vx:0,vy:0}];
  game.time=.1;advanceFluxArtillery(game,.1);
  assert.ok(t.aimingUntil>.1);
- game.time=t.aimingUntil+.001;advanceFluxArtillery(game,.1);
+ for(let i=0;i<80&&t.salvoFired===0;i++){
+  game.time+=.05;advanceFluxArtillery(game,.05);
+ }
  assert.equal(t.salvoFired,1);assert.equal(t.ammo,9);
  for(let i=0;i<15;i++){game.time+=.1;advanceFluxArtillery(game,.1);}
  assert.equal(t.salvoFired,10);assert.equal(t.salvoLeft,0);
@@ -89,7 +134,9 @@ test('experimental shell slows, stuns ordinary combatants and makes a shootable 
  t.readyAt=0;t.ammo=3;
  const e={x:880,y:300,hp:900,maxHp:900,r:20,type:'flanker'};game.enemies=[e];
  game.time=.1;advanceFluxArtillery(game,.1);
- game.time=t.aimingUntil+.001;advanceFluxArtillery(game,.1);
+ for(let i=0;i<80&&world.contours.artilleryShells.length===0;i++){
+  game.time+=.05;advanceFluxArtillery(game,.05);
+ }
  const shell=world.contours.artilleryShells[0];
  game.time=shell.arriveAt+.01;advanceFluxArtillery(game,.1);
  assert.ok(e.tacticalSlowUntil>game.time);

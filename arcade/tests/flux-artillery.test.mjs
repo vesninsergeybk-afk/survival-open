@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {createContours,connectContour,contourFields} from '../territory-system.js';
-import {FLUX_ARTILLERY,ARTILLERY_MODES,artilleryOffer,artilleryConnection,
+import {FLUX_ARTILLERY,ARTILLERY_MODES,artilleryOffer,maxArtilleryPreload,artilleryConnection,
  artilleryLinks,deployArtillery,advanceFluxArtillery,chooseArtilleryAim,
  setArtilleryMode,validFluxArtillery,drawFluxArtillery,turnArtilleryGun} from '../flux-artillery.js';
 import {readControls,DEFAULT_CONTROLS} from '../control-layout.js';
@@ -26,6 +26,13 @@ const fixture=()=>{
   hitEnemyBase(b,value){b.hp=Math.max(b.maxHp*.2,b.hp-value);}};
  return {world,player,point,game};
 };
+function advanceUntilFirstShell(game,step=.05){
+ for(let i=0;i<120;i++){
+  game.time+=step;advanceFluxArtillery(game,step);
+  if(game.world.contours.artilleryShells.length)return game.world.contours.artilleryShells[0];
+ }
+ assert.fail('battery did not complete its turn, aim and first launch');
+}
 
 test('the builder is locked until the pilot personally clears the first contour',()=>{
  const {world,player,point}=fixture();world.contours.flux=20;
@@ -60,6 +67,80 @@ test('building consumes alloy and flux once, starts uncharged and observes place
  assert.equal(validFluxArtillery(world.contours),true);
  assert.match(artilleryOffer(world,player,point).reason,/Слишком близко к другому/);
  assert.match(artilleryOffer(world,player,{x:2000,y:2000}).reason,/далеко от корабля/);
+});
+
+test('player can buy zero, four or every affordable shell upfront without double spending flux',()=>{
+ const first=fixture();first.world.contours.trials.completed=1;first.world.contours.flux=3;
+ assert.equal(maxArtilleryPreload(first.world),8);
+ assert.equal(artilleryOffer(first.world,first.player,first.point,9).ok,false);
+ const loaded=deployArtillery(first.world,first.player,first.point,0,4);
+ assert.equal(loaded.ok,true);assert.equal(loaded.preload,4);
+ assert.equal(loaded.turret.ammo,4);assert.equal(loaded.turret.stockpile,0);
+ assert.equal(first.world.contours.flux,1);
+ assert.equal(validFluxArtillery(first.world.contours),true);
+ const second=fixture();second.world.contours.trials.completed=1;second.world.contours.flux=9;
+ const all=maxArtilleryPreload(second.world);
+ assert.equal(all,32);
+ const built=deployArtillery(second.world,second.player,second.point,0,all);
+ assert.equal(built.turret.ammo,15);assert.equal(built.turret.stockpile,17);
+ assert.equal(second.world.contours.flux,0);
+ assert.equal(validFluxArtillery(second.world.contours),true);
+ built.turret.readyAt=0;built.turret.ammo=0;
+ second.world.stations.get('B').suppressed=true;
+ second.game.time=1;advanceFluxArtillery(second.game,.05);
+ assert.equal(built.turret.ammo,15,'local paid reserve works without an active supply cable');
+ assert.equal(built.turret.stockpile,2);
+ const third=fixture();third.world.contours.trials.completed=1;third.world.contours.flux=1;
+ assert.equal(deployArtillery(third.world,third.player,third.point,0,0).turret.ammo,0);
+ assert.equal(third.world.contours.flux,0);
+});
+
+test('tracking refreshes a moving target before release instead of firing at its old position',()=>{
+ const {world,player,point,game}=fixture();world.contours.trials.completed=1;
+ world.contours.flux=2;
+ const turret=deployArtillery(world,player,point,0,4).turret;
+ turret.readyAt=0;
+ const enemy={x:1050,y:300,vx:0,vy:0,hp:1000,maxHp:1000,r:15};
+ game.enemies=[enemy];game.time=.05;advanceFluxArtillery(game,.05);
+ const original=turret.aimX;
+ enemy.x+=80;enemy.vx=65;
+ for(let i=0;i<5;i++){game.time+=.05;advanceFluxArtillery(game,.05);}
+ assert.ok(turret.aimX>original+80,'moving target and shell flight affect the current aim');
+ assert.equal(validFluxArtillery(world.contours),true);
+});
+
+test('one stock barrel fires three low-power paid shells at different locations',()=>{
+ const {world,player,point,game}=fixture();world.contours.trials.completed=1;
+ world.contours.flux=1.75;
+ const t=deployArtillery(world,player,point,0,3).turret;
+ assert.equal(t.ammo,3);assert.equal(world.contours.flux,0);
+ t.readyAt=0;game.enemies=[{x:1030,y:300,vx:0,vy:0,hp:1000,maxHp:1000,r:18}];
+ advanceUntilFirstShell(game);
+ for(let i=0;i<30&&t.salvoLeft;i++){
+  game.time+=.05;advanceFluxArtillery(game,.05);
+ }
+ const shells=world.contours.artilleryShells;
+ assert.equal(shells.length,3);assert.equal(t.ammo,0);
+ assert.equal(new Set(shells.map(s=>`${Math.round(s.targetX)},${Math.round(s.targetY)}`)).size,3,
+  JSON.stringify(shells.map(s=>({index:s.salvoIndex,x:s.targetX,y:s.targetY}))));
+ assert.ok(shells.every(s=>s.barrelIndex===0),'all three shells leave one real barrel');
+ assert.equal(validFluxArtillery(world.contours),true);
+});
+
+test('close-range defense cannot fire on empty flux and spends a paid charge when ready',()=>{
+ const {world,player,point,game}=fixture();world.contours.trials.completed=1;
+ world.contours.flux=1;
+ const turret=deployArtillery(world,player,point,0,0).turret;
+ turret.readyAt=0;
+ const target={x:point.x+130,y:point.y,vx:0,vy:0,hp:100,maxHp:100,r:15};
+ game.enemies=[target];game.time=.1;advanceFluxArtillery(game,.1);
+ assert.equal(game.damaged.length,0,'an empty tower must wait for actual flux delivery');
+ turret.ammo=3;game.time=.2;advanceFluxArtillery(game,.1);
+ assert.equal(game.damaged.length,0,'three main-salvo rounds are protected from close-range spending');
+ turret.ammo=4;game.time=.3;advanceFluxArtillery(game,.1);
+ assert.equal(game.damaged.length,1);
+ assert.equal(turret.ammo,3);
+ assert.equal(world.contours.flux,0);
 });
 
 test('cable anchors to a productive triangle edge, and broken links stop resupply',()=>{
@@ -123,7 +204,7 @@ test('shell flies visibly before its real area hit, even if the gun is destroyed
  const enemy={x:1030,y:300,hp:120,maxHp:120,r:20};game.enemies=[enemy];
  game.time=1;advanceFluxArtillery(game,.1);
  assert.ok(turret.aimingUntil>game.time);
- game.time=turret.aimingUntil+.01;advanceFluxArtillery(game,.1);
+ advanceUntilFirstShell(game);
  assert.equal(world.contours.artilleryShells.length,1);
  const shell=world.contours.artilleryShells[0];
  assert.ok(shell.arriveAt>shell.launchedAt);
@@ -159,7 +240,9 @@ test('artillery rotation is bounded, takes the shortest arc, and shells leave th
  const before=turret.gunAngle;
  game.time+=sixty;advanceFluxArtillery(game,sixty);
  assert.ok(Math.abs(turret.gunAngle-before)<=.06,'first tracking frame respects angular speed');
- for(let i=0;i<95;i++){game.time+=sixty;advanceFluxArtillery(game,sixty);}
+ for(let i=0;i<155&&world.contours.artilleryShells.length===0;i++){
+  game.time+=sixty;advanceFluxArtillery(game,sixty);
+ }
  assert.ok(world.contours.artilleryShells.length>0);
  const shell=world.contours.artilleryShells[0];
  assert.ok(Math.abs(Math.hypot(shell.startX-turret.x,shell.startY-turret.y)-
@@ -226,6 +309,20 @@ test('the asset and all live VFX phases render safely through the canvas API',()
  assert.ok(calls.some(call=>call.key==='setLineDash'),'telegraphed AoE is drawn');
  assert.ok(calls.filter(call=>call.key==='arc').length>15,
   'shell, energy packets, charge pulse, warning and explosion all draw');
+});
+
+test('selected artillery shows its actual targeting and blast radii on the battlefield',()=>{
+ const {world,game,player,point}=fixture();world.contours.trials.completed=1;
+ world.contours.flux=30;
+ const turret=deployArtillery(world,player,point,0).turret;
+ game.artilleryMenuTarget=turret;
+ const radii=[];
+ const ctx=new Proxy({}, {get:(obj,key)=>key in obj?obj[key]:
+  key==='createRadialGradient'?()=>({addColorStop(){}}):
+  key==='arc'?(_x,_y,r)=>radii.push(r):()=>{},
+  set:(obj,key,value)=>(obj[key]=value,true)});
+ drawFluxArtillery(ctx,game,{x:0,y:0,w:1500,h:1100});
+ assert.ok(radii.includes(740));assert.ok(radii.includes(110));
 });
 
 test('the chassis and rotating head keep identical pixel anchors through recoil, damage and wreckage',async()=>{

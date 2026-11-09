@@ -1,8 +1,8 @@
 import {artilleryLinks,artilleryConnection,edgeTurretOccupancy,edgeTurretLimit,ARTILLERY_MODES,FLUX_ARTILLERY,
- turnArtilleryGun} from './flux-artillery.js';
-import {arcChainCount,arcCooldown,arcSlowSeconds,laserEmitters,laserCooldown,
+ turnArtilleryGun} from './flux-artillery.js?v=turret-preload-20261109-1';
+import {arcChainCount,arcRange,arcCooldown,arcSlowSeconds,laserEmitters,laserCooldown,
  laserBurst,laserRange,hiveLimit,hiveRange,hiveArmor,supportSupply,turretBranchRank,
- validTurretBranches} from './turret-growth.js';
+ validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 
 // All three structures spend delivered flux. A nest pays for each replacement
@@ -162,8 +162,8 @@ function chargePacket(t,link,cfg,time,charges,kind){
   arriveAt:time+.55+travel/FLUX_ARTILLERY.packetSpeed,path:route};
 }
 function electricShot(game,t,cfg){
- const first=chooseTarget(game,t,cfg.range,t.mode);if(!first)return false;
- const pool=availableTargets(game,t,cfg.range),hits=[first];
+ const first=chooseTarget(game,t,arcRange(t),t.mode);if(!first)return false;
+ const pool=availableTargets(game,t,arcRange(t)),hits=[first];
  while(hits.length<arcChainCount(t)){
   const previous=hits.at(-1).object;
   const next=pool.filter(x=>!hits.some(hit=>hit.object===x.object)&&
@@ -323,7 +323,8 @@ export function advanceFluxSupports(game,dt){
    }
    continue;
   }
-  const target=chooseTarget(game,t,t.type==='laser'?laserRange(t):cfg.range,t.mode);
+  const target=chooseTarget(game,t,t.type==='laser'?laserRange(t):
+   t.type==='arc'?arcRange(t):cfg.range,t.mode);
   if(target){
    t.aimX=target.object.x;t.aimY=target.object.y;
    const angle=Math.atan2(t.aimY-t.y,t.aimX-t.x);
@@ -397,6 +398,19 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
   const live=t.hp>0,building=live&&now<t.readyAt;
   const age=live?0:Math.max(0,now-(t.lastDestroyedAt>=0?t.lastDestroyedAt:now));
   const link=live?artilleryConnection(t,edges):null;
+  const radius=t.type==='hive'?hiveRange(t):t.type==='laser'?laserRange(t):arcRange(t);
+  const old=game.turretRangeBefore;
+  const compare=old?.turret===t&&now<old.expires;
+  if(live&&((hover&&d(hover,t)<t.r+15)||game.artilleryMenuTarget===t||compare)){
+   ctx.save();ctx.lineWidth=2;
+   if(compare){ctx.setLineDash([9,7]);ctx.strokeStyle='rgba(140,179,205,.85)';
+    ctx.beginPath();ctx.arc(t.x,t.y,old.range,0,Math.PI*2);ctx.stroke();}
+   ctx.setLineDash([]);ctx.strokeStyle=t.type==='hive'?'#6af2cb':cfg.color;
+   ctx.beginPath();ctx.arc(t.x,t.y,radius,0,Math.PI*2);ctx.stroke();
+   ctx.fillStyle='#dcf7fa';ctx.font='bold 12px system-ui';ctx.textAlign='center';
+   ctx.fillText((t.type==='hive'?'Вылет ':'Дальность ')+radius,t.x,t.y+80);
+   ctx.restore();
+  }
   if(link){
    ctx.save();ctx.strokeStyle='rgba(76,188,215,.15)';ctx.lineWidth=8;
    ctx.beginPath();ctx.moveTo(link.attach.x,link.attach.y);ctx.lineTo(t.x,t.y);ctx.stroke();
