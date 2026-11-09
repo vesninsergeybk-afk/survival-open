@@ -6,7 +6,7 @@ import {CONTOURS,contourFields,contourArea,connectContour} from './territory-sys
 // It is not an independent free spawning economy. Only the five surveyed
 // regions advance, and only while the game simulation advances.
 export const EXPANSION=Object.freeze({interval:85,firstAt:90,cycle:180,cost:2,
- maxLinks:180,maxFields:90});
+ maxLinks:1200,maxFields:600});
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const key=(a,b)=>[a,b].sort().join('|');
 const hostile=s=>!!s?.enemy&&!s.captured&&!s.suppressed&&s.hp>0;
@@ -55,7 +55,10 @@ function choosePlan(world,fronts,links){
  for(const front of fronts){
   if(!canInvest(front))continue;
   for(const region of REGIONS.filter(r=>front.regions.includes(r.id))){
-   const nodes=[...world.stations.values()].filter(s=>hostile(s)&&
+   // Dense civilian-colony sites have their own territorial triangles.
+   // Strategic expansion plans use the authored military front nodes;
+   // enumerating all 1,500 industrial structures would be cubic work.
+   const nodes=[...world.stations.values()].filter(s=>hostile(s)&&!s.colonyId&&
     regionAt(s.x,s.y).id===region.id&&dist(s,region.survey)<6500);
    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
     const a=nodes[i],b=nodes[j];if(dist(a,b)>CONTOURS.maxLength)continue;
@@ -79,6 +82,35 @@ function choosePlan(world,fronts,links){
   a.front.localeCompare(b.front)||a.ids.join('|').localeCompare(b.ids.join('|')));
  const chosen=options[0];
  return chosen?{front:chosen.front,region:chosen.region,ids:chosen.ids}:null;
+}
+
+// The industrial civilization keeps claiming ground even where authored
+// military fronts have no affordable strategic triangle left. Each new link
+// consumes real stock from its local colony, replenished by physical cargo.
+function expandIndustrialDistrict(world,state,time){
+ if(!world.population?.colonies?.length)return null;
+ const links=new Set(state.links.map(([a,b])=>key(a,b)));
+ const candidates=[];
+ for(const colony of world.population.colonies){
+  if(colony.pool<EXPANSION.cost+9)continue;
+  const ids=['extractor','factory','relay'].map(role=>colony.id+':'+role);
+  if(!ids.every(id=>hostile(world.stations.get(id))))continue;
+  const missing=[[ids[0],ids[1]],[ids[1],ids[2]],[ids[2],ids[0]]]
+   .filter(([a,b])=>!links.has(key(a,b)));
+  if(!missing.length)continue;
+  candidates.push({colony,missing});
+ }
+ if(!candidates.length)return null;
+ const started=candidates.filter(c=>c.missing.length<3);
+ const pool=started.length?started:candidates;
+ const target=pool[Math.floor(time/EXPANSION.interval)%pool.length];
+ const {colony,missing}=target,[a,b]=missing[0],sa=world.stations.get(a),sb=world.stations.get(b);
+ colony.pool-=EXPANSION.cost;state.spent+=EXPANSION.cost;
+ state.links.push([a,b,'home']);
+ return {kind:missing.length===1?'claim':'link',front:'home',region:colony.region,
+  paidBy:'colony',colonyId:colony.id,
+  a,b,x:(sa.x+sb.x)/2,y:(sa.y+sb.y)/2,
+  witnessed:sa.discovered&&sb.discovered,at:time};
 }
 
 export function enemyExpansionPlan(world){
@@ -119,6 +151,12 @@ export function advanceEnemyExpansion(world,time){
  }
  if(time<state.nextAt||state.links.length>=EXPANSION.maxLinks)return events;
  state.nextAt=time+EXPANSION.interval;
+ const industrial=expandIndustrialDistrict(world,state,time);
+ if(industrial){
+  events.push(industrial);
+  state.events=events.concat(state.events).slice(0,8);
+  return events;
+ }
  const fronts=warFronts(world);
  if(!planValid(world,state.plan)||
   !canInvest(fronts.find(f=>f.key===state.plan?.front)))state.plan=null;
