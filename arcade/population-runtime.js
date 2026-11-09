@@ -2,7 +2,7 @@ import {RULES,hash} from './balance.js';
 import {ENEMY_TYPES} from './ai.js';
 import {contourFields} from './territory-system.js';
 import {POPULATION,advancePopulation,populationAlarm,
- updatePopulationMiners} from './world-population.js';
+ updatePopulationMiners} from './world-population.js?v=sector-density-2';
 
 const TAU=Math.PI*2;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -109,7 +109,11 @@ export function updatePopulationWorld(game,dt){
  // Pure-economy and world-map callers have no camera or active combat loop.
  // They still advance production and alarms, but never materialize ships.
  if(typeof game.camera!=='function'||!Array.isArray(game.enemies))return;
- const cam=game.camera(),limit=Math.min(RULES.maxEnemies,POPULATION.activeLimit);
+ // Leave tactical headroom for paid authored raids, especially in a level-1
+ // run. Higher-level pilots can face the full 160-ship hostile contact bubble.
+ const stage=Math.max(1,Number(game.player?.level)||1);
+ const cam=game.camera(),limit=Math.min(RULES.maxEnemies,
+  POPULATION.activeLimit,18+8*(stage-1));
  if(game.enemies.length<limit){
   const candidates=[];
   for(const c of state.colonies)for(const sortie of c.sorties){

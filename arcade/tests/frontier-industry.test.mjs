@@ -147,8 +147,9 @@ test('funded patrols warn before spawning, respect director capacity, and have d
   assert.equal(spawnFrontierRaid(g,director),false,'warning must not be skipped');
   g.time=s.pendingRaid.readyAt;
   assert.equal(spawnFrontierRaid(g,{...director,cap:1}),false,'never break the live cap');
+  const existing=g.enemies.length;
   assert.ok(spawnFrontierRaid(g,director),'one normal wave plus one financed specialist');
-  assert.equal(g.enemies.length,director.groupSize+1);
+  assert.equal(g.enemies.length-existing,director.groupSize+1);
   const specialist=g.enemies.filter(e=>e.frontierRole===id);
   assert.equal(specialist.length,1);
   assert.equal(specialist[0].type,FRONTIERS[id].reinforcement);

@@ -1,14 +1,14 @@
-import {amberRegion} from './regions.js?v=regions-1-living-world-population-1';
+import {amberRegion} from './regions.js?v=regions-1-living-world-population-1-sector-density-2';
 import {STRATEGIC_STATIONS,createRegionalSupply} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {CENTRAL_STATIONS} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {FRONTIER_STATIONS} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1-territory-war-1';
 import {RULES, hash, dist, baseNames} from './balance.js?v=arcade-network-20-pressure-response-1';
 import {amberBeltDensity,nearAmberBelt,inAmberCorridor} from './terrain.js?v=arcade-belt-26';
 import {createContours,fieldAt} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1-triangle-defense-1';
-import {createEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1';
+import {createEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
 import {POPULATION,createPopulation,ensurePopulationStations,
- nearbyPopulationStations,seedPopulationTerritory} from './world-population.js';
-import {createSpaceAnomalies} from './space-anomalies.js';
+ nearbyPopulationStations,seedPopulationTerritory} from './world-population.js?v=sector-density-2';
+import {createSpaceAnomalies} from './space-anomalies.js?v=sector-density-2';
 import {moveRockOutOfCore} from './core-rock-clearance.js';
 const BASE_CELL = 1250;
 export const RELAY_RANGE = 1450;

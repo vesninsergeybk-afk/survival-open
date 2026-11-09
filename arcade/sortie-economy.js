@@ -1,6 +1,6 @@
 import {MODULES,slotOpen} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-menu-focus-1';
 import {emptySortieDetails,detailsForSave,validDetails} from './sortie-ledger.js?v=economy-ledger-1';
-import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
+import {validStationId} from './station-ids.js?v=living-world-checkpoint-1-sector-density-2';
 
 // A sortie begins when the player actually leaves a station. Checkpoints are
 // station-only: the baseline never needs to be saved halfway through a flight.

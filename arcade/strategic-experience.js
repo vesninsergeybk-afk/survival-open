@@ -1,5 +1,5 @@
 import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1-triangle-defense-1';
-import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
+import {validStationId} from './station-ids.js?v=living-world-checkpoint-1-sector-density-2';
 
 // Finite additions to the existing combat/contract XP economy. The third
 // progression pass will simulate level pacing before changing the XP curve.

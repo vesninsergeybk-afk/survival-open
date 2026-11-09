@@ -22,20 +22,35 @@ const canvas=()=>new Proxy({globalAlpha:1}, {get(target,name){
  return ()=>{};
 },set(target,key,value){target[key]=value;return true;}});
 
-test('thirty seeded colonies contain 150 individual stations, existing territories and finite frontier',()=>{
+test('300 seeded colonies contain 1500 individual stations, existing territories and finite frontier',()=>{
  const a=new World(20261109),b=new World(20261109);
- assert.equal(a.population.colonies.length,30);
- assert.equal(a.populationStations.length,150);
- assert.equal(a.enemyExpansion.links.length,45);
+ assert.equal(a.population.colonies.length,300);
+ assert.equal(a.populationStations.length,1500);
+ assert.equal(a.enemyExpansion.links.length,312);
  assert.equal(a.population.colonies.filter(c=>c.fortress).length,4);
  assert.deepEqual(a.population.colonies.map(c=>[round(c.x),round(c.y)]),
   b.population.colonies.map(c=>[round(c.x),round(c.y)]));
- assert.equal(a.nearbyStations(0,0,POPULATION.radius*2).filter(s=>s.colonyId).length,150);
+ assert.equal(a.nearbyStations(0,0,POPULATION.radius*2).filter(s=>s.colonyId).length,1500);
  assert.equal(a.station(100,100),null);
  assert.equal(a.rockCell(250,250).length,0);
  for(const c of a.population.colonies)for(const building of c.buildings)
   assert.ok(a.stations.has(building.id));
  assert.ok(validPopulation(a.population,[...a.stations],0));
+});
+
+test('every long radial flight intersects inhabited or hazardous space without vast empty corridors',()=>{
+ for(const seed of [20261102,20261109]){
+  const world=new World(seed),sites=[...world.population.colonies,...world.anomalies];
+  for(let bearing=0;bearing<12;bearing++){
+   const a=bearing*Math.PI/6;let gap=0,maxGap=0;
+   for(let r=1000;r<=POPULATION.radius;r+=1000){
+    const x=Math.cos(a)*r,y=Math.sin(a)*r;
+    const nearby=sites.some(p=>Math.hypot(x-p.x,y-p.y)<3500);
+    gap=nearby?0:gap+1;maxGap=Math.max(maxGap,gap);
+   }
+   assert.ok(maxGap<=8,`seed ${seed}, bearing ${bearing*30}: ${maxGap} km of empty flight`);
+  }
+ }
 });
 
 test('every industry spends finite ore, launches physical cargo and converts delivered loads into ships',()=>{
@@ -47,7 +62,7 @@ test('every industry spends finite ore, launches physical cargo and converts del
  assert.ok(population.colonies.some(c=>c.produced>60));
  assert.ok(population.colonies.some(c=>c.delivered>0&&c.built>0));
  assert.ok(population.colonies.every(c=>c.ore<=POPULATION.oreCapacity&&c.ready<=POPULATION.maxReserve));
- assert.ok(population.convoys.length<=POPULATION.activeLimit);
+ assert.ok(population.convoys.length<=POPULATION.convoyLimit);
  assert.ok(validPopulation(population,[...world.stations],180));
  const snapshot=JSON.stringify(population);
  advancePopulation(world,180);
@@ -139,7 +154,7 @@ test('citadel hulls ignore ship attacks, but two artillery-exposed shield sector
 
 test('anomalies are seeded, warned, renderable and cause actual reversible environmental effects',()=>{
  const world=new World(20261109),fields=world.anomalies;
- assert.equal(fields.length,25);
+ assert.equal(fields.length,250);
  assert.deepEqual(fields,createSpaceAnomalies(20261109));
  const gravity=fields.find(f=>f.type==='gravity');
  const g=gameAt(world,gravity.x+240,gravity.y,40);
