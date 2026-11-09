@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
-import {createContours,connectContour} from '../territory-system.js';
+import {createContours,connectContour,contourFields} from '../territory-system.js';
 import {FLUX_ARTILLERY,ARTILLERY_MODES,artilleryOffer,artilleryConnection,
  artilleryLinks,deployArtillery,advanceFluxArtillery,chooseArtilleryAim,
  setArtilleryMode,validFluxArtillery,drawFluxArtillery,turnArtilleryGun} from '../flux-artillery.js';
@@ -34,6 +34,18 @@ test('the builder is locked until the pilot personally clears the first contour'
  assert.equal(world.contours.artillery.length,0);
  world.contours.trials.completed=1;
  assert.equal(artilleryOffer(world,player,point).ok,true);
+});
+
+test('the published artillery laboratory has a genuinely productive playable triangle',()=>{
+ const lab=readFileSync(new URL('../studio/flux-artillery-lab.html',import.meta.url),'utf8');
+ const stations=[...lab.matchAll(/\['([ABC])',(-?\d+),(-?\d+)\]/g)].slice(0,3);
+ assert.equal(stations.length,3,'laboratory fixture must expose three actual station coordinates');
+ const world={stations:new Map(stations.map(([,id,x,y])=>[id,{id,x:+x,y:+y,
+  active:true,enemy:false,suppressed:false,turrets:[]}])),contours:createContours()};
+ for(const [a,b] of [['A','B'],['B','C'],['C','A']])assert.ok(connectContour(world,a,b).ok);
+ assert.ok(contourFields(world).length,'a visible triangle below the minimum area cannot power a turret');
+ world.contours.trials.completed=1;world.contours.flux=250;
+ assert.equal(deployArtillery(world,{x:320,y:340,ore:999},{x:485,y:316},0).ok,true);
 });
 
 test('building consumes alloy and flux once, starts uncharged and observes placement rules',()=>{

@@ -40,7 +40,8 @@ const canvas=document.getElementById('stage'),ctx=canvas.getContext('2d',{alpha:
 const status=document.getElementById('status');
 const random=(n)=>{const v=Math.sin(n*119.73+17.34)*43758.5453;return v-Math.floor(v)};
 const stars=Array.from({length:170},(_,i)=>({x:random(i)*960,y:random(i+300)*590,r:.45+random(i+500)*1.05}));
-const stations=new Map([['A',100,82],['B',857,86],['C',495,564]].map(([id,x,y])=>[id,{id,x,y,active:true,enemy:false,suppressed:false,type:'dock',turrets:[]}]));
+// Actual productive fields require at least 200,000 square world units.
+const stations=new Map([['A',100,25],['B',857,25],['C',495,564]].map(([id,x,y])=>[id,{id,x,y,active:true,enemy:false,suppressed:false,type:'dock',turrets:[]}]));
 const world={stations,contours:createContours(),nearbyStations(x,y,r){return [...stations.values()].filter(s=>Math.hypot(s.x-x,s.y-y)<r);}};
 for(const [a,b] of [['A','B'],['B','C'],['C','A']])connectContour(world,a,b);
 world.contours.trials.completed=1;
@@ -72,7 +73,7 @@ function field(){
  ctx.fillStyle=halo;ctx.fillRect(0,0,960,590);
  for(const star of stars){ctx.fillStyle=`rgba(165,217,242,${.28+.18*Math.sin(game.time*.4+star.x)})`;
   ctx.beginPath();ctx.arc(star.x,star.y,star.r,0,Math.PI*2);ctx.fill();}
- ctx.fillStyle='rgba(24,100,119,.07)';ctx.beginPath();ctx.moveTo(100,82);ctx.lineTo(857,86);ctx.lineTo(495,564);ctx.closePath();ctx.fill();
+ ctx.fillStyle='rgba(24,100,119,.07)';ctx.beginPath();ctx.moveTo(100,25);ctx.lineTo(857,25);ctx.lineTo(495,564);ctx.closePath();ctx.fill();
  const edges=[['A','B'],['B','C'],['C','A']];
  for(const [a,b] of edges){const p=stations.get(a),q=stations.get(b);
   ctx.strokeStyle='rgba(49,160,196,.16)';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();
