@@ -1,0 +1,63 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {ArcadeGame} from './runtime-game.mjs';
+import {CAMERA_ZOOM,flightCamera,flightZoomKey,stepCameraZoom,
+ wheelCameraZoom,pointerInFlightWorld} from '../camera-zoom.js';
+
+const near=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-7,`${actual} != ${expected}`);
+
+test('camera keeps the ship in the centre while zoom changes only visible world area',()=>{
+ const player={x:430,y:-165};
+ for(const zoom of [CAMERA_ZOOM.min,.72,1,1.35,CAMERA_ZOOM.max]){
+  const camera=flightCamera(player,1200,800,zoom);
+  near(camera.x+camera.w/2,player.x);
+  near(camera.y+camera.h/2,player.y);
+  near(camera.w,1200/zoom);
+  near(camera.h,800/zoom);
+  const rect={left:50,top:80,width:600,height:400};
+  assert.deepEqual(pointerInFlightWorld(rect,camera,350,280),player);
+  const p=pointerInFlightWorld(rect,camera,500,180);
+  near((p.x-camera.x)/camera.w*rect.width+rect.left,500);
+  near((p.y-camera.y)/camera.h*rect.height+rect.top,180);
+ }
+ assert.equal(pointerInFlightWorld({width:0,height:800},flightCamera(player,1200,800),0,0),null);
+});
+
+test('plus, minus and both numeric keypad buttons work without hijacking remapped keys',()=>{
+ assert.equal(flightZoomKey('Equal'),1);
+ assert.equal(flightZoomKey('Minus'),-1);
+ assert.equal(flightZoomKey('NumpadAdd'),1);
+ assert.equal(flightZoomKey('NumpadSubtract'),-1);
+ assert.equal(flightZoomKey('Equal',{fire:'Equal'}),0);
+ assert.equal(flightZoomKey('KeyW'),0);
+ near(stepCameraZoom(stepCameraZoom(1,1),-1),1);
+ assert.equal(stepCameraZoom(CAMERA_ZOOM.max,1),CAMERA_ZOOM.max);
+ assert.equal(stepCameraZoom(CAMERA_ZOOM.min,-1),CAMERA_ZOOM.min);
+});
+
+test('Ctrl+wheel changes view gradually with bounded deltas; ordinary wheel still selects guns',()=>{
+ assert.ok(wheelCameraZoom(1,120)<1);
+ assert.ok(wheelCameraZoom(1,-120)>1);
+ assert.ok(wheelCameraZoom(1,1,1)<1);
+ assert.equal(wheelCameraZoom(1,0),1);
+ assert.equal(wheelCameraZoom(1,Infinity),1);
+ assert.equal(wheelCameraZoom(1,100000),wheelCameraZoom(1,180));
+ const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ assert.match(source,/if\(e\.ctrlKey\)\{\s*e\.preventDefault\(\);\s*this\.setCameraZoom\(wheelCameraZoom/);
+ assert.match(source,/this\.switchManualWeapon\(e\.deltaY>0\?1:-1\)/);
+});
+
+test('live camera zoom does not expand the spawning camera or screen-range hacking',()=>{
+ const game=Object.create(ArcadeGame.prototype);
+ game.player={x:1234,y:5678};game.vw=1200;game.vh=800;game.cameraZoom=.55;
+ const visual=game.camera(),spawn=game.spawnCamera();
+ assert.ok(visual.w>spawn.w&&visual.h>spawn.h);
+ assert.equal(spawn.w,1200);
+ assert.equal(spawn.h,800);
+ assert.deepEqual(game.player, {x:1234,y:5678});
+ const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ assert.match(source,/const charge=this\.hacks\.shift\(\),cam=this\.spawnCamera\(\)/);
+ assert.match(source,/const group=\+\+this\.groupSerial,cam=this\.spawnCamera\(\)/);
+ assert.match(source,/c\.scale\(this\.cameraZoom,this\.cameraZoom\)/);
+});

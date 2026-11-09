@@ -333,7 +333,7 @@ export function spawnFrontierRaid(game,director){
  const pause=game.spawnGroup(director);
  if(game.enemies.length<=before||game.enemies.length>=cap)return false;
  const retaliating=Boolean(emergencyReady),origin=retaliating?cfg.source:cfg.depot;
- const cam=game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
+ const cam=game.spawnCamera?.()||game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
  const side=Math.abs(dx)>Math.abs(dy)?(dx>0?1:0):(dy>0?3:2);
  ++game.groupSerial;
  const pos=spawnOutside(cam,side,.5,170);
@@ -371,7 +371,7 @@ export function spawnCentralRaid(game,director){
   game.enemies.length+ambientRoom+HOME_CONFLICT.raidShips>limit)return false;
  const ambientRecovery=ambientRoom>0?game.spawnGroup(director):0;
  if(game.enemies.length+HOME_CONFLICT.raidShips>limit)return false;
- const cam=game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
+ const cam=game.spawnCamera?.()||game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
  const side=Math.abs(dx)>Math.abs(dy)?(dx>0?1:0):(dy>0?3:2);
  ++game.groupSerial;
  let lead=null;
@@ -402,7 +402,7 @@ export function spawnRegionalRaid(game,director){
  const before=game.enemies.length;
  const pause=game.spawnGroup(director);
  if(game.enemies.length<=before||game.enemies.length>=Math.min(RULES.maxEnemies,director.cap))return false;
- const cam=game.camera(),origin=game.world.stations.get(SUPPLY.militaryId);
+ const cam=game.spawnCamera?.()||game.camera(),origin=game.world.stations.get(SUPPLY.militaryId);
  const dx=origin.x-game.player.x,dy=origin.y-game.player.y;
  const side=Math.abs(dx)>Math.abs(dy)?(dx>0?1:0):(dy>0?3:2);
  ++game.groupSerial;

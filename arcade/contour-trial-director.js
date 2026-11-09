@@ -30,7 +30,7 @@ function spawnTrialWave(game,event){
  delete event.blockedSince;
  event.waitingForSpace=false;
  event.waveIndex++;
- const group=++game.groupSerial,cam=game.camera();let i=0,scoutCount=0;
+ const group=++game.groupSerial,cam=game.spawnCamera?.()||game.camera();let i=0,scoutCount=0;
  event.waveIds=[];event.waveTemplates=new Map();event.defeatedIds??=new Set();
  event.required=trialQuota(total,event.plan.tier);
  event.waveStartedAt=game.time;
@@ -202,7 +202,7 @@ export function updateContourTrials(game,dt){
   if(!enemy){
    const original=event.waveTemplates?.get(serial);
    if(!original)continue;
-   const cam=game.camera(),side=(serial+event.entry.id)%4;
+   const cam=game.spawnCamera?.()||game.camera(),side=(serial+event.entry.id)%4;
    const pos=spawnOutside(cam,side,.2+((serial*7)%11)/18,125);
    game.enemies.push({...original,...pos,vx:0,vy:0,hp:original.maxHp,
     think:.15,fire:.65,state:'hunt',entryPortalPending:false});

@@ -65,6 +65,7 @@ import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,cr
  advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1-mission-choices-1';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1-mission-choices-1-control-audit-1-enemy-growth-1-flux-build-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
+import {clampCameraZoom,flightCamera,flightZoomKey,stepCameraZoom,wheelCameraZoom,pointerInFlightWorld} from './camera-zoom.js?v=flight-zoom-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue,relayWavePlan,
  relayAttacker,relayPrepInteraction,relayIncomingTargets} from './relay-defense.js?v=station-operations-2-ops-audit-2-mission-choices-1';
@@ -296,6 +297,7 @@ export class ArcadeGame {
   this.amberBeltSeen=false;this.ionFieldSeen=false;
    this.renderScale=1;this.qualityTimer=0;
   this.messageUntil=0;this.worldFeedback={history:[],pending:[],serial:0};this.vw=1200;this.vh=800;
+  this.cameraZoom=1;
   this.worldVisualLast=-Infinity;this.cachedWorldLinks=[];
   this.contourVisualAt=-Infinity;this.contourVisualFields=null;this.lastContourNoticeAt=-Infinity;
   this.cachedNetworkLinked=new Set();this.cachedTarget=null;
@@ -342,7 +344,21 @@ export class ArcadeGame {
   this.canvas.style.width=w+'px';this.canvas.style.height=h+'px';
   this.ctx.setTransform(this.canvas.width/this.vw,0,0,this.canvas.height/this.vh,0,0);
  }
- camera(){return {x:this.player.x-this.vw/2,y:this.player.y-this.vh/2,w:this.vw,h:this.vh};}
+ camera(){return flightCamera(this.player,this.vw,this.vh,this.cameraZoom);}
+ // Spawn lanes and screen-wide weapons retain their original world radius.
+ spawnCamera(){return this.vw>0&&this.vh>0?
+  flightCamera(this.player,this.vw,this.vh):this.camera();}
+ setCameraZoom(next){
+  const zoom=clampCameraZoom(next);
+  if(Math.abs(zoom-this.cameraZoom)<.0001)return false;
+  this.cameraZoom=zoom;
+  this.worldQueryClock=0;
+  this.pausedRenderPending=true;
+  const label=$('zoomStatus');
+  if(label){label.hidden=Math.abs(zoom-1)<.005;
+   label.textContent='Обзор · '+Math.round(zoom*100)+'%';}
+  return true;
+ }
  openBuildPlanner(){
   if(this.dead||this.paused||!this.overlay.hidden)return false;
   if(!(this.world.contours?.trials?.completed>0)){
@@ -570,6 +586,12 @@ export class ArcadeGame {
    // Game commands never pass through a modal screen.
    if(!this.overlay.hidden)return;
    if(e.target?.closest?.('input,textarea,select,button,summary,a'))return;
+   const zoomDirection=flightZoomKey(e.code,this.controls);
+   if(zoomDirection){
+    e.preventDefault();
+    if(!e.repeat&&!this.dead)this.setCameraZoom(stepCameraZoom(this.cameraZoom,zoomDirection));
+    return;
+   }
    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',...Object.values(this.controls)].includes(e.code)||
       isMapShortcut(e.code,this.controls))e.preventDefault();
    if(!e.repeat){
@@ -1042,8 +1064,7 @@ export class ArcadeGame {
   // available on LMB by cycling manual weapons with the mouse wheel.
   const worldAt=(x,y)=>{
    const rect=this.canvas.getBoundingClientRect(),cam=this.camera();
-   return rect.width&&rect.height?{x:cam.x+(x-rect.left)/rect.width*cam.w,
-    y:cam.y+(y-rect.top)/rect.height*cam.h}:null;
+   return pointerInFlightWorld(rect,cam,x,y);
   };
   let aimStart=null,longPressTimer=null;
   const cancelLongPress=()=>{if(longPressTimer!==null){clearTimeout(longPressTimer);longPressTimer=null;}};
@@ -1128,7 +1149,13 @@ export class ArcadeGame {
    this.fireSelectedManualAt(worldPoint);
   });
   this.canvas?.addEventListener('wheel',e=>{
-   if(this.dead||this.paused||!this.overlay.hidden||this.mouseAim||!this.manualWeaponsHere().length)return;
+   if(this.dead||this.paused||!this.overlay.hidden)return;
+   if(e.ctrlKey){
+    e.preventDefault();
+    this.setCameraZoom(wheelCameraZoom(this.cameraZoom,e.deltaY,e.deltaMode,window.innerHeight));
+    return;
+   }
+   if(this.mouseAim||!this.manualWeaponsHere().length)return;
    // Without multiple manual mounts the wheel remains free for the page.
    if(this.manualWeaponsHere().length<2)return;
    e.preventDefault();this.switchManualWeapon(e.deltaY>0?1:-1);
@@ -2963,7 +2990,8 @@ export class ArcadeGame {
   if(this.firstHardwareReward==null&&[...this.world.stations.values()].some(b=>
    (b.contractRuns||0)>0||b.contractClaimed||b.completedContract))this.firstHardwareReward='pending';
   this.visuals.updateSky(this.player.x,this.player.y);
-  this.nearRocks=this.world.nearbyRocks(this.player.x,this.player.y,Math.max(this.vw,this.vh)*.85+450);
+  const visible=this.camera();
+  this.nearRocks=this.world.nearbyRocks(this.player.x,this.player.y,Math.max(visible.w,visible.h)*.85+450);
   this.localStations=this.world.nearbyStations(this.player.x,this.player.y,1000,false);
   this.grid?.clear();this.shotGrid?.clear();this.rockGrid?.clear();
   for(const rock of this.nearRocks)if(rock.alive)this.rockGrid?.insert(rock);
@@ -3568,9 +3596,7 @@ export class ArcadeGame {
   const pointer=this.tacticalPointer;
   if(!pointer)return tacticalAim(this.player,null);
   const rect=this.canvas?.getBoundingClientRect?.(),cam=this.camera();
-  if(!rect?.width||!rect?.height)return tacticalAim(this.player,null);
-  return {x:cam.x+(pointer.x-rect.left)/rect.width*cam.w,
-   y:cam.y+(pointer.y-rect.top)/rect.height*cam.h};
+  return pointerInFlightWorld(rect,cam,pointer.x,pointer.y)||tacticalAim(this.player,null);
  }
  callTacticalField(){
   if(this.dead||this.paused||!this.overlay.hidden)return false;
@@ -3776,7 +3802,7 @@ export class ArcadeGame {
  hack(){
   if(this.dead)return;
   if(!this.hacks.length){this.notice('Нужен код захваченной вражеской базы',2);return;}
-  const charge=this.hacks.shift(),cam=this.camera();
+  const charge=this.hacks.shift(),cam=this.spawnCamera();
   let count=0;
   for(const e of this.enemies){
    if(e.hp<=0||e.converted||e.type==='gunship')continue;
@@ -4201,7 +4227,7 @@ export class ArcadeGame {
     Math.random(),noiseSignal?'':this.lastEncounter);
   if(!plan.members.length)return 0;
   if(!noiseSignal)this.lastEncounter=plan.pattern;
-  const group=++this.groupSerial,cam=this.camera(),created=[];
+  const group=++this.groupSerial,cam=this.spawnCamera(),created=[];
   const intelSource=noiseSignal;
   const strongholdTier=Math.max(1,Math.min(5,director.strongholdTier||1));
   const industrialTech=Math.max(0,Math.min(3,director.industrialTech||0));
@@ -4509,7 +4535,8 @@ export class ArcadeGame {
   // after travel or a short interval instead of traversing world cells each AI tick.
   this.worldQueryClock-=dt;
   if(this.worldQueryClock<=0||Math.hypot(p.x-this.worldQueryX,p.y-this.worldQueryY)>75){
-   this.nearRocks=this.world.nearbyRocks(p.x,p.y,Math.max(this.vw,this.vh)*.85+450);
+   const visible=this.camera();
+   this.nearRocks=this.world.nearbyRocks(p.x,p.y,Math.max(visible.w,visible.h)*.85+450);
    let discoveredXp=0;const friendlyFinds=[];let exploredCount=0;
    for(const b of this.world.discover(p.x,p.y,570+this.skillRanks.radar*190)){
     if(this.waypoint?.id===b.id)this.waypoint={id:b.id,x:b.x,y:b.y,label:b.title||baseNames[b.type]};
@@ -5248,16 +5275,15 @@ export class ArcadeGame {
   const c=this.ctx,p=this.player,cam=this.camera();
   if(this.mouseAim){
    const rect=this.canvas.getBoundingClientRect();
-   if(rect.width&&rect.height)this.mouseAim.point={
-    x:cam.x+(this.mouseAim.clientX-rect.left)/rect.width*cam.w,
-    y:cam.y+(this.mouseAim.clientY-rect.top)/rect.height*cam.h};
+   this.mouseAim.point=pointerInFlightWorld(rect,cam,this.mouseAim.clientX,this.mouseAim.clientY)||this.mouseAim.point;
   }
   c.setTransform(this.canvas.width/this.vw,0,0,this.canvas.height/this.vh,0,0);
   // Keep full-screen nebula in CSS compositor instead of resampling per Canvas frame.
   c.clearRect(0,0,this.vw,this.vh);
-  this.visuals.drawAtmosphere(c,cam,this.time,this.fps);
+  this.visuals.drawAtmosphere(c,this.spawnCamera(),this.time,this.fps);
   // Deterministic fixed stars: no allocations or scrolling canvas buffers.
-  c.save();c.translate(-cam.x,-cam.y);
+  c.save();c.translate(this.vw/2,this.vh/2);c.scale(this.cameraZoom,this.cameraZoom);
+  c.translate(-p.x,-p.y);
   drawRegionalWorld(this,c,cam);
   drawHowitzerAim(c,this.heavyCharge);
   const grid=260;
