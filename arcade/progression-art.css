@@ -37,7 +37,7 @@
 #overlay .prog-domain:hover{filter:none;background:#203c49!important;border-color:#82a1ae!important}
 #overlay .prog-workspace{min-width:0;padding:15px 17px 18px;background:#0f202c;box-shadow:none}
 #overlay .prog-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(295px,30%);column-gap:14px;align-content:start}
-#overlay .prog-workspace-head,#overlay .prog-subtabs,#overlay .prog-weapon-summary,#overlay .prog-ledger{grid-column:1/-1}
+#overlay .prog-workspace-head,#overlay .prog-subtabs,#overlay .prog-weapon-summary,#overlay .prog-weapon-guidance,#overlay .prog-ledger{grid-column:1/-1}
 #overlay .prog-graph{grid-column:1;min-width:0}
 #overlay .prog-detail{grid-column:2;margin-top:0}
 #overlay .prog-workspace-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px;border-bottom:1px solid #415f6e;padding-bottom:10px}
@@ -53,11 +53,25 @@
 #overlay .prog-subtabs button.is-manual{border-color:#46768a!important;background:#122f3f!important}
 #overlay .prog-subtabs button[aria-pressed=true]{color:#ffe1b4;border-color:#a98357!important;
  background:#302c28!important;text-shadow:none}
+#overlay .prog-subtabs button.is-installed:not([aria-pressed=true]){border-color:#4a938d!important;background:#16363d!important}
+#overlay .prog-subtabs button.is-absent:not([aria-pressed=true]){color:#a7b8c1;opacity:.84}
+#overlay .prog-subtabs button .prog-subtab-copy{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left}
+#overlay .prog-subtabs button .prog-subtab-copy strong{font-size:12px;font-weight:720;color:inherit}
+#overlay .prog-subtabs button .prog-subtab-copy small{font-size:10px;font-weight:650;color:#9eb5c1}
+#overlay .prog-subtabs button.is-installed .prog-subtab-copy small{color:#9de5c5}
+#overlay .prog-subtabs button[aria-pressed=true] .prog-subtab-copy small{color:#f7d4a3}
 #overlay .prog-weapon-summary{display:flex;align-items:center;gap:11px;min-height:62px;margin:1px 0 10px;padding:5px 12px;background:#041322a1;
  border:1px solid #31577580;border-radius:7px}
 #overlay .prog-weapon-summary img{width:48px;height:48px;object-fit:contain}
 #overlay .prog-weapon-summary strong{font-size:13px;color:#ddfaff;display:block}
 #overlay .prog-weapon-summary span{font-size:11px;color:#a8c1d1;display:block;margin-top:4px}
+#overlay .prog-weapon-summary .prog-weapon-heading{min-width:0}
+#overlay .prog-weapon-summary .prog-weapon-heading>small{display:block;color:#91aeba;font-size:10px;font-weight:750;letter-spacing:.075em;margin-bottom:2px}
+#overlay .prog-weapon-summary .prog-weapon-state{font-size:12px;font-weight:780;color:#8de3bf}
+#overlay .prog-weapon-summary[data-installed=false]{border-color:#876d51;background:#29271fa8}
+#overlay .prog-weapon-summary[data-installed=false] .prog-weapon-state{color:#ffd29f}
+#overlay .prog-weapon-guidance{margin:-4px 0 12px;color:#b9d0dc;font-size:12px;line-height:1.45}
+#overlay .prog-weapon-summary[data-installed=false]+.prog-weapon-guidance{color:#f0c9a2}
 #overlay .prog-graph{overflow:hidden;border:1px solid #405f6d;border-radius:7px;background:#0b1c28}
 #overlay .prog-graph-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:5px 15px;
  padding:13px 17px 10px;border-bottom:1px solid #365564;background:#102633}

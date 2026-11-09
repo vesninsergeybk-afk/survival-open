@@ -47,6 +47,48 @@ test('the progression atlas spends exactly one real point on a general weapon up
  assert.equal(g.skillRanks.beam,1);
 });
 
+test('weapon browsing clearly distinguishes equipped plasma from absent flak without spending points',()=>{
+ const g=docked();g.player.level=4;g.player.points=2;g.developmentWeapon='plasma';
+ const before=JSON.stringify([g.shipLoadout,g.skillRanks,g.player.points,g.player.ore]);
+ const plasma=renderProgressionScreen(state(g,'weapons'));
+ assert.match(plasma,/data-id="plasma" aria-pressed="true"[^>]*>[\s\S]*?На корабле · 1/);
+ assert.match(plasma,/ВЫБРАНО ДЛЯ ПРОСМОТРА[\s\S]*?✓ На корабле · 1 шт\./);
+ assert.doesNotMatch(plasma,/data-act="fitWeapon" data-id="plasma"/,
+  'installed plasma must not prompt a redundant installation');
+
+ g.developmentWeapon='flak';
+ const absent=progressionModel(state(g,'weapons'));
+ const flak=renderProgressionScreen(state(g,'weapons'));
+ assert.equal(absent.weapon.installed,false);
+ assert.equal(absent.weapon.installedCount,0);
+ assert.match(flak,/data-id="flak" aria-pressed="true"[^>]*>[\s\S]*?Не установлено/);
+ assert.match(flak,/ВЫБРАНО ДЛЯ ПРОСМОТРА[\s\S]*?Осколочный излучатель[\s\S]*?Не установлено на корабле/);
+ assert.match(flak,/data-act="fitWeapon" data-id="flak">Перейти к установке/);
+ const beam=absent.nodes.find(n=>n.id==='skill-beam');
+ assert.equal(beam.canAct,false);
+ assert.match(beam.reason,/Сначала установите/);
+ assert.match(flak,/data-act="hgUpgrade" data-id="beam" disabled/);
+ assert.equal(JSON.stringify([g.shipLoadout,g.skillRanks,g.player.points,g.player.ore]),before,
+  'viewing another weapon must not equip it or spend resources');
+
+ g.shipLoadout.slots[1]='flak';
+ const installed=progressionModel(state(g,'weapons'));
+ assert.equal(installed.weapon.installed,true);
+ assert.equal(installed.nodes.find(n=>n.id==='skill-beam').canAct,true);
+ assert.match(renderProgressionScreen(state(g,'weapons')),/✓ На корабле · 1 шт\./);
+});
+
+test('rocket unlock is available before fitting, but its subsequent ranks require installation',()=>{
+ const g=docked();g.player.level=7;g.player.points=3;g.developmentWeapon='rocket';
+ g.skillRanks.rocket=0;
+ const before=progressionModel(state(g,'weapons')).nodes.find(n=>n.id==='skill-rocket');
+ assert.equal(before.canAct,true,'first rank manufactures a launcher');
+ g.skillRanks.rocket=1;
+ const after=progressionModel(state(g,'weapons')).nodes.find(n=>n.id==='skill-rocket');
+ assert.equal(after.canAct,false,'future launcher upgrades should not look active without the launcher');
+ assert.match(after.reason,/Сначала установите/);
+});
+
 test('manual weapons have dedicated artwork, honest prerequisite trees and no ship fitting button',()=>{
  const g=docked();g.player.level=5;g.player.points=3;
  for(const [id,base,paths] of [

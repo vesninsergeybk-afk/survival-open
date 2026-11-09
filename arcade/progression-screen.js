@@ -133,10 +133,18 @@ function weaponNodes(state){
    control:state.isTouchLayout?(comet?'касание поля боя':'кнопка «Мины · выбор»'):
     'ПКМ (выбор оружия — колесом)'};
  }
- const family=MODULES[id]||MODULES.plasma,installed=loadout.slots.includes(family.id);
+ const family=MODULES[id]||MODULES.plasma,installedCount=loadout.slots.filter(slot=>slot===family.id).length;
+ const installed=installedCount>0;
  const relevant={plasma:['beam','range','double'],rail:['beam'],flak:['beam'],rocket:['beam','rocket'],
   ion:['beam'],resonator:[],howitzer:[]}[family.id]||[];
- const nodes=(state.hangarUpgrades||[]).filter(s=>relevant.includes(s.id)).map(s=>skillNode(s,state,'hgUpgrade'));
+ // Shared technologies can be bought through any installed compatible weapon.
+ // Viewing an absent weapon must never look like upgrading that weapon.
+ // Rocket technology is the exception: its first rank creates the launcher.
+ const nodes=(state.hangarUpgrades||[]).filter(s=>relevant.includes(s.id)).map(s=>{
+  const node=skillNode(s,state,'hgUpgrade');
+  if(installed||(s.id==='rocket'&&node.rank===0)||node.rank>=node.max)return node;
+  return {...node,status:'locked',canAct:false,reason:'Сначала установите «'+family.name+'» на корабль. Общие технологии можно изучать через уже установленное оружие.'};
+ });
  // The first rocket technology grants the launcher, even before it is fitted.
  if(family.id==='rocket'&&!nodes.some(n=>n.id==='skill-rocket')){
   const rocket=(state.hangarUpgrades||[]).find(s=>s.id==='rocket');if(rocket)nodes.push(skillNode(rocket,state,'hgUpgrade'));
@@ -161,10 +169,10 @@ function weaponNodes(state){
    icon:art('weapons',family.id),level:family.level,rank:installed?1:0,max:1,
    status:'info',description:family.desc,effect:family.role,
    activation:'Это отдельный модуль. Доступность, прокат и стоимость установки проверяются в схеме корабля.',
-   reason:'',action:'fitWeapon',actionId:family.id,actionLabel:'Открыть схему установки',
+   reason:'',action:'fitWeapon',actionId:family.id,actionLabel:installed?'Посмотреть установленный узел':'Перейти к установке',
    canAct:true,cost:'По условиям оснащения'});
  }
- return {nodes,family,installed,stats:moduleStats(family.id,state.skillRanks||{},loadout.specializations?.[family.id])};
+ return {nodes,family,installed,installedCount,stats:moduleStats(family.id,state.skillRanks||{},loadout.specializations?.[family.id])};
 }
 
 function shipNodes(state){
@@ -255,10 +263,18 @@ function branchButtons(domain,state){
   .map(([id,name])=>'<button type="button" class="prog-subtab" data-act="devPilotBranch" data-id="'+id+'" aria-pressed="'+((state.skillBranch||'Корабль')===id)+'">'+name+'</button>').join('');
  if(domain==='weapons'){
   const current=state.developmentWeapon||state.hangarSession?.focusWeapon||'plasma';
-  const tab=(id,name,manual=false)=>'<button type="button" class="prog-subtab'+(manual?' is-manual':'')+'" data-act="devWeapon" data-id="'+id+'" aria-pressed="'+(current===id)+'">'+
-   '<img src="'+art('weapons',id)+'" alt=""><span>'+esc(name)+'</span></button>';
-  return '<span class="prog-subtab-label">РУЧНОЕ</span>'+tab('comet','Комета',true)+tab('mines','Мины',true)+
-   '<span class="prog-subtab-label">АВТО</span>'+Object.values(MODULES).map(m=>tab(m.id,m.short)).join('');
+  const slots=state.loadout?.slots||createLoadout().slots;
+  const count=id=>slots.filter(slot=>slot===id).length;
+  const tab=(id,name,manual=false)=>{
+   const mounted=count(id),status=manual?'Без установки':mounted?'На корабле · '+mounted:'Не установлено';
+   return '<button type="button" class="prog-subtab'+(manual?' is-manual':mounted?' is-installed':' is-absent')+'" data-act="devWeapon" data-id="'+id+'" aria-pressed="'+(current===id)+'"'+
+    ' aria-label="'+esc(name+', '+status+', '+(current===id?'открыто для просмотра':'открыть развитие'))+'">'+
+    '<img src="'+art('weapons',id)+'" alt=""><span class="prog-subtab-copy"><strong>'+esc(name)+'</strong><small>'+esc(status)+'</small></span></button>';
+  };
+  const modules=Object.values(MODULES);
+  return '<span class="prog-subtab-label">НА КОРАБЛЕ</span>'+modules.filter(m=>count(m.id)).map(m=>tab(m.id,m.short)).join('')+
+   '<span class="prog-subtab-label">ДРУГОЕ ОРУЖИЕ</span>'+modules.filter(m=>!count(m.id)).map(m=>tab(m.id,m.short)).join('')+
+   '<span class="prog-subtab-label">РУЧНОЕ</span>'+tab('comet','Комета',true)+tab('mines','Мины',true);
  }
  if(domain==='tactics')return [...Object.entries(TACTICAL_DEVICES).map(([id,d])=>[id,d.short]),['abilities','Способности']]
   .map(([id,name])=>'<button type="button" class="prog-subtab" data-act="devTactic" data-id="'+id+'" aria-pressed="'+((state.developmentTactic||'pulse')===id)+'">'+esc(name)+'</button>').join('');
@@ -320,7 +336,7 @@ function detailHtml(node,domain,weapon,state){
   '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p></div><div><b>Как применять</b><p>'+esc(activation)+'</p>'+
   (fieldCollision?'<p class="prog-control-warning">'+esc(fieldCollision)+'</p>':'')+'</div></div>'+
   '<div class="prog-detail-actions"><span class="prog-cost">Стоимость: '+esc(node.cost)+'</span>'+cta+
-  (domain==='weapons'&&!weapon.manual&&node.kind!=='equipment'?'<button type="button" class="prog-secondary" data-act="fitWeapon" data-id="'+esc(weapon.family.id)+'">Оснастить корабль</button>':
+  (domain==='weapons'&&!weapon.manual&&!weapon.installed&&node.kind!=='equipment'?'<button type="button" class="prog-secondary" data-act="fitWeapon" data-id="'+esc(weapon.family.id)+'">Перейти к установке</button>':
    domain==='ship'?'<button type="button" class="prog-secondary" data-act="baseTab" data-role="hangar">Схема корабля</button>':'')+'</div>'+
   (node.reason?'<p class="prog-detail-reason">'+esc(node.reason)+'</p>':'')+'</aside>';
 }
@@ -364,15 +380,23 @@ export function renderProgressionScreen(state){
   domains.map((d,index)=>'<button type="button" class="prog-domain domain-'+d.id+'" data-act="devDomain" data-id="'+d.id+'" aria-pressed="'+(domain===d.id)+'"'+
    ' title="'+esc(d.subtitle)+'"><img src="'+art('domains',d.id==='network'?'stations':d.id)+'" alt=""><strong>'+d.title+'</strong></button>').join('')+
   '</div></aside>';
- const weaponHead=weapon?'<div class="prog-weapon-summary"><img src="'+art('weapons',weapon.family.id)+'" alt=""><div><strong>'+esc(weapon.family.name)+'</strong><span>'+
-  (weapon.manual?'Доступно сразу · '+weapon.control:weapon.installed?'Установлено':'Не установлено')+
-  ' · '+esc(weapon.family.role)+' · дальность '+esc(weapon.stats?.range)+' м'+
+ const weaponHead=weapon?'<div class="prog-weapon-summary" data-installed="'+(weapon.manual?'manual':weapon.installed)+'">'+
+  '<img src="'+art('weapons',weapon.family.id)+'" alt=""><div class="prog-weapon-heading">'+
+  '<small>ВЫБРАНО ДЛЯ ПРОСМОТРА</small><strong>'+esc(weapon.family.name)+'</strong><span class="prog-weapon-state">'+
+  (weapon.manual?'Доступно сразу · '+weapon.control+' · без установки':weapon.installed?'✓ На корабле · '+weapon.installedCount+' шт.':'Не установлено на корабле')+
+  '</span><span>'+esc(weapon.family.role)+' · дальность '+esc(weapon.stats?.range)+' м'+
   (weapon.manual?' · '+esc(weapon.stats?.summary):'')+'</span></div></div>':'';
+ const weaponNote=weapon?'<p class="prog-weapon-guidance">'+
+  (weapon.manual?'Вы выбираете ветку развития ручного оружия. Для применения используйте '+esc(weapon.control)+'.':
+   weapon.installed?'Улучшения этого оружия действуют в бою. Выбор вкладки не меняет оснащение корабля.':
+   'Это оружие пока не стреляет. Его улучшения показаны для ознакомления, но изучить их можно после установки в ангаре. Общие технологии доступны через установленное оружие'+
+   (weapon.family.id==='rocket'?'; «Авторакеты» сначала создают первый модуль.':'.'))+
+  '</p>':'';
  const branch=branchButtons(domain,state);
  return '<section class="progression-ui" data-domain="'+domain+'">'+top+'<div class="prog-main">'+orbit+
   '<div class="prog-workspace"><div class="prog-workspace-head"><div><span>НАПРАВЛЕНИЕ</span><h2>'+meta.title+'</h2></div>'+
   '<div class="prog-points-hint">'+ledger.spent+' потрачено · '+ledger.free+' '+pointsWord(ledger.free)+' свободно</div></div>'+
-  (branch?'<nav class="prog-subtabs" aria-label="Ветки направления">'+branch+'</nav>':'')+weaponHead+
+  (branch?'<nav class="prog-subtabs" aria-label="'+(domain==='weapons'?'Оружие для просмотра развития':'Разделы направления')+'">'+branch+'</nav>':'')+weaponHead+weaponNote+
   treeHtml(nodes,selected)+detailHtml(selected,domain,weapon,state)+spentPointsHtml(state,ledger)+'</div></div></section>';
 }
 
