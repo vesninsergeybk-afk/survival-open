@@ -180,6 +180,37 @@ test('artillery magazines and reserved flux packets survive a real dock checkpoi
  assert.deepEqual(oldRestored.world.contours.artillery,[]);
  assert.deepEqual(oldRestored.world.contours.artilleryShells,[]);
 });
+test('territorial warehouses, in-flight cargo and paid station technology survive a save',()=>{
+ const g=scene(),state=g.world.contours;
+ state.flux=21.25;state.maintenanceDebt=.15;state.territoryPowered=false;
+ state.fluxDepotSerial=1;
+ state.fluxDepots=[{kind:'flux-depot',id:1,x:g.player.x+300,y:g.player.y+60,
+  r:38,hp:88,maxHp:100,stored:3.25,chargeCredit:.5,level:1,readyAt:1}];
+ state.fluxDepotPackets=[{depotId:1,amount:.25,startX:g.player.x-200,
+  startY:g.player.y-100,launchedAt:242,arriveAt:247}];
+ g.docked.fluxInfrastructure={extractor:2,relay:1,defense:3};
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(snapshot),true);
+ const fresh=scene();restoreCheckpoint(fresh,snapshot);
+ assert.equal(fresh.world.contours.flux,21.25);
+ assert.equal(fresh.world.contours.maintenanceDebt,.15);
+ assert.equal(fresh.world.contours.territoryPowered,false);
+ assert.equal(fresh.world.contours.fluxDepots[0].stored,3.25);
+ assert.equal(fresh.world.contours.fluxDepotPackets[0].amount,.25);
+ assert.deepEqual(fresh.world.home.fluxInfrastructure,{extractor:2,relay:1,defense:3});
+ const forged=unpackRun(packRun(snapshot));
+ forged.world.contours.fluxDepots[0].stored=9999;
+ assert.equal(validateCheckpoint(forged),false);
+ const old=unpackRun(packRun(snapshot));
+ delete old.world.contours.fluxDepots;delete old.world.contours.fluxDepotPackets;
+ delete old.world.contours.fluxDepotSerial;
+ delete old.world.contours.maintenanceDebt;delete old.world.contours.territoryPowered;
+ delete old.world.stations.find(([id])=>id===g.docked.id)[1].fluxInfrastructure;
+ assert.equal(validateCheckpoint(old),true,'older saves still pass validation');
+ const migrated=scene();restoreCheckpoint(migrated,old);
+ assert.deepEqual(migrated.world.contours.fluxDepots,[]);
+ assert.equal(migrated.world.contours.territoryPowered,true);
+});
 
 test('field mission attempts, full wins and bounded results survive a station checkpoint',()=>{
  const g=scene(),base=g.docked;

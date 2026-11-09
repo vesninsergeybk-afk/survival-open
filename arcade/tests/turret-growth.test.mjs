@@ -40,7 +40,7 @@ test('all four structures have real, separately purchasable paths including rang
    deployArtillery(pack.world,pack.player,pack.point,0).turret:
    deploySupport(pack.world,pack.player,pack.point,0,type).turret;
   const branches=turretGrowthRows(t);
-  assert.equal(branches.length,type==='artillery'?6:type==='arc'?5:4,type);
+  assert.equal(branches.length,type==='artillery'?7:type==='arc'?5:4,type);
   const first=branches[0],ore=pack.player.ore,flux=pack.world.contours.flux;
   assert.match(turretBranchOffer(pack.world,pack.player,t,first.key,0).reason,/строительства/);
   const paid=buyTurretBranch(pack.world,pack.player,t,first.key,5);

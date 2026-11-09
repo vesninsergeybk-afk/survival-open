@@ -1,10 +1,11 @@
 import {artilleryLinks,artilleryConnection,edgeTurretOccupancy,edgeTurretLimit,ARTILLERY_MODES,FLUX_ARTILLERY,
- turnArtilleryGun} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1';
+ turnArtilleryGun} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1';
 import {frontierBuoysNear,damageFrontierBuoy} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {arcChainCount,arcRange,arcCooldown,arcSlowSeconds,laserEmitters,laserCooldown,
  laserBurst,laserRange,hiveLimit,hiveRange,hiveArmor,supportSupply,turretBranchRank,
- validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1-audit-1';
+ validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
+import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1';
 
 // All three structures spend delivered flux. A nest pays for each replacement
 // drone; the other two consume prepaid charges instead of free damage ticks.
@@ -193,8 +194,11 @@ function createDrone(t,time){
   nextShotAt:time+1.1,angle:slot*2.39996,lastShotAt:-1});
  if(t.drones.length>20)t.drones=t.drones.filter(x=>x.hp>0);
 }
-function chargePacket(t,link,cfg,time,charges,kind){
- const route=link.route,travel=d(route[0],route[1])+d(route[1],route[2]);
+function chargePacket(t,link,cfg,time,charges,kind,depot=null){
+ const route=depot?[{x:depot.x,y:depot.y},
+  {x:(depot.x+t.x)/2,y:(depot.y+t.y)/2},
+  {x:t.x,y:t.y}]:link.route;
+ const travel=d(route[0],route[1])+d(route[1],route[2]);
  return {turretId:t.id,edgeId:link.edgeId,kind,charges,
   amount:charges*cfg.chargeCost,launchedAt:time,
   arriveAt:time+.55+travel/FLUX_ARTILLERY.packetSpeed,path:route};
@@ -334,22 +338,24 @@ export function advanceFluxSupports(game,dt){
   }
   const link=links.get(t.id);
   if(link){
+   const depot=nearestSupplyDepot(game.world,t,now,cfg.chargeCost);
    const congestion=counts.get(link.edgeId)||1,
-    supply=(1+link.cable/FLUX_ARTILLERY.cableScale)**-2;
+    supply=(1+(depot?d(depot,t):link.cable)/FLUX_ARTILLERY.cableScale)**-2;
    t.chargeCredit=Math.min(cfg.chargeCost,
     t.chargeCredit+supportSupply(t,cfg.fluxPerMinute)/60*
-     supply/congestion*Math.max(0,dt));
+     supply/congestion*(depot?1.7:1)*Math.max(0,dt));
    const pending=s.supportPackets.filter(p=>p.turretId===t.id)
     .reduce((sum,p)=>sum+p.charges,0);
    const liveDrones=t.type==='hive'?t.drones.filter(x=>x.hp>0).length:0;
    const needed=t.type==='hive'?hiveLimit(t)-liveDrones-pending:
     cfg.magazine-t.ammo-pending;
-   const affordable=Math.floor((s.flux+1e-8)/cfg.chargeCost),
+   const affordable=Math.floor(((depot?depot.stored:s.flux)+1e-8)/cfg.chargeCost),
     earned=Math.floor((t.chargeCredit+1e-8)/cfg.chargeCost);
    const charges=Math.min(t.type==='hive'?1:3,needed,affordable,earned);
    if(charges>0&&s.supportPackets.length<SUPPORT_PACKET_MAX){
-    const packet=chargePacket(t,link,cfg,now,charges,t.type==='hive'?'drone':'energy');
-    s.flux=Math.max(0,s.flux-packet.amount);
+    const packet=chargePacket(t,link,cfg,now,charges,t.type==='hive'?'drone':'energy',depot);
+    if(depot)takeDepotFlux(depot,packet.amount);
+    else s.flux=Math.max(0,s.flux-packet.amount);
     t.chargeCredit=Math.max(0,t.chargeCredit-packet.amount);
     s.supportPackets.push(packet);
    }

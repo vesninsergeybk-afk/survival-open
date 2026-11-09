@@ -24,6 +24,23 @@ test('a scout patrol can attack a directly visible allied drone, without player 
     'scout fire is directed at the drone rather than the hidden player');
 });
 
+test('a fighter can select a visible stocked flux warehouse as a destructible supply target',()=>{
+ const depot={kind:'flux-depot',id:1,x:120,y:0,r:38,hp:100,stored:5,readyAt:0};
+ const e={x:180,y:0,vx:0,vy:0,r:16,serial:4,type:'fighter',
+  hp:58,maxHp:58,damage:12,think:0,fire:20,state:'hunt',commitUntil:0};
+ const game={time:5,player:{x:1100,y:1000,r:19,hp:100},
+  allies:[],enemies:[e],missiles:[],shots:[],
+  world:{contours:{artillery:[],supportTurrets:[],fluxDepots:[depot]}},
+  grid:{query:()=>[]},avoidance:()=>({x:0,y:0}),
+  enemyCanSee:(_e,t)=>t===depot,
+  enemyShot:()=>true,heritage:{play(){},vfx:{shipExplosion(){}}},hurt(){}};
+ updateEnemy(e,game,.016);
+ assert.equal(e.target,depot);
+ depot.stored=0;e.think=0;game.time+=1;
+ updateEnemy(e,game,.016);
+ assert.equal(e.target,game.player,'an empty store should not lure combat ships');
+});
+
 test('a scout changing targets must start a new visible charge',()=>{
   const player={x:0,y:0,r:19,hp:100},ally={x:40,y:0,r:13,hp:50};
   const e={type:'scout',x:180,y:0,serial:1,hp:28,fire:0};

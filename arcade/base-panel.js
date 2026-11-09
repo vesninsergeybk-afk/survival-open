@@ -4,8 +4,10 @@ import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-integrity-2-mission-choices-1-enemy-growth-1-triangle-defense-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
+import {FLUX_INFRASTRUCTURE,stationFluxUpgradeOffer,fluxInfrastructureRank,
+ weightedContourProduction} from './territory-economy.js?v=territory-logistics-1';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-territory-war-1';
-import {defenseStatus} from './network-defense.js?v=network-defense-4';
+import {defenseStatus} from './network-defense.js?v=network-defense-4-territory-logistics-1';
 import {corridorOffer,CORRIDOR_OPERATION,corridorScanBonus,probeOffer,probeDataReady,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2-station-ops-2-ops-audit-2';
 import {FIELD_OPERATIONS,fieldOperationIds,fieldOperationOffer,fieldOperationCue,isFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 import {abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1';
@@ -20,7 +22,8 @@ import {heroMenuPortrait} from './hero-menu-portrait.js';
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
-import {CONTOURS,contourFields} from './territory-system.js?v=contours-1-triangle-defense-1';
+import {CONTOURS,contourFields} from './territory-system.js?v=contours-1-triangle-defense-1-territory-logistics-1';
+import {productiveContourFields} from './contour-trials.js?v=swarm-siege-1';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
@@ -1052,11 +1055,26 @@ export function renderBasePanel(base,state){
   (modules?'<section class="base-network-direct" aria-label="Оснащение станции"><h3>'+
    menuIcon('upgrades')+(base.module?'Местный модуль · установлен':'Местный модуль · выбор для этой станции')+
    '</h3>'+modules+'</section>':'');
+ const fluxFields=state.world?.contours?productiveContourFields(state.world,contourFields(state.world)):[];
+ const fluxRate=weightedContourProduction(state.world,fluxFields)/CONTOURS.cycleSeconds*60;
+ const fluxInfrastructure='<section class="base-network-direct" aria-label="Развитие территории за флюкс">'+
+  '<h3>'+menuIcon('network')+'Энергия территории</h3>'+
+  '<p>Добыча '+fluxRate.toFixed(2)+' флюкса/мин · поддержание поля '+
+  (fluxFields.length*.24).toFixed(2)+' флюкса/мин · доступно '+
+  (state.world?.contours?.flux||0).toFixed(2)+' флюкса. '+
+  (state.world?.contours?.territoryPowered===false?'Контур обесточен: снабжение возобновится после пополнения запаса.':
+   'Поддержание поля оплачивается автоматически.')+'</p>'+
+  '<div class="base-grid">'+Object.entries(FLUX_INFRASTRUCTURE).map(([key,cfg])=>{
+   const level=fluxInfrastructureRank(base,key),offer=stationFluxUpgradeOffer(state.world,base,key);
+   return '<div class="base-card"><strong>'+cfg.name+' · '+level+'/3</strong><small>'+cfg.description+'</small>'+
+    (level<3?action('fluxStationUpgrade','Улучшить · '+cfg.prices[level]+' флюкса',
+     offer.ok?'':offer.reason,key):'<span>Ветка завершена</span>')+'</div>';
+  }).join('')+'</div></section>';
  const development=renderDevelopmentPanel({...state,baseActive:active,station:base})+
   (state.doctrine?'<section class="base-doctrine-service"><h3>Смена доктрины</h3><p>Вернёт 1 очко развития. Новый стиль можно выбрать здесь же.</p>'+
    action('respec','Сменить доктрину · 12 сплава',o.ore<12?'Нужно 12 сплава':'')+'</section>':'');
  const network='<div class="base-operations">'+threats+territorySummary(base,state)+
-  stationDevelopment+defense+capturedWing+
+  stationDevelopment+fluxInfrastructure+defense+capturedWing+
   '<section class="base-network-direct" data-hangar-section="transit"><h3>'+menuIcon('navigation')+'Перелёты между станциями</h3>'+
   (transit||'<p>Для перелёта нужна связь этой станции с домашним доком и ещё хотя бы одна доступная станция назначения.</p>')+'</section></div>';
  const opening=active?

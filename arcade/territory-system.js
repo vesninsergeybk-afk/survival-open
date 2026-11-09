@@ -1,4 +1,5 @@
 import {newTrialLedger,productiveContourFields,validContourTrials} from './contour-trials.js?v=swarm-siege-1';
+import {fluxFieldYields,advanceFluxMaintenance} from './territory-economy.js';
 
 // Territorial links appear automatically between powered friendly stations.
 // They remain distinct from the shorter-range radio tree for station services.
@@ -23,7 +24,8 @@ const properCross=(a,b,c,e)=>{
 export const createContours=()=>({links:[],flux:0,launches:{},harvesters:[],delivered:0,lost:0,
  nextLaunchAt:0,pulseReadyAt:0,reserve:null,sortie:null,nextSortieAt:0,
  trials:newTrialLedger(),artillery:[],artilleryPackets:[],artilleryShells:[],artillerySerial:0,
- supportTurrets:[],supportPackets:[],supportSerial:0,turretSlotRank:0});
+ supportTurrets:[],supportPackets:[],supportSerial:0,turretSlotRank:0,
+ fluxDepots:[],fluxDepotPackets:[],fluxDepotSerial:0,maintenanceDebt:0,territoryPowered:true});
 
 export function contourLinkOffer(world,firstId,secondId){
  const state=world.contours,a=world.stations.get(firstId),b=world.stations.get(secondId);
@@ -267,7 +269,9 @@ export function consumeContourReserve(world,stationId,time){
 export function advanceContours(world,time,dt,enemies=[],player=null){
  const state=world.contours;if(!state||dt<=0)return [];
  const fields=productiveContourFields(world,contourFields(world)),byId=new Map(fields.map(f=>[f.id,f]));
- const area=contourArea(fields),production=contourProduction(fields),events=[];
+ const yields=fluxFieldYields(world,fields),yieldById=new Map(yields.map(y=>[y.field.id,y.output]));
+ const events=[];
+ advanceFluxMaintenance(state,fields.length,dt);
  if(state.reserve){
   const base=world.stations.get(state.reserve.stationId);
   if(!base?.active||base.enemy){
@@ -284,7 +288,7 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
    if(state.harvesters.filter(h=>h.fieldId===field.id).length>=CONTOURS.maxHarvestersPerField)continue;
    state.launches[field.id]=time;
    state.harvesters.push({fieldId:field.id,progress:0,phase:'out',hp:2,launchedAt:time,
-    value:production*(field.area/area)*CONTOURS.launchInterval/CONTOURS.cycleSeconds});
+    value:(yieldById.get(field.id)||0)*CONTOURS.launchInterval/CONTOURS.cycleSeconds});
   }
  }
  for(const h of state.harvesters){

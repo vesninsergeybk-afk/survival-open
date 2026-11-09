@@ -17,16 +17,17 @@ const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const defenseLinked=(base,topology)=>!!base?.active&&!base.enemy&&
   topology.count>=2&&topology.linked.has(base.id);
 export const defenseRadius=linked=>linked?STATION_DEFENSE.linkedRadius:STATION_DEFENSE.soloRadius;
-const capacity=linked=>linked?STATION_DEFENSE.linkedCharges:STATION_DEFENSE.soloCharges;
-const recharge=linked=>linked?STATION_DEFENSE.linkedRecharge:STATION_DEFENSE.soloRecharge;
+const defenseRank=base=>Math.max(0,Math.min(3,base?.fluxInfrastructure?.defense||0));
+const capacity=(linked,base)=> (linked?STATION_DEFENSE.linkedCharges:STATION_DEFENSE.soloCharges)+defenseRank(base);
+const recharge=(linked,base)=>Math.max(6,(linked?STATION_DEFENSE.linkedRecharge:STATION_DEFENSE.soloRecharge)-2*defenseRank(base));
 
 // Times are game-clock deadlines. Persisting them on each station means
 // visiting another region, saving or changing radio links cannot refill PVO.
 export function ensureStationDefense(base,linked,now){
  if(!base.active||base.enemy)return null;
- const cap=capacity(linked);
+ const cap=capacity(linked,base);
  if(!base.defense){
-  base.defense={charges:1,rechargeAt:now+recharge(linked),interceptAt:now,
+  base.defense={charges:1,rechargeAt:now+recharge(linked,base),interceptAt:now,
    stasisAt:now+8,visualAt:-1e6,visualKind:'',lastLinked:linked,
    meteorEnabled:true};
  }
@@ -39,27 +40,27 @@ export function ensureStationDefense(base,linked,now){
  if(state.lastLinked!==linked){
   // Settle the *old* magazine before changing its capacity. A solo station
   // returning after a long absence may recover one old charge, never two.
-  const oldCap=capacity(state.lastLinked);
+  const oldCap=capacity(state.lastLinked,base);
   state.charges=Math.max(0,Math.min(oldCap,Math.trunc(state.charges)||0));
   if(state.charges<oldCap&&Number.isFinite(state.rechargeAt)&&now>=state.rechargeAt)
    state.charges=oldCap;
   if(linked){
    state.stasisAt=Math.max(state.stasisAt||0,now+8);
    if(state.charges>=STATION_DEFENSE.soloCharges)
-    state.rechargeAt=now+recharge(true);
+    state.rechargeAt=now+recharge(true,base);
   }
   state.lastLinked=linked;
  }
  state.charges=Math.max(0,Math.min(cap,Math.trunc(state.charges)||0));
- if(!Number.isFinite(state.rechargeAt))state.rechargeAt=now+recharge(linked);
+ if(!Number.isFinite(state.rechargeAt))state.rechargeAt=now+recharge(linked,base);
  if(!Number.isFinite(state.interceptAt))state.interceptAt=now;
  if(!Number.isFinite(state.stasisAt))state.stasisAt=now+8;
  if(state.charges<cap&&now>=state.rechargeAt){
   // One recharge per elapsed interval. Long returns do not add bonus charges.
-  const gained=1+Math.floor((now-state.rechargeAt)/recharge(linked));
+  const gained=1+Math.floor((now-state.rechargeAt)/recharge(linked,base));
   state.charges=Math.min(cap,state.charges+gained);
-  state.rechargeAt=state.charges===cap?now+recharge(linked):
-   state.rechargeAt+gained*recharge(linked);
+  state.rechargeAt=state.charges===cap?now+recharge(linked,base):
+   state.rechargeAt+gained*recharge(linked,base);
  }
  return state;
 }
@@ -73,17 +74,17 @@ export function synchronizeStationDefenses(world,now,topology=world.networkTopol
  return topology;
 }
 export function defenseStatus(base,linked,now){
- const cap=capacity(linked),state=base.defense;
+ const cap=capacity(linked,base),state=base.defense;
  const charges=state?Math.max(0,Math.min(cap,Math.trunc(state.charges)||0)):1;
  return {radius:defenseRadius(linked),charges,capacity:cap,
   rechargeIn:charges>=cap?0:Math.max(0,Math.ceil((state?.rechargeAt??now)-now)),
   meteorEnabled:state?.meteorEnabled!==false,
   stasis:linked,stasisIn:!linked?null:Math.max(0,Math.ceil((state?.stasisAt??now+8)-now))};
 }
-const spend=(state,linked,now)=>{
- const full=state.charges===capacity(linked);
+const spend=(state,linked,now,base)=>{
+ const full=state.charges===capacity(linked,base);
  state.charges--;
- if(full)state.rechargeAt=now+recharge(linked);
+ if(full)state.rechargeAt=now+recharge(linked,base);
  state.interceptAt=now+STATION_DEFENSE.interceptGap;
 };
 // Check where the projectile is going, not merely whether it is near a base.
@@ -220,7 +221,7 @@ export function updateStationDefense(game){
    if(best){
     if(best.kind==='meteor')game.zones.splice(game.zones.indexOf(best.object),1);
     else best.object.alive=false;
-    spend(state,linked,now);effect(game,base,best.object,best.kind);
+    spend(state,linked,now,base);effect(game,base,best.object,best.kind);
    }
   }
   if(!linked||now<state.stasisAt)continue;

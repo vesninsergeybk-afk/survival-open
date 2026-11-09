@@ -1,10 +1,11 @@
 import {contourFields} from './territory-system.js';
 import {frontierBuoysNear,damageFrontierBuoy} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {productiveContourFields} from './contour-trials.js';
+import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1';
 import {artilleryBarrels,artilleryCooldown,artilleryBlast,artilleryRange,artillerySupply,
  artilleryShotUnits,artilleryShellDamage,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
  ARTILLERY_BASE_FLUX_PER_MINUTE,turretBranchRank,
- validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1-audit-1';
+ validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1';
 
 // A field emplacement is ammunition-fed, not another player ship. The pilot
 // must finish the first territorial trial before any emplacement is available.
@@ -41,6 +42,7 @@ if(typeof Image!=='undefined'){
 }
 
 export function artilleryLinks(world){
+ if(world.contours?.territoryPowered===false)return [];
  const fields=productiveContourFields(world,contourFields(world));
  const seen=new Set(),edges=[];
  for(const field of fields)for(let i=0;i<field.vertices.length;i++){
@@ -239,6 +241,27 @@ export function chooseArtilleryAim(game,turret){
  }
  return best;
 }
+function setArtilleryAim(turret,aim){
+ turret.aimX=aim.x;turret.aimY=aim.y;
+ turret.lockedSerial=aim.target?.kind==='enemy'&&Number.isSafeInteger(aim.target.object.serial)?
+  aim.target.object.serial:null;
+}
+// Missile heads keep following one existing ship while it maneuvers, subject
+// to a finite turn budget. They cannot retarget to an unrelated enemy after
+// the selected ship dies or runs beyond the guidance envelope.
+export function steerGuidedShell(game,shell,dt){
+ if(!shell.guidanceRank||!Number.isSafeInteger(shell.trackSerial)||dt<=0)return false;
+ const victim=(game.enemies||[]).find(e=>e.serial===shell.trackSerial&&e.hp>0&&
+  !e.converted&&!e.trialRetreatUntil);
+ if(!victim)return false;
+ const envelope=[0,250,380,550][shell.guidanceRank];
+ if(distance(victim,{x:shell.lockX,y:shell.lockY})>envelope)return false;
+ const delta=distance(victim,{x:shell.targetX,y:shell.targetY});
+ const step=Math.min(1,(150+140*shell.guidanceRank)*dt/Math.max(1,delta));
+ shell.targetX+=(victim.x-shell.targetX)*step;
+ shell.targetY+=(victim.y-shell.targetY)*step;
+ return true;
+}
 function impactShell(game,state,shell){
  const center={x:shell.targetX,y:shell.targetY};
  const blast=shell.blastRadius||FLUX_ARTILLERY.blastRadius;
@@ -311,11 +334,15 @@ function fireBarrel(game,state,turret,time){
  const spread=shotIndex===0?0:Math.min(44,artilleryBlast(turret)*.35);
  const targetX=turret.aimX+Math.cos(shotIndex*2.39996)*spread;
  const targetY=turret.aimY+Math.sin(shotIndex*2.39996)*spread;
+ const guidance=turretBranchRank(turret,'seeker');
  const travel=distance({x:startX,y:startY},{x:targetX,y:targetY});
  state.artilleryShells.push({turretId:turret.id,startX,startY,targetX,targetY,
   launchedAt:time,arriveAt:time+.25+travel/FLUX_ARTILLERY.shellSpeed,
   blastRadius:artilleryBlast(turret),damage:artilleryShellDamage(turret),
   anomaly:turretBranchRank(turret,'anomaly'),
+  ...(guidance&&Number.isSafeInteger(turret.lockedSerial)?{
+   guidanceRank:guidance,trackSerial:turret.lockedSerial,
+   lockX:targetX,lockY:targetY}:{}),
   barrelIndex:barrel,salvoIndex:shotIndex});
  turret.ammo-=units;turret.lastShotAt=time;
  turret.barrelLastShots??=[];turret.barrelLastShots[barrel]=time;
@@ -342,6 +369,7 @@ export function advanceFluxArtillery(game,dt){
   decoy=>decoy.hp>0&&decoy.until>time);
  // Fired shells survive the loss of their gun. Hits happen only at impact.
  for(const shell of state.artilleryShells){
+  steerGuidedShell(game,shell,Math.max(0,dt));
   if(time<shell.arriveAt)continue;
   impactShell(game,state,shell);shell.done=true;
  }
@@ -396,7 +424,7 @@ export function advanceFluxArtillery(game,dt){
   // barrels cannot fire after destruction or without ammunition.
   if(turret.salvoLeft>0&&time>=turret.salvoNextAt){
    const updated=chooseArtilleryAim(game,turret);
-   if(updated){turret.aimX=updated.x;turret.aimY=updated.y;}
+   if(updated)setArtilleryAim(turret,updated);
    fireBarrel(game,state,turret,time);
   }
   // The close-defense pulse spends a quarter-flux charge, but may only use
@@ -423,20 +451,26 @@ export function advanceFluxArtillery(game,dt){
    const congestion=sideCounts.get(link.edgeId)||1;
    // The farther the platform is from the powered side, the less energy it
    // receives per second. The offset avoids a singularity on the edge.
-   const cableRate=Math.pow(1+link.cable/FLUX_ARTILLERY.cableScale,-2);
-   const rate=artillerySupply(turret)/60*cableRate/congestion;
+   const depot=nearestSupplyDepot(game.world,turret,time);
+   const cableRate=depot?Math.pow(1+distance(depot,turret)/FLUX_ARTILLERY.cableScale,-2):
+    Math.pow(1+link.cable/FLUX_ARTILLERY.cableScale,-2);
+   const rate=artillerySupply(turret)/60*cableRate/congestion*(depot?1.7:1);
    turret.chargeCredit=Math.min(1,turret.chargeCredit+rate*dt);
    const pending=state.artilleryPackets.filter(p=>p.turretId===turret.id)
     .reduce((sum,p)=>sum+p.charges,0);
    const needed=Math.max(0,artilleryMagazine(turret)-turret.ammo-pending-(turret.stockpile||0));
-   const affordable=Math.floor((state.flux+1e-8)/FLUX_ARTILLERY.chargeCost);
+   const affordable=Math.floor(((depot?depot.stored:state.flux)+1e-8)/FLUX_ARTILLERY.chargeCost);
    const earned=Math.floor((turret.chargeCredit+1e-8)/FLUX_ARTILLERY.chargeCost);
    const charges=Math.min(4,needed,affordable,earned);
    if(charges>0&&state.artilleryPackets.length<FLUX_ARTILLERY.maxPackets){
     const amount=charges*FLUX_ARTILLERY.chargeCost;
-    state.flux=Math.max(0,state.flux-amount);
+    if(depot)takeDepotFlux(depot,amount);
+    else state.flux=Math.max(0,state.flux-amount);
     turret.chargeCredit=Math.max(0,turret.chargeCredit-amount);
-    const path=link.route,travel=distance(path[0],path[1])+distance(path[1],path[2]);
+    const path=depot?[{x:depot.x,y:depot.y},
+     {x:(depot.x+turret.x)/2,y:(depot.y+turret.y)/2},
+     {x:turret.x,y:turret.y}]:link.route;
+    const travel=distance(path[0],path[1])+distance(path[1],path[2]);
     state.artilleryPackets.push({turretId:turret.id,edgeId:link.edgeId,
      amount,charges,launchedAt:time,arriveAt:time+.5+travel/FLUX_ARTILLERY.packetSpeed,path});
    }
@@ -445,7 +479,7 @@ export function advanceFluxArtillery(game,dt){
    const updated=time>=(turret.nextAimScanAt||0)||time>=turret.aimingUntil?
     chooseArtilleryAim(game,turret):null;
    if(updated)turret.nextAimScanAt=time+.14;
-   if(updated){turret.aimX=updated.x;turret.aimY=updated.y;}
+   if(updated)setArtilleryAim(turret,updated);
    if(time<turret.aimingUntil)continue;
    if(!updated){turret.aimingUntil=0;continue;}
    const finalAngle=Math.atan2(updated.y-turret.y,updated.x-turret.x);
@@ -472,7 +506,7 @@ export function advanceFluxArtillery(game,dt){
    // cue accompanies a substantial turn, never every animation frame.
    if(Math.abs(shortestTurn(turret.gunAngle,aimAngle))>.3)
     game.heritage?.play?.('artilleryServo',.9,turret);
-   turret.aimX=aim.x;turret.aimY=aim.y;
+   setArtilleryAim(turret,aim);
    turret.aimingUntil=time+FLUX_ARTILLERY.aimSeconds;
    game.heritage?.play?.('artilleryAcquire',.9,turret);}
  }
@@ -646,12 +680,14 @@ function drawFlyingShell(ctx,shell,time,reduced=false){
  for(let i=reduced?1:5;i>=0;i--){
   const offset=(i+1)*7;
   const alpha=(1-i/7)*.6;
-  ctx.fillStyle=`rgba(255,${112+i*18},60,${alpha})`;
+  ctx.fillStyle=shell.guidanceRank?`rgba(83,${200+i*7},245,${alpha})`:
+   `rgba(255,${112+i*18},60,${alpha})`;
   ctx.beginPath();ctx.arc(x-dx/length*offset,y-dy/length*offset-height,2.8-i*.28,0,Math.PI*2);ctx.fill();
  }
- ctx.shadowColor='#ff9d48';ctx.shadowBlur=17;ctx.fillStyle='#fff3bc';
+ ctx.shadowColor=shell.guidanceRank?'#73ebfb':'#ff9d48';ctx.shadowBlur=17;
+ ctx.fillStyle=shell.guidanceRank?'#e0ffff':'#fff3bc';
  ctx.beginPath();ctx.arc(x,y-height,5,0,Math.PI*2);ctx.fill();
- ctx.shadowBlur=0;ctx.strokeStyle='#f0914f';ctx.lineWidth=2;
+ ctx.shadowBlur=0;ctx.strokeStyle=shell.guidanceRank?'#49cbdc':'#f0914f';ctx.lineWidth=2;
  ctx.beginPath();ctx.moveTo(x-dy/length*4,y-height+dx/length*4);
  ctx.lineTo(x+dy/length*4,y-height-dx/length*4);ctx.stroke();
  ctx.restore();
@@ -871,7 +907,9 @@ export function validFluxArtillery(state){
     (t.salvoFired!==undefined&&(!Number.isInteger(t.salvoFired)||t.salvoFired<0||t.salvoFired>10))||
     (t.salvoNextAt!==undefined&&!finite(t.salvoNextAt))||
     (t.barrelLastShots!==undefined&&(!Array.isArray(t.barrelLastShots)||
-      t.barrelLastShots.length>10||t.barrelLastShots.some(v=>!finite(v,-1)))))return false;
+      t.barrelLastShots.length>10||t.barrelLastShots.some(v=>!finite(v,-1))))||
+    (t.lockedSerial!==undefined&&t.lockedSerial!==null&&
+      (!Number.isSafeInteger(t.lockedSerial)||t.lockedSerial<0)))return false;
   ids.add(t.id);
  }
  for(const p of state.artilleryPackets){
@@ -892,7 +930,11 @@ export function validFluxArtillery(state){
     (s.anomaly!==undefined&&(!Number.isInteger(s.anomaly)||s.anomaly<0||s.anomaly>3))||
     (s.barrelIndex!==undefined&&(!Number.isInteger(s.barrelIndex)||s.barrelIndex<0||s.barrelIndex>9))||
     (s.salvoIndex!==undefined&&(!Number.isInteger(s.salvoIndex)||s.salvoIndex<0||s.salvoIndex>9))||
-    (s.damage!==undefined&&!finite(s.damage,18,480)))return false;
+    (s.damage!==undefined&&!finite(s.damage,18,1000))||
+    (s.guidanceRank!==undefined&&(!Number.isInteger(s.guidanceRank)||s.guidanceRank<1||s.guidanceRank>3))||
+    (s.trackSerial!==undefined&&(!Number.isSafeInteger(s.trackSerial)||s.trackSerial<0))||
+    (s.lockX!==undefined&&!finite(s.lockX,-1e9))||
+    (s.lockY!==undefined&&!finite(s.lockY,-1e9)))return false;
  }
  return true;
 }

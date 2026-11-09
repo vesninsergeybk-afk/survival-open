@@ -18,6 +18,10 @@ export const TURRET_GROWTH=Object.freeze({
     ['Тяжёлый заряд · 1 флюкс/снаряд',44,6],
     ['Осадный заряд · 2 флюкса/снаряд',66,10],
     ['Сверхмассивный заряд · 5 ед. флюкса/снаряд',95,16]]},
+  seeker:{name:'Ракетная кассета',summary:'Автоматические ракеты корректируют полёт за манёвренной целью. Каждый ракетный заряд расходует дополнительный флюкс.',
+   levels:[['Самонаведение · +0,25 флюкса/снаряд',35,5],
+    ['Дальняя коррекция · ещё +0,25',56,9],
+    ['Ударная ракета · ещё +0,50',85,15]]},
   anomaly:{name:'Экспериментальный заряд',summary:'Ионный удар, затем ложные цели и срыв строя.',
    levels:[['Ионный след',30,5],['Рой помех',46,8],['Контурный разряд',66,12]]}
  }},
@@ -102,11 +106,13 @@ export const artilleryBarrels=t=>[1,2,3,4,6,10][turretBranchRank(t,'salvo')]||1;
 export const artilleryCooldown=t=>[8,6.8,5.7,4.7,4][turretBranchRank(t,'tempo')]||8;
 export const ARTILLERY_BASE_FLUX_PER_MINUTE=15;
 export const artillerySupply=t=>ARTILLERY_BASE_FLUX_PER_MINUTE*(1+.35*turretBranchRank(t,'tempo'))*
- [1,1.5,2.4,4,7][turretBranchRank(t,'power')];
+ [1,1.5,2.4,4,7][turretBranchRank(t,'power')]*(1+.38*turretBranchRank(t,'seeker'));
 export const artilleryBlast=t=>[110,126,145,165,185][turretBranchRank(t,'radius')]||110;
 export const artilleryRange=t=>[740,850,980,1160][turretBranchRank(t,'reach')]||740;
-export const artilleryShotUnits=t=>[1,2,4,8,20][turretBranchRank(t,'power')]||1;
-export const artilleryShellDamage=t=>[18,36,82,185,480][turretBranchRank(t,'power')]||18;
+export const artilleryShotUnits=t=>([1,2,4,8,20][turretBranchRank(t,'power')]||1)+
+ [0,1,2,4][turretBranchRank(t,'seeker')];
+export const artilleryShellDamage=t=>([18,36,82,185,480][turretBranchRank(t,'power')]||18)*
+ (1+.2*turretBranchRank(t,'seeker'));
 export const artilleryShotFlux=t=>artilleryShotUnits(t)*.25;
 export const artilleryMagazine=t=>Math.max(15,Math.max(3,artilleryBarrels(t))*artilleryShotUnits(t));
 export const artillerySalvoSize=t=>Math.max(3,artilleryBarrels(t));

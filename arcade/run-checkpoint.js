@@ -14,9 +14,11 @@ import {validSortieReports} from './sortie-economy.js?v=economy-integrity-1-camp
 import {validEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {createOpeningArc,validateOpeningArc} from './opening-arc.js?v=opening-arc-5';
 import {stationRaidValid} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-flux-offense-1-territory-war-1';
-import {createContours,validContours,autoConnectContours} from './territory-system.js?v=automatic-contours-1-contour-trials-1-support-three-1-triangle-defense-1';
-import {validFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1';
-import {validFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1';
+import {createContours,validContours,autoConnectContours} from './territory-system.js?v=automatic-contours-1-contour-trials-1-support-three-1-triangle-defense-1-territory-logistics-1';
+import {validFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1';
+import {validFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1';
+import {validFluxDepots} from './flux-depots.js?v=territory-logistics-1';
+import {validFluxEconomy} from './territory-economy.js?v=territory-logistics-1';
 import {ensureTrialLedger} from './contour-trials.js?v=swarm-siege-1-pressure-response-1';
 import {clearCoreRocks} from './core-rock-clearance.js';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
@@ -203,7 +205,8 @@ export function validateCheckpoint(data){
    !['central-depot','military','frontier-azure-depot','frontier-teal-depot']
     .includes(b.strategicRole))return false;
   if(b.defense!==undefined&&(!object(b.defense)||
-   !Number.isInteger(b.defense.charges)||b.defense.charges<0||b.defense.charges>2||
+   !Number.isInteger(b.defense.charges)||b.defense.charges<0||
+   b.defense.charges>(b.fluxInfrastructure?.defense||0)+2||
    !finite(b.defense.rechargeAt,0,1e9)||!finite(b.defense.interceptAt,0,1e9)||
    !finite(b.defense.stasisAt,0,1e9)||
    (b.defense.lastLinked!==undefined&&typeof b.defense.lastLinked!=='boolean')||
@@ -216,7 +219,8 @@ export function validateCheckpoint(data){
   w.discovered.some(id=>!ids.has(id)))return false;
  if(p.strategicXp!==undefined&&!validStrategicExperience(p.strategicXp,w.stations))return false;
  if(w.contours!==undefined&&(!validContours(w.contours,w.stations)||
-   !validFluxArtillery(w.contours)||!validFluxSupports(w.contours)))return false;
+   !validFluxArtillery(w.contours)||!validFluxSupports(w.contours)||
+   !validFluxDepots(w.contours)||!validFluxEconomy(w.contours,w.stations)))return false;
  if(!validEnemyExpansion(w.enemyExpansion,w.stations,s.time))return false;
  if(!validPopulation(w.population,w.stations,s.time))return false;
  if(s.enemies.some(e=>e.stationRaid&&!ids.has(e.stationRaid.stationId))||
@@ -263,6 +267,11 @@ export function restoreCheckpoint(game,data){
  world.contours.supportTurrets??=[];
  world.contours.supportPackets??=[];
  world.contours.supportSerial??=0;
+ world.contours.fluxDepots??=[];
+ world.contours.fluxDepotPackets??=[];
+ world.contours.fluxDepotSerial??=0;
+ world.contours.maintenanceDebt??=0;
+ world.contours.territoryPowered??=true;
  world.enemyExpansion=data.world.enemyExpansion||createEnemyExpansion(data.state.time);
  if(!data.world.population||!data.world.enemyExpansion||legacyPopulation)seedPopulationTerritory(world);
  for(const b of world.stations.values())if(b.suppressed&&b.suppressedUntil<=data.state.time)b.suppressed=false;
