@@ -5,7 +5,7 @@ const base=new URL('../',import.meta.url);
 const read=p=>readFileSync(new URL(p,base),'utf8');
 test('live art HUD retains data IDs and maps to separate SVG graphic assets',()=>{
  const html=read('index.html'),js=read('hud.js'),css=read('hud-art.css');
- for(const id of ['hp','hpmeter','hpbar','xpmeter','xpbar','shield','shieldmeter','flightDistance','leftBurstMeter','leftBurstText','hudStrikeCount','hudDrone0','hudDrone1','burst','burstbar','bursttext','hudHackSlot','hudStrikeSlot','hudThermal','hudThermalLabel','hudThermalText','hudThermalMeter','radar','contractObjective','data','ore','wing']) {
+ for(const id of ['hp','hpmeter','hpbar','xpmeter','xpbar','shield','shieldmeter','flightDistance','leftBurstMeter','leftBurstText','hudStrikeCount','hudDrone0','hudDrone1','burst','burstbar','bursttext','hudHackSlot','hudStrikeSlot','hudThermal','hudThermalLabel','hudThermalText','hudThermalMeter','radar','contractObjective','data','ore','flux']) {
   assert.match(html,new RegExp('id="'+id+'"'),'missing '+id);
  }
  assert.match(html,/hud-art\.css\?v=/);
