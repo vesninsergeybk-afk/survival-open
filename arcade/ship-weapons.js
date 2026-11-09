@@ -5,7 +5,8 @@ import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1-triangle-defense-1-frontier-siege-1';
 import {emitWeaponFx} from './weapon-fx.js';
-import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js?v=frontier-siege-1';
+import {landingRock} from './aimed-terrain.js';
+import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js?v=frontier-siege-1-manual-cover-1';
 
 export {updateFlakPellets,drawBallisticWeapons};
 
@@ -291,6 +292,8 @@ export function planHowitzer(game,point=null){
   if(!chosen)return {ok:false,reason:'Для гаубицы нет враждебной цели в пределах 900 м'};
   target=chosen.target;
  }
+ if(landingRock(game,target,12))
+  return {ok:false,reason:'Точка удара занята астероидом · сместите прицел'};
  return {ok:true,charge:{x:target.x,y:target.y,remaining:1.25,total:1.25}};
 }
 export function updateHowitzer(game,dt){

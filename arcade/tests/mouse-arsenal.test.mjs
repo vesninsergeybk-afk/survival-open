@@ -140,14 +140,95 @@ test('manually aimed explosions can hit an unconfirmed patrol without targeting 
  assert.ok(investigating.hp<75,'physical area damage must not inherit auto-target sensor restrictions');
 });
 
-test('a rock intercepts the projectile, and solid cover protects enemies from the blast',()=>{
+test('a rock between ship and target does not prematurely detonate the arcing comet',()=>{
  const g=scene(),behind=scout(300,0,60);
  g.enemies.push(behind);
  const cover={x:160,y:0,r:38,alive:true};g.rockGrid.query=()=>[cover];
  assert.equal(fireMouseWeapon(g,'comet',{x:300,y:0}).ok,true);
  g.time=.65;updateMouseArsenal(g,.65);
- assert.equal(behind.hp,60,'the impact explodes at the rock, not through it');
+ assert.equal(behind.hp,25,'the blast arrives at the selected point beyond the rock');
  assert.equal(g.mouseArsenal.projectiles.length,0);
+});
+
+test('comet warns before a landing inside an asteroid without consuming cooldown',()=>{
+ const g=scene(),rock={x:300,y:0,r:40,alive:true};g.rockGrid.query=()=>[rock];
+ assert.match(planMouseWeapon(g,'comet',{x:300,y:0}).reason,/астероидом/);
+ assert.equal(fireMouseWeapon(g,'comet',{x:300,y:0}).ok,false);
+ assert.equal(g.mouseArsenal.cometReadyAt,0);
+ assert.equal(fireMouseWeapon(g,'comet',{x:400,y:0}).ok,true);
+});
+
+test('a rock partly shields a target from a comet blast instead of cancelling all damage',()=>{
+ const fire=withRock=>{
+  const g=scene(),foe=scout(350,0,200);
+  g.enemies.push(foe);
+  g.rockGrid.query=()=>withRock?[{x:310,y:0,r:34,alive:true}]:[];
+  assert.equal(fireMouseWeapon(g,'comet',{x:260,y:0}).ok,true);
+  g.time=.6;updateMouseArsenal(g,.6);
+  return 200-foe.hp;
+ };
+ const open=fire(false),sheltered=fire(true);
+ assert.ok(sheltered>0&&sheltered<open);
+ assert.ok(Math.abs(sheltered/open-.6)<.01);
+});
+
+test('mine pods cross rocks and occupy only clear landing sites',()=>{
+ const g=scene(),travelRock={x:145,y:0,r:38,alive:true};
+ g.rockGrid.query=()=>[travelRock];
+ const plan=planMouseWeapon(g,'mines',{x:300,y:0});
+ assert.equal(plan.ok,true);
+ fireMouseWeapon(g,'mines',{x:300,y:0});
+ g.time=1;updateMouseArsenal(g,1);
+ assert.equal(g.mouseArsenal.mines.length,4,'intermediate rocks do not destroy pods');
+ for(let i=0;i<plan.sites.length;i++){
+  assert.ok(Math.hypot(g.mouseArsenal.mines[i].x-plan.sites[i].x,
+   g.mouseArsenal.mines[i].y-plan.sites[i].y)<.001);
+ }
+});
+
+test('mine aiming relocates pods around a landing rock and rejects an impassable area',()=>{
+ const g=scene(),rock={x:300,y:0,r:43,alive:true};
+ g.rockGrid.query=()=>[rock];
+ const plan=planMouseWeapon(g,'mines',{x:300,y:0});
+ assert.equal(plan.ok,true);
+ assert.ok(plan.sites.every(s=>Math.hypot(s.x-rock.x,s.y-rock.y)>=rock.r+12));
+ fireMouseWeapon(g,'mines',{x:300,y:0});g.time=1;updateMouseArsenal(g,1);
+ assert.equal(g.mouseArsenal.mines.length,4);
+ assert.ok(g.mouseArsenal.mines.every(s=>Math.hypot(s.x-rock.x,s.y-rock.y)>=rock.r+12));
+ const blocked=scene(),giant={x:300,y:0,r:240,alive:true};
+ blocked.rockGrid.query=()=>[giant];
+ assert.equal(fireMouseWeapon(blocked,'mines',{x:300,y:0}).ok,false);
+ assert.equal(blocked.mouseArsenal.minesReadyAt,0);
+});
+
+test('pods adjust if an asteroid drifts into their landing sites during flight',()=>{
+ const g=scene(),drifter={x:700,y:700,r:35,alive:true};
+ g.rockGrid.query=()=>[drifter];
+ const plan=planMouseWeapon(g,'mines',{x:300,y:0});
+ fireMouseWeapon(g,'mines',{x:300,y:0});
+ drifter.x=plan.sites[0].x;drifter.y=plan.sites[0].y;
+ g.time=1;updateMouseArsenal(g,1);
+ assert.equal(g.mouseArsenal.mines.length,4);
+ assert.ok(g.mouseArsenal.mines.every(s=>Math.hypot(s.x-drifter.x,s.y-drifter.y)>=drifter.r+12));
+});
+
+test('aim preview marks blocked rail fire and asteroid-occupied landing points',()=>{
+ const g=scene(),labels=[],arcs=[];
+ const ctx=new Proxy({fillText(label){labels.push(label);},arc(x,y,r){arcs.push([x,y,r]);}},
+  {get(target,key){return target[key]??(()=>{});}});
+ g.rockGrid.query=()=>[{x:160,y:0,r:40,alive:true}];
+ g.mouseAim={kind:'rail',point:{x:500,y:0}};
+ drawMouseArsenal(ctx,g);
+ assert.ok(labels.some(text=>text.includes('ЛУЧ ПЕРЕКРЫТ')));
+ assert.ok(arcs.some(([x])=>x<200),'the impact marker must be on the rock, not the cursor');
+ labels.length=0;
+ g.mouseAim={kind:'comet',point:{x:160,y:0}};
+ drawMouseArsenal(ctx,g);
+ assert.ok(labels.some(text=>text.includes('МЕШАЮТ АСТЕРОИДЫ')));
+ labels.length=0;
+ g.mouseAim={kind:'howitzer',point:{x:160,y:0}};
+ drawMouseArsenal(ctx,g);
+ assert.ok(labels.some(text=>text.includes('ТОЧКА ЗАНЯТА')));
 });
 
 test('a paused game cannot aim or fire mouse weapons, and mines still have independent cooldowns',()=>{

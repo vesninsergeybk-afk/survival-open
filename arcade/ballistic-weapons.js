@@ -1,5 +1,6 @@
-import {combatTargets,targetAlive,targetRadius,damageTarget,clearLine} from './combat-targets.js?v=frontier-siege-1';
+import {combatTargets,targetAlive,targetRadius,damageTarget} from './combat-targets.js?v=frontier-siege-1';
 import {firstRockImpact} from './terrain.js';
+import {blastCoverFactor} from './aimed-terrain.js';
 import {contactAtPoint,contactOnCircle} from './impact-geometry.js';
 import {weaponDamageFactor} from './weapon-specializations.js';
 import {emitWeaponFx} from './weapon-fx.js';
@@ -121,37 +122,31 @@ export function launchHeavyShell(game,from,aim){
  const d=distance(from,aim);if(!(d>0))return false;
  const ux=(aim.x-from.x)/d,uy=(aim.y-from.y)/d;
  game.heavyShells=[{x:from.x,y:from.y,px:from.x,py:from.y,
-  vx:ux,vy:uy,tx:aim.x,ty:aim.y,remaining:d}];
+  vx:ux,vy:uy,tx:aim.x,ty:aim.y,remaining:d,totalDistance:d}];
  emitWeaponFx(game,'howitzer',from,point(from.x+ux*60,from.y+uy*60),{impact:false});
  game.heritage?.play?.('rocketShot',.2,from);
  return true;
 }
 
-function detonateHeavy(game,hit,cover=null){
+function detonateHeavy(game,hit){
  game.heritage?.vfx?.nova(hit.x,hit.y,110,'violet');
  game.heritage?.play?.('howitzerShot',.35,hit);
  // Preserve target snapshots: a turret destroyed by this blast must not
  // expose its protected station core to the *same* explosion.
  for(const item of combatTargets(game,180,hit)){
   const t=item.target;if(distance(t,hit)>110+targetRadius(item))continue;
-  const dx=t.x-hit.x,dy=t.y-hit.y,n=Math.hypot(dx,dy)||1;
-  const start=point(hit.x+dx/n*2,hit.y+dy/n*2);
-  if(!clearLine(game,start,t,false))continue;
-  damageTarget(game,item,180,'howitzer',contactOnCircle(t.x,t.y,targetRadius(item),hit.x,hit.y));
+  damageTarget(game,item,180*blastCoverFactor(game,hit,t),'howitzer',
+   contactOnCircle(t.x,t.y,targetRadius(item),hit.x,hit.y));
  }
- if(cover)game.damageRock(cover.rock,180,hit.x,hit.y,'auto',true,
-  contactAtPoint(cover.rock.x,cover.rock.y,hit.x,hit.y));
 }
 
-/** The shell never homes. Intervening hostile hulls and solid rocks intercept it. */
+/** The shell never homes. It passes above rocks but hostile hulls may intercept it. */
 export function updateHeavyShells(game,dt){
  const shells=game.heavyShells;
  if(!shells?.length||!(dt>0))return;
  for(let i=shells.length-1;i>=0;i--){
   const shell=shells[i],from=point(shell.x,shell.y),step=Math.min(shell.remaining,HEAVY_SHELL_SPEED*dt);
   const end=point(from.x+shell.vx*step,from.y+shell.vy*step);
-  const rocks=game.rockGrid?.query((from.x+end.x)*.5,(from.y+end.y)*.5,step*.5+65)||[];
-  const cover=firstRockImpact(from.x,from.y,end.x,end.y,rocks,3,game.player);
   let first=null;
   for(const item of combatTargets(game,step*.5+115,point((from.x+end.x)*.5,(from.y+end.y)*.5))){
    const t=segmentCircle(from,end,item.target,targetRadius(item));
@@ -159,9 +154,7 @@ export function updateHeavyShells(game,dt){
   }
   shell.px=from.x;shell.py=from.y;shell.x=end.x;shell.y=end.y;
   shell.remaining-=step;
-  if(cover&&(!first||cover.t<=first.t)){
-   shells.splice(i,1);detonateHeavy(game,point(cover.x,cover.y),cover);
-  }else if(first){
+  if(first){
    shells.splice(i,1);detonateHeavy(game,at(from,end,first.t));
   }else if(shell.remaining<=.01){
    shells.splice(i,1);detonateHeavy(game,point(shell.tx,shell.ty));
@@ -183,12 +176,19 @@ export function drawBallisticWeapons(ctx,game,fps=60,reducedMotion=false,camera=
   ctx.beginPath();ctx.moveTo(p.x-p.vx*9,p.y-p.vy*9);ctx.lineTo(p.x,p.y);ctx.stroke();
  }
  for(const s of game.heavyShells||[]){
-  if(visible(s.x,s.y,40)){
+  const fraction=1-s.remaining/Math.max(1,s.totalDistance||s.remaining||1);
+  const height=Math.sin(Math.PI*Math.max(0,Math.min(1,fraction)))*
+   Math.min(110,Math.max(32,(s.totalDistance||300)*.13));
+  if(visible(s.x,s.y-height,40)||visible(s.x,s.y,40)){
+   const drawY=s.y-height;
+   ctx.fillStyle='#c68afa';ctx.globalAlpha=.2;
+   ctx.beginPath();ctx.arc(s.x,s.y,8,0,TAU);ctx.fill();
+   ctx.globalAlpha=1;
    ctx.strokeStyle='#b06dff';ctx.lineWidth=fps<28?5:10;
-   ctx.beginPath();ctx.moveTo(s.x-s.vx*28,s.y-s.vy*28);ctx.lineTo(s.x,s.y);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(s.x-s.vx*28,drawY-s.vy*28);ctx.lineTo(s.x,drawY);ctx.stroke();
    ctx.strokeStyle='#ffdcff';ctx.lineWidth=2.6;
-   ctx.beginPath();ctx.moveTo(s.x-s.vx*13,s.y-s.vy*13);ctx.lineTo(s.x,s.y);ctx.stroke();
-   ctx.fillStyle='#fff4ff';ctx.beginPath();ctx.arc(s.x,s.y,fps<28?5:7,0,TAU);ctx.fill();
+   ctx.beginPath();ctx.moveTo(s.x-s.vx*13,drawY-s.vy*13);ctx.lineTo(s.x,drawY);ctx.stroke();
+   ctx.fillStyle='#fff4ff';ctx.beginPath();ctx.arc(s.x,drawY,fps<28?5:7,0,TAU);ctx.fill();
   }
   if(visible(s.tx,s.ty,120)){
    ctx.strokeStyle='#e2b2ff99';ctx.lineWidth=2;

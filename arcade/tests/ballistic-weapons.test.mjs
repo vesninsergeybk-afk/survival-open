@@ -111,13 +111,31 @@ test('a moving target can escape the old marked point during heavy-shell flight'
  assert.equal(g.heavyShells.length,0);
 });
 
-test('a rock intercepts the shell early, and the blast does not cross it to the distant target',()=>{
+test('howitzer shell passes over intervening rock and detonates on the selected target',()=>{
  const g=heavy(),t=enemy(350),r=rock(135,0,42);g.grid.insert(t);g.rockGrid.insert(r);
  let rocksHit=0;g.damageRock=()=>rocksHit++;
  g.heavyCharge=planHowitzer(g).charge;updateHowitzer(g,1.26);strike(g,.9);
- assert.equal(t.hp,500);
- assert.equal(rocksHit,1);
+ assert.equal(t.hp,320);
+ assert.equal(rocksHit,0,'a high-arcing shell must not strike intervening stone');
  assert.equal(g.heavyShells.length,0);
+});
+
+test('howitzer refuses an asteroid-occupied landing before charge or cooldown',()=>{
+ const g=heavy(),r=rock(300,0,44);g.rockGrid.insert(r);
+ const aimed=planHowitzer(g,{x:300,y:0});
+ assert.equal(aimed.ok,false);
+ assert.match(aimed.reason,/астероидом/);
+ assert.equal(g.heavyCooldown,0);
+ assert.equal(planHowitzer(g,{x:400,y:0}).ok,true);
+});
+
+test('howitzer splash is reduced but still reaches a target behind asteroid cover',()=>{
+ const g=heavy(),center=enemy(350),behind=enemy(445),r=rock(400,0,34);
+ g.grid.insert(center);g.grid.insert(behind);g.rockGrid.insert(r);
+ const plan=planHowitzer(g);assert.equal(plan.ok,true);
+ g.heavyCharge=plan.charge;updateHowitzer(g,1.26);strike(g,.9);
+ assert.equal(center.hp,320);
+ assert.equal(behind.hp,392,'cover absorbs forty percent of the blast damage');
 });
 
 test('a moving heavy shell detonates at the first intervening enemy, not the memorized aim point',()=>{
