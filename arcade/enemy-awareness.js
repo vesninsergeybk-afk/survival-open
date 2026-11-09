@@ -2,8 +2,9 @@
  * Only sampled, unobstructed sightings or delivered radio reports may renew
  * pursuit. An encounter may start with a dispatch coordinate, but the ship
  * cannot silently follow a moving player across the whole sector. */
+import {STARTER_COMBAT} from './balance.js';
 export const ENEMY_AWARENESS=Object.freeze({
-  directRange:620,visualGrace:.58,personalMemory:5.8,
+  directRange:STARTER_COMBAT.patrolSight,visualGrace:.58,personalMemory:5.8,
   dispatchMemory:9,impactMemory:3.7,radioLead:.12,maxLead:26
 });
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);

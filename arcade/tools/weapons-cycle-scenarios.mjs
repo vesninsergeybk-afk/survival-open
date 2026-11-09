@@ -54,6 +54,8 @@ export function runOperationScenario(job,kitId,dt=1/60,{worldSeed,stationary=fal
   if(!returning){
    if(combatAt===null&&hostiles.length)combatAt=g.time;
    let target=active,preferred=active.phase==='approach'?Math.min(kit.range,300):kit.range;
+   if(job==='cargo'&&kit.id==='flak-resonator'&&active.phase!=='approach')
+    preferred=105; // Short-range pellets need a genuine intercept, not a 200 m tail chase.
    if(job==='relay'){
     if(nearest){
      target=hostiles.find(e=>e.missionStrike?.target==='antenna')||hostiles.find(e=>e.missionStrike)||nearest;
@@ -85,6 +87,27 @@ export function runOperationScenario(job,kitId,dt=1/60,{worldSeed,stationary=fal
   if(stationary){
    desired={x:g.player.x,y:g.player.y};
    if(job==='probe'&&active)g.actionHeld={kind:'repair',source:'keyboard'};
+  }
+  // The regression pilot uses only visible, already-fired projectiles to
+  // sidestep; weaker starter armor must not make a stationary scripted route
+  // the sole way to "test" every weapon build.
+  if(!stationary)for(const shot of g.shots||[]){
+   if(!shot.alive)continue;
+   const speed2=shot.vx**2+shot.vy**2;
+   if(speed2<1)continue;
+   const ahead=((g.player.x-shot.x)*shot.vx+
+    (g.player.y-shot.y)*shot.vy)/speed2;
+   if(ahead<0||ahead>.7)continue;
+   const futureX=shot.x+shot.vx*ahead,futureY=shot.y+shot.vy*ahead;
+   if(Math.hypot(futureX-g.player.x,futureY-g.player.y)>75)continue;
+   const norm=Math.sqrt(speed2);
+   const lateral={x:-shot.vy/norm,y:shot.vx/norm};
+   const towards=(desired.x-g.player.x)*lateral.x+
+    (desired.y-g.player.y)*lateral.y;
+   const side=towards>=0?1:-1;
+   desired={x:g.player.x+lateral.x*side*220,
+    y:g.player.y+lateral.y*side*220};
+   break;
   }
   const dx=desired.x-g.player.x,dy=desired.y-g.player.y,d=Math.hypot(dx,dy);
   g.touch.x=dx/Math.max(d,60);g.touch.y=dy/Math.max(d,60);

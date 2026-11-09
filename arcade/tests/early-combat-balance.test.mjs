@@ -1,0 +1,110 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {RULES,STARTER_COMBAT,beamDamage,openingThreat,openingSpawnRoom,rebaseSavedHull} from '../balance.js';
+import {moduleStats,createLoadout} from '../ship-loadout.js';
+import {ENEMY_TYPES,IRIS_COMBAT} from '../ai.js';
+import {ENEMY_AWARENESS} from '../enemy-awareness.js';
+import {SIGNAL_AI} from '../signal-perception.js';
+import {IRIS_SWARM} from '../iris-swarm.js';
+import {ArcadeGame} from './runtime-game.mjs';
+
+test('начальный корабль слабее на дистанции, но сохраняет мощный ближний бой',()=>{
+ const p=moduleStats('plasma');
+ assert.equal(createLoadout().slots[0],'plasma');
+ assert.equal(p.damage,STARTER_COMBAT.plasmaDamage);
+ assert.equal(p.range,RULES.beamRange);
+ assert.equal(p.interval,STARTER_COMBAT.plasmaInterval);
+ assert.ok(p.range<IRIS_SWARM.sensorRange,
+  'разведчик должен заметить пилота раньше максимальной дальности стартовой плазмы');
+ assert.ok(p.range<=STARTER_COMBAT.patrolSight+15,
+  'обычные враги должны получать время на ответный выстрел');
+ const close=beamDamage(p.damage,RULES.nearBeam);
+ const distant=beamDamage(p.damage,p.range-20);
+ assert.ok(close/distant>2.5,'приближение должно ощутимо повышать урон');
+ assert.ok(Math.ceil(ENEMY_TYPES.scout.hp/close)<=3,
+  'разведчик не должен превращаться в губку для попаданий в упор');
+ assert.ok(Math.ceil(ENEMY_TYPES.scout.hp/distant)>=5,
+  'с края дальности нельзя быстро срезать разведчика без ответного огня');
+});
+
+test('обнаружение согласовано между патрулём, визуальным контактом и сигналом добычи',()=>{
+ assert.equal(ENEMY_AWARENESS.directRange,STARTER_COMBAT.patrolSight);
+ assert.equal(SIGNAL_AI.detectRadius,STARTER_COMBAT.signalSight);
+ const game={rockGrid:{query:()=>[]}};
+ const enemy={x:0,y:0,vx:0,vy:0};
+ assert.equal(ArcadeGame.prototype.enemyCanSee.call(game,enemy,
+  {x:STARTER_COMBAT.patrolSight-1,y:0}),true);
+ assert.equal(ArcadeGame.prototype.enemyCanSee.call(game,enemy,
+  {x:STARTER_COMBAT.patrolSight+1,y:0}),false);
+ assert.ok(STARTER_COMBAT.intentRange>STARTER_COMBAT.patrolSight,
+  'предупреждение об огне должно быть заметно до приближения на дистанцию выстрела');
+ assert.ok(IRIS_COMBAT.projectileSpeed>STARTER_COMBAT.speed,
+  'снаряд должен догонять пилота, если тот лишь летит прямо');
+});
+
+test('защищённые девять секунд переходят в плотные, но ограниченные бои',()=>{
+ const first=openingThreat(9),second=openingThreat(36),third=openingThreat(75);
+ assert.equal(openingThreat(8.99).groupSize,0);
+ assert.equal(first.groupSize,4);
+ assert.ok(first.interval<=7);
+ assert.ok(second.cap>first.cap&&third.cap>second.cap);
+ assert.ok(second.types.includes('fighter'));
+ assert.ok(!second.types.includes('gunship'));
+ assert.ok(openingThreat(205).cap>=openingThreat(204.99).cap,
+  'усиление по числу противников не должно внезапно исчезать');
+ for(const t of [9,36,75,118,155,205,300]){
+  const {cap,groupSize}=openingThreat(t);
+  assert.ok(groupSize<=cap&&cap<=RULES.maxEnemies);
+ }
+});
+
+test('дальние неосведомлённые патрули не перекрывают местные встречи',()=>{
+ const stage=openingThreat(20);
+ assert.equal(openingSpawnRoom(20,stage,5,0,5),stage.cap);
+ assert.equal(openingSpawnRoom(20,stage,stage.cap*2,0,stage.cap*2),0,
+  'накопление невидимых патрулей должно быть ограничено');
+ assert.equal(openingSpawnRoom(20,stage,stage.cap,stage.cap,stage.cap),0,
+  'в насыщенном бою новые корабли не появляются поверх игрока');
+ assert.equal(openingSpawnRoom(20,stage,30,0,3),stage.cap,
+  'далёкие корабли других операций не отменяют местные патрули');
+ assert.equal(openingSpawnRoom(205,openingThreat(205),22,0,0),11,
+  'переход к позднему этапу сохраняет плотность угрозы без провала');
+});
+
+test('настоящий создатель встреч выпускает группу при заполненном далёкими патрулями лимите',()=>{
+ const game=Object.create(ArcadeGame.prototype);
+ Object.assign(game,{time:20,player:{x:0,y:0,level:1,hp:90},
+  enemies:Array.from({length:6},(_,i)=>({x:9000+i*50,y:0,hp:28,
+   _patrolRoute:{x:10000,y:0}})),groupSerial:0,enemySerial:6,
+  lastEncounter:null,lastEncounterLabelAt:-Infinity,
+  spawnEntryCamera:()=>({x:-600,y:-400,w:1200,h:800})});
+ const previous=game.enemies.length;
+ ArcadeGame.prototype.spawnGroup.call(game,openingThreat(20));
+ assert.equal(game.enemies.length-previous,4);
+ assert.ok(game.enemies.slice(previous).every(e=>e.hp>0&&e._patrolRoute));
+});
+
+test('промышленные эскадры нового мира не занимают квоту обычных патрулей',()=>{
+ const game=Object.create(ArcadeGame.prototype);
+ Object.assign(game,{time:20,player:{x:0,y:0,level:1,hp:90},
+  enemies:Array.from({length:18},(_,i)=>({x:7000+i*60,y:0,hp:50,
+   populationSortieId:'population:'+i,_patrolRoute:{x:8000,y:0}})),
+  groupSerial:1,enemySerial:18,lastEncounter:null,lastEncounterLabelAt:-Infinity,
+  spawnEntryCamera:()=>({x:-600,y:-400,w:1200,h:800})});
+ const before=game.enemies.length;
+ ArcadeGame.prototype.spawnGroup.call(game,openingThreat(20));
+ assert.equal(game.enemies.length-before,4);
+});
+
+test('старые сохранения получают новую броню, сохраняя долю здоровья и вложенные очки',()=>{
+ const unmodified={hp:55,maxHp:110};
+ assert.equal(rebaseSavedHull(unmodified,0),true);
+ assert.deepEqual(unmodified,{hp:45,maxHp:90});
+ assert.equal(rebaseSavedHull(unmodified,0),false,'повторное восстановление ничего не отнимает');
+ const upgraded={hp:77,maxHp:154};
+ assert.equal(rebaseSavedHull(upgraded,2),true);
+ assert.deepEqual(upgraded,{hp:67,maxHp:134});
+ const current={hp:70,maxHp:STARTER_COMBAT.hull};
+ assert.equal(rebaseSavedHull(current,0),false);
+ assert.deepEqual(current,{hp:70,maxHp:90});
+});

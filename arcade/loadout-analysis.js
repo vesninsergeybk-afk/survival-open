@@ -1,5 +1,5 @@
 import {beamDamage} from './balance.js';
-import {MODULES,moduleStats,loadoutProfile} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-menu-focus-1';
+import {MODULES,moduleStats,loadoutProfile} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-menu-focus-1-combat-balance-1';
 import {plasmaDamageFactor} from './weapon-specializations.js?v=weapons-cycle-2';
 
 // One unarmored target, no cover or misses. Heat is reported separately, never

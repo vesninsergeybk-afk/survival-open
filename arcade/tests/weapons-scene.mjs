@@ -1,13 +1,13 @@
 import {ArcadeGame} from './runtime-game.mjs';
 import {World} from '../world.js';
-import {SpatialGrid} from '../balance.js';
+import {SpatialGrid,STARTER_COMBAT} from '../balance.js';
 import {createLoadout,createThermal,loadoutProfile,HangarSession} from '../ship-loadout.js';
 const noop=()=>{};
 export function game(slots=['plasma',null,null,null,null,null]){
  const g=Object.create(ArcadeGame.prototype),world=new World(20261102),base=world.home;
  base.active=true;base.enemy=false;base.discovered=true;world.discovered.add(base.id);
  Object.assign(g,{seed:world.seed,world,docked:base,activeBases:1,time:10,dead:false,paused:false,
-  player:{x:0,y:0,vx:0,vy:0,r:19,angle:0,hp:110,maxHp:110,shield:0,ore:400,data:0,xp:0,level:14,points:20},
+  player:{x:0,y:0,vx:0,vy:0,r:19,angle:0,hp:STARTER_COMBAT.hull,maxHp:STARTER_COMBAT.hull,shield:0,ore:400,data:0,xp:0,level:14,points:20},
   skillRanks:{beam:0,double:0,range:0,rocket:1,hull:0,engine:0,shield:0,dodge:0,magnet:0,mining:0,extractor:0,radar:0,tactics:0},
   shipLoadout:{...createLoadout(),frame:4,slots:[...slots],owned:{plasma:5,rail:5,flak:5,rocket:5,howitzer:1}},
   weaponThermal:createThermal(),moduleClocks:{rail:0,flak:0},beamClock:0,rocketClock:0,
