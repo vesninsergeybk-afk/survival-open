@@ -20,7 +20,7 @@
 .build-options button:disabled{opacity:.39;cursor:not-allowed}
 .build-options .build-glyph{grid-row:span 2;font-size:30px;color:#ffcd8c;line-height:1}
 .build-options .build-turret-art{display:block;width:38px;height:38px;margin:-1px;
- background:url('./assets/artillery/flux-howitzer-base-v1.webp') center/contain no-repeat;
+ background:url('./assets/artillery/flux-howitzer-base-v1.svg') center/contain no-repeat;
  filter:drop-shadow(0 0 4px #44cce855)}
 .build-options strong{font-size:13px}.build-options small{font-size:11px;color:#accbd7;line-height:1.4}
 .build-cancel,.build-placement button{border:1px solid #73b8c883;background:#12354b;
