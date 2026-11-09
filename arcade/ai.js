@@ -199,6 +199,20 @@ const pickTarget=(e,game)=>{
       if(z<290&&game.enemyCanSee?.(e,ally)&&z*priority<d){d=z*priority;target=ally;}
     }
   }
+  // A firing field artillery platform is a local, observable threat. Keep
+  // scripted rescue/escort orders and actual sightings ahead of this choice.
+  if(target===game.player&&e.type!=='healer'&&!e.relayAssault&&!e.stationRaid){
+    let nearest=null,closest=Infinity;
+    for(const tower of game.world?.contours?.artillery||[]){
+      if(tower.hp<=0||game.time<tower.readyAt||
+        game.time-tower.lastShotAt>10)continue;
+      const d=dist(e,tower);
+      if(d<420&&d<closest&&game.enemyCanSee?.(e,tower)){
+        nearest=tower;closest=d;
+      }
+    }
+    if(nearest)target=nearest;
+  }
   return target;
 };
 export function updateEnemy(e,game,dt){
@@ -585,7 +599,7 @@ export function updateEnemy(e,game,dt){
       game.enemyLearning?.fired(e);
   }
   if(!targetingPlayer&&p.hp>0&&dist(e,p)<e.r+p.r){
-    p.hp-=e.damage*dt*1.4;
+    p.hp=Math.max(0,p.hp-e.damage*dt*1.4);
     if(p.hp<=0)game.heritage.vfx.shipExplosion(p.x,p.y,24,'#9aefff');
   }
   const playerContact=trialDive?.phase==='rush'?
