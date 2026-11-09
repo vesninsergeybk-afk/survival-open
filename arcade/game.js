@@ -3,6 +3,7 @@ import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-deve
 import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2';
 import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1';
+import {mountContextualGuide} from './contextual-guide-ui.js?v=prototype-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
@@ -114,7 +115,7 @@ import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-fe
 import {syncContourDynamics,resumeContourTransition} from './contour-dynamics.js?v=contour-dynamics-3-auto-1';
 import {registerContourTrials,productiveContourFields,pendingContourTrials,readyContourTrials,unresolvedContourTrials,CONTOUR_TRIALS} from './contour-trials.js?v=swarm-siege-2-rank';
 import {updateContourTrials,activateContourVortex} from './contour-trial-director.js?v=swarm-siege-rewards-2-formation-zoomread-2';
-import {drawContourTrialHUD} from './contour-trial-vfx.js?v=swarm-siege-1';
+import {drawContourTrialHUD} from './contour-trial-vfx.js?v=swarm-siege-1-learning-hud-1';
 import {drawBranchedInteraction} from './interaction-arcs.js?v=triangle-defense-1';
 import {updateRamSquads,drawRamSquads} from './ram-squads.js?v=triangle-defense-1';
 import {TURRET_REPAIR,repairableTurret,turretRepairQuote,repairTurret} from './turret-repair.js?v=triangle-defense-1';
@@ -556,6 +557,7 @@ export class ArcadeGame {
   this.controls||={...DEFAULT_CONTROLS};
   window.addEventListener('resize',()=>this.resize());
   this.bindControlSettings();mountSystemMenu(this);
+  this.learning=mountContextualGuide(this);
   $('buildBtn')?.addEventListener('click',()=>this.openBuildPlanner());
   $('buildEdgeUpgrade')?.addEventListener('click',()=>{
    if(this.buildPlanning?.stage!=='menu')return;
@@ -5838,8 +5840,10 @@ export class ArcadeGame {
  }
  hud(){
   advanceWorldFeedback(this);
+  $('hud')?.classList.toggle('has-contour-trial',!!this.contourTrial);
   this.cockpit.update(this,expForNext(this.player.level),burstStats(this.skillRanks.engine).cooldown);
   this.syncControlUI();
+  this.learning?.update();
   const panel=$('evolutionPrompt');
   if(panel){
    const captureWait=Math.max(0,Math.ceil((this.fieldEvolution?.captureReadyAt||0)-this.time));
