@@ -4,7 +4,7 @@ import {readFileSync,existsSync} from 'node:fs';
 import {createContours,connectContour} from '../territory-system.js';
 import {FLUX_ARTILLERY,ARTILLERY_MODES,artilleryOffer,artilleryConnection,
  artilleryLinks,deployArtillery,advanceFluxArtillery,chooseArtilleryAim,
- setArtilleryMode,validFluxArtillery,drawFluxArtillery} from '../flux-artillery.js';
+ setArtilleryMode,validFluxArtillery,drawFluxArtillery,turnArtilleryGun} from '../flux-artillery.js';
 import {readControls,DEFAULT_CONTROLS} from '../control-layout.js';
 
 const gameEntry=new URL('../game.js',import.meta.url);
@@ -129,6 +129,32 @@ test('shell flies visibly before its real area hit, even if the gun is destroyed
  assert.equal(world.contours.artillery.length,0,'wrecks are removed after their fade');
 });
 
+test('artillery rotation is bounded, takes the shortest arc, and shells leave the muzzle',()=>{
+ const sixty=1/60,start=-Math.PI/2;
+ const first=turnArtilleryGun(start,Math.PI/2,sixty);
+ assert.ok(Math.abs(first-start)<.06,'the barrel must not snap through 180 degrees');
+ assert.ok(Math.abs(first-start)>.01,'the barrel must actually rotate');
+ const wrapped=turnArtilleryGun(3.1,-3.1,.05);
+ assert.ok(Math.abs(Math.atan2(Math.sin(wrapped-3.1),Math.cos(wrapped-3.1)))<.2,
+  'turning past the -pi/pi boundary must not spin backward');
+ const {world,game,player,point}=fixture();world.contours.trials.completed=1;
+ world.contours.flux=10;
+ const turret=deployArtillery(world,player,point,0).turret;
+ turret.readyAt=0;turret.ammo=1;
+ game.enemies=[{x:850,y:300,hp:100,maxHp:100,r:18}];
+ game.time=1;advanceFluxArtillery(game,sixty);
+ const before=turret.gunAngle;
+ game.time+=sixty;advanceFluxArtillery(game,sixty);
+ assert.ok(Math.abs(turret.gunAngle-before)<=.06,'first tracking frame respects angular speed');
+ for(let i=0;i<95;i++){game.time+=sixty;advanceFluxArtillery(game,sixty);}
+ assert.ok(world.contours.artilleryShells.length>0);
+ const shell=world.contours.artilleryShells[0];
+ assert.ok(Math.abs(Math.hypot(shell.startX-turret.x,shell.startY-turret.y)-
+  FLUX_ARTILLERY.muzzleOffset)<1e-5,'projectile starts at the muzzle');
+ assert.ok(shell.startX>turret.x+40,'a gun aimed right must fire from its rightmost tip');
+ assert.equal(validFluxArtillery(world.contours),true);
+});
+
 test('fired shells cannot invent out-of-range positions or infinite flight times in saves',()=>{
  const {world,player,point}=fixture();world.contours.trials.completed=1;
  world.contours.flux=3;const turret=deployArtillery(world,player,point,0).turret;
@@ -147,6 +173,11 @@ test('the asset and all live VFX phases render safely through the canvas API',()
  const bytes=Buffer.from(embedded[1],'base64');
  assert.equal(bytes.subarray(0,4).toString(),'RIFF');
  assert.equal(bytes.subarray(8,12).toString(),'WEBP');
+ const head=new URL('../assets/artillery/flux-howitzer-head-v2.svg',import.meta.url);
+ assert.equal(existsSync(head),true);
+ const headEmbed=readFileSync(head,'utf8').match(/href="data:image\/webp;base64,([^"]+)"/);
+ assert.ok(headEmbed,'the independent rotating gun is a real game-ready sprite');
+ assert.equal(Buffer.from(headEmbed[1],'base64').subarray(8,12).toString(),'WEBP');
  const {world,game,player,point}=fixture();world.contours.trials.completed=1;
  world.contours.flux=10;const turret=deployArtillery(world,player,point,0).turret;
  turret.readyAt=0;turret.ammo=7;turret.lastChargeAt=9.8;

@@ -28,8 +28,13 @@ export function hitFriendlyShip(game,shot){
       Math.hypot(shot.x-turret.x,shot.y-turret.y)>=shot.r+turret.r)continue;
     shot.alive=false;turret.hp=Math.max(0,turret.hp-shot.damage);
     const point=contactOnCircle(turret.x,turret.y,turret.r,shot.x,shot.y);
-    if(turret.hp<=0)game.heritage?.vfx?.shipExplosion?.(turret.x,turret.y,40,'#ffae6e');
-    else game.heritage?.vfx?.hullImpact?.(point?.x??turret.x,point?.y??turret.y,false,point);
+    if(turret.hp<=0){
+      game.heritage?.vfx?.shipExplosion?.(turret.x,turret.y,40,'#ffae6e');
+      game.heritage?.play?.('artilleryDestroyed',.8,turret);
+    }else{
+      game.heritage?.vfx?.hullImpact?.(point?.x??turret.x,point?.y??turret.y,false,point);
+      game.heritage?.play?.('artilleryHit',.2,turret);
+    }
     return true;
   }
   return false;

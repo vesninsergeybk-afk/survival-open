@@ -8,17 +8,27 @@ export const FLUX_ARTILLERY=Object.freeze({
  maxHp:110,magazine:15,chargeCost:.25,damage:50,blastRadius:110,
  range:740,aimSeconds:1.45,cooldown:8,buildSeconds:3,
  cableScale:700,baseFluxPerMinute:3.6,packetSpeed:520,maxTurrets:72,maxPackets:256,
- maxShells:96,shellSpeed:830,impactLifetime:.9,wreckLifetime:5
+ maxShells:96,shellSpeed:830,impactLifetime:.9,wreckLifetime:5,
+ collisionRadius:38,turnSpeed:2.9,muzzleOffset:60
 });
 export const ARTILLERY_MODES=Object.freeze(['smart','group','strong','weak']);
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
+const normalizeAngle=a=>Math.atan2(Math.sin(a),Math.cos(a));
+const shortestTurn=(from,to)=>normalizeAngle(to-from);
+export const turnArtilleryGun=(angle,target,dt)=>normalizeAngle(angle+
+ clamp(shortestTurn(angle,target),-FLUX_ARTILLERY.turnSpeed*Math.max(0,dt),
+  FLUX_ARTILLERY.turnSpeed*Math.max(0,dt)));
+const recoilAt=age=>age<0||age>=.34?0:age<.065?age/.065:
+ Math.pow(1-(age-.065)/.275,2);
 const key=(a,b)=>a<b?a+'|'+b:b+'|'+a;
 const working=s=>!!s?.active&&!s.enemy&&!s.suppressed;
 const ARTILLERY_SPRITE_PATH='./assets/artillery/flux-howitzer-base-v1.svg';
-let artillerySprite=null;
+const ARTILLERY_HEAD_PATH='./assets/artillery/flux-howitzer-head-v2.svg';
+let artillerySprite=null,artilleryHead=null;
 if(typeof Image!=='undefined'){
  artillerySprite=new Image();artillerySprite.src=new URL(ARTILLERY_SPRITE_PATH,import.meta.url).href;
+ artilleryHead=new Image();artilleryHead.src=new URL(ARTILLERY_HEAD_PATH,import.meta.url).href;
 }
 
 export function artilleryLinks(world){
@@ -90,11 +100,11 @@ export function deployArtillery(world,player,point,time){
  state.flux=Math.max(0,state.flux-FLUX_ARTILLERY.fluxCost);
  player.ore-=FLUX_ARTILLERY.oreCost;
  const turret={id:++state.artillerySerial,kind:'flux-artillery',x:point.x,y:point.y,
-  r:28,hp:FLUX_ARTILLERY.maxHp,maxHp:FLUX_ARTILLERY.maxHp,ammo:0,
+  r:FLUX_ARTILLERY.collisionRadius,hp:FLUX_ARTILLERY.maxHp,maxHp:FLUX_ARTILLERY.maxHp,ammo:0,
   chargeCredit:0,readyAt:time+FLUX_ARTILLERY.buildSeconds,nextShotAt:time,
   aimingUntil:0,aimX:point.x,aimY:point.y,mode:'smart',lastShotAt:-1,
   lastImpactAt:-1,lastImpactX:point.x,lastImpactY:point.y,lastChargeAt:-1,
-  lastDestroyedAt:-1};
+  lastDestroyedAt:-1,gunAngle:-Math.PI/2};
  state.artillery.push(turret);
  return {ok:true,turret,connection:offer.connection};
 }
@@ -175,7 +185,7 @@ function impactShell(game,state,shell){
   id:shell.turretId+shell.launchedAt*31});
  if(game.fluxArtilleryFx.length>32)game.fluxArtilleryFx.splice(0,game.fluxArtilleryFx.length-32);
  game.heritage?.vfx?.rocketImpact?.(center.x,center.y,FLUX_ARTILLERY.blastRadius*.75);
- game.heritage?.play?.('rocketImpact',.32,center);
+ game.heritage?.play?.('artilleryImpact',.32,center);
 }
 function segmentPosition(path,fraction){
  let total=0;for(let i=1;i<path.length;i++)total+=distance(path[i-1],path[i]);
@@ -221,13 +231,21 @@ export function advanceFluxArtillery(game,dt){
   if(time<packet.arriveAt)continue;
   turret.ammo=Math.min(FLUX_ARTILLERY.magazine,turret.ammo+packet.charges);
   turret.lastChargeAt=time;
+  game.heritage?.play?.('artilleryCharge',.25,turret);
   packet.done=true;
  }
  state.artilleryPackets=state.artilleryPackets.filter(p=>!p.done);
  for(const turret of state.artillery){
   if(turret.hp<=0)continue;
+  if(turret.r!==FLUX_ARTILLERY.collisionRadius)turret.r=FLUX_ARTILLERY.collisionRadius;
   const link=links.get(turret.id);
+  if(!Number.isFinite(turret.gunAngle))turret.gunAngle=-Math.PI/2;
+  if(turret.aimingUntil>0||turret.lastShotAt>=0){
+   const facing=Math.atan2(turret.aimY-turret.y,turret.aimX-turret.x);
+   turret.gunAngle=turnArtilleryGun(turret.gunAngle,facing,dt);
+  }
   if(time<turret.readyAt)continue;
+  if(time-dt<turret.readyAt)game.heritage?.play?.('artilleryOnline',.9,turret);
   if(link){
    const congestion=sideCounts.get(link.edgeId)||1;
    // The farther the platform is from the powered side, the less energy it
@@ -257,11 +275,13 @@ export function advanceFluxArtillery(game,dt){
    if(state.artilleryShells.length>=FLUX_ARTILLERY.maxShells)continue;
    turret.ammo--;turret.nextShotAt=time+FLUX_ARTILLERY.cooldown;
    turret.lastShotAt=time;
-   const travel=distance(turret,{x:turret.aimX,y:turret.aimY});
-   state.artilleryShells.push({turretId:turret.id,startX:turret.x,startY:turret.y,
+   const startX=turret.x+Math.cos(turret.gunAngle)*FLUX_ARTILLERY.muzzleOffset;
+   const startY=turret.y+Math.sin(turret.gunAngle)*FLUX_ARTILLERY.muzzleOffset;
+   const travel=distance({x:startX,y:startY},{x:turret.aimX,y:turret.aimY});
+   state.artilleryShells.push({turretId:turret.id,startX,startY,
     targetX:turret.aimX,targetY:turret.aimY,launchedAt:time,
     arriveAt:time+.25+travel/FLUX_ARTILLERY.shellSpeed});
-   game.heritage?.play?.('howitzerShot',.18,turret);
+   game.heritage?.play?.('artilleryLaunch',.18,turret);
    continue;
   }
   // Distant autonomous battles are not silently simulated or rewarded.
@@ -269,7 +289,8 @@ export function advanceFluxArtillery(game,dt){
     distance(game.player,turret)>Math.max(1400,game.vw||1200))continue;
   const aim=chooseArtilleryAim(game,turret);
   if(aim){turret.aimX=aim.x;turret.aimY=aim.y;
-   turret.aimingUntil=time+FLUX_ARTILLERY.aimSeconds;}
+   turret.aimingUntil=time+FLUX_ARTILLERY.aimSeconds;
+   game.heritage?.play?.('artilleryAcquire',.9,turret);}
  }
 }
 function drawArtilleryChassis(ctx,size=82){
@@ -290,22 +311,60 @@ function drawArtilleryChassis(ctx,size=82){
 function drawGun(ctx,rotation,recoil=0,fire=0){
  ctx.save();ctx.rotate(rotation+Math.PI/2);
  ctx.translate(0,recoil*9);
- ctx.shadowColor='#091020';ctx.shadowBlur=4;ctx.fillStyle='#172330';
- ctx.fillRect(-13,-31,26,40);
- ctx.shadowBlur=0;ctx.fillStyle='#506175';ctx.fillRect(-9,-36,18,36);
- ctx.fillStyle='#1f334b';ctx.fillRect(-5,-40,10,38);
- ctx.fillStyle='#dba75b';ctx.fillRect(-7,-20,3,20);
- ctx.fillRect(4,-20,3,20);
- ctx.fillStyle='#23354b';ctx.beginPath();ctx.arc(0,0,16,0,Math.PI*2);ctx.fill();
- ctx.strokeStyle='#69ccea';ctx.lineWidth=3;ctx.beginPath();
- ctx.arc(0,0,11,Math.PI*.16,Math.PI*1.84);ctx.stroke();
- ctx.fillStyle='#d7aa63';ctx.fillRect(-6,-41,12,5);
+ if(artilleryHead?.complete&&artilleryHead.naturalWidth){
+  // The image has a shared pivot at 66% of its height. Rotation only moves
+  // the detachable head: the mounting chassis always remains fixed.
+  ctx.drawImage(artilleryHead,-51,-67,102,102);
+ }else{
+  ctx.shadowColor='#091020';ctx.shadowBlur=4;ctx.fillStyle='#172330';
+  ctx.fillRect(-13,-31,26,40);
+  ctx.shadowBlur=0;ctx.fillStyle='#506175';ctx.fillRect(-9,-36,18,36);
+  ctx.fillStyle='#1f334b';ctx.fillRect(-5,-61,10,59);
+  ctx.fillStyle='#dba75b';ctx.fillRect(-7,-20,3,20);
+  ctx.fillRect(4,-20,3,20);
+  ctx.fillStyle='#23354b';ctx.beginPath();ctx.arc(0,0,16,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#69ccea';ctx.lineWidth=3;ctx.beginPath();
+  ctx.arc(0,0,11,Math.PI*.16,Math.PI*1.84);ctx.stroke();
+ }
  if(fire>0){
   ctx.globalAlpha=fire;
   ctx.shadowColor='#ff9d39';ctx.shadowBlur=23;
-  ctx.fillStyle='#fff6c3';ctx.beginPath();ctx.ellipse(0,-44,8,12,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#ff9a45';ctx.beginPath();ctx.moveTo(-9,-40);
-  ctx.lineTo(0,-68);ctx.lineTo(9,-40);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#fff6c3';ctx.beginPath();ctx.ellipse(0,-60,8,12,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ff9a45';ctx.beginPath();ctx.moveTo(-9,-57);
+  ctx.lineTo(0,-81);ctx.lineTo(9,-57);ctx.closePath();ctx.fill();
+ }
+ ctx.restore();
+}
+function drawDamage(ctx,turret,time,deadAge=null){
+ const severity=clamp(1-turret.hp/turret.maxHp,0,1);
+ const intensity=clamp((severity-.22)/.5,0,1);
+ if(!intensity&&!Number.isFinite(deadAge))return;
+ ctx.save();
+ ctx.lineWidth=2.3;ctx.lineCap='round';
+ for(let i=0;i<5;i++){
+  const angle=i*2.39996+.4,r=25+(i%2)*9;
+  const x=Math.cos(angle)*r,y=Math.sin(angle)*r;
+  ctx.strokeStyle=`rgba(12,17,23,${.63*intensity})`;
+  ctx.beginPath();ctx.moveTo(x-7,y-7);ctx.lineTo(x+1,y+3);
+  ctx.lineTo(x+7,y+8);ctx.stroke();
+  ctx.strokeStyle=`rgba(242,112,59,${.4*intensity})`;ctx.lineWidth=1.1;
+  ctx.beginPath();ctx.moveTo(x-5,y-6);ctx.lineTo(x+1,y+2);ctx.stroke();
+ }
+ const flicker=deadAge===null?(.35+.25*Math.sin(time*9)):.65;
+ ctx.fillStyle=`rgba(255,124,53,${intensity*flicker})`;
+ for(let i=0;i<3;i++){
+  const angle=i*2.1+1.3;
+  ctx.beginPath();ctx.arc(Math.cos(angle)*30,Math.sin(angle)*30,2.2,0,Math.PI*2);ctx.fill();
+ }
+ if(deadAge!==null){
+  const release=clamp(deadAge/.65,0,1);
+  for(let i=0;i<9;i++){
+   const angle=i*2.4,dist=36+release*(14+i%3*3);
+   ctx.strokeStyle=`rgba(184,146,116,${(1-release)*.8})`;
+   ctx.lineWidth=3+(i%2);ctx.beginPath();
+   ctx.moveTo(Math.cos(angle)*(dist-7),Math.sin(angle)*(dist-7));
+   ctx.lineTo(Math.cos(angle)*(dist+6),Math.sin(angle)*(dist+6));ctx.stroke();
+  }
  }
  ctx.restore();
 }
@@ -401,25 +460,30 @@ export function drawFluxArtillery(ctx,game,cam,preview=null){
   const building=live&&time<turret.readyAt;
   const progress=building?clamp(1-(turret.readyAt-time)/FLUX_ARTILLERY.buildSeconds,0,1):1;
   const chargeGlow=live?clamp(1-(time-(turret.lastChargeAt??-100))/1.1,0,1):0;
-  const fire=live?clamp(1-(time-turret.lastShotAt)/.23,0,1):0;
+  const shotAge=time-turret.lastShotAt;
+  const fire=live&&shotAge>=0?clamp(1-shotAge/.16,0,1):0;
+  const recoil=live?recoilAt(shotAge):0;
+  const wreckAge=live?null:Math.max(0,time-(turret.lastDestroyedAt??time));
   ctx.translate(turret.x,turret.y);
+  if(!live)ctx.globalAlpha=1-clamp((wreckAge-3.8)/1.2,0,1);
   ctx.save();
-  ctx.globalAlpha=building?.2+.8*progress:live?1:.42;
-  if(!live)ctx.rotate(.09);
+  ctx.globalAlpha*=building?.2+.8*progress:live?1:.6;
   drawArtilleryChassis(ctx);
-  if(live){
-   const angle=turret.aimingUntil>0||turret.lastShotAt>=0?
-    Math.atan2(turret.aimY-turret.y,turret.aimX-turret.x):-Math.PI/2;
-   drawGun(ctx,angle,fire,fire);
-  }
+  const angle=Number.isFinite(turret.gunAngle)?turret.gunAngle:-Math.PI/2;
+  drawGun(ctx,angle+(wreckAge===null?0:.05*clamp(wreckAge/.8,0,1)),recoil,fire);
+  drawDamage(ctx,turret,time,wreckAge);
   ctx.restore();
   if(building){
    ctx.strokeStyle='#7bebea';ctx.lineWidth=3;
    ctx.beginPath();ctx.arc(0,0,47,-Math.PI/2,-Math.PI/2+progress*Math.PI*2);ctx.stroke();
    for(let i=0;i<8;i++){
-    const angle=i*Math.PI/4+(reduced?0:time*.3),radius=52+(1-progress)*15;
-    ctx.fillStyle=i%2?'#68d9ef':'#f6a65e';
-    ctx.fillRect(Math.cos(angle)*radius-2,Math.sin(angle)*radius-2,4,4);
+    const plateAngle=i*Math.PI/4+(reduced?0:time*.15);
+    const smooth=progress*progress*(3-2*progress),radius=57-17*smooth;
+    ctx.save();ctx.globalAlpha*=.75*(1-smooth);
+    ctx.translate(Math.cos(plateAngle)*radius,Math.sin(plateAngle)*radius);
+    ctx.rotate(plateAngle);
+    ctx.fillStyle=i%2?'#68d9ef':'#f6a65e';ctx.fillRect(-5,-3,10,6);
+    ctx.restore();
    }
   }
   if(chargeGlow>0){
@@ -505,6 +569,8 @@ export function validFluxArtillery(state){
     !finite(t.aimX,-1e9)||!finite(t.aimY,-1e9)||
     !finite(t.lastShotAt,-1)||!finite(t.lastImpactAt,-1)||
     !finite(t.lastImpactX,-1e9)||!finite(t.lastImpactY,-1e9)||
+    (t.gunAngle!==undefined&&(!Number.isFinite(t.gunAngle)||
+     Math.abs(t.gunAngle)>Math.PI+.00001))||
     (t.lastChargeAt!==undefined&&!finite(t.lastChargeAt,-1))||
     (t.lastDestroyedAt!==undefined&&!finite(t.lastDestroyedAt,-1)))return false;
   ids.add(t.id);
