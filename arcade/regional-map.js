@@ -1,9 +1,9 @@
-import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
+import {REGIONS,regionAt} from './regions.js?v=regions-audit-1-living-world-population-1';
 import {SUPPLY,supplyRoute,supplyStatus,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2-territory-war-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {FRONTIERS,FRONTIER_RESPONSE,frontierRoute} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1-territory-war-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
-import {strongholdThreat} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1-stronghold-1-territory-war-1-enemy-growth-1';
+import {strongholdThreat} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1-stronghold-1-territory-war-1-enemy-growth-1-living-world-population-1';
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titles={dispatch:'Груз вышел из комплекса',delivery:'Руда доставлена военному узлу',
  'raid-warning':'Тяжёлый отряд подготовлен',raid:'Тяжёлый отряд прибыл',intercept:'Груз перехвачен',
@@ -36,6 +36,7 @@ const REGION_BRIEF=Object.freeze({
 });
 export function renderRegionAtlas(game){
  const world=game.world,s=world.regionalSupply;if(!s)return '';
+ const population=world.population;
  const current=regionAt(game.player.x,game.player.y),mine=world.stations.get(SUPPLY.mineId);
  const threat=strongholdThreat(world,game.player);
  const fronts=warFronts(world);
@@ -55,11 +56,14 @@ export function renderRegionAtlas(game){
   // appear in the status, and the status follows real industrial stock.
   const status=!front?.known?'':front.outcome?' · ✓ сеть подавлена':
    !front.working?' · добыча остановлена':' · промышленность действует';
+  const discoveredColonies=(population?.colonies||[]).filter(c=>c.region===r.id&&
+   c.buildings.some(b=>world.stations.get(b.id)?.discovered)).length;
   const goal=front?.known&&front.outcome?
    'Промышленная сеть этого региона подавлена. Можно исследовать станции и оставшиеся угрозы.':intel.goal;
   const distance=Math.round(Math.hypot(game.player.x-r.survey.x,game.player.y-r.survey.y));
   return '<details class="region-card"'+(route||current.id===r.id?' open':'')+'><summary><strong>'+r.number+' · '+enc(r.name)+'</strong><small>'+
-   (current.id===r.id?'Вы здесь · ':route?'Маршрут выбран · ':'')+distance+' м до точки разведки'+status+'</small></summary>'+
+   (current.id===r.id?'Вы здесь · ':route?'Маршрут выбран · ':'')+distance+' м до точки разведки'+status+
+   (discoveredColonies?' · известных колоний: '+discoveredColonies:'')+'</small></summary>'+
    '<p><b>Зачем лететь:</b> '+enc(goal)+'</p><p><b>Опасность:</b> '+enc(intel.danger)+'</p>'+
    '<p><b>Подготовка:</b> '+enc(intel.preparation)+'</p><p><b>Что изменится:</b> '+enc(intel.result)+'</p>'+
    '<button type="button" data-act="waypoint" data-id="region-'+r.id+'" data-x="'+r.survey.x+'" data-y="'+r.survey.y+'" data-label="'+enc(r.name)+'">'+
@@ -121,12 +125,39 @@ export function renderRegionAtlas(game){
   (world.stations.get(SUPPLY.militaryId)?.discovered?
    'Готовых резервов: '+s.reserves+'; '+(s.pendingRaid?'один отряд ожидает выхода.':'отряд на вылете не готов.'):
    'Запас военного узла пока не разведан.')+'</p>':'';
+ const colonyContacts=(population?.colonies||[]).filter(c=>
+  c.buildings.some(b=>world.stations.get(b.id)?.discovered));
+ const colonyPanel=colonyContacts.length?'<details class="region-atlas">'+
+  '<summary>Разведанные промышленные колонии · '+colonyContacts.length+'</summary>'+
+  colonyContacts.map(c=>{
+   const known=c.buildings.map(b=>world.stations.get(b.id)).filter(b=>b?.discovered);
+   const hangar=world.stations.get(c.id+':hangar');
+   const mine=world.stations.get(c.id+':extractor');
+   const factory=world.stations.get(c.id+':factory');
+   const shield=c.shield&&world.stations.get(c.id+':relay')?.discovered;
+   const defended=known.filter(b=>b.enemy).length;
+   const available=hangar?.discovered?' · кораблей в запасе: '+c.ready:'';
+   const production=mine?.discovered?' · буровых аппаратов: '+
+    c.miners.filter(m=>m.hp>0).length+'/'+c.miners.length:'';
+   const works=factory?.discovered?' · выпущено кораблей: '+c.built:'';
+   const protection=shield?' · щит: '+(c.shield.breachUntil>game.time?
+    'пробит на '+Math.ceil(c.shield.breachUntil-game.time)+' с':
+    c.shield.segments.filter(segment=>segment.hp>0).length+'/3 сектора'):'';
+   const target=known[0];
+   return '<article class="map-contact"><div><strong>'+
+    enc((c.fortress?'Военная цитадель':'Промышленная колония')+' · '+c.region.toUpperCase())+
+    '</strong><small>Разведано сооружений: '+known.length+'/5; действуют: '+defended+
+    available+production+works+protection+'</small></div>'+
+    '<button type="button" data-act="waypoint" data-id="'+enc(target.id)+
+    '" data-x="'+target.x.toFixed(2)+'" data-y="'+target.y.toFixed(2)+
+    '" data-label="Разведанная колония">Проложить курс</button></article>';
+  }).join('')+'</details>':'';
  return '<div class="map-objective region-status"><span>РЕГИОН '+current.number+' · '+enc(current.name)+'</span><p>'+enc(current.cue)+'</p>'+threatCue+
   '<details class="region-atlas"><summary>Выбрать регион · угрозы, подготовка и цель</summary><svg viewBox="0 0 300 240" role="img" aria-label="Старт в центре, рудный пояс на востоке, разлом на юге, военный рубеж на севере, обломки на западе">'+
   '<rect width="300" height="240" rx="12" fill="#08182b"/><path d="M 150 120 L 300 0 V 240 Z" fill="#ffbb7015"/>'+
   '<path d="M 150 120 L 0 0 H 300 Z" fill="#dfa1e315"/><path d="M 150 120 L 0 240 H 300 Z" fill="#82e8ff15"/>'+
   '<path d="M 150 120 L 0 0 V 240 Z" fill="#88e6c815"/><circle cx="150" cy="120" r="53" fill="#24233c" stroke="#caa0ff"/>'+labels+
-  '<circle cx="'+Math.max(5,Math.min(295,player.x))+'" cy="'+Math.max(5,Math.min(235,player.y))+'" r="4" fill="#ffffff"/></svg><p>Контуры условны. Точка разведки ведёт внутрь региона, но не раскрывает расположение неизвестных станций. Сначала изучите описание и подготовьте корабль.</p><p><b>Маршевый перелёт:</b> удерживайте курс к выбранному региону или разведанной дружественной станции. Через 2,2 с в спокойном пространстве корабль ускорится. Вблизи врагов, станций и бурь скорость станет обычной. Время полёта продолжается. В разведанных регионах фоновая опасность ограничена. Остановка снабжения или захват сборки уменьшает местный натиск; готовые отряды остаются опасными.</p><div class="region-directions">'+buttons+'</div></details>'+
+  '<circle cx="'+Math.max(5,Math.min(295,player.x))+'" cy="'+Math.max(5,Math.min(235,player.y))+'" r="4" fill="#ffffff"/></svg><p>Контуры условны. Точка разведки ведёт внутрь региона, но не раскрывает расположение неизвестных станций. Сначала изучите описание и подготовьте корабль.</p><p><b>Маршевый перелёт:</b> удерживайте курс к выбранному региону или разведанной дружественной станции. Через 2,2 с в спокойном пространстве корабль ускорится. Вблизи врагов, станций и бурь скорость станет обычной. Время полёта продолжается. У каждой колонии свои рудники, верфи и патрульные резервы: прекращение одного производства не отключает соседние.</p><div class="region-directions">'+buttons+'</div></details>'+colonyPanel+
   (mine?.discovered?'<p>'+enc(supplyStatus(world))+'</p>'+northernStatus+'<p>Рудных грузов перехвачено: '+s.intercepted+'. '+
    (world.stations.get(SUPPLY.militaryId)?.discovered?'Тяжёлых подкреплений вышло: '+s.raids+'. Резервов в узле: '+s.reserves+'.':
     'Оставшийся запас военного узла неизвестен.')+'</p>'+history:

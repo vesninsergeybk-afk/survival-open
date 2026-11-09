@@ -1,4 +1,4 @@
-import {REGIONS,REGION_LIMIT,centralOutline,regionAt} from './regions.js?v=regions-1';
+import {REGIONS,REGION_LIMIT,centralOutline,regionAt} from './regions.js?v=regions-1-living-world-population-1';
 import {hash,RULES} from './balance.js?v=arcade-network-20';
 import {stormFields,stormPhase} from './regional-storms.js?v=regions-1';
 

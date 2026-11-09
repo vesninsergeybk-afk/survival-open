@@ -1,11 +1,14 @@
-import {amberRegion} from './regions.js?v=regions-1';
+import {amberRegion} from './regions.js?v=regions-1-living-world-population-1';
 import {STRATEGIC_STATIONS,createRegionalSupply} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {CENTRAL_STATIONS} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {FRONTIER_STATIONS} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1-territory-war-1';
 import {RULES, hash, dist, baseNames} from './balance.js?v=arcade-network-20';
 import {amberBeltDensity,nearAmberBelt,inAmberCorridor} from './terrain.js?v=arcade-belt-26';
 import {createContours,fieldAt} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1-triangle-defense-1';
-import {createEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
+import {createEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1';
+import {POPULATION,createPopulation,ensurePopulationStations,
+ nearbyPopulationStations,seedPopulationTerritory} from './world-population.js';
+import {createSpaceAnomalies} from './space-anomalies.js';
 const BASE_CELL = 1250;
 export const RELAY_RANGE = 1450;
 export const RELAY_EXTENSION = 500;
@@ -28,6 +31,10 @@ export class World {
     this.regionalSupply=createRegionalSupply();
     this.contours=createContours();
     this.enemyExpansion=createEnemyExpansion();
+    this.population=createPopulation(seed);
+    this.anomalies=createSpaceAnomalies(seed);
+    ensurePopulationStations(this);
+    seedPopulationTerritory(this);
   }
   ensureRegionalStations(){
     for(const spec of [...STRATEGIC_STATIONS,...CENTRAL_STATIONS,...FRONTIER_STATIONS]){
@@ -52,6 +59,8 @@ export class World {
   station(cx, cy, forced=false) {
     const key = cellKey(cx,cy);
     if (this.stations.has(key)) return this.stations.get(key);
+    if(!forced&&!this.legacyUnbounded&&
+      Math.hypot(cx*BASE_CELL,cy*BASE_CELL)>POPULATION.radius+BASE_CELL)return null;
     const roll = hash(cx,cy,this.seed+17);
     if (!forced && roll < .29) return null;
     const type = forced ? 'dock' : types[Math.floor(hash(cx+9,cy-7,this.seed)*types.length)];
@@ -76,6 +85,9 @@ export class World {
   rockCell(cx,cy) {
     const key = cellKey(cx,cy);
     if(this.rocks.has(key)) return this.rocks.get(key);
+    if(!this.legacyUnbounded&&
+      Math.hypot((cx+.5)*ROCK_CELL,(cy+.5)*ROCK_CELL)>POPULATION.radius+ROCK_CELL)
+      return [];
     const list=[];
     const ordinary=2+Math.floor(hash(cx,cy,this.seed+5)*4);
     // Only the amber test field gets additional rocks; elsewhere the old
@@ -112,6 +124,8 @@ export class World {
       const b=this.stations.get(spec.id);
       if(b&&(!b.enemy||allowEnemy)&&dist({x,y},b)<r)found.push(b);
     }
+    for(const b of nearbyPopulationStations(this,x,y,r))
+      if(allowEnemy||!b.enemy)found.push(b);
     return found;
   }
   nearbyRocks(x,y,r=1100) {

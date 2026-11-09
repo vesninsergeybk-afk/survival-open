@@ -1,5 +1,5 @@
 import {hash} from './balance.js?v=arcade-network-20';
-import {REGIONS} from './regions.js?v=regions-1';
+import {REGIONS} from './regions.js?v=regions-1-living-world-population-1';
 
 const n=value=>Number(value).toFixed(1);
 const at=(p,center,scale)=>({x:340+(p.x-center.x)*scale,y:240+(p.y-center.y)*scale});

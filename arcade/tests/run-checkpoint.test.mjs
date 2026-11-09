@@ -225,9 +225,10 @@ test('a legacy save with three powered stations closes its missing triangle on l
 });
 test('enemy territorial investments survive docking without spending twice, and old checkpoints load',()=>{
  const g=scene(),w=g.world;
+ const initial=w.enemyExpansion.links.length;
  w.regionalSupply.central.ore=14;
  advanceEnemyExpansion(w,90);
- assert.equal(w.enemyExpansion.links.length,1);
+ assert.equal(w.enemyExpansion.links.length,initial+1);
  const funds=w.regionalSupply.central.ore;
  const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
  assert.ok(validateCheckpoint(snapshot));
@@ -239,10 +240,27 @@ test('enemy territorial investments survive docking without spending twice, and 
  const old=unpackRun(packRun(snapshot));delete old.world.enemyExpansion;
  assert.ok(validateCheckpoint(old));
  const legacy=scene();restoreCheckpoint(legacy,old);
- assert.equal(legacy.world.enemyExpansion.links.length,0);
+ assert.equal(legacy.world.enemyExpansion.links.length,initial);
  const tampered=unpackRun(packRun(snapshot));
  tampered.world.enemyExpansion.links[0][1]='fake-unseen-station';
  assert.equal(validateCheckpoint(tampered),false);
+});
+test('a new colony keeps damaged factories, ship reserves, cargo and siege state after docking',()=>{
+ const game=scene(),world=game.world,c=world.population.colonies.find(k=>k.fortress);
+ advanceRegionalSupply(world,game.time);
+ c.ready-=8;c.pool=32;
+ c.shield.segments[0].hp=180;
+ world.stations.get(c.id+':factory').hp-=64;
+ const saved=unpackRun(packRun(captureCheckpoint(game,game.docked)));
+ assert.ok(validateCheckpoint(saved));
+ const restored=scene();restoreCheckpoint(restored,saved);
+ const copy=restored.world.population.colonies.find(k=>k.id===c.id);
+ assert.equal(copy.ready,c.ready);
+ assert.equal(copy.pool,32);
+ assert.equal(copy.shield.segments[0].hp,180);
+ assert.equal(restored.world.stations.get(c.id+':factory').hp,
+  world.stations.get(c.id+':factory').hp);
+ assert.equal(restored.world.populationStations.length,150);
 });
 test('frontier economy, finite wrecks and new station IDs survive a real checkpoint roundtrip',()=>{
  const g=scene();advanceRegionalSupply(g.world,g.time);

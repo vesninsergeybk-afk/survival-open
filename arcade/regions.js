@@ -1,5 +1,5 @@
 // Natural geography is independent from station ownership and military supply.
-export const REGION_LIMIT=70000;
+export const REGION_LIMIT=55000;
 export const REGIONS=Object.freeze([
  {id:'amethyst',number:1,theme:0,name:'Аметистовая туманность',color:'#caa0ff',x:0,y:0,
   entry:{x:360,y:-85},survey:{x:360,y:-85},cue:'Опорные станции и первые поручения. Следите за подкреплениями с севера.'},
@@ -19,7 +19,8 @@ export function regionAt(x,y){
  if(r<=REGION_LIMIT){
   return Math.abs(x)>=Math.abs(y)?REGIONS[x>=0?1:4]:REGIONS[y>=0?2:3];
  }
- // Beyond the first charted area, retain an unbounded deterministic world.
+ // The outer sector boundary is enforced by flight physics; this fallback
+ // only gives old off-sector coordinates a predictable biome.
  const sx=Math.floor(x/5600),sy=Math.floor(y/5600),theme=((sx*7+sy*11)%5+5)%5;
  return REGIONS.find(r=>r.theme===theme);
 }
