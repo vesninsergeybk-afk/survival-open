@@ -1,7 +1,7 @@
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {FORT_STAGES} from './enemy-fortifications.js?v=living-combat-loop-1';
 import {TERRITORY_TECH} from './territory-tech.js?v=territory-war-1-territory-war-1';
-import {regionAt,REGIONS,REGION_LIMIT} from './regions.js?v=regions-audit-1';
+import {regionAt,REGIONS,REGION_LIMIT} from './regions.js?v=regions-audit-1-living-world-population-1';
 
 const enc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function campaignProgress(world){
