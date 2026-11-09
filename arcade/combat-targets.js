@@ -1,6 +1,7 @@
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {canAutoTarget} from './signal-perception.js?v=arcade-perception-61-first-loops-1';
+import {populationWorkersNear} from './world-population.js';
 
 export const targetDistance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const targetRadius=item=>item.target.r||({jammer:30,turret:22,base:60}[item.kind])||18;
@@ -42,13 +43,19 @@ export function combatTargets(game,range,origin=game.player,manual=false){
  };
  if(op?.id==='silent-corridor')add({kind:'jammer',target:op,goal:true});
  if(op?.interceptCargo)add({kind:'enemy',target:op,goal:true});
- for(const target of [...(game.world?.regionalSupply?.convoys||[]),
+ for(const target of [...(game.world?.population?.convoys||[]),
+  ...(game.world?.regionalSupply?.convoys||[]),
   ...(game.world?.regionalSupply?.central?.convoys||[]),
   ...(game.world?.regionalSupply?.frontier?.azure?.convoys||[]),
   ...(game.world?.regionalSupply?.frontier?.teal?.convoys||[]),
   game.world?.regionalSupply?.frontier?.azure?.repairExpedition,
   game.world?.regionalSupply?.frontier?.teal?.repairExpedition].filter(Boolean))
   add({kind:'enemy',target,goal:true});
+ // Mining craft are industrial sabotage objectives, not automatic fire fodder.
+ for(const worker of populationWorkersNear(game.world,origin.x,origin.y,range))
+  if(manual||game.designatedTarget?.target===worker&&
+    game.time<=game.designatedTarget.expiresAt)
+   add({kind:'enemy',target:worker,goal:true});
  // A mining worker is not an automatic target. The player must first
  // explicitly designate this industrial unit on the canvas.
  const worker=game.world?.regionalSupply?.central?.worker;
