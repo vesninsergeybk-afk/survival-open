@@ -1,0 +1,54 @@
+.build-planning[hidden],.build-ring[hidden],.build-placement[hidden],
+.artillery-mode-menu[hidden]{display:none!important}
+.build-planning{position:fixed;z-index:8;inset:0;pointer-events:none;display:flex;
+ align-items:center;justify-content:center;color:#e5f6ff}
+.build-ring{pointer-events:auto;width:min(500px,calc(100vw - 28px));border:1px solid #5fbcd48c;
+ background:linear-gradient(155deg,#0f2a42f5,#071523f4);padding:22px 24px;border-radius:23px;
+ box-shadow:0 20px 80px #000b,0 0 45px #33cbe31a;text-align:center}
+.build-kicker{font-size:10px;letter-spacing:.22em;color:#efb97b;font-weight:800}
+.build-ring h2{font-size:18px;margin:5px 0 17px;color:#e4f8fb}
+.build-options{position:relative;width:min(350px,100%);height:335px;margin:auto;border-radius:50%;
+ background:radial-gradient(circle,transparent 0 19%,#49d6ec17 20% 21%,transparent 22% 59%,#45bbd31c 60% 61%,transparent 62%)}
+.build-options button{position:absolute;width:175px;min-height:90px;text-align:left;border:1px solid #79b6c589;
+ background:linear-gradient(130deg,#183b55,#10263c);border-radius:13px;color:#edfcff;
+ padding:12px;display:grid;grid-template-columns:36px minmax(0,1fr);align-content:center;gap:3px 7px}
+.build-options button:nth-child(1){top:0;left:50%;transform:translateX(-50%)}
+.build-options button:nth-child(2){top:50%;right:0;transform:translateY(-50%)}
+.build-options button:nth-child(3){bottom:0;left:50%;transform:translateX(-50%)}
+.build-options button:nth-child(4){top:50%;left:0;transform:translateY(-50%)}
+.build-options button:hover:not(:disabled),.build-options button:focus-visible{border-color:#ffe2a0;background:#224b61}
+.build-options button:disabled{opacity:.39;cursor:not-allowed}
+.build-options .build-glyph{grid-row:span 2;font-size:30px;color:#ffcd8c;line-height:1}
+.build-options .build-turret-art{display:block;width:38px;height:38px;margin:-1px;
+ background:url('./assets/artillery/flux-howitzer-base-v1.webp') center/contain no-repeat;
+ filter:drop-shadow(0 0 4px #44cce855)}
+.build-options strong{font-size:13px}.build-options small{font-size:11px;color:#accbd7;line-height:1.4}
+.build-cancel,.build-placement button{border:1px solid #73b8c883;background:#12354b;
+ color:#cdecf5;border-radius:9px;padding:9px 14px}
+.build-cancel{margin-top:15px}
+.build-placement{position:absolute;top:max(88px,env(safe-area-inset-top));left:50%;
+ transform:translateX(-50%);width:min(475px,calc(100vw - 25px));padding:12px 15px;
+ display:grid;gap:6px;text-align:center;pointer-events:auto;border-radius:13px;
+ background:#0c263be8;border:1px solid #70bdd1ae;box-shadow:0 8px 30px #0009}
+.build-placement strong{color:#ffdda4;font-size:12px;letter-spacing:.06em}
+.build-placement span{color:#cfebf0;font-size:12px}
+.build-placement>div{display:flex;justify-content:center;gap:9px}
+.artillery-mode-menu{position:fixed;z-index:9;width:190px;padding:10px;background:#0a2539f5;
+ border:1px solid #69cbe0a8;box-shadow:0 10px 30px #0009;border-radius:13px;display:grid;gap:5px}
+.artillery-mode-menu strong{font-size:10px;letter-spacing:.1em;color:#ffcb83}
+.artillery-mode-stats{font-size:11px;color:#abd5e6;background:#15364a;
+ padding:6px 7px;border:1px solid #568fa44b;border-radius:6px}
+.artillery-mode-menu button{background:#18384e;color:#e6faff;border:1px solid #548da26e;
+ border-radius:7px;text-align:left;font-size:12px;padding:8px}
+.artillery-mode-menu button[aria-pressed="true"]{border-color:#ffce83;background:#39536b;color:#ffe6ae}
+.artillery-mode-menu button:hover{border-color:#87e3ed}
+@media(pointer:coarse){.build-placement{top:max(7px,env(safe-area-inset-top));left:55%;max-width:360px}
+ .build-ring{padding:12px}.build-ring h2{font-size:15px;margin-bottom:9px}
+ .build-options button{min-height:76px;padding:8px}.build-options .build-glyph{font-size:22px}
+ .build-options .build-turret-art{width:30px;height:30px}
+ .build-options strong{font-size:11px}.build-options small{font-size:10px}}
+@media(max-height:530px){.build-ring{padding:8px 12px}.build-ring h2{margin:3px 0 7px}
+ .build-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+  width:100%;height:auto;background:none;border-radius:0}
+ .build-options button{position:static;width:auto;min-height:56px;padding:6px;transform:none!important}
+ .build-cancel{margin-top:6px;padding:5px 10px}}
