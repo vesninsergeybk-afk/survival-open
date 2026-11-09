@@ -259,7 +259,7 @@ export function barrelMount(turret,index=0){
  const step=count<=4?21:count===6?32:28;
  const back=row*29;
  return {side:(column-(cols-1)/2)*step,
-  back,scale,forward:60*scale-back};
+  back,scale,forward:(count>=6?42:60*scale)-back};
 }
 function fireBarrel(game,state,turret,time){
  if(turret.ammo<=0||state.artilleryShells.length>=FLUX_ARTILLERY.maxShells){
@@ -463,6 +463,29 @@ function drawGun(ctx,rotation,recoil=0,fire=0){
  }
  ctx.restore();
 }
+// Scaled head sprites are recognizable machinery but their barrels become
+// indistinct when ten are mounted together. Overlay one legible muzzle on
+// every head at world scale; the shell starts at the same 42px gun length.
+function drawBatteryBarrel(ctx,rotation,recoil=0,fire=0){
+ ctx.save();ctx.rotate(rotation+Math.PI/2);ctx.translate(0,recoil*7);
+ ctx.shadowColor='#09131e';ctx.shadowBlur=5;
+ ctx.fillStyle='#071726';ctx.fillRect(-6,-43,12,38);
+ ctx.shadowBlur=0;ctx.fillStyle='#426179';ctx.fillRect(-4.5,-41,9,34);
+ ctx.fillStyle='#142b40';ctx.fillRect(-2,-40,4,31);
+ ctx.fillStyle='#78bdd0';ctx.fillRect(-5,-36,1.8,24);
+ ctx.fillStyle='#d8a767';ctx.fillRect(3.4,-36,1.7,24);
+ ctx.fillStyle='#1b3042';ctx.fillRect(-7,-43,14,5);
+ ctx.strokeStyle='#83bed3';ctx.lineWidth=1;
+ ctx.strokeRect(-7,-43,14,5);
+ if(fire>0){
+  ctx.globalAlpha*=fire;
+  ctx.shadowColor='#ffa144';ctx.shadowBlur=17;
+  ctx.fillStyle='#fff1b9';ctx.beginPath();ctx.ellipse(0,-47,5,8,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ff974b';ctx.beginPath();ctx.moveTo(-6,-44);
+  ctx.lineTo(0,-61);ctx.lineTo(6,-44);ctx.fill();
+ }
+ ctx.restore();
+}
 function drawDamage(ctx,turret,time,deadAge=null,reduced=false){
  const severity=clamp(1-turret.hp/turret.maxHp,0,1);
  const intensity=clamp((severity-.22)/.5,0,1);
@@ -605,9 +628,6 @@ export function drawFluxArtillery(ctx,game,cam,preview=null){
   const building=live&&time<turret.readyAt;
   const progress=building?clamp(1-(turret.readyAt-time)/FLUX_ARTILLERY.buildSeconds,0,1):1;
   const chargeGlow=live?clamp(1-(time-(turret.lastChargeAt??-100))/1.1,0,1):0;
-  const shotAge=time-turret.lastShotAt;
-  const fire=live&&shotAge>=0?clamp(1-shotAge/.16,0,1):0;
-  const recoil=live?recoilAt(shotAge):0;
   const wreckAge=live?null:Math.max(0,time-(turret.lastDestroyedAt??time));
   ctx.translate(turret.x,turret.y);
   if(!live)ctx.globalAlpha=Math.max(.42,1-clamp((wreckAge-3.8)/1.2,0,1));
@@ -625,8 +645,15 @@ export function drawFluxArtillery(ctx,game,cam,preview=null){
    ctx.scale(mount.scale,mount.scale);
    drawGun(ctx,angle+(wreckAge===null?0:.05*clamp(wreckAge/.8,0,1)),
     live?recoilAt(individualAge):0,
-    live&&individualAge>=0?clamp(1-individualAge/.16,0,1):0);
+    barrels>=6?0:live&&individualAge>=0?clamp(1-individualAge/.16,0,1):0);
    ctx.restore();
+   if(barrels>=6){
+    ctx.save();ctx.translate(nx*mount.side-Math.cos(angle)*mount.back,
+     ny*mount.side-Math.sin(angle)*mount.back);
+    drawBatteryBarrel(ctx,angle,live?recoilAt(individualAge):0,
+     live&&individualAge>=0?clamp(1-individualAge/.16,0,1):0);
+    ctx.restore();
+   }
   }
   drawDamage(ctx,turret,time,wreckAge,reduced);
   ctx.restore();
