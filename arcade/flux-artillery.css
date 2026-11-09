@@ -32,6 +32,12 @@
 .build-cancel,.build-placement button{border:1px solid #73b8c883;background:#12354b;
  color:#cdecf5;border-radius:9px;padding:9px 14px}
 .build-cancel{margin-top:15px}
+.build-network-upgrade{display:flex;gap:7px;align-items:center;justify-content:center;
+ flex-wrap:wrap;margin-top:12px;color:#e5d0a8;font-size:11px}
+.build-network-upgrade button{border:1px solid #ddab69;background:#253e50;color:#ffe4b4;
+ padding:7px 10px;border-radius:8px;cursor:pointer}
+.build-network-upgrade button:disabled{opacity:.55;cursor:not-allowed}
+.build-network-upgrade small{flex-basis:100%;color:#9fc8d4}
 .build-placement{position:absolute;top:max(88px,env(safe-area-inset-top));left:50%;
  transform:translateX(-50%);width:min(475px,calc(100vw - 25px));padding:12px 15px;
  display:grid;gap:6px;text-align:center;pointer-events:auto;border-radius:13px;

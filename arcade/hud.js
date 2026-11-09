@@ -48,7 +48,8 @@ export class CockpitDisplay {
    hudThermalText:el('hudThermalText'),hudThermalMeter:el('hudThermalMeter'),
    droneIcons:[el('hudDrone0'),el('hudDrone1')],
    ore:el('ore'),data:el('data'),bases:el('bases'),
-   flux:el('flux'),hack:el('hack'),fps:el('fps'),enemies:el('enemies'),
+   flux:el('flux'),fluxResource:el('fluxResource'),fluxGain:el('fluxGain'),
+   hack:el('hack'),fps:el('fps'),enemies:el('enemies'),
    points:el('points'),burst:el('burst'),burstbar:el('burstbar'),
    bursttext:el('bursttext'),hudHackSlot:el('hudHackSlot'),hudStrikeSlot:el('hudStrikeSlot'),flightMode:el('flightMode'),
    wingStatus:el('wingStatus'),stateText:el('stateText'),flightStatus:el('flightStatus'),flightDistance:el('flightDistance'),
@@ -90,8 +91,19 @@ export class CockpitDisplay {
   n.shieldmeter.setAttribute('aria-valuenow',String(Math.ceil(p.shield)));
   n.shieldmeter.setAttribute('aria-valuemax',String(Math.ceil(shieldCap)));
   display(n.ore,p.ore);display(n.data,p.data);display(n.bases,game.activeBases);
-  if(n.flux)display(n.flux,(game.world?.contours?.flux||0).toLocaleString('ru-RU',
-   {maximumFractionDigits:1}));
+  const contour=game.world?.contours,flux=contour?.flux||0;
+  if(n.flux)display(n.flux,flux.toLocaleString('ru-RU',{maximumFractionDigits:1}));
+  if(n.fluxResource){
+   const known=(contour?.delivered||0)>0||!!game.fluxFirstSeenAt;
+   n.fluxResource.hidden=!known;
+   n.fluxResource.classList.toggle('first-delivery',known&&
+    game.time-(game.fluxFirstSeenAt??-Infinity)<8);
+   n.fluxResource.classList.toggle('is-gaining',known&&
+    game.time-(game.fluxLastGainAt??-Infinity)<2.5);
+   if(n.fluxGain&&known&&game.time-(game.fluxLastGainAt??-Infinity)<2.5)
+    display(n.fluxGain,'+'+(game.fluxLastGain||0).toLocaleString('ru-RU',
+     {maximumFractionDigits:2}));
+  }
   this.trackWallet(p,game.time);
   display(n.hack,game.hacks.length);
   display(n.fps,Math.round(game.fps));display(n.enemies,game.enemies.length);
@@ -111,9 +123,12 @@ export class CockpitDisplay {
    !!game.contourTrial&&!['station','repair','opening-repair'].includes(focus?.kind);
   if(!n.interactionCue.hidden) {
    const label=focus.kind==='station'?'Открыть станцию':
+    focus.kind==='vortex'?'Запустить воронку · удерживать':
+    focus.kind==='turret-repair'?'Восстановить турель · удерживать':
     focus.kind==='repair'?'Ремонт зонда':
     focus.kind==='opening-repair'?'Эвакуация капсулы':'Добыча породы';
-   display(n.interactionCue,(game.controlLabel?.('interact')||'E')+' · '+label+(focus.kind==='station'?'':' · удерживать'));
+   display(n.interactionCue,(game.controlLabel?.('interact')||'E')+' · '+label+
+    (['station','vortex','turret-repair'].includes(focus.kind)?'':' · удерживать'));
   }
   if(n.territoryStatus){
    const support=game.territorySupport;

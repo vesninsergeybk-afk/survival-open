@@ -120,7 +120,7 @@ test('shell flies visibly before its real area hit, even if the gun is destroyed
  world.contours.flux=10;
  const turret=deployArtillery(world,player,point,0).turret;
  turret.readyAt=0;turret.ammo=1;
- const enemy={x:790,y:300,hp:120,maxHp:120,r:20};game.enemies=[enemy];
+ const enemy={x:1030,y:300,hp:120,maxHp:120,r:20};game.enemies=[enemy];
  game.time=1;advanceFluxArtillery(game,.1);
  assert.ok(turret.aimingUntil>game.time);
  game.time=turret.aimingUntil+.01;advanceFluxArtillery(game,.1);
@@ -138,7 +138,8 @@ test('shell flies visibly before its real area hit, even if the gun is destroyed
  assert.equal(game.fluxArtilleryFx.length,1);
  assert.equal(validFluxArtillery(world.contours),true);
  game.time+=FLUX_ARTILLERY.wreckLifetime+.2;advanceFluxArtillery(game,.1);
- assert.equal(world.contours.artillery.length,0,'wrecks are removed after their fade');
+ assert.equal(world.contours.artillery.length,1,'wreck keeps its slot for the pilot to repair');
+ assert.equal(world.contours.artillery[0].hp,0);
 });
 
 test('artillery rotation is bounded, takes the shortest arc, and shells leave the muzzle',()=>{

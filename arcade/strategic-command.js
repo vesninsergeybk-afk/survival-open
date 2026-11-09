@@ -2,7 +2,7 @@ import {warFronts,warFront,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {ensureStationDefense,defenseLinked} from './network-defense.js?v=network-defense-4';
 import {baseNames} from './balance.js?v=arcade-balanced-bases-30';
-import {contourFields,consumeContourReserve} from './territory-system.js?v=contours-2-operational-reserve-1';
+import {contourFields,consumeContourReserve} from './territory-system.js?v=contours-2-operational-reserve-1-triangle-defense-1';
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 
 export const STATION_INTERDICTION=Object.freeze({memory:180,radioSpeed:900,reportDelay:3,

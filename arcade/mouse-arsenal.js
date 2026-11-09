@@ -1,6 +1,6 @@
 // Two deliberately aimed weapons complement the ship's automatic guns.
 // Gameplay uses world units; these values are prototypes, not pixel sizes.
-import {combatTargets,targetDistance,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1';
+import {combatTargets,targetDistance,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 
 const TAU=Math.PI*2;
@@ -252,7 +252,18 @@ export function drawMouseArsenal(ctx,game){
    }
   }
  }
- const aim=game.mouseAim;if(aim&&['comet','mines'].includes(aim.kind)){
+ const aim=game.mouseAim;
+ if(aim&&['rail','howitzer'].includes(aim.kind)){
+  const rail=aim.kind==='rail';
+  ctx.strokeStyle=rail?'#d5faff':'#e2b6ff';ctx.lineWidth=2;
+  ctx.globalAlpha=.72;ctx.setLineDash([7,6]);ctx.beginPath();
+  ctx.moveTo(game.player.x,game.player.y);ctx.lineTo(aim.point.x,aim.point.y);ctx.stroke();
+  ctx.beginPath();ctx.arc(aim.point.x,aim.point.y,rail?23:110,0,TAU);ctx.stroke();
+  ctx.setLineDash([]);ctx.font='bold 10px system-ui';ctx.textAlign='center';
+  ctx.fillText(rail?'РЕЛЬС · 5 с ведения луча · отпустите ПКМ':
+   'ГАУБИЦА · отпустите ПКМ',aim.point.x,aim.point.y-(rail?36:124));
+ }
+ if(aim&&['comet','mines'].includes(aim.kind)){
   const spec=aim.kind==='comet'?cometSpec(game.skillRanks):minesSpec(game.skillRanks);
   const good=targetDistance(game.player,aim.point)<=spec.range;
   ctx.globalAlpha=.8;ctx.strokeStyle=good?(aim.kind==='comet'?'#68e4f5':'#b6d8fa'):'#ff927c';
@@ -277,7 +288,7 @@ export function drawMouseArsenal(ctx,game){
    ctx.beginPath();ctx.arc(aim.point.x,aim.point.y,spec.radius*.42,0,TAU);ctx.stroke();
   }
   ctx.globalAlpha=.95;ctx.font='bold 10px system-ui';ctx.textAlign='center';
-  ctx.fillText(good?(aim.kind==='comet'?'КОМЕТА · отпустите ЛКМ':'МИНЫ · отпустите ПКМ'):'ВНЕ ДАЛЬНОСТИ',aim.point.x,aim.point.y-previewRadius-13);
+  ctx.fillText(good?(aim.kind==='comet'?'КОМЕТА · отпустите ПКМ':'МИНЫ · отпустите ПКМ'):'ВНЕ ДАЛЬНОСТИ',aim.point.x,aim.point.y-previewRadius-13);
  }
  ctx.restore();
 }

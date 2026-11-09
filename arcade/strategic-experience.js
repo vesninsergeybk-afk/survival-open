@@ -1,4 +1,4 @@
-import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1';
+import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1-triangle-defense-1';
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1';
 
 // Finite additions to the existing combat/contract XP economy. The third

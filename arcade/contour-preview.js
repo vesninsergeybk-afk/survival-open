@@ -1,5 +1,5 @@
 import {CONTOURS,contourArea,contourFields,contourLinkOffer,contourProduction,
- insidePolygon} from './territory-system.js?v=contours-1';
+ insidePolygon} from './territory-system.js?v=contours-1-triangle-defense-1';
 import {REGIONS} from './regions.js?v=regions-1';
 import {mapViewport} from './map-navigation.js?v=map-ux-1';
 

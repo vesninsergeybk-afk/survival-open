@@ -1,4 +1,4 @@
-import {artilleryLinks,artilleryConnection,ARTILLERY_MODES,FLUX_ARTILLERY,
+import {artilleryLinks,artilleryConnection,edgeTurretOccupancy,edgeTurretLimit,ARTILLERY_MODES,FLUX_ARTILLERY,
  turnArtilleryGun} from './flux-artillery.js';
 
 // All three structures spend delivered flux. A nest pays for each replacement
@@ -47,6 +47,8 @@ export function supportOffer(world,player,point,type){
   return {ok:false,reason:'Слишком близко к станции'};
  const connection=artilleryConnection(point,edges);
  if(!connection)return {ok:false,reason:'Не удалось подключиться к сети'};
+ if(edgeTurretOccupancy(world,connection.edgeId,edges)>=edgeTurretLimit(world))
+  return {ok:false,reason:'На этой грани нет свободных мест · улучшите сеть турелей'};
  if((player.ore||0)<cfg.oreCost)
   return {ok:false,reason:'Нужно сплава: '+cfg.oreCost};
  if(s.flux+1e-8<cfg.fluxCost)
@@ -207,8 +209,8 @@ function updateDrones(game,t,cfg,dt){
 export function advanceFluxSupports(game,dt){
  const s=stateOf(game.world),now=game.time;
  game.fluxSupportFx=(game.fluxSupportFx||[]).filter(x=>now>=x.at&&now-x.at<.48);
- s.supportTurrets=s.supportTurrets.filter(t=>t.hp>0||
-  now-(t.lastDestroyedAt>=0?t.lastDestroyedAt:now)<FLUX_ARTILLERY.wreckLifetime);
+ // Leave a stable, repairable mount after destruction; only the build cap can
+ // retire an old wreck when the pilot deliberately places a replacement.
  const edges=artilleryLinks(game.world),edgeMap=new Map(edges.map(x=>[x.id,x]));
  const links=new Map(),counts=new Map();
  for(const t of liveStructures(game.world)){

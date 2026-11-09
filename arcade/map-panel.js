@@ -13,9 +13,9 @@ export const mapCloseKeysLabel=bindings=>{
  const keys=[controls.map,'KeyM'].filter(code=>isMapCloseShortcut(code,controls));
  return [...new Set(keys)].map(readableKey).concat('Esc').join(' / ');
 };
-import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1';
-import {pendingContourTrials} from './contour-trials.js?v=first-loops-1';
-import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=first-loops-1';
+import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
+import {unresolvedContourTrials} from './contour-trials.js?v=triangle-defense-1-triangle-defense-1';
+import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=first-loops-1-triangle-defense-1';
 import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-enemy-growth-1';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
 import {CORRIDOR_OPERATION,corridorPosition,corridorAmbush,corridorScanBonus,probeSearchArea,operationDestination,
@@ -31,7 +31,7 @@ import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './stat
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=menu-rebuild-territory-war-20261106-enemy-growth-1';
 import {renderStationThreats} from './strategic-command.js?v=menu-rebuild-territory-war-20261106';
-import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1-contour-trials-1-counterattack-1-first-loops-1-menu-audit-1-flux-build-1';
+import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1-contour-trials-1-counterattack-1-first-loops-1-menu-audit-1-flux-build-1-triangle-defense-1';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
@@ -402,7 +402,7 @@ export function renderWorldMap(game){
   '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">'+menuIcon('map')+'Рядом</button>'+
   '<button type="button" data-act="mapView" data-id="territory" aria-pressed="false">'+menuIcon('network')+'Территории</button>'+
   '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">'+menuIcon('navigation')+'Цели</button></nav>'+
-  activeMission+(pendingContourTrials(world).length?renderTerritoryProgress(world,p,{map:true}):'')+
+  activeMission+(unresolvedContourTrials(world).length?renderTerritoryProgress(world,p,{map:true}):'')+
   (discoveryLead||intelLead?'<details class="map-discovery-lead"><summary>Что можно открыть на станциях</summary>'+discoveryLead+intelLead+'</details>':'')+
   '<section class="map-shell"><div class="map-canvas"><div class="map-plot"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   chartBackdrop(world.seed,center,scale)+atlasStars(world.seed,center,scale,false)+

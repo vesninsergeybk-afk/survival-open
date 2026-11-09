@@ -1,5 +1,5 @@
 import {combatTargets,targetDistance,targetRadius,clearLine}
-  from './combat-targets.js?v=mouse-area-1';
+  from './combat-targets.js?v=mouse-area-1-triangle-defense-1';
 
 export const TARGET_DESIGNATION=Object.freeze({duration:14,tapRadius:34,maxDistance:900});
 

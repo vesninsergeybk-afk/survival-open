@@ -110,6 +110,20 @@
 .cockpit-hud .hud-resource-strip .resource.priority b{font-size:14px;color:#EDF9FD}
 .cockpit-hud .hud-resource-strip .ore-resource b{color:#FFD49A}
 .cockpit-hud .hud-auxiliary-resource{display:none}
+.cockpit-hud .hud-resource-strip .flux-resource[hidden]{display:none!important}
+.cockpit-hud .hud-resource-strip .flux-resource{position:relative;flex:1 1 33%;
+ border-left:1px solid #e3a86755;padding-left:7px;min-width:0}
+.cockpit-hud .hud-resource-strip .flux-resource small{color:#f3c58e}
+.cockpit-hud .hud-resource-strip .flux-resource b{color:#ffdb9e}
+.cockpit-hud #fluxGain{position:absolute;top:-18px;right:0;font-size:12px;
+ font-style:normal;font-weight:800;opacity:0;color:#ffdc9e}
+.cockpit-hud .flux-resource.is-gaining #fluxGain{animation:hud-economy-gain 2.4s ease-out both}
+.cockpit-hud .flux-resource.first-delivery{animation:flux-first-delivery 1.15s ease-in-out 5;
+ border-radius:4px}
+@keyframes flux-first-delivery{
+ 0%,100%{background:transparent;filter:brightness(1)}
+ 50%{background:#bd762a33;filter:brightness(1.8);box-shadow:0 0 15px #ffbf6680}
+}
 .cockpit-hud .telemetry-foot{position:absolute;bottom:-12px;right:6%;margin:0;
  font-size:8px;color:#739DAB;opacity:.65}
 .cockpit-hud .hud-resource-strip #oreGain{top:-18px}
@@ -351,7 +365,7 @@
 }
 .cockpit-hud .wing-right .hud-resource-strip .resource,
 .cockpit-hud .wing-right .hud-resource-strip .resource.priority{
- flex:1 1 50%;justify-content:center;gap:8px;
+ flex:1 1 33%;justify-content:center;gap:8px;
 }
 .cockpit-hud .wing-right .hud-resource-strip .resource small{font-size:11px}
 .cockpit-hud .wing-right .hud-resource-strip .resource b,
@@ -408,6 +422,8 @@
   max-width:calc(100vw - 16px);font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){
+ .cockpit-hud .flux-resource.first-delivery{animation:none;background:#bd762a33;
+  outline:2px solid #ffd18c}
  .cockpit-hud .data-resource.is-gaining,.cockpit-hud .ore-resource.is-gaining,
  .cockpit-hud .data-resource.is-gaining #dataGain,
  .cockpit-hud .ore-resource.is-gaining #oreGain{animation:none}

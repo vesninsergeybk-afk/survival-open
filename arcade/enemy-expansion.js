@@ -1,6 +1,6 @@
 import {REGIONS,regionAt} from './regions.js?v=regions-1';
 import {warFronts,FRONT_KEYS} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
-import {CONTOURS,contourFields,contourArea,connectContour} from './territory-system.js?v=contours-1';
+import {CONTOURS,contourFields,contourArea,connectContour} from './territory-system.js?v=contours-1-triangle-defense-1';
 
 // Enemy influence is real, paid for out of the *existing* industrial stock.
 // It is not an independent free spawning economy. Only the five surveyed

@@ -28,7 +28,7 @@ test('all five progression domains show only real station actions and never muta
   for(const node of model.nodes){
    assert.match(html,new RegExp('data-act="devFocus" data-id="'+node.id+'"'));
    if(node.action!=='baseTab')assert.ok(['skill','doctrine','fitWeapon','hgUpgrade','hgSpec','hgFrame',
-    'hgTacticEquip','hgTacticUnlock','hgTacticUpgrade'].includes(node.action),node.action);
+    'hgTacticEquip','hgTacticUnlock','hgTacticUpgrade','hgNetworkSlots'].includes(node.action),node.action);
   }
  }
  assert.equal(JSON.stringify([g.shipLoadout,g.skillRanks,g.tactical,g.player.ore,g.player.points]),before);
@@ -150,13 +150,16 @@ test('weapon specializations and tactical branches honor actual level, stations,
  assert.equal(progressionModel(state(g,'tactics')).nodes.find(n=>n.id==='tactic-pulse-burst').canAct,false);
 });
 
-test('network nodes link to the existing station services; they do not pretend to buy a new skill',()=>{
+test('network tree links station services and offers one real flux-funded emplacement upgrade',()=>{
  const g=docked(),model=progressionModel(state(g,'network'));
- assert.equal(model.nodes.length,3);
- assert.ok(model.nodes.every(n=>n.action==='baseTab'&&n.actionId==='network'));
+ assert.equal(model.nodes.length,4);
+ assert.equal(model.nodes[0].action,'hgNetworkSlots');
+ assert.ok(model.nodes.slice(1).every(n=>n.action==='baseTab'&&n.actionId==='network'));
  const html=renderProgressionScreen(state(g,'network'));
  assert.match(html,/data-act="baseTab" data-id="network" data-role="network"/);
- assert.match(html,/Системы станции/);
+ g.developmentFocus='network-turret-slots';
+ assert.match(renderProgressionScreen(state(g,'network')),/data-act="hgNetworkSlots"/);
+ assert.match(html,/Вместимость опорных линий/);
  assert.doesNotMatch(html,/0\/1 · доступно/);
 });
 

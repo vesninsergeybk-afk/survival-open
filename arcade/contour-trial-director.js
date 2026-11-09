@@ -1,10 +1,10 @@
 import {recordSortieIncome} from './sortie-ledger.js';
-import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,completeContourTrial,
- planContourTrial,trialQuota} from './contour-trials.js?v=clarity-pass-1-first-loops-1';
-import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1';
+import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,readyContourTrials,prepareContourVortex,completeContourTrial,
+ planContourTrial,trialQuota} from './contour-trials.js?v=clarity-pass-1-first-loops-1-triangle-defense-1';
+import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
 import {contourFields,fieldAt} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js';
-import {ENEMY_TYPES} from './ai.js?v=first-loops-1';
+import {ENEMY_TYPES} from './ai.js?v=first-loops-1-triangle-defense-1';
 import {recordWorldFeedback} from './world-feedback.js';
 
 const nearby=(a,b,r)=>dist(a,b)<r;
@@ -102,16 +102,14 @@ function disengage(game,event,reason){
  game.notice?.(reason,4.5);
 }
 
-function finishTrial(game,event){
- if(!completeContourTrial(game.world,event.entry.id)){
-  game.contourTrial=null;return;
- }
+function finishTrial(game,entry){
+ if(!completeContourTrial(game.world,entry.id))return false;
  // Nothing hostile should explode AFTER the victory banner and the
  // reopening of the vortex; the current encounter has actually ended.
- game.zones=game.zones.filter(zone=>zone.trialId!==event.entry.id);
+ game.zones=game.zones.filter(zone=>zone.trialId!==entry.id);
  const previousLevel=game.player.level;
- const gained=14+event.plan.tier*7;
- const alloy=20+event.plan.tier*4;
+ const gained=14+entry.tier*7;
+ const alloy=20+entry.tier*4;
  game.player.ore=(game.player.ore||0)+alloy;
  recordSortieIncome(game,'ore','operation',alloy);
  game.cockpit?.resourceGain?.(alloy,game.time);
@@ -128,7 +126,7 @@ function finishTrial(game,event){
  game.rewardNotice?.('КОНТУР ЗАЩИЩЁН · +'+alloy+' сплава · +'+gained+
   ' опыта. '+(unlocked?unlocked.name+' теперь действует в своей территории. ':'')+
   'Воронка открыта, добыча флюкса начинается!',previousLevel,7);
- const field=fieldAt(game.world,event.entry.x,event.entry.y),core=field?.center||event.entry;
+ const field=fieldAt(game.world,entry.x,entry.y),core=field?.center||entry;
  if(field){
   game.contourBirths=[...(game.contourBirths||[]).filter(b=>b.id!==field.id),
    {id:field.id,x:core.x,y:core.y,at:game.time}];
@@ -137,16 +135,34 @@ function finishTrial(game,event){
    if(station)game.flash?.(station.x,station.y,core.x,core.y,'#a6ffeb');
   }
  }
- if(dist(core,event.entry)>65)game.flash?.(event.entry.x,event.entry.y,core.x,core.y,'#a6ffeb');
+ if(dist(core,entry)>65)game.flash?.(entry.x,entry.y,core.x,core.y,'#a6ffeb');
  game.heritage?.vfx?.nova?.(core.x,core.y,175,'cyan');
- game.heritage?.play?.('upgrade',.8,event.entry);
- recordWorldFeedback(game,{key:'trial-victory:'+event.entry.id,kind:'industry',
-  label:'КОНТУР ЗАЩИЩЁН',cause:'Пилот отразил нападение на новую территорию',
+ game.heritage?.play?.('upgrade',.8,entry);
+ recordWorldFeedback(game,{key:'trial-victory:'+entry.id,kind:'industry',
+  label:'ВОРОНКА ЗАПУЩЕНА',cause:'Пилот отразил три волны и сам запустил воронку',
   effect:'Энергетическая воронка стабилизировалась; сборщики могут доставлять флюкс',
-  x:event.entry.x,y:event.entry.y});
+  x:entry.x,y:entry.y});
  game.contourVisualAt=-Infinity;
  game.zoneClock=Math.max(game.zoneClock||0,5);
  game.contourTrial=null;
+ return true;
+}
+
+// The last kill only opens the socket. Player input must start harvesting.
+export function activateContourVortex(game,entry){
+ if(!entry||entry.status!=='ready'||game.dead||game.paused||
+  !fieldAt(game.world,entry.x,entry.y)||
+  dist(game.player,entry)>CONTOUR_TRIALS.activationRadius)return false;
+ return finishTrial(game,entry);
+}
+
+function defendContour(game,event){
+ if(!prepareContourVortex(game.world,event.entry.id))return;
+ game.zones=game.zones.filter(zone=>zone.trialId!==event.entry.id);
+ game.contourTrial=null;
+ game.contourTrialRetryAt=game.time+1;
+ game.notice?.('ТРИ ВОЛНЫ ОТРАЖЕНЫ · подлетите к красному ядру и удерживайте E, чтобы запустить воронку.',7);
+ game.heritage?.play?.('upgrade',.55,event.entry);
 }
 
 /** Advance one local encounter. Remote fields wait without taking damage;
@@ -156,6 +172,7 @@ export function updateContourTrials(game,dt){
  if(!ledger||game.dead||game.paused)return;
  let event=game.contourTrial;
  if(!event){
+  if(readyContourTrials(game.world).length)return; // Await the pilot's E before issuing another defence.
   const entry=pendingContourTrials(game.world).find(e=>available(game,e));
   if(!entry)return;
   event={entry,plan:planContourTrial(entry.tier,entry.id),phase:'warning',
@@ -213,7 +230,8 @@ export function updateContourTrials(game,dt){
  const waveIds=event.waveIds||[],defeated=waveIds.filter(id=>event.defeatedIds.has(id)).length;
  const enough=defeated>=(event.required??trialQuota(waveIds.length,event.plan.tier));
  const timeout=game.time-event.waveStartedAt>=CONTOUR_TRIALS.maxWaveSeconds;
- if(!enough&&!timeout)return;
+ if(!enough&&!timeout||enough&&!timeout&&
+  game.time-event.waveStartedAt<CONTOUR_TRIALS.minWaveSeconds)return;
  if(timeout&&!enough){
   disengage(game,event,'Противник удержал контур. Оборона завершилась неудачей — новая попытка через 18 секунд.');
   return;
@@ -229,7 +247,7 @@ export function updateContourTrials(game,dt){
   enemy._trialDiveEnabled=false;enemy.expAwarded=true;
   enemy.damage=0;enemy.fire=999;
  }
- if(event.waveIndex+1>=event.plan.waves.length){finishTrial(game,event);return;}
+ if(event.waveIndex+1>=event.plan.waves.length){defendContour(game,event);return;}
  event.phase='rest';event.nextWaveAt=game.time+event.plan.intermission;
  game.notice?.('Волна '+(event.waveIndex+1)+' из '+event.plan.waves.length+
   ' отражена! Оставшиеся противники отступили. Следующее нападение через '+

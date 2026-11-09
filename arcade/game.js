@@ -1,7 +1,7 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1-manual-qa-1';
 import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2';
-import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1';
+import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
@@ -22,7 +22,7 @@ import {createFieldLoot,rewardEyeKill,collectFieldLoot,updateFieldLoot,
 import {createCombatTempo,recordCombatContact,ambientTempoPlan} from './combat-tempo.js?v=tempo-1';
 import {fortificationShield} from './enemy-fortifications.js?v=industrial-forts-1';
 import {renderEvolutionMenu,installedEvolution} from './evolution-menu.js?v=mouse-arms-1';
-import {updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1';
+import {updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
 import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,offerLevelCrystals,refreshEvolutionOffers,
  enemyFieldReward,collectParasiteCore,absorbParasiteImpact,markDashPass,fieldWeaponImpact,
  updateFieldEvolution,parasiteTargetMode,setParasiteTargetMode} from './field-evolution.js?v=mouse-arms-1-manual-weapon-1';
@@ -34,7 +34,7 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1';
 import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1';
 import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
@@ -47,11 +47,11 @@ import {ArcadeVisuals} from './visuals.js?v=regions-1-campaign-1-counterattack-1
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2';
-import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1';
+import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1-triangle-defense-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction} from './mining.js?v=checkpoint-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-sfx-2-artillery-finish-1-support-three-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
@@ -63,7 +63,7 @@ import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPositi
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
  advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1-mission-choices-1';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1-mission-choices-1-control-audit-1-enemy-growth-1-flux-build-1';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1-mission-choices-1-control-audit-1-enemy-growth-1-flux-build-1-triangle-defense-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {clampCameraZoom,flightCamera,flightZoomKey,stepCameraZoom,wheelCameraZoom,pointerInFlightWorld} from './camera-zoom.js?v=flight-zoom-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
@@ -76,11 +76,11 @@ import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHI
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2-menu-rebuild-1-menu-audit-1-devscroll-1';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1-all-menus-1-menu-reaudit-1-menu-audit-1';
-import {updateAutomaticWeapons,updateFlakPellets,fireAimedRail,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons,RAIL_AIM_ASSIST} from './ship-weapons.js?v=mouse-area-1';
+import {updateAutomaticWeapons,updateFlakPellets,startRailSweep,updateRailSweep,drawRailSweep,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons,RAIL_AIM_ASSIST} from './ship-weapons.js?v=triangle-defense-1-triangle-defense-1';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1-supply-stronghold-1';
-import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1';
+import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel} from './target-designation.js?v=mouse-area-1';
-import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,drawMouseArsenal} from './mouse-arsenal.js?v=mouse-arms-1-recorded-combat-1-realfoley-2-manual-weapon-1-manual-qa-1';
+import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,drawMouseArsenal} from './mouse-arsenal.js?v=mouse-arms-1-recorded-combat-1-realfoley-2-manual-weapon-1-manual-qa-1-triangle-defense-1';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
@@ -96,12 +96,13 @@ import {recordWorldFeedback,recordContourFeedback,advanceWorldFeedback,drawWorld
 import {regionalCampaignPressure,campaignDestination,strongholdThreat} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1-stronghold-1-territory-war-1-enemy-growth-1';
 import {updateStationInterdiction,interruptStationInterdiction,threatenedStations} from './strategic-command.js?v=campaign-1-repair-qa-1-tactical-balance-1-world-feedback-1-flux-reserve-1-flux-offense-1-territory-war-1';
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
-import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-2-contour-trials-1-first-loops-1-flux-build-1-support-three-1';
-import {FLUX_ARTILLERY,artilleryAt,artilleryOffer,deployArtillery,setArtilleryMode,
- advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-artillery-finish-1-support-three-1';
+import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-2-contour-trials-1-first-loops-1-flux-build-1-support-three-1-triangle-defense-1';
+import {FLUX_ARTILLERY,EDGE_SLOT_UPGRADES,ARTILLERY_UPGRADES,edgeTurretLimit,edgeTurretUpgradeOffer,upgradeEdgeTurretCapacity,artilleryUpgradeOffer,upgradeArtillery,
+ artilleryAt,artilleryOffer,deployArtillery,setArtilleryMode,
+ advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-artillery-finish-1-support-three-1-triangle-defense-1';
 import {SUPPORT_TYPES,supportConfig,supportOffer,deploySupport,supportAt,
  setSupportMode,supportUpgradeOffer,upgradeSupport,
- advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=flux-supports-2';
+ advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=flux-supports-2-triangle-defense-1';
 import {launchFluxSortie,advanceFluxSortie,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {recordIndustrialBreachHit,advanceIndustrialBreaches,INDUSTRIAL_BREACH} from './industrial-breach.js?v=territory-war-1-territory-war-1-breach-fix-1';
 import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from './contour-cover.js?v=territory-war-2-territory-war-1-topology-fix-1';
@@ -109,9 +110,12 @@ import {territoryTech,TERRITORY_TECH} from './territory-tech.js?v=territory-war-
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1-auto-1-contour-trials-1-counterattack-1-first-loops-1-flux-build-1';
 import {syncContourDynamics,resumeContourTransition} from './contour-dynamics.js?v=contour-dynamics-3-auto-1';
-import {registerContourTrials,productiveContourFields,pendingContourTrials} from './contour-trials.js?v=contour-trials-1-clarity-pass-1-first-loops-1';
-import {updateContourTrials} from './contour-trial-director.js?v=contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1';
-import {drawContourTrialHUD} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1';
+import {registerContourTrials,productiveContourFields,pendingContourTrials,readyContourTrials,unresolvedContourTrials,CONTOUR_TRIALS} from './contour-trials.js?v=triangle-defense-1-triangle-defense-1';
+import {updateContourTrials,activateContourVortex} from './contour-trial-director.js?v=triangle-defense-1-triangle-defense-1';
+import {drawContourTrialHUD} from './contour-trial-vfx.js?v=contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-triangle-defense-1';
+import {drawBranchedInteraction} from './interaction-arcs.js?v=triangle-defense-1';
+import {updateRamSquads,drawRamSquads} from './ram-squads.js?v=triangle-defense-1';
+import {TURRET_REPAIR,repairableTurret,turretRepairQuote,repairTurret} from './turret-repair.js?v=triangle-defense-1';
 import {drawContourIrisCharge} from './contour-trial-iris.js?v=contour-counterattack-1';
 
 const $=id=>document.getElementById(id);
@@ -262,7 +266,7 @@ export class ArcadeGame {
   window.addEventListener?.('pagehide',()=>this.enemyLearning?.flush(this.time));
   this.manualRailMode=false;this.precisionRailAvailable=false;this.selectedManualWeapon=null;
   this.weaponThermal=createThermal();this.moduleClocks={rail:0,flak:0};
-  this.heavyCharge=null;this.heavyCooldown=0;this.syncShipLoadout();
+  this.heavyCharge=null;this.heavyCooldown=0;this.railSweep=null;this.syncShipLoadout();
   this.doctrine=null;this.lastDamageAt=-Infinity;
   this.network={armor:0,armament:0,engine:0,strikePower:0};
   this.enemies=[];this.allies=[];this.drops=[];this.shots=[];this.missiles=[];this.flakPellets=[];this.heavyShells=[];this.flashes=[];this.weaponFx=[];
@@ -276,6 +280,7 @@ export class ArcadeGame {
   this.mapView='map';this.contourRegion='all';this.contourFirst=null;this.contourSelection=null;this.contourError='';this.contourInfo='';this.enemyBackboneMap=false;
   this.mapViewports={};this.mapPointers=new Map();this.mapDraggedUntil=0;this.lastMapPanRender=0;this.mapMarkMode=false;
   this.contourFeedback=null;this.contourBirths=[];this.contourDynamics=null;this.contourTrial=null;
+  this.ramSquads=[];this.ramSquadCooldowns=new Map();
   this.openingArc=createOpeningArc(this.world.home);this.openingRepairing=false;
   this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
   this.lastContractReceipt=null;
@@ -368,7 +373,17 @@ export class ArcadeGame {
   this.buildPlanning={stage:'menu',point:null,type:'artillery'};this.paused=true;
   this.keys.clear();this.endInteraction();this.pausedRenderPending=true;
   $('buildPlanning').hidden=false;$('buildRing').hidden=false;$('buildPlacement').hidden=true;
+  this.updateEdgeSlotUpgradeUI();
   $('buildArtillery')?.focus({preventScroll:true});return true;
+ }
+ updateEdgeSlotUpgradeUI(){
+  const rank=this.world.contours?.turretSlotRank||0,limit=edgeTurretLimit(this.world);
+  const price=EDGE_SLOT_UPGRADES[rank],offer=edgeTurretUpgradeOffer(this.world,this.player);
+  const text=$('buildEdgeCapacity'),button=$('buildEdgeUpgrade'),hint=$('buildEdgeUpgradeHint');
+  if(text)text.textContent='На каждой грани: '+limit+' из 3 мест';
+  if(button){button.disabled=!offer.ok;
+   button.textContent=price?'Расширить · '+price.ore+' сплава + '+price.flux+' флюкса':'Ветка улучшена полностью';}
+  if(hint)hint.textContent=price?(offer.ok?'Откроется '+(limit+1)+'-е место на каждой грани':offer.reason):'Дальнейших уровней нет';
  }
  closeBuildPlanner(){
   if(!this.buildPlanning)return;
@@ -429,20 +444,25 @@ export class ArcadeGame {
   if(stats)stats.textContent=(turret.type==='hive'?
    'Дроны: '+turret.drones.filter(x=>x.hp>0).length+'/'+Math.min(4,turret.level+1):
    'Заряды: '+turret.ammo+'/'+config.magazine)+
-   ' · '+(this.time<turret.readyAt?'сборка':'автономный огонь');
+   ' · ур. '+(turret.level||1)+' · '+(this.time<turret.readyAt?'сборка':'автономный огонь');
   const upgrade=$('supportUpgrade'),hint=$('supportUpgradeHint');
   if(upgrade){
-   upgrade.hidden=turret.kind!=='flux-support'||turret.type==='arc'||
-    turret.type==='laser'&&turret.level>=2||turret.type==='hive'&&turret.level>=3;
+   upgrade.hidden=turret.hp<=0||turret.kind==='flux-support'&&(
+    turret.type==='arc'||turret.type==='laser'&&turret.level>=2||
+    turret.type==='hive'&&turret.level>=3)||turret.kind==='flux-artillery'&&turret.level>=3;
    if(hint)hint.hidden=upgrade.hidden;
    if(!upgrade.hidden){
-    const offer=supportUpgradeOffer(this.world,this.player,turret,this.time);
-    upgrade.textContent=turret.type==='laser'?'Двойной лазер · 26 сплава + 2 флюкса':
+    const offer=turret.kind==='flux-support'?supportUpgradeOffer(this.world,this.player,turret,this.time):
+     artilleryUpgradeOffer(this.world,this.player,turret,this.time);
+    const artPrice=ARTILLERY_UPGRADES[(turret.level||1)-1];
+    upgrade.textContent=turret.kind==='flux-artillery'?
+     'Усилить ближнюю защиту · '+artPrice.ore+' сплава + '+artPrice.flux+' флюкса':
+     turret.type==='laser'?'Двойной лазер · 26 сплава + 2 флюкса':
      'Расширить эскадрилью · '+(20+(turret.level-1)*9)+' сплава + '+
      (2.5+(turret.level-1))+' флюкса';
     upgrade.disabled=!offer.ok||this.time<turret.readyAt;
     if(hint)hint.textContent=this.time<turret.readyAt?'Дождитесь завершения строительства':
-     offer.ok?'Улучшение сохраняется до гибели сооружения':offer.reason;
+     offer.ok?turret.kind==='flux-artillery'?'Повышает урон и дальность ближней пушки':'Улучшение сохраняется до гибели сооружения':offer.reason;
    }
   }
   for(const button of menu.querySelectorAll('[data-art-mode]'))
@@ -514,6 +534,13 @@ export class ArcadeGame {
   window.addEventListener('resize',()=>this.resize());
   this.bindControlSettings();mountSystemMenu(this);
   $('buildBtn')?.addEventListener('click',()=>this.openBuildPlanner());
+  $('buildEdgeUpgrade')?.addEventListener('click',()=>{
+   if(this.buildPlanning?.stage!=='menu')return;
+   const result=upgradeEdgeTurretCapacity(this.world,this.player);
+   this.notice(result.ok?'Вместимость грани: '+result.limit+' сооружения.':result.reason,3);
+   if(result.ok)this.heritage?.ui?.('upgrade');
+   this.updateEdgeSlotUpgradeUI();this.pausedRenderPending=true;
+  });
   $('buildArtillery')?.addEventListener('click',()=>this.selectBuildArtillery());
   for(const type of Object.keys(SUPPORT_TYPES))
    $('build'+type[0].toUpperCase()+type.slice(1))?.addEventListener('click',
@@ -535,8 +562,10 @@ export class ArcadeGame {
   });
   $('supportUpgrade')?.addEventListener('click',()=>{
    const tower=this.artilleryMenuTarget;
-   if(!tower||tower.kind!=='flux-support'||this.time<tower.readyAt)return;
-   const result=upgradeSupport(this.world,this.player,tower,this.time);
+   if(!tower||this.time<tower.readyAt)return;
+   const result=tower.kind==='flux-support'?
+    upgradeSupport(this.world,this.player,tower,this.time):
+    upgradeArtillery(this.world,this.player,tower,this.time);
    this.notice(result.ok?'Сооружение улучшено до уровня '+result.level+'.':result.reason,3);
    if(result.ok)this.heritage?.play?.('supportUpgrade',.7,tower);
    this.artilleryModeMenu(false);
@@ -638,14 +667,16 @@ export class ArcadeGame {
    if(act==='parasiteMode'){this.setParasiteMode(b.dataset.mode);return;}
    if(act==='evolutionAll'){this.skills(true);return;}
    if(act==='trialRoute'){
-    const entry=pendingContourTrials(this.world).find(t=>String(t.id)===b.dataset.id);
+    const entry=unresolvedContourTrials(this.world).find(t=>String(t.id)===b.dataset.id);
     if(entry){this.mapView='map';this.openMap(entry);}
     return;
    }
    if(act==='trialWaypoint'&&this.overlay.dataset.mode==='map'){
-    const entry=pendingContourTrials(this.world).find(t=>String(t.id)===b.dataset.id);
+    const entry=unresolvedContourTrials(this.world).find(t=>String(t.id)===b.dataset.id);
     if(entry)this.setNavigationCourse({id:'trial-'+entry.id,x:entry.x,y:entry.y,
-     label:'Оборона нового треугольника'},'Курс к месту обороны. Нападение начнётся при сближении.');
+     label:entry.status==='ready'?'Запуск воронки':'Оборона нового треугольника'},
+     entry.status==='ready'?'Курс к ядру. Удерживайте E для запуска добычи.':
+      'Курс к месту обороны. Нападение начнётся при сближении.');
     return;
    }
    if(act==='systemMenu'){openSystemMenu(this);return;}
@@ -1059,9 +1090,8 @@ export class ArcadeGame {
   pad.addEventListener('pointermove',e=>{if(e.pointerId===active)pointer(e);});
   const release=e=>{if(e.pointerId!==active)return;active=null;this.touch.x=0;this.touch.y=0;$('knob').style.transform='';};
   pad.addEventListener('pointerup',release);pad.addEventListener('pointercancel',release);
-  // A held mouse button previews the actual blast/mine area; releasing fires.
-  // The ship keeps moving while aiming. An equipped rail/howitzer is still
-  // available on LMB by cycling manual weapons with the mouse wheel.
+  // All manually aimed mounts use the same desktop gesture: select with the
+  // wheel, hold RMB to preview, release RMB to fire. LMB designates targets.
   const worldAt=(x,y)=>{
    const rect=this.canvas.getBoundingClientRect(),cam=this.camera();
    return pointerInFlightWorld(rect,cam,x,y);
@@ -1084,11 +1114,11 @@ export class ArcadeGame {
    }
    this.tacticalPointer={x:e.clientX,y:e.clientY};
    if(e.button!==0&&e.button!==2)return;
-   // An optional Ctrl+LMB click restores manual priority without changing
-   // the everyday comet / mine buttons or consuming their cooldowns.
+   // Ctrl+LMB remains an explicit precision designation; ordinary LMB also
+   // marks a target without spending the selected mount's ammunition.
    const weapon=selectedManual(this.selectedManualWeapon,this.manualWeaponsHere());
    const {kind,mark}=pointerWeaponAction(e,weapon,this.mobileMineArmed);
-   if(kind){
+   if(kind==='comet'||kind==='mines'){
     const ready=canAimMouseWeapon(this,kind);
     if(!ready.ok){this.notice(ready.reason,1.5);e.preventDefault();return;}
    }
@@ -1141,12 +1171,17 @@ export class ArcadeGame {
    if(this.paused||this.dead||!this.overlay.hidden)return;
    const worldPoint=worldAt(e.clientX,e.clientY);if(!worldPoint)return;
    if(mark){if(!held&&moved<=14)this.designateTargetAt(worldPoint);return;}
-   if(kind){this.fireActiveMouseWeapon(kind,worldPoint);
+   if(kind){
+    if(kind==='comet'||kind==='mines')this.fireActiveMouseWeapon(kind,worldPoint);
+    else this.fireSelectedManualAt(worldPoint);
     if(e.pointerType==='touch')this.mobileMineArmed=false;
     return;
    }
    if(held||moved>14)return;
-   this.fireSelectedManualAt(worldPoint);
+   if(e.pointerType==='touch'&&this.manualRailMode&&this.selectedManualWeapon==='rail'){
+    this.fireSelectedManualAt(worldPoint);return;
+   }
+   this.designateTargetAt(worldPoint);
   });
   this.canvas?.addEventListener('wheel',e=>{
    if(this.dead||this.paused||!this.overlay.hidden)return;
@@ -2715,7 +2750,7 @@ export class ArcadeGame {
   this.player.weaponSlots=this.shipLoadout.slots;
  }
  manualWeaponsHere(){
-  return ['comet',...manualWeapons(this.weaponProfile,precisionRailUnlocked(this.world))];
+  return manualWeapons(this.weaponProfile,precisionRailUnlocked(this.world));
  }
  syncManualWeaponSelection(){
   const next=selectedManual(this.selectedManualWeapon,this.manualWeaponsHere());
@@ -2733,14 +2768,16 @@ export class ArcadeGame {
   this.selectedManualWeapon=cycleManual(this.selectedManualWeapon,choices,step);
   this.manualRailMode=false;
   this.canvas?.classList?.toggle('rail-manual',this.manualRailMode);
-  this.notice('ЛКМ · '+(this.selectedManualWeapon==='rail'?'Рельсовое орудие':
-   this.selectedManualWeapon==='howitzer'?'Гаубица':'Голубая комета')+' · удерживайте для прицеливания',2.4);
+  this.notice('ПКМ · '+(this.selectedManualWeapon==='rail'?'Рельсовое орудие':
+   this.selectedManualWeapon==='howitzer'?'Гаубица':this.selectedManualWeapon==='mines'?
+    'Минное заграждение':'Голубая комета')+' · зажмите для прицеливания',2.4);
   this.hud();return true;
  }
  fireSelectedManualAt(point){
   const choice=manualClick(selectedManual(this.selectedManualWeapon,this.manualWeaponsHere()),
    this.manualRailMode,!!this.isTouchLayout);
   if(choice==='comet')return this.fireActiveMouseWeapon('comet',point);
+  if(choice==='mines')return this.fireActiveMouseWeapon('mines',point);
   if(choice==='rail'){
    this.manualRailMode=true;this.canvas?.classList?.add('rail-manual');
    return this.fireManualRailAt(point);
@@ -2776,7 +2813,7 @@ export class ArcadeGame {
   });
  }
  hangarAction(data){
-  const developmentActions=new Set(['hgUpgrade','hgSpec','hgFrame','hgTacticEquip','hgTacticUnlock','hgTacticUpgrade']);
+  const developmentActions=new Set(['hgUpgrade','hgSpec','hgFrame','hgTacticEquip','hgTacticUnlock','hgTacticUpgrade','hgNetworkSlots']);
   if(this.dead||!this.paused||this.overlay.hidden||this.overlay.dataset.mode!=='base'||
    !(this.baseTab==='hangar'||this.baseTab==='development'&&developmentActions.has(data.act))||!this.docked?.active)return;
   if(data.act==='hgSlot'&&!slotOpen(this.shipLoadout,Number(data.id))){this.openDevelopment('ship');return;}
@@ -2823,6 +2860,12 @@ export class ArcadeGame {
    this.renderDock();return;
   }
   if(data.act==='hgUpgrade'){this.buySkill(data.id);return;}
+  if(data.act==='hgNetworkSlots'){
+   const result=upgradeEdgeTurretCapacity(this.world,this.player);
+   this.hangarSession.message=result.ok?'Теперь на каждой грани '+result.limit+' места для сооружений.':result.reason;
+   if(result.ok)this.heritage.ui('upgrade');else this.heritage.ui('deny');
+   this.renderDock();return;
+  }
   const result=this.hangarSession.dispatch(data,{loadout:this.shipLoadout,level:this.player.level,
    ore:this.player.ore,points:this.player.points,activeBases:this.activeBases,
    ranks:this.skillRanks,fieldLoan:this.fieldLoan,baseActive:this.docked.active,
@@ -2863,9 +2906,10 @@ export class ArcadeGame {
   }
  }
  updateShipWeapons(dt){
+  updateRailSweep(this);
   updateAutomaticWeapons(this,dt,!this.heavyCharge&&automaticFireAllowed(this.holdFire,
    this.mining.active,this.probeRepairing||this.openingRepairing||
-    ['field-work','relay-prep'].includes(this.actionHeld?.kind)));
+    ['field-work','relay-prep','vortex','turret-repair'].includes(this.actionHeld?.kind)));
  }
   toggleManualRail(){
    if(this.dead||this.paused||!this.overlay.hidden)return false;
@@ -2878,18 +2922,15 @@ export class ArcadeGame {
    this.canvas?.classList?.toggle('rail-manual',this.manualRailMode);
    this.notice(this.manualRailMode?
     'РЕЛЬС · РУЧНОЙ РЕЖИМ. Щёлкните рядом с врагом: прицел подхватит ближайшую цель. Остальные орудия стреляют сами.':
-    'РЕЛЬС · АВТООГОНЬ. ЛКМ — комета (либо другое выбранное колесом орудие), ПКМ — мины.',4);
+    'РЕЛЬС · АВТООГОНЬ. Колесо — выбор ручного оружия, ПКМ — прицел и выстрел, ЛКМ — приоритетная цель.',4);
    this.heritage.ui('tab');this.hud();return true;
   }
   fireManualRailAt(point){
    if(this.dead||this.paused||!this.overlay.hidden||this.openingRepairing||
     this.actionHeld?.kind==='opening-repair')return false;
-   const preparing=this.enemies.filter(e=>e.hp>0&&e.stationRaid?.chargeAt!=null);
-   const result=fireAimedRail(this,point);
+   const result=startRailSweep(this,point);
    if(!result.ok){this.notice(result.reason,2);return false;}
-   const interrupted=preparing.some(e=>e.hp>0&&e.stationRaid?.chargeAt===null);
-   this.notice(interrupted?'ПРИЦЕЛЬНЫЙ ВЫСТРЕЛ · подготовка импульса сорвана':result.hits?'ТОЧНЫЙ ВЫСТРЕЛ · попадание'+(result.hits>1?' ×'+result.hits:''):
-    result.rocksHit?'Выстрел перехвачен астероидом':'Рельсовый выстрел прошёл мимо цели',1.6);
+   this.notice('РЕЛЬС · 5 секунд ведите мышью луч по целям',2.3);
    this.hud();return true;
   }
  callHowitzer(point=null){
@@ -2908,6 +2949,8 @@ export class ArcadeGame {
    relayGain:this.docked&&!this.docked.relayBoost?
     Math.max(0,this.world.networkTopology(this.docked.id).count-topology.count):0,
    activeBases:this.activeBases,connectedBases:topology.count,
+   turretSlotRank:this.world.contours?.turretSlotRank||0,flux:this.world.contours?.flux||0,
+   activeContourTrials:this.world.contours?.trials?.completed||0,
    connected:!!this.docked?.active&&topology.linked.has(this.docked.id),
    allies:this.allies.length,droneRoles:this.allies.map(a=>a.role),network:this.network,doctrine:this.doctrine,
    droneDamage:this.allies.reduce((sum,a)=>sum+Math.max(0,a.maxHp-a.hp),0),
@@ -2977,6 +3020,7 @@ export class ArcadeGame {
   this.designatedTarget=null;this.targetField=null;this.interactionFocus=null;this.weaponFx=[];
   this.mouseArsenal=createMouseArsenal();this.mouseAim=null;this.mobileMineArmed=false;
   this.nearArsenalBonus=false;this.nearArsenalDefense=false;
+  this.railSweep=null;this.ramSquads=[];this.ramSquadCooldowns=new Map();
   this.nearDockField=false;this.nearQuietLab=false;this.nearDock=null;
   if(this.enemyLearning){
    this.enemyLearning.lastPlayer=null;this.enemyLearning.lastObservation=-Infinity;
@@ -3035,6 +3079,12 @@ export class ArcadeGame {
   if(relay)return relay;
   const field=fieldOperationInteraction(op,this.player);
   if(field)return field;
+  const vortex=readyContourTrials(this.world).find(entry=>
+   dist(this.player,entry)<=CONTOUR_TRIALS.activationRadius&&
+   fieldAt(this.world,entry.x,entry.y));
+  if(vortex)return {kind:'vortex',target:vortex,label:'Запустить воронку',hold:true};
+  const wreck=repairableTurret(this.world,this.player);
+  if(wreck)return {kind:'turret-repair',target:wreck,label:'Восстановить турель',hold:true};
   const rock=this.mining.target;
   const range=extractorStats(this.skillRanks.extractor||0,this.skillRanks.mining||0).range;
   return chooseInteraction({player:this.player,probe,station:this.nearestInteractionStation(),
@@ -3046,8 +3096,12 @@ export class ArcadeGame {
   const action=this.currentInteraction();
   if(!action)return false;
   if(action.kind==='station'){this.dock(action.target);return true;}
+  if(action.kind==='turret-repair'){
+   const quote=turretRepairQuote(this.world,this.player,action.target);
+   if(!quote.ok){this.notice(quote.reason,3);return false;}
+  }
   this.heavyCharge=null;
-  this.actionHeld={kind:action.kind,source,target:action.target};
+  this.actionHeld={kind:action.kind,source,target:action.target,progress:0};
   return true;
  }
  endInteraction(source=null){
@@ -3070,6 +3124,8 @@ export class ArcadeGame {
   if(button){
    const focus=this.actionHeld||this.interactionFocus;
    const label=focus?.kind==='repair'?'Ремонт':focus?.kind==='mine'?'Добыча':
+    focus?.kind==='vortex'?'Запуск воронки':
+    focus?.kind==='turret-repair'?'Ремонт турели':
     ['field-work','relay-prep'].includes(focus?.kind)?focus.label:
     focus?.kind==='opening-repair'?'Эвакуация':
     focus?.kind==='station'?'Станция':'Действие';
@@ -3078,6 +3134,8 @@ export class ArcadeGame {
    button.setAttribute('aria-label',focus?(focus.kind==='station'?'Открыть станцию':
     focus.kind==='opening-repair'?'Удерживать для эвакуации капсулы':
     ['field-work','relay-prep'].includes(focus.kind)?'Удерживать для действия: '+focus.label:
+    focus.kind==='vortex'?'Удерживать для запуска воронки':
+    focus.kind==='turret-repair'?'Удерживать для восстановления турели':
     focus.kind==='repair'?'Удерживать для ремонта зонда':'Удерживать для добычи'):'Нет объектов для взаимодействия');
   }
   const quiet=$('quietBtn');
@@ -3107,10 +3165,11 @@ export class ArcadeGame {
    }
    const status=$('fieldWeaponStatus');if(status){
     const manual=selectedManual(this.selectedManualWeapon,this.manualWeaponsHere());
-    const manualText=manual==='rail'?(this.manualRailMode?'ЛКМ · РЕЛЬС (ручной)':'ЛКМ · РЕЛЬС (первый выстрел переводит в ручной режим)'):
-     manual==='howitzer'?'ЛКМ · ГАУБИЦА':'ЛКМ · КОМЕТА'+(cometRest?' · '+cometRest+' с':' · готова');
+    const manualText=manual==='rail'?'ПКМ · РЕЛЬС'+(this.manualRailMode?' · ручной':''):
+     manual==='howitzer'?'ПКМ · ГАУБИЦА':manual==='mines'?'ПКМ · МИНЫ'+(mineRest?' · '+mineRest+' с':' · готовы'):
+     'ПКМ · КОМЕТА'+(cometRest?' · '+cometRest+' с':' · готова');
     const wheel=this.manualWeaponsHere().length>1?' · колесо — сменить оружие':'';
-    const text=[manualText+wheel,'ПКМ · МИНЫ'+(mineRest?' · '+mineRest+' с':' · готовы'),
+    const text=[manualText+wheel,'ЛКМ · отметить цель',
      fitted?fieldText:tacticText].join(' | ');
     status.hidden=!text||this.paused||this.dead||!this.overlay.hidden;
     status.textContent=text;status.setAttribute('aria-label',text);
@@ -3136,10 +3195,10 @@ export class ArcadeGame {
    const tip=$('tips');if(tip){
     const key=action=>readableKey((this.controls||DEFAULT_CONTROLS)[action]);
     const chosen=selectedManual(this.selectedManualWeapon,this.manualWeaponsHere());
-    const shot=chosen==='rail'?'рельс':chosen==='howitzer'?'гаубица':'комета';
+    const shot=chosen==='rail'?'рельс':chosen==='howitzer'?'гаубица':chosen==='mines'?'мины':'комета';
     const flight=['up','left','down','right'].map(key).join('/');
     const base=flight+' / стрелки — полёт · '+key('dash')+' — рывок · '+key('interact')+
-     ' — действие · ЛКМ — '+shot+' · ПКМ — мины · '+key('field')+' — поле';
+     ' — действие · ПКМ — '+shot+' · ЛКМ — цель · '+key('field')+' — поле';
     const extra=(this.manualWeaponsHere().length>1?' · колесо — сменить орудие':'')+
      ' · Tab / M — карта · Esc — меню';
     if(tip.textContent!==base+extra)tip.textContent=base+extra;
@@ -3153,6 +3212,10 @@ export class ArcadeGame {
   // A second dashed circle and a generic 'Action' label would cover their art.
   if(held?.kind==='field-work'&&['two-fronts','broken-convoy'].includes(this.operation?.id))return;
   const focus=held?
+   (held.kind==='vortex'&&held.target?.status==='ready'?{kind:'vortex',target:held.target,
+    label:'Запуск воронки'}:
+    held.kind==='turret-repair'&&held.target?.hp<=0?{kind:'turret-repair',target:held.target,
+     label:'Ремонт турели'}:
    (held.kind==='mine'&&this.mining.target?.alive?
     {kind:'mine',target:this.mining.target,label:'Добыча'}:
     held.kind==='opening-repair'&&openingArcActive(this.openingArc)?
@@ -3160,10 +3223,16 @@ export class ArcadeGame {
     held.kind==='repair'&&this.operation?.id===PROBE_OPERATION.id?
      {kind:'repair',target:this.operation,label:'Ремонт'}:
     ['field-work','relay-prep'].includes(held.kind)?{kind:held.kind,target:held.target,
-     label:held.kind==='relay-prep'?'Установка барьера':'Действие'}:null):this.interactionFocus;
+     label:held.kind==='relay-prep'?'Установка барьера':'Действие'}:null)):this.interactionFocus;
   if(!focus?.target||outsideCamera(focus.target.x,focus.target.y,cam,85))return;
   const t=focus.target,r=focus.kind==='mine'?t.r+12:focus.kind==='station'?61:38;
-  c.save();c.lineWidth=1.7;c.strokeStyle=['repair','opening-repair','field-work','relay-prep'].includes(focus.kind)?'#ffc678':
+  if(held?.kind==='vortex')drawBranchedInteraction(c,this.player,t,{kind:'vortex',time:this.time,
+   progress:held.progress/CONTOUR_TRIALS.activationSeconds,reduced:this.visuals?.reducedMotion});
+  if(held?.kind==='turret-repair')drawBranchedInteraction(c,this.player,t,{kind:'repair',time:this.time,
+   progress:held.progress/TURRET_REPAIR.seconds,reduced:this.visuals?.reducedMotion});
+  c.save();c.lineWidth=1.7;c.strokeStyle=focus.kind==='vortex'?'#ff6670':
+   focus.kind==='turret-repair'?'#71f7a4':
+   ['repair','opening-repair','field-work','relay-prep'].includes(focus.kind)?'#ffc678':
    focus.kind==='station'?'#87f0cf':'#7de5f5';
   c.setLineDash([7,6]);c.beginPath();c.arc(t.x,t.y,r,0,TAU);c.stroke();
   c.setLineDash([]);c.fillStyle='#c9f6f6';c.font='bold 12px system-ui';
@@ -4463,6 +4532,9 @@ export class ArcadeGame {
   let firstDeliveryXp=0;
   for(const event of contourEvents){
    if(event.kind==='delivered'&&event.amount>.01){
+    if(!this.fluxFirstSeenAt&&(this.world.contours.delivered-event.amount)<.01)
+     this.fluxFirstSeenAt=this.time;
+    this.fluxLastGainAt=this.time;this.fluxLastGain=event.amount;
     this.contourDeliveryFX.push({fieldId:event.fieldId,amount:event.amount,at:this.time});
     firstDeliveryXp+=claimFirstFluxDelivery(p,event.amount);
    }
@@ -4600,6 +4672,36 @@ export class ArcadeGame {
   const probe=this.operation?.id===PROBE_OPERATION.id?this.operation:null;
   const atProbe=!!probe&&probe.located!==false&&probe.phase!=='return'&&dist(p,probe)<=PROBE_OPERATION.repairRange;
   this.interactionFocus=this.currentInteraction();
+  if(this.actionHeld?.kind==='vortex'){
+   const entry=this.actionHeld.target;
+   if(entry.status!=='ready'||!fieldAt(this.world,entry.x,entry.y)||
+     dist(p,entry)>CONTOUR_TRIALS.activationRadius){
+    this.endInteraction();
+   }else{
+    this.actionHeld.progress+=dt;
+    if(this.actionHeld.progress>=CONTOUR_TRIALS.activationSeconds){
+     this.actionHeld=null;
+     if(activateContourVortex(this,entry))this.notice('ВОРОНКА ЗАПУЩЕНА · ожидайте первую доставку флюкса!',5);
+    }
+   }
+  }
+  if(this.actionHeld?.kind==='turret-repair'){
+   const tower=this.actionHeld.target;
+   if(tower.hp>0||dist(p,tower)>TURRET_REPAIR.range){
+    this.endInteraction();
+   }else{
+    this.actionHeld.progress+=dt;
+    if(this.actionHeld.progress>=TURRET_REPAIR.seconds){
+     this.actionHeld=null;
+     const outcome=repairTurret(this.world,p,tower,this.time);
+     if(outcome.ok){
+      this.heritage?.play?.('supportUpgrade',.7,tower);
+      this.heritage?.vfx?.nova?.(tower.x,tower.y,90,'cyan');
+      this.notice('Турель восстановлена · −'+outcome.ore+' сплава · −'+outcome.flux+' флюкса.',4);
+     }else this.notice(outcome.reason,3);
+    }
+   }
+  }
   // Action kind is locked when pressed. Neither docking nor repair may hijack mining.
   this.probeRepairing=activeInteraction(this.actionHeld,'repair',atProbe);
   this.openingRepairing=activeInteraction(this.actionHeld,'opening-repair',
@@ -4681,6 +4783,7 @@ export class ArcadeGame {
   }
   this.updateStrikes(dt);
   updateTactical(this);
+  updateRamSquads(this);
   for(const e of this.enemies){
    this.activeEnemyFirer=e;
    if(!e.interceptCargo&&!updateStationInterdiction(this,e,dt))updateEnemy(e,this,dt);
@@ -5304,7 +5407,7 @@ export class ArcadeGame {
    this.cachedWorldLinks=topology.links.filter(([a,b])=>
     Math.min(dist(a,p),dist(b,p))<2600);
    const mission=this.contract;
-   const nextTrial=pendingContourTrials(this.world)[0];
+   const nextTrial=unresolvedContourTrials(this.world)[0];
    const trialRoute=nextTrial&&!this.operation&&!mission&&this.waypoint?.id===this.world.home?.id?
     {...nextTrial,label:'Испытание контура'}:null;
    this.cachedTarget=this.manualWaypoint||trialRoute||this.waypoint||operationDestination(this.operation,this.world)||(mission&&mission.progress>=mission.goal?
@@ -5321,6 +5424,8 @@ export class ArcadeGame {
   drawFluxSupports(c,this,cam,this.buildPlanning?.stage==='place'&&
    this.buildPlanning.type!=='artillery'?{
    point:this.buildPlanning.point,player:this.player,type:this.buildPlanning.type}:null);
+  drawRamSquads(c,this);
+  drawRailSweep(c,this);
   this.heritage.vfx.render(c,'back',
    {worldX:cam.x,worldY:cam.y,width:cam.w,height:cam.h});
   this.visuals.drawDerelict(c,cam,this.time,this.fps);
