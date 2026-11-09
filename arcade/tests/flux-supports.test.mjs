@@ -28,8 +28,8 @@ function tick(game,from,to,step=1){for(let t=from;t<=to+1e-8;t+=step){
  game.time=t;advanceFluxSupports(game,step);
 }}
 test('all three structures require a real contour, pilot range and both currencies',()=>{
- const {world,player,point}=fixture();
  for(const [type,cfg]of Object.entries(SUPPORT_TYPES)){
+  const {world,player,point}=fixture();
   const stock=world.contours.flux,ore=player.ore;
   const result=deploySupport(world,player,point,10,type);
   assert.ok(result.ok,type+': '+result.reason);
@@ -39,9 +39,8 @@ test('all three structures require a real contour, pilot range and both currenci
   assert.equal(result.turret.readyAt,10+cfg.buildSeconds);
   assert.equal(validFluxSupports(world.contours),true);
   assert.equal(supportOffer(world,player,point,type).ok,false,'overlap rejected');
-  // Destroyed nests persist and reserve their edge slot for repair.
-  result.turret.hp=0;
  }
+ const {world,player,point}=fixture();
  world.contours.trials.completed=0;
  assert.equal(supportOffer(world,player,point,'arc').ok,false);
  world.contours.trials.completed=1;

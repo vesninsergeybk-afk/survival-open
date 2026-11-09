@@ -53,7 +53,8 @@ export function supportOffer(world,player,point,type){
   return {ok:false,reason:'Достигнут предел сооружений'};
  if((s.supportTurrets||[]).filter(t=>t.hp>0).length>=SUPPORT_MAX)
   return {ok:false,reason:'Достигнут предел вспомогательных установок'};
- if(liveStructures(world).some(t=>d(t,point)<FLUX_ARTILLERY.clearance))
+ if([...(s.artillery||[]),...(s.supportTurrets||[]),...(s.fluxDepots||[]).filter(t=>t.hp>0)]
+  .some(t=>d(t,point)<FLUX_ARTILLERY.clearance))
   return {ok:false,reason:'Слишком близко к другому сооружению'};
  if([...world.stations.values()].some(st=>d(st,point)<FLUX_ARTILLERY.stationClearance))
   return {ok:false,reason:'Слишком близко к станции'};

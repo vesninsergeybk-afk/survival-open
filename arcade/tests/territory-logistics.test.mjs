@@ -5,8 +5,11 @@ import {fieldDepths,fieldFluxMultiplier,weightedContourProduction,
  stationFluxUpgradeOffer,buyStationFluxUpgrade,advanceFluxMaintenance,validFluxEconomy} from '../territory-economy.js';
 import {FLUX_DEPOT,depotOffer,deployDepot,advanceFluxDepots,
  nearestSupplyDepot,takeDepotFlux,validFluxDepots,depotUpgradeOffer,upgradeDepot} from '../flux-depots.js';
-import {deployArtillery,advanceFluxArtillery,steerGuidedShell,validFluxArtillery} from '../flux-artillery.js';
-import {artilleryShotUnits,artilleryShotFlux,artilleryShellDamage} from '../turret-growth.js';
+import {artilleryOffer,artilleryConnection,artilleryLinks,edgeTurretOccupancy,
+ deployArtillery,advanceFluxArtillery,steerGuidedShell,validFluxArtillery} from '../flux-artillery.js';
+import {supportOffer,deploySupport} from '../flux-supports.js';
+import {artilleryShotUnits,artilleryShotFlux,artilleryShellDamage,artilleryMagazine,
+ artilleryBarrels,turretGrowthRows,buyTurretBranch} from '../turret-growth.js';
 import {ensureStationDefense,defenseStatus} from '../network-defense.js';
 import {hitFriendlyShip} from '../enemy-shot-targets.js';
 
@@ -115,6 +118,68 @@ test('depot improvements increase supply coverage and are paid, capped and valid
  depot.level=9;assert.equal(validFluxDepots(world.contours),false);
 });
 
+test('artillery and support emplacements cannot overlap a newly built depot',()=>{
+ const {world,player,point}=fixture();
+ assert.ok(deployDepot(world,player,point,0).ok);
+ for(const offer of [artilleryOffer(world,player,{x:point.x+50,y:point.y}),
+  supportOffer(world,player,{x:point.x+50,y:point.y},'arc')]){
+  assert.equal(offer.ok,false);
+  assert.match(offer.reason,/Слишком близко к другому сооружению/);
+ }
+ assert.equal(world.contours.artillery.length,0);
+ assert.equal(world.contours.supportTurrets.length,0);
+});
+
+test('depots cannot cover repairable ruins and support guns respect other emplacements',()=>{
+ const {world,player,point}=fixture();
+ const turret=deployArtillery(world,player,point,0,0).turret;
+ turret.hp=0;
+ const quote=depotOffer(world,player,{x:point.x+50,y:point.y});
+ assert.equal(quote.ok,false);
+ assert.match(quote.reason,/Слишком близко/);
+ const support=supportOffer(world,player,{x:point.x+50,y:point.y},'laser');
+ assert.equal(support.ok,false);
+ assert.match(support.reason,/Слишком близко/);
+});
+
+test('a ruined turret retains its repair slot on the original edge',()=>{
+ const {world,player,point}=fixture();
+ const first=deployArtillery(world,player,point,0,0).turret;
+ const next={x:850,y:150};
+ const edge=artilleryConnection(first,artilleryLinks(world)).edgeId;
+ assert.equal(artilleryConnection(next,artilleryLinks(world)).edgeId,edge);
+ first.hp=0;
+ assert.equal(edgeTurretOccupancy(world,edge),1);
+ const quote=artilleryOffer(world,player,next);
+ assert.equal(quote.ok,false);
+ assert.match(quote.reason,/Грань занята/);
+});
+
+test('a deployed support turret also blocks a depot at the same position',()=>{
+ const {world,player,point}=fixture();
+ assert.ok(deploySupport(world,player,point,0,'laser').ok);
+ assert.match(depotOffer(world,player,{x:point.x+50,y:point.y}).reason,/Слишком близко/);
+});
+
+test('scarce treasury rotates deliveries toward the least supplied depot',()=>{
+ const {world,player,point}=fixture();
+ const a=deployDepot(world,player,point,0).depot;
+ const b=deployDepot(world,player,{x:930,y:320},0).depot;
+ world.contours.flux=2.5;
+ a.readyAt=0;b.readyAt=0;
+ a.chargeCredit=.5;b.chargeCredit=.5;
+ advanceFluxDepots(world,5,0);
+ assert.equal(world.contours.flux,2);
+ const first=world.contours.fluxDepotPackets[0].depotId;
+ world.contours.flux=2.5;
+ a.chargeCredit=.5;b.chargeCredit=.5;
+ advanceFluxDepots(world,5.1,0);
+ assert.equal(world.contours.flux,2);
+ assert.equal(world.contours.fluxDepotPackets.length,2);
+ assert.notEqual(world.contours.fluxDepotPackets[1].depotId,first,
+  'the next shipment must serve the depot with less stored and in-flight flux');
+});
+
 test('the powered field harvest continues even when maintenance temporarily suspends defenses',()=>{
  const {world}=fixture();world.contours.flux=0;
  for(let i=0;i<360;i++)advanceContours(world,i*.5,.5,[],null);
@@ -168,5 +233,34 @@ test('automatic missile guidance spends additional flux and cannot snap to a new
  assert.ok(built.ok);
  built.turret.branches.seeker=3;
  assert.equal(artilleryShotFlux(built.turret),1.25);
+ assert.equal(validFluxArtillery(world.contours),true);
+});
+
+test('a ten-barrel guided battery can actually afford and release its full prepaid volley',()=>{
+ const {world,player,point}=fixture();
+ player.ore=4000;world.contours.flux=3000;
+ const turret=deployArtillery(world,player,point,0,0).turret;
+ turret.readyAt=0;
+ for(const branch of turretGrowthRows(turret))for(let i=0;i<branch.max;i++){
+  const bought=buyTurretBranch(world,player,turret,branch.key,0);
+  assert.ok(bought.ok,`${branch.key}: ${bought.reason}`);
+ }
+ assert.equal(artilleryBarrels(turret),10);
+ assert.equal(artilleryShotFlux(turret),6);
+ const paidAmmo=artilleryMagazine(turret),spend=paidAmmo*.25;
+ const before=world.contours.flux;
+ world.contours.flux-=spend;turret.ammo=paidAmmo;
+ assert.equal(before-world.contours.flux,spend);
+ const game={world,player,enemies:[{serial:28,x:1050,y:300,vx:0,vy:0,
+  hp:100000,maxHp:100000,r:18}],time:0,vw:1200,
+  damageEnemy(e,n){e.hp-=n;},hitTurret(){},hitEnemyBase(){}};
+ for(let i=1;i<=80;i++){
+  game.time=i*.05;
+  advanceFluxArtillery(game,.05);
+  if(turret.salvoFired>=10)break;
+ }
+ assert.equal(turret.salvoFired,10,'all ten guns must fire at the tracked ship');
+ assert.equal(turret.ammo,0,'ten shells consume the complete funded magazine');
+ assert.ok(world.contours.artilleryShells.some(s=>s.guidanceRank===3&&s.trackSerial===28));
  assert.equal(validFluxArtillery(world.contours),true);
 });

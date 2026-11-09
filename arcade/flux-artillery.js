@@ -70,6 +70,9 @@ export function artilleryConnection(point,edges){
 }
 export const edgeTurretLimit=world=>1+Math.min(2,Math.max(0,world?.contours?.turretSlotRank||0));
 export function edgeTurretOccupancy(world,edgeId,edges=artilleryLinks(world)){
+ // Damaged sockets intentionally keep their edge slot: the pilot can repair
+ // them with E. Removing a wreck from this count would allow an extra live
+ // gun to be built first and exceed the slot limit after the repair.
  return [...(world?.contours?.artillery||[]),...(world?.contours?.supportTurrets||[])]
   .filter(t=>artilleryConnection(t,edges)?.edgeId===edgeId).length;
 }
@@ -124,7 +127,8 @@ export function artilleryOffer(world,player,point,preload=0){
  const live=[...(state.artillery||[]),...(state.supportTurrets||[])];
  if(live.filter(t=>t.hp>0).length>=FLUX_ARTILLERY.maxTurrets)
   return {ok:false,reason:'Достигнут технический предел сооружений'};
- if(live.some(t=>t.hp>0&&distance(t,point)<FLUX_ARTILLERY.clearance))
+ if([...live,...(state.fluxDepots||[]).filter(t=>t.hp>0)]
+  .some(t=>distance(t,point)<FLUX_ARTILLERY.clearance))
   return {ok:false,reason:'Слишком близко к другому сооружению'};
  if([...world.stations.values()].some(s=>distance(s,point)<FLUX_ARTILLERY.stationClearance))
   return {ok:false,reason:'Слишком близко к станции'};

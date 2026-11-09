@@ -41,7 +41,7 @@ export function depotOffer(world,player,point){
  if((state.fluxDepots||[]).filter(active).length>=FLUX_DEPOT.maxDepots)
   return {ok:false,reason:'Достигнут предел складов'};
  if([...(state.fluxDepots||[]),...(state.artillery||[]),...(state.supportTurrets||[])]
-  .some(t=>active(t)&&d(t,point)<FLUX_DEPOT.clearance))
+  .some(t=>(active(t)||t.kind!=='flux-depot')&&d(t,point)<FLUX_DEPOT.clearance))
   return {ok:false,reason:'Слишком близко к другому сооружению'};
  if([...world.stations.values()].some(t=>d(t,point)<120))
   return {ok:false,reason:'Слишком близко к станции'};
@@ -99,7 +99,13 @@ export function advanceFluxDepots(world,time,dt){
  const incoming=new Map();
  for(const packet of state.fluxDepotPackets)
   incoming.set(packet.depotId,(incoming.get(packet.depotId)||0)+packet.amount);
- for(const depot of state.fluxDepots){
+ // Under a scarce treasury, a depot built first must not monopolize every
+ // dispatch. Include packets already in flight, otherwise a depot with a
+ // long route would keep being selected before its first delivery arrived.
+ const neediest=[...state.fluxDepots].sort((a,b)=>
+  (a.stored+(incoming.get(a.id)||0))/depotCapacity(a)-
+  (b.stored+(incoming.get(b.id)||0))/depotCapacity(b)||a.id-b.id);
+ for(const depot of neediest){
   if(!active(depot)||depot.readyAt>time||
      depot.stored+(incoming.get(depot.id)||0)>=depotCapacity(depot)-.24)continue;
   let source=null,sourceDistance=Infinity;
