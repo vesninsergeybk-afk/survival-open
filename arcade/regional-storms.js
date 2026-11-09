@@ -1,5 +1,5 @@
 import {hash} from './balance.js?v=arcade-network-20';
-import {regionAt} from './regions.js?v=regions-1';
+import {regionAt} from './regions.js?v=regions-1-living-world-population-1';
 import {drawIonField} from './ion-field.js?v=regions-1';
 export const STORM=Object.freeze({cell:2200,period:48,warningAt:28,dischargeAt:34,recoveryAt:38,chargeSeconds:18,disableSeconds:8});
 export function stormFields(x,y,range=1600){
