@@ -1,6 +1,6 @@
 import {hash} from './balance.js';
 import {REGIONS} from './regions.js';
-import {POPULATION} from './world-population.js';
+import {POPULATION} from './world-population.js?v=sector-density-2';
 
 const TAU=Math.PI*2;
 const types=['gravity','ion','wrecks','pulsar','meteor'];
@@ -13,16 +13,24 @@ const view=(f,cam)=>f.x+f.r>cam.x&&f.x-f.r<cam.x+cam.w&&
  f.y+f.r>cam.y&&f.y-f.r<cam.y+cam.h;
 export function createSpaceAnomalies(seed=20261102){
  const anomalies=[];
- for(const region of REGIONS)for(let i=0;i<types.length;i++){
-  const base=region.id==='amethyst'?
-   {x:Math.cos(i*TAU/5)*13000,y:Math.sin(i*TAU/5)*13000}:
-   {x:region.x,y:region.y};
-  const dx=(hash(i+3,region.number,seed)-.5)*13500;
-  const dy=(hash(region.number,i+9,seed)-.5)*13500;
-  const x=base.x+dx,y=base.y+dy;
-  if(Math.hypot(x,y)>POPULATION.radius-2500)continue;
-  anomalies.push({id:region.id+':'+types[i],region:region.id,type:types[i],
-   x,y,r:types[i]==='gravity'?820:types[i]==='wrecks'?1050:1250,
+ for(const region of REGIONS)for(let i=0;i<50;i++){
+  const kind=i%types.length;
+  let x,y;
+  if(region.id==='amethyst'){
+   const fraction=(i+.55)/50;
+   const radius=Math.sqrt(6200**2+fraction*(22400**2-6200**2));
+   const angle=i*2.399963229728653+(hash(i,region.number,seed)-.5)*.38;
+   x=Math.cos(angle)*radius;y=Math.sin(angle)*radius;
+  }else{
+   const lane=i%10,belt=Math.floor(i/10);
+   const angle=Math.atan2(region.y,region.x)+
+    ((lane+.5+(belt%2)*.37)/10-.5)*1.5;
+   const radius=28000+(belt+.3+hash(i,region.number,seed)*.36)*4900;
+   x=Math.cos(angle)*radius;y=Math.sin(angle)*radius;
+  }
+  anomalies.push({id:region.id+':'+types[kind]+':'+Math.floor(i/5),
+   region:region.id,type:types[kind],
+   x,y,r:types[kind]==='gravity'?820:types[kind]==='wrecks'?1050:1250,
    phase:hash(i+39,region.number,seed)*TAU});
  }
  return anomalies;
