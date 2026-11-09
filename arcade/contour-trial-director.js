@@ -1,10 +1,11 @@
 import {recordSortieIncome} from './sortie-ledger.js';
 import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,readyContourTrials,prepareContourVortex,completeContourTrial,
- planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-1';
+ planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-2-rank';
 import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
 import {contourFields,fieldAt} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js';
 import {ENEMY_TYPES} from './ai.js?v=first-loops-1-triangle-defense-1';
+import {enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2';
 import {recordWorldFeedback} from './world-feedback.js';
 
 const nearby=(a,b,r)=>dist(a,b)<r;
@@ -30,13 +31,13 @@ function spawnTrialWave(game,event){
  delete event.blockedSince;
  event.waitingForSpace=false;
  event.waveIndex++;
- const cam=game.spawnEntryCamera?.()||game.spawnCamera?.()||game.camera(),random=trialRandom(event.plan.tier,event.entry.id,event.waveIndex+1);
+ const cam=game.spawnEntryCamera?.()||game.spawnCamera?.()||game.camera(),random=trialRandom(event.plan.tier,event.entry.id,event.waveIndex);
  const roster=Object.entries(wave).flatMap(([type,count])=>Array(count).fill(type));
  // A fixed seed keeps a retried defence honest and gives each triangle a
  // different mix of flanking groups. Six ships coordinate as one IRIS wing.
  for(let i=roster.length-1;i>0;i--){const j=Math.floor(random()*(i+1));
   [roster[i],roster[j]]=[roster[j],roster[i]];}
- const formation=event.plan.formations?.[event.waveIndex+1]||'рой';
+ const formation=event.plan.formations?.[event.waveIndex]||'рой';
  const angle=game.player.angle||0;
  const rearSide=Math.abs(Math.cos(angle))>Math.abs(Math.sin(angle))?
   (Math.cos(angle)>0?0:1):(Math.sin(angle)>0?2:3);
@@ -121,8 +122,19 @@ export function contourVictoryRewards(tier,serial){
  const plan=planContourTrial(tier,serial);
  const ships=plan.waves.reduce((sum,wave)=>sum+
   Object.values(wave).reduce((waveSum,count)=>waveSum+count,0),0);
- return {xp:18+tier*5+Math.round(ships*.65),
-  alloy:20+tier*4+Math.round(ships*.24)};
+ // A siege replaces dozens of normal combat kills with a single victory
+ // payout. Compare against those same enemies' real XP rules (including
+ // stronger late-tier hulls), then award a bounded share for the whole fleet.
+ // Failed attempts and individual attackers still pay nothing, so restarting
+ // an encounter cannot farm XP. The tier bonus rewards territorial progress.
+ const healthFactor=1+.085*(plan.tier-1);
+ const comparableXp=plan.waves.reduce((sum,wave)=>sum+
+  Object.entries(wave).reduce((waveXp,[type,count])=>{
+   const stats=ENEMY_TYPES[type];
+   return waveXp+(stats?count*enemyDataReward({type,maxHp:stats.hp*healthFactor}):0);
+  },0),0);
+ return {xp:Math.round(comparableXp*.35)+plan.tier*8,
+  alloy:20+plan.tier*4+Math.round(ships*.24)};
 }
 
 function finishTrial(game,entry){

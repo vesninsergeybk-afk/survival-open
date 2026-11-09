@@ -67,6 +67,23 @@ test('a subdivision of the same land never adds a trial; a new neighbouring face
  assert.equal(validContours(world.contours,[...world.stations]),true);
 });
 
+test('a defended but not yet activated vortex still advances the next territory tier',()=>{
+ const field=(id,x)=>({id,center:{x:x+60,y:60},
+  polygon:[{x,y:0},{x:x+120,y:0},{x:x+60,y:120}]});
+ const [first,second,third]=[field('a',0),field('b',200),field('c',400)];
+ const world={contours:createContours()};
+ const [a]=registerContourTrials(world,[],[first],100);
+ assert.equal(a.tier,1);
+ assert.equal(prepareContourVortex(world,a.id),true);
+ const [b]=registerContourTrials(world,[first],[first,second],100);
+ assert.equal(b.tier,2,'a ready core cannot restart the campaign at tier 1');
+ assert.equal(prepareContourVortex(world,b.id),true);
+ const [c]=registerContourTrials(world,[first,second],[first,second,third],100);
+ assert.equal(c.tier,3,'several unactivated cores still advance the defence');
+ assert.equal(world.contours.trials.serial,3);
+ assert.equal(world.contours.trials.completed,0);
+});
+
 test('three growing siege waves bring real IRIS packs and heavy support',()=>{
  const [a,b,c]=[1,2,3].map(tier=>planContourTrial(tier,tier));
  assert.equal(a.waves.length,3);
@@ -144,6 +161,29 @@ test('a local trial spawns three waves, then requires a manual vortex activation
  assert.match(g.lastReward,/Воронка открыта/);
  assert.equal(pendingContourTrials(w).length,0);
  assert.equal(completeContourTrial(w,entries[0].id),false);
+});
+
+test('each actually spawned formation matches the planned wave and visible warning',()=>{
+ const g=game(),w=territory(),entry=claim(w)[0];
+ entry.tier=2;entry.id=2;g.world=w;g.contourTrial=null;g.operation=null;
+ g.player.x=entry.x;g.player.y=entry.y;g.enemies=[];g.zones=[];g.time=20;
+ g.camera=()=>({x:g.player.x-300,y:g.player.y-250,w:600,h:500});
+ const announced=[];
+ g.notice=message=>{const match=message.match(/Построение: ([^.]+)\./);
+  if(match)announced.push(match[1]);};
+ updateContourTrials(g,.1);g.time+=6;updateContourTrials(g,.1);
+ const formations=g.contourTrial.plan.formations;
+ assert.deepEqual(formations,['клещи','рой','окружение'],
+  'exercise three distinct approaches, including a non-swarm final wave');
+ for(let wave=0;wave<3;wave++){
+  assert.equal(g.contourTrial?.waveIndex,wave);
+  for(const enemy of g.enemies.filter(e=>e.trialId===entry.id))enemy.hp=0;
+  g.time+=8;updateContourTrials(g,.1);
+  if(wave<2){g.time+=5;updateContourTrials(g,.1);}
+ }
+ assert.deepEqual(announced,formations,
+  'the last wave must not silently fall back to a swarm');
+ assert.equal(entry.status,'ready');
 });
 
 test('retreat resets only this encounter and preserves every station',()=>{

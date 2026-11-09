@@ -80,8 +80,20 @@ test('a completed defence pays alloy once and immediately demonstrates its shiel
 
 test('late-game sieges award more XP and alloy without any per-ship combat drops',()=>{
  const first=contourVictoryRewards(1,1),tenth=contourVictoryRewards(10,10);
- assert.deepEqual(first,{xp:62,alloy:38});
- assert.deepEqual(tenth,{xp:152,alloy:91});
+ assert.deepEqual(first,{xp:196,alloy:38});
+ assert.deepEqual(tenth,{xp:668,alloy:91});
+ assert.ok(tenth.xp>first.xp*3,'major territorial battles must fund further growth');
+});
+
+test('territorial rewards grow across successive sieges without exponential farming',()=>{
+ let lastXp=0,lastAlloy=0;
+ for(let tier=1;tier<=12;tier++){
+  const reward=contourVictoryRewards(tier,tier);
+  assert.ok(reward.xp>lastXp,`tier ${tier} must pay more XP than the preceding siege`);
+  assert.ok(reward.alloy>lastAlloy,`tier ${tier} must pay more alloy than the preceding siege`);
+  lastXp=reward.xp;lastAlloy=reward.alloy;
+ }
+ assert.ok(lastXp<1000,'the late reward should not replace the whole open-world progression');
 });
 
 test('the timeout never silently reduces the displayed kill requirement',()=>{
