@@ -1,4 +1,4 @@
-import {regionAt} from './regions.js?v=regions-1';
+import {regionAt} from './regions.js?v=regions-1-living-world-population-1';
 import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-defense-1';
 /**
  * Arcade presentation uses the artwork and animation systems already approved
