@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World} from '../world.js';
+import {REGION_LIMIT} from '../regions.js';
 import {renderWorldMap} from '../map-panel.js';
 import {connectContour,armContourReserve,CONTOURS} from '../territory-system.js';
 import {previewContourConnection,contourConnectionChoices} from '../contour-preview.js';
@@ -275,7 +276,7 @@ test('the new atlas uses one measured projection for every layer and shows the a
  assert.equal(far.x,343.5);assert.equal(far.y,243.5);
  const geography=atlasGeography({x:0,y:0},.0035);
  assert.match(geography,/contour-world-geography/);
- assert.match(geography,/r="245\.0"/);
+ assert.match(geography,new RegExp('r="'+(REGION_LIMIT*.0035).toFixed(1)+'"'));
  assert.match(geography,/fill="#ffbd79"/);
  assert.match(geography,/fill="#caa0ff"/);
  const world=new World();
