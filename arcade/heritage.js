@@ -1,5 +1,5 @@
 import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1';
-import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1';
+import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-finish-1';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=foley-autofire-03';
 
@@ -10,10 +10,11 @@ const SOUND_IDS=Object.freeze({
  laser:'starter_soft',rocket:'knife',enemyShot:'magic_wand',
  plasmaShot:'starter_soft',railShot:'railgun',flakShot:'retro_blaster',
  rocketShot:'knife',ionShot:'lightning',resonatorShot:'magic_wand',howitzerShot:'explosion_big',
- artilleryBuild:'base_turret_construct',artilleryOnline:'base_resonance_link',
- artilleryCharge:'base_repair_pulse',artilleryAcquire:'target_mark',
- artilleryLaunch:'comet_launch',artilleryImpact:'explosion_big',
- artilleryHit:'armor_hit',artilleryDestroyed:'base_destroyed',
+ artilleryBuild:'artillery_build',artilleryOnline:'artillery_online',
+ artilleryCharge:'artillery_charge',artilleryServo:'artillery_servo',
+ artilleryAcquire:'artillery_acquire',artilleryLaunch:'artillery_launch',
+ artilleryImpact:'artillery_impact',artilleryHit:'artillery_hit',
+ artilleryDestroyed:'artillery_destroyed',
  hit:'hit',
  explosion:'explosion_small',rocketImpact:'explosion_small',largeExplosion:'explosion_big',
  armorHit:'armor_hit',

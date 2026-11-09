@@ -167,6 +167,21 @@ test('artillery rotation is bounded, takes the shortest arc, and shells leave th
  assert.equal(validFluxArtillery(world.contours),true);
 });
 
+test('the servo speaks only when a fresh target requires a substantial turn',()=>{
+ const {world,game,player,point}=fixture();world.contours.trials.completed=1;
+ world.contours.flux=10;
+ const turret=deployArtillery(world,player,point,0).turret;
+ turret.readyAt=0;turret.ammo=3;
+ game.enemies=[{x:950,y:300,hp:200,maxHp:200,r:18}];
+ const heard=[];game.heritage={play:kind=>heard.push(kind)};
+ game.time=1;advanceFluxArtillery(game,1/60);
+ assert.deepEqual(heard.filter(x=>x==='artilleryServo'),['artilleryServo']);
+ assert.ok(heard.includes('artilleryAcquire'));
+ for(let i=0;i<30;i++){game.time+=1/60;advanceFluxArtillery(game,1/60);}
+ assert.equal(heard.filter(x=>x==='artilleryServo').length,1,
+  'one motor cue per target acquisition, not one per animation frame');
+});
+
 test('fired shells cannot invent out-of-range positions or infinite flight times in saves',()=>{
  const {world,player,point}=fixture();world.contours.trials.completed=1;
  world.contours.flux=3;const turret=deployArtillery(world,player,point,0).turret;
@@ -210,6 +225,37 @@ test('the asset and all live VFX phases render safely through the canvas API',()
  assert.ok(calls.some(call=>call.key==='setLineDash'),'telegraphed AoE is drawn');
  assert.ok(calls.filter(call=>call.key==='arc').length>15,
   'shell, energy packets, charge pulse, warning and explosion all draw');
+});
+
+test('the chassis and rotating head keep identical pixel anchors through recoil, damage and wreckage',async()=>{
+ const previous=globalThis.Image;
+ class LoadedSprite {complete=true;naturalWidth=320;set src(value){this.url=value;}}
+ globalThis.Image=LoadedSprite;
+ let drawSprites;
+ try{({drawFluxArtillery:drawSprites}=await import('../flux-artillery.js?pixel-anchor-regression=1'));}
+ finally{if(previous===undefined)delete globalThis.Image;else globalThis.Image=previous;}
+ const {world,game,player,point}=fixture();world.contours.trials.completed=1;
+ world.contours.flux=10;
+ const turret=deployArtillery(world,player,point,0).turret;
+ turret.readyAt=0;turret.ammo=5;
+ const anchors=()=>{
+  const calls=[];
+  const ctx=new Proxy({},{get:(obj,key)=>key in obj?obj[key]:
+   key==='createRadialGradient'?()=>({addColorStop(){}}):
+   (...args)=>{if(key==='drawImage')calls.push(args.slice(1));},
+   set:(obj,key,value)=>(obj[key]=value,true)});
+  drawSprites(ctx,game,{x:-100,y:-100,w:1200,h:850});
+  assert.equal(calls.length,2,'one fixed chassis and one independently rotating head');
+  return calls;
+ };
+ game.time=4;const intact=anchors();
+ turret.lastShotAt=4;turret.gunAngle=.9;game.time=4.065;
+ assert.deepEqual(anchors(),intact,'the visible barrel must not jump on firing');
+ turret.hp=28;game.time=4.1;
+ assert.deepEqual(anchors(),intact,'damaged state must retain the same alignment');
+ turret.hp=0;turret.lastDestroyedAt=4.1;game.time=4.15;
+ assert.deepEqual(anchors(),intact,'wreck must use the original image dimensions and pivot');
+ assert.deepEqual(intact,[[ -41,-41,82,82 ],[ -51,-67,102,102 ]]);
 });
 
 test('target preferences are explicit and invalid modes cannot silently alter the AI',()=>{

@@ -288,7 +288,13 @@ export function advanceFluxArtillery(game,dt){
   if(turret.ammo<=0||time<turret.nextShotAt||
     distance(game.player,turret)>Math.max(1400,game.vw||1200))continue;
   const aim=chooseArtilleryAim(game,turret);
-  if(aim){turret.aimX=aim.x;turret.aimY=aim.y;
+  if(aim){
+   const aimAngle=Math.atan2(aim.y-turret.y,aim.x-turret.x);
+   // A real motor turns the barrel into position: the short recorded servo
+   // cue accompanies a substantial turn, never every animation frame.
+   if(Math.abs(shortestTurn(turret.gunAngle,aimAngle))>.3)
+    game.heritage?.play?.('artilleryServo',.9,turret);
+   turret.aimX=aim.x;turret.aimY=aim.y;
    turret.aimingUntil=time+FLUX_ARTILLERY.aimSeconds;
    game.heritage?.play?.('artilleryAcquire',.9,turret);}
  }
@@ -335,7 +341,7 @@ function drawGun(ctx,rotation,recoil=0,fire=0){
  }
  ctx.restore();
 }
-function drawDamage(ctx,turret,time,deadAge=null){
+function drawDamage(ctx,turret,time,deadAge=null,reduced=false){
  const severity=clamp(1-turret.hp/turret.maxHp,0,1);
  const intensity=clamp((severity-.22)/.5,0,1);
  if(!intensity&&!Number.isFinite(deadAge))return;
@@ -358,12 +364,29 @@ function drawDamage(ctx,turret,time,deadAge=null){
  }
  if(deadAge!==null){
   const release=clamp(deadAge/.65,0,1);
+  // Charred armour is anchored to the same pivot as the undamaged chassis.
+  // It never swaps to a different-sized image at the instant of destruction.
+  const soot=ctx.createRadialGradient(-4,-5,3,0,0,43);
+  soot.addColorStop(0,'rgba(8,11,17,.81)');
+  soot.addColorStop(.62,'rgba(13,17,22,.64)');
+  soot.addColorStop(1,'rgba(8,11,17,0)');
+  ctx.fillStyle=soot;ctx.beginPath();ctx.arc(0,0,43,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(255,137,75,.66)';ctx.lineWidth=1.7;
+  ctx.beginPath();ctx.moveTo(-24,-13);ctx.lineTo(-8,4);
+  ctx.lineTo(3,-8);ctx.lineTo(22,14);ctx.stroke();
   for(let i=0;i<9;i++){
    const angle=i*2.4,dist=36+release*(14+i%3*3);
    ctx.strokeStyle=`rgba(184,146,116,${(1-release)*.8})`;
    ctx.lineWidth=3+(i%2);ctx.beginPath();
    ctx.moveTo(Math.cos(angle)*(dist-7),Math.sin(angle)*(dist-7));
    ctx.lineTo(Math.cos(angle)*(dist+6),Math.sin(angle)*(dist+6));ctx.stroke();
+  }
+  if(deadAge<3.8)for(let i=0;i<(reduced?2:5);i++){
+   const rise=deadAge*(11+i*3)+i*6;
+   const x=Math.sin(deadAge*1.7+i*2.3)*9+(i-2)*4;
+   const fade=(1-deadAge/3.8)*(.19+i*.025);
+   ctx.fillStyle=`rgba(107,132,145,${fade})`;
+   ctx.beginPath();ctx.arc(x,-10-rise,5+i*.75+deadAge*1.8,0,Math.PI*2);ctx.fill();
   }
  }
  ctx.restore();
@@ -471,7 +494,7 @@ export function drawFluxArtillery(ctx,game,cam,preview=null){
   drawArtilleryChassis(ctx);
   const angle=Number.isFinite(turret.gunAngle)?turret.gunAngle:-Math.PI/2;
   drawGun(ctx,angle+(wreckAge===null?0:.05*clamp(wreckAge/.8,0,1)),recoil,fire);
-  drawDamage(ctx,turret,time,wreckAge);
+  drawDamage(ctx,turret,time,wreckAge,reduced);
   ctx.restore();
   if(building){
    ctx.strokeStyle='#7bebea';ctx.lineWidth=3;

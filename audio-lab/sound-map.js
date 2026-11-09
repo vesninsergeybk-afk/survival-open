@@ -193,7 +193,18 @@ export const AUX_SOUNDS = {
   swarm_arrival: cue('Приближение организованного роя','ambient',f('om_clamour6'),.15,2,2100,1.43),
   swarm_split: cue('Рой делится','mechanical',f('om_scrape1'),.19,3,1150,1.12),
   swarm_merge: cue('Рои объединяются','mechanical',f('om_clamour9'),.19,3,1150,.88),
-  swarm_warning: cue('Рой готовит выстрел','ui',f('om_clamour11'),.16,3,1600,1.12)
+  swarm_warning: cue('Рой готовит выстрел','ui',f('om_clamour11'),.16,3,1600,1.12),
+  // Field artillery has its own physical sound vocabulary. All samples are
+  // CC0 recordings already pinned by the Foley/base manifests, not beeps.
+  artillery_build: cue('Сборка артиллерийской платформы','structure',b('base_turret_construct'),.40,3,700,1.8),
+  artillery_online: cue('Артиллерийская платформа подключена','structure',b('base_resonance_link'),.23,3,1100,1.8),
+  artillery_charge: cue('Поступил заряд в артиллерию','mechanical',f('om_toasterstep1'),.14,2,500,.75),
+  artillery_servo: cue('Поворот тяжёлой башни','mechanical',f('om_scrape2'),.16,2,900,1.12),
+  artillery_acquire: cue('Артиллерия взяла цель','mechanical',f('om_clamour11'),.13,2,650,.7),
+  artillery_launch: cue('Выстрел артиллерийской гаубицы','ballistic',f('rd_cannon_01'),.45,4,950,1.94),
+  artillery_impact: cue('Попадание тяжёлого снаряда','impact',f('rd_bang_10'),.48,5,650,1.7),
+  artillery_hit: cue('Попадание по артиллерийскому корпусу','impact',f('om_clamour1'),.24,3,250,.9),
+  artillery_destroyed: cue('Артиллерийская платформа разрушена','impact',f('rd_cannon_02'),.49,5,1200,1.96)
 };
 
 AUX_SOUNDS.ui_slider.sampleUrls = [k('impactMetal_heavy_000'),k('impactMetal_heavy_001')];
@@ -217,7 +228,15 @@ const recordedLayers = {
   swarm_merge:{main:[f('om_clamour9'),f('om_clamour10')],
     layer:[f('om_toasterstep1'),f('om_toasterstep2')],gain:.16},
   swarm_warning:{main:[f('om_clamour11'),f('om_clamour7')],
-    layer:[f('om_tap'),f('om_toasterstep2')],gain:.15}
+    layer:[f('om_tap'),f('om_toasterstep2')],gain:.15},
+  artillery_servo:{main:[f('om_scrape2'),f('om_scrape1')],
+    layer:[f('om_clamour5'),f('om_clamour7')],gain:.14},
+  artillery_launch:{main:[f('rd_cannon_01'),f('rd_cannon_02')],
+    layer:[f('om_clamour3'),f('om_clamour6')],gain:.21},
+  artillery_impact:{main:[f('rd_bang_10'),f('rd_bang_08')],
+    layer:[f('rd_bang_08'),f('rd_bang_10')],gain:.25},
+  artillery_destroyed:{main:[f('rd_cannon_02'),f('rd_bang_10')],
+    layer:[f('om_scrape2'),f('om_clamour1')],gain:.25}
 };
 for(const [key,{main,layer,gain}] of Object.entries(recordedLayers)){
   AUX_SOUNDS[key].sampleUrls=main;
