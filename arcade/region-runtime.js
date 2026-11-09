@@ -1,6 +1,6 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
 import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1';
-import {regionAt,centralOutline,centralBoundary,REGION_LIMIT} from './regions.js?v=regions-audit-1-living-world-population-1';
+import {regionAt,centralOutline,centralBoundary,REGION_LIMIT} from './regions.js?v=regions-audit-1-living-world-population-1-sector-density-2';
 import {SUPPLY,supplyRoute,advanceRegionalSupply,interceptSupply,supplyEvent,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-renewal-1-territory-war-1';
 import {FRONTIERS,FRONTIER_STORM_FIELD,FRONTIER_RESPONSE,frontierRoute,frontierRadioCoverage,frontierWorkerPosition,frontierEvent,recordFrontierCargoAttack} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-renewal-1-territory-war-1';
@@ -9,11 +9,11 @@ import {updateStrategicCommand,assignStationInterdiction,drawStationInterdiction
 import {stormPhase} from './regional-storms.js?v=regions-1';
 import {labLogisticsIntel,cargoStrengthensEnemy} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1-supply-stronghold-1';
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
-import {advanceEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1';
+import {advanceEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
 import {advanceEnemyFortifications,FORT_STAGES} from './enemy-fortifications.js?v=industrial-forts-1';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
-import {updatePopulationWorld,drawPopulationWorld} from './population-runtime.js';
-import {interceptPopulationCargo,populationAlarm} from './world-population.js';
+import {updatePopulationWorld,drawPopulationWorld} from './population-runtime.js?v=sector-density-2';
+import {interceptPopulationCargo,populationAlarm} from './world-population.js?v=sector-density-2';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 /** Translate *completed simulation events*, never a speculative plan, into a
@@ -273,7 +273,14 @@ export function updateRegionalWorld(game,dt){
     const existing=game.enemies.find(e=>e.hp>0&&!e.converted&&e.protect===cargo&&
      !used.has(e)&& (e.escortSlot===i||e.escortSlot===undefined&&e.type===stored.type));
     if(existing){existing.escortSlot=i;used.add(existing);continue;}
-    if(stored.hp<=0||game.enemies.length>=RULES.maxEnemies)continue;
+    // Industry cannot monopolize the early director's 30-ship cap and
+    // indefinitely suppress an already financed story or frontier raid.
+    // Experienced pilots see progressively larger simultaneous escorts.
+    const stage=Math.max(1,Number(game.player?.level)||1);
+    const upgraded=cargo.screened&&i>=cargo.escortManifest.length-2;
+    const escortBudget=Math.min(RULES.maxEnemies,
+     (upgraded?25:22)+8*(stage-1));
+    if(stored.hp<=0||game.enemies.length>=escortBudget)continue;
     ++game.groupSerial;
     const escortAngle=i*Math.PI*2/cargo.escortManifest.length;
     const escortRadius=cargo.populationCargo?115+Math.floor(i/4)*50:105;
@@ -335,12 +342,16 @@ export function spawnFrontierRaid(game,director){
   distance(game.player,cfg.source)<=13500;
  const ordinaryReady=s.pendingRaid?.announced&&game.time>=s.pendingRaid.readyAt&&
   distance(game.player,cfg.depot)<=13500;
- const cap=Math.min(RULES.maxEnemies,director.cap);
+ // The encounter director's cap counts its own combat wings. Ships already
+ // escorting paid cargo or assigned to colony patrols are independent
+ // defenders and must not suppress a prepared mission by occupying those slots.
+ const ambient=game.enemies.filter(e=>e.populationSortieId||e.protect?.regionalCargo).length;
+ const cap=Math.min(RULES.maxEnemies,director.cap+ambient);
  if((!emergencyReady&&!ordinaryReady)||
    !director.types?.length||!game.spawnGroup||
    game.enemies.length+Math.max(1,director.groupSize||0)+1>cap)return false;
  const before=game.enemies.length;
- const pause=game.spawnGroup(director);
+ const pause=game.spawnGroup({...director,cap});
  if(game.enemies.length<=before||game.enemies.length>=cap)return false;
  const retaliating=Boolean(emergencyReady),origin=retaliating?cfg.source:cfg.depot;
  const cam=game.spawnEntryCamera?.()||game.spawnCamera?.()||game.camera(),dx=origin.x-game.player.x,dy=origin.y-game.player.y;
