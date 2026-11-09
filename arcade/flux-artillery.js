@@ -74,7 +74,7 @@ export function artilleryOffer(world,player,point){
  if(distance(player,point)>FLUX_ARTILLERY.buildRadius)
   return {ok:false,reason:'Слишком далеко от корабля-строителя'};
  if(distance(player,point)<75)return {ok:false,reason:'Освободите место рядом с кораблём'};
- const live=state.artillery||[];
+ const live=[...(state.artillery||[]),...(state.supportTurrets||[])];
  if(live.filter(t=>t.hp>0).length>=FLUX_ARTILLERY.maxTurrets)
   return {ok:false,reason:'Достигнут технический предел сооружений'};
  if(live.some(t=>t.hp>0&&distance(t,point)<FLUX_ARTILLERY.clearance))
@@ -221,6 +221,11 @@ export function advanceFluxArtillery(game,dt){
   if(turret.hp<=0)continue;
   const link=artilleryConnection(turret,edges);if(!link)continue;
   links.set(turret.id,link);
+  sideCounts.set(link.edgeId,(sideCounts.get(link.edgeId)||0)+1);
+ }
+ for(const turret of state.supportTurrets||[]){
+  if(turret.hp<=0)continue;
+  const link=artilleryConnection(turret,edges);if(!link)continue;
   sideCounts.set(link.edgeId,(sideCounts.get(link.edgeId)||0)+1);
  }
  // Reserved energy is either delivered or lost in an interrupted cable; it is

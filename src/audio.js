@@ -1,5 +1,5 @@
-import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-artillery-finish-1';
-import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-manual-qa-1-artillery-finish-1';
+import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-artillery-finish-1-support-three-1';
+import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-manual-qa-1-artillery-finish-1-support-three-1';
 import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
 import { MUSIC_TRACKS, MUSIC_POOLS, MusicRotation } from '../arcade/music-playlist.js?v=cinematic-rotation-01';
 
@@ -94,7 +94,8 @@ export class AudioEngine {
         this.init();
         if (!this.sfxLab) return Promise.resolve();
         const keys = ['ui_audio_on','starter_soft','comet_launch','comet_burst',
-            'artillery_launch','artillery_impact','mine_launch',
+            'artillery_launch','artillery_impact','support_arc','support_laser',
+            'support_drone_launch','support_drone_shot','mine_launch',
             'mine_arm','mine_burst','target_mark','dash_burst','swarm_arrival',
             'swarm_split','swarm_merge','swarm_warning'];
         const root = new URL('../audio-lab/', import.meta.url);

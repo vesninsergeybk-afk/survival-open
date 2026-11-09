@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Поворотная головка одиночного лазера">
+ <defs><linearGradient id="barrel" x2=".9" y2="1"><stop stop-color="#a8c0cb"/><stop offset=".45" stop-color="#405a6e"/><stop offset="1" stop-color="#172337"/></linearGradient><radialGradient id="core"><stop stop-color="#fff1c9"/><stop offset=".4" stop-color="#ffb16b"/><stop offset="1" stop-color="#bd633d"/></radialGradient></defs>
+ <path d="M58 59L55 8L73 8L70 59Z" fill="url(#barrel)" stroke="#b7d3df" stroke-width="2.5"/>
+ <path d="M58 8H70V17H58Z" fill="#ffe0ac" stroke="#ff9d66" stroke-width="2"/>
+ <path d="M59 29H69M57 42H71" stroke="#dcad7c" stroke-width="4"/>
+ <path d="M47 49L64 38L81 49L84 68L64 88L44 68Z" fill="#344e62" stroke="#94b4c5" stroke-width="3"/>
+ <circle cx="64" cy="64" r="18" fill="#172a3c" stroke="#afc6d0" stroke-width="3"/>
+ <circle cx="64" cy="64" r="12" fill="url(#core)"/>
+ <path d="M42 82L50 91H78L86 82" fill="none" stroke="#f9b077" stroke-width="3"/>
+</svg>

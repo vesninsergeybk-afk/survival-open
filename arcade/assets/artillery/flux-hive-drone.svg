@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Защитный дрон матки">
+ <defs><linearGradient id="m" x2="1" y2="1"><stop stop-color="#8dbfc0"/><stop offset="1" stop-color="#1c4050"/></linearGradient><radialGradient id="p"><stop stop-color="#e1fff2"/><stop offset=".5" stop-color="#69e5bc"/><stop offset="1" stop-color="#205d6d"/></radialGradient></defs>
+ <path d="M64 5L76 45L64 56L52 45Z" fill="url(#m)" stroke="#b5e5d0" stroke-width="3"/>
+ <path d="M60 44L24 37L7 67L44 82L55 69ZM68 44L104 37L121 67L84 82L73 69Z" fill="#1a4554" stroke="#8be8bf" stroke-width="4"/>
+ <path d="M29 48L14 66L41 72L50 63ZM99 48L114 66L87 72L78 63Z" fill="#55bbad"/>
+ <path d="M52 76L43 106L64 118L85 106L76 76Z" fill="url(#m)" stroke="#a4d8c4" stroke-width="3"/>
+ <path d="M53 48H75L84 67L72 88H56L44 67Z" fill="#294c5e" stroke="#a7ead0" stroke-width="3"/>
+ <circle cx="64" cy="66" r="14" fill="url(#p)" stroke="#e0fff0" stroke-width="2"/>
+ <path d="M59 92L64 106L69 92" fill="none" stroke="#ffcb82" stroke-width="4" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Неподвижное основание лазерного гнезда">
+ <defs><linearGradient id="metal" x2="1" y2="1"><stop stop-color="#83a5b8"/><stop offset=".5" stop-color="#334e64"/><stop offset="1" stop-color="#111b2d"/></linearGradient></defs>
+ <path d="M64 4L85 19L109 24L117 48L125 64L115 83L106 106L84 113L64 124L43 114L22 106L11 84L3 64L13 45L20 21L43 18Z" fill="url(#metal)" stroke="#9cbecc" stroke-width="2"/>
+ <path d="M64 15L87 29L104 37L113 64L103 92L85 101L64 113L43 101L25 92L15 64L24 36L43 29Z" fill="#182c40" stroke="#5a8398" stroke-width="3"/>
+ <path d="M19 51L36 47L39 83L21 86ZM109 51L92 47L89 83L107 86Z" fill="#445f72" stroke="#a9c9d3" stroke-width="2"/>
+ <g fill="#cc8b57"><path d="M31 27L41 31L36 42L24 38Z"/><path d="M97 27L87 31L92 42L104 38Z"/><path d="M31 101L41 97L36 86L24 90Z"/><path d="M97 101L87 97L92 86L104 90Z"/></g>
+ <circle cx="64" cy="64" r="40" fill="#172739" stroke="#638aa1" stroke-width="3"/>
+ <circle cx="64" cy="64" r="32" fill="#203a50" stroke="#8caec4" stroke-width="3"/>
+ <circle cx="64" cy="64" r="24" fill="#0c1e30" stroke="#c68a63" stroke-width="2"/>
+ <g fill="#a3c9d4"><circle cx="24" cy="64" r="3"/><circle cx="104" cy="64" r="3"/><circle cx="64" cy="112" r="3"/><circle cx="64" cy="16" r="3"/></g>
+</svg>

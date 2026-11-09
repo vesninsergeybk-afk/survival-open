@@ -1,5 +1,5 @@
 import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1';
-import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-finish-1';
+import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-finish-1-support-three-1';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';
 import {AmbientSoundClock,uiSoundPlan,worldSoundPlan,sceneSoundPlan,ambientSoundPlan} from './soundscape.js?v=foley-autofire-03';
 
@@ -15,6 +15,11 @@ const SOUND_IDS=Object.freeze({
  artilleryAcquire:'artillery_acquire',artilleryLaunch:'artillery_launch',
  artilleryImpact:'artillery_impact',artilleryHit:'artillery_hit',
  artilleryDestroyed:'artillery_destroyed',
+ supportBuild:'support_build',supportOnline:'support_online',
+ supportCharge:'support_charge',supportArc:'support_arc',supportLaser:'support_laser',
+ supportDroneLaunch:'support_drone_launch',supportDroneShot:'support_drone_shot',
+ supportDroneLost:'support_drone_lost',supportUpgrade:'support_upgrade',
+ supportHit:'support_hit',supportDestroyed:'support_destroyed',
  hit:'hit',
  explosion:'explosion_small',rocketImpact:'explosion_small',largeExplosion:'explosion_big',
  armorHit:'armor_hit',

@@ -1,5 +1,5 @@
 .build-planning[hidden],.build-ring[hidden],.build-placement[hidden],
-.artillery-mode-menu[hidden]{display:none!important}
+.artillery-mode-menu[hidden],.support-upgrade[hidden],#supportUpgradeHint[hidden]{display:none!important}
 .build-planning{position:fixed;z-index:8;inset:0;pointer-events:none;display:flex;
  align-items:center;justify-content:center;color:#e5f6ff}
 .build-ring{pointer-events:auto;width:min(500px,calc(100vw - 28px));border:1px solid #5fbcd48c;
@@ -22,6 +22,12 @@
 .build-options .build-turret-art{display:block;width:38px;height:38px;margin:-1px;
  background:url('./assets/artillery/flux-howitzer-base-v1.svg') center/contain no-repeat;
  filter:drop-shadow(0 0 4px #44cce855)}
+.build-options .build-turret-arc,.build-options .build-turret-laser,
+.build-options .build-turret-hive{display:block;width:38px;height:38px;margin:-1px;
+ background-position:center;background-size:contain;background-repeat:no-repeat}
+.build-options .build-turret-arc{background-image:url('./assets/artillery/flux-arc-node.svg')}
+.build-options .build-turret-laser{background-image:url('./assets/artillery/flux-laser-battery.svg')}
+.build-options .build-turret-hive{background-image:url('./assets/artillery/flux-drone-hive.svg')}
 .build-options strong{font-size:13px}.build-options small{font-size:11px;color:#accbd7;line-height:1.4}
 .build-cancel,.build-placement button{border:1px solid #73b8c883;background:#12354b;
  color:#cdecf5;border-radius:9px;padding:9px 14px}
@@ -42,10 +48,16 @@
  border-radius:7px;text-align:left;font-size:12px;padding:8px}
 .artillery-mode-menu button[aria-pressed="true"]{border-color:#ffce83;background:#39536b;color:#ffe6ae}
 .artillery-mode-menu button:hover{border-color:#87e3ed}
+.artillery-mode-menu .support-upgrade{border-color:#f3b269a8;background:#354d57;color:#ffe7b9;
+ margin-top:5px;font-weight:700}
+.artillery-mode-menu .support-upgrade:disabled{opacity:.5;cursor:not-allowed}
+.artillery-mode-menu #supportUpgradeHint{line-height:1.4}
 @media(pointer:coarse){.build-placement{top:max(7px,env(safe-area-inset-top));left:55%;max-width:360px}
  .build-ring{padding:12px}.build-ring h2{font-size:15px;margin-bottom:9px}
  .build-options button{min-height:76px;padding:8px}.build-options .build-glyph{font-size:22px}
  .build-options .build-turret-art{width:30px;height:30px}
+ .build-options .build-turret-arc,.build-options .build-turret-laser,
+ .build-options .build-turret-hive{width:30px;height:30px}
  .build-options strong{font-size:11px}.build-options small{font-size:10px}}
 @media(max-height:530px){.build-ring{padding:8px 12px}.build-ring h2{margin:3px 0 7px}
  .build-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Поворотная головка с двумя лазерами">
+ <defs><linearGradient id="barrel" x2=".8" y2="1"><stop stop-color="#a8c0cb"/><stop offset=".45" stop-color="#405a6e"/><stop offset="1" stop-color="#172337"/></linearGradient><radialGradient id="core"><stop stop-color="#fff1c9"/><stop offset=".4" stop-color="#ffb16b"/><stop offset="1" stop-color="#bd633d"/></radialGradient></defs>
+ <g fill="url(#barrel)" stroke="#b9d1db" stroke-width="2"><path d="M43 57L37 11L51 7L57 59Z"/><path d="M71 59L77 7L91 11L85 57Z"/></g>
+ <g fill="#ffe0ac" stroke="#ff9d66" stroke-width="2"><path d="M36 12L50 8L52 19L38 22Z"/><path d="M78 8L92 12L90 22L76 19Z"/></g>
+ <path d="M37 34L53 31M75 31L91 34M40 43L55 40M73 40L88 43" stroke="#d0a477" stroke-width="3"/>
+ <path d="M43 51L64 38L85 51L87 70L64 91L41 70Z" fill="#344e62" stroke="#a2bac7" stroke-width="3"/>
+ <circle cx="64" cy="64" r="18" fill="#172a3c" stroke="#afc6d0" stroke-width="3"/>
+ <circle cx="64" cy="64" r="12" fill="url(#core)"/>
+ <path d="M38 82L49 94H79L90 82" fill="none" stroke="#ffc387" stroke-width="3"/>
+</svg>
