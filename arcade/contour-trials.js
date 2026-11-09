@@ -58,8 +58,9 @@ export function registerContourTrials(world,oldFields,newFields,gainedArea){
   if(ledger.entries.some(e=>Math.hypot(e.x-point.x,e.y-point.y)<10))continue;
   const serial=++ledger.serial;
   const entry={id:serial,x:Math.round(point.x),y:Math.round(point.y),
-   tier:Math.min(CONTOUR_TRIALS.maxTier,ledger.completed+
-    ledger.entries.filter(e=>e.status==='pending').length+1),status:'pending'};
+   // Count every newly claimed area, including a defended core still awaiting
+   // the pilot's E. Otherwise that ready core makes the next siege tier 1 again.
+   tier:Math.min(CONTOUR_TRIALS.maxTier,serial),status:'pending'};
   ledger.entries.push(entry);created.push(entry);
  }
  return created;
