@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MOTE_SWARM,updateMoteSwarmOrders,moveMote,drawMoteSwarms} from '../mote-swarm.js';
+import {MOTE_SWARM,moteVolleyCooldown,updateMoteSwarmOrders,moveMote,drawMoteSwarms} from '../mote-swarm.js';
 import {updateEnemy} from '../ai.js';
 import {enemySalvage,enemyDataReward} from '../combat-rewards.js';
 import {rewardEyeKill} from '../field-loot.js';
@@ -181,6 +181,125 @@ test('two full packs coordinate flanks without merging or doubling hull health',
  assert.equal(new Set(game.enemies.map(e=>e.moteAllianceKey)).size,1);
  assert.ok(game.enemies.every(e=>e.hp===MOTE_SWARM.hp));
  assert.equal(new Set(game.enemies.map(e=>e.moteRoot)).size,2);
+});
+
+test('two intact ten-drone wings physically combine into one twenty-drone wing',()=>{
+ const a=drones(10,7),b=drones(10,8);
+ for(const e of a)e.x=790+e.serial*2;
+ for(const e of b){e.serial+=10;e.x=880+e.serial*2;}
+ const game=scene([...a,...b]);game.groupSerial=20;
+ game.enemyCanSee=()=>false;
+ updateMoteSwarmOrders(game);
+ assert.equal(new Set(game.enemies.map(e=>e.motePack)).size,1,
+  'the former ten-member merger ceiling must be removed');
+ assert.ok(game.enemies.every(e=>e.motePackCount===20));
+ assert.equal(new Set(game.enemies.map(e=>e.moteRoot)).size,2,
+  'physical fusion must preserve each original group for contracts and couriers');
+ assert.ok(game.enemies.every(e=>e.hp===MOTE_SWARM.hp));
+});
+
+test('three adjacent wings can grow into a thirty-member formation over successive regroupings',()=>{
+ const sets=[7,8,9].map((id,slot)=>drones(10,id).map(e=>({
+  ...e,serial:e.serial+slot*10,x:760+slot*95+e.serial,y:15
+ })));
+ const game=scene(sets.flat());game.groupSerial=30;game.enemyCanSee=()=>false;
+ updateMoteSwarmOrders(game);
+ game.time=105;updateMoteSwarmOrders(game);
+ assert.equal(new Set(game.enemies.map(e=>e.motePack)).size,1);
+ assert.ok(game.enemies.every(e=>e.motePackCount===30));
+ const xs=game.enemies.map(e=>e.moteOrder.x),ys=game.enemies.map(e=>e.moteOrder.y);
+ assert.ok(Math.max(...xs)-Math.min(...xs)<180&&Math.max(...ys)-Math.min(...ys)<180,
+  'large units require a compact lattice, not an endlessly growing three-column tail');
+});
+
+test('a twenty-drone group divides into two stable attack flanks without recursive fragmentation',()=>{
+ const a=drones(10,7),b=drones(10,8);
+ for(const e of a)e.x=785+e.serial;
+ for(const e of b){e.serial+=10;e.x=875+e.serial;}
+ const game=scene([...a,...b]);game.groupSerial=20;
+ game.enemyCanSee=()=>false;updateMoteSwarmOrders(game);
+ assert.equal(new Set(game.enemies.map(e=>e.motePack)).size,1);
+ game.enemyCanSee=()=>true;game.player.x=830;game.time=105;
+ updateMoteSwarmOrders(game);
+ assert.equal(new Set(game.enemies.map(e=>e.motePack)).size,2);
+ const sides=new Set(game.enemies.map(e=>e.moteFlank));
+ assert.deepEqual(sides,new Set([-1,1]));
+ const [left,right]=[-1,1].map(flank=>game.enemies.filter(e=>e.moteFlank===flank));
+ const axis=left[0].moteFlankAxis;
+ assert.deepEqual(axis,right[0].moteFlankAxis,'both wings need one common approach axis');
+ const lateral=members=>members.reduce((n,e)=>n+
+  (-axis.y*e.moteOrder.x+axis.x*e.moteOrder.y),0)/members.length;
+ assert.ok(Math.abs(lateral(left)-lateral(right))>150,
+  'opposite attack flanks must actually diverge on a shared lateral axis');
+ for(const e of game.enemies)e.x+=e.moteFlank*300;
+ game.time=114;updateMoteSwarmOrders(game);
+ assert.equal(new Set(game.enemies.map(e=>e.motePack)).size,2,
+  'existing attack wings must not divide into ever smaller groups every cooldown');
+});
+
+test('a combined wing disperses against observed missiles without learning a hidden player position',()=>{
+ const a=drones(10,7),b=drones(10,8);
+ for(const e of a)e.x=775+e.serial;
+ for(const e of b){e.serial+=10;e.x=875+e.serial;}
+ const game=scene([...a,...b]);game.groupSerial=20;
+ game.enemyCanSee=()=>false;updateMoteSwarmOrders(game);
+ game.missiles=[a[0],b[0]].map(e=>({target:e,x:e.x+12,y:e.y,life:2}));
+ game.player.x=9000;game.time=105;updateMoteSwarmOrders(game);
+ assert.equal(new Set(game.enemies.map(e=>e.motePack)).size,2);
+ assert.ok(game.enemies.every(e=>e.moteStatus==='evade'));
+ assert.ok(game.enemies.every(e=>e.moteOrder.x<2000),
+  'a defensive split may react to observed missiles but cannot use the unseen pilot position');
+});
+
+test('combined fire remains bounded but no longer weakens simply because wings merged',()=>{
+ assert.ok(moteVolleyCooldown(10)>moteVolleyCooldown(20));
+ assert.ok(moteVolleyCooldown(20)>moteVolleyCooldown(40));
+ assert.ok(moteVolleyCooldown(40)>=MOTE_SWARM.globalVolley,
+  'the whole formation still respects the shared bullet budget');
+});
+
+test('a forty-drone wing stays compact without duplicating ships or allowing forty simultaneous rams',()=>{
+ const sets=[7,8,9,10].map((id,slot)=>drones(10,id).map(e=>({
+  ...e,serial:e.serial+slot*10,x:700+slot*65+e.serial,y:15
+ })));
+ const game=scene(sets.flat());game.groupSerial=30;game.enemyCanSee=()=>false;
+ for(const time of [100,105,110]){game.time=time;updateMoteSwarmOrders(game);}
+ assert.equal(new Set(game.enemies.map(e=>e.motePack)).size,1);
+ assert.ok(game.enemies.every(e=>e.motePackCount===40));
+ assert.equal(game.enemies.length,40);
+ assert.equal(new Set(game.enemies.map(e=>e.moteRoot)).size,4);
+ const state=game._moteSquadStates.values().next().value;
+ state.rushUntil=113;game.time=111;updateMoteSwarmOrders(game);
+ assert.equal(game.enemies.filter(e=>e.moteBoosting).length,5,
+  'even a mega-formation must not trigger forty simultaneous contact explosions');
+});
+
+test('merging preserves the newest genuine sighting and the more restrictive weapon cooldown',()=>{
+ const a=drones(10,7),b=drones(10,8);
+ for(const e of a){e.x+=500;e.moteReformUntil=0;}
+ for(const e of b){e.x+=530;e.moteReformUntil=0;}
+ const game=scene([...a,...b]);game.groupSerial=20;game.enemyCanSee=()=>false;
+ game._moteSquadStates=new Map([
+  [7,{lastKnown:{x:400,y:1,at:90},nextShotAt:108,nextRushAt:109}],
+  [8,{lastKnown:{x:475,y:2,at:94},nextShotAt:112,nextRushAt:114}]
+ ]);
+ updateMoteSwarmOrders(game);
+ assert.equal(game._moteSquadStates.size,1);
+ const state=game._moteSquadStates.values().next().value;
+ assert.equal(state.lastKnown.x,475);
+ assert.equal(state.nextShotAt,112);
+ assert.equal(state.nextRushAt,114);
+ assert.ok(game.enemies.every(e=>e.moteOrder.x<1200),
+  'regrouping cannot magically acquire the pilot location behind cover');
+});
+
+test('two freshly hit micro-drones can trigger evasive division without visible missiles',()=>{
+ const group=drones(12),game=scene(group);
+ game.enemyCanSee=()=>false;game.player.x=4500;
+ group[0].hit=.3;group[3].hit=.28;
+ updateMoteSwarmOrders(game);
+ assert.equal(new Set(group.map(e=>e.motePack)).size,2);
+ assert.ok(group.every(e=>e.moteStatus==='evade'));
 });
 
 test('swarms track last seen positions, not live player coordinates behind cover',()=>{
