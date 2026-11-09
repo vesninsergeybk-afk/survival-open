@@ -3,11 +3,25 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,validControls,readControls,
  changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from '../control-layout.js';
-import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from '../manual-weapon-controls.js';
+import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction,turretMenuGesture} from '../manual-weapon-controls.js';
 import {planHowitzer} from '../ship-weapons.js';
 import {game} from './weapons-scene.mjs';
 import {precisionRailUnlocked} from '../station-progression.js';
 import {mapKeysLabel,mapCloseKeysLabel} from '../map-panel.js';
+
+test('a quick RMB tap opens the turret menu, while an aimed hold or drag stays a weapon shot',()=>{
+ assert.equal(turretMenuGesture(80,1),true);
+ assert.equal(turretMenuGesture(350,14),true);
+ assert.equal(turretMenuGesture(351,0),false);
+ assert.equal(turretMenuGesture(900,0),false);
+ assert.equal(turretMenuGesture(110,18),false);
+ assert.equal(turretMenuGesture(NaN,0),false);
+ const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
+ assert.match(source,/turretTap=turret&&e\.button===2&&turretMenuGesture/);
+ assert.match(source,/if\(turretTap\)\{this\.artilleryModeMenu\(true,turret,e\);return;\}/);
+ assert.match(source,/!ready\.ok&&\!\(tower&&e\.button===2\)/,
+  'a turret must remain clickable even while the selected weapon is reloading');
+});
 
 test('new bindings are complete, one-action-per-key and survive storage',()=>{
  assert.equal(validControls(DEFAULT_CONTROLS),true);
