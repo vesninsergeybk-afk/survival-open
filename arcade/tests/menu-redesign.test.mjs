@@ -96,7 +96,7 @@ test('unfinished hangar changes are shown on every station tab and never describ
  session.draft.slots[0]=null;
  for(const tab of ['summary','operations','hangar','development','network']){
   const html=renderBasePanel(base,{...stationState,baseTab:tab,loadout:current,hangarSession:session});
-  assert.match(html,/В ангаре есть неприменённая сборка/,tab);
+  assert.match(html,/В «Оснащении» есть неприменённая сборка/,tab);
   assert.match(html,/В полёт · сборка не применена/,tab);
  }
  const draft=renderShipHangar({...stationState,loadout:current,hangarSession:session},session);
