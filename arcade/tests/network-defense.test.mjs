@@ -416,9 +416,9 @@ test('map and station terminal show actual protection, without adding a menu',()
 test('flight readout stays beside the protection ring, clear of the top mission bar',()=>{
  const {home,player}=scene();
  const text=[],backdrops=[];
- const c={save(){},restore(){},setLineDash(){},beginPath(){},arc(){},stroke(){},
+ const c={tx:0,ty:0,save(){},restore(){},translate(x,y){this.tx=x;this.ty=y;},scale(){},setLineDash(){},beginPath(){},arc(){},stroke(){},
   fillRect(...values){backdrops.push(values);},strokeRect(){},
-  fillText(label,x,y){text.push({label,x,y});}};
+  fillText(label,x,y){text.push({label,x:x+this.tx,y:y+this.ty});}};
  drawStationDefense(c,home,false,100,player);
  const pvo=text.find(t=>t.label==='ПВО 1/1');
  assert.ok(pvo&&pvo.x>home.x+STATION_DEFENSE.soloRadius*.6);
@@ -433,7 +433,7 @@ test('in-flight readout tells the player recharge time and missing stasis target
  const state=ensureStationDefense(home,true,100);
  state.charges=0;state.rechargeAt=108;state.stasisAt=90;
  const labels=[];
- const c={save(){},restore(){},setLineDash(){},beginPath(){},arc(){},stroke(){},
+ const c={save(){},restore(){},translate(){},scale(){},setLineDash(){},beginPath(){},arc(){},stroke(){},
   fillRect(){},strokeRect(){},fillText(value){labels.push(value);}};
  drawStationDefense(c,home,true,100,player,false,[enemy(home.x+50,home.y)]);
  assert.ok(labels.includes('ЗАРЯД ЧЕРЕЗ 8 С'));

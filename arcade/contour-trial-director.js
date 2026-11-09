@@ -30,7 +30,7 @@ function spawnTrialWave(game,event){
  delete event.blockedSince;
  event.waitingForSpace=false;
  event.waveIndex++;
- const cam=game.spawnCamera?.()||game.camera(),random=trialRandom(event.plan.tier,event.entry.id,event.waveIndex+1);
+ const cam=game.spawnEntryCamera?.()||game.spawnCamera?.()||game.camera(),random=trialRandom(event.plan.tier,event.entry.id,event.waveIndex+1);
  const roster=Object.entries(wave).flatMap(([type,count])=>Array(count).fill(type));
  // A fixed seed keeps a retried defence honest and gives each triangle a
  // different mix of flanking groups. Six ships coordinate as one IRIS wing.
@@ -244,7 +244,7 @@ export function updateContourTrials(game,dt){
    const original=event.waveTemplates?.get(serial);
    if(!original)continue;
    if(game.enemies.length>=RULES.maxEnemies)continue;
-   const cam=game.spawnCamera?.()||game.camera(),side=(serial+event.entry.id)%4;
+   const cam=game.spawnEntryCamera?.()||game.spawnCamera?.()||game.camera(),side=(serial+event.entry.id)%4;
    const pos=spawnOutside(cam,side,.2+((serial*7)%11)/18,125);
    game.enemies.push({...original,...pos,vx:0,vy:0,hp:original.maxHp,
     think:.15,fire:.65,state:'hunt',entryPortalPending:false});

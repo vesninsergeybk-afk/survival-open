@@ -6,7 +6,7 @@ import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from '
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-zoomread-2';
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1';
 import {focusContourRegion} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expedition-1';
@@ -31,7 +31,7 @@ import {drawEvolutionEnvironment,drawParasiteCore,drawEvolutionEnemy,
 import {RULES, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, burstStats} from './balance.js?v=xp-feedback-pass1-1';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1-supply-stronghold-1-flux-reserve-1-flux-offense-1-territory-war-1';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
- synchronizeStationDefenses} from './network-defense.js?v=network-defense-4';
+ synchronizeStationDefenses} from './network-defense.js?v=network-defense-4-zoomread-2';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1';
@@ -43,7 +43,7 @@ import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30';
-import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1';
+import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
@@ -65,7 +65,7 @@ import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,cr
  advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1-mission-choices-1';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1-mission-choices-1-control-audit-1-enemy-growth-1-flux-build-1-triangle-defense-1-flight-zoom-audit-1';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
-import {clampCameraZoom,flightCamera,flightZoomKey,stepCameraZoom,wheelCameraZoom,pointerInFlightWorld} from './camera-zoom.js?v=flight-zoom-1';
+import {clampCameraZoom,flightCamera,flightZoomKey,stepCameraZoom,wheelCameraZoom,pointerInFlightWorld,manualWheelDirection,worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue,relayWavePlan,
  relayAttacker,relayPrepInteraction,relayIncomingTargets} from './relay-defense.js?v=station-operations-2-ops-audit-2-mission-choices-1';
@@ -102,7 +102,7 @@ import {FLUX_ARTILLERY,EDGE_SLOT_UPGRADES,ARTILLERY_UPGRADES,edgeTurretLimit,edg
  advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=flux-artillery-anim-2-artillery-finish-1-support-three-1-triangle-defense-1-growth-3';
 import {SUPPORT_TYPES,supportConfig,supportOffer,deploySupport,supportAt,
  setSupportMode,supportUpgradeOffer,upgradeSupport,
- advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=flux-supports-3-wreck-falloff-1-growth-1';
+ advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=flux-supports-3-wreck-falloff-1-growth-1-zoomread-2';
 import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,
  buyTurretBranch,artilleryBarrels,hiveLimit} from './turret-growth.js';
 import {launchFluxSortie,advanceFluxSortie,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
@@ -113,7 +113,7 @@ import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-
 import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1-auto-1-contour-trials-1-counterattack-1-first-loops-1-flux-build-1';
 import {syncContourDynamics,resumeContourTransition} from './contour-dynamics.js?v=contour-dynamics-3-auto-1';
 import {registerContourTrials,productiveContourFields,pendingContourTrials,readyContourTrials,unresolvedContourTrials,CONTOUR_TRIALS} from './contour-trials.js?v=swarm-siege-1';
-import {updateContourTrials,activateContourVortex} from './contour-trial-director.js?v=swarm-siege-rewards-1';
+import {updateContourTrials,activateContourVortex} from './contour-trial-director.js?v=swarm-siege-rewards-1-zoomread-2';
 import {drawContourTrialHUD} from './contour-trial-vfx.js?v=swarm-siege-1';
 import {drawBranchedInteraction} from './interaction-arcs.js?v=triangle-defense-1';
 import {updateRamSquads,drawRamSquads} from './ram-squads.js?v=triangle-defense-1';
@@ -241,6 +241,8 @@ export class ArcadeGame {
   this.lastIonAudioCycle=-1;
   this.shotGrid=new SpatialGrid(95);
   this.rockGrid=new SpatialGrid(140);
+  // Includes smaller asteroids omitted from projectile-collision rockGrid.
+  this.avoidanceRockGrid=new SpatialGrid(200);
   this.player={x:0,y:0,vx:0,vy:0,r:19,hp:110,maxHp:110,shield:0,
     xp:0,level:1,points:0,xpCurveVersion:XP_CURVE_VERSION,firstRichRockStudied:false,
     strategicXp:createStrategicExperience(),
@@ -356,6 +358,9 @@ export class ArcadeGame {
  // Spawn lanes and screen-wide weapons retain their original world radius.
  spawnCamera(){return this.vw>0&&this.vh>0?
   flightCamera(this.player,this.vw,this.vh):this.camera();}
+ // Enemies enter outside the widest visible view. Keep the original physical
+ // spawn lane when the pilot zooms in; hacks still use spawnCamera().
+ spawnEntryCamera(){return this.cameraZoom<1?this.camera():this.spawnCamera();}
  setCameraZoom(next){
   const zoom=clampCameraZoom(next);
   if(Math.abs(zoom-this.cameraZoom)<.0001)return false;
@@ -1049,6 +1054,13 @@ export class ArcadeGame {
   });
   $('audioBtn').onclick=()=>this.toggleAudio();
   const quickAudio=$('quickAudio');if(quickAudio)quickAudio.onclick=()=>this.toggleAudio();
+  const touchZoom=direction=>{
+   if(this.dead||this.paused||!this.overlay.hidden)return;
+   this.setCameraZoom(stepCameraZoom(this.cameraZoom,direction));
+  };
+  const zoomOut=$('zoomOutButton'),zoomIn=$('zoomInButton');
+  if(zoomOut)zoomOut.onclick=()=>touchZoom(-1);
+  if(zoomIn)zoomIn.onclick=()=>touchZoom(1);
   const credits = $('creditsDialog'), creditsButton = $('audioCredits');
   if (credits && creditsButton) {
    creditsButton.addEventListener('click', () => {
@@ -1235,7 +1247,9 @@ export class ArcadeGame {
    if(this.mouseAim||!this.manualWeaponsHere().length)return;
    // Without multiple manual mounts the wheel remains free for the page.
    if(this.manualWeaponsHere().length<2)return;
-   e.preventDefault();this.switchManualWeapon(e.deltaY>0?1:-1);
+   const direction=manualWheelDirection(e.deltaY);
+   if(!direction)return;
+   e.preventDefault();this.switchManualWeapon(direction);
   },{passive:false});
   const cancelAim=()=>{cancelLongPress();aimStart=null;this.mouseAim=null;};
   this.canvas?.addEventListener('pointercancel',cancelAim);
@@ -3086,8 +3100,8 @@ export class ArcadeGame {
   const visible=this.camera();
   this.nearRocks=this.world.nearbyRocks(this.player.x,this.player.y,Math.max(visible.w,visible.h)*.85+450);
   this.localStations=this.world.nearbyStations(this.player.x,this.player.y,1000,false);
-  this.grid?.clear();this.shotGrid?.clear();this.rockGrid?.clear();
-  for(const rock of this.nearRocks)if(rock.alive)this.rockGrid?.insert(rock);
+  this.grid?.clear();this.shotGrid?.clear();this.rockGrid?.clear();this.avoidanceRockGrid?.clear();
+  for(const rock of this.nearRocks)if(rock.alive){this.rockGrid?.insert(rock);this.avoidanceRockGrid?.insert(rock);}
   this.pendingCheckpoint=null;this.syncShipLoadout();this.hangarSession.begin(this.shipLoadout);
   this.baseTab='summary';this.overlay.dataset.mode='base';this.overlay.hidden=false;
   this.stationExitArmed=true;
@@ -3288,8 +3302,11 @@ export class ArcadeGame {
   c.setLineDash([7,6]);c.beginPath();c.arc(t.x,t.y,r,0,TAU);c.stroke();
   c.setLineDash([]);c.fillStyle='#c9f6f6';c.font='bold 12px system-ui';
   c.textAlign='center';
-  if(!(focus.kind==='mine'&&this.mining.active))
-   c.fillText(focus.label+(this.isTouchLayout?'':' · '+this.controlLabel('interact')),t.x,t.y-r-13);
+  if(!(focus.kind==='mine'&&this.mining.active)){
+   c.save();c.translate(t.x,t.y-r);c.scale(worldTextScale(this.cameraZoom),worldTextScale(this.cameraZoom));
+   c.fillText(focus.label+(this.isTouchLayout?'':' · '+this.controlLabel('interact')),0,-13);
+   c.restore();
+  }
   c.restore();
  }
  drawOpeningBeacon(c,cam){
@@ -3307,11 +3324,13 @@ export class ArcadeGame {
   c.strokeStyle='#ffda92';c.lineWidth=4;
   c.beginPath();c.arc(0,0,53,-Math.PI/2,
    -Math.PI/2+TAU*(arc.repair/OPENING_ARC.repairSeconds));c.stroke();
+  c.save();c.scale(worldTextScale(this.cameraZoom),worldTextScale(this.cameraZoom));
   c.textAlign='center';c.font='bold 12px system-ui';c.fillStyle='#fff1d0';
   c.fillText('АВАРИЙНАЯ КАПСУЛА',0,-66);
   c.font='11px system-ui';
   c.fillText(Math.round(arc.repair/OPENING_ARC.repairSeconds*100)+'% · '+
    (this.isTouchLayout?'ДЕРЖИТЕ «ДЕЙСТВИЕ»':'УДЕРЖИВАЙТЕ '+this.controlLabel('interact')),0,-51,220);
+  c.restore();
   c.restore();
   if(this.openingRepairing){
    c.save();c.strokeStyle='#83fbe4';c.lineWidth=3;
@@ -4277,7 +4296,7 @@ export class ArcadeGame {
     vy+=(y-ION_FIELD.y)/d*(reach-d);
    }
   }
-  for(const rock of this.nearRocks||[]){
+  for(const rock of this.avoidanceRockGrid?.query(x,y,100)??this.nearRocks??[]){
    if(!rock.alive)continue;
    const dx=x-rock.x,dy=y-rock.y;
    if(Math.abs(dx)>100||Math.abs(dy)>100)continue;
@@ -4355,7 +4374,7 @@ export class ArcadeGame {
     Math.random(),noiseSignal?'':this.lastEncounter);
   if(!plan.members.length)return 0;
   if(!noiseSignal)this.lastEncounter=plan.pattern;
-  const group=++this.groupSerial,cam=this.spawnCamera(),created=[];
+  const group=++this.groupSerial,cam=this.spawnEntryCamera(),created=[];
   const intelSource=noiseSignal;
   const strongholdTier=Math.max(1,Math.min(5,director.strongholdTier||1));
   const industrialTech=Math.max(0,Math.min(3,director.industrialTech||0));
@@ -4694,8 +4713,10 @@ export class ArcadeGame {
     this.worldQueryX=p.x;this.worldQueryY=p.y;this.worldQueryClock=.18;
   }
   this.rockGrid.clear();
+  this.avoidanceRockGrid?.clear();
   for(const rock of this.nearRocks){
    updateRockMotion(rock,dt);
+   if(rock.alive)this.avoidanceRockGrid?.insert(rock);
    if(rock.alive&&rock.r>=34)this.rockGrid.insert(rock);
   }
   for(const wreck of this.fieldEvolution?.wrecks||[])if(wreck.alive)this.rockGrid.insert(wreck);
@@ -5336,6 +5357,7 @@ export class ArcadeGame {
   if(active){
    c.strokeStyle='#f3c5ff';c.lineWidth=2;c.beginPath();
    c.arc(0,0,29,-Math.PI/2,-Math.PI/2+TAU*op.hp/op.maxHp);c.stroke();
+   c.save();c.scale(worldTextScale(this.cameraZoom),worldTextScale(this.cameraZoom));
    c.font='bold 11px system-ui';c.textAlign='center';
    c.fillStyle='#f8d7ff';c.fillText('ГЛУШИТЕЛЬ',0,-68);
    const distanceToJammer=dist(this.player,op);
@@ -5357,9 +5379,12 @@ export class ArcadeGame {
    const attackDistanceOk=distanceToJammer<=automaticRange(this);
    c.fillText(Math.ceil(op.hp/op.maxHp*100)+'% · '+
     (attackDistanceOk?'В ДАЛЬНОСТИ АВТООРУДИЙ':'СБЛИЗЬТЕСЬ ДЛЯ АТАКИ'),0,-54);
+   c.restore();
   }else{
+   c.save();c.scale(worldTextScale(this.cameraZoom),worldTextScale(this.cameraZoom));
    c.fillStyle='#9adac8';c.font='bold 10px system-ui';c.textAlign='center';
    c.fillText(returning?'ПЕРЕДАТЧИК ОТКЛЮЧЁН':'СИГНАЛ ВОССТАНОВЛЕН',0,-57);
+   c.restore();
   }
   c.restore();
  }
@@ -5385,10 +5410,12 @@ export class ArcadeGame {
   paintMissionImpact(this,c,'repair',0,0,op.repairMilestoneAt,94,.63);
   c.lineWidth=4;c.strokeStyle='#67e7dc';
   c.beginPath();c.arc(0,0,43,-Math.PI/2,-Math.PI/2+TAU*op.repair/100);c.stroke();
+  c.save();c.scale(worldTextScale(this.cameraZoom),worldTextScale(this.cameraZoom));
   c.textAlign='center';c.font='bold 12px system-ui';c.fillStyle='#dbfbff';
   c.fillText('АВАРИЙНЫЙ ЗОНД',0,-69);
   c.font='11px system-ui';c.fillStyle='#9fe7e7';
   c.fillText('РЕМОНТ '+Math.round(op.repair)+'% · КОРПУС '+Math.ceil((op.hp??PROBE_OPERATION.maxHp)/PROBE_OPERATION.maxHp*100)+'%',0,-52);
+  c.restore();
   c.restore();
   if(this.probeRepairing){
    c.save();c.strokeStyle='#81f7e0a9';c.lineWidth=4;c.setLineDash([11,7]);
@@ -5403,8 +5430,9 @@ export class ArcadeGame {
   if(!scout||outsideCamera(scout.x,scout.y,cam,70))return;
   c.save();c.strokeStyle='#ffc273';c.fillStyle='#ffe1a4';c.lineWidth=2;
   c.beginPath();c.arc(scout.x,scout.y,27,0,TAU);c.stroke();
+  c.translate(scout.x,scout.y);c.scale(worldTextScale(this.cameraZoom),worldTextScale(this.cameraZoom));
   c.font='bold 11px system-ui';c.textAlign='center';
-  c.fillText('РАЗВЕДЧИК · '+Math.max(0,op.radioAt-this.time).toFixed(1)+' С',scout.x,scout.y-37,150);
+  c.fillText('РАЗВЕДЧИК · '+Math.max(0,op.radioAt-this.time).toFixed(1)+' С',0,-37,150);
   c.restore();
  }
  drawBase(b,readyBaseId=null){
@@ -5427,10 +5455,12 @@ export class ArcadeGame {
   c.beginPath();c.arc(0,0,122+wave*6,0,TAU);c.stroke();
   c.lineWidth=1.4;c.strokeStyle='rgba(255,230,154,.52)';
   c.beginPath();c.arc(0,0,136+wave*4,0,TAU);c.stroke();
+  c.save();c.scale(worldTextScale(this.cameraZoom),worldTextScale(this.cameraZoom));
   c.fillStyle='#ffe09c';c.textAlign='center';c.font='bold 13px system-ui';
   c.fillText('!',0,-145,30);
   c.font='bold 10px system-ui';
   c.fillText('НАГРАДА ГОТОВА',0,-161,160);
+  c.restore();
   c.restore();
  }
  render(){
@@ -5539,7 +5569,7 @@ export class ArcadeGame {
     this.drawBase(b,returnBase?.id);
     if(b.active&&!b.enemy)
      drawStationDefense(c,b,defenseLinked(b,{count:this.cachedNetworkLinked.size,
-      linked:this.cachedNetworkLinked}),this.time,p,this.visuals.reducedMotion,this.enemies);
+      linked:this.cachedNetworkLinked}),this.time,p,this.visuals.reducedMotion,this.enemies,this.cameraZoom);
    }
   }
   this.drawInteractionFocus(c,cam);
@@ -5598,7 +5628,8 @@ export class ArcadeGame {
    c.save();c.strokeStyle='#b7f9e0';c.lineWidth=1.8;
    c.setLineDash([7,5]);c.beginPath();
    c.arc(chosenTarget.x,chosenTarget.y,radius,0,TAU);c.stroke();
-   c.setLineDash([]);c.textAlign='center';c.font='bold 10px system-ui';
+   c.setLineDash([]);c.textAlign='center';
+   c.font='bold '+worldLabelSize(10,this.cameraZoom)+'px system-ui';
    const parasiteAction=this.skillRanks.parasite&&this.skillRanks[parasiteTargetMode(this)]?
     ' · '+(this.fieldEvolution.charge>0?(parasiteTargetMode(this)==='capture'?'ЗАХВАТ':'РАЗВЕДКА'):'НЕТ ЯДРА'):'';
    c.fillStyle='#c9fff1';c.fillText('ПРИОРИТЕТ'+parasiteAction+' · '+Math.max(0,Math.ceil(this.designatedTarget.expiresAt-this.time))+' С',
@@ -5626,7 +5657,8 @@ export class ArcadeGame {
       this.openingArc.commanderSerial===e.serial){
     c.save();c.strokeStyle='#ffd08f';c.lineWidth=3;
     c.setLineDash([9,5]);c.beginPath();c.arc(e.x,e.y,e.r+19,0,TAU);c.stroke();
-    c.setLineDash([]);c.fillStyle='#ffe2a9';c.font='bold 11px system-ui';
+    c.setLineDash([]);c.fillStyle='#ffe2a9';
+    c.font='bold '+worldLabelSize(11,this.cameraZoom)+'px system-ui';
     c.textAlign='center';c.fillText('НАВОДЧИК',e.x,e.y-e.r-34);c.restore();
    }
    const spriteKey=e.type;
@@ -5641,15 +5673,17 @@ export class ArcadeGame {
     const specialist=e.stormAdapted?'ЭНЕРГО':e.type==='healer'?'РЕМОНТ':'ОХРАНА';
     c.save();c.strokeStyle=e.frontierRole==='azure'?'#8de4ff':'#94e8b7';
     c.lineWidth=2;c.setLineDash([5,4]);c.beginPath();c.arc(e.x,e.y,e.r+12,0,TAU);c.stroke();
-    c.setLineDash([]);c.font='bold 10px system-ui';c.fillStyle=c.strokeStyle;c.textAlign='center';
+    c.setLineDash([]);c.font='bold '+worldLabelSize(10,this.cameraZoom)+'px system-ui';
+    c.fillStyle=c.strokeStyle;c.textAlign='center';
     c.fillText(specialist,e.x,e.y-e.r-21);c.restore();
    }
    if(this.time<(e.stasisUntil||0)){
     c.save();c.strokeStyle='#d5a6ff';c.lineWidth=2.5;
     c.beginPath();c.arc(e.x,e.y,e.r+10,0,TAU);c.stroke();
     if(this.time<(e.stasisLabelUntil||0)){
-     c.fillStyle='#f4d8ff';c.textAlign='center';c.font='bold 10px system-ui';
-     c.fillText('СТАЗИС',e.x,e.y-e.r-16,90);
+     c.fillStyle='#f4d8ff';c.textAlign='center';
+     c.font='bold '+worldLabelSize(10,this.cameraZoom)+'px system-ui';
+     c.fillText('СТАЗИС',e.x,e.y-e.r-16,90*worldTextScale(this.cameraZoom));
     }
     c.restore();
    }
@@ -5658,8 +5692,9 @@ export class ArcadeGame {
     c.save();c.strokeStyle=distracted?'#ffd38c':'#8fe5f8';c.lineWidth=1.8;
     c.globalAlpha=.75;c.beginPath();c.arc(e.x,e.y,e.r+7,0,TAU);c.stroke();
     if(distracted){
-     c.fillStyle='#ffd38c';c.textAlign='center';c.font='bold 9px system-ui';
-     c.fillText('ЛОЖНЫЙ СИГНАЛ',e.x,e.y-e.r-17,100);
+     c.fillStyle='#ffd38c';c.textAlign='center';
+     c.font='bold '+worldLabelSize(9,this.cameraZoom)+'px system-ui';
+     c.fillText('ЛОЖНЫЙ СИГНАЛ',e.x,e.y-e.r-17,100*worldTextScale(this.cameraZoom));
     }
     c.restore();
    }
@@ -5676,6 +5711,7 @@ export class ArcadeGame {
      const tint=engaged?'#ff7474':leaving?'#8ed8ea':'#ffd08a';
      const glyph=engaged?'!':leaving?'↗':'?';
      c.save();c.translate(e.x,e.y-e.r-26);
+     c.scale(worldTextScale(this.cameraZoom),worldTextScale(this.cameraZoom));
      c.fillStyle='rgba(7,15,30,.89)';c.strokeStyle=tint;c.lineWidth=1.6;
      c.beginPath();c.arc(0,0,9.5,0,TAU);c.fill();c.stroke();
      c.fillStyle=tint;c.textAlign='center';c.textBaseline='middle';
@@ -5685,7 +5721,7 @@ export class ArcadeGame {
    if(e.encounterLabel&&!e.converted){
     if(e.encounterLabelStart===undefined)e.encounterLabelStart=this.time;
     if(this.time-e.encounterLabelStart<2.3){
-     c.save();c.textAlign='center';c.font='bold 11px system-ui';
+     c.save();c.textAlign='center';c.font='bold '+worldLabelSize(11,this.cameraZoom)+'px system-ui';
      c.shadowColor='#170d22';c.shadowBlur=5;c.fillStyle='#ffd4aa';
      c.fillText(e.encounterLabel,e.x,e.y-e.r-28);c.restore();
     }
@@ -5705,7 +5741,8 @@ export class ArcadeGame {
    this.heritage.vfx.renderSurfaceLight(c,a.x,a.y,a.r);
    drawHullDamage(c,a,this.time,this.fps,this.visuals.reducedMotion);
    if(a.messageUntil>this.time){
-    c.font='11px system-ui';c.textAlign='center';c.fillStyle='#9af8ff';
+    c.font=worldLabelSize(11,this.cameraZoom)+'px system-ui';
+    c.textAlign='center';c.fillStyle='#9af8ff';
     c.fillText(a.message,a.x,a.y-a.r-19);
    }
   }
@@ -5715,7 +5752,8 @@ export class ArcadeGame {
     this.visuals.drawAlly(c,craft,this.time,this.images.allybomber);
     this.heritage.vfx.renderSurfaceLight(c,craft.x,craft.y,craft.r);
     drawHullDamage(c,craft,this.time,this.fps,this.visuals.reducedMotion);
-    c.save();c.fillStyle='#ffe1a4';c.textAlign='center';c.font='bold 10px system-ui';
+    c.save();c.fillStyle='#ffe1a4';c.textAlign='center';
+    c.font='bold '+worldLabelSize(10,this.cameraZoom)+'px system-ui';
     c.fillText('АВИАГРУППА',craft.x,craft.y-34);c.restore();
    }
   }

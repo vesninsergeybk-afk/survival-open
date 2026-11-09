@@ -17,12 +17,13 @@ import {drawRepairDock} from './repair-dock-art.js?v=dock-identity-1';
 import {hash,RULES} from './balance.js';
 import {stripCapitalMatte,CAPITAL_PAINTINGS} from './capital-art.js?v=arcade-capital-mask-56';
 import {drawCapitalDamage} from './capital-hit-wear.js?v=arcade-capital-hit-63';
+import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 
 const TAU=Math.PI*2;
 // Canvas is zoomed in world coordinates. Keep readable station names at their
 // normal on-screen size when zooming out; never magnify their geometry or range.
 export const worldLabelSize=(size,zoom=1)=>
- size/Math.min(1,Math.max(.55,Number.isFinite(zoom)?zoom:1));
+ size*worldTextScale(zoom);
 const HULLS=Object.freeze({
  dock:[[-34,-68],[33,-68],[70,-34],[70,31],[34,69],[-34,69],[-70,31],[-70,-34]],
  arsenal:[[-35,-75],[0,-83],[35,-75],[77,-41],[58,0],[77,41],[35,75],[0,83],[-35,75],[-77,41],[-58,0],[-77,-41]],

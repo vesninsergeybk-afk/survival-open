@@ -62,6 +62,8 @@
 .pilot-ship-link{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:#b4c3ca;padding:14px 0;border-top:1px solid #5e788545;margin-top:14px}
 #quickMenu{position:fixed;top:77px;right:13px;display:flex;gap:6px;z-index:6}
 #quickMenu button{min-height:36px;padding:7px 12px;color:#d7e3e4;background:#0b1a25e8;border:1px solid #76989d88;border-radius:5px;font:600 12px system-ui;cursor:pointer}
+#quickMenu #zoomOutButton,#quickMenu #zoomInButton{display:none}
+@media(pointer:coarse){#quickMenu #zoomOutButton,#quickMenu #zoomInButton{display:inline-flex;align-items:center;justify-content:center;min-width:40px;padding:6px 10px;font-size:20px;touch-action:manipulation}}
 #zoomStatus:not([hidden]){display:flex;align-items:center;padding:5px 10px;border:1px solid #6ed2de7c;
  border-radius:5px;background:#071f31e6;color:#a6f2e9;font:600 11px system-ui;
  font-variant-numeric:tabular-nums;pointer-events:none}
