@@ -48,7 +48,7 @@ test('long-range sensing respects real rock occlusion and does not weaken HP',()
  rock.alive=false;
  assert.equal(irisCanSense(e,s.game,p),true);
  assert.equal(irisCanSense(e,s.game,p,290),false);
- assert.equal(ENEMY_TYPES.scout.hp,28);
+ assert.equal(ENEMY_TYPES.scout.hp,38);
 });
 
 test('after a real hit one drone breaks contact, its partner attacks; no new HP or hit immunity',()=>{

@@ -23,10 +23,10 @@ test('one mined ordinary rock can trigger visible escalating patrol pressure',()
   'the first geology rank can avoid a patrol when breaking one ordinary rock');
  const first=noisePatrolDirector({cap:4,groupSize:2,types:['scout']},2);
  assert.equal(first.groupSize,NOISE_ESCALATION.initialWing);
- assert.equal(first.cap,6);
+ assert.equal(first.cap,9);
  const next=noisePatrolDirector({cap:6,groupSize:2,types:['scout']},4,true);
- assert.equal(next.groupSize,7);
- assert.equal(next.cap,11);
+ assert.equal(next.groupSize,11);
+ assert.equal(next.cap,15);
 });
 
 test('early extraction report survives natural decay until the first patrol may launch',()=>{
@@ -60,7 +60,7 @@ test('scout must spot player and physically escape before another wing arrives',
  game.time+=NOISE_ESCALATION.reinforcementDelay+.1;
  updateNoiseEscalation(game);
  assert.equal(game.noiseEscalation,null);
- assert.equal(game.lastCall.director.groupSize,7);
+ assert.equal(game.lastCall.director.groupSize,11);
  assert.deepEqual(game.lastCall.source,{x:30,y:40},'reinforcements know only the reported sighting');
  assert.ok(messages.some(s=>s.includes('ПОДКРЕПЛЕНИЕ')));
 });
@@ -103,17 +103,20 @@ test('contour fleet heads to a fixed core until it actually spots the pilot',()=
  'the objective must not persist after its siege has ended');
 });
 
-test('core formation shoves nearby ore without destroying or moving it out of its cell',()=>{
+test('core formation physically clears nearby ore without destroying it',()=>{
  const g=fixture();
  const rock={x:22,y:15,r:30,originX:22,originY:15,hp:40,maxHp:40,
   alive:true,vx:0,vy:0,spinVelocity:0};
  g.world={nearbyRocks:()=>[rock]};
  g.clearContourCoreRocks({x:0,y:0});
- assert.ok(rock.vx>0&&rock.vy>0);
+ assert.ok(rock.coreRepulsion,'a visible outward motion is scheduled');
  for(let i=0;i<90;i++)updateRockMotion(rock,1/60);
  assert.equal(rock.alive,true);
  assert.equal(rock.hp,40);
- assert.ok(Math.hypot(rock.x-22,rock.y-15)<=86.001);
+ assert.ok(Math.hypot(rock.x,rock.y)>rock.r+78,
+  'the whole asteroid must clear the activation circle');
+ assert.equal(rock.coreRepulsion,undefined);
+ assert.equal(rock.originX,rock.x);
 });
 
 test('mining draws successive wavefronts even before a patrol alert',()=>{

@@ -1,14 +1,27 @@
 import {recordSortieIncome} from './sortie-ledger.js';
 import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,readyContourTrials,prepareContourVortex,completeContourTrial,
- planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1';
+ planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1-pressure-response-1';
 import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
 import {contourFields,fieldAt} from './territory-system.js';
-import {spawnOutside,dist,RULES} from './balance.js';
-import {ENEMY_TYPES} from './ai.js?v=first-loops-1-triangle-defense-1';
+import {spawnOutside,dist,RULES} from './balance.js?v=pressure-response-1';
+import {ENEMY_TYPES} from './ai.js?v=first-loops-1-triangle-defense-1-pressure-response-1';
 import {enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2';
 import {recordWorldFeedback} from './world-feedback.js';
 
 const nearby=(a,b,r)=>dist(a,b)<r;
+// Approach the actual core, regardless of how far a zoomed-out camera extends.
+// Ships are visible at wide zoom and arrive within seconds instead of waiting
+// beyond an ever-expanding screen edge.
+export function siegeApproachPosition(core,side,position,member=0,depth=0){
+ const bearing=[Math.PI,0,-Math.PI/2,Math.PI/2][side]??0;
+ const angle=bearing+(position-.5)*1.05;
+ const radius=620+depth*85+member*13;
+ return {x:core.x+Math.cos(angle)*radius,
+  y:core.y+Math.sin(angle)*radius};
+}
+export const activeTrialCore=(game,entry)=>!!entry&&
+ game.contourTrial?.entry===entry&&game.contourTrial.phase==='wave'&&
+ game.contourTrial.waveIndex===game.contourTrial.plan.waves.length-1;
 function available(game,entry){
  if(game.paused||game.dead||!nearby(game.player,entry,CONTOUR_TRIALS.engageRadius))return false;
  if((game.contourTrialRetryAt||0)>game.time)return false;
@@ -31,7 +44,7 @@ function spawnTrialWave(game,event){
  delete event.blockedSince;
  event.waitingForSpace=false;
  event.waveIndex++;
- const cam=game.spawnEntryCamera?.()||game.spawnCamera?.()||game.camera(),random=trialRandom(event.plan.tier,event.entry.id,event.waveIndex);
+ const random=trialRandom(event.plan.tier,event.entry.id,event.waveIndex);
  const roster=Object.entries(wave).flatMap(([type,count])=>Array(count).fill(type));
  // A fixed seed keeps a retried defence honest and gives each triangle a
  // different mix of flanking groups. Six ships coordinate as one IRIS wing.
@@ -59,7 +72,7 @@ function spawnTrialWave(game,event){
    formation==='авангард'?(squad===0?rearSide:(rearSide+squad%3)%4):
    (seedSide+Math.floor(squad/2))%4;
   const position=Math.max(.09,Math.min(.91,.24+(squad%3)*.23+(random()-.5)*.18));
-  const xy=spawnOutside(cam,side,position,155+(squad%3)*34+member*7);
+  const xy=siegeApproachPosition(event.entry,side,position,member,squad%3);
   const tier=event.plan.tier,hp=def.hp*(1+.085*(tier-1));
   const enemy={serial:++game.enemySerial,group:groupIds[squad],type,x:xy.x,y:xy.y,vx:0,vy:0,
    r:type==='gunship'?22:14,hp,maxHp:hp,damage:def.dmg*(1+.035*(tier-1)),
@@ -77,6 +90,7 @@ function spawnTrialWave(game,event){
   event.waveTemplates.set(enemy.serial,{...enemy});
  }
  event.phase='wave';
+ if(event.waveIndex===event.plan.waves.length-1)event.quotaReached=false;
  event.nextStrikeAt=game.time+3.6;
  game.notice?.('ОБОРОНА ТРЕУГОЛЬНИКА · волна '+
   (event.waveIndex+1)+' из '+event.plan.waves.length+' · подавите '+event.required+' из '+total+' кораблей.'+
@@ -185,9 +199,27 @@ function finishTrial(game,entry){
 
 // The last kill only opens the socket. Player input must start harvesting.
 export function activateContourVortex(game,entry){
- if(!entry||entry.status!=='ready'||game.dead||game.paused||
+ if(!entry||!['pending','ready'].includes(entry.status)||game.dead||game.paused||
   !fieldAt(game.world,entry.x,entry.y)||
   dist(game.player,entry)>CONTOUR_TRIALS.activationRadius)return false;
+ if(entry.status==='pending'){
+  const event=game.contourTrial;
+  if(!activeTrialCore(game,entry)||!event.quotaReached||
+     game.actionHeld?.kind!=='vortex'||game.actionHeld.target!==entry||
+     game.actionHeld.progress<CONTOUR_TRIALS.activationSeconds)return false;
+  if(!prepareContourVortex(game.world,entry.id))return false;
+  // No hostile salvo may land *after* the victory announcement, and unearned
+  // enemies must not drop loot on the way out of the encounter.
+  game.shots=game.shots?.filter(s=>s.trialId!==entry.id)||[];
+  for(const enemy of game.enemies.filter(e=>e.trialId===entry.id)){
+   if(enemy.converted){delete enemy.trialId;continue;}
+   if(enemy.hp<=0)continue;
+   enemy.trialRetreatUntil=game.time+3;
+   enemy.trialRetreatFrom={x:entry.x,y:entry.y};
+   enemy._trialDiveEnabled=false;enemy.expAwarded=true;
+   enemy.damage=0;enemy.fire=999;
+  }
+ }
  return finishTrial(game,entry);
 }
 
@@ -217,7 +249,7 @@ export function updateContourTrials(game,dt){
   game.contourTrial=event;
   game.notice?.('КОНТУР ЗАМКНУТ · противник обнаружил новый треугольник! '+
    'Оборона: '+event.plan.waves.length+' '+(event.plan.waves.length===1?'волна':'волны')+
-   ' · рекомендован уровень '+event.plan.recommendedLevel+'+. Отразите нападение!',5);
+   ' · рекомендован уровень '+event.plan.recommendedLevel+'+. Отразите нападение и запустите ядро под огнём!',5);
   game.heritage?.vfx?.nova?.(entry.x,entry.y,120,'red');
   game.heritage?.play?.('orbitalWarning',1.2,entry);
   return;
@@ -257,8 +289,8 @@ export function updateContourTrials(game,dt){
    const original=event.waveTemplates?.get(serial);
    if(!original)continue;
    if(game.enemies.length>=RULES.maxEnemies)continue;
-   const cam=game.spawnEntryCamera?.()||game.spawnCamera?.()||game.camera(),side=(serial+event.entry.id)%4;
-   const pos=spawnOutside(cam,side,.2+((serial*7)%11)/18,125);
+   const side=(serial+event.entry.id)%4;
+   const pos=siegeApproachPosition(event.entry,side,.2+((serial*7)%11)/18,serial%6,1);
    game.enemies.push({...original,...pos,vx:0,vy:0,hp:original.maxHp,
     think:.15,fire:.65,state:'hunt',entryPortalPending:false});
    continue;
@@ -272,6 +304,34 @@ export function updateContourTrials(game,dt){
   game.time-event.waveStartedAt<CONTOUR_TRIALS.minWaveSeconds)return;
  if(timeout&&!enough){
   disengage(game,event,'Противник удержал контур. Оборона завершилась неудачей — новая попытка через 18 секунд.');
+  return;
+ }
+ if(event.waveIndex+1===event.plan.waves.length){
+  if(timeout){
+   disengage(game,event,'Ядро не запущено вовремя. Противник подавил контур — повторите попытку позже.');
+   return;
+  }
+  if(enough&&!event.quotaReached){
+   event.quotaReached=true;event.nextCoreAttackAt=game.time+9;
+   game.notice?.('ТРЕТЬЯ ВОЛНА СДЕРЖАНА · враг продолжает обстрел! Влетите в ядро и удерживайте E 18 секунд.',6.5);
+  }
+  if(event.quotaReached&&game.time>=event.nextCoreAttackAt){
+   event.nextCoreAttackAt=game.time+10;
+   const alive=game.enemies.filter(e=>e.trialId===event.entry.id&&e.hp>0).length;
+   if(alive<8&&game.enemies.length+4<RULES.maxEnemies){
+    const group=++game.groupSerial;
+    for(let i=0;i<4;i++){
+     const type=i===3?'fighter':'scout',def=ENEMY_TYPES[type];
+     const xy=siegeApproachPosition(event.entry,(i+event.entry.id)%4,.48,i,0);
+     game.enemies.push({serial:++game.enemySerial,group,type,...xy,vx:0,vy:0,
+      r:14,hp:def.hp,maxHp:def.hp,damage:def.dmg,
+      think:.15,fire:.7,state:'hunt',commitUntil:0,target:game.player,angle:0,hit:0,
+      expAwarded:true,trialId:event.entry.id,scenario:'core-harassment',
+      trialObjective:{x:event.entry.x,y:event.entry.y},_patrolRoute:null});
+    }
+    game.notice?.('ПРОТИВНИК ПРИСЛАЛ НОВОЕ ЗВЕНО · завершайте заряд ядра!',4.5);
+   }
+  }
   return;
  }
  // Remaining ships disengage after heavy losses or a bounded battle. They

@@ -1,12 +1,12 @@
 /* Survivor cockpit HUD: presentation only. World state and combat stay in game.js.
    The local radar is deliberately bounded to 1.1km and redraws <=5 times/sec. */
-import {miningSignal} from './mining.js?v=arcade-extraction-risk-34';
+import {miningSignal} from './mining.js?v=arcade-extraction-risk-34-pressure-response-1';
 import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-5';
 import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1-enemy-balance-2';
 import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
-import {expForNext} from './balance.js?v=xp-feedback-pass1-1';
+import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 const count = value => Math.round(value).toLocaleString('ru-RU');
@@ -123,7 +123,7 @@ export class CockpitDisplay {
    !!game.contourTrial&&!['station','repair','opening-repair'].includes(focus?.kind);
   if(!n.interactionCue.hidden) {
    const label=focus.kind==='station'?'Открыть станцию':
-    focus.kind==='vortex'?'Запустить воронку · удерживать':
+    focus.kind==='vortex'?'Зарядить ядро · удерживать E':
     focus.kind==='turret-repair'?'Восстановить турель · удерживать':
     focus.kind==='repair'?'Ремонт зонда':
     focus.kind==='opening-repair'?'Эвакуация капсулы':'Добыча породы';

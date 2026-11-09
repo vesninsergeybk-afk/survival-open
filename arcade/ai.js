@@ -1,16 +1,16 @@
 import {theaterDestination} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2-mesh-strategy-v2-1';
 import {updateParasitizedEnemy} from './field-evolution.js?v=parasite-clarity-1';
 import {stormSeek} from './regional-storms.js?v=regions-1';
-import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20';
-import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1';
-import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2';
-import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2';
+import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20-pressure-response-1';
+import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1';
+import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2-pressure-response-1';
+import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2-pressure-response-1';
 import {irisPackDirective,irisPackMayFire,irisPackSeparation} from './iris-choreography.js?v=iris-pack-1-enemy-learning-1-enemy-comms-1-enemy-audit-3';
 import {contourIrisDirective,contourIrisRushContacts} from './contour-trial-iris.js?v=contour-counterattack-1-pressure-1';
-import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2-trial-focus-1';
+import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2-trial-focus-1-pressure-response-1';
 import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1';
-import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1';
+import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1';
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-2';
 import {moveMote} from './mote-swarm.js?v=swarm-controls-1';
@@ -84,7 +84,7 @@ export function scoutSteering(e,game,target,speed){
 // projectile wall. Neither health nor projectile collision rules change.
 export const IRIS_COMBAT=Object.freeze({
   range:IRIS_SWARM.fireRange,scanShotAt:.59,charge:.36,volleySpacing:.43,
-  projectileSpeed:275,damage:6
+  projectileSpeed:325,damage:8
 });
 export function scoutAttack(e,game,target,scanning=false){
   if(e.type!=='scout'||e.converted||e.boss||e.missionStructure||
@@ -152,7 +152,7 @@ export function scoutAttackGoal(e,target){
     y:e.y+rx*side*140+ry*correction};
 }
 export const ENEMY_TYPES = Object.freeze({
-  scout:{name:'Разведчик',hp:28,speed:158,dmg:9,score:7},
+  scout:{name:'Разведчик',hp:38,speed:158,dmg:10,score:7},
   fighter:{name:'Штурмовик',hp:58,speed:120,dmg:12,score:10},
   flanker:{name:'Перехватчик',hp:50,speed:178,dmg:13,score:13},
   healer:{name:'Ремонтник',hp:75,speed:118,dmg:5,score:22},

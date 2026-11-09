@@ -3,9 +3,9 @@
  * point, then fires one dodgeable bolt. Radio orders alter positioning, not
  * damage, accuracy or the projectile budget. */
 export const ENEMY_GUNNERY=Object.freeze({
-  fighter:Object.freeze({range:375,charge:.68,reload:3.2,speed:250,damage:7}),
-  flanker:Object.freeze({range:345,charge:.57,reload:3.45,speed:265,damage:6}),
-  cellSpacing:.88,globalSpacing:.32,maxWarnings:4,warningRange:510
+  fighter:Object.freeze({range:405,charge:.62,reload:2.7,speed:290,damage:10}),
+  flanker:Object.freeze({range:395,charge:.55,reload:2.8,speed:305,damage:9}),
+  cellSpacing:.62,globalSpacing:.23,maxWarnings:4,warningRange:555
 });
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);

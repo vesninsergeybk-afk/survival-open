@@ -5,7 +5,7 @@ import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
  * contact while the others close. The computation uses the existing grid and
  * bounded timers; there is no shared global target lock or invulnerability. */
 export const IRIS_SWARM=Object.freeze({
-  sensorRange:385,fireRange:365,wingRadius:330,
+  sensorRange:520,fireRange:415,wingRadius:380,
   retreatSeconds:1.35,retreatCooldown:4.6,wingSeconds:1.65,
   coverRadius:240
 });

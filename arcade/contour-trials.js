@@ -4,7 +4,7 @@ import {insidePolygon} from './territory-system.js';
 // triangulation of land already owned never creates another challenge.
 export const CONTOUR_TRIALS=Object.freeze({maxTier:12,maxEntries:256,engageRadius:990,
  retreatRadius:1650,warningSeconds:6,retreatSeconds:7,maxWaveSeconds:100,maxWaitSeconds:12,
- activationRadius:145,activationSeconds:2.2,minWaveSeconds:7});
+ activationRadius:145,activationSeconds:18,minWaveSeconds:7});
 
 // Most of the fleet must be defeated; isolated survivors break away instead
 // of turning a large battle into a frustrating search for one last scout.

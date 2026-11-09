@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {World} from '../world.js';
 import {SpatialGrid} from '../balance.js';
-import {createLoadout,HangarSession,loadoutProfile,createThermal,coolWeapons} from '../ship-loadout.js';
+import {createLoadout,HangarSession,loadoutProfile,createThermal,coolWeapons,moduleStats} from '../ship-loadout.js';
 import {updateFlakPellets} from '../ship-weapons.js';
 
 const entry=new URL('../game.js',import.meta.url);
@@ -107,7 +107,7 @@ test('beginning mining or probe repair cancels howitzer preparation immediately'
 });
 test('the real starter weapon can fire for five minutes without overheating; C, mining and repair stop it',()=>{
  const g=game(),e=target();g.grid.insert(e);battle(g,300);
- assert.ok(g.hits.length>=450&&g.hits.length<=477);assert.ok(g.hits.every(x=>x.damage===18));
+ assert.ok(g.hits.length>=440&&g.hits.length<=470);assert.ok(g.hits.every(x=>x.damage===moduleStats('plasma').damage));
  assert.equal(g.weaponThermal.locked,false);assert.equal(g.missiles.length,0);
  for(const mode of ['holdFire','mining','repair']){
   const before=g.hits.length;
@@ -147,7 +147,7 @@ test('choosing and mastering a plasma branch in the real hangar changes real bea
  assert.deepEqual(g.shipLoadout.specializations.plasma,{path:'furnace',rank:1});
  assert.equal(g.player.points,19,'choosing the other branch must not spend points');
  g.grid.insert(target(100));battle(g,1/60);
- assert.equal(g.hits.length,1);assert.equal(g.hits[0].damage,22.5);
+ assert.equal(g.hits.length,1);assert.equal(g.hits[0].damage,moduleStats('plasma').damage*1.25);
 
  g.activeBases=3;g.paused=true;g.overlay.hidden=false;
  g.hangarAction({act:'hgSpec',id:'plasma:furnace'});
