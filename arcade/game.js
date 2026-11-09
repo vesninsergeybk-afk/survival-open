@@ -69,7 +69,7 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
@@ -113,7 +113,7 @@ import {FLUX_DEPOT,depotOffer,deployDepot,depotAt,depotUpgradeOffer,upgradeDepot
  depotCapacity,depotSupplyRadius,advanceFluxDepots,drawFluxDepots} from './flux-depots.js?v=territory-logistics-1';
 import {FLUX_ARTILLERY,EDGE_SLOT_UPGRADES,ARTILLERY_UPGRADES,edgeTurretLimit,edgeTurretUpgradeOffer,upgradeEdgeTurretCapacity,artilleryUpgradeOffer,upgradeArtillery,
  artilleryAt,artilleryOffer,deployArtillery,maxArtilleryPreload,setArtilleryMode,
- advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1';
+ advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-free-close-1';
 import {SUPPORT_TYPES,supportConfig,supportOffer,deploySupport,supportAt,
  setSupportMode,supportUpgradeOffer,upgradeSupport,
  advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1';
@@ -532,6 +532,7 @@ export class ArcadeGame {
    (turret.kind==='flux-artillery'?' · '+artilleryShotFlux(turret).toFixed(2)+' флюкса за снаряд':'')+
    (turret.kind==='flux-artillery'&&turret.stockpile?' · запас '+
     (turret.stockpile*FLUX_ARTILLERY.chargeCost).toFixed(2)+' флюкса':'')+
+   (turret.kind==='flux-artillery'?' · ближняя защита от тарана: без расхода флюкса и снарядов':'')+
    (turret.kind==='flux-artillery'?' · стволов '+artilleryBarrels(turret):'')+
    (turret.kind==='flux-artillery'?' · полный залп '+artillerySalvoSize(turret)+' '+
     (artillerySalvoSize(turret)>=5?'снарядов':'снаряда')+

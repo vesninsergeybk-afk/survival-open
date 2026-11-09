@@ -29,6 +29,23 @@ const shortestTurn=(from,to)=>normalizeAngle(to-from);
 export const turnArtilleryGun=(angle,target,dt)=>normalizeAngle(angle+
  clamp(shortestTurn(angle,target),-FLUX_ARTILLERY.turnSpeed*Math.max(0,dt),
   FLUX_ARTILLERY.turnSpeed*Math.max(0,dt)));
+// The short-range point-defence gun is built into the turret. It never uses
+// the flux-fed artillery magazine. It engages actual collision threats only:
+// ordinary ranged fighters must remain a meaningful counter to artillery.
+export function closeDefenseTarget(game,turret){
+ const range=FLUX_ARTILLERY.closeRange+25*((turret.level||1)-1);
+ let best=null,bestScore=Infinity;
+ for(const e of game.enemies||[]){
+  if(!(e.hp>0)||e.converted||e.trialRetreatUntil||
+    !(e.type==='berserker'||e.ramOrder?.target===turret||
+      e.state==='charge'||e._trialDive?.phase==='rush'))continue;
+  const d=distance(e,turret);
+  if(d>range)continue;
+  const score=d-(e.ramOrder?.target===turret?90:e.type==='berserker'?50:0);
+  if(score<bestScore){best=e;bestScore=score;}
+ }
+ return best;
+}
 const recoilAt=age=>age<0||age>=.34?0:age<.065?age/.065:
  Math.pow(1-(age-.065)/.275,2);
 const key=(a,b)=>a<b?a+'|'+b:b+'|'+a;
@@ -431,16 +448,11 @@ export function advanceFluxArtillery(game,dt){
    if(updated)setArtilleryAim(turret,updated);
    fireBarrel(game,state,turret,time);
   }
-  // The close-defense pulse spends a quarter-flux charge, but may only use
-  // surplus rounds: the battery always keeps one full main salvo in reserve.
-  const primaryReserve=artillerySalvoSize(turret)*artilleryShotUnits(turret);
-  if(link&&turret.ammo>primaryReserve&&time>=(turret.closeNextShotAt??0)){
-   const threat=(game.enemies||[]).filter(e=>e.hp>0&&!e.converted&&!e.trialRetreatUntil&&
-    distance(e,turret)<=FLUX_ARTILLERY.closeRange+25*((turret.level||1)-1))
-    .sort((a,b)=>(a.type==='berserker'?-50:0)+distance(a,turret)-
-      ((b.type==='berserker'?-50:0)+distance(b,turret)))[0];
+  // Independent point defence runs even with an empty magazine or a broken
+  // supply cable. No flux, charge credit or prepaid shell is spent here.
+  if(time>=(turret.closeNextShotAt??0)){
+   const threat=closeDefenseTarget(game,turret);
    if(threat){
-    turret.ammo--;
     turret.closeNextShotAt=time+FLUX_ARTILLERY.closeCooldown;
     turret.lastCloseAt=time;
     game.damageEnemy(threat,FLUX_ARTILLERY.closeDamage+5*((turret.level||1)-1),turret);
