@@ -8,8 +8,8 @@ export const SUPPORT_TYPES=Object.freeze({
   buildSeconds:3.2,range:440,magazine:12,chargeCost:.22,fluxPerMinute:3.4,
   cooldown:3.5,damage:4.5,capacity:1,color:'#a28bff'}),
  laser:Object.freeze({name:'Лазерное гнездо',oreCost:26,fluxCost:1.8,maxHp:100,r:36,
-  buildSeconds:3.4,range:440,magazine:10,chargeCost:.40,fluxPerMinute:3.8,
-  cooldown:5.0,damage:6,capacity:1,color:'#ff9762'}),
+  buildSeconds:3.4,range:440,magazine:10,chargeCost:.20,fluxPerMinute:9.6,
+  cooldown:2.2,damage:3.6,capacity:1,color:'#ff9762'}),
  hive:Object.freeze({name:'Дроновая матка',oreCost:32,fluxCost:4,maxHp:125,r:43,
   buildSeconds:4.3,range:320,magazine:0,chargeCost:2.5,fluxPerMinute:4.6,
   cooldown:1.45,damage:5.5,capacity:2,color:'#70e7be'})
