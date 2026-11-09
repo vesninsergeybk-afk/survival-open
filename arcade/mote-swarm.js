@@ -1,6 +1,8 @@
 // Tiny drones share one tactical decision per pack. Members remain individual
 // damageable ships; a split changes their formation, never their hit points.
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26-redteam-20261109-1';
+// size is the size of a freshly spawned squad, never an upper limit on a pack.
+// maxMotes is a separate, scene-wide performance budget.
 export const MOTE_SWARM=Object.freeze({size:10,radius:6.5,hp:12,damage:3,
  speed:177,interval:.34,splitAt:480,splitCount:8,splitHold:7.4,
  mergeDistance:315,allianceDistance:710,maxAlliance:3,
@@ -27,23 +29,41 @@ const groupsOf=motes=>{
 };
 const centroid=members=>({x:members.reduce((n,e)=>n+e.x,0)/members.length,
  y:members.reduce((n,e)=>n+e.y,0)/members.length});
+// Large packs shoot more often, but share one telegraphed gun and the global
+// volley limiter. They never multiply their damage by their member count.
+export function moteVolleyCooldown(count){
+ return Math.max(.58,MOTE_SWARM.fireCooldown*
+  Math.min(1,MOTE_SWARM.size/Math.max(1,count)));
+}
+function observedMissileThreat(members,game){
+ const belonging=new Set(members),targets=new Set();
+ for(const missile of game.missiles||[]){
+  if(missile.life>0&&belonging.has(missile.target)&&
+     distance(missile,missile.target)<210)targets.add(missile.target);
+ }
+ // Two independent targeted missiles, or two recent direct hits, indicate
+ // concentrated fire. Both are observations, not knowledge of the pilot.
+ return targets.size>=2||members.filter(e=>(e.hit||0)>.14).length>=2;
+}
 const onScreen=(game,point)=>{
  const cam=game.camera?.();
  return !cam||point.x>=cam.x-35&&point.y>=cam.y-35&&
   point.x<=cam.x+cam.w+35&&point.y<=cam.y+cam.h+35;
 };
-const cueText=(phase,id)=>({
+const cueText=(phase,id,flank=0)=>({
   found:['ЦЕЛЬ ОБНАРУЖЕНА · СХОЖУСЬ','КОНТАКТ ПОДТВЕРЖДЁН · ПРЕСЛЕДУЮ',
     'ВИЖУ ЦЕЛЬ · НАЧИНАЮ ОХОТУ'][id%3],
-  flank:['ОБХОД СЛЕВА','ОБХОД СПРАВА','ЗАЖИМАЕМ ЦЕЛЬ'][id%3],
+  flank:flank<0?'ОБХОД СЛЕВА':flank>0?'ОБХОД СПРАВА':'ЗАЖИМАЕМ ЦЕЛЬ',
   windup:'ФОРСАЖ · ГОТОВЛЮ РЫВОК',rush:'ФОРСАЖ · АТАКУЮ',
   search:'КОНТАКТ ПОТЕРЯН · ПРОВЕРЯЮ СЕКТОР',
+  evade:'ПОД ОГНЁМ · РАССЕИВАЮСЬ',
   escape:'ЗВЕНО ПОТЕРЯНО · УХОЖУ ЗА ПОДМОГОЙ',
   return:'ПОДМОГА ПРИБЫЛА · ВОЗОБНОВЛЯЮ ОХОТУ'
 })[phase]||'';
-function statusCue(state,phase,id,now){
- if(state.phase===phase)return;
- state.phase=phase;state.cue=cueText(phase,Math.abs(id));
+function statusCue(state,phase,id,now,flank=0){
+ const cue=cueText(phase,Math.abs(id),flank);
+ if(state.phase===phase&&state.cue===cue)return;
+ state.phase=phase;state.cue=cue;
  state.cueUntil=now+2.9;
 }
 function escapePoint(game,e){
@@ -131,7 +151,7 @@ function formationCue(game,kind,point,t){
  const fx=game.moteFormationFx??(game.moteFormationFx=[]);
  fx.push({kind,x:point.x,y:point.y,bornAt:t});
  if(fx.length>8)fx.shift();
- game.heritage?.play?.(kind==='split'?'swarmSplit':'swarmMerge',1.1,point);
+ game.heritage?.play?.(kind==='merge'?'swarmMerge':'swarmSplit',1.1,point);
 }
 
 export function updateMoteSwarmOrders(game){
@@ -147,20 +167,43 @@ export function updateMoteSwarmOrders(game){
  const seenRoots=game._moteSeenRoots??(game._moteSeenRoots=new Set());
  const liveRoots=new Set(motes.map(e=>e.moteRoot??e.motePack??e.group));
  for(const root of seenRoots)if(!liveRoots.has(root))seenRoots.delete(root);
+ const states=game._moteSquadStates??(game._moteSquadStates=new Map());
  let packs=groupsOf(motes.filter(e=>!e.moteEscape&&!e.moteCourierReturning));
- // Close to the player a full swarm breaks into two coordinated flanks.
+ // A newly merged wing can split for a real nearby contact or incoming fire.
+ // Existing flanks do not recursively fragment. Hidden live player positions
+ // must not trigger a split: use only direct sight or a recent visual report.
  for(const [id,members] of packs){
-  if(members.length<MOTE_SWARM.splitCount||members.some(e=>t<(e.moteReformUntil||0)))continue;
-  if(t<(members[0].moteSpawnedAt??0)+2.2||
-     distance(centroid(members),game.player)>MOTE_SWARM.splitAt)continue;
-  formationCue(game,'split',centroid(members),t);
+  if(members.length<MOTE_SWARM.splitCount||
+     members.some(e=>(e.moteFlank||0)!==0||t<(e.moteReformUntil||0))||
+     t<(members[0].moteSpawnedAt??0)+2.2)continue;
+  const center=centroid(members),evade=observedMissileThreat(members,game);
+  const visible=members.some(e=>!game.enemyCanSee||game.enemyCanSee(e,game.player));
+  const sighting=states.get(id)?.lastKnown||members.find(e=>e.moteLastSeen)?.moteLastSeen;
+  const closeContact=visible?distance(center,game.player)<MOTE_SWARM.splitAt:
+   sighting&&t-sighting.at<4.5&&distance(center,sighting)<MOTE_SWARM.splitAt;
+  if(!evade&&!closeContact)continue;
+  formationCue(game,evade?'evade':'split',center,t);
+  const observed=visible?game.player:sighting||members[0].moteApproach||center;
+  const lookX=observed.x-center.x,lookY=observed.y-center.y;
+  const lookLength=Math.hypot(lookX,lookY)||1;
+  const sharedAxis={x:lookX||lookY?lookX/lookLength:1,y:lookY/lookLength};
   const secondId=++game.groupSerial;
   const sorted=[...members].sort((a,b)=>a.serial-b.serial);
   for(let i=0;i<sorted.length;i++){
    const e=sorted[i];
    e.motePack=i>=Math.ceil(sorted.length/2)?secondId:id;
    e.moteFlank=i>=Math.ceil(sorted.length/2)?1:-1;
+   e.moteFlankAxis=sharedAxis;
    e.moteReformUntil=t+MOTE_SWARM.splitHold;
+   e.moteEvasionUntil=evade?t+2.6:0;
+  }
+  // Both wings inherit the same confirmed sighting and existing weapon timers.
+  // A split must neither reload a gun nor invent a target position.
+  const parent=states.get(id);
+  if(parent){
+   const copy={...parent,warningAt:null,rushChargeAt:0};
+   states.set(secondId,copy);
+   parent.warningAt=null;parent.rushChargeAt=0;
   }
  }
  packs=groupsOf(motes.filter(e=>!e.moteEscape&&!e.moteCourierReturning));
@@ -171,17 +214,26 @@ export function updateMoteSwarmOrders(game){
   const [id,a]=entries[i];if(!a?.length)continue;
   for(let j=i+1;j<entries.length;j++){
    const [otherId,b]=entries[j];if(!b?.length||
-      a.length+b.length>MOTE_SWARM.size||
       [...a,...b].some(e=>t<(e.moteReformUntil||0))||
       distance(centroid(a),centroid(b))>MOTE_SWARM.mergeDistance)continue;
    formationCue(game,'merge',centroid([...a,...b]),t);
-   for(const e of b){e.motePack=id;
-    e.moteFlank=0;e.moteReformUntil=t+4.2;}
+   for(const e of [...a,...b]){e.motePack=id;
+    e.moteFlank=0;e.moteFlankAxis=null;e.moteReformUntil=t+4.2;}
+   const host=states.get(id),guest=states.get(otherId);
+   if(guest){
+    if(!host)states.set(id,{...guest,warningAt:null,rushChargeAt:0});
+    else{
+     if(guest.lastKnown?.at>(host.lastKnown?.at??-Infinity))host.lastKnown={...guest.lastKnown};
+     host.nextShotAt=Math.max(host.nextShotAt??0,guest.nextShotAt??0);
+     host.nextRushAt=Math.max(host.nextRushAt??0,guest.nextRushAt??0);
+     host.warningAt=null;host.rushChargeAt=0;
+    }
+   }
    a.push(...b);entries[j][1]=[];
   }
  }
- // A full pack cannot physically merge with another full pack. It can share
- // orders, however: the alliance is a bounded command network, not a new unit.
+ // Separated flanks can still exchange verified sightings in a bounded radio
+ // alliance. This limit concerns radio links, not physical pack size.
  packs=groupsOf(motes.filter(e=>!e.moteEscape&&!e.moteCourierReturning));
  const linked=new Map([...packs.keys()].map(id=>[id,new Set([id])]));
  const positions=new Map([...packs].map(([id,members])=>[id,centroid(members)]));
@@ -198,7 +250,6 @@ export function updateMoteSwarmOrders(game){
   if(combined.size>MOTE_SWARM.maxAlliance)continue;
   for(const member of combined)linked.set(member,combined);
  }
- const states=game._moteSquadStates??(game._moteSquadStates=new Map());
  for(const id of states.keys())if(!packs.has(id))states.delete(id);
  for(const [id,members] of packs){
   members.sort((a,b)=>a.serial-b.serial);
@@ -242,19 +293,29 @@ export function updateMoteSwarmOrders(game){
   const slot=allies.indexOf(id),alliedFlank=allies.length>1?(slot%2===0?-1:1):0;
   const flank=t<(members[0].moteReformUntil||0)?(members[0].moteFlank||0):alliedFlank;
   const forward=close?22:Math.min(165,Math.max(35,d-135));
-  const anchor={x:center.x+nx*forward-ny*(close?85:flank*135),
-   y:center.y+ny*forward+nx*(close?85:flank*135)};
+  const evading=t<Math.max(...members.map(e=>e.moteEvasionUntil||0));
+  // A true ± flank must steer to opposite sides EVEN during close orbiting.
+  const side=flank* (evading?195:close?115:135) || (close?85:0);
+  const axis=t<(members[0].moteReformUntil||0)&&flank?
+   members[0].moteFlankAxis:null;
+  const anchor={x:center.x+nx*forward-(axis?.y??ny)*side,
+   y:center.y+ny*forward+(axis?.x??nx)*side};
   if(canSee&&!state.lastCueContact)statusCue(state,'found',id,t);
   if(!canSee&&state.lastCueContact&&pursuing)statusCue(state,'search',id,t);
   state.lastCueContact=!!canSee;
   if(allies.length>1&&canSee&&t>=(state.rushUntil||0)&&t>=(state.cueUntil||0))
-   statusCue(state,'flank',id,t);
+   statusCue(state,'flank',id,t,flank);
   if(t<(members[0].moteReturnUntil||0))statusCue(state,'return',id,t);
   else if(state.phase==='return')statusCue(state,canSee?'found':'search',id,t);
+  if(evading){
+   state.rushChargeAt=0;state.warningAt=null;
+   state.nextRushAt=Math.max(state.nextRushAt??0,t+1.5);
+   statusCue(state,'evade',id,t);
+  }else if(state.phase==='evade')statusCue(state,canSee?'found':'search',id,t);
   if((!recent||within>MOTE_SWARM.rushRange+80)&&state.rushChargeAt){
    state.rushChargeAt=0;statusCue(state,canSee?'found':'search',id,t);
   }
-  const preparingRush=recent&&within<MOTE_SWARM.rushRange&&
+  const preparingRush=!evading&&recent&&within<MOTE_SWARM.rushRange&&
    t>=(state.nextRushAt??Infinity)&&t>=(game._moteGlobalRushAt||0);
   if(preparingRush&&!state.rushChargeAt){
    state.rushChargeAt=t+MOTE_SWARM.rushWarning;
@@ -270,11 +331,14 @@ export function updateMoteSwarmOrders(game){
   if(t>=(state.rushUntil||0)&&state.phase==='rush')
    statusCue(state,canSee?'found':'search',id,t);
   members.forEach((e,index)=>{
-   const row=Math.floor(index/3),column=index%3-1;
+   const columns=members.length>24?7:members.length>10?5:3;
+   const row=Math.floor(index/columns),column=index%columns-(columns-1)/2;
+   const rows=Math.ceil(members.length/columns);
    const jitter=Math.sin(t*1.55+e.serial*.81)*2.5;
    const lateral=column*22+(row%2)*11+jitter;
-   const depth=(row-1)*23;
-   const rush=t<(state.rushUntil||0)&&index%3===0;
+   const depth=(row-(rows-1)/2)*23;
+   // At most five attackers commit to a single dash; the rest remain cover.
+   const rush=!evading&&t<(state.rushUntil||0)&&index%3===0&&index<15;
    e.moteBoosting=rush;
    e.moteOrder=rush?
     {x:waypoint.x+Math.max(-35,Math.min(35,(waypoint.vx||0)*.10)),
@@ -287,7 +351,8 @@ export function updateMoteSwarmOrders(game){
    e.moteStatus=state.phase;e.moteStatusCue=state.cue;
    e.moteStatusUntil=state.cueUntil;
   });
-  // One telegraphed projectile per pack. Ten motes never fire ten shots at once.
+  // One telegraphed projectile per pack; larger packs increase frequency, not
+  // simultaneous projectile count, and share the scene-wide volley throttle.
   const shooter=members.find(e=>t>=(e.stasisUntil||0)&&distance(e,p)<MOTE_SWARM.fireRange&&
    (!game.enemyCanSee||game.enemyCanSee(e,p)));
   if(shooter&&canSee&&t>=state.nextShotAt){
@@ -300,7 +365,7 @@ export function updateMoteSwarmOrders(game){
     const lead=.16;
     const fired=game.enemyShot(shooter.x,shooter.y,p.x+(p.vx||0)*lead,
      p.y+(p.vy||0)*lead,4,{kind:'mote',speed:315,r:3.5});
-    if(fired!==false){state.nextShotAt=t+MOTE_SWARM.fireCooldown;
+    if(fired!==false){state.nextShotAt=t+moteVolleyCooldown(members.length);
      game._moteGlobalVolleyAt=t+MOTE_SWARM.globalVolley;
      state.warningAt=null;}
    }
@@ -421,8 +486,9 @@ export function drawMoteSwarms(c,enemies,cam,t,reducedMotion=false,formations=[]
  for(const fx of formations){
   const k=Math.max(0,Math.min(1,(t-fx.bornAt)/1.05));
   if(k>=1||fx.x<cam.x-100||fx.y<cam.y-100||fx.x>cam.x+cam.w+100||fx.y>cam.y+cam.h+100)continue;
-  const split=fx.kind==='split',r=split?21+58*k:72-47*k;
-  c.strokeStyle=split?'#77d9ff':'#d2adff';c.lineWidth=2.3*(1-k)+.6;c.globalAlpha=(1-k)*.7;
+  const split=fx.kind!=='merge',r=split?21+58*k:72-47*k;
+  c.strokeStyle=fx.kind==='evade'?'#ffc078':split?'#77d9ff':'#d2adff';
+  c.lineWidth=2.3*(1-k)+.6;c.globalAlpha=(1-k)*.7;
   c.beginPath();c.arc(fx.x,fx.y,r,0,Math.PI*2);c.stroke();
   c.lineWidth=1.2;
   for(const sign of [-1,1]){
@@ -430,9 +496,11 @@ export function drawMoteSwarms(c,enemies,cam,t,reducedMotion=false,formations=[]
    c.beginPath();c.arc(x,fx.y,split?12+7*k:12+7*(1-k),0,Math.PI*2);c.stroke();
   }
   if(k<.65){
-   c.globalAlpha=(1-k/.65)*.8;c.fillStyle=split?'#b0eaff':'#e5d3ff';
+   c.globalAlpha=(1-k/.65)*.8;
+   c.fillStyle=fx.kind==='evade'?'#ffe2a8':split?'#b0eaff':'#e5d3ff';
    c.font='bold 10px system-ui';c.textAlign='center';
-   c.fillText(split?'РОЙ РАЗДЕЛЯЕТСЯ':'РОЙ ОБЪЕДИНЯЕТСЯ',fx.x,fx.y-r-14);
+   c.fillText(fx.kind==='evade'?'РОЙ РАССЕИВАЕТСЯ':
+    split?'РОЙ РАЗДЕЛЯЕТСЯ':'РОЙ ОБЪЕДИНЯЕТСЯ',fx.x,fx.y-r-14);
   }
  }
  c.restore();
