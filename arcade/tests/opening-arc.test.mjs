@@ -148,7 +148,7 @@ test('active crisis holds back ambient swarms; rescue completion immediately rem
 
 test('short recovery windows punctuate the first ten minutes without disabling danger',()=>{
  const base={cap:20,interval:4,groupSize:3,types:['scout','fighter']};
- const quiet=openingArcPressure(base,null,115,{x:0,y:0},home);
+ const quiet=openingArcPressure(base,null,200,{x:0,y:0},home);
  const danger=openingArcPressure(base,null,150,{x:0,y:0},home);
  assert.ok(quiet.interval>danger.interval);
  assert.ok(quiet.cap<danger.cap);

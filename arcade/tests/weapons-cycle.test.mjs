@@ -89,7 +89,8 @@ test('plasma is strongest near one target, rail wins at distance; calibration pr
  }
 });
 test('focused plasma damage falls monotonically instead of gaining damage halfway to the target',()=>{
- for(const rank of [1,2]){let previous=Infinity;for(let d=0;d<=435;d+=5){const value=beamDamage(18,d,115,435,.28)*plasmaDamageFactor({path:'focus',rank},d,435);assert.ok(value<=previous+1e-8);previous=value;}}
+ const {damage,range}=moduleStats('plasma');
+ for(const rank of [1,2]){let previous=Infinity;for(let d=0;d<=range;d+=5){const value=beamDamage(damage,d,115,range,.28)*plasmaDamageFactor({path:'focus',rank},d,range);assert.ok(value<=previous+1e-8);previous=value;}}
 });
 test('splitting plasma preserves lone-target power and shares a finite salvo across a group',()=>{
  for(const count of [1,2,3]){const g=game();g.skillRanks.double=2;const targets=Array.from({length:count},(_,i)=>enemy(80,i*4));for(const e of targets)g.grid.insert(e);g.updateShipWeapons(.01);const factor=count===1?1:count===2?.6:.45;for(const e of targets)near(300-e.hp,moduleStats('plasma').damage*factor);near(g.weaponThermal.current,6);}
@@ -174,7 +175,8 @@ test('loading a blueprint or unequipping a field module never refills its ammuni
 test('frozen v1 checkpoint migrates a spent ion loan and preserves the original operation identity',()=>{
  const storage=memory(),legacy=readFileSync(new URL('./fixtures/run-checkpoint-v1.json',import.meta.url),'utf8');storage.setItem(RUN_KEYS[0],legacy);
  const store=new RunCheckpointStore(storage),data=store.load();assert.ok(data);assert.equal(data.version,2);
- const g=game();restoreCheckpoint(g,data);assert.equal(g.player.hp,73);assert.equal(g.player.ore,16);assert.equal(g.player.data,93);
+ const g=game();restoreCheckpoint(g,data);assert.equal(g.player.hp,60);assert.equal(g.player.maxHp,90);
+ assert.equal(g.player.ore,16);assert.equal(g.player.data,93);
  assert.equal(g.fieldLoan.moduleId,'ion');assert.equal(g.fieldLoan.charges,1);assert.equal(g.fieldLoan.used,2);assert.equal(g.fieldLoan.cooldownUntil,246);
  assert.equal(g.fieldLoan.assignment.id,g.operation.id);assert.equal(g.world.home.corridorMission,g.operation);
  assert.ok(store.save(captureCheckpoint(g,g.docked)).ok);assert.equal(JSON.parse(storage.getItem(RUN_KEYS[1])).format,2);

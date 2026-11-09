@@ -1,4 +1,4 @@
-import {MODULES,moduleStats} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-menu-focus-1';
+import {MODULES,moduleStats} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-menu-focus-1-combat-balance-1';
 import {RELAY_DEFENSE,relayDefenseCue,relayAttacker} from './relay-defense.js?v=station-operations-2-ops-audit-1-mission-choices-1';
 import {PROBE_OPERATION} from './operations.js?v=station-operations-2-ops-audit-1';
 import {CARRIER_INTERCEPTION,carrierDistanceRemaining,carrierTacticalCue,carrierPulseState} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';

@@ -19,18 +19,23 @@ function station({ore=20,hp=38,points=2}={}){
 
 test('repair and drone hire are direct, mutually affordable choices and keep their real receipts',()=>{
  const repair=station();const before=repair.baseState();
+ const quote=baseOffer(repair.docked,before);
  const html=renderBasePanel(repair.docked,before);
- assert.match(html,/data-act="repair">Починить · 18 сплава · \+50 прочности/);
- assert.match(html,/data-act="hire" data-role="scout">Нанять дрона · 20 сплава/);
+ assert.ok(html.includes('data-act="repair">Починить · '+quote.repairCost+' сплава · +'+quote.repairAmount+' прочности'));
+ assert.ok(html.includes('data-act="hire" data-role="scout">Нанять дрона · '+quote.hireCost+' сплава'));
  repair.baseAction('repair','');
- assert.equal(repair.player.hp,88);assert.equal(repair.player.ore,2);
+ assert.equal(repair.player.hp,before.hp+quote.repairAmount);
+ assert.equal(repair.player.ore,before.ore-quote.repairCost);
  const after=renderBasePanel(repair.docked,repair.baseState());
  assert.match(after,/data-act="hire" data-role="scout" disabled/);
- assert.match(after,/Не хватает 18 ед. сплава/);
- const hire=station();hire.baseAction('hire','scout');
- assert.equal(hire.player.ore,0);assert.equal(hire.allies.length,1);
+ const shortage=baseOffer(repair.docked,repair.baseState()).reasons.hire;
+ assert.ok(shortage?.startsWith('Не хватает'));
+ assert.ok(after.includes(shortage));
+ const hire=station();const hireQuote=baseOffer(hire.docked,hire.baseState());
+ hire.baseAction('hire','scout');
+ assert.equal(hire.player.ore,20-hireQuote.hireCost);assert.equal(hire.allies.length,1);
  assert.match(renderBasePanel(hire.docked,hire.baseState()),/data-act="repair" disabled/);
- assert.equal(baseOffer(hire.docked,hire.baseState()).reasons.repair,'Не хватает 18 ед. сплава');
+ assert.ok(baseOffer(hire.docked,hire.baseState()).reasons.repair.startsWith('Не хватает'));
 });
 
 test('plasma development honestly shows the mounted slot and shared calibration',()=>{

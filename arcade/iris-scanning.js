@@ -2,7 +2,7 @@
  * During the scan the drone follows an inertial, evasive arc around its last
  * contact, then accelerates out of the scan with a brief sideways burst.
  * Existing extraction patrols keep their own shared signal-intelligence AI. */
-import {irisCanSense,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2-pressure-response-1';
+import {irisCanSense,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2-pressure-response-1-combat-balance-1';
 export const IRIS_SCAN=Object.freeze({
   sweep:1.08,open:.48,hold:.61,close:.46,
   cruise:94,maxScanSpeed:190,acceleration:265,evadeAcceleration:345,

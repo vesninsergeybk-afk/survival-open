@@ -1,4 +1,4 @@
-import {irisFreeHunter} from './iris-swarm.js?v=iris-swarm-2';
+import {irisFreeHunter} from './iris-swarm.js?v=iris-swarm-2-combat-balance-1';
 
 /** A cheap combat director, deliberately unlike one-brain-per-drone flocking.
  * It assigns a few attackers and many visible staging positions once per

@@ -139,5 +139,5 @@ test('рост напряжения после трёх минут ограни�
     assert.ok(next.cap>=previous.cap);
     previous=next;
   }
-  assert.ok(openingThreat(600,9).cap<55);
+  assert.ok(openingThreat(600,9).cap<=60);
 });

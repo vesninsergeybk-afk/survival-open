@@ -1,5 +1,17 @@
 // Data-only balancing and deterministic world math for the arcade reboot.
 // Keep rules separate from rendering so high-density simulation is testable.
+// Starter combat has one source of truth for the ship, weapon and sight ranges.
+// Upgrades still extend these values; later sector pressure is a separate curve.
+export const STARTER_COMBAT = Object.freeze({
+  hull: 90,
+  speed: 248,
+  plasmaDamage: 16,
+  plasmaRange: 330,
+  plasmaInterval: .68,
+  patrolSight: 620,
+  signalSight: 560,
+  intentRange: 700
+});
 export const RULES = Object.freeze({
   cell: 640,
   rockCell: 460,
@@ -9,7 +21,7 @@ export const RULES = Object.freeze({
   maxParticles: 240,
   maxShots: 220,
   nearBeam: 115,
-  beamRange: 365,
+  beamRange: STARTER_COMBAT.plasmaRange,
   beamMinFactor: .28,
   asteroidRange: 245,
   baseInteract: 165,
@@ -36,6 +48,19 @@ export const burstStats = rank => ({
   cooldown:5.8-rank*.65,
   multiplier:2.25
 });
+// Checkpoints predating the starter-hull rebalance have no balance version.
+// The old base plus purchased hull ranks identifies them without changing a
+// current save or revoking bought upgrades. Preserve the same damage ratio.
+export function rebaseSavedHull(player,hullRanks=0){
+ const ranks=Math.max(0,Math.trunc(hullRanks)||0);
+ const previousMax=110+22*ranks;
+ if(!player||player.maxHp!==previousMax)return false;
+ const nextMax=STARTER_COMBAT.hull+22*ranks;
+ player.hp=Math.max(0,Math.min(nextMax,
+  Math.round(player.hp/previousMax*nextMax)));
+ player.maxHp=nextMax;
+ return true;
+}
 // Ease the opening decisions; from level 8 the existing curve is unchanged.
 const EARLY_XP_THRESHOLDS = Object.freeze([42, 68, 105, 155, 230, 330, 475]);
 export const legacyExpForNext = level =>
@@ -63,7 +88,8 @@ export const outsideCamera = (x, y, camera, radius = 0) =>
   x + radius < camera.x || x - radius > camera.x + camera.w ||
   y + radius < camera.y || y - radius > camera.y + camera.h;
 
-// Staged early pressure. Low caps protect performance and leave room to learn.
+// Nine seconds to take control, then genuine pressure from multiple scouts.
+// A larger formation is still capped, and the tougher classes arrive in order.
 export function openingThreat(time, level = 1) {
  if(time<9)return {cap:0,interval:9,groupSize:0,types:[]};
  if(time<36)return {cap:9,interval:7,groupSize:4,types:['scout']};
@@ -75,13 +101,21 @@ export function openingThreat(time, level = 1) {
  return {
   // The late game becomes more dangerous through tougher ships and formations,
   // without an unbounded crowd that overwhelms lower-end GPUs.
-  cap:Math.min(70,21+Math.floor(elapsed/22)+
+  cap:Math.min(70,33+Math.floor(elapsed/22)+
    Math.floor(Math.max(0,level-1)*1.2*Math.min(1,elapsed/90))),
-  interval:Math.max(1.6,4-elapsed/300-
+  interval:Math.max(1.6,3.8-elapsed/300-
    Math.max(0,level-1)*.025*Math.min(1,elapsed/90)),
-  groupSize:Math.min(3+Math.floor(elapsed/220),5),
+  groupSize:Math.min(4+Math.floor(elapsed/220),5),
   types:['scout','fighter','flanker','berserker','healer','gunship']
  };
+}
+// Opening patrols are budgeted by LOCAL contact, not only by every ship alive
+// somewhere in the sector. A second ambient budget prevents offscreen buildup.
+export function openingSpawnRoom(time,director,globalCount,localCount,ambientCount){
+ const globalRoom=RULES.maxEnemies-globalCount;
+ if(time>=205)return Math.max(0,Math.min(director.cap-globalCount,globalRoom));
+ return Math.max(0,Math.min(director.cap-localCount,
+  director.cap*2-ambientCount,globalRoom));
 }
 export class SpatialGrid {
   constructor(cell = 100) { this.cell = cell; this.map = new Map(); }

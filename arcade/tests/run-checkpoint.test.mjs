@@ -1,5 +1,5 @@
 import {EnemyComms} from '../enemy-comms.js';
-import {SpatialGrid} from '../balance.js';
+import {SpatialGrid,STARTER_COMBAT} from '../balance.js';
 import {createFieldLoan} from '../field-weapons.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -34,7 +34,7 @@ function scene(){
  const g=Object.create(ArcadeGame.prototype),world=new World(20261102),base=world.home;
  base.active=true;base.discovered=true;world.discovered.add(base.id);
  Object.assign(g,{seed:world.seed,world,docked:base,paused:true,dead:false,
-  player:{x:base.x+55,y:base.y+30,vx:0,vy:0,r:19,hp:73,maxHp:110,
+  player:{x:base.x+55,y:base.y+30,vx:0,vy:0,r:19,hp:73,maxHp:STARTER_COMBAT.hull,
    shield:0,xp:30,level:1,points:0,ore:20,data:30,invul:0,angle:0},
   shipLoadout:createLoadout(),skillRanks:{beam:0,double:0,range:0,rocket:0,hull:0,engine:0,shield:0,
    dodge:0,magnet:0,mining:0,extractor:0,radar:0,tactics:0},

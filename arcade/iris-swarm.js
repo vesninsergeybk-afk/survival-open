@@ -26,7 +26,8 @@ export const irisFreeHunter=(e,player)=>active(e)&&
  * requires an unobstructed ray and an actual world rock grid. */
 export function irisCanSense(e,game,target,range=IRIS_SWARM.sensorRange){
   if(!target||!(target.hp>0)||distance(e,target)>range)return false;
-  if(distance(e,target)<=290)return game.enemyCanSee?.(e,target)??true;
+  if(distance(e,target)<=290)
+    return game.enemyCanSee?.(e,target)??true;
   if(!game.rockGrid?.query)return game.enemyCanSee?.(e,target)??false;
   const d=distance(e,target);
   const rocks=game.rockGrid.query((e.x+target.x)*.5,(e.y+target.y)*.5,d*.5+80);

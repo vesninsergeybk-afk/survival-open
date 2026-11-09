@@ -73,7 +73,7 @@ export function openingArcPressure(director,arc,now,player,home){
  if(now<600&&nearby){
   const wave=Math.floor(Math.max(0,now-36)/92);
   const age=Math.max(0,now-36)%92;
-  if(now>=36&&age>=62&&age<88){
+  if(now>=155&&age>=62&&age<88){
    result={...result,interval:result.interval*1.65,
     cap:Math.max(4,result.cap-Math.min(6,2+wave))};
   }

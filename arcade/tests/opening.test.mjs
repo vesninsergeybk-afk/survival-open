@@ -17,8 +17,8 @@ test('первые минуты дают пространство для ман�
   assert.ok(!openingThreat(t).types.includes('gunship'),'дальнобойный корвет до 205 сек');
  }
  assert.ok(openingThreat(205).types.includes('gunship'));
- assert.equal(openingThreat(205).cap,21);
- assert.ok(openingThreat(206).cap<=26);
+ assert.equal(openingThreat(205).cap,33);
+ assert.ok(openingThreat(206).cap<=38);
  assert.ok(openingThreat(205).interval>3);
  assert.ok(openingThreat(500,10).cap<=RULES.maxEnemies);
 });

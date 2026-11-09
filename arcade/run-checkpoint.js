@@ -1,4 +1,5 @@
 import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1';
+import {rebaseSavedHull} from './balance.js';
 import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';
 import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-domains-1-supply-stronghold-1-territory-war-1-living-world-population-1-sector-density-2-pressure-response-1';
@@ -290,6 +291,7 @@ export function restoreCheckpoint(game,data){
  }
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
+ rebaseSavedHull(game.player,game.skillRanks?.hull);
  game.fieldLoot=data.state.fieldLoot||createFieldLoot();
  game.combatTempo=data.state.combatTempo||createCombatTempo();
  game._nextFieldLootCheckAt=0;
