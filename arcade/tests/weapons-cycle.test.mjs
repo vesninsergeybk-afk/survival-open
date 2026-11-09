@@ -70,10 +70,10 @@ test('a core cannot absorb the same howitzer explosion that killed its protectin
  updateHowitzer(g,.3);
  assert.ok(t.hp<=0);assert.equal(b.hp,500);assert.ok(combatTargets(g,700).some(x=>x.target===b));
 });
-test('howitzer blast respects cover on the far side of the impact',()=>{
+test('howitzer reaches the impact point beyond an intervening rock',()=>{
  const g=game(),e=enemy(200),r=rock(100,0,35);g.grid.insert(e);g.rockGrid.insert(r);g.damageRock=(r,d)=>{r.hp-=d;};
  g.weaponProfile.howitzer=true;g.heavyCharge={x:180,y:0,remaining:.01,total:1.25};
- updateHowitzer(g,.02);updateHowitzer(g,.3);assert.equal(e.hp,300);
+ updateHowitzer(g,.02);updateHowitzer(g,.3);assert.equal(e.hp,120);
 });
 test('a missile does not hit a structure that became friendly while it was in flight',()=>{
  const g=game(),b={x:150,y:0,r:60,hp:100,maxHp:500,enemy:false,captured:true,turrets:[]};
