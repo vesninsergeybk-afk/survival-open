@@ -1,4 +1,4 @@
-import {MODULES,FRAME_STEPS,SHIP_UPGRADES,createLoadout,moduleStats} from './ship-loadout.js';
+import {MODULES,FRAME_STEPS,SHIP_UPGRADES,createLoadout,moduleStats} from './ship-loadout.js?v=menu-ergonomics-1';
 import {WEAPON_SPECIALIZATIONS,quoteSpecialization} from './weapon-specializations.js';
 import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalQuote} from './tactical-fields.js';
 import {developmentPointLedger} from './experience.js';
@@ -12,7 +12,7 @@ const domains=[
  {id:'weapons',title:'Оружие',subtitle:'Мощность · дальность',theme:'cyan'},
  {id:'ship',title:'Корабль',subtitle:'Корпус · узлы',theme:'ice'},
  {id:'tactics',title:'Тактика',subtitle:'Поля · приёмы',theme:'violet'},
- {id:'network',title:'Станции',subtitle:'Сеть · оборона',theme:'ice'}
+ {id:'network',title:'Сеть',subtitle:'Вместимость контуров',theme:'ice'}
 ];
 const fieldSkills=new Set(['parasite','conduit','wreck','capture','signal','tactics']);
 const icons={beam:'calibration',range:'range',double:'split',rocket:'rocket',hull:'hull',
@@ -141,7 +141,8 @@ function weaponNodes(state){
  // Viewing an absent weapon must never look like upgrading that weapon.
  // Rocket technology is the exception: its first rank creates the launcher.
  const nodes=(state.hangarUpgrades||[]).filter(s=>relevant.includes(s.id)).map(s=>{
-  const node=skillNode(s,state,'hgUpgrade');
+  const node={...skillNode(s,state,'hgUpgrade'),shared:s.id==='beam',
+   scope:s.id==='beam'?'Общая технология: усиливает всё автоматическое оружие и урон ионной цепи, независимо от выбранной вкладки.':''};
   if(installed||(s.id==='rocket'&&node.rank===0)||node.rank>=node.max)return node;
   return {...node,status:'locked',canAct:false,reason:'Сначала установите «'+family.name+'» на корабль. Общие технологии можно изучать через уже установленное оружие.'};
  });
@@ -206,13 +207,14 @@ function tacticalNodes(state){
   ore:state.ore||0,points:state.points||0};
  const baseQuote=owned?tacticalQuote(tactical,'equip',id,context):tacticalQuote(tactical,'unlock',id,context);
  const baseReason=equipped?'Уже используется':baseQuote.reason||'';
- const nodes=[{id:'tactic-'+id,title:device.name,icon:art('tactics',
+ const nodes=[{id:'tactic-'+id,kind:'equipment',title:device.name,icon:art('tactics',
   ({pulse:'impulse',decoy:'decoy',trap:'gravity_trap',jam:'radio_jam'})[id]),
-  level:1,rank:owned?1:0,max:1,status:equipped?'mastered':baseQuote.ok?'ready':owned?'waiting':'locked',
+  level:1,rank:owned?1:0,max:1,status:equipped?'mastered':'info',
+  equipmentStatus:equipped?'Используется':owned?'Получено':'Не получено',
   description:device.desc,effect:device.role,activation:'Для запуска нажмите %FIELD%.',
-  reason:baseReason,action:owned?'hgTacticEquip':'hgTacticUnlock',actionId:id,
-  actionLabel:owned?'Установить':'Получить · '+device.cost+' сплава',canAct:!!baseQuote.ok,
-  cost:owned?'Бесплатная установка':device.cost+' сплава'}];
+  reason:'',action:'openEquipmentTactic',actionId:id,
+  actionLabel:equipped?'Посмотреть устройство':'Открыть в оснащении',canAct:true,
+  cost:owned?'Установка бесплатна':device.cost+' сплава'+(baseReason?' · '+baseReason:'')}];
  for(const [path,branch] of Object.entries(TACTICAL_BRANCHES[id]||{})){
   const current=tactical.branches[id],rank=current?.path===path?current.rank:0;
   const exclusive=!!current&&current.path!==path,quote=tacticalQuote(tactical,'upgrade',id,{...context,path});
@@ -229,22 +231,6 @@ function tacticalNodes(state){
 }
 
 function networkNodes(state){
- const base=state.station||{},linked=state.connectedBases||0;
- const navigation=[
-  {id:'network-tech',title:'Технологии станций',icon:art('tactics','flux_capacitor'),level:1,
-   description:'Каждая станция может один раз вложить сплав в общую технологию флота.',
-   effect:'Улучшения оплачиваются сплавом, очки развития пилота не расходуются.',
-   activation:base.usedUpgrade?'Вклад этой станции уже использован. Можно продолжать развитие на других станциях.':'Откройте раздел «Станция» и посмотрите стоимость и условия следующего улучшения.'},
-  {id:'network-defense',title:'Оборона станций',icon:art('tactics','station_triangle'),level:1,
-   description:'Защитные заряды, стазис и выбор перехвата орбитальных ударов.',
-   effect:'Оборона работает по действующим правилам станции.',
-   activation:'Откройте раздел «Станция», чтобы увидеть заряды, условия и варианты обороны.'},
-  {id:'network-links',title:'Связь и маршруты',icon:art('tactics','station_triangle'),level:1,
-   description:'Связь с домашним доком, перелёты и сеть станций.',
-   effect:'В радиосети дока сейчас '+linked+' станц.',
-   activation:'Откройте раздел «Станция»: там указаны реальные маршруты и условия связи.'}
- ].map(n=>({...n,kind:'navigation',rank:0,max:1,status:'ready',reason:'',action:'baseTab',actionId:'network',
-  actionLabel:'Открыть раздел станции',canAct:true,cost:'По условиям станции'}));
  const rank=state.turretSlotRank||0,price=[{ore:15,flux:4},{ore:25,flux:8}][rank];
  const reason=!price?'Максимальная вместимость':!state.activeContourTrials?
   'Сначала защитите первый треугольник':(state.ore||0)<price.ore?'Нужно '+price.ore+' сплава':
@@ -255,7 +241,7 @@ function networkNodes(state){
   effect:'Места для сооружений на каждой грани: '+(rank+1)+'. Действует на артиллерию, разрядники, лазерные гнёзда и дроновые матки.',
   activation:'Выберите улучшение здесь на станции или через меню строительства во время вылета.',
   reason,action:'hgNetworkSlots',actionId:'',actionLabel:price?'Расширить сеть':'Улучшено полностью',
-  canAct:!reason,cost:price?price.ore+' сплава + '+price.flux+' флюкса':'—'},...navigation];
+  canAct:!reason,cost:price?price.ore+' сплава + '+price.flux+' флюкса':'—'}];
 }
 
 function branchButtons(domain,state){
@@ -293,7 +279,8 @@ export function progressionModel(state){
 function nodeHtml(node,selected){
  const labels={ready:'Доступно',mastered:'Изучено',waiting:'Не выполнены условия',locked:'Закрыто',
   exclusive:'Другой путь',info:'Оснащение'};
- const progress=node.kind==='navigation'?'Раздел станции':node.kind==='equipment'?(node.rank?'Установлено':'Оснащение'):
+ const progress=node.shared?'Общая технология · '+node.rank+'/'+node.max:
+  node.kind==='navigation'?'Раздел станции':node.kind==='equipment'?(node.equipmentStatus||(node.rank?'Получено':'Не получено')):
   node.rank+'/'+node.max+' · '+(labels[node.status]||'Сведения');
  return '<button type="button" class="prog-node" data-act="devFocus" data-id="'+esc(node.id)+'" data-node="'+esc(node.id)+'"'+
   (node.requires?' data-requires="'+esc(node.requires)+'"':'')+' data-status="'+esc(node.status)+'" aria-pressed="'+(selected?.id===node.id)+'"'+
@@ -325,14 +312,15 @@ function detailHtml(node,domain,weapon,state){
  const fieldMounted=state.fieldLoan&&state.loadout?.slots?.includes(state.fieldLoan.moduleId||'ion');
  const fieldCollision=domain==='tactics'&&node.id.startsWith('tactic-')&&fieldMounted?
   'Сейчас клавиша '+key('field')+' занята установленным полевым оружием. Пока оно установлено, полевое устройство не запускается.':null;
- const status=node.kind==='navigation'?'Раздел станции':node.status==='info'?'Оборудование':node.status==='mastered'?'Изучено':node.status==='ready'?'Доступно':
-  node.status==='exclusive'?'Другая ветка выбрана':node.status==='waiting'?'Ждёт ресурса':'Закрыто';
+ const status=node.equipmentStatus|| (node.shared?'Общая технология':node.kind==='navigation'?'Раздел станции':node.status==='info'?'Оборудование':node.status==='mastered'?'Изучено':node.status==='ready'?'Доступно':
+  node.status==='exclusive'?'Другая ветка выбрана':node.status==='waiting'?'Ждёт ресурса':'Закрыто');
  const cta='<button type="button" class="prog-action" data-act="'+esc(node.action)+'"'+
   (node.actionId?' data-id="'+esc(node.actionId)+'"':'')+(node.action==='baseTab'?' data-role="network"':'')+
   (node.canAct?'':' disabled')+'>'+esc(node.actionLabel)+'</button>';
  return '<aside class="prog-detail" aria-label="Выбранное улучшение"><div class="prog-detail-main">'+
   '<span class="prog-detail-illustration"><img src="'+esc(node.icon)+'" alt="" class="prog-detail-icon">'+branchMark(node.mark)+'</span><div class="prog-detail-copy"><span class="prog-detail-status" data-status="'+esc(node.status)+'">'+status+'</span><h3>'+esc(node.title)+'</h3>'+
-  '<p>'+esc(node.description)+'</p>'+(node.masteryAt?'<p class="prog-mastery-hint">Два ранга: выбор ветки с уровня '+node.level+', мастерство с уровня '+node.masteryAt+'.</p>':'')+'</div></div><div class="prog-detail-facts">'+
+  '<p>'+esc(node.description)+'</p>'+(node.scope?'<p class="prog-shared-scope">'+esc(node.scope)+'</p>':'')+
+  (node.masteryAt?'<p class="prog-mastery-hint">Два ранга: выбор ветки с уровня '+node.level+', мастерство с уровня '+node.masteryAt+'.</p>':'')+'</div></div><div class="prog-detail-facts">'+
   '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p></div><div><b>Как применять</b><p>'+esc(activation)+'</p>'+
   (fieldCollision?'<p class="prog-control-warning">'+esc(fieldCollision)+'</p>':'')+'</div></div>'+
   '<div class="prog-detail-actions"><span class="prog-cost">Стоимость: '+esc(node.cost)+'</span>'+cta+
@@ -380,16 +368,17 @@ export function renderProgressionScreen(state){
   domains.map((d,index)=>'<button type="button" class="prog-domain domain-'+d.id+'" data-act="devDomain" data-id="'+d.id+'" aria-pressed="'+(domain===d.id)+'"'+
    ' title="'+esc(d.subtitle)+'"><img src="'+art('domains',d.id==='network'?'stations':d.id)+'" alt=""><strong>'+d.title+'</strong></button>').join('')+
   '</div></aside>';
+ const mountedSlots=weapon&&!weapon.manual?(state.loadout?.slots||[]).flatMap((id,index)=>id===weapon.family.id?[index===5?'H':index+1]:[]):[];
  const weaponHead=weapon?'<div class="prog-weapon-summary" data-installed="'+(weapon.manual?'manual':weapon.installed)+'">'+
   '<img src="'+art('weapons',weapon.family.id)+'" alt=""><div class="prog-weapon-heading">'+
   '<small>ВЫБРАНО ДЛЯ ПРОСМОТРА</small><strong>'+esc(weapon.family.name)+'</strong><span class="prog-weapon-state">'+
-  (weapon.manual?'Доступно сразу · '+weapon.control+' · без установки':weapon.installed?'✓ На корабле · '+weapon.installedCount+' шт.':'Не установлено на корабле')+
+  (weapon.manual?'Доступно в полёте · '+weapon.control+' · без установки':weapon.installed?'✓ На корабле · '+weapon.installedCount+' шт. · '+(mountedSlots.length===1?'узел ':'узлы ')+mountedSlots.join(', '):'Не установлено на корабле')+
   '</span><span>'+esc(weapon.family.role)+' · дальность '+esc(weapon.stats?.range)+' м'+
   (weapon.manual?' · '+esc(weapon.stats?.summary):'')+'</span></div></div>':'';
  const weaponNote=weapon?'<p class="prog-weapon-guidance">'+
   (weapon.manual?'Вы выбираете ветку развития ручного оружия. Для применения используйте '+esc(weapon.control)+'.':
    weapon.installed?'Улучшения этого оружия действуют в бою. Выбор вкладки не меняет оснащение корабля.':
-   'Это оружие пока не стреляет. Его улучшения показаны для ознакомления, но изучить их можно после установки в ангаре. Общие технологии доступны через установленное оружие'+
+   'Это оружие пока не стреляет. Его улучшения показаны для ознакомления, но изучить их можно после установки в «Оснащении». Общие технологии доступны через установленное оружие'+
    (weapon.family.id==='rocket'?'; «Авторакеты» сначала создают первый модуль.':'.'))+
   '</p>':'';
  const branch=branchButtons(domain,state);
@@ -397,6 +386,7 @@ export function renderProgressionScreen(state){
   '<div class="prog-workspace"><div class="prog-workspace-head"><div><span>НАПРАВЛЕНИЕ</span><h2>'+meta.title+'</h2></div>'+
   '<div class="prog-points-hint">'+ledger.spent+' потрачено · '+ledger.free+' '+pointsWord(ledger.free)+' свободно</div></div>'+
   (branch?'<nav class="prog-subtabs" aria-label="'+(domain==='weapons'?'Оружие для просмотра развития':'Разделы направления')+'">'+branch+'</nav>':'')+weaponHead+weaponNote+
+  (state.stationMenuContext?.origin==='hangar'?'<button type="button" class="menu-context-return" data-act="menuContextBack">← Назад к оснащению</button>':'')+
   treeHtml(nodes,selected)+detailHtml(selected,domain,weapon,state)+spentPointsHtml(state,ledger)+'</div></div></section>';
 }
 

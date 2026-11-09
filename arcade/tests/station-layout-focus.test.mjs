@@ -93,7 +93,7 @@ test('station network exposes territory and development before defence, with opt
 test('station navigation is named for the place it manages and has no duplicate footer instructions',()=>{
  const html=renderBasePanel(home,state());
  assert.match(html,/data-role="network"[^>]*>Станция<\/button>/);
- assert.match(html,/data-role="hangar"[^>]*>Корабль<\/button>/);
+ assert.match(html,/data-role="hangar"[^>]*>Оснащение<\/button>/);
  assert.doesNotMatch(html,/Задания, корабль и улучшения доступны в разделах выше/);
 });
 

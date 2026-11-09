@@ -49,7 +49,7 @@ test('station terminal shows pilot XP and the remote operation without losing ot
  assert.match(html,/Особая операция|Перехват снабжения/);
  assert.match(html,/Показать конвой/);
  assert.match(html,/Опыт <b>240 \/ /);
- assert.match(html,/очки <b>0<\/b>/);
+ assert.match(html,/Очки развития <b>0<\/b>/);
 });
 
 test('mission map frames a known goal even after viewing a different map layer',()=>{

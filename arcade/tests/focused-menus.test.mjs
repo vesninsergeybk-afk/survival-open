@@ -102,20 +102,16 @@ test('the tactical cooldown describes the selected upgraded device, including wh
  assert.match(html,new RegExp('перезарядка '+tacticalSpec({...g.tactical,equipped:'pulse'}).cooldown+' с'));
 });
 
-test('hull and frame show the requirements without unrelated weapon technologies',()=>{
+test('equipment no longer repeats hull development controls or technologies',()=>{
  const g=dockedGame();g.player.level=1;g.player.points=0;g.hangarView='upgrades';
  const html=renderShipHangar(g.baseState(),g.hangarSession);
- assert.match(html,/Укрепление корпуса/);
- assert.match(html,/0 из 5 рангов/);
- assert.match(html,/Следующий оружейный узел: Третий узел · уровень 4 · 48 сплава/);
- assert.match(html,/data-act="openDevelopment" data-id="ship"/);
- assert.doesNotMatch(html,/data-act="hgUpgrade"|data-act="hgFrame"/);
- assert.doesNotMatch(html,/Калибровка орудий|Авторакеты|Разделение луча/);
  assert.match(html,/Оружейные узлы/);
+ assert.match(html,/data-act="hgView" data-id="tactics"/);
+ assert.doesNotMatch(html,/data-act="hgUpgrade"|data-act="hgFrame"/);
+ assert.doesNotMatch(html,/Укрепление корпуса|Калибровка орудий|Авторакеты|Разделение луча/);
  g.player.level=3;g.player.points=1;
  const available=renderShipHangar(g.baseState(),g.hangarSession);
- assert.match(available,/Укрепление корпуса/);
- assert.match(available,/Импульсный форсаж/);
+ assert.match(available,/Оружейные узлы/);
  assert.doesNotMatch(available,/data-act="hgUpgrade"/);
 });
 

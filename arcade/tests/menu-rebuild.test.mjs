@@ -14,13 +14,14 @@ function station(extra={}){
  return {g,base:g.docked,state:{...g.baseState(),...extra}};
 }
 
-test('the overview links to missions and one maintenance destination without duplicating transactions',()=>{
+test('the overview keeps missions separate and exposes immediate repair and hire',()=>{
  const {g,base,state}=station({hp:100});
  const html=renderBasePanel(base,state);
  assert.match(html,/data-act="baseTab" data-role="operations">Посмотреть задания/);
  assert.doesNotMatch(html,/data-act="acceptOperation"|data-act="acceptContract"/);
- assert.equal((html.match(/data-act="openShipService"/g)||[]).length,2);
- assert.doesNotMatch(html,/data-act="repair"|data-act="hire"/);
+ assert.equal((html.match(/data-act="openShipService"/g)||[]).length,0);
+ assert.match(html,/data-act="hire"/);
+ assert.match(html,/class="base-secondary-info base-overview-other-services"/);
  assert.match(html,/id="base-panel-operations"[^>]* hidden><\/section>/);
  g.baseTab='operations';g.paused=true;
  const missions=renderBasePanel(base,g.baseState());
@@ -92,11 +93,11 @@ test('fitting and development show separate actions and only one no-spend explan
  assert.doesNotMatch(fitting,/Корпус 1 \/ 10/);session.catalog=false;assert.match(renderShipHangar(state,session),/Узлы:/);
 });
 
-test('the ship summarizes its upgrades and directs purchases to the single progression atlas',()=>{
+test('the ship has two equipment choices without duplicate development pages',()=>{
  const {g,base}=station();
  const render=view=>renderBasePanel(base,{...g.baseState(),baseTab:'hangar',hangarView:view});
- const systems=render('upgrades');assert.match(systems,/Укрепление корпуса/);assert.doesNotMatch(systems,/data-act="hgUpgrade"/);
- assert.match(systems,/data-act="openDevelopment" data-id="ship"/);
+ const systems=render('upgrades');assert.match(systems,/data-ship-view="weapons"/);
+ assert.doesNotMatch(systems,/data-act="hgView" data-id="upgrades"|data-act="hgUpgrade"/);
  const weapons=render('weapon-upgrades');assert.match(weapons,/data-act="openDevelopment" data-id="weapons"/);
  assert.doesNotMatch(weapons,/data-act="hgUpgrade"|data-act="hgSpec"/);
 });
@@ -138,7 +139,7 @@ test('an available doctrine has a visible selectable node without spending point
 
 test('repair controls disappear for an intact ship, and station specializations keep their confirmation path',()=>{
  const {base,state}=station();
- const services=renderBasePanel(base,{...state,baseTab:'hangar',hangarView:'services'});
+ const services=renderBasePanel(base,{...state,baseTab:'summary'});
  assert.match(services,/Корпус исправен/);assert.doesNotMatch(services,/data-act="repair"|data-act="repairDrones"/);
  const growth=renderBasePanel(base,{...state,baseTab:'network',ore:100});
  assert.match(growth,/data-act="installModule"/);assert.match(growth,/потребуется подтверждение/);
