@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {createContours,connectContour} from '../territory-system.js';
 import {artilleryOffer,deployArtillery,advanceFluxArtillery} from '../flux-artillery.js';
-import {SUPPORT_TYPES,supportOffer,deploySupport,advanceFluxSupports,
+import {SUPPORT_TYPES,laserFalloff,supportOffer,deploySupport,advanceFluxSupports,
  supportUpgradeOffer,upgradeSupport,setSupportMode,validFluxSupports,
  drawFluxSupports} from '../flux-supports.js';
 import {hitFriendlyShip} from '../enemy-shot-targets.js';
@@ -106,6 +106,15 @@ test('laser burst is pulsed, weakens with distance and can be upgraded to twin e
  assert.equal(validFluxSupports(world.contours),true);
 });
 
+test('laser fades almost to nothing near maximum range without a strong edge cutoff',()=>{
+ const range=SUPPORT_TYPES.laser.range;
+ assert.equal(laserFalloff(0,range),1);
+ assert.ok(laserFalloff(range*.25,range)>.85,'close shots retain their damage');
+ assert.ok(laserFalloff(range*.65,range)>laserFalloff(range*.9,range));
+ assert.ok(laserFalloff(range*.9,range)<.15,'distant shots are weak');
+ assert.ok(laserFalloff(range,range)<.03,'the last visible shot is nearly harmless');
+});
+
 test('nearby laser receives a genuinely usable first volley within the first ten seconds',()=>{
  const {world,player,point,game}=fixture();
  const t=deploySupport(world,player,point,0,'laser').turret;
@@ -136,6 +145,19 @@ test('mothership launches one prepaid drone, makes replacements for flux and dro
  assert.equal(level.level,2);
  assert.equal(upgradeSupport(world,player,hive,game.time).level,3);
  assert.equal(upgradeSupport(world,player,hive,game.time).ok,false);
+ assert.equal(validFluxSupports(world.contours),true);
+});
+
+test('destroying a mothership disables every surviving drone instead of leaving untargetable ghosts',()=>{
+ const {world,player,point,game}=fixture();
+ const hive=deploySupport(world,player,point,0,'hive').turret;
+ game.time=5;advanceFluxSupports(game,.25);
+ assert.equal(hive.drones.filter(d=>d.hp>0).length,1);
+ hive.hp=0;game.time=5.1;advanceFluxSupports(game,.1);
+ assert.equal(hive.drones.filter(d=>d.hp>0).length,0);
+ assert.equal(hive.lastDestroyedAt,5.1);
+ game.time=100;advanceFluxSupports(game,.1);
+ assert.equal(hive.drones.filter(d=>d.hp>0).length,0);
  assert.equal(validFluxSupports(world.contours),true);
 });
 
@@ -196,4 +218,23 @@ test('stable centered sprites, interaction, saves, hostile fire and recorded eff
  const ctx=new Proxy({}, {get(_,key){if(key==='canvas')return {width:1200,height:900};
   return ()=>{};},set(){return true;}});
  assert.doesNotThrow(()=>drawFluxSupports(ctx,game,{x:0,y:0,w:1200,h:900}));
+});
+
+test('a destroyed support stays visible and repairable after its explosion fades',()=>{
+ const {world,player,point,game}=fixture();
+ const tower=deploySupport(world,player,point,0,'arc').turret;
+ tower.hp=0;tower.lastDestroyedAt=5;game.time=35;
+ const stack=[],labels=[];
+ const state={globalAlpha:1};
+ const ctx=new Proxy(state,{get(o,k){
+  if(k==='save')return ()=>stack.push(o.globalAlpha);
+  if(k==='restore')return ()=>{o.globalAlpha=stack.pop();};
+  if(k==='fillText')return text=>labels.push({text,alpha:o.globalAlpha});
+  return k in o?o[k]:()=>{};
+ },set(o,k,v){o[k]=v;return true;}});
+ drawFluxSupports(ctx,game,{x:0,y:0,w:1200,h:900});
+ const label=labels.find(x=>x.text==='РАЗРУШЕНА');
+ assert.ok(label,'a wreck with a reserved edge slot needs a visible repair marker');
+ assert.ok(label.alpha>=.4,'the wreck must not become fully transparent');
+ assert.equal(tower.hp,0,'visuals do not auto-repair the tower');
 });

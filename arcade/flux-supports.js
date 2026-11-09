@@ -17,6 +17,12 @@ export const SUPPORT_TYPES=Object.freeze({
 export const SUPPORT_MAX=60, SUPPORT_PACKET_MAX=256;
 const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(x,min,max)=>Math.max(min,Math.min(max,x));
+// The beam loses almost all power before acquisition ends: its outer edge
+// must not remain a visibly strong shot followed by an abrupt cutoff.
+export const laserFalloff=(distance,range)=>{
+ const ratio=clamp(distance/Math.max(1,range),0,1);
+ return .025+.975*Math.pow(Math.max(0,1-ratio*ratio),1.35);
+};
 const liveStructures=world=>[
  ...(world?.contours?.artillery||[]),...(world?.contours?.supportTurrets||[])]
  .filter(t=>t.hp>0);
@@ -176,7 +182,7 @@ function electricShot(game,t,cfg){
 }
 function laserPulse(game,t,cfg){
  const target=chooseTarget(game,t,cfg.range,t.mode);if(!target)return;
- const range=d(t,target.object),falloff=clamp(1-.78*(range/cfg.range)**1.65,.22,1);
+ const range=d(t,target.object),falloff=laserFalloff(range,cfg.range);
  const shots=t.level>=2?2:1;
  damageTarget(game,target,cfg.damage*falloff*shots,t);
  t.aimX=target.object.x;t.aimY=target.object.y;
@@ -230,7 +236,21 @@ export function advanceFluxSupports(game,dt){
  }
  s.supportPackets=s.supportPackets.filter(x=>!x.done);
  for(const t of s.supportTurrets){
-  if(t.hp<=0){if(t.lastDestroyedAt<0)t.lastDestroyedAt=now;continue;}
+  if(t.hp<=0){
+   if(t.lastDestroyedAt<0)t.lastDestroyedAt=now;
+   // A dead carrier must not leave motionless, untargetable drones orbiting
+   // forever. It also prevents stale drone counts in an old checkpoint.
+   if(t.type==='hive'){
+    let lost=0;
+    for(const drone of t.drones){
+     if(drone.hp<=0)continue;
+     drone.hp=0;lost++;
+     game.heritage?.vfx?.shipExplosion?.(drone.x,drone.y,18,'#83f5c9');
+    }
+    if(lost)game.heritage?.play?.('supportDroneLost',.45,t);
+   }
+   continue;
+  }
   const cfg=supportConfig(t);if(!cfg)continue;
   if(t.readyAt>now)continue;
   if(now-dt<t.readyAt)game.heritage?.play?.('supportOnline',.8,t);
@@ -354,7 +374,9 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
    ctx.restore();
   }
   ctx.save();ctx.translate(t.x,t.y);
-  if(!live)ctx.globalAlpha=1-clamp((age-3.8)/1.2,0,1);
+  // Ruins reserve their edge slot for repair. Keep a dim but visible socket
+  // indefinitely so the pilot can actually find and restore it.
+  if(!live)ctx.globalAlpha=Math.max(.42,1-clamp((age-3.8)/1.2,0,1));
   if(t.type==='hive'&&!building&&live&&!reduced)
    ctx.translate(Math.sin(now*.8+t.id)*1.7,Math.cos(now*.66+t.id)*2.2);
   ctx.save();
