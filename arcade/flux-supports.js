@@ -1,5 +1,6 @@
 import {artilleryLinks,artilleryConnection,edgeTurretOccupancy,edgeTurretLimit,ARTILLERY_MODES,FLUX_ARTILLERY,
- turnArtilleryGun} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1';
+ turnArtilleryGun} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1';
+import {frontierBuoysNear,damageFrontierBuoy} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {arcChainCount,arcRange,arcCooldown,arcSlowSeconds,laserEmitters,laserCooldown,
  laserBurst,laserRange,hiveLimit,hiveRange,hiveArmor,supportSupply,turretBranchRank,
  validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1-audit-1';
@@ -121,6 +122,8 @@ const availableTargets=(game,center,range)=>{
   if(forts.length)targets.push(...forts.map(object=>({kind:'fort',object})));
   else if(d(st,center)<=range)targets.push({kind:'base',object:st});
  }
+ for(const buoy of frontierBuoysNear(game.world,center.x,center.y,range))
+  targets.push({kind:'buoy',object:buoy});
  return targets;
 };
 const supportTargetCache=new WeakMap(),SUPPORT_TARGET_SCAN_SECONDS=.12;
@@ -167,6 +170,13 @@ function chooseTarget(game,origin,range,mode='smart'){
 function damageTarget(game,target,power,source){
  if(!target||target.object.hp<=0)return;
  if(target.kind==='enemy')game.damageEnemy(target.object,power,source);
+ else if(target.kind==='buoy'){
+  const hit=damageFrontierBuoy(game.world,target.object,power,game.time);
+  if(hit.destroyed){
+   game.heritage?.vfx?.nova?.(target.object.x,target.object.y,85,'magenta');
+   game.heritage?.play?.('shieldBreak',.5,target.object);
+  }
+ }
  else if(target.kind==='fort')game.hitTurret(target.object,power,null,'artillery');
  else game.hitEnemyBase(target.object,power,'artillery');
 }

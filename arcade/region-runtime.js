@@ -12,8 +12,8 @@ import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 import {advanceEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
 import {advanceEnemyFortifications,FORT_STAGES} from './enemy-fortifications.js?v=industrial-forts-1';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
-import {updatePopulationWorld,drawPopulationWorld} from './population-runtime.js?v=sector-density-2';
-import {interceptPopulationCargo,populationAlarm} from './world-population.js?v=sector-density-2';
+import {updatePopulationWorld,drawPopulationWorld} from './population-runtime.js?v=sector-density-2-frontier-siege-1';
+import {interceptPopulationCargo,populationAlarm} from './world-population.js?v=sector-density-2-frontier-siege-1';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 /** Translate *completed simulation events*, never a speculative plan, into a

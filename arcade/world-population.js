@@ -1,5 +1,6 @@
 import {hash} from './balance.js';
 import {REGIONS} from './regions.js';
+import {seedFrontierNetwork,advanceFrontierNetwork,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
 
 // A fixed, seeded civilization already occupies the sector at launch.
 // Distant factories and transports advance as orders, not hundreds of AI actors.
@@ -65,7 +66,7 @@ function colony(seed,region,index){
    hp:stationHp[role]+tier*65};
  });
  const ready=Math.min(POPULATION.maxReserve,10+tier*4+(fortress?8:0));
- return {id,region,index,x:center.x,y:center.y,tier,fortress,rotation,
+ const district={id,region,index,x:center.x,y:center.y,tier,fortress,rotation,
   buildings,ore:24+Math.floor(hash(index,39,seed)*18),
   miners:Array.from({length:workerCount},(_,n)=>({
    id:id+':miner:'+n,colonyId:id,populationWorker:true,
@@ -84,6 +85,8 @@ function colony(seed,region,index){
     maxHp:POPULATION.shieldSegmentHp,angle:rotation+i*TAU/3})),
    breachUntil:0,repairAt:0,spent:0
   }:null};
+ seedFrontierNetwork(district);
+ return district;
 }
 
 export function createPopulation(seed=20261102,time=0){
@@ -312,6 +315,8 @@ export function advancePopulation(world,time){
     c.radioQueue=c.radioQueue.filter(m=>m.dueAt>t);
    }
    updateShield(c,t);
+   for(const event of advanceFrontierNetwork(world,c,t))
+    events.push(record(state,event.kind,c,t,{frontId:event.frontId,buoyId:event.buoyId}));
    if(c.buildQueued&&t>=c.buildUntil){
     c.buildQueued=false;c.ready=Math.min(POPULATION.maxReserve,c.ready+POPULATION.shipsPerBuild);
     c.built+=POPULATION.shipsPerBuild;
@@ -430,6 +435,23 @@ export function validPopulation(state,stations,time){
    !Array.isArray(c.radioQueue)||c.radioQueue.length>6||
    !Array.isArray(c.sorties)||c.sorties.length>30||
    !Array.isArray(c.respondedToFields)||c.respondedToFields.length>32||
+   c.fronts!==undefined&&(!Array.isArray(c.fronts)||c.fronts.length>FRONTIER.maxFronts||
+    c.fronts.some((f,fi)=>f.id!==c.id+':front:'+fi||
+     !Number.isFinite(f.bearing)||Math.abs(f.bearing)>Math.PI||
+     !Number.isFinite(f.x)||!Number.isFinite(f.y)||
+     !Number.isFinite(f.createdAt)||f.createdAt<0||f.createdAt>time||
+     !Number.isFinite(f.targetX)||!Number.isFinite(f.targetY)||
+     !Array.isArray(f.nodes)||f.nodes.length!==FRONTIER.count||
+     f.nodes.some((b,i)=>b.id!==f.id+':'+i||b.colonyId!==c.id||b.slot!==i||
+      b.r!==46||!Number.isFinite(b.x)||!Number.isFinite(b.y)||
+      Math.hypot(b.x-c.x,b.y-c.y)>FRONTIER.radius+FRONTIER.spacing*4||
+      !Number.isFinite(b.hp)||b.hp<0||b.hp>b.maxHp||
+      b.maxHp!==FRONTIER.nodeHp||!Number.isFinite(b.buildAt)||
+      !Number.isFinite(b.repairAt)||b.buildAt<0||b.repairAt<0||
+      b.buildAt>time+FRONTIER.buildSeconds*FRONTIER.count+2||
+      b.repairAt>time+FRONTIER.repairSeconds+2||
+      (b.nextShotAt!==undefined&&(!Number.isFinite(b.nextShotAt)||
+       b.nextShotAt<0||b.nextShotAt>time+7)))))||
    c.respondedToFields.some(id=>typeof id!=='string'||id.length>220)||
    c.sorties.some(s=>!Number.isInteger(s.serial)||s.serial<0||
      !Number.isFinite(s.x)||!Number.isFinite(s.y)||

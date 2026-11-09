@@ -1,4 +1,5 @@
 import {contourFields} from './territory-system.js';
+import {frontierBuoysNear,damageFrontierBuoy} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {productiveContourFields} from './contour-trials.js';
 import {artilleryBarrels,artilleryCooldown,artilleryBlast,artilleryRange,artillerySupply,
  artilleryShotUnits,artilleryShellDamage,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
@@ -193,6 +194,8 @@ function targetsInRange(game,turret){
   else if(distance(base,turret)<=reach)
    targets.push({kind:'base',object:base});
  }
+ for(const buoy of frontierBuoysNear(game.world,turret.x,turret.y,FLUX_ARTILLERY.range))
+  targets.push({kind:'buoy',object:buoy});
  return targets;
 }
 function predicted(object,turret){
@@ -254,6 +257,13 @@ function impactShell(game,state,shell){
     if(shell.anomaly>=3&&victim.type!=='boss'&&!victim.openingCommander&&
        !victim.relayAssault&&!victim.stationRaid)
      victim.stasisUntil=Math.max(victim.stasisUntil||0,game.time+.42);
+   }
+  }
+  else if(target.kind==='buoy'){
+   const hit=damageFrontierBuoy(game.world,victim,damage,game.time);
+   if(hit.destroyed){
+    game.heritage?.vfx?.nova?.(victim.x,victim.y,100,'magenta');
+    game.heritage?.play?.('shieldBreak',.55,victim);
    }
   }
   else if(target.kind==='fort')game.hitTurret(victim,damage,null,'artillery');

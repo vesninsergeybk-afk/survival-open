@@ -140,6 +140,18 @@ export function renderWorldMap(game){
   return '<path d="M '+x.x.toFixed(1)+' '+x.y.toFixed(1)+' L '+y.x.toFixed(1)+' '+y.y.toFixed(1)+
    '" stroke="#77e2d3" opacity=".52" stroke-width="2" stroke-dasharray="7 5"/>';
  }).join('');
+ const knownIds=new Set(known.map(b=>b.id));
+ const hostileFronts=(world.population?.colonies||[])
+  .filter(c=>knownIds.has(c.id+':relay'))
+  .flatMap(c=>(c.fronts||[]).flatMap(front=>front.nodes.slice(1).map((b,i)=>{
+   const a=front.nodes[i];if(a.hp<=0&&a.buildAt===0||b.hp<=0&&b.buildAt===0)return '';
+   const x=point(a.x,a.y,center,scale),y=point(b.x,b.y,center,scale);
+   if(!visible(x)&&!visible(y))return '';
+   const active=a.hp>0&&b.hp>0;
+   return '<path d="M '+x.x.toFixed(1)+' '+x.y.toFixed(1)+' L '+y.x.toFixed(1)+' '+y.y.toFixed(1)+
+    '" stroke="'+(active?'#e08cff':'#ffba79')+'" opacity="'+(active?'.86':'.52')+
+    '" stroke-width="'+(active?'3':'1.5')+'"'+(active?'':' stroke-dasharray="5 6"')+'/>';
+  }))).join('');
  const enemyOrders=enemyIntentMapPaths(game,(x,y)=>point(x,y,center,scale),visible);
  const parasiteEchoes=(game.fieldEvolution?.reveals||[])
   .filter(e=>e.until>game.time).map(e=>{
@@ -407,7 +419,7 @@ export function renderWorldMap(game){
   '<section class="map-shell"><div class="map-canvas"><div class="map-plot"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   chartBackdrop(world.seed,center,scale)+atlasStars(world.seed,center,scale,false)+
   '<circle cx="'+pilot.x.toFixed(1)+'" cy="'+pilot.y.toFixed(1)+'" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
-  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+defenseRing+securedRoutes+carrierPath+ambushMark+route+echoes+intelMarks+marks+operationMark+fieldMarks+enemyOrders+parasiteEchoes+
+  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+hostileFronts+defenseRing+securedRoutes+carrierPath+ambushMark+route+echoes+intelMarks+marks+operationMark+fieldMarks+enemyOrders+parasiteEchoes+
   pendingTrialMapArtwork(world,center,scale,(entry,c,s)=>point(entry.x,entry.y,c,s))+
   pilotGlyph(pilot.x,pilot.y)+chartFrame(center,scale,{local:true})+
   '<text x="'+(pilot.x+11).toFixed(1)+'" y="'+(pilot.y+26).toFixed(1)+'" fill="#dcffff" font-size="12">ВЫ</text></svg>'+

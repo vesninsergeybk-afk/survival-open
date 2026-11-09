@@ -1,6 +1,7 @@
 import {hash} from './balance.js';
 import {REGIONS} from './regions.js';
-import {POPULATION} from './world-population.js?v=sector-density-2';
+import {POPULATION} from './world-population.js?v=sector-density-2-frontier-siege-1';
+import {drawAnomalyWrecks} from './enemy-frontier-render.js?v=frontier-art-1';
 
 const TAU=Math.PI*2;
 const types=['gravity','ion','wrecks','pulsar','meteor'];
@@ -98,6 +99,7 @@ export function updateSpaceAnomalies(game,dt){
 }
 export function drawSpaceAnomalies(game,c,cam){
  const time=game.time;
+ const reduced=game.visuals?.reducedMotion||game.fps<34;
  for(const f of game.world.anomalies||[]){
   if(!view(f,cam))continue;
   const color=colors[f.type],t=cycle(f,time);
@@ -105,26 +107,37 @@ export function drawSpaceAnomalies(game,c,cam){
   c.strokeStyle=color;c.fillStyle=color;
   c.translate(f.x,f.y);
   const glow=.12+.1*Math.sin(time*.8+f.phase);
-  c.globalAlpha=glow;c.beginPath();c.arc(0,0,f.r,0,TAU);c.fill();
+  const atmosphere=typeof c.createRadialGradient==='function'?
+   c.createRadialGradient(0,0,12,0,0,f.r):null;
+  if(atmosphere?.addColorStop){
+   atmosphere.addColorStop(0,color+'56');
+   atmosphere.addColorStop(.55,color+'20');
+   atmosphere.addColorStop(1,color+'00');
+   c.globalAlpha=.42;c.fillStyle=atmosphere;
+  }else c.globalAlpha=glow;
+  c.beginPath();c.arc(0,0,f.r,0,TAU);c.fill();
   c.globalAlpha=.58;
   if(f.type==='gravity'){
+   c.globalCompositeOperation='lighter';
+   const disk=typeof c.createRadialGradient==='function'?
+    c.createRadialGradient(0,0,78,0,0,420):null;
+   if(disk?.addColorStop){
+    disk.addColorStop(0,'#050516');disk.addColorStop(.23,'#5d309f');
+    disk.addColorStop(.36,'#ffc1a5');disk.addColorStop(.46,'#8850d8');
+    disk.addColorStop(1,'#3b278000');
+    c.globalAlpha=.48;c.fillStyle=disk;c.beginPath();c.ellipse(0,0,500,310,time*.13,0,TAU);c.fill();
+   }
+   c.globalAlpha=.63;
    for(let i=0;i<6;i++){
     const r=95+i*120+Math.sin(time*.55+i)*14;
     c.lineWidth=2+i*.7;c.beginPath();
     c.ellipse(0,0,r,r*(.67+i*.034),time*.11+i*.27,0,TAU);c.stroke();
    }
-   c.fillStyle='#060816';c.globalAlpha=.93;c.beginPath();c.arc(0,0,92,0,TAU);c.fill();
+   c.globalCompositeOperation='source-over';c.fillStyle='#060816';c.globalAlpha=.93;
+   c.beginPath();c.arc(0,0,92,0,TAU);c.fill();
    c.strokeStyle='#e5b7ff';c.lineWidth=6;c.beginPath();c.arc(0,0,100,0,TAU);c.stroke();
   }else if(f.type==='wrecks'){
-   for(let i=0;i<22;i++){
-    const a=hash(i,12,f.id.length)*TAU,r=140+hash(i,88,f.id.length)*820;
-    const x=Math.cos(a)*r,y=Math.sin(a)*r;
-    c.save();c.translate(x,y);c.rotate(a+time*.006*(i%3-1));
-    c.strokeStyle=i%4===0?'#e7dfb0':color;c.lineWidth=2;
-    c.beginPath();c.moveTo(-30,-14);c.lineTo(3,-36);
-    c.lineTo(40,-8);c.lineTo(10,22);c.lineTo(-25,14);c.closePath();c.stroke();
-    c.restore();
-   }
+   drawAnomalyWrecks(c,f,time,reduced);
   }else{
    const charging=t>=17&&t<22,active=t>=22&&t<25;
    c.globalAlpha=active?.94:charging?.7:.29;
@@ -134,15 +147,40 @@ export function drawSpaceAnomalies(game,c,cam){
     c.beginPath();c.arc(0,0,r,0,TAU);c.stroke();
    }
    if(f.type==='pulsar'){
-    c.rotate(time*.21);c.strokeStyle='#ffe2fb';c.lineWidth=15;
+    c.rotate(time*.21);c.globalCompositeOperation='lighter';
+    c.strokeStyle='#c25cff';c.lineWidth=58;c.globalAlpha=active?.22:.09;
+    c.beginPath();c.moveTo(-f.r*.94,0);c.lineTo(f.r*.94,0);c.stroke();
+    c.strokeStyle='#ffe2fb';c.lineWidth=active?15:6;c.globalAlpha=active?.9:.43;
     c.beginPath();c.moveTo(-f.r*.9,0);c.lineTo(f.r*.9,0);c.stroke();
-    c.beginPath();c.arc(0,0,45,0,TAU);c.fill();
+    c.globalAlpha=1;c.fillStyle='#ffeffc';c.beginPath();c.arc(0,0,45,0,TAU);c.fill();
+   }
+   if(f.type==='ion'&&!reduced&&(charging||active)){
+    c.globalCompositeOperation='lighter';c.strokeStyle='#cff9ff';
+    c.globalAlpha=active?.8:.48;c.lineWidth=active?5:2.4;
+    for(let bolt=0;bolt<6;bolt++){
+     const a=bolt*TAU/6+f.phase+time*.12;
+     c.beginPath();
+     for(let j=0;j<14;j++){
+      const r=f.r*(.16+j*.057);
+      const jitter=Math.sin(j*2.8+bolt*5+Math.floor(time*10))*(12+j*.8);
+      const x=Math.cos(a)*r-Math.sin(a)*jitter,y=Math.sin(a)*r+Math.cos(a)*jitter;
+      if(j===0)c.moveTo(x,y);else c.lineTo(x,y);
+     }
+     c.stroke();
+    }
    }
    if(f.type==='meteor'){
     for(let i=0;i<12;i++){
      const x=(hash(i,17,f.id.length)-.5)*f.r*1.7;
      const y=(hash(i,23,f.id.length)-.5)*f.r*1.7;
-     c.lineWidth=3;c.beginPath();c.moveTo(x-70,y-45);c.lineTo(x+35,y+30);c.stroke();
+     const rock=game.images?.rock;
+     if(rock?.complete&&rock.naturalWidth){
+      c.globalAlpha=.55;c.drawImage(rock,x-15,y-15,30+(i%4)*9,30+(i%4)*9);
+     }
+     if(!reduced){
+      c.strokeStyle=active?'#ffe9be':'#fcb579';c.globalAlpha=active?.9:.32;
+      c.lineWidth=3+(i%3);c.beginPath();c.moveTo(x-90,y-65);c.lineTo(x+12,y+8);c.stroke();
+     }
     }
    }
   }

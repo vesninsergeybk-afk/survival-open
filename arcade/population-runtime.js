@@ -2,7 +2,9 @@ import {RULES,hash} from './balance.js';
 import {ENEMY_TYPES} from './ai.js';
 import {contourFields} from './territory-system.js';
 import {POPULATION,advancePopulation,populationAlarm,
- updatePopulationMiners} from './world-population.js?v=sector-density-2';
+ updatePopulationMiners} from './world-population.js?v=sector-density-2-frontier-siege-1';
+import {FRONTIER,orderFrontierNetwork} from './enemy-frontier-network.js?v=frontier-fence-1';
+import {drawIndustrialMiner,drawIndustrialConvoy,drawFrontierNetwork} from './enemy-frontier-render.js?v=frontier-art-1';
 
 const TAU=Math.PI*2;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -98,7 +100,13 @@ export function updatePopulationWorld(game,dt){
    for(const c of state.colonies){
     if(!hostile(world,c.id+':relay'))continue;
     for(const field of newFields){
-     if(distance(c,field.center)>POPULATION.radioRadius||c.respondedToFields.includes(field.id))continue;
+     if(distance(c,field.center)>POPULATION.radioRadius)continue;
+     const wall=orderFrontierNetwork(world,c,field.center,game.time);
+     if(wall&&distance(c,game.player)<4600){
+      game.notice('ВРАГ УКРЕПЛЯЕТ ГРАНИЦУ! Отмечено строительство энергетических буёв напротив вашего контура.',6);
+      game.heritage?.play?.('orbitalWarning',.6,c);
+     }
+     if(c.respondedToFields.includes(field.id))continue;
      c.respondedToFields.push(field.id);
      if(c.respondedToFields.length>32)c.respondedToFields.shift();
      populationAlarm(world,field.center.x,field.center.y,game.time,'contour-expansion');
@@ -142,12 +150,46 @@ export function updatePopulationWorld(game,dt){
    populationAlarm(world,game.player.x,game.player.y,game.time,noisy?'mining':'sighting');
   }
  }
+  // Orbital batteries are fixed to the actually powered buoys. They do not
+  // invent an offscreen fleet, and their shots remain dodgeable projectiles.
+  for(const c of state.colonies){
+   if(!c.fronts?.length||distance(c,game.player)>3600)continue;
+   const relay=world.stations.get(c.id+':relay');
+   if(!relay?.enemy||relay.hp<=0||relay.suppressed)continue;
+   for(const front of c.fronts)for(const buoy of front.nodes){
+    buoy.hit=Math.max(0,(buoy.hit||0)-dt);
+    if(buoy.hp<=0||buoy.slot%2!==0||distance(buoy,game.player)>1080)continue;
+    if(!Number.isFinite(buoy.nextShotAt))buoy.nextShotAt=game.time+1.2+buoy.slot*.31;
+    if(game.time<buoy.nextShotAt)continue;
+    buoy.nextShotAt=game.time+4.2+buoy.slot*.19;
+    if(game.enemyShot&&game.enemyShot(buoy.x,buoy.y,game.player.x+game.player.vx*.34,
+      game.player.y+game.player.vy*.34,16+c.tier*2,{speed:385,r:7})!==false){
+     buoy.fireGlowUntil=game.time+.38;
+     if(game.time>(c.lastFrontierAlarmAt||0)){
+      c.lastFrontierAlarmAt=game.time+32;
+      populationAlarm(world,game.player.x,game.player.y,game.time,'frontier-contact');
+     }
+    }
+   }
+  }
+ for(const c of state.colonies){
+  if(distance(c,game.player)>3500)continue;
+  for(const miner of c.miners)miner.hit=Math.max(0,(miner.hit||0)-dt);
+ }
+ for(const cargo of state.convoys){
+  if(distance(cargo,game.player)<3500)cargo.hit=Math.max(0,(cargo.hit||0)-dt);
+ }
 }
 export function drawPopulationWorld(game,ctx,cam){
  const state=game.world.population;
  if(!state)return;
  const time=game.time,zoom=Math.max(.62,Math.min(1.45,1/(game.cameraZoom||1)));
  for(const colony of state.colonies){
+  // Outlying fence sections can be visible even when the industrial center
+  // is three thousand units outside the viewport.
+  if(colony.fronts?.length&&inView(colony.x,colony.y,cam,
+   FRONTIER.radius+FRONTIER.spacing*(FRONTIER.count-1)/2+200))
+   drawFrontierNetwork(game,ctx,cam,colony);
   if(!inView(colony.x,colony.y,cam,1900))continue;
   const stations=colony.buildings.map(b=>game.world.stations.get(b.id));
   const alive=stations.filter(s=>s?.enemy&&s.hp>0);
@@ -182,18 +224,14 @@ export function drawPopulationWorld(game,ctx,cam){
    }
   }
   const extractor=stations.find(s=>s?.strategicRole==='population-extractor');
+  // A single continuous render-time update prevents one-second orbital jumps.
+  if(extractor?.enemy)updatePopulationMiners(game.world,colony,time);
   if(extractor?.enemy)for(const miner of colony.miners||[]){
    if(miner.hp<=0||!inView(miner.x,miner.y,cam,100))continue;
-   updatePopulationMiners(game.world,colony,time);
    ctx.save();ctx.strokeStyle='#ffc17b';ctx.globalAlpha=.22+.19*Math.abs(Math.sin(time*2+miner.slot));
    ctx.lineWidth=2.5;ctx.setLineDash([8,12]);ctx.beginPath();
    ctx.moveTo(extractor.x,extractor.y);ctx.lineTo(miner.x,miner.y);ctx.stroke();ctx.restore();
-   ctx.save();ctx.translate(miner.x,miner.y);ctx.rotate(time*.6+miner.slot);
-   ctx.fillStyle='#2c3d43';ctx.strokeStyle=miner.hit?'#ffffff':'#ffd58b';
-   ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-24);ctx.lineTo(21,8);
-   ctx.lineTo(0,25);ctx.lineTo(-21,8);ctx.closePath();ctx.fill();ctx.stroke();
-   ctx.fillStyle='#8ad8f3';ctx.fillRect(-8,11,16,9);
-   ctx.restore();
+   drawIndustrialMiner(ctx,miner,time,extractor);
   }
   if(colony.fortress&&colony.shield){
    const shield=colony.shield,breached=shield.breachUntil>time;
@@ -216,13 +254,7 @@ export function drawPopulationWorld(game,ctx,cam){
  }
  for(const cargo of state.convoys){
   if(!inView(cargo.x,cargo.y,cam,110))continue;
-  ctx.save();ctx.translate(cargo.x,cargo.y);ctx.rotate(cargo.angle);
-  ctx.fillStyle='#302c46';ctx.strokeStyle=cargo.hit?'#ffffff':'#ffbd88';
-  ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-41);ctx.lineTo(31,-10);
-  ctx.lineTo(28,35);ctx.lineTo(-28,35);ctx.lineTo(-31,-10);ctx.closePath();ctx.fill();ctx.stroke();
-  ctx.fillStyle='#ffb56d';ctx.fillRect(-19,-8,38,30);
-  ctx.fillStyle='#89deff';ctx.fillRect(-24,36,13,9);ctx.fillRect(11,36,13,9);
-  ctx.restore();
+  drawIndustrialConvoy(ctx,cargo,time);
   ctx.save();ctx.textAlign='center';ctx.fillStyle='#ffe5bc';
   ctx.font='bold '+Math.round(11*zoom)+'px system-ui';
   ctx.fillText('ПРОМЫШЛЕННЫЙ КОНВОЙ',cargo.x,cargo.y-60);
