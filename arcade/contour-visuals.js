@@ -1,6 +1,6 @@
 import {contourFields,fieldAt} from './territory-system.js?v=contours-1-world-feedback-1-flux-offense-1-contour-trials-1-triangle-defense-1';
 import {activeContourTransition,fieldIsNew} from './contour-dynamics.js?v=contour-dynamics-2-auto-1';
-import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2';
+import {enemyTerritoryFields} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
 import {drawContourVortexArt} from './contour-vortex-art.js?v=contour-vortex-80frames-1';
 import {drawUnstableContour} from './contour-trial-vfx.js?v=swarm-siege-1';
 import {trialBlockingField} from './contour-trials.js?v=swarm-siege-1';
