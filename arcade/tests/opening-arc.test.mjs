@@ -267,6 +267,8 @@ test('opening hardware claim immediately fits a module and rejects a duplicate',
  assert.equal(g.firstHardwareReward,'rail');
  assert.deepEqual(g.shipLoadout.slots.slice(0,2),['plasma','rail']);
  assert.equal(g.shipLoadout.owned.rail,1);
+ assert.equal(g.hangarSession.focusWeapon,'rail');
+ assert.equal(g.hangarSession.slot,1);
  g.claimOpeningReward('flak');
  assert.equal(g.shipLoadout.owned.flak,undefined);
  assert.equal(events.length,2);

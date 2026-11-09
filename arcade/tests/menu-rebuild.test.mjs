@@ -40,7 +40,13 @@ test('a ready reward and first weapon choice can both be completed from the home
  const once=g.player.ore;g.baseAction('claimContract','');assert.equal(g.player.ore,once);
  const html=renderBasePanel(base,g.baseState());
  assert.match(html,/data-act="claimFirstModule"/);assert.equal(g.firstHardwareReward,'pending');
+ g.hangarSession.focusWeapon='ion'; // Previously inspected trial, now being replaced.
  g.baseAction('claimFirstModule','rail');assert.equal(g.firstHardwareReward,'rail');
+ assert.equal(g.hangarSession.slot,1);
+ assert.equal(g.hangarSession.focusWeapon,'rail');
+ assert.equal(g.hangarSession.selected,'rail');
+ const fitted=renderShipHangar({...g.baseState(),hangarView:'weapons'});
+ assert.match(fitted,/ХАРАКТЕРИСТИКИ[\s\S]*Рельсовое орудие/);
 });
 
 test('all development directions use one visual atlas; fitting remains a separate ship tab',()=>{

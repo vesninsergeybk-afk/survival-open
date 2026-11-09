@@ -1,6 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ArcadeVisuals,enemySkin,allySkin,sectorAt,sectorName,COMPACT_ESCORT_SPECS} from '../visuals.js';
+import {ArcadeVisuals,enemySkin,allySkin,sectorAt,sectorName,worldLabelSize,COMPACT_ESCORT_SPECS} from '../visuals.js';
+
+test('station names keep their normal screen size at both camera zoom extremes',()=>{
+ for(const zoom of [.55,.72,.86,1,1.5]){
+  const projected=worldLabelSize(13,zoom)*zoom;
+  assert.ok(projected>=13-1e-9,'a distant station label must remain readable');
+ }
+ assert.equal(worldLabelSize(11,1),11);
+ assert.equal(worldLabelSize(11,Infinity),11,'invalid zoom must be harmless');
+ const oldDocument=globalThis.document,drawn=[];
+ globalThis.document={getElementById:()=>({style:{setProperty(){}},classList:{add(){},remove(){}}})};
+ try{
+  const visuals=new ArcadeVisuals();
+  const ctx=new Proxy({fillText(text){drawn.push({text,font:this.font})}},
+   {get(target,key){return key in target?target[key]:()=>{};},
+    set(target,key,value){target[key]=value;return true;}});
+  visuals.drawBase(ctx,{x:0,y:0,type:'dock',active:false,captured:false,enemy:false,
+   hp:120,maxHp:120,turrets:[]},0,0,0,null,false,.55);
+  const name=drawn.find(item=>item.text==='Ремонтный док');
+  assert.ok(name,'the title is actually drawn by station art');
+  assert.ok(Number.parseFloat(name.font.match(/([\d.]+)px/)?.[1])>20);
+ }finally{globalThis.document=oldDocument;}
+});
 
 test('all six enemy roles keep multiple deterministic animated hull identities',()=>{
  for(const role of ['scout','fighter','flanker','healer','berserker','gunship']){

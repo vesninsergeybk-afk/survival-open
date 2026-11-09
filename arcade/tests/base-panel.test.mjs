@@ -157,6 +157,10 @@ test('station objectives count only relevant real events',()=>{
  assert.equal(eligibleContractProgress(dock,'kill',{type:'scout'}),false,
   'an enemy kill without pilot participation cannot finish a contract');
  assert.equal(eligibleContractProgress(dock,'kill',{type:'scout'},null,true),true);
+ const activeDock={...dock,choiceId:'standard'},home={x:0,y:0,type:'dock'};
+ assert.equal(eligibleContractProgress(activeDock,'kill',{type:'scout'},home,true,{x:449,y:0}),false);
+ assert.equal(eligibleContractProgress(activeDock,'kill',{type:'scout'},home,true,{x:450,y:0}),true);
+ assert.equal(eligibleContractProgress(activeDock,'kill',{type:'scout'},home,false,{x:900,y:0}),false);
  assert.equal(eligibleContractProgress(lab,'mine',{rich:false}),false);
  assert.equal(eligibleContractProgress(lab,'mine',{rich:true}),true);
  assert.equal(eligibleContractProgress(lab,'kill',{rich:true}),false);

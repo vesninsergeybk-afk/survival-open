@@ -72,7 +72,7 @@ const LOCAL_SERVICES=Object.freeze({
 });
 const CONTRACTS=Object.freeze({
  dock:{kind:'kill',goal:4,ore:16,data:15,name:'Зачистка патрулей',
-  desc:'Участвуйте в уничтожении 4 кораблей противника и вернитесь за наградой.'},
+  desc:'Отойдите от дока на 450 м и участвуйте в уничтожении 4 вражеских кораблей. Затем вернитесь за наградой.'},
  lab:{kind:'rich',goal:2,ore:22,data:19,name:'Геологические образцы',
   desc:'Найдите 2 богатых астероида с янтарной рудой и разберите их экстрактором, удерживая E.'},
  arsenal:{kind:'defend',goal:5,ore:30,data:26,name:'Оборона периметра',
@@ -95,12 +95,20 @@ export const contractChoices=(type,runs=0)=>[
  ore:Math.max(8,Math.round(choice.ore*.65)),
  data:Math.max(6,Math.round(choice.data*.65))}:choice);
 // A contract counts a real field event, not any action with the same name.
-export function eligibleContractProgress(contract,kind,subject=null,station=null,pilotParticipated=false){
+export function eligibleContractProgress(contract,kind,subject=null,station=null,pilotParticipated=false,pilotPosition=null){
  if(!contract||contract.progress>=contract.goal)return false;
  // Enemy crossfire and unattended escorts must not complete the pilot's orders.
  // The pilot may tag a target and let a wingmate finish it.
  if(kind==='kill'&&!pilotParticipated)return false;
- if(contract.kind==='kill')return kind==='kill';
+ if(contract.kind==='kill'){
+  // The introductory patrol assignment should take the pilot out of the
+  // safe docking lane. Older contracts without a choice ID remain compatible.
+  if(station?.type==='dock'&&contract.choiceId==='standard'){
+   if(!pilotPosition||!Number.isFinite(pilotPosition.x)||!Number.isFinite(pilotPosition.y)||
+      Math.hypot(pilotPosition.x-station.x,pilotPosition.y-station.y)<450)return false;
+  }
+  return kind==='kill';
+ }
  if(contract.kind==='rich')return kind==='mine'&&subject?.rich===true;
  if(contract.kind==='defend')return kind==='kill'&&!!subject&&!!station&&
   Math.hypot(subject.x-station.x,subject.y-station.y)<=650;
