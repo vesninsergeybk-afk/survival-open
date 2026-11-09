@@ -314,7 +314,9 @@ function detailHtml(node,domain,weapon,state){
   'Сейчас клавиша '+key('field')+' занята установленным полевым оружием. Пока оно установлено, полевое устройство не запускается.':null;
  const status=node.equipmentStatus|| (node.shared?'Общая технология':node.kind==='navigation'?'Раздел станции':node.status==='info'?'Оборудование':node.status==='mastered'?'Изучено':node.status==='ready'?'Доступно':
   node.status==='exclusive'?'Другая ветка выбрана':node.status==='waiting'?'Ждёт ресурса':'Закрыто');
- const cta='<button type="button" class="prog-action" data-act="'+esc(node.action)+'"'+
+ // The weapon summary already offers the fitting action. An information-only
+ // equipment node must not repeat that same navigation at the foot of the tree.
+ const cta=domain==='weapons'&&node.kind==='equipment'?'':'<button type="button" class="prog-action" data-act="'+esc(node.action)+'"'+
   (node.actionId?' data-id="'+esc(node.actionId)+'"':'')+(node.action==='baseTab'?' data-role="network"':'')+
   (node.canAct?'':' disabled')+'>'+esc(node.actionLabel)+'</button>';
  return '<aside class="prog-detail" aria-label="Выбранное улучшение"><div class="prog-detail-main">'+
@@ -324,8 +326,7 @@ function detailHtml(node,domain,weapon,state){
   '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p></div><div><b>Как применять</b><p>'+esc(activation)+'</p>'+
   (fieldCollision?'<p class="prog-control-warning">'+esc(fieldCollision)+'</p>':'')+'</div></div>'+
   '<div class="prog-detail-actions"><span class="prog-cost">Стоимость: '+esc(node.cost)+'</span>'+cta+
-  (domain==='weapons'&&!weapon.manual&&!weapon.installed&&node.kind!=='equipment'?'<button type="button" class="prog-secondary" data-act="fitWeapon" data-id="'+esc(weapon.family.id)+'">Перейти к установке</button>':
-   domain==='ship'?'<button type="button" class="prog-secondary" data-act="baseTab" data-role="hangar">Схема корабля</button>':'')+'</div>'+
+  (domain==='ship'?'<button type="button" class="prog-secondary" data-act="baseTab" data-role="hangar">Схема корабля</button>':'')+'</div>'+
   (node.reason?'<p class="prog-detail-reason">'+esc(node.reason)+'</p>':'')+'</aside>';
 }
 
@@ -374,7 +375,10 @@ export function renderProgressionScreen(state){
   '<small>ВЫБРАНО ДЛЯ ПРОСМОТРА</small><strong>'+esc(weapon.family.name)+'</strong><span class="prog-weapon-state">'+
   (weapon.manual?'Доступно в полёте · '+weapon.control+' · без установки':weapon.installed?'✓ На корабле · '+weapon.installedCount+' шт. · '+(mountedSlots.length===1?'узел ':'узлы ')+mountedSlots.join(', '):'Не установлено на корабле')+
   '</span><span>'+esc(weapon.family.role)+' · дальность '+esc(weapon.stats?.range)+' м'+
-  (weapon.manual?' · '+esc(weapon.stats?.summary):'')+'</span></div></div>':'';
+  (weapon.manual?' · '+esc(weapon.stats?.summary):'')+'</span></div>'+
+  (weapon.manual?'':'<button type="button" class="prog-weapon-fit" data-act="fitWeapon" data-id="'+esc(weapon.family.id)+'">'+
+   (weapon.installed?'Посмотреть '+(mountedSlots.length===1?'узел №'+mountedSlots[0]:'узлы на корабле'):'Перейти к установке')+'</button>')+
+  '</div>':'';
  const weaponNote=weapon?'<p class="prog-weapon-guidance">'+
   (weapon.manual?'Вы выбираете ветку развития ручного оружия. Для применения используйте '+esc(weapon.control)+'.':
    weapon.installed?'Улучшения этого оружия действуют в бою. Выбор вкладки не меняет оснащение корабля.':

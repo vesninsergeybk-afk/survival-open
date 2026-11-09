@@ -163,10 +163,20 @@
  border-left:3px solid #76bfc9;margin:8px 0 0;padding:8px 12px;
  background:#164150;color:#d7f5f6;font-weight:650;
 }
+#overlay .base-dialog .prog-weapon-summary{flex-wrap:wrap}
+#overlay .base-dialog .prog-weapon-summary .prog-weapon-heading{flex:1 1 220px}
+#overlay .base-dialog .prog-weapon-fit{
+ flex:0 1 190px;margin-left:auto;min-height:44px;padding:8px 12px;
+ border:1px solid #83b6c0;border-radius:5px;background:#1a4855;
+ color:#ecfcff;font-size:12px;font-weight:720;line-height:1.3;
+ white-space:normal;overflow-wrap:break-word;
+}
+#overlay .base-dialog .prog-weapon-fit:hover{background:#235e6e}
 #overlay .base-dialog .prog-subtab-label{font-size:10px;letter-spacing:.07em}
 @media(max-width:600px){
  #overlay .base-dialog .base-quick-buttons{display:flex;flex-direction:column;align-items:stretch}
  #overlay .base-dialog .base-quick-buttons>button{flex:auto;width:100%}
  #overlay .base-dialog .base-action-reason{flex:auto}
  #overlay .base-dialog .base-mounted-weapon{font-size:11px}
+ #overlay .base-dialog .prog-weapon-fit{flex:1 1 100%;margin-left:0}
 }
