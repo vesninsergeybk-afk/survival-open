@@ -2,16 +2,73 @@
  * A pilot needs its own recent optical contact, commits to a visible aim
  * point, then fires one dodgeable bolt. Radio orders alter positioning, not
  * damage, accuracy or the projectile budget. */
+import {sweptRamHit} from './enemy-last-stand.js';
 export const ENEMY_GUNNERY=Object.freeze({
-  fighter:Object.freeze({range:405,charge:.62,reload:2.7,speed:290,damage:10}),
-  flanker:Object.freeze({range:395,charge:.55,reload:2.8,speed:305,damage:9}),
+  fighter:Object.freeze({range:405,charge:.62,reload:2.7,speed:290,damage:10,
+    upgradeAt:135,upgraded:Object.freeze({range:405,charge:.7,reload:3.1,
+      speed:370,damage:6,shots:2,gap:.34,spread:.035,kind:'fighter-burst'})}),
+  flanker:Object.freeze({range:395,charge:.55,reload:2.8,speed:305,damage:9,
+    upgradeAt:155,upgraded:Object.freeze({range:445,charge:.82,reload:3.1,
+      speed:510,damage:9,kind:'flanker-needle'})}),
+  gunship:Object.freeze({range:535,charge:1.03,reload:4.1,speed:380,
+    damage:8,shots:3,gap:.36,spread:.115,kind:'gunship-cannon'}),
+  lance:Object.freeze({range:500,charge:1.25,reload:4.6,
+    damage:13,kind:'gunship-lance'}),
   cellSpacing:.62,globalSpacing:.23,maxWarnings:4,warningRange:555
 });
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+export const gunProfile=(type,time)=>{
+ const base=ENEMY_GUNNERY[type];
+ return base?.upgraded&&time>=base.upgradeAt?base.upgraded:base;
+};
+function lanceAvailable(e,game,target){
+ if(e.type!=='gunship'||target!==game.player||game.time<245||
+    (e._gunCycle||0)%2===0||game.time<(game._enemyLanceNextAt||0))return false;
+ // A dangerous instantaneous attack must never originate offscreen without
+ // its full charge line being visible to the player.
+ const cam=game.camera?.();
+ return !cam||e.x>=cam.x+15&&e.x<=cam.x+cam.w-15&&
+   e.y>=cam.y+15&&e.y<=cam.y+cam.h-15;
+}
+
+function fireBolt(e,game,profile,aim,index=0){
+ const offset=(index-(profile.shots||1)/2+.5)*(profile.spread||0);
+ const angle=Math.atan2(aim.y-e.y,aim.x-e.x)+offset;
+ const d=Math.hypot(aim.x-e.x,aim.y-e.y)||1;
+ const tx=offset?e.x+Math.cos(angle)*d:aim.x;
+ const ty=offset?e.y+Math.sin(angle)*d:aim.y;
+ const fired=game.enemyShot(e.x,e.y,tx,ty,profile.damage,
+  {kind:profile.kind||(e.type==='gunship'?'gunship-cannon':e.type),
+    speed:profile.speed,r:e.type==='gunship'?5:4.5,
+    learnToken:game.enemyLearning?.shotToken(e)})!==false;
+ if(fired){
+  game.enemyLearning?.fired(e);
+  if(e._commsCell)e._commsCell.nextGunVolleyAt=game.time+ENEMY_GUNNERY.cellSpacing;
+  game._enemyRegularVolleyAt=game.time+ENEMY_GUNNERY.globalSpacing;
+ }
+ return fired;
+}
+function fireLance(e,game,profile,aim,target){
+ if(game.time<(game._enemyLanceNextAt||0))return false;
+ const before=target.hp+(target.shield||0);
+ const hit=sweptRamHit(e.x,e.y,aim.x,aim.y,target,(target.r||19)+7);
+ if(hit)game.hurt?.(profile.damage,{x:e.x,y:e.y});
+ game.enemyLearning?.fired(e);
+ if(hit)game.enemyLearning?.dealt?.(game.enemyLearning?.shotToken?.(e),
+   Math.max(0,before-target.hp-(target.shield||0)));
+ game.flash?.(e.x,e.y,aim.x,aim.y,'#ff6e52');
+ game.heritage?.play?.('enemyShot',.65,{x:e.x,y:e.y});
+ game._enemyLanceNextAt=game.time+4.8;
+ game._enemyRegularVolleyAt=game.time+.55;
+ if(e._commsCell)e._commsCell.nextGunVolleyAt=game.time+.8;
+ return true;
+}
 
 export function updateEnemyGunnery(e,game,target){
-  const profile=ENEMY_GUNNERY[e?.type],now=game?.time;
+  const now=game?.time,profile=e?._gunAiming?.profile||
+   (e&&game&&lanceAvailable(e,game,target)?ENEMY_GUNNERY.lance:
+    gunProfile(e?.type,now));
   if(!profile||!Number.isFinite(now))return false;
   // A hit or a message containing only a rough sector never grants the
   // perfect tracking required for a gun solution. A friendly craft is a
@@ -20,14 +77,30 @@ export function updateEnemyGunnery(e,game,target){
   const directContact=target?.hp>0&&
     (attackingPlayer?!!e._enemyLearningSaw:
       typeof game.enemyCanSee==='function'&&game.enemyCanSee(e,target));
-  if(e.hp<=0||e.converted||e.boss||(e.missionStructure&&!e.openingCommander)||
+  if(e.hp<=0||e.converted||e._lastStand||e.boss||(e.missionStructure&&!e.openingCommander)||
      e.relayAssault||e.interceptCargo||
      typeof game.enemyShot!=='function'||
      e.signalIntel&&e.signalIntel.mode!=='engaged'||
      !directContact||
      !['hunt','flank','intercept','guard','standoff'].includes(e.state)||
      distance(e,target)>profile.range){
-    e._gunAiming=null;return false;
+    e._gunAiming=null;e._gunBurst=null;return false;
+  }
+  const burst=e._gunBurst;
+  if(burst){
+    if(burst.target!==target||now>burst.expires||
+       (game.enemyCanSee&&!game.enemyCanSee(e,target))||
+       (e._commsCell?.brokenUntil||0)>now){
+      e._gunBurst=null;return false;
+    }
+    if(now<burst.nextAt||now<(game._enemyRegularVolleyAt||0))return false;
+    const fired=fireBolt(e,game,burst.profile,burst.aim,burst.index);
+    if(fired){
+      burst.index++;burst.remaining--;
+      burst.nextAt=now+burst.profile.gap;
+    }
+    if(burst.remaining<=0)e._gunBurst=null;
+    return fired;
   }
   if(e._gunNextAt===undefined)
     e._gunNextAt=now+.36+(Math.abs(e.serial||0)%5)*.12;
@@ -40,10 +113,12 @@ export function updateEnemyGunnery(e,game,target){
     if(now<e._gunNextAt)return false;
     // Lock a bounded prediction. The marker does not follow a subsequent
     // dodge, so changing course during the warning really defeats the shot.
-    const lead=clamp(distance(e,target)/profile.speed*.29,.08,.31);
+    const lead=profile.kind==='gunship-lance'?0:
+      clamp(distance(e,target)/profile.speed*.29,.08,.31);
     e._gunAiming={x:target.x+clamp((target.vx||0)*lead,-55,55),
       y:target.y+clamp((target.vy||0)*lead,-55,55),
-      started:now,until:now+profile.charge,target};
+      started:now,until:now+profile.charge,target,profile};
+    if(profile.kind==='gunship-lance')game.heritage?.play?.('ramWarning',.65,e);
     return false;
   }
   if(now<aim.until)return false;
@@ -64,13 +139,12 @@ export function updateEnemyGunnery(e,game,target){
     return false;
   }
   if(now<(game._enemyRegularVolleyAt||0))return false;
-  const fired=game.enemyShot?.(e.x,e.y,aim.x,aim.y,profile.damage,
-    {kind:e.type==='fighter'?'fighter':'flanker',speed:profile.speed,
-      r:4.5,learnToken:game.enemyLearning?.shotToken(e)})!==false;
-  if(fired){
-    game.enemyLearning?.fired(e);
-    if(cell)cell.nextGunVolleyAt=now+ENEMY_GUNNERY.cellSpacing;
-    game._enemyRegularVolleyAt=now+ENEMY_GUNNERY.globalSpacing;
+  const fired=profile.kind==='gunship-lance'?
+    fireLance(e,game,profile,aim,target):fireBolt(e,game,profile,aim,0);
+  if(fired&&e.type==='gunship')e._gunCycle=(e._gunCycle||0)+1;
+  if(fired&&(profile.shots||1)>1){
+    e._gunBurst={target,profile,aim,index:1,remaining:profile.shots-1,
+      nextAt:now+profile.gap,expires:now+1.8};
   }
   e._gunAiming=null;
   e._gunNextAt=now+(fired?profile.reload:.55)+
@@ -83,7 +157,11 @@ export function drawEnemyGunWarnings(ctx,game,cam,fps=60){
   if(!game?.playerCanInspectEnemyIntent)return 0;
   const limit=fps<28?2:ENEMY_GUNNERY.maxWarnings;
   let drawn=0;
-  for(const e of game.enemies||[]){
+  const aiming=(game.enemies||[]).filter(e=>e._gunAiming&&e.hp>0);
+  aiming.sort((a,b)=>Number(b._gunAiming?.profile?.kind==='gunship-lance')-
+   Number(a._gunAiming?.profile?.kind==='gunship-lance')||
+   distance(a,game.player)-distance(b,game.player));
+  for(const e of aiming){
     if(drawn>=limit)break;
     const aim=e._gunAiming;
     if(!aim||e.hp<=0||e.converted||game.time>aim.until||
@@ -91,13 +169,14 @@ export function drawEnemyGunWarnings(ctx,game,cam,fps=60){
        e.x<cam.x-30||e.x>cam.x+cam.w+30||
        e.y<cam.y-30||e.y>cam.y+cam.h+30||
        !game.playerCanInspectEnemyIntent(e))continue;
-    const profile=ENEMY_GUNNERY[e.type];
+    const profile=aim.profile||gunProfile(e.type,game.time);
     if(!profile)continue;
     const progress=clamp((game.time-aim.started)/profile.charge,0,1);
-    const tint=e.type==='fighter'?'#ffab75':'#d0a1ff';
-    ctx.save();ctx.strokeStyle=tint;ctx.lineWidth=1.15+progress*.85;
+    const tint=e.type==='fighter'?'#ffab75':e.type==='gunship'?'#ff6554':'#d0a1ff';
+    const beam=profile.kind==='gunship-lance';
+    ctx.save();ctx.strokeStyle=tint;ctx.lineWidth=beam?2.5+progress*3.2:1.15+progress*.85;
     ctx.globalAlpha=.32+progress*.47;
-    ctx.setLineDash([4,7]);ctx.beginPath();ctx.moveTo(e.x,e.y);
+    ctx.setLineDash(beam?[10,6]:[4,7]);ctx.beginPath();ctx.moveTo(e.x,e.y);
     ctx.lineTo(aim.x,aim.y);ctx.stroke();ctx.setLineDash([]);
     ctx.beginPath();ctx.arc(aim.x,aim.y,7+progress*4,0,Math.PI*2);ctx.stroke();
     ctx.restore();drawn++;

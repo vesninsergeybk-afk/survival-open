@@ -84,6 +84,21 @@ test('a lethal hit before the next frame cannot invalidate a station checkpoint'
   'the next update, not the hit, awards experience');
  assert.equal(fresh.player.data,30,'no premature reward');
 });
+test('a fleeing micro-drone courier resumes its real departure after checkpoint restore',()=>{
+ const g=scene(),x=g.player.x+250,y=g.player.y;
+ g.enemies=[{serial:3,group:7,type:'scout',microSwarm:true,
+  motePack:7,moteRoot:7,moteCallUsed:true,moteCourier:true,
+  moteCourierReturning:true,moteEscape:false,moteEscapeGoal:{x:x+1500,y},
+  x,y,vx:150,vy:0,r:6.5,hp:12,maxHp:12,damage:3}];
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ const courier=restored.enemies[0];
+ assert.equal(courier.moteEscape,true);
+ assert.equal(courier.moteCourierReturning,false);
+ assert.equal(courier.moteCourier,true);
+ assert.deepEqual(courier.moteEscapeGoal,{x:x+1500,y});
+ assert.deepEqual(restored._moteReinforcementQueue,[]);
+});
 test('a saved sortie retains collected temporary charges, combat pacing and paid unfinished enemy works',()=>{
  const g=scene();g.time=310;
  g.fieldLoot=createFieldLoot();g.fieldLoot.reserve={id:'arc',until:375};

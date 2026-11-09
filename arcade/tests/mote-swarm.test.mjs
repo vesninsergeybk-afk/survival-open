@@ -12,7 +12,8 @@ import {availableEncounters} from '../encounters.js';
 const drones=(count,pack=7)=>Array.from({length:count},(_,i)=>({
  type:'scout',serial:i+1,group:pack,motePack:pack,moteRoot:pack,moteSpawnedAt:95,
  microSwarm:true,x:290+i%5*6,y:20+Math.floor(i/5)*6,vx:0,vy:0,
- r:MOTE_SWARM.radius,hp:MOTE_SWARM.hp,maxHp:MOTE_SWARM.hp,stasisUntil:0,
+ r:MOTE_SWARM.radius,hp:MOTE_SWARM.hp,maxHp:MOTE_SWARM.hp,
+ damage:MOTE_SWARM.damage,stasisUntil:0,
  angle:0,fire:0,hit:0,moteApproach:{x:0,y:0}
 }));
 const scene=(enemies,time=100)=>({enemies,time,groupSerial:7,
@@ -167,4 +168,131 @@ test('a kill contract credits only a fully defeated collective, exactly once',()
  for(const e of swarm)e.hp=0;
  for(const e of swarm)g.creditContractKill(e);
  assert.equal(credited,1);
+});
+
+test('two full packs coordinate flanks without merging or doubling hull health',()=>{
+ const a=drones(10,7),b=drones(10,8);
+ for(const e of a){e.moteOriginCount=10;e.moteReformUntil=200;}
+ for(const e of b){e.serial+=10;e.x+=115;e.moteOriginCount=10;e.moteReformUntil=200;}
+ const game=scene([...a,...b]);
+ updateMoteSwarmOrders(game);
+ assert.equal(new Set(game.enemies.map(e=>e.motePack)).size,2);
+ assert.ok(game.enemies.every(e=>e.moteAllianceSize===2));
+ assert.equal(new Set(game.enemies.map(e=>e.moteAllianceKey)).size,1);
+ assert.ok(game.enemies.every(e=>e.hp===MOTE_SWARM.hp));
+ assert.equal(new Set(game.enemies.map(e=>e.moteRoot)).size,2);
+});
+
+test('swarms track last seen positions, not live player coordinates behind cover',()=>{
+ const game=scene(drones(5,7));
+ updateMoteSwarmOrders(game);
+ game.player.x=6000;game.enemyCanSee=()=>false;
+ game.time=101;updateMoteSwarmOrders(game);
+ assert.ok(game.enemies.every(e=>e.moteOrder.x<500));
+ game.time=122;updateMoteSwarmOrders(game);
+ assert.ok(game.enemies.every(e=>e.moteStatus==='search'));
+ assert.ok(game.enemies.every(e=>Math.abs(e.moteOrder.x)<600));
+ game.time=160;updateMoteSwarmOrders(game);
+ assert.ok(game.enemies.every(e=>e.moteStatus==='search'),
+  'hunters must not silently return to routine patrol after 45 seconds');
+ assert.ok(game.enemies.every(e=>Math.abs(e.moteOrder.x)<900),
+  'persistent pursuit must still be bounded by the last real sighting');
+});
+
+test('micro-drones sidestep a tracked incoming missile without changing hitboxes or gaining speed',()=>{
+ const [e]=drones(1),game=scene([e],112);
+ e.moteOrder={x:0,y:0};e.hit=0;
+ game.missiles=[{target:e,x:e.x+60,y:e.y,life:2}];
+ moveMote(e,game,.04);
+ assert.ok(e.moteDodging,'an approaching homing missile should trigger evasive steering');
+ assert.ok(Number.isFinite(e.vx)&&Number.isFinite(e.vy));
+ assert.ok(Math.hypot(e.vx,e.vy)<MOTE_SWARM.speed*1.4,
+  'dodging must alter the course, not give an unrestricted speed bonus');
+ const y=e.y;
+ game.missiles=[];game.time=112.1;moveMote(e,game,.04);
+ assert.notEqual(e.y,y,'a dodge must cause real lateral displacement');
+ assert.equal(e.r,MOTE_SWARM.radius);
+ assert.equal(e.hp,MOTE_SWARM.hp);
+});
+
+test('a wing can receive another pack’s recent real sighting, not future player motion',()=>{
+ const a=drones(8,7),b=drones(8,8);
+ for(const e of a){e.moteReformUntil=200;e.moteOriginCount=8;}
+ for(const e of b){e.serial+=10;e.x+=120;e.moteOriginCount=8;e.moteReformUntil=200;}
+ const game=scene([...a,...b]);
+ game.enemyCanSee=e=>e.moteRoot===7;
+ updateMoteSwarmOrders(game);
+ assert.ok(b.every(e=>e.moteAllianceSize===2));
+ assert.ok(b.every(e=>e.moteOrder.x<600));
+ game.player.x=9000;game.time=101;updateMoteSwarmOrders(game);
+ assert.ok(b.every(e=>e.moteOrder.x<650));
+});
+
+test('a surviving courier physically leaves the screen and requests support once',()=>{
+ const members=drones(10);for(const e of members)e.moteOriginCount=10;
+ const game=scene(members),requests=[];
+ game.camera=()=>({x:-400,y:-400,w:800,h:800});
+ game.spawnMoteReinforcements=(courier,waypoint,count)=>{
+  requests.push({courier,waypoint,count});return count;
+ };
+ updateMoteSwarmOrders(game);
+ for(const e of members.slice(0,8))e.hp=0;
+ game.time=101;updateMoteSwarmOrders(game);
+ const surviving=members.slice(8),courier=surviving.find(e=>e.moteCourier);
+ assert.ok(courier&&surviving.every(e=>e.moteEscape));
+ assert.ok(surviving.every(e=>e.moteStatusCue.includes('ЗА ПОДМОГОЙ')));
+ courier.x=-990;game.time=102;updateMoteSwarmOrders(game);
+ assert.equal(requests.length,0,'no reinforcement appears at the start of escape');
+ assert.equal(game._moteReinforcementQueue.length,1);
+ game.time=106;updateMoteSwarmOrders(game);
+ assert.equal(requests.length,1);
+ assert.equal(requests[0].count,16);
+ assert.ok(surviving.every(e=>!e.moteEscape));
+ game.time=120;updateMoteSwarmOrders(game);
+ assert.equal(requests.length,1,'no infinite reinforcement loop');
+});
+
+test('the actual support factory enters from offscreen with two capped squads',()=>{
+ const g=actualGame();g.time=220;g.vw=800;g.vh=600;
+ g.camera=()=>({x:-400,y:-300,w:800,h:600});
+ const courier={x:1300,y:1000,hp:1,r:6.5};
+ const count=g.spawnMoteReinforcements(courier,{x:25,y:15,at:200},16);
+ assert.equal(count,16);
+ assert.equal(new Set(g.enemies.map(e=>e.motePack)).size,2);
+ assert.ok(g.enemies.every(e=>e.moteCallUsed&&e.moteOriginCount===8));
+ assert.ok(g.enemies.every(e=>e.moteApproach.x===25));
+ assert.equal(g.spawnMoteReinforcements({...courier,x:0,y:0},{x:25,y:15},16),0,
+  'reinforcement cannot materialize on camera');
+});
+
+test('late micro-drone encounters contain two real eight-member packs',()=>{
+ const g=actualGame();g.vw=1200;g.vh=800;g.time=230;
+ g.lastEncounter='';
+ const director={...openingThreat(230,4),cap:70,groupSize:16};
+ const available=availableEncounters(230,director,16,70);
+ const choice=(available.indexOf('motes')+.25)/available.length;
+ assert.ok(available.includes('motes'));
+ const rng=Math.random;let calls=0;
+ Math.random=()=>[.2,.5,choice][calls++]??.3;
+ try{g.spawnGroup(director);}finally{Math.random=rng;}
+ assert.equal(g.enemies.filter(e=>e.microSwarm).length,16);
+ assert.equal(new Set(g.enemies.map(e=>e.motePack)).size,2);
+});
+
+test('staggered boosts have warnings, genuine velocity and vulnerable contact',()=>{
+ const members=drones(9),game=scene(members);
+ for(const e of members){e.x=145+e.serial;e.moteReformUntil=200;}
+ game.player.r=19;game.player.invul=0;game.hurt=damage=>{game.received=damage;};
+ updateMoteSwarmOrders(game);
+ game.time=102.5;updateMoteSwarmOrders(game);
+ assert.ok(members.every(e=>e.moteStatus==='windup'));
+ assert.ok(members.every(e=>!e.moteBoosting));
+ game.time=103.2;updateMoteSwarmOrders(game);
+ const boosted=members.filter(e=>e.moteBoosting);
+ assert.ok(boosted.length>=2&&boosted.length<members.length);
+ const e=boosted[0];e.x=-30;e.y=0;e.vx=240;e.vy=0;
+ e.moteOrder={x:100,y:0};
+ moveMote(e,game,.16);
+ assert.equal(e.hp,0);
+ assert.equal(game.received,MOTE_SWARM.damage);
 });
