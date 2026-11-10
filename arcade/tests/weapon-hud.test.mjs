@@ -23,6 +23,15 @@ test('flight deck shows every equipped automatic module, with real damage, range
  assert.equal(find(state,'flak'),undefined,'uninstalled modules must not occupy HUD');
 });
 
+test('plasma cockpit strength includes the actual close-range furnace specialization',()=>{
+ const g=game(),base=weaponDeckState(g);
+ g.shipLoadout.specializations.plasma={path:'furnace',rank:2};
+ const boosted=weaponDeckState(g),normal=moduleStats('plasma',g.skillRanks).damage;
+ assert.match(find(base,'plasma').detail,new RegExp('Урон вблизи '+normal));
+ const expected=(normal*1.45).toLocaleString('ru-RU',{maximumFractionDigits:1});
+ assert.ok(find(boosted,'plasma').detail.includes('Урон вблизи '+expected));
+});
+
 test('G field weapon is infinite and distinct from Space; loan without mounting is explicit',()=>{
  const g=game();g.fieldLoan=createFieldLoan('resonator',g.docked.id,g.time);
  g.fieldLoan.charges=0; // A checkpoint from the old three-shot economy.

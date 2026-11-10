@@ -5,6 +5,8 @@ import {FIELD_WEAPONS} from './field-weapons.js';
 import {cometSpec,minesSpec} from './mouse-arsenal.js';
 import {TACTICAL_DEVICES,tacticalSpec} from './tactical-fields.js';
 import {manualWeapons,selectedManual} from './manual-weapon-controls.js';
+import {plasmaDamageFactor} from './weapon-specializations.js';
+import {RULES} from './balance.js';
 
 const round=value=>Number(value).toLocaleString('ru-RU',{maximumFractionDigits:1});
 const remaining=(until,now)=>Math.max(0,Number(until||0)-Number(now||0));
@@ -30,7 +32,9 @@ export function weaponDeckState(game){
   const reason=heat.locked?'ПЕРЕГРЕВ':manual?'РУЧНОЙ':game.holdFire?'ОГОНЬ ВЫКЛ.':
    inactive?'НЕДОСТУПНО':'';
   const damage=id==='plasma'?'Урон вблизи':id==='flak'?'Урон осколка':'Урон/ствол';
-  const detail=damage+' '+round(spec.damage)+' · '+round(spec.range)+' м · '+round(spec.interval)+' с/залп';
+  const realDamage=id==='plasma'?spec.damage*plasmaDamageFactor(
+   game.shipLoadout?.specializations?.plasma,RULES.nearBeam,spec.range):spec.damage;
+  const detail=damage+' '+round(realDamage)+' · '+round(spec.range)+' м · '+round(spec.interval)+' с/залп';
   rows.push(row(id,'auto',MODULES[id].short.toUpperCase()+' ×'+mounts,
    detail,remaining(automaticClock(game,id),0),reason,MODULES[id].color));
  }
@@ -41,19 +45,19 @@ export function weaponDeckState(game){
   let name='',detail='',seconds=0;
   if(manual==='comet'){
    const spec=cometSpec(ranks);name='ГОЛУБАЯ КОМЕТА';
-   detail='Урон '+round(spec.damage)+' · радиус '+spec.radius+' м · дальность '+spec.range+' м';
+   detail='Урон '+round(spec.damage)+' · радиус '+spec.radius+' м · '+spec.range+' м · '+round(spec.cooldown)+' с/выстрел';
    seconds=remaining(game.mouseArsenal?.cometReadyAt,time);
   }else if(manual==='mines'){
    const spec=minesSpec(ranks);name='МИННЫЙ ВЕЕР';
-   detail=spec.count+' мин · урон '+round(spec.damage)+'/мина · '+spec.range+' м';
+   detail=spec.count+' мин · урон '+round(spec.damage)+'/мина · '+spec.range+' м · '+round(spec.cooldown)+' с';
    seconds=remaining(game.mouseArsenal?.minesReadyAt,time);
   }else if(manual==='rail'){
    const spec=moduleStats('rail',ranks,game.shipLoadout?.specializations?.rail);
-   name='РЕЛЬС · ПРИЦЕЛ';detail='Урон '+round(spec.damage)+' · '+spec.range+' м';
+   name='РЕЛЬС · ПРИЦЕЛ';detail='Урон '+round(spec.damage)+' · '+spec.range+' м · '+round(spec.interval)+' с/залп';
    seconds=remaining(game.moduleClocks?.rail,0);
   }else if(manual==='howitzer'){
    const spec=moduleStats('howitzer',ranks,game.shipLoadout?.specializations?.howitzer);
-   name='ОСАДНАЯ ГАУБИЦА';detail='Урон '+round(spec.damage)+' · '+spec.range+' м';
+   name='ОСАДНАЯ ГАУБИЦА';detail='Урон '+round(spec.damage)+' · '+spec.range+' м · '+round(spec.interval)+' с/выстрел';
    seconds=remaining(game.heavyCooldown,0);
   }
   rows.push(row('manual','manual','ПКМ · '+name,detail,seconds,
@@ -78,8 +82,8 @@ export function weaponDeckState(game){
   const fitted=!!profile[spec.id],stats=moduleStats(spec.id,ranks);
   const fieldKey=game.controlLabel?.('fieldWeapon')||'G';
   rows.push(row('field','manual',fieldKey.toUpperCase()+' · '+spec.short.toUpperCase()+' · ∞',
-   spec.id==='ion'?'По меткам · '+stats.range+' м · зарядка '+round(spec.cooldown)+' с':
-    '2–3 цели · '+stats.range+' м · связь 4 с · зарядка '+round(spec.cooldown)+' с',
+   spec.id==='ion'?'По меткам · урон '+stats.damage+' · '+stats.range+' м · '+round(spec.cooldown)+' с':
+    'Передача 35% · 2–3 цели · '+stats.range+' м · связь 4 с · '+round(spec.cooldown)+' с',
    remaining(loan.cooldownUntil,time),!fitted?'НЕ УСТАНОВЛЕНО':
     inactive?'НЕДОСТУПНО':heat.locked?'ПЕРЕГРЕВ':
     game.heavyCharge?'ЗАНЯТА ГАУБИЦА':'',MODULES[spec.id].color));
