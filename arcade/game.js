@@ -650,7 +650,7 @@ export class ArcadeGame {
    const row=x=>'<div class="control-binding-row"><span>'+x.name+
     '</span><button type="button" data-bind="'+x.id+'" aria-label="Изменить клавишу: '+x.name+'">'+
     readableKey(this.controls[x.id])+'</button></div>';
-   const main=new Set(['up','left','down','right','dash','field','interact','map']);
+   const main=new Set(['up','left','down','right','dash','field','fieldWeapon','interact','map']);
    list.innerHTML=CONTROL_ACTIONS.filter(x=>main.has(x.id)).map(row).join('')+
     '<details class="control-binding-extra"'+(extraOpen?' open':'')+'><summary>Дополнительные команды</summary>'+
     CONTROL_ACTIONS.filter(x=>!main.has(x.id)).map(row).join('')+'</details>';
@@ -4173,7 +4173,11 @@ export class ArcadeGame {
   this.pausedRenderPending=true;this.renderDock();
  }
  callFieldWeapon(){
-  if(!this.fieldLoan||!this.weaponProfile?.[this.fieldLoan.moduleId||'ion'])return false;
+  if(!this.fieldLoan)return false;
+  if(!this.weaponProfile?.[this.fieldLoan.moduleId||'ion']){
+   this.notice('Прокатное оружие ещё не установлено. Откройте «Оснащение» на станции.',2.5);
+   return false;
+  }
   if((this.fieldLoan?.moduleId||'ion')!=='resonator')return this.callIonDischarge();
   if(this.dead||this.paused||!this.overlay.hidden)return false;
   if(this.mining.active||this.probeRepairing||this.openingRepairing){

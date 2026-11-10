@@ -1032,7 +1032,7 @@ export function renderBasePanel(base,state){
   offer?'<div class="base-grid">'+Object.values(FIELD_WEAPONS).map(w=>{
    const q=fieldLoanOffer(base,state,w.id);
    return card('base-service base-local base-field-service','ПОЛЕВОЙ МОДУЛЬ · ПРОКАТ',
-    w.name,fieldIllustration(w.id)+fieldHelp(w.id)+' Три заряда. Установите в обычный узел и примените сборку. Запуск — отдельной клавишей полевого оружия; тактическое устройство на пробеле остаётся доступно. Одновременно можно взять один прокатный модуль.',
+    w.name,fieldIllustration(w.id)+fieldHelp(w.id)+' Три заряда. Установите в обычный узел и примените сборку. Запуск — '+readableKey((state.controls||DEFAULT_CONTROLS).fieldWeapon)+'; тактическое устройство на '+readableKey((state.controls||DEFAULT_CONTROLS).field)+' остаётся доступно. Одновременно можно взять один прокатный модуль.',
     action('loanField',q.mode==='trial'?'Выбрать бесплатно':'Взять · '+q.cost+' сплава',q.reason,w.id),q.reason);
   }).join('')+'</div>':base.type==='dock'&&state.fieldTrialTaken?card('base-service',
    'ПОЛЕВОЕ ОРУЖИЕ','Бесплатная проба использована',

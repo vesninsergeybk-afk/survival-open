@@ -149,6 +149,8 @@ test('rented weapon and permanent tactical device have independent activation an
  assert.equal(g.callTacticalField(),true,'Space works from the beginning');
  assert.equal(g.tactical.uses,1);
  g.fieldLoan=createFieldLoan('resonator',g.docked.id,g.time);
+ assert.equal(g.callFieldWeapon(),false,'rental key cannot fire before the module is mounted');
+ assert.match(g.lastNotice,/Прокатное оружие ещё не установлено/);
  g.weaponProfile.resonator=true;
  const a={x:150,y:0,hp:100,maxHp:100,r:15},b={x:190,y:0,hp:100,maxHp:100,r:15};
  g.grid.insert(a);g.grid.insert(b);

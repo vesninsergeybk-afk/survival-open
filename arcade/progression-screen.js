@@ -388,6 +388,7 @@ export function renderProgressionScreen(state){
   '</div>':'';
  const weaponNote=weapon?'<p class="prog-weapon-guidance">'+
   (weapon.manual?'Вы выбираете ветку развития ручного оружия. Для применения используйте '+esc(weapon.control)+'.':
+   weapon.installed&&weapon.family.kind==='manual'?'Прокатный модуль запускается клавишей '+esc(readableKey((state.controls||DEFAULT_CONTROLS).fieldWeapon))+'. Тактическое устройство на '+esc(readableKey((state.controls||DEFAULT_CONTROLS).field))+' остаётся доступным.':
    weapon.installed?'Улучшения этого оружия действуют в бою. Выбор вкладки не меняет оснащение корабля.':
    'Это оружие пока не стреляет. Его улучшения показаны для ознакомления, но изучить их можно после установки в «Оснащении». Общие технологии доступны через установленное оружие'+
    (weapon.family.id==='rocket'?'; «Авторакеты» сначала создают первый модуль.':'.'))+
