@@ -1,12 +1,14 @@
 import {RULES,beamDamage} from './balance.js?v=arcade-balanced-bases-30-combat-balance-1';
-import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight} from './weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2';
+import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight,
+ rocketPayload,seekerRetargetRange,disruptHeavyAim} from './weapon-specializations.js?v=weapon-branches-1';
 import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2-unified-controls-1-menu-focus-1-combat-balance-1';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1-triangle-defense-1-frontier-siege-1';
 import {emitWeaponFx} from './weapon-fx.js';
 import {landingRock} from './aimed-terrain.js?v=manual-audit-20261110';
-import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js?v=frontier-siege-1-manual-cover-1-weapon-vfx-audit-1';
+import {launchFlakVolley,launchFlakInterceptors,updateFlakPellets,
+ launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js?v=weapon-branches-1';
 
 export {updateFlakPellets,drawBallisticWeapons};
 
@@ -14,6 +16,12 @@ export const shipTargets=(game,range,limit=1,nearest=false,focus='precision')=>
  selectTargets(game,range,limit,!nearest&&focus==='precision');
 export const damageShipTarget=damageTarget;
 const statsFor=(g,id)=>moduleStats(id,g.skillRanks,g.shipLoadout.specializations?.[id]);
+function hitRail(game,item,damage,contact,...flags){
+ const dealt=damageTarget(game,item,damage,'rail',contact,...flags);
+ if(dealt>0&&disruptHeavyAim(game.shipLoadout,item.target,game.time))
+  game.notice?.('Рельсовый охотник сорвал подготовку тяжёлого залпа',2.6);
+ return dealt;
+}
 const positions=(g,id)=>{
  const slots=g.shipLoadout.slots.map((v,i)=>v===id?i:-1).filter(i=>i>=0);
  // Callers of the combat library may supply an aggregate profile without art.
@@ -21,9 +29,11 @@ const positions=(g,id)=>{
 };
 function fireFlakFamily(game){
  const stats=statsFor(game,'flak'),targets=selectTargets(game,stats.range,stats.targets,false);
- if(!targets.length)return false;
  let fired=false,index=0;
+ const assignedShots=new Set();
  for(const from of positions(game,'flak')){
+  if(launchFlakInterceptors(game,from,stats,assignedShots)){fired=true;continue;}
+  if(!targets.length)continue;
   // Separate mounts may cover different bearings. A wide-sweep upgrade widens
   // each sector instead of manufacturing hits around the whole ship.
   const anchor=targets[index%targets.length];index++;
@@ -60,16 +70,22 @@ function fireBeamFamily(game,id){
      const hit=second?contactAtPoint(second.rock.x,second.rock.y,second.x,second.y):
       contactOnCircle(t.x,t.y,targetRadius(item),cover.x,cover.y);
      if(second)game.damageRock(second.rock,damage*penetration,cover.x,cover.y,'auto',true,hit);
-     else damageTarget(game,item,damage*penetration,id,hit);
+     else hitRail(game,item,damage*penetration,hit);
      emitWeaponFx(game,'rail',cover,{x:hit?.x??t.x,y:hit?.y??t.y},
       {secondary:true,blocked:!!second,rank:game.skillRanks?.beam});
     }
-   }else damageTarget(game,item,damage,id==='plasma'?'beam':id,point);
+   }else if(id==='rail')hitRail(game,item,damage,point);
+   else damageTarget(game,item,damage,id==='plasma'?'beam':id,point);
+   const plasmaSpec=id==='plasma'?game.shipLoadout.specializations?.plasma:null;
+   const plasmaNear=plasmaSpec?plasmaDamageFactor(plasmaSpec,RULES.nearBeam,stats.range):1;
    emitWeaponFx(game,id,from,{x:point?.x??t.x,y:point?.y??t.y},{
     blocked:!!cover,rank:game.skillRanks?.beam,
     ...(id==='plasma'?{
-     falloff:beamDamage(1,d,RULES.nearBeam,stats.range,RULES.beamMinFactor),
-     nearDistance:RULES.nearBeam}:{}),
+     falloff:Math.min(1,beamDamage(1,d,RULES.nearBeam,stats.range,RULES.beamMinFactor)*
+      plasmaDamageFactor(plasmaSpec,d,stats.range)/plasmaNear),
+     nearDistance:RULES.nearBeam,
+     specialization:plasmaSpec?.path,
+     specializationRank:plasmaSpec?.rank}:{}),
    });
    firstFiredTarget??=t;
   }
@@ -95,17 +111,22 @@ function fireBeamFamily(game,id){
 function fireRockets(game){
  const stats=statsFor(game,'rocket'),item=selectTargets(game,stats.range,1,true)[0];
  if(!item)return false;
- const t=item.target,tuning=rocketFlight(game.shipLoadout);
+ const t=item.target,tuning=rocketFlight(game.shipLoadout),payload=rocketPayload(game.shipLoadout);
+ const seekerRange=seekerRetargetRange(game.shipLoadout);
  for(const from of positions(game,'rocket')){
   if(game.missiles.length>=14)game.missiles.shift();
   game.missiles.push({x:from.x,y:from.y,prevX:from.x,prevY:from.y,trail:[{x:from.x,y:from.y}],
    target:t,targetKind:item.kind,targetBase:item.base||null,tx:t.x,ty:t.y,
-   damage:stats.damage*weaponDamageFactor(game.shipLoadout,'rocket',t),speed:tuning.speed,life:tuning.life,
+   damage:stats.damage*weaponDamageFactor(game.shipLoadout,'rocket',t),
+   splashDamageBase:stats.damage,speed:tuning.speed,life:tuning.life,
+   splashRadius:payload?.radius||0,splashFactor:payload?.fraction||0,
+   seekerRange,
+   fxBranch:payload?'payload':seekerRange?'seeker':null,
    fxRank:Math.max(0,Math.min(6,game.skillRanks?.rocket||0))});
   emitWeaponFx(game,'rocket',from,t,{impact:false,rank:game.skillRanks?.rocket});
   game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(t.y-from.y,t.x-from.x),'knife');
  }
- heatWeapons(game.weaponThermal,MODULES.rocket.heat*game.weaponProfile.rocket);
+ heatWeapons(game.weaponThermal,MODULES.rocket.heat*game.weaponProfile.rocket*(payload?.heatMultiplier||1));
  game.rocketClock=stats.interval;game.heritage.play('rocketShot',.5,{x:game.player.x,y:game.player.y});return true;
 }
 export function updateAutomaticWeapons(game,dt,allowed){
@@ -187,7 +208,7 @@ export function updateRailSweep(game){
    const factor=hit===first?1:.28;
    const target=hit.item.target;
    const damage=totalDamage*factor*weaponDamageFactor(game.shipLoadout,'rail',target);
-   damageTarget(game,hit.item,damage,'rail',onRay(from,end,hit.t),false,true);
+   hitRail(game,hit.item,damage,onRay(from,end,hit.t),false,true);
   }
   if(!first&&rock&&rock.rock?.alive){
    game.damageRock(rock.rock,totalDamage*.6,from.x,from.y,'auto',true,
@@ -243,7 +264,7 @@ export function fireAimedRail(game,point){
   let impact=end,exitImpact=null,exitBlocked=false;
   if(before){
    impact=onRay(from,end,before.t);
-   if(damageTarget(game,before.item,damage,'rail',impact,false,true)>0)hits++;
+   if(hitRail(game,before.item,damage,impact,false,true)>0)hits++;
   }else if(cover){
    impact=cover;rocksHit++;
    game.damageRock(cover.rock,damage*.85,from.x,from.y,'auto',true,
@@ -258,7 +279,7 @@ export function fireAimedRail(game,point){
      exitImpact={x:second.x,y:second.y};exitBlocked=true;
     }else if(beyond){
      exitImpact=onRay(from,end,beyond.t);
-     if(damageTarget(game,beyond.item,damage*penetration,'rail',exitImpact,false,true)>0)hits++;
+     if(hitRail(game,beyond.item,damage*penetration,exitImpact,false,true)>0)hits++;
     }
    }
   }

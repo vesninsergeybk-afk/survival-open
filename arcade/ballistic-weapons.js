@@ -15,6 +15,44 @@ const TAU=Math.PI*2;
 const angleDifference=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
 const point=(x,y)=>({x,y});
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+
+/** Only bullets on a collision course merit sacrificing an offensive volley. */
+export function threateningFlakShots(game,from,range,excluded=new Set()){
+ const p=game.player;
+ if(!p)return [];
+ return (game.shots||[]).filter(s=>{
+  if(!s.alive||excluded.has(s))return false;
+  const speed2=s.vx*s.vx+s.vy*s.vy;
+  if(speed2<1)return false;
+  const t=((p.x-s.x)*s.vx+(p.y-s.y)*s.vy)/speed2;
+  if(t<0||t>.85||distance(s,from)>range)return false;
+  return Math.hypot(s.x+s.vx*t-p.x,s.y+s.vy*t-p.y)<(p.r||19)+55;
+ }).sort((a,b)=>distance(a,p)-distance(b,p));
+}
+
+/** Interception is a physical shot; it can miss, be blocked and spend heat. */
+export function launchFlakInterceptors(game,from,stats,excluded=new Set()){
+ const spec=game.shipLoadout?.specializations?.flak;
+ if(spec?.path!=='interceptor')return false;
+ const threats=threateningFlakShots(game,from,stats.range+40,excluded)
+  .slice(0,spec.rank>=2?2:1);
+ if(!threats.length)return false;
+ const pellets=game.flakPellets??(game.flakPellets=[]);
+ for(const shot of threats){
+  excluded.add(shot);
+  const distanceToShot=distance(from,shot),lead=Math.min(.18,distanceToShot/FLAK_SPEED);
+  const aimX=shot.x+shot.vx*lead,aimY=shot.y+shot.vy*lead;
+  const angle=Math.atan2(aimY-from.y,aimX-from.x);
+  if(pellets.length>=FLAK_POOL_CAP)pellets.shift();
+  pellets.push({x:from.x,y:from.y,px:from.x,py:from.y,
+   vx:Math.cos(angle),vy:Math.sin(angle),remaining:stats.range,
+   damage:0,interceptShot:shot,candidates:[]});
+  emitWeaponFx(game,'flak',from,{x:from.x+Math.cos(angle)*36,y:from.y+Math.sin(angle)*36},
+   {impact:false,rank:game.skillRanks?.beam});
+  game.heritage?.vfx?.muzzle?.(from.x,from.y,angle,'flak');
+ }
+ return true;
+}
 function interceptTime(from,target,speed){
  const dx=target.x-from.x,dy=target.y-from.y;
  const vx=Number.isFinite(target.vx)?target.vx:0;
@@ -94,6 +132,26 @@ export function updateFlakPellets(game,dt){
   const from=point(pellet.x,pellet.y),end=point(from.x+pellet.vx*step,from.y+pellet.vy*step);
   const rocks=game.rockGrid?.query((from.x+end.x)*.5,(from.y+end.y)*.5,step*.5+50)||[];
   const cover=firstRockImpact(from.x,from.y,end.x,end.y,rocks,1,game.player);
+  if(pellet.interceptShot){
+   const shot=pellet.interceptShot;
+   if(!shot.alive){pellets.splice(i,1);continue;}
+   // The hostile projectile advances later in the same game step. Relative
+   // swept motion avoids a fabricated hit at low frame rates.
+   const t=segmentCircle(point(from.x-shot.x,from.y-shot.y),
+    point(end.x-shot.x-shot.vx*dt,end.y-shot.y-shot.vy*dt),
+    point(0,0),(shot.r||6)+7);
+   if(t!==null&&(!cover||t<cover.t)){
+    shot.alive=false;
+    const hit=at(from,end,t);
+    emitWeaponFx(game,'flak',from,hit,{impact:true,rank:game.skillRanks?.beam});
+    pellets.splice(i,1);continue;
+   }
+   if(cover){pellets.splice(i,1);continue;}
+   pellet.px=from.x;pellet.py=from.y;pellet.x=end.x;pellet.y=end.y;
+   pellet.remaining-=step;
+   if(pellet.remaining<=.01)pellets.splice(i,1);
+   continue;
+  }
   let first=null;
   for(const item of pellet.candidates){
    if(!targetAlive(game,item))continue;

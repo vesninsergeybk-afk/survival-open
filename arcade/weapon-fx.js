@@ -32,7 +32,9 @@ export function emitWeaponFx(game,kind,from,to,options={}){
   // Numeric combat properties, never cosmetic levels invented by the renderer.
   rank:clamp(Math.trunc(Number(options.rank)||0),0,12),
   falloff:clamp(Number.isFinite(options.falloff)?options.falloff:1,.05,1),
-  nearDistance:Math.max(0,Number(options.nearDistance)||0)});
+  nearDistance:Math.max(0,Number(options.nearDistance)||0),
+  specialization:['furnace','focus'].includes(options.specialization)?options.specialization:null,
+  specializationRank:clamp(Math.trunc(Number(options.specializationRank)||0),0,2)});
  return true;
 }
 
@@ -73,12 +75,14 @@ function along(e,ux,uy,t,offset=0){
  return {x:e.x+(e.x2-e.x)*t+nx*offset,y:e.y+(e.y2-e.y)*t+ny*offset};
 }
 function drawPlasma(c,e,ux,uy,dist,fade,high,reducedMotion){
- const primary=e.blocked?'#ffc884':'#53dbff';
+ const primary=e.blocked?'#ffc884':e.specialization==='furnace'?'#ffbe79':
+  e.specialization==='focus'?'#8ac4ff':'#53dbff';
  const rank=e.rank||0,falloff=e.falloff??1;
  // The first metres retain full energy, then the beam narrows in proportion
  // to the same falloff used for damage. A far hit cannot look as strong as a
  // close one. The old single 18px stroke hid the 72% loss of damage.
- const startWidth=(e.secondary?3.2:4.8)+Math.min(4,rank)*.65;
+ const thermal=e.specialization==='furnace'?1+e.specializationRank*.12:1;
+ const startWidth=((e.secondary?3.2:4.8)+Math.min(4,rank)*.65)*thermal;
  const segments=high?8:5,near=clamp(e.nearDistance/dist,0,1);
  for(let i=0;i<segments;i++){
   const a=i/segments,b=(i+1)/segments;
@@ -107,6 +111,12 @@ function drawPlasma(c,e,ux,uy,dist,fade,high,reducedMotion){
    const p=along(e,ux,uy,.32,sign*(3+rank*.6)),q=along(e,ux,uy,.66,-sign*(3+rank*.6));
    line(c,p.x,p.y,q.x,q.y,1.2,'#9cffff',fade*.62*falloff);
   }
+ }
+ if(e.specialization==='focus'&&high){
+  // Stable parallel guide rails are a truthful indicator of the focused path.
+  const p=along(e,ux,uy,.55),q=along(e,ux,uy,.91);
+  for(const side of [-1,1])line(c,p.x-uy*side*3,p.y+ux*side*3,
+   q.x-uy*side*3,q.y+ux*side*3,1.1,'#d5e9ff',fade*.55*falloff);
  }
  if(e.impact){
   circle(c,e.x2,e.y2,(high?11:7)*Math.sqrt(falloff)+rank*.6,
