@@ -26,25 +26,22 @@ import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-q
 import {CONTOURS,contourFields} from './territory-system.js?v=contours-1-triangle-defense-1-territory-logistics-1';
 import {productiveContourFields} from './contour-trials.js?v=swarm-siege-1-corecharge-20261110';
 import {stationTrialField,stationGarrisonOffer,STATION_GARRISONS} from './station-garrisons.js?v=trial-station-defense-20261110';
-import {turretGrowthRows,turretBranchOffer,hiveLimit,hiveArmor} from './turret-growth.js?v=trial-station-defense-20261110';
+import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,hiveLimit,hiveArmor} from './turret-growth.js?v=trial-station-defense-20261110';
+import {ESCORTS,ESCORT_TECH,escortCapacity,escortHireOffer,
+ escortTrainingOffer,escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {STATION_MIN_CONTRACTS,stationReputation,stationReputationGoal,
  stationReputationReady,stationContractReputation} from './station-reputation.js';
 
-// Only two distinct combat drones can accompany the player. Bomber wings are
-// consumable station support, never persistent escorts.
-const DRONES = Object.freeze({
- dock:{role:'scout',name:'Дрон «Страж»',cost:20,desc:'Лёгкий защитник. Сбивает таранщиков, держится рядом при добыче.'},
- lab:{role:'scout',name:'Дрон «Страж»',cost:20,desc:'Лёгкий защитник. Сбивает таранщиков, держится рядом при добыче.'},
- arsenal:{role:'fighter',name:'Дрон «Клинок»',cost:54,desc:'Ударный перехватчик. Выбирает опасные корабли и ремонтников.'},
- carrier:{role:'fighter',name:'Дрон «Клинок»',cost:54,desc:'Ударный перехватчик. Защищает от крупных противников.'}
-});
+// All active stations can hire the same escort models for the same prices.
+// Station specialties still determine their separate local technologies.
+const DEFAULT_DRONE=Object.freeze({...ESCORTS.scout,role:'scout'});
 const TECH = Object.freeze({
  dock:{key:'armor',name:'Броня дронов',desc:'Повышает живучесть ваших дронов. На ПВО станции не влияет.'},
  lab:{key:'engine',name:'Приводы дронов',desc:'Помощники быстрее возвращаются и прикрывают добычу.'},
- arsenal:{key:'armament',name:'Вооружение дронов',desc:'Оба дрона сильнее бьют при перехвате.'},
+ arsenal:{key:'armament',name:'Вооружение дронов',desc:'Все нанятые ведомые сильнее бьют при перехвате.'},
  carrier:{key:'strikePower',name:'Авиационная связь',desc:'Открывает ударные вылеты B. Каждый следующий уровень усиливает бомбардировку.'}
 });
 // One irreversible local specialization per station. It never creates extra
@@ -146,9 +143,9 @@ export const transitCost=(origin,destination)=>
  Math.max(20,12+Math.ceil(Math.hypot(origin.x-destination.x,origin.y-destination.y)/750)*8);
 export function baseOffer(base,state){
  const ore=Math.max(0,state.ore|0),connected=!!state.connected;
- const drone=DRONES[base.type]||DRONES.dock,tech=TECH[base.type]||TECH.dock;
+ const drone=DEFAULT_DRONE,tech=TECH[base.type]||TECH.dock;
  const level=state.network[tech.key]|0;
- const cap=Math.min(RULES.maxAllies,state.connectedBases>=2?2:1);
+ const cap=escortCapacity(state.connectedBases);
  const upgradeCost=52+level*34;
  const relayCost=activationCost(state.civilianBases??state.activeBases??0);
  const provisional=!base.active&&base.id!=='0:0'&&!base.enemy&&!base.ruined&&!(base.hp<=0);
@@ -176,19 +173,13 @@ export function baseOffer(base,state){
   localService?.key==='overcharge'?(state.overchargeRemaining||0)>0:false;
  const serviceRemaining=localService?.key==='scan'?state.scanRemaining||0:
   localService?.key==='overcharge'?state.overchargeRemaining||0:0;
- const replacementIndex=state.allies>=cap?(state.droneRoles||[])
-  .findIndex(role=>role!==drone.role):-1;
- const replacing=replacementIndex>=0;
- const hireCost=replacing?Math.max(18,drone.cost-
-  (state.droneRoles[replacementIndex]==='fighter'?20:12)):drone.cost;
+ const replacementIndex=-1,replacing=false,hireCost=drone.cost;
  const reasons={
   activate:base.active?'Уже включена':
    !stationReputationReady(base)?'Выполните поручения станции и заслужите доверие':shortfall(relayCost,ore),
   antenna:!base.active?'Сначала включите станцию':
    base.relayBoost?'Антенна уже усилена':shortfall(antennaCost,ore),
-  hire:!base.active?'Сначала включите станцию':
-   state.allies>=cap&&!replacing?'Лимит '+cap+' · дрон этого типа уже в строю':
-   shortfall(hireCost,ore),
+  hire:escortHireOffer(base,state,drone.role).reason,
   upgrade:!base.active?'Сначала включите станцию':
    !connected?'Соедините станцию с домашним доком':
    base.usedUpgrade?'Технология этой станции изучена':
@@ -623,7 +614,7 @@ function territorySummary(base,state,compact=false){
   action('baseContours','Открыть контуры этой станции')+
   (compact?'':'<details class="base-secondary-info base-network-advanced" data-hangar-section="radio-details"><summary>Радиосвязь услуг · в сети дока '+(state.connectedBases||0)+' '+stationNoun(state.connectedBases||0)+'</summary>'+networkPreview(base,state)+'</details>')+'</section>';
 }
-export const BASE_TABS=Object.freeze(['summary','operations','hangar','development','network']);
+export const BASE_TABS=Object.freeze(['summary','operations','hangar','drones','development','network']);
 const tabButton=(id,name,selected,notice='')=>'<button type="button" role="tab" id="base-tab-'+id+'" aria-controls="base-panel-'+id+'"'+(notice?' data-notice="'+notice+'" aria-label="'+name+' · '+notice+'"':'')+' tabindex="'+(id===selected?'0':'-1')+'" data-act="baseTab" data-role="'+id+
  '" aria-selected="'+(id===selected)+'" class="'+(id===selected?'selected':'')+'">'+name+'</button>';
 const tabPanel=(id,selected,body)=>'<section class="base-tab-panel" id="base-panel-'+id+'" aria-labelledby="base-tab-'+id+'" role="tabpanel" data-tab="'+id+'"'+
@@ -924,7 +915,7 @@ export function renderBasePanel(base,state){
  const quickRepair=o.repairAmount>0?
   action('repair','Починить · '+o.repairCost+' сплава · +'+Math.ceil(o.repairAmount)+' прочности',o.reasons.repair):
   '<span class="base-ready">Корпус исправен</span>';
- const quickHire=action('hire',(o.replacing?'Заменить':'Нанять')+' дрона · '+o.hireCost+' сплава',o.reasons.hire,o.drone.role);
+ const quickHire=action('hire','Нанять «Стража» · '+o.hireCost+' сплава',o.reasons.hire,o.drone.role);
  const sectorPreview='<aside class="base-overview-sector" aria-label="Известные узлы сектора">'+
   '<span class="base-kicker">ОБСТАНОВКА</span><h3>Известный сектор</h3>'+basePreview(base,state)+'</aside>';
  const receipt=state.lastContractReceipt;
@@ -956,8 +947,8 @@ export function renderBasePanel(base,state){
   (o.reasons.hire?'<small class="base-action-reason">'+o.reasons.hire+'</small>':'')+
   (state.droneDamage>0?action('repairDrones','Починить дронов · '+o.droneRepairCost+' сплава',o.reasons.drones)+
    (o.reasons.drones?'<small class="base-action-reason">'+o.reasons.drones+'</small>':''):'')+
-  '</div><small>Обычные ведомые усиливаются технологиями станций. У дроновой матки есть пять собственных веток развития, доступных в разделе «Территория» или через её меню правой кнопкой мыши.</small>'+
-  action('baseTab','Развитие технологий дронов →','','network')+
+  '</div><small>Нанимайте разведчиков, истребителей, штурмовиков, ракетчиков и ремонтников по единым ценам. Места в звене открываются с подключением станций.</small>'+
+  action('baseTab','Состав и развитие звена →','','drones')+
   '</section></div>';
  // Repair and hire are the first routine station actions. A reward which can
  // actually be collected here must still come first, before any purchase.
@@ -1024,8 +1015,8 @@ export function renderBasePanel(base,state){
   '<p>'+missionPreparation+
   (hullPercent<45?' Корпус сильно повреждён. Перед опасным вылетом рекомендуется ремонт.':'')+'</p>'+
   '<small>'+((state.droneRoles||[]).includes(o.drone.role)?
-   o.drone.name+' уже в строю.':
-   'Дрон: '+o.hireCost+' сплава · '+(o.ore>=o.hireCost?
+   'Один или несколько «Стражей» уже в строю.':
+   'Базовый «Страж»: '+o.hireCost+' сплава · '+(o.ore>=o.hireCost?
     'после покупки останется '+(o.ore-o.hireCost)+' сплава.':
     'не хватает '+(o.hireCost-o.ore)+' сплава.'))+
   ' Следующая станция и постоянные улучшения тоже потребуют ресурсов.</small>'+
@@ -1119,36 +1110,73 @@ export function renderBasePanel(base,state){
  const development=renderDevelopmentPanel({...state,baseActive:active,station:base})+
   (doctrineSpent(normalizedDoctrineRanks(state))?'<section class="base-doctrine-service"><h3>Сброс доктрин</h3><p>Вернёт все потраченные на доктрины очки. Остальные навыки сохранятся.</p>'+
    action('respec','Сбросить доктрины · 12 сплава',o.ore<12?'Нужно 12 сплава':'')+'</section>':'');
- const localMotherships=(state.world?.contours?.supportTurrets||[])
-  .filter(t=>t.type==='hive'&&t.hp>0&&Math.hypot(t.x-base.x,t.y-base.y)<=3000)
-  .sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y)).slice(0,3);
- const mothershipGrowth=localMotherships.length?'<section class="base-station-development" aria-label="Развитие дроновых маток">'+
-  '<h3>Дроновые матки · пять веток развития</h3><p>До трёх ближайших маток в радиусе 3000 м можно улучшить здесь или через меню самой установки. Рост численности, дальности, брони, тактики и защиты оплачивается сплавом и флюксом.</p>'+
-  localMotherships.map(hive=>'<div class="base-card"><strong>Матка №'+hive.id+' · дроны '+
-   hive.drones.filter(d=>d.hp>0).length+'/'+hiveLimit(hive)+' · броня '+hiveArmor(hive)+'</strong><div class="base-grid">'+
-   turretGrowthRows(hive).map(row=>{
-    const quote=turretBranchOffer(state.world,{ore:state.ore},hive,row.key,state.time);
+ const squadSlots=Math.max(0,o.cap-(state.allies||0)),roster=state.droneRoster||[];
+ const droneRoster='<section class="base-card"><span class="base-kicker">ТЕКУЩИЙ СОСТАВ</span>'+
+  '<h3>Ведомые · '+(state.allies||0)+' / '+o.cap+'</h3><p>Каждая новая подключённая станция открывает место в звене, максимум шесть. Дроны разных типов действуют совместно и не занимают слоты вооружения корабля.</p>'+
+  (roster.length?'<div class="base-grid">'+roster.map(unit=>{
+   const spec=ESCORTS[unit.role];if(!spec)return '';
+   const refund=escortRetirementRefund(unit);
+   return '<div class="base-card"><strong>'+spec.name+' · '+spec.tag+'</strong><small>Корпус '+
+    Math.ceil(unit.hp)+'/'+unit.maxHp+'</small>'+action('retireEscort',
+     'Отозвать · вернуть '+refund+' сплава','','','',''+unit.serial)+'</div>';
+  }).join('')+'</div>':'<p>Пока нет ведомых. Начните с одного защитника или соберите своё первое ударное звено.</p>')+
+  (squadSlots?'<small>Свободных мест: '+squadSlots+'</small>':
+   '<small>Звено заполнено. Чтобы изменить состав, отзовите ненужный дрон. При отзыве возвращается часть стоимости исправной машины.</small>')+'</section>';
+ const droneCatalog='<section class="base-card base-escort-catalog"><span class="base-kicker">НАЙМ НА СТАНЦИИ</span>'+
+  '<h3>Пять специализаций · единые цены</h3><p>Все действующие станции продают одинаковые модели по одной цене. Выбирайте их сочетание под предстоящий бой.</p><div class="base-grid">'+
+  Object.entries(ESCORTS).map(([role,spec])=>{
+   const quote=escortHireOffer(base,state,role);
+   return '<div class="base-card base-escort-model"><span class="base-kicker">'+spec.tag+'</span><strong>«'+spec.name+'» · '+spec.cost+' сплава</strong>'+
+    '<small>Прочность '+spec.maxHp+' · урон '+spec.damage+' · '+spec.desc+'</small>'+
+    action('hireDrone','Нанять «'+spec.name+'»',quote.reason,role)+
+    (!quote.ok?'<small>'+quote.reason+'</small>':'')+'</div>';
+  }).join('')+'</div></section>';
+ const squadTraining='<section class="base-card base-escort-training"><span class="base-kicker">ПОСТОЯННОЕ РАЗВИТИЕ</span>'+
+  '<h3>Технологии ведомых</h3><p>Эти три улучшения действуют на всех нанятых и будущих дронов. Уже изученные станционные технологии сохраняются.</p><div class="base-grid">'+
+  Object.entries(ESCORT_TECH).map(([key,tech])=>{
+   const quote=escortTrainingOffer(base,state,key);
+   return '<div class="base-card"><strong>'+tech.name+' · '+quote.rank+'/6</strong><small>'+tech.desc+'</small>'+
+    (quote.rank>=6?'<span class="base-ready">Полностью изучено</span>':
+     action('trainEscort','Улучшить · '+quote.price+' сплава',quote.reason,key))+'</div>';
+  }).join('')+'</div></section>';
+ const dronesPanel='<div class="base-operations base-escort-panel">'+droneRoster+droneCatalog+squadTraining+'</div>';
+ const localTurrets=[
+  ...(state.world?.contours?.artillery||[]).map(t=>({turret:t,target:'a:'+t.id})),
+  ...(state.world?.contours?.supportTurrets||[]).map(t=>({turret:t,target:'s:'+t.id}))
+ ].filter(({turret})=>turret.hp>0&&Math.hypot(turret.x-base.x,turret.y-base.y)<=3000)
+  .sort((a,b)=>Math.hypot(a.turret.x-base.x,a.turret.y-base.y)-Math.hypot(b.turret.x-base.x,b.turret.y-base.y));
+ const emplacementGrowth=localTurrets.length?'<section class="base-station-development" aria-label="Развитие установок территории">'+
+  '<h3>Оборона территории · все виды установок</h3><p>Развивайте ближайшие подключённые орудия: артиллерию, разрядники, лазерные гнёзда и дроновые матки. Каждая установка сохраняет свои улучшения; расходы — сплав и флюкс.</p>'+
+  localTurrets.map(({turret:t,target})=>'<details class="base-card base-turret-growth"><summary><strong>'+
+   (TURRET_GROWTH[turretGrowthType(t)]?.name||'Установка')+' №'+t.id+'</strong> · корпус '+
+   Math.ceil(t.hp)+'/'+Math.ceil(t.maxHp||t.hp)+
+   (t.type==='hive'?' · дроны '+(t.drones||[]).filter(d=>d.hp>0).length+'/'+hiveLimit(t)+
+    ' · броня '+hiveArmor(t):'')+'</summary><div class="base-grid">'+
+   turretGrowthRows(t).map(row=>{
+    const quote=turretBranchOffer(state.world,{ore:state.ore},t,row.key,state.time);
     return '<div class="base-card"><strong>'+row.name+' · '+row.rank+'/'+row.max+'</strong>'+
      '<small>'+row.summary+'</small>'+
-     (row.next?action('upgradeHiveBranch','Улучшить · '+row.next[1]+' сплава + '+row.next[2]+' флюкса',
-       quote.ok?'':quote.reason,row.key,'',String(hive.id)):
+     (row.next?action('upgradeTerritoryTurret','Улучшить · '+row.next[1]+' сплава + '+row.next[2]+' флюкса',
+       quote.ok?'':quote.reason,row.key,'',target):
        '<span class="base-ready">Ветка завершена</span>')+'</div>';
-   }).join('')+'</div></div>').join('')+'</section>':'';
+   }).join('')+'</div></details>').join('')+'</section>':'';
  const network='<div class="base-operations"><section class="base-network-scope"><h3>Управление территорией</h3>'+
   '<p>Здесь вы управляете выбранной станцией, местными сооружениями, флюксом и обороной. Постоянная вместимость опорных линий развивается отдельно.</p>'+
   '<button type="button" data-act="openDevelopment" data-id="network">Открыть развитие сети →</button></section>'+
   threats+territorySummary(base,state)+
-  stationDevelopment+emergencyDefense+mothershipGrowth+fluxInfrastructure+defense+capturedWing+
+  stationDevelopment+emergencyDefense+emplacementGrowth+fluxInfrastructure+defense+capturedWing+
   '<section class="base-network-direct" data-hangar-section="transit"><h3>'+menuIcon('navigation')+'Перелёты между станциями</h3>'+
   (transit||'<p>Для перелёта нужна связь этой станции с домашним доком и ещё хотя бы одна доступная станция назначения.</p>')+'</section></div>';
  const opening=active?
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
   tabButton('summary','Обзор',selected)+tabButton('operations','Задания',selected,o.contract.status==='ready'?'Награда':state.firstHardwareReward==='pending'?'Оружие':'')+
-  tabButton('hangar','Оснащение',selected)+tabButton('development','Развитие',selected,state.points?'Свободно очков: '+state.points:'')+tabButton('network','Территория',selected,threats?'Угроза':'')+'</nav>'+
+  tabButton('hangar','Оснащение',selected)+tabButton('drones','Дроны',selected)+
+  tabButton('development','Развитие',selected,state.points?'Свободно очков: '+state.points:'')+tabButton('network','Территория',selected,threats?'Угроза':'')+'</nav>'+
   tabPanel('summary',selected,dashboard+overviewServices+(report?'<details class="base-secondary-info base-report-details">'+
     '<summary>Итоги последнего вылета</summary>'+report+'</details>':''))+
   tabPanel('operations',selected,operations)+
   tabPanel('hangar',selected,hangar)+
+  tabPanel('drones',selected,dronesPanel)+
   tabPanel('development',selected,development)+
   tabPanel('network',selected,network):
   '<div class="base-intro">'+activation+

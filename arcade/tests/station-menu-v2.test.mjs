@@ -12,11 +12,11 @@ const state={ore:84,data:12,hp:75,maxHp:110,shield:30,allies:1,
  network:{armor:0,engine:0,armament:0,strikePower:0},transfers:[],
  loadout,hangarSession,skillRanks:{},level:1,points:3,operation:null,time:0};
 
-test('the five existing station destinations retain real tab semantics and callbacks',()=>{
- assert.deepEqual(BASE_TABS,['summary','operations','hangar','development','network']);
+test('all six station destinations retain real tab semantics and callbacks',()=>{
+ assert.deepEqual(BASE_TABS,['summary','operations','hangar','drones','development','network']);
  for(const selected of BASE_TABS){
   const html=renderBasePanel(base,{...state,baseTab:selected});
-  assert.equal((html.match(/role="tab"/g)||[]).length,5);
+  assert.equal((html.match(/role="tab"/g)||[]).length,6);
   assert.equal((html.match(/aria-selected="true"/g)||[]).length,1);
   assert.match(html,new RegExp('id="base-tab-'+selected+'"[^>]*aria-selected="true"'));
   assert.match(html,new RegExp('id="base-panel-'+selected+'"[^>]*role="tabpanel"'));

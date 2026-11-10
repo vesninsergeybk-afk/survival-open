@@ -9,6 +9,7 @@ import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1';
 import {normalizedDoctrineRanks,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2-hud-merge-20261110';
 import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110-weapon-deck-audit-2-hud-merge-20261110';
+import {ESCORTS,escortCapacity} from './escort-squad.js?v=escort-squad-20261110';
 const el = id => document.getElementById(id);
 const mountCountLabel=count=>{
  const last=count%10,teens=count%100>=11&&count%100<=14;
@@ -61,7 +62,7 @@ export class CockpitDisplay {
    hudSupportRing:el('hudSupportRing'),hudStrikeCount:el('hudStrikeCount'),
    hudThermal:el('hudThermal'),hudThermalLabel:el('hudThermalLabel'),
    hudThermalText:el('hudThermalText'),hudThermalMeter:el('hudThermalMeter'),
-   droneIcons:[el('hudDrone0'),el('hudDrone1')],
+   droneIcons:Array.from({length:6},(_,i)=>el('hudDrone'+i)),
    ore:el('ore'),data:el('data'),bases:el('bases'),
    flux:el('flux'),fluxResource:el('fluxResource'),fluxGain:el('fluxGain'),
    hack:el('hack'),fps:el('fps'),enemies:el('enemies'),
@@ -139,12 +140,29 @@ export class CockpitDisplay {
   const cover=game.allies.filter(a=>a.state==='cover'||a.state==='guard').length;
   display(n.hudStrikeCount,'×'+strikes);
   n.hudSupportRing.classList.toggle('available',strikes>0);
-  const liveAllies=game.allies.filter(a=>a.hp>0).length;
-  for(let i=0;i<n.droneIcons.length;i++)n.droneIcons[i].classList.toggle('active',i<liveAllies);
-  display(n.wingStatus,liveAllies+'/2');
+  const liveUnits=game.allies.filter(a=>a.hp>0),liveAllies=liveUnits.length;
+  if((this.nextWingCapacityUpdate||-Infinity)<=game.time){
+   const connected=typeof game.world?.networkTopology==='function'?
+    game.world.networkTopology().count:game.activeBases||1;
+   this.wingCapacity=escortCapacity(connected);
+   this.nextWingCapacityUpdate=game.time+1;
+  }
+  const capacity=this.wingCapacity||1;
+  for(let i=0;i<n.droneIcons.length;i++){
+   const icon=n.droneIcons[i],unit=liveUnits[i];
+   icon.classList.toggle('active',!!unit);
+   icon.classList.toggle('locked',i>=capacity);
+   const sprite=unit&&ESCORTS[unit.role]&&unit.role!=='scout'?
+    './studio/hud-kit/escort-'+unit.role+'.svg':'./studio/hud-kit/drone.svg';
+   if(icon.getAttribute?.('src')!==sprite)icon.src=sprite;
+   icon.title=unit?(ESCORTS[unit.role]?.name||'Ведомый')+' · '+Math.ceil(unit.hp)+' ОЗ':
+    i>=capacity?'Место откроется после подключения ещё одной станции':'Свободное место';
+   icon.style.filter=unit?'drop-shadow(0 0 4px '+(ESCORTS[unit.role]?.color||'#68eeeb')+')':'';
+  }
+  display(n.wingStatus,liveAllies+'/'+capacity);
   n.wingStatus.setAttribute('aria-label',bombers?'Авиагруппа выполняет удар; '+liveAllies+' дронов в строю':
    cover?'Прикрывают корабль: '+cover+'; '+liveAllies+' дронов в строю':
-   liveAllies+' из 2 дронов в строю');
+   liveAllies+' из '+capacity+' доступных дронов в строю');
   const focus=game.actionHeld||game.interactionFocus;
   n.interactionCue.hidden=!focus||game.paused||game.dead||!game.overlay.hidden||
    !!game.contourTrial&&!['station','repair','opening-repair','vortex'].includes(focus?.kind);

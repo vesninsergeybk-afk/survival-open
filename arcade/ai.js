@@ -20,6 +20,7 @@ import {damageFriendlyTurret} from './turret-defense.js?v=turret-defense-2026111
 import {updateLastStand} from './enemy-last-stand.js?v=redteam-20261109-1';
 import {advanceEnemyCloseAttack,cancelCloseAttack} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
 import {activeStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
+import {ESCORTS,escortFocusBonus} from './escort-squad.js?v=escort-squad-20261110';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -776,6 +777,7 @@ export function updateConverted(e,game,dt){
 export function updateAlly(a,game,dt){
   if(a.hp<=0)return;
   const p=game.player;
+  const spec=ESCORTS[a.role]||ESCORTS.fighter;
   a.think=(a.think||0)-dt;a.fire=(a.fire||0)-dt;
   const farFromPlayer=dist(a,p)>235;
   const holdingFire=!!game.holdFire;
@@ -805,15 +807,13 @@ export function updateAlly(a,game,dt){
      !enemyBase.coreExposed){
       state='bomb';target=enemyBase;
     }else if(!farFromPlayer){
-      for(const e of game.grid.query(p.x,p.y,520)){
+      for(const e of game.grid.query(p.x,p.y,a.role==='rocket'?590:520)){
         if(e.hp<=0||e.converted||!canAutoTarget(e))continue;
         const playerDistance=dist(p,e);
-        const radius=e.type==='gunship'?510:390;
+        const radius=a.role==='rocket'?530:e.type==='gunship'?510:390;
         if(playerDistance>radius)continue;
         const allyDistance=dist(a,e);
-        const threat=a.role==='scout'?(e.type==='berserker'?115:e.type==='flanker'?95:0):
-         a.role==='fighter'?(e.type==='gunship'?120:e.type==='healer'?100:0):
-         (e.type==='flanker'?65:e.type==='berserker'?65:0);
+        const threat=escortFocusBonus(a.role,e);
         // Commander rank two makes the marked enemy an actual coordinated
         // target for escorts, while preserving their local tether and safety.
         const marked=doctrineRank(game,'command')>=2&&
@@ -838,11 +838,16 @@ export function updateAlly(a,game,dt){
       a.target=target;
     }
   }
-  const slot=(a.serial-1)%2,angle=slot*Math.PI+.7;
-  const formationRadius=guardingExtraction?62:82;
+  // Formation uses each surviving escort's own index. A six-ship wing must
+  // never collapse into two identical positions as the old modulo-2 code did.
+  const position=game.allies?.indexOf(a)??-1;
+  const count=Math.max(1,game.allies?.length||1);
+  const slot=position>=0?position:Math.max(0,(a.serial||1)-1)%count;
+  const angle=slot*Math.PI*2/count+.7;
+  const formationRadius=(guardingExtraction?62:82)+(slot%2)*20;
   let x=p.x+Math.cos(angle)*formationRadius;
   let y=p.y+Math.sin(angle)*formationRadius;
-  let speed=(a.role==='scout'?365:a.role==='bomber'?235:335)*
+  let speed=(a.role==='bomber'?235:spec.speed)*
     (1+game.network.engine*.075);
   if(!holdingFire&&a.state==='bomb'&&a.target?.hp>0){
     const target=a.target.turrets?.find(t=>t.hp>0)||a.target;
@@ -858,17 +863,48 @@ export function updateAlly(a,game,dt){
     }
   }else if(!holdingFire&&a.state==='cover'&&a.target?.hp>0&&canAutoTarget(a.target)){
     const target=a.target;
-    x=target.x+Math.cos(angle)*100;y=target.y+Math.sin(angle)*100;
+    const approach=a.role==='brawler'?34:a.role==='rocket'?235:100;
+    x=target.x+Math.cos(angle)*approach;y=target.y+Math.sin(angle)*approach;
     // Intercept toward the threat, but keep the escort within support range.
-    const dx=x-p.x,dy=y-p.y,d=length(dx,dy),tether=a.role==='bomber'?170:155;
+    const dx=x-p.x,dy=y-p.y,d=length(dx,dy),tether=a.role==='bomber'?170:
+     a.role==='rocket'?190:a.role==='brawler'?200:155;
     if(d>tether){x=p.x+dx/d*tether;y=p.y+dy/d*tether;}
-    if(a.fire<=0&&dist(a,target)<360){
-      a.fire=a.role==='scout'?.98:a.role==='bomber'?1.85:.85;
-      const weapon=a.role==='scout'?12:a.role==='bomber'?5:18;
+    const weaponRange=a.role==='bomber'?360:spec.range;
+    if(a.fire<=0&&dist(a,target)<weaponRange){
+      a.fire=a.role==='bomber'?1.85:spec.reload;
+      const weapon=a.role==='bomber'?5:spec.damage;
       const command=commandAllyBonus(game,a);
-      game.damageEnemy(target,(weapon+game.network.armament*(a.role==='bomber'?1.5:3))*command,a);
-      game.flash(a.x,a.y,target.x,target.y,'#8adfff');
-      game.heritage.play('allyShot',.42,{x:a.x,y:a.y});
+      const damage=(weapon+game.network.armament*(a.role==='bomber'?1.5:3))*command;
+      if(a.role==='rocket'&&Array.isArray(game.missiles)){
+        game.missiles.push({x:a.x,y:a.y,tx:target.x,ty:target.y,
+          target,targetKind:'enemy',speed:530,life:1.65,damage,
+          splashRadius:64,splashFactor:.45,escortSource:a,
+          seekerRange:170,trail:[]});
+        game.flash(a.x,a.y,target.x,target.y,'#ffa5ad');
+        game.heritage.play('rocket',.35,{x:a.x,y:a.y});
+      }else{
+        game.damageEnemy(target,damage,a);
+        game.flash(a.x,a.y,target.x,target.y,
+          a.role==='brawler'?'#ffb97b':a.role==='medic'?'#9df1be':'#8adfff');
+        game.heritage.play('allyShot',a.role==='brawler'?.58:.42,{x:a.x,y:a.y});
+      }
+    }
+  }
+  if(a.role==='medic'&&(a.serviceAt||0)<=game.time){
+    const wounded=(game.allies||[]).filter(other=>other.hp>0&&other.hp<other.maxHp&&
+     dist(a,other)<220).sort((left,right)=>left.hp/left.maxHp-right.hp/right.maxHp);
+    const patient=wounded[0];
+    if(patient){
+      patient.hp=Math.min(patient.maxHp,patient.hp+8+game.network.armament*1.5);
+      game.flash(a.x,a.y,patient.x,patient.y,'#9df1be');
+      a.serviceAt=game.time+3.8;
+    }else if(game.time-(game.lastDamageAt??0)>5&&dist(a,p)<160){
+      const shieldCap=16+(game.skillRanks.shield||0)*24;
+      if(p.shield<shieldCap){
+        p.shield=Math.min(shieldCap,p.shield+4);
+        game.flash(a.x,a.y,p.x,p.y,'#9df1be');
+      }
+      a.serviceAt=game.time+4.6;
     }
   }
   const avoid=game.avoidance(a.x,a.y,a.r+35);
@@ -880,7 +916,7 @@ export function updateAlly(a,game,dt){
   steer(a,x,y,speed,dt,{x:avoid.x*speed*1.5,y:avoid.y*speed*1.5});
   for(const shot of game.shotsNear(a.x,a.y,50)){
     if(shot.alive&&dist(a,shot)<a.r+shot.r){
-      shot.alive=false;game.hitAlly(a,shot.damage*(1-game.network.armor*.07));
+      shot.alive=false;game.hitAlly(a,shot.damage);
       break;
     }
   }

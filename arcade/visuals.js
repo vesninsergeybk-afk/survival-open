@@ -543,9 +543,10 @@ export class ArcadeVisuals {
   // Friendly craft use their dedicated sprites, never the hostile eight-frame
   // creature atlas. Thrusters and hull accent follow their actual velocity.
   const role=a.role||'scout';
-  const color=role==='scout'?'#74ffe5':role==='bomber'?'#ffce86':'#81caff';
-  const w=role==='bomber'?70:role==='fighter'?61:54;
-  const h=role==='bomber'?53:role==='fighter'?42:41;
+  const color=role==='bomber'?'#ffce86':role==='brawler'?'#ffb97b':
+   role==='rocket'?'#ffa5ad':role==='medic'?'#9df1be':'#81caff';
+  const w=role==='bomber'?70:role==='brawler'?58:54;
+  const h=role==='bomber'?53:role==='brawler'?44:41;
   const speed=Math.hypot(a.vx||0,a.vy||0),throttle=clamp(speed/345,0,1);
   const flicker=.82+.18*Math.sin(time*22+(a.serial||0)*2.1);
   ctx.save();ctx.translate(a.x,a.y);ctx.rotate(a.angle||0);
@@ -553,7 +554,8 @@ export class ArcadeVisuals {
   // blinking to a false, static "on" state.
   const plume=7+15*throttle*flicker;
   ctx.save();ctx.globalCompositeOperation='lighter';
-  ctx.fillStyle=role==='bomber'?'#ffd184':'#67e9ff';
+  ctx.fillStyle=role==='bomber'?'#ffd184':role==='brawler'?'#ffb97b':
+   role==='rocket'?'#ffa5ad':role==='medic'?'#9df1be':'#67e9ff';
   ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=10;
   for(const lane of (role==='fighter'?[-10,10]:[-8,8])){
     ctx.beginPath();ctx.moveTo(lane-3,h*.35);
@@ -567,7 +569,7 @@ export class ArcadeVisuals {
     ctx.drawImage(sprite,-w/2,-h/2,w,h);
     ctx.filter='none';
   }else{
-    ctx.fillStyle=role==='fighter'?'#5dbafa':'#63decf';
+    ctx.fillStyle=color;
     ctx.beginPath();ctx.moveTo(0,-h*.43);ctx.lineTo(-w*.41,h*.32);
     ctx.lineTo(0,h*.2);ctx.lineTo(w*.41,h*.32);ctx.closePath();ctx.fill();
   }
@@ -576,6 +578,13 @@ export class ArcadeVisuals {
   ctx.strokeStyle=color;ctx.lineWidth=2.1;
   ctx.beginPath();ctx.moveTo(-w*.45,-1);ctx.lineTo(-w*.28,4);
   ctx.moveTo(w*.45,-1);ctx.lineTo(w*.28,4);ctx.stroke();
+  if(role==='brawler'||role==='rocket'||role==='medic'){
+   ctx.fillStyle='#10232c';ctx.strokeStyle=color;ctx.lineWidth=1.4;
+   ctx.beginPath();ctx.arc(0,-4,9,0,TAU);ctx.fill();ctx.stroke();
+   ctx.fillStyle=color;ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+   ctx.textBaseline='middle';
+   ctx.fillText(role==='medic'?'+':role==='rocket'?'▲':'◆',0,-4);
+  }
   ctx.restore();
   ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.8;
   ctx.globalAlpha=.72+.18*Math.sin(time*3.5+(a.serial||0));

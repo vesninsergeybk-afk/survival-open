@@ -22,6 +22,7 @@ import {OPENING_ARC,createOpeningArc,beginOpeningArc} from '../opening-arc.js';
 import {advanceEnemyExpansion,enemyTerritoryFields} from '../enemy-expansion.js';
 import {createFieldLoot} from '../field-loot.js';
 import {createCombatTempo} from '../combat-tempo.js';
+import {createEscort} from '../escort-squad.js';
 import {advanceEnemyFortifications} from '../enemy-fortifications.js';
 import {createStrategicExperience,claimStationActivation,claimStationCapture,
  claimExploration,claimStrategicSabotage} from '../strategic-experience.js';
@@ -32,6 +33,21 @@ const source=readFileSync(entry,'utf8').replace(/\nnew ArcadeGame\(\);\s*$/,'\n'
 const {ArcadeGame}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 const noop=()=>{};
 const memory=()=>({values:new Map(),getItem(k){return this.values.get(k)||null;},setItem(k,v){this.values.set(k,v);}});
+
+test('mixed escort wing and paid squad technologies survive a real checkpoint',()=>{
+ const g=scene();g.network.armor=2;g.network.engine=3;g.network.armament=4;
+ g.allySerial=4;
+ for(const [index,role] of ['brawler','rocket','medic','fighter'].entries())
+  g.allies.push(createEscort(role,index+1,g.player.x+index*15,g.player.y+35,g.time));
+ g.allies[0].hp=45;
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(snapshot),true);
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ assert.deepEqual(restored.allies.map(ally=>ally.role),['brawler','rocket','medic','fighter']);
+ assert.equal(restored.allies[0].hp,45);
+ assert.equal(restored.allySerial,4);
+ assert.deepEqual([restored.network.armor,restored.network.engine,restored.network.armament],[2,3,4]);
+});
 
 test('specialized howitzer and several pilot doctrines survive checkpoint serialization',()=>{
  const g=scene();g.shipLoadout.specializations.howitzer={path:'piercing',rank:2};

@@ -55,23 +55,27 @@ test('additional bases have rising, capped activation prices and a trust prerequ
   /Подключить · 24 сплава/);
 });
 
-test('connected network opens second slot, but fleet never exceeds two escorts',()=>{
+test('connected stations unlock up to six independent escort slots at fixed prices',()=>{
  const one=baseOffer(base('dock',{active:true}),
   state({ore:200,activeBases:1,connected:true,connectedBases:1,allies:1,droneRoles:['scout']}));
  assert.equal(one.cap,1);
- assert.match(one.reasons.hire,/Лимит 1/);
+ assert.match(one.reasons.hire,/1\/1/);
  const two=baseOffer(base('arsenal',{active:true}),
   state({ore:200,activeBases:2,connected:true,connectedBases:2,allies:1,droneRoles:['scout']}));
  assert.equal(two.cap,2);
- assert.equal(two.hireCost,54);
+ assert.equal(two.hireCost,20);
  assert.equal(two.reasons.hire,'');
  const full=baseOffer(base('arsenal',{active:true}),
   state({ore:200,activeBases:2,connected:true,connectedBases:2,allies:2,droneRoles:['fighter','fighter']}));
- assert.match(full.reasons.hire,/Лимит 2/);
+ assert.match(full.reasons.hire,/2\/2/);
  const replacement=baseOffer(base('arsenal',{active:true}),
   state({ore:200,activeBases:2,connected:true,connectedBases:2,allies:2,droneRoles:['scout','fighter']}));
- assert.equal(replacement.replacing,true);
- assert.equal(replacement.hireCost,42);
+ assert.equal(replacement.replacing,false);
+ assert.equal(replacement.hireCost,20);
+ const six=baseOffer(base('carrier',{active:true}),state({ore:200,allies:4,connectedBases:6}));
+ assert.equal(six.cap,6);
+ assert.equal(six.reasons.hire,'');
+ assert.equal(baseOffer(base('dock',{active:true}),state({ore:200,allies:6,connectedBases:20})).cap,6);
 });
 
 test('unconnected stations cannot research network technologies',()=>{

@@ -25,7 +25,7 @@ export const RULES = Object.freeze({
   cell: 640,
   rockCell: 460,
   maxEnemies: 180,
-  maxAllies: 2,
+  maxAllies: 6,
   maxDrops: 280,
   maxParticles: 240,
   maxShots: 220,

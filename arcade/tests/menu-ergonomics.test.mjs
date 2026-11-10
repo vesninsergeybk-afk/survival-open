@@ -22,7 +22,7 @@ test('repair and drone hire are direct, mutually affordable choices and keep the
  const quote=baseOffer(repair.docked,before);
  const html=renderBasePanel(repair.docked,before);
  assert.ok(html.includes('data-act="repair">Починить · '+quote.repairCost+' сплава · +'+quote.repairAmount+' прочности'));
- assert.ok(html.includes('data-act="hire" data-role="scout">Нанять дрона · '+quote.hireCost+' сплава'));
+ assert.ok(html.includes('data-act="hire" data-role="scout">Нанять «Стража» · '+quote.hireCost+' сплава'));
  repair.baseAction('repair','');
  assert.equal(repair.player.hp,before.hp+quote.repairAmount);
  assert.equal(repair.player.ore,before.ore-quote.repairCost);

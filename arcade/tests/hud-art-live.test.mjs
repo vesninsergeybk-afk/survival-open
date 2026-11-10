@@ -9,7 +9,11 @@ test('live art HUD retains data IDs and maps to separate SVG graphic assets',()=
   assert.match(html,new RegExp('id="'+id+'"'),'missing '+id);
  }
  assert.match(html,/hud-art\.css\?v=/);
- assert.doesNotMatch(html,/id="hudDrone2"/,'art must reflect two gameplay drone slots');
+ for(const id of ['hudDrone2','hudDrone3','hudDrone4','hudDrone5'])
+  assert.match(html,new RegExp('id="'+id+'"'),'art must reflect up to six gameplay drone slots');
+ for(const role of ['fighter','brawler','rocket','medic'])
+  assert.ok(existsSync(new URL('studio/hud-kit/escort-'+role+'.svg',base)),
+   role+' needs a distinctive squad HUD silhouette');
  for(const asset of ['panel-left.svg','panel-right.svg','mission-ribbon.svg','radar-bezel.svg','ability-frame.svg','ship-outline.svg','weapon.svg','code.svg','burst.svg','strike.svg','segments-cyan.svg','segments-amber.svg','segments-red.svg','segments-muted.svg','hull.svg','shield.svg','support-ring.svg','mobile-frame.svg','mobile-frame-amber.svg','mobile-stick.svg','interact.svg','ion.svg']) {
   assert.ok(existsSync(new URL('studio/hud-kit/'+asset,base)),asset+' missing');
   assert.ok(html.includes(asset)||css.includes(asset),asset+' not used in live art');

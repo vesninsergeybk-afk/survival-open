@@ -137,11 +137,11 @@ test('existing hive has five genuine upgrade paths and purchases increase drone 
  assert.equal(hive.drones[0].maxHp,16);
 });
 
-test('station panel exposes working defense and hive upgrade buttons',()=>{
+test('station panel exposes defense and upgrades for every territorial turret family',()=>{
  const basePanel=readFileSync(new URL('../base-panel.js',import.meta.url),'utf8');
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(basePanel,/commissionGarrison/);
- assert.match(basePanel,/У дроновой матки есть пять собственных веток/);
+ assert.match(basePanel,/Развивайте ближайшие подключённые орудия/);
  assert.match(game,/commissionStationGarrison\(this.world,this.player,this.docked,this.time\)/);
  assert.match(game,/advanceStationGarrisons\(this,dt\)/);
  assert.match(game,/drawStationGarrisons\(c,this,cam\)/);
@@ -151,10 +151,21 @@ test('station panel exposes working defense and hive upgrade buttons',()=>{
  g.world.contours.supportTurrets.push({id:1,kind:'flux-support',type:'hive',
   x:g.docked.x+300,y:g.docked.y+60,hp:125,readyAt:0,level:1,
   branches:{},drones:[]});
+ g.world.contours.supportTurrets.push({id:2,kind:'flux-support',type:'arc',
+  x:g.docked.x+450,y:g.docked.y+60,hp:125,maxHp:125,readyAt:0,branches:{}});
+ g.world.contours.supportTurrets.push({id:3,kind:'flux-support',type:'laser',
+  x:g.docked.x+540,y:g.docked.y+60,hp:125,maxHp:125,readyAt:0,branches:{}});
+ g.world.contours.artillery.push({id:4,kind:'flux-artillery',
+  x:g.docked.x+640,y:g.docked.y+60,hp:155,maxHp:155,readyAt:0,branches:{}});
  g.world.contours.flux=100;
  const html=renderBasePanel(g.docked,g.baseState());
  assert.match(html,/Сторожевая турель/);
- assert.match(html,/Дроновые матки · пять веток развития/);
- assert.match(html,/data-act="upgradeHiveBranch"[^>]*data-role="squad"/);
+ assert.match(html,/Оборона территории · все виды установок/);
+ assert.match(html,/Дроновая матка №1/);
+ assert.match(html,/Цепной разрядник №2/);
+ assert.match(html,/Лазерное гнездо №3/);
+ assert.match(html,/Громовая батарея №4/);
+ assert.match(html,/data-act="upgradeTerritoryTurret"[^>]*data-role="squad"[^>]*data-target="s:1"/);
+ assert.match(html,/data-act="upgradeTerritoryTurret"[^>]*data-role="salvo"[^>]*data-target="a:4"/);
  assert.match(html,/В СТРОЮ · корпус/);
 });

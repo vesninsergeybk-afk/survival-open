@@ -32,7 +32,7 @@ export function applyRocketSplash(game,missile,point,primary=null){
   const taper=1-.5*Math.min(1,d/radius);
   const contact=contactOnCircle(item.target.x,item.target.y,targetRadius(item),point.x,point.y);
   if(damageTarget(game,item,(missile.splashDamageBase??missile.damage)*fraction*taper*
-   blastCoverFactor(game,point,item.target),'rocket',contact)>0)hits++;
+   blastCoverFactor(game,point,item.target),missile.escortSource||'rocket',contact)>0)hits++;
  }
  return hits;
 }

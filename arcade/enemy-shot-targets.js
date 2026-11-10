@@ -22,7 +22,7 @@ export function hitFriendlyShip(game,shot){
     if(ally.hp<=0||Math.hypot(shot.x-ally.x,shot.y-ally.y)>=shot.r+ally.r)
       continue;
     shot.alive=false;
-    game.hitAlly(ally,shot.damage*(1-(game.network?.armor||0)*.07));
+    game.hitAlly(ally,shot.damage);
     return true;
   }
   for(const decoy of game.artilleryDecoys||[]){

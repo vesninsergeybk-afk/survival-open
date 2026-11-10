@@ -191,8 +191,8 @@ test('buying a relay antenna spends alloy once and changes topology',()=>{
  assert.equal(fake.player.ore,46);
 });
 
-test('hangar acknowledges a hired drone instead of suggesting an impossible second purchase',()=>{
+test('overview acknowledges the full wing instead of asking for unaffordable extra drone',()=>{
  const html=renderBasePanel(station(),state({ore:0,allies:1,droneRoles:['scout'],baseTab:'summary'}));
- assert.match(html,/Дрон «Страж» уже в строю/);
+ assert.match(html,/Все места заняты · 1\/1/);
  assert.doesNotMatch(html,/Дрон: 20 сплава · не хватает/);
 });
