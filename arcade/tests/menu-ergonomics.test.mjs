@@ -247,6 +247,25 @@ test('leaving an unfinished replacement clears its request without spending reso
  assert.equal(JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]),initial);
 });
 
+test('switching top-level station tabs closes the unfinished weapon picker',()=>{
+ const g=station();g.baseTab='hangar';g.hangarSession.catalog=true;
+ g.hangarSession.inspect=true;g.hangarSession.message='Выберите оружие для узла 1.';
+ g.renderDock=Object.getPrototypeOf(g).renderDock;
+ g.rememberDockView=()=>{};g.saveAtStation=()=>'';g.syncShipLoadout=()=>{};g.presentMenu=()=>{};
+ g.stationViews={};
+ const initial=JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]);
+ g.baseTab='summary';g.renderDock();
+ assert.equal(g.hangarSession.catalog,false);
+ assert.equal(g.hangarSession.inspect,false);
+ assert.equal(g.hangarSession.message,'');
+ g.baseTab='hangar';g.renderDock();
+ assert.match(renderShipHangar({...g.baseState(),stationMenuContext:null},g.hangarSession),
+  /СХЕМА ОСНАЩЕНИЯ/);
+ assert.doesNotMatch(renderShipHangar({...g.baseState(),stationMenuContext:null},g.hangarSession),
+  /Выберите оружие для узла 1\./);
+ assert.equal(JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]),initial);
+});
+
 test('locked heavy slot explains how to open it instead of prompting an impossible replacement',()=>{
  const g=station();g.baseTab='development';
  const original=JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]);
@@ -304,5 +323,6 @@ test('the published page refreshes the entire changed menu import and style chai
  assert.match(source('game.js'),/base-panel\.js\?v=[^"']*overview-first-1/);
  assert.match(source('game.js'),/flux-artillery\.js\?v=[^"']*free-close-1/);
  assert.match(source('index.html'),/game\.js\?v=[^"']*menu-depth-audit-3/);
+ assert.match(source('index.html'),/game\.js\?v=[^"']*menu-depth-audit-4/);
  assert.match(source('game.js'),/menu-dialog\.js\?v=[^"']*menu-depth-audit-3/);
 });
