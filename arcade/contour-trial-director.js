@@ -2,9 +2,9 @@ import {recordSortieIncome} from './sortie-ledger.js';
 import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,readyContourTrials,prepareContourVortex,completeContourTrial,
  planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1-pressure-response-1-corecharge-20261110-core-pressure-20261110';
 import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1-corecharge-20261110';
-import {contourFields,fieldAt} from './territory-system.js';
+import {contourFields,fieldAt,insidePolygon} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js?v=pressure-response-1';
-import {ENEMY_TYPES} from './ai.js?v=first-loops-1-triangle-defense-1-pressure-response-1-ai-commander-20261110-corvette-20261110-1-pilot-value-2';
+import {ENEMY_TYPES} from './ai.js?v=first-loops-1-triangle-defense-1-pressure-response-1-ai-commander-20261110-corvette-20261110-1-pilot-value-2-trial-station-defense-20261110';
 import {enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-corvette-20261110-1-pilot-value-2';
 import {recordWorldFeedback} from './world-feedback.js';
 
@@ -269,7 +269,7 @@ export function updateContourTrials(game,dt){
   game.contourTrial=event;
   game.notice?.('КОНТУР ЗАМКНУТ · противник обнаружил новый треугольник! '+
    'Оборона: '+event.plan.waves.length+' '+(event.plan.waves.length===1?'волна':'волны')+
-   ' · рекомендован уровень '+event.plan.recommendedLevel+'+. Удерживайте E для заряда ядра и отбивайтесь от атак!',5);
+   ' · рекомендован уровень '+event.plan.recommendedLevel+'+. Начните заряд ядра удержанием E, затем можно включить местную оборону на трёх станциях. Отбивайтесь от атак!',6);
   game.heritage?.vfx?.nova?.(entry.x,entry.y,120,'red');
   game.heritage?.play?.('orbitalWarning',1.2,entry);
   return;
@@ -277,8 +277,13 @@ export function updateContourTrials(game,dt){
  if(!ledger.entries.includes(event.entry)||!fieldAt(game.world,event.entry.x,event.entry.y)){
   disengage(game,event,'Опорная сеть разорвана. Испытание возобновится после восстановления связи.');return;
  }
- event.outsideFor=nearby(game.player,event.entry,CONTOUR_TRIALS.retreatRadius)?0:
-  event.outsideFor+dt;
+ const defendingField=fieldAt(game.world,event.entry.x,event.entry.y);
+ // The pilot may deliberately fall back to one of the three station guns.
+ // Large triangles can have vertices farther from the core than the generic
+ // retreat radius: defending your own polygon must never forfeit the trial.
+ const defendingInside=!!defendingField?.polygon&&insidePolygon(game.player,defendingField.polygon);
+ event.outsideFor=defendingInside||
+  nearby(game.player,event.entry,CONTOUR_TRIALS.retreatRadius)?0:event.outsideFor+dt;
  if(event.outsideFor>=CONTOUR_TRIALS.retreatSeconds){
   disengage(game,event,'Вы отошли от контура. Станции сохранены; испытание можно повторить позже.');return;
  }

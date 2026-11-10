@@ -21,6 +21,7 @@ import {validFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-
 import {validFluxDepots} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {validFluxEconomy} from './territory-economy.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {validFluxRoutes} from './flux-routes.js?v=flux-siphon-roads-1';
+import {validStationGarrison} from './station-garrisons.js?v=trial-station-defense-20261110';
 import {ensureTrialLedger} from './contour-trials.js?v=swarm-siege-1-pressure-response-1-corecharge-20261110';
 import {clearCoreRocks} from './core-rock-clearance.js';
 import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
@@ -189,7 +190,8 @@ export function validateCheckpoint(data){
   const b=pair[1];
   if(!object(b)||b.id!==pair[0]||!['dock','arsenal','lab','carrier'].includes(b.type)||
    !finite(b.x)||!finite(b.y)||typeof b.active!=='boolean'||typeof b.enemy!=='boolean'||
-   !Array.isArray(b.turrets)||!validFortification(b,s.time))return false;
+   !Array.isArray(b.turrets)||!validFortification(b,s.time)||
+   !validStationGarrison(b,s.time))return false;
   if(!validFieldCounters(b.fieldOperationRuns)||
    !validFieldCounters(b.fieldOperationFullRuns)||
    !validFieldCounters(b.fieldOperationAttempts)||

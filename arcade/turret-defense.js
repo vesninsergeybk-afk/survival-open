@@ -1,11 +1,13 @@
 import {artilleryLinks,artilleryConnection} from './flux-artillery.js?v=turret-defense-20261110';
 import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js';
+import {TURRET_SCREEN} from './turret-growth.js?v=trial-station-defense-20261110';
 
 // Emplacements cannot evade. A modest powered shield buys reaction time;
 // neither the hull nor shield can regenerate under uninterrupted attack.
 export const TURRET_DEFENSE=Object.freeze({
- shieldFraction:.34,armor:.15,rankShield:.11,rankArmor:.04,
- shieldDelay:10,repairDelay:12,shieldRate:3.5,repairRate:1.65,
+ shieldFraction:TURRET_SCREEN.base,armor:.34,
+ rankShield:TURRET_SCREEN.perFortify,rankArmor:.05,
+ shieldDelay:7,repairDelay:10,shieldRate:5.5,repairRate:2.3,
  shieldFluxPerHp:.009,repairFluxPerHp:.022,interceptCooldown:8,
  alertInterval:9
 });
@@ -33,6 +35,14 @@ export function advanceTurretDefenses(game,dt){
   const active=t.readyAt<=now&&!!artilleryConnection(t,edges);
   t._defensePowered=active;
   const capacity=turretShieldCapacity(t);
+  if(t.defenseSchema!==2){
+   // Old checkpoints stored the smaller shield. Preserve its charge *ratio*
+   // once, otherwise a restored turret would quietly start almost empty.
+   const oldCap=Math.round(t.maxHp*(.34+.11*fortifyRank(t)));
+   if(Number.isFinite(t.shield)&&oldCap>0)
+    t.shield=clamp(t.shield,0,oldCap)/oldCap*capacity;
+   t.defenseSchema=2;
+  }
   if(t.shield===undefined)t.shield=active?capacity:0;
   // A new mount gets its charged screen when construction completes. The
   // first frame of its build period must not permanently initialise it to 0.

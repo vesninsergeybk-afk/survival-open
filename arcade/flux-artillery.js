@@ -5,7 +5,7 @@ import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-log
 import {artilleryBarrels,artilleryCooldown,artilleryBlast,artilleryRange,artillerySupply,
  artilleryShotUnits,artilleryShellDamage,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
  ARTILLERY_BASE_FLUX_PER_MINUTE,turretBranchRank,
- validTurretBranches,validTurretProtection} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1-turret-defense-20261110';
+ validTurretBranches,validTurretProtection} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1-turret-defense-20261110-trial-station-defense-20261110';
 
 // A field emplacement is ammunition-fed, not another player ship. The pilot
 // must finish the first territorial trial before any emplacement is available.

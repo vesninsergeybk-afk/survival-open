@@ -15,10 +15,11 @@ import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-a
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {moveMote} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-opening-evasion-20261110';
-import {turretBranchRank} from './turret-growth.js?v=turret-defense-20261110';
-import {damageFriendlyTurret} from './turret-defense.js?v=turret-defense-20261110';
+import {turretBranchRank} from './turret-growth.js?v=turret-defense-20261110-trial-station-defense-20261110';
+import {damageFriendlyTurret} from './turret-defense.js?v=turret-defense-20261110-trial-station-defense-20261110';
 import {updateLastStand} from './enemy-last-stand.js?v=redteam-20261109-1';
 import {advanceEnemyCloseAttack,cancelCloseAttack} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
+import {activeStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -237,6 +238,23 @@ const pickTarget=(e,game)=>{
   // Experimental shells and hive drones draw ordinary fighters away. The
   // chosen target remains a real, destructible world object.
   if(target===game.player)target=turretDistractionTarget(e,game)||target;
+  // A commissioned station garrison becomes a *real* alternative target.
+  // Only part of the attack group focuses it: the pilot still faces pressure.
+  if(target===game.player&&['scout','fighter','flanker','gunship'].includes(e.type)&&
+     Math.abs(e.serial||0)%3!==1){
+    let nearest=null,closest=Infinity;
+    for(const {garrison:g} of activeStationGarrisons(game)){
+      const units=e.type==='gunship'?[g]:[...(g.drones||[]),g];
+      for(const unit of units){
+        if(!(unit.hp>0))continue;
+        const d=dist(e,unit);
+        if(d<340&&d<closest&&game.enemyCanSee?.(e,unit)){
+          closest=d;nearest=unit;
+        }
+      }
+    }
+    if(nearest)target=nearest;
+  }
   // A firing field artillery platform is a local, observable threat. Keep
   // scripted rescue/escort orders and actual sightings ahead of this choice.
   if(target===game.player&&e.type!=='healer'&&!e.relayAssault&&!e.stationRaid){

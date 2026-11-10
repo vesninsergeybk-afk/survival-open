@@ -25,6 +25,8 @@ import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {CONTOURS,contourFields} from './territory-system.js?v=contours-1-triangle-defense-1-territory-logistics-1';
 import {productiveContourFields} from './contour-trials.js?v=swarm-siege-1-corecharge-20261110';
+import {stationTrialField,stationGarrisonOffer,STATION_GARRISONS} from './station-garrisons.js?v=trial-station-defense-20261110';
+import {turretGrowthRows,turretBranchOffer,hiveLimit,hiveArmor} from './turret-growth.js?v=trial-station-defense-20261110';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
@@ -954,16 +956,31 @@ export function renderBasePanel(base,state){
   (o.reasons.hire?'<small class="base-action-reason">'+o.reasons.hire+'</small>':'')+
   (state.droneDamage>0?action('repairDrones','Починить дронов · '+o.droneRepairCost+' сплава',o.reasons.drones)+
    (o.reasons.drones?'<small class="base-action-reason">'+o.reasons.drones+'</small>':''):'')+
-  '</div></section></div>';
+  '</div><small>Обычные ведомые усиливаются технологиями станций. У дроновой матки есть пять собственных веток развития, доступных в разделе «Территория» или через её меню правой кнопкой мыши.</small>'+
+  action('baseTab','Развитие технологий дронов →','','network')+
+  '</section></div>';
  // Repair and hire are the first routine station actions. A reward which can
  // actually be collected here must still come first, before any purchase.
  const rewardFirst=completedOrder&&state.contract?.baseId===base.id||
   state.firstHardwareReward==='pending'&&!completedOrder;
  const leadRow='<div class="base-overview-lead">'+homeUrgent+sectorPreview+'</div>';
+ const garrisonPlan=stationTrialField(state.world,base),garrison=base.garrison,
+  garrisonSpec=STATION_GARRISONS[base.type],garrisonQuote=stationGarrisonOffer(state.world,state.player||{ore:state.ore},base);
+ const emergencyDefense=garrisonPlan||garrison?
+  '<section class="base-card base-station-garrison"><span class="base-kicker">ОБОРОНА ТРЕУГОЛЬНИКА · СТАНЦИЯ</span>'+
+  '<strong>'+garrisonSpec.name+'</strong><small>Действует рядом со станцией (до '+garrisonSpec.range+' м), поддерживает оборону ядра и остаётся после победы. '+
+  (base.type==='carrier'?'Авианосец выпускает 8 сбиваемых микродронов и постепенно восполняет потери.':
+   'После боя станция восстанавливает экран и корпус установки.')+'</small>'+
+  (garrison?.hp>0?'<span class="base-ready">В СТРОЮ · корпус '+Math.ceil(garrison.hp)+'/'+garrison.maxHp+
+   ' · экран '+Math.ceil(garrison.shield)+'/'+garrisonSpec.shield+
+   (base.type==='carrier'?' · дроны '+(garrison.drones||[]).filter(d=>d.hp>0).length+'/8':'')+'</span>':
+   action('commissionGarrison',garrison?'Восстановить оборону · '+(garrisonQuote.cost??Math.ceil(garrisonSpec.ore*.4))+' сплава':
+    'Включить · '+(garrisonQuote.cost??garrisonSpec.ore)+' сплава',garrisonQuote.ok?'':garrisonQuote.reason)+
+   (!garrisonQuote.ok?'<small>'+garrisonQuote.reason+'</small>':''))+'</section>':'';
  const dashboard=earnedReward+suppression+
   (threats?'<aside class="base-alert" role="status"><span>Противник угрожает связи станций.</span>'+
    action('baseTab','Посмотреть угрозы','','network')+'</aside>':'')+
-  (rewardFirst?leadRow:'')+quickServices+(rewardFirst?'':leadRow)+
+  (rewardFirst?leadRow:'')+emergencyDefense+quickServices+(rewardFirst?'':leadRow)+
   (capturedWing||supply)+'<div class="base-home-strategy">'+renderTerritoryProgress(state.world,state.position)+'</div>'+
   '<details class="base-secondary-info"><summary>Станция · '+brief[0]+' · карта и подробности</summary>'+
   '<div class="base-secondary-body"><p><b>'+brief[1]+'.</b> '+brief[2]+'</p>'+
@@ -1102,11 +1119,26 @@ export function renderBasePanel(base,state){
  const development=renderDevelopmentPanel({...state,baseActive:active,station:base})+
   (doctrineSpent(normalizedDoctrineRanks(state))?'<section class="base-doctrine-service"><h3>Сброс доктрин</h3><p>Вернёт все потраченные на доктрины очки. Остальные навыки сохранятся.</p>'+
    action('respec','Сбросить доктрины · 12 сплава',o.ore<12?'Нужно 12 сплава':'')+'</section>':'');
+ const localMotherships=(state.world?.contours?.supportTurrets||[])
+  .filter(t=>t.type==='hive'&&t.hp>0&&Math.hypot(t.x-base.x,t.y-base.y)<=3000)
+  .sort((a,b)=>Math.hypot(a.x-base.x,a.y-base.y)-Math.hypot(b.x-base.x,b.y-base.y)).slice(0,3);
+ const mothershipGrowth=localMotherships.length?'<section class="base-station-development" aria-label="Развитие дроновых маток">'+
+  '<h3>Дроновые матки · пять веток развития</h3><p>До трёх ближайших маток в радиусе 3000 м можно улучшить здесь или через меню самой установки. Рост численности, дальности, брони, тактики и защиты оплачивается сплавом и флюксом.</p>'+
+  localMotherships.map(hive=>'<div class="base-card"><strong>Матка №'+hive.id+' · дроны '+
+   hive.drones.filter(d=>d.hp>0).length+'/'+hiveLimit(hive)+' · броня '+hiveArmor(hive)+'</strong><div class="base-grid">'+
+   turretGrowthRows(hive).map(row=>{
+    const quote=turretBranchOffer(state.world,{ore:state.ore},hive,row.key,state.time);
+    return '<div class="base-card"><strong>'+row.name+' · '+row.rank+'/'+row.max+'</strong>'+
+     '<small>'+row.summary+'</small>'+
+     (row.next?action('upgradeHiveBranch','Улучшить · '+row.next[1]+' сплава + '+row.next[2]+' флюкса',
+       quote.ok?'':quote.reason,row.key,'',String(hive.id)):
+       '<span class="base-ready">Ветка завершена</span>')+'</div>';
+   }).join('')+'</div></div>').join('')+'</section>':'';
  const network='<div class="base-operations"><section class="base-network-scope"><h3>Управление территорией</h3>'+
   '<p>Здесь вы управляете выбранной станцией, местными сооружениями, флюксом и обороной. Постоянная вместимость опорных линий развивается отдельно.</p>'+
   '<button type="button" data-act="openDevelopment" data-id="network">Открыть развитие сети →</button></section>'+
   threats+territorySummary(base,state)+
-  stationDevelopment+fluxInfrastructure+defense+capturedWing+
+  stationDevelopment+emergencyDefense+mothershipGrowth+fluxInfrastructure+defense+capturedWing+
   '<section class="base-network-direct" data-hangar-section="transit"><h3>'+menuIcon('navigation')+'Перелёты между станциями</h3>'+
   (transit||'<p>Для перелёта нужна связь этой станции с домашним доком и ещё хотя бы одна доступная станция назначения.</p>')+'</section></div>';
  const opening=active?

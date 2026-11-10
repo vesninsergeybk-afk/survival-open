@@ -1,6 +1,6 @@
 // Repeatable, stateful station sorties. Each objective is a real world event;
 // enemy kills alone never satisfy the assignment.
-import {ENEMY_TYPES} from './ai.js?v=field-operations-1-triangle-defense-1-ai-commander-20261110-corvette-20261110-1-pilot-value-2';
+import {ENEMY_TYPES} from './ai.js?v=field-operations-1-triangle-defense-1-ai-commander-20261110-corvette-20261110-1-pilot-value-2-trial-station-defense-20261110';
 import {RULES} from './balance.js?v=field-operations-1';
 import {recordEconomyExpense} from './sortie-ledger.js?v=economy-ledger-1';
 import {drawRelayArt,drawConvoyEngineArt,drawConvoyHullArt,drawConvoySurfaceArt,

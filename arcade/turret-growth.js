@@ -2,6 +2,10 @@
 // purchased paths belong to a single emplacement and are saved with it.
 // Cost is up front (alloy + flux); ammunition and replacement drones still
 // require a working contour and paid deliveries.
+// Shares the same capacity rule with the damage solver and save validator.
+// A static emplacement needs a substantially deeper screen than a ship that
+// can evade: concentrated trial fire must leave time for a rescue or retreat.
+export const TURRET_SCREEN=Object.freeze({base:.9,perFortify:.17});
 export const TURRET_GROWTH=Object.freeze({
  artillery:{name:'Громовая батарея',branches:{
   salvo:{name:'Орудийный залп',summary:'Дополнительные стволы. Каждый снаряд расходует заряд.',
@@ -96,8 +100,8 @@ export function buyTurretBranch(world,player,t,key,time=0){
  const oldFortify=turretBranchRank(t,'fortify');
  t.branches??={};t.branches[key]=quote.rank;
  if(key==='fortify'&&Number.isFinite(t.shield)){
-  const former=Math.round(t.maxHp*(.34+.11*oldFortify)),
-   capacity=Math.round(t.maxHp*(.34+.11*quote.rank));
+  const former=Math.round(t.maxHp*(TURRET_SCREEN.base+TURRET_SCREEN.perFortify*oldFortify)),
+   capacity=Math.round(t.maxHp*(TURRET_SCREEN.base+TURRET_SCREEN.perFortify*quote.rank));
   t.shield=Math.min(capacity,t.shield+capacity-former);
  }
  if(t.type==='hive'&&key==='hull'){
@@ -120,7 +124,8 @@ export function validTurretBranches(t){
 // Optional in older checkpoints. Refuse malformed shield/repair state instead
 // of letting a forged NaN silently bypass collision or persist forever.
 export function validTurretProtection(t){
- const cap=Math.round((t.maxHp||0)*(.34+.11*turretBranchRank(t,'fortify')));
+ const cap=Math.round((t.maxHp||0)*
+  (TURRET_SCREEN.base+TURRET_SCREEN.perFortify*turretBranchRank(t,'fortify')));
  return (t.shield===undefined||Number.isFinite(t.shield)&&t.shield>=0&&t.shield<=cap+.001)&&
   (t.lastTurretHitAt===undefined||Number.isFinite(t.lastTurretHitAt)&&
    t.lastTurretHitAt>=0&&t.lastTurretHitAt<1e9)&&

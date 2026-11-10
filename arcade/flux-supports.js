@@ -3,7 +3,7 @@ import {artilleryLinks,artilleryConnection,edgeTurretOccupancy,edgeTurretLimit,A
 import {frontierBuoysNear,damageFrontierBuoy} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {arcChainCount,arcRange,arcCooldown,arcSlowSeconds,laserEmitters,laserCooldown,
  laserBurst,laserRange,hiveLimit,hiveRange,hiveArmor,supportSupply,turretBranchRank,
- validTurretBranches,validTurretProtection} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1-turret-defense-20261110';
+ validTurretBranches,validTurretProtection} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1-turret-defense-20261110-trial-station-defense-20261110';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {hasPoweredContour} from './contour-trials.js';

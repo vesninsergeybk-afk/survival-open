@@ -1,5 +1,6 @@
 import {contactOnCircle} from './impact-geometry.js?v=arcade-impact-51';
-import {damageFriendlyTurret} from './turret-defense.js?v=turret-defense-20261110';
+import {damageFriendlyTurret} from './turret-defense.js?v=turret-defense-20261110-trial-station-defense-20261110';
+import {activeStationGarrisons,damageStationGarrison} from './station-garrisons.js?v=trial-station-defense-20261110';
 
 /** Resolve an enemy bolt against both kinds of friendly ships. The game
  * processes asteroid cover first; a single bolt can hit at most one hull. */
@@ -34,6 +35,19 @@ export function hitFriendlyShip(game,shot){
       game.heritage?.play?.('supportDroneLost',.3,decoy);
     }
     return true;
+  }
+  for(const {station,garrison:g} of activeStationGarrisons(game)){
+    const units=[...(g.drones||[]),g];
+    for(const unit of units){
+      if(unit.hp<=0||Math.hypot(shot.x-unit.x,shot.y-unit.y)>=shot.r+unit.r)continue;
+      shot.alive=false;
+      const impact=damageStationGarrison(game,station,unit,shot.damage);
+      if(impact.destroyed){
+        game.heritage?.vfx?.shipExplosion?.(unit.x,unit.y,unit===g?38:17,'#7be7d3');
+        game.heritage?.play?.('supportDroneLost',.24,unit);
+      }else game.heritage?.vfx?.hullImpact?.(shot.x,shot.y,false);
+      return true;
+    }
   }
   for(const turret of game.world?.contours?.artillery||[]){
     if(turret.hp<=0||game.time<turret.readyAt||
