@@ -4,7 +4,7 @@ import {World} from '../world.js';
 import {POPULATION,advancePopulation,interceptPopulationCargo,
  populationAlarm,populationShield,damagePopulationShield,validPopulation,
  damagePopulationWorker,populationWorkersNear} from '../world-population.js';
-import {updatePopulationWorld,rememberPopulationShip,drawPopulationWorld} from '../population-runtime.js';
+import {updatePopulationWorld,rememberPopulationShip,drawPopulationWorld,populationCombatLimit} from '../population-runtime.js';
 import {createSpaceAnomalies,updateSpaceAnomalies,drawSpaceAnomalies} from '../space-anomalies.js';
 
 const round=n=>Math.round(n*1000)/1000;
@@ -131,6 +131,23 @@ test('patrols launch at scale from finite hangars, remember losses and receive d
  assert.ok(colony.reportedAt>=8);
  assert.ok(colony.alarmUntil>10);
  assert.ok(validPopulation(world.population,[...world.stations],10));
+});
+
+test('early colony patrols share the softer first minutes and recover gradually',()=>{
+ for(const [level,full] of [[1,18],[2,26],[4,42]]){
+  const early=populationCombatLimit(75,level);
+  assert.ok(Math.abs(early-full*.9)<=.5,`level ${level}: about 10% fewer active ships`);
+  assert.equal(populationCombatLimit(155,level),early);
+  assert.equal(populationCombatLimit(205,level),full);
+  let previous=early;
+  for(let t=156;t<=205;t++){
+   const now=populationCombatLimit(t,level);
+   assert.ok(now>=previous&&now<=full);
+   previous=now;
+  }
+ }
+ assert.equal(populationCombatLimit(205,20),POPULATION.activeLimit,
+  'distant high-level campaigns retain the existing performance budget');
 });
 
 test('citadel hulls ignore ship attacks, but two artillery-exposed shield sectors open a breach',()=>{

@@ -10,8 +10,8 @@ test('первые 9 секунд защищены от вражеских гр�
 });
 test('первые минуты дают пространство для манёвра',()=>{
  const first=openingThreat(20),second=openingThreat(50),third=openingThreat(100);
- assert.equal(first.cap,9);
- assert.equal(second.cap,15);
+ assert.equal(first.cap,8);
+ assert.equal(second.cap,14);
  assert.ok(third.cap>second.cap);
  for(const t of [12,40,70,110,140,180,204]){
   assert.ok(!openingThreat(t).types.includes('gunship'),'дальнобойный корвет до 205 сек');

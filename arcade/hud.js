@@ -348,7 +348,7 @@ export class CockpitDisplay {
   void this.n.oreResource.offsetWidth;
   this.n.oreResource.classList.add('is-gaining');
  }
- impact(relativeDamage,shieldOnly=false) {
+ impact(relativeDamage,shieldDominant=false) {
   // A genuine hit is emitted by game.hurt() after shields and armor have absorbed
   // damage. A CSS-only effect never alters physics, input or HUD values.
   if(!Number.isFinite(relativeDamage)||relativeDamage<.075)return;
@@ -364,7 +364,7 @@ export class CockpitDisplay {
   void this.frame.offsetWidth;
   this.root.classList.add('is-hit');
   if(heavy)this.root.classList.add('is-hit-heavy');
-  if(shieldOnly)this.root.classList.add('is-hit-shield');
+  if(shieldDominant)this.root.classList.add('is-hit-shield');
  }
  drawRadarShell() {
   const ctx=this.ctx;

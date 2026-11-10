@@ -47,7 +47,7 @@ test('малые рои появляются после освоения ком�
   const index=options.indexOf('motes');
   const plan=planEncounter(110,director,10,1,.5,(index+.1)/options.length);
   assert.equal(plan.pattern,'motes');
-  assert.equal(plan.members.length,10);
+  assert.equal(plan.members.length,9);
   assert.ok(plan.members.every(e=>e.type==='scout'));
   assert.ok(new Set(plan.members.map(e=>e.position)).size>7);
   const cramped=planEncounter(110,director,7,1,.5,(index+.1)/options.length);

@@ -10,6 +10,14 @@ const TAU=Math.PI*2;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const inView=(x,y,cam,pad=150)=>x>=cam.x-pad&&x<=cam.x+cam.w+pad&&
  y>=cam.y-pad&&y<=cam.y+cam.h+pad;
+// Industrial patrols have their own contact budget. Ease this as well as the
+// regular encounter director so early colony traffic cannot restore the crowd.
+export function populationCombatLimit(time,level=1){
+ const stage=Math.max(1,Number(level)||1);
+ const full=Math.min(RULES.maxEnemies,POPULATION.activeLimit,18+8*(stage-1));
+ const recovery=Math.max(0,Math.min(1,(time-155)/50));
+ return Math.max(1,Math.round(full*(.9+.1*recovery)));
+}
 const hostile=(world,id)=>{const s=world.stations.get(id);
  return !!s?.enemy&&!s.captured&&!s.suppressed&&s.hp>0;};
 const centerAt=(sortie,time)=>{
@@ -119,9 +127,7 @@ export function updatePopulationWorld(game,dt){
  if(typeof game.camera!=='function'||!Array.isArray(game.enemies))return;
  // Leave tactical headroom for paid authored raids, especially in a level-1
  // run. Higher-level pilots can face the full 160-ship hostile contact bubble.
- const stage=Math.max(1,Number(game.player?.level)||1);
- const cam=game.camera(),limit=Math.min(RULES.maxEnemies,
-  POPULATION.activeLimit,18+8*(stage-1));
+ const cam=game.camera(),limit=populationCombatLimit(game.time,game.player?.level);
  if(game.enemies.length<limit){
   const candidates=[];
   for(const c of state.colonies)for(const sortie of c.sorties){
