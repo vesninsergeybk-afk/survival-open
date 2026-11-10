@@ -26,7 +26,7 @@ import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-q
 import {CONTOURS,contourFields} from './territory-system.js?v=contours-1-triangle-defense-1-territory-logistics-1';
 import {productiveContourFields} from './contour-trials.js?v=swarm-siege-1-corecharge-20261110';
 import {stationTrialField,stationGarrisonOffer,STATION_GARRISONS} from './station-garrisons.js?v=trial-station-defense-20261110';
-import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,hiveLimit,hiveArmor} from './turret-growth.js?v=trial-station-defense-20261110';
+import {renderStationContourDefense} from './station-territory-map.js?v=station-contour-map-20261110';
 import {ESCORTS,ESCORT_TECH,escortCapacity,escortHireOffer,
  escortTrainingOffer,escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
@@ -1140,26 +1140,7 @@ export function renderBasePanel(base,state){
      action('trainEscort','Улучшить · '+quote.price+' сплава',quote.reason,key))+'</div>';
   }).join('')+'</div></section>';
  const dronesPanel='<div class="base-operations base-escort-panel">'+droneRoster+droneCatalog+squadTraining+'</div>';
- const localTurrets=[
-  ...(state.world?.contours?.artillery||[]).map(t=>({turret:t,target:'a:'+t.id})),
-  ...(state.world?.contours?.supportTurrets||[]).map(t=>({turret:t,target:'s:'+t.id}))
- ].filter(({turret})=>turret.hp>0&&Math.hypot(turret.x-base.x,turret.y-base.y)<=3000)
-  .sort((a,b)=>Math.hypot(a.turret.x-base.x,a.turret.y-base.y)-Math.hypot(b.turret.x-base.x,b.turret.y-base.y));
- const emplacementGrowth=localTurrets.length?'<section class="base-station-development" aria-label="Развитие установок территории">'+
-  '<h3>Оборона территории · все виды установок</h3><p>Развивайте ближайшие подключённые орудия: артиллерию, разрядники, лазерные гнёзда и дроновые матки. Каждая установка сохраняет свои улучшения; расходы — сплав и флюкс.</p>'+
-  localTurrets.map(({turret:t,target})=>'<details class="base-card base-turret-growth"><summary><strong>'+
-   (TURRET_GROWTH[turretGrowthType(t)]?.name||'Установка')+' №'+t.id+'</strong> · корпус '+
-   Math.ceil(t.hp)+'/'+Math.ceil(t.maxHp||t.hp)+
-   (t.type==='hive'?' · дроны '+(t.drones||[]).filter(d=>d.hp>0).length+'/'+hiveLimit(t)+
-    ' · броня '+hiveArmor(t):'')+'</summary><div class="base-grid">'+
-   turretGrowthRows(t).map(row=>{
-    const quote=turretBranchOffer(state.world,{ore:state.ore},t,row.key,state.time);
-    return '<div class="base-card"><strong>'+row.name+' · '+row.rank+'/'+row.max+'</strong>'+
-     '<small>'+row.summary+'</small>'+
-     (row.next?action('upgradeTerritoryTurret','Улучшить · '+row.next[1]+' сплава + '+row.next[2]+' флюкса',
-       quote.ok?'':quote.reason,row.key,'',target):
-       '<span class="base-ready">Ветка завершена</span>')+'</div>';
-   }).join('')+'</div></details>').join('')+'</section>':'';
+ const emplacementGrowth=renderStationContourDefense(base,state);
  const network='<div class="base-operations"><section class="base-network-scope"><h3>Управление территорией</h3>'+
   '<p>Здесь вы управляете выбранной станцией, местными сооружениями, флюксом и обороной. Постоянная вместимость опорных линий развивается отдельно.</p>'+
   '<button type="button" data-act="openDevelopment" data-id="network">Открыть развитие сети →</button></section>'+

@@ -141,11 +141,18 @@ test('station panel exposes defense and upgrades for every territorial turret fa
  const basePanel=readFileSync(new URL('../base-panel.js',import.meta.url),'utf8');
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  assert.match(basePanel,/commissionGarrison/);
- assert.match(basePanel,/Развивайте ближайшие подключённые орудия/);
+ assert.match(basePanel,/renderStationContourDefense/);
+ assert.match(game,/stationContourDefenseModel/);
  assert.match(game,/commissionStationGarrison\(this.world,this.player,this.docked,this.time\)/);
  assert.match(game,/advanceStationGarrisons\(this,dt\)/);
  assert.match(game,/drawStationGarrisons\(c,this,cam\)/);
  const g=testGame();g.baseTab='network';
+ const dock=g.docked;
+ const b={...dock,id:'test:territory:b',x:dock.x+1600,y:dock.y,type:'arsenal',active:true};
+ const c={...dock,id:'test:territory:c',x:dock.x+800,y:dock.y+1400,type:'carrier',active:true};
+ g.world.stations.set(b.id,b);g.world.stations.set(c.id,c);
+ for(const [first,second] of [[dock.id,b.id],[b.id,c.id],[c.id,dock.id]])
+  assert.equal(connectContour(g.world,first,second).ok,true);
  const spec=STATION_GARRISONS.dock;
  g.docked.garrison={hp:spec.hp,maxHp:spec.hp,shield:spec.shield,drones:[]};
  g.world.contours.supportTurrets.push({id:1,kind:'flux-support',type:'hive',
@@ -160,7 +167,8 @@ test('station panel exposes defense and upgrades for every territorial turret fa
  g.world.contours.flux=100;
  const html=renderBasePanel(g.docked,g.baseState());
  assert.match(html,/Сторожевая турель/);
- assert.match(html,/Оборона территории · все виды установок/);
+ assert.match(html,/Оборона территории · схема контуров/);
+ assert.match(html,/Схема контуров вокруг выбранной станции/);
  assert.match(html,/Дроновая матка №1/);
  assert.match(html,/Цепной разрядник №2/);
  assert.match(html,/Лазерное гнездо №3/);
