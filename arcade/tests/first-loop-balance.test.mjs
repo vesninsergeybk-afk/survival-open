@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import {RULES,STARTER_COMBAT} from '../balance.js';
 import {BENCHMARK_BUILDS,combatTierMatrix} from '../tools/combat-profile.mjs';
 import {runFirstLoopScenario,runEncounterStress} from '../tools/early-combat-audit.mjs';
+import {ENEMY_AWARENESS} from '../enemy-awareness.js';
+import {SIGNAL_AI} from '../signal-perception.js';
+import {HUD_RADAR_RANGE,radarPoint} from '../hud.js';
+import {ArcadeGame} from './runtime-game.mjs';
 
 test('первый цикл действительно выполняет стыковку, активацию, добычу и сдачу заказа',()=>{
  for(const seed of [111,222,333]){
@@ -51,13 +55,41 @@ test('стоянка у домашнего дока под огнём не за�
  }
 });
 
+test('начальная угроза обнаруживается до первого попадания по кораблю',()=>{
+ for(const seed of [111,222,333]){
+  const run=runFirstLoopScenario({seed,seconds:35,allowRetreat:false});
+  for(const field of ['firstRadarEnemyAt','firstOpticalThreatAt',
+   'firstEnemyInPlasmaRangeAt','firstDamageAt'])
+   assert.ok(Number.isFinite(run[field]),`seed=${seed}: нет ${field}`);
+  assert.ok(run.firstRadarEnemyAt<run.firstOpticalThreatAt);
+  assert.ok(run.firstOpticalThreatAt<run.firstDamageAt);
+  assert.ok(run.firstEnemyInPlasmaRangeAt<run.firstDamageAt);
+  assert.ok(run.firstDamageAt-run.firstRadarEnemyAt>=5,
+   'радар должен дать хотя бы несколько секунд перед первым повреждением');
+ }
+});
+
 test('таблица сил использует допустимые ранги и показывает выигрыш от сближения',()=>{
- const profiles=combatTierMatrix().tiers;
+ const matrix=combatTierMatrix(),profiles=matrix.tiers;
+ const sight=matrix.sensorEnvelope;
+ assert.equal(sight.patrolDirectSight,ENEMY_AWARENESS.directRange);
+ assert.equal(sight.extractionPatrolSight,SIGNAL_AI.detectRadius);
+ assert.equal(sight.cockpitRadarRange,HUD_RADAR_RANGE);
+ assert.deepEqual(sight.stationDiscoveryByRadarRank,[570,760,950]);
+ assert.ok(sight.pilotIntentLineOfSight>sight.patrolDirectSight);
+ assert.ok(radarPoint(HUD_RADAR_RANGE,0,{x:0,y:0}));
+ assert.equal(radarPoint(HUD_RADAR_RANGE+1,0,{x:0,y:0}),null);
  assert.equal(profiles.length,4);
  for(let i=0;i<profiles.length;i++){
   const tier=profiles[i],build=BENCHMARK_BUILDS[i];
   assert.ok(Object.values(tier.build).reduce((sum,rank)=>sum+rank,0)<=build.level-1);
   assert.ok(tier.ship.plasmaRange>=STARTER_COMBAT.plasmaRange);
+  assert.equal(tier.contactDistances.plasmaBeforePatrolSight,
+   ENEMY_AWARENESS.directRange-tier.ship.plasmaRange);
+  assert.equal(tier.contactDistances.plasmaBeforeSignalSight,
+   SIGNAL_AI.detectRadius-tier.ship.plasmaRange);
+  assert.ok(tier.contactDistances.plasmaBeforeSignalSight>0,
+   'в рамках проверяемых сборок патруль должен получать время на сближение');
   for(const enemy of tier.enemies){
    assert.ok(enemy.near.shots<enemy.far.shots,
     `${build.label}: сближение не должно быть менее выгодным`);
@@ -69,6 +101,22 @@ test('таблица сил использует допустимые ранги
  assert.ok(profiles[3].ship.speed>profiles[0].ship.speed);
  assert.ok(profiles[3].enemyFire.flanker.speed>
   profiles[0].enemyFire.flanker.speed,'поздние перехватчики должны иметь быструю атаку');
+});
+
+test('оптическое обнаружение действительно зависит от препятствия и направления полёта',()=>{
+ const sight=ArcadeGame.prototype.enemyCanSee;
+ const enemy={x:0,y:0,vx:0,vy:0},pilot={x:450,y:0,r:19};
+ const scene={rockGrid:{query:()=>[]}};
+ assert.equal(sight.call(scene,enemy,pilot),true);
+ scene.rockGrid.query=()=>[{x:220,y:0,r:65,alive:true}];
+ assert.equal(sight.call(scene,enemy,pilot),false,'астероид прерывает прямую видимость');
+ scene.rockGrid.query=()=>[];
+ enemy.vx=-200;
+ assert.equal(sight.call(scene,enemy,pilot),false,'уходящий патруль не видит позади себя');
+ enemy.vx=200;
+ assert.equal(sight.call(scene,enemy,pilot),true,'патруль обнаруживает цель по ходу движения');
+ pilot.x=ENEMY_AWARENESS.directRange+1;
+ assert.equal(sight.call(scene,enemy,pilot),false,'за пределом датчика цель исчезает');
 });
 
 test('стресс-проба держит точное число врагов и предел снарядов',()=>{

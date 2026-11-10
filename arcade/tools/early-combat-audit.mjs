@@ -7,6 +7,8 @@ import {EnemyComms} from '../enemy-comms.js';
 import {EnemyLearning} from '../enemy-learning.js';
 import {noisePatrolDirector} from '../noise-escalation.js';
 import {OPENING_ARC} from '../opening-arc.js';
+import {moduleStats} from '../ship-loadout.js';
+import {HUD_RADAR_RANGE} from '../hud.js';
 import {game as fixture} from '../tests/weapons-scene.mjs';
 
 const noop=()=>{};
@@ -100,8 +102,11 @@ export function runFirstLoopScenario({seed=111,seconds=120,hz=60,
  let stage=initialDelay>0?'orient':'home',hits=0,netAliveDrops=0,
   repairCount=0,upgradeCount=0,returns=0;
  let firstDockAt=null,missionCompleteAt=null,secondDockAt=null;
+ let firstRadarEnemyAt=null,firstOpticalThreatAt=null,
+  firstEnemyInPlasmaRangeAt=null,firstDamageAt=null;
  const events=[],samples=[],step=1/hz,originalRandom=Math.random;
  const initialOre=g.player.ore;
+ const plasmaRange=moduleStats('plasma',g.skillRanks).range;
  const originalMatchMedia=globalThis.matchMedia;
  let randomSeed=seed>>>0,maxEnemies=0,maxNearby=0;
  function flyTo(x,y,stop=45){
@@ -187,8 +192,22 @@ export function runFirstLoopScenario({seed=111,seconds=120,hz=60,
    if(g.paused)throw new Error('Scenario paused unexpectedly during '+stage);
    const prevHp=g.player.hp,prevCount=g.enemies.filter(e=>e.hp>0).length;
    g.update(step);
-   if(g.player.hp<prevHp)hits++;
+   if(g.player.hp<prevHp){
+    hits++;
+    if(firstDamageAt===null)firstDamageAt=g.time;
+   }
    const alive=g.enemies.filter(e=>e.hp>0&&!e.converted);
+   // These are actual positions and real optical checks from the update
+   // loop, not inferred from patrol spawn timers or weapon specifications.
+   if(firstRadarEnemyAt===null&&alive.some(e=>
+    Math.hypot(e.x-g.player.x,e.y-g.player.y)<=HUD_RADAR_RANGE))
+    firstRadarEnemyAt=g.time;
+   if(firstOpticalThreatAt===null&&alive.some(e=>
+    Math.hypot(e.x-g.player.x,e.y-g.player.y)<=STARTER_COMBAT.patrolSight&&
+    g.enemyCanSee(e,g.player)))firstOpticalThreatAt=g.time;
+   if(firstEnemyInPlasmaRangeAt===null&&alive.some(e=>
+    Math.hypot(e.x-g.player.x,e.y-g.player.y)<=plasmaRange))
+    firstEnemyInPlasmaRangeAt=g.time;
    // Includes patrol departures, not just kills: never report as kill count.
    netAliveDrops+=Math.max(0,prevCount-alive.length);
    const nearby=alive.filter(e=>Math.hypot(e.x-g.player.x,e.y-g.player.y)<850).length;
@@ -199,7 +218,9 @@ export function runFirstLoopScenario({seed=111,seconds=120,hz=60,
   }
   return {seed,seconds:+g.time.toFixed(1),dead:g.dead,stage,allowRetreat,
    initialDelay,patrolMode,firstDockAt,
-   secondDockAt,missionCompleteAt,initialOre,ore:g.player.ore,
+   secondDockAt,missionCompleteAt,
+   firstRadarEnemyAt,firstOpticalThreatAt,firstEnemyInPlasmaRangeAt,
+   firstDamageAt,initialOre,ore:g.player.ore,
    hull:+g.player.hp.toFixed(1),maxHull:g.player.maxHp,level:g.player.level,
    points:g.player.points,returns,repairCount,upgradeCount,hits,
    netAliveDrops,maxEnemies,maxNearby,
