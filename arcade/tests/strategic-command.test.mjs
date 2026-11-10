@@ -184,7 +184,7 @@ test('the same windup has different real solutions for plasma, aimed rail and io
  const ion=armed();ion.g.fieldLoan=createFieldLoan('ion',ion.g.docked.id,ion.g.time);
  ion.g.shipLoadout.slots[1]='ion';ion.g.syncShipLoadout();ion.ship.ionMarkUntil=220;
  assert.ok(ion.g.callIonDischarge());assert.equal(ion.ship.stationRaid.chargeAt,null);
- assert.equal(ion.g.fieldLoan.charges,2);
+ assert.equal(ion.g.fieldLoan.charges,3,'intercepting a windup must not consume rented ammo');
  assert.match(ion.g.lastNotice,/подготовка импульса сорвана/i);
  const chain=armed();chain.g.fieldLoan=createFieldLoan('ion',chain.g.docked.id,chain.g.time);
  chain.g.shipLoadout.slots[1]='ion';chain.g.syncShipLoadout();

@@ -55,7 +55,7 @@ import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110-weapon-hud-20261110';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1-tactical-slot-20261110';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1';
@@ -72,7 +72,7 @@ import {reacquireMissile,applyRocketSplash} from './rocket-branches.js?v=weapon-
 import {COUNTER_MANEUVER,deflectBurstShots} from './pilot-countermaneuver.js?v=pilot-doctrine-1';
 import {missionImageReady,paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1-tactical-slot-20261110';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1-tactical-slot-20261110-unlimited-hud-20261110';
 import {awardStationReputation,stationReputation,stationReputationGoal,stationReputationReady} from './station-reputation.js';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
@@ -85,9 +85,9 @@ import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} fr
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue,relayWavePlan,
  relayAttacker,relayPrepInteraction,relayIncomingTargets} from './relay-defense.js?v=station-operations-2-ops-audit-2-mission-choices-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
-import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
+import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2-campaign-1-unlimited-hud-20261110';
 
-import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1-pressure-response-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-tactical-slot-20261110';
+import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1-pressure-response-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-tactical-slot-20261110-unlimited-hud-20261110';
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2-menu-rebuild-1-menu-audit-1-devscroll-1';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1-all-menus-1-menu-reaudit-1-menu-audit-1-menu-depth-audit-3';
@@ -96,7 +96,7 @@ import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogist
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1-living-world-population-1-sector-density-2-frontier-siege-1';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel} from './target-designation.js?v=mouse-area-1-frontier-siege-1';
 import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,drawMouseArsenal} from './mouse-arsenal.js?v=mouse-arms-1-recorded-combat-1-realfoley-2-manual-weapon-1-manual-qa-1-triangle-defense-1-frontier-siege-1-manual-cover-1-manual-audit-20261110';
-import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1-frontier-siege-1';
+import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1-frontier-siege-1-unlimited-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
 import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109-territory-logistics-1-flux-siphon-roads-1-station-trust-1-rescue-depth-1';
@@ -3276,7 +3276,7 @@ export class ArcadeGame {
     this.fieldLoan=result.fieldLoan;if(result.trial)this.fieldTrialTaken=true;
     this.shipLoadout=result.loadout;this.player.ore=result.ore;this.syncShipLoadout();
     this.hangarSession.begin(result.loadout);
-    this.hangarSession.message=FIELD_WEAPONS[data.id].name+' · установлено · 3 заряда';
+    this.hangarSession.message=FIELD_WEAPONS[data.id].name+' · установлено · выстрелы без ограничений';
     this.heritage.ui('upgrade');
    }else{this.hangarSession.message=result.reason;this.heritage.ui('deny');}
    this.renderDock();
@@ -3614,18 +3614,18 @@ export class ArcadeGame {
   const strike=$('strikeBtn');if(strike)strike.hidden=!(this.support?.charges>0);
    const ion=$('ionBtn'),tacticButton=$('tacticBtn'),spec=this.fieldLoan&&fieldWeapon(this.fieldLoan);
    const fitted=!!spec&&!!this.weaponProfile[spec.id];
-   const ready=fitted&&this.fieldLoan.charges>0&&this.fieldLoan.cooldownUntil<=this.time;
+   const ready=fitted&&this.fieldLoan.cooldownUntil<=this.time;
    const tactic=this.tactical||createTactical(),tacticModule=TACTICAL_DEVICES[tactic.equipped];
    const tacticRemaining=Math.max(0,Math.ceil(tactic.readyAt-this.time));
    const tacticText=this.controlLabel('field')+' · '+tacticModule.short+
     (tacticRemaining?' · зарядка '+tacticRemaining+' с':' · готово');
-   const fieldText=fitted?this.controlLabel('fieldWeapon')+' · '+spec.short+' · '+this.fieldLoan.charges+'/'+spec.capacity+
+   const fieldText=fitted?this.controlLabel('fieldWeapon')+' · '+spec.short+' · ∞'+
     (this.fieldLoan.cooldownUntil>this.time?' · зарядка '+Math.ceil(this.fieldLoan.cooldownUntil-this.time)+' с':' · готово'):'';
    if(tacticButton){tacticButton.hidden=false;tacticButton.disabled=!!tacticRemaining;
     tacticButton.textContent=tacticRemaining?tacticModule.short+' · '+tacticRemaining+'с':tacticModule.short;
     tacticButton.setAttribute('aria-label',tacticText);}
    if(ion){ion.hidden=!fitted;ion.disabled=!ready;
-    ion.textContent=fitted?spec.short+' · '+this.fieldLoan.charges:'Ион';
+    ion.textContent=fitted?spec.short+' · ∞':'Ион';
     ion.setAttribute('aria-label',fitted?fieldText:'Полевое оружие не установлено');}
    const arsenal=this.mouseArsenal||createMouseArsenal();
    const cometRest=Math.max(0,Math.ceil(arsenal.cometReadyAt-this.time));
@@ -3885,12 +3885,9 @@ export class ArcadeGame {
    this.notice(name+' возвращён на станцию',3.2);this.heritage.ui('dock');this.renderDock();return;
   }
   if(act==='fieldCharge'){
-   const quote=refillQuote(this.fieldLoan,p.ore);
-   if(!quote.ok){this.notice(quote.reason,2.5);this.heritage.ui('deny');return;}
-   p.ore-=quote.cost;this.fieldLoan.charges=quote.charges;
-   recordEconomyExpense(this,'services',quote.cost);
-   this.notice(fieldWeapon(this.fieldLoan).short+': зарядов '+quote.charges+'/3 · −'+quote.cost+' сплава',3);
-   this.heritage.ui('upgrade');this.renderDock();return;
+   // A pre-update station screen can still dispatch this legacy action.
+   this.notice('Заряды покупать не нужно: прокатное оружие перезаряжается само.',3);
+   return;
   }
    if(act==='claimProbeData'){
     const probe=this.operation||b.probeMission;
@@ -4186,11 +4183,11 @@ export class ArcadeGame {
   if(this.weaponThermal.locked||this.heavyCharge){this.notice('Дождитесь охлаждения или завершения выстрела гаубицы.',2.5);return false;}
   const plan=planResonance(this);
   if(!plan.ok){this.notice(plan.reason,2.8);return false;}
-  this.fieldEffects=[plan.effect];this.fieldLoan.charges=plan.chargesAfter;
+  this.fieldEffects=[plan.effect];
   this.fieldLoan.cooldownUntil=plan.cooldownUntil;this.fieldLoan.used++;
   this.heritage.vfx.nova(plan.effect.targets[0].target.x,plan.effect.targets[0].target.y,43,'violet');
   this.heritage.play('resonatorShot',.26,{x:this.player.x,y:this.player.y});
-  this.notice('РЕЗОНАНС · '+plan.effect.targets.length+' цели · 4 секунды связи · зарядов '+this.fieldLoan.charges+'/3',3);
+  this.notice('РЕЗОНАНС · '+plan.effect.targets.length+' цели · 4 секунды связи · перезарядка '+FIELD_WEAPONS.resonator.cooldown+' с',3);
   this.hud();return true;
  }
  tacticalAimPoint(){
@@ -4254,7 +4251,6 @@ export class ArcadeGame {
    if(preparing&&target.hp>0&&target.stationRaid?.chargeAt===null)disrupted=true;
    from=target;
   }
-  this.fieldLoan.charges=plan.chargesAfter;
   this.fieldLoan.cooldownUntil=plan.cooldownUntil;
   this.fieldLoan.used++;
   const mastery=ionMasteryAward(plan.targets.length,this.ionMasteryAwarded);
@@ -4264,9 +4260,9 @@ export class ArcadeGame {
   this.heritage.vfx.nova(plan.targets[0].x,plan.targets[0].y,43,'cyan');
   this.heritage.play('ionShot',.26,{x:plan.targets[0].x,y:plan.targets[0].y});
   const result=mastery?'Цепной разряд освоен: '+plan.targets.length+
-   ' цели · +'+mastery+' данных и опыта · ион '+this.fieldLoan.charges+'/'+ION_CONDUCTOR.charges:
+   ' цели · +'+mastery+' данных и опыта · перезарядка '+ION_CONDUCTOR.cooldown+' с':
    'Ионный разряд: '+plan.targets.length+' '+
-   (plan.targets.length===1?'цель':'цели')+' · осталось '+this.fieldLoan.charges;
+   (plan.targets.length===1?'цель':'цели')+' · перезарядка '+ION_CONDUCTOR.cooldown+' с';
   this.rewardNotice(result+(disrupted?' · Подготовка импульса сорвана':''),previousLevel,mastery?4.2:2.3);
   this.hud();return true;
  }
@@ -5101,7 +5097,7 @@ export class ArcadeGame {
  }
  addDrop(type,x,y,value,options={}){
   // A distant kill or a crowded field cannot silently credit uncollected loot.
-  // Prefer replacing a fading ordinary drop; preserve special field charges.
+  // Prefer replacing a fading ordinary drop; preserve special field boosts.
   if(!makeRoomForDrop(this.drops,RULES.maxDrops))return false;
   this.drops.push({type,x,y,value,source:options.source||null,
    vx:options.vx??(Math.random()-.5)*55,
@@ -5112,8 +5108,9 @@ export class ArcadeGame {
   if(e.fieldDropChecked||e.hp>0||e.converted)return false;
   e.fieldDropChecked=true;
   const id=e.fieldChargeOperation,base=this.world.stations.get(e.fieldChargeBaseId),loan=this.fieldLoan;
-  if(!id||!base||!loan||(base.fieldChargeIssued||{})[id]||loan.charges>=fieldWeapon(loan).capacity)return false;
-  if(this.addDrop('fieldCell',e.x+12,e.y,1,{life:34})===false)return false;
+  if(!id||!base||!loan||(base.fieldChargeIssued||{})[id])return false;
+  // A former one-use ammo pickup now rewards the encounter with salvage.
+  if(this.addDrop('ore',e.x+12,e.y,8,{life:34,source:'salvage'})===false)return false;
   base.fieldChargeIssued??={};base.fieldChargeIssued[id]=true;return true;
  }
  awardExperience(amount){
@@ -5142,11 +5139,10 @@ export class ArcadeGame {
   if(item.type==='parasiteCore')return collectParasiteCore(this);
   if(item.type==='fieldBoost'||item.type==='fieldRepair')return collectFieldLoot(this,item);
   if(item.type==='fieldCell'){
-   const spec=this.fieldLoan&&fieldWeapon(this.fieldLoan);
-   if(!spec||this.fieldLoan.charges>=spec.capacity)return false;
-   this.fieldLoan.charges=Math.min(spec.capacity,this.fieldLoan.charges+1);
-   this.heritage.play('pickup',.21);
-   this.notice(spec.short+': подобран заряд · '+this.fieldLoan.charges+'/'+spec.capacity,2.5);return true;
+   // Older checkpoints may contain a charge drop; convert it to salvage.
+   this.heritage.play('pickup',.21);p.ore+=8;
+   recordSortieIncome(this,'ore','salvage',8);
+   this.notice('Переработана полевая батарея · +8 сплава',2.5);return true;
   }
   this.heritage.play('pickup',.21);
   if(item.type==='ore'){
@@ -6109,7 +6105,7 @@ export class ArcadeGame {
  drawBase(b,readyBaseId=null){
   this.visuals.drawBase(this.ctx,b,this.time,this.player.x,this.player.y,
    this.network,this.cachedNetworkLinked.has(b.id),this.cameraZoom);
-  if(this.weaponProfile.ion&&this.fieldLoan?.charges>0){
+  if(this.weaponProfile.ion&&this.fieldLoan){
    drawIonMark(this.ctx,b,this.time,60);
    for(const t of b.turrets||[])drawIonMark(this.ctx,t,this.time,22);
   }
@@ -6287,7 +6283,7 @@ export class ArcadeGame {
   }
   this.drawCorridorBeacon(c,cam);
   this.drawCorridorCourier(c,cam);
-  if(this.weaponProfile.ion&&this.fieldLoan?.charges>0&&this.operation?.id===CORRIDOR_OPERATION.id)drawIonMark(c,this.operation,this.time,30);
+  if(this.weaponProfile.ion&&this.fieldLoan&&this.operation?.id===CORRIDOR_OPERATION.id)drawIonMark(c,this.operation,this.time,30);
   this.drawCarrierRoute(c,cam);
   this.drawRelayDefense(c,cam);
   this.drawProbe(c,cam);
@@ -6432,7 +6428,7 @@ export class ArcadeGame {
     }
     c.restore();
    }
-   if(this.weaponProfile.ion&&this.fieldLoan?.charges>0)drawIonMark(c,e,this.time);
+   if(this.weaponProfile.ion&&this.fieldLoan)drawIonMark(c,e,this.time);
    // The painted rupture supersedes the old circular damage decal.
    if(!e.capitalWearPainted)
     drawHullDamage(c,e,this.time,this.fps,this.visuals.reducedMotion);

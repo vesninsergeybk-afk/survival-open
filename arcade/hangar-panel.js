@@ -6,7 +6,7 @@ import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalSpec,tacticalQ
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1-first-loops-1-tactical-slot-20261110';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {MODULES,FRAME_STEPS,BLUEPRINT_NAMES,SHIP_ART,HangarSession,createLoadout,
- frameSpec,slotOpen,equipModule,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-flow-2-menu-focus-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-tactical-slot-20261110';
+ frameSpec,slotOpen,equipModule,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-flow-2-menu-focus-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-tactical-slot-20261110-unlimited-hud-20261110';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -174,11 +174,11 @@ export function renderShipHangar(state,session=state.hangarSession){
   const stats=moduleStats(item.id,context.ranks,specializationState(current,item.id));
   const help=item.name+'\n'+weaponDescription(item,context.controls)+'\nДальность: '+stats.range+' м · нагрев: '+item.heat+
    ' · интервал: '+fmt(stats.interval)+' с\nУрон: '+fmt(stats.damage)+' · целей: '+stats.targets+
-   '\n'+(reason||equipped?'':borrowing?'Прокат до конца задания. 3 заряда. ':'')+
+   '\n'+(reason||equipped?'':borrowing?'Прокат до конца задания. Неограниченные выстрелы. ':'')+
    (reason||(equipped?'Уже установлено.':borrowing?
     'Прокат оформляется в «Обзоре» → «Другие услуги станции». При свободном узле модуль можно установить сразу.':
     'Для установки в узел '+labelFor(slot)+' нажмите кнопку установки. Просмотр не меняет оснащение и не тратит сплав.'));
-  const price=equipped?'✓ Установлено':borrowing?(cost?'Прокат · '+cost+' сплава':'Бесплатная проба · 3 заряда'):
+  const price=equipped?'✓ Установлено':borrowing?(cost?'Прокат · '+cost+' сплава':'Бесплатная проба · ∞'):
    cost?cost+' сплава':'Со склада · бесплатно';
   const caption=equipped?'Установлено':borrowing?'Оформить прокат в Обзоре →':
    cost?'Купить и установить · '+cost+' сплава':'Установить бесплатно';

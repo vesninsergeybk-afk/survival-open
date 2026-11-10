@@ -103,19 +103,19 @@ test('one free choice is shared by both field modules and at most one Space acti
  g.baseAction('returnField','');g.baseAction('loanField','ion');assert.equal(g.fieldLoan,null);
  assert.equal(moduleLock('rail',{level:2,earlyRail:true}),'');assert.match(moduleLock('rail',{level:2}),/3/);
 });
-test('resonator empty, lone, hidden and obstructed attempts consume neither charge nor cooldown',()=>{
+test('resonator empty, lone, hidden and obstructed attempts do not trigger cooldown',()=>{
  for(const condition of ['empty','lone','hidden','blocked']){
   const g=game();loan(g,'resonator');if(condition!=='empty')g.grid.insert(enemy(150));
   if(condition==='hidden')g.grid.insert({...enemy(200),signalIntel:{mode:'investigate'}});
   if(condition==='blocked'){g.grid.insert(enemy(270));g.rockGrid.insert(rock(210,0,40));}
-  assert.equal(g.callFieldWeapon(),false,condition);assert.equal(g.fieldLoan.charges,3);assert.equal(g.fieldLoan.cooldownUntil,10);
+  assert.equal(g.callFieldWeapon(),false,condition);assert.equal(g.fieldLoan.cooldownUntil,10);
  }
 });
 test('resonator links a group, transfers only effective HP loss once, and does no passive damage',()=>{
  const g=game();loan(g,'resonator');const a=enemy(150,0,10),b=enemy(210),c=enemy(250);for(const e of [a,b,c])g.grid.insert(e);
- assert.ok(g.callFieldWeapon());assert.equal(g.fieldLoan.charges,2);assert.equal(b.hp,300);
+ assert.ok(g.callFieldWeapon());assert.equal(g.fieldLoan.charges,3);assert.equal(b.hp,300);
  damageTarget(g,{kind:'enemy',target:a},100,'rail');near(b.hp,296.5);near(c.hp,296.5);
- assert.equal(g.fieldLoan.charges,2,'ordinary shots do not consume field charges');
+ assert.equal(g.fieldLoan.charges,3,'firing never consumes field ammunition');
 });
 test('resonance stops across new cover, separated targets, expired duration and friendly conversion',()=>{
  for(const condition of ['cover','range','expired','friendly']){
@@ -131,7 +131,7 @@ test('resonance respects the direction of the link at cargo armor, rather than t
  g.player.x=300;const a=enemy(100);g.grid.insert(a);g.grid.insert(op);assert.equal(carrierAspect(op,g.player),'front');assert.ok(g.callFieldWeapon());
  const before=op.hp;damageTarget(g,{kind:'enemy',target:a},20,'rail');near(before-op.hp,20*.35*1.35);
 });
-test('ion respects a blocked first leg and blocked links without spending a charge',()=>{
+test('ion respects a blocked first leg and blocked links without starting cooldown',()=>{
  const g=game();loan(g,'ion');const a={...enemy(150),ionMarkUntil:20},b={...enemy(270),ionMarkUntil:20};g.grid.insert(a);g.grid.insert(b);g.rockGrid.insert(rock(75,0,40));
  assert.equal(g.callIonDischarge(),false);assert.equal(g.fieldLoan.charges,3);
  const p=planIonDischarge([a,b],g.player,g.time,g.fieldLoan,(from,to)=>from===g.player);assert.equal(p.targets.length,1);
@@ -153,20 +153,20 @@ test('first accepted assignment keeps the loan even after another assignment is 
  bindFieldLoan(l,missionAssignment(null,c));bindFieldLoan(l,missionAssignment(a,c));assert.equal(l.assignment.kind,'contract');
  finishFieldAssignment(l,'operation',a);assert.equal(l.returnDue,false);finishFieldAssignment(l,'contract',c);assert.ok(l.returnDue);
 });
-test('refills have a visible finite capacity, spend resources and preserve cooldown',()=>{
+test('field rentals require no ammunition purchases and preserve cooldown',()=>{
  const g=game();loan(g,'resonator');g.fieldLoan.charges=1;g.fieldLoan.cooldownUntil=16;const start=g.player.ore;
- g.baseAction('fieldCharge');g.baseAction('fieldCharge');g.baseAction('fieldCharge');assert.equal(g.fieldLoan.charges,3);assert.equal(g.player.ore,start-16);assert.equal(g.fieldLoan.cooldownUntil,16);
+ g.baseAction('fieldCharge');g.baseAction('fieldCharge');g.baseAction('fieldCharge');assert.equal(g.fieldLoan.charges,1);assert.equal(g.player.ore,start);assert.equal(g.fieldLoan.cooldownUntil,16);
  assert.equal(refillQuote(g.fieldLoan,400).ok,false);g.fieldLoan.charges=0;assert.equal(refillQuote(g.fieldLoan,7).ok,false);
 });
-test('finite operation guards can drop one field cell per station and operation, including no-XP relay guards',()=>{
+test('operation guards drop one salvage reward, not obsolete ammo, including no-XP relay guards',()=>{
  const g=game();loan(g,'resonator');g.fieldLoan.charges=1;
  const guard=()=>({...enemy(150),hp:0,expAwarded:true,fieldChargeOperation:'relay-defense',fieldChargeBaseId:g.docked.id});
- assert.ok(g.issueFieldCharge(guard()));assert.equal(g.drops[0].type,'fieldCell');assert.equal(g.issueFieldCharge(guard()),false);
- const cell=g.drops[0];g.fieldLoan.charges=3;assert.equal(g.collect(cell),false);g.fieldLoan.charges=1;g.collect(cell);assert.equal(g.fieldLoan.charges,2);assert.equal(g.player.data,0);
+ assert.ok(g.issueFieldCharge(guard()));assert.equal(g.drops[0].type,'ore');assert.equal(g.drops[0].value,8);assert.equal(g.issueFieldCharge(guard()),false);
+ const cell=g.drops[0],ore=g.player.ore;g.fieldLoan.charges=0;g.collect(cell);assert.equal(g.player.ore,ore+8);assert.equal(g.fieldLoan.charges,0);assert.equal(g.player.data,0);
  const saved=unpackRun(packRun(checkpoint(g))),fresh=game();restoreCheckpoint(fresh,saved);fresh.fieldLoan.charges=0;
  assert.equal(fresh.issueFieldCharge(guard()),false,'abandon, retry and reload cannot farm the same reward');
 });
-test('loading a blueprint or unequipping a field module never refills its ammunition',()=>{
+test('loading a blueprint or unequipping a field module preserves its usage history',()=>{
  const g=game();loan(g,'resonator');g.fieldLoan.charges=1;g.fieldLoan.used=2;g.hangarSession.begin(g.shipLoadout);
  g.hangarSession.dispatch({act:'hgSave',id:'0'},{loadout:g.shipLoadout,level:14,baseActive:true,ore:400,fieldLoan:g.fieldLoan});
  g.shipLoadout.slots[1]=null;g.syncShipLoadout();assert.equal(g.fieldLoan.charges,1);assert.deepEqual(g.fieldEffects,[]);
@@ -181,10 +181,10 @@ test('frozen v1 checkpoint migrates a spent ion loan and preserves the original 
  assert.equal(g.fieldLoan.assignment.id,g.operation.id);assert.equal(g.world.home.corridorMission,g.operation);
  assert.ok(store.save(captureCheckpoint(g,g.docked)).ok);assert.equal(JSON.parse(storage.getItem(RUN_KEYS[1])).format,2);
 });
-test('v2 checkpoint preserves live resonance references and finite ammunition',()=>{
+test('v2 checkpoint preserves live resonance references and unlimited-use legacy state',()=>{
  const g=game();loan(g,'resonator');const a=enemy(100),b=enemy(200);g.enemies=[a,b];g.grid.insert(a);g.grid.insert(b);g.callFieldWeapon();
  const restored=game(),state=unpackRun(packRun(checkpoint(g)));restoreCheckpoint(restored,state);
- assert.equal(restored.fieldLoan.charges,2);assert.equal(restored.fieldEffects[0].targets[0].target,restored.enemies[0]);
+ assert.equal(restored.fieldLoan.charges,3);assert.equal(restored.fieldEffects[0].targets[0].target,restored.enemies[0]);
  restored.time=15;updateFieldEffects(restored);assert.equal(restored.fieldEffects.length,0);
 });
 test('a postponed probe and its pending attack survive a checkpoint, then partial data pay once',()=>{
@@ -237,11 +237,11 @@ test('starter plasma can protect a relay by intercepting, while parking on it lo
  assert.ok(probe.completed&&probe.checkpointSaved&&probe.repair===100,JSON.stringify(probe));
 });
 
-test('calibration keeps the finite ion burst useful as automatic damage grows, and hangar shows its actual hits',()=>{
+test('calibration keeps the unlimited ion burst useful as automatic damage grows, and hangar shows its actual hits',()=>{
  const g=game();loan(g,'ion');g.skillRanks.beam=5;
  const a={...enemy(150),ionMarkUntil:20},b={...enemy(220),ionMarkUntil:20};g.grid.insert(a);g.grid.insert(b);
  assert.equal(moduleStats('ion',g.skillRanks).damage,'76 / 60 / 44');assert.ok(g.callIonDischarge());
- near(300-a.hp,76);near(300-b.hp,60);assert.equal(g.fieldLoan.charges,2);
+ near(300-a.hp,76);near(300-b.hp,60);assert.equal(g.fieldLoan.charges,3);
 });
 
 test('overheat never invites an attack from outside the equipped range',()=>{

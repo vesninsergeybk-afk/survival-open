@@ -2,7 +2,6 @@ import {FIELD_WEAPONS,fieldLoanOffer,createFieldLoan} from './field-weapons.js?v
 // Ion behavior is one choice in the shared field-weapon rental.
 // Loans are saved with the run and never enter the permanent blueprint inventory.
 export const ION_CONDUCTOR = Object.freeze({
- charges:FIELD_WEAPONS.ion.capacity,
  masteryData:12,
  rentalCost:FIELD_WEAPONS.ion.rentalCost,
  markDuration:5,
@@ -21,7 +20,7 @@ export const ionLoanOffer=(base,state)=>fieldLoanOffer(base,state,'ion');
 export const createIonLoan=(sourceId,now=0)=>createFieldLoan('ion',sourceId,now);
 
 export function markIonCluster(enemies,primary,now,loan,canLink=()=>true){
- if(!loan||loan.charges<=0||!primary||primary.converted)return [];
+ if(!loan||!primary||primary.converted)return [];
  const neighbors=enemies.filter(e=>e!==primary&&markable(e)&&
   inRange(primary,e,ION_CONDUCTOR.markRadius)&&canLink(primary,e))
   .sort((a,b)=>Math.hypot(a.x-primary.x,a.y-primary.y)-
@@ -36,7 +35,6 @@ export const ionDamage=(rank=0)=>ION_CONDUCTOR.damage.map(d=>d*(1+rank*.2));
 export function planIonDischarge(enemies,player,now,loan,canLink=()=>true,calibrationRank=0){
  if(!loan)return {ok:false,reason:'Возьмите ионный проводник на станции и установите его в ангаре.'};
  if((loan.moduleId||'ion')!=='ion')return {ok:false,reason:'Для разряда нужен ионный проводник.'};
- if(loan.charges<=0)return {ok:false,reason:'Заряды закончились. Пополните боезапас на станции.'};
  if(loan.cooldownUntil>now)return {ok:false,
   reason:'Ионный проводник заряжается: '+Math.ceil(loan.cooldownUntil-now)+' с'};
  const candidates=enemies.filter(e=>markable(e)&&e.ionMarkUntil>now&&
@@ -70,7 +68,7 @@ export function planIonDischarge(enemies,player,now,loan,canLink=()=>true,calibr
  }
  if(!chain.length)return {ok:false,reason:'Метки закрыты камнем. Смените позицию для разряда.'};
  return {ok:true,targets:chain,damage:chain.map((_,i)=>ionDamage(calibrationRank)[i]),
-  chargesAfter:loan.charges-1,cooldownUntil:now+ION_CONDUCTOR.cooldown};
+  cooldownUntil:now+ION_CONDUCTOR.cooldown};
 }
 
 // A one-time learning reward, not repeatable per rental or per discharge.

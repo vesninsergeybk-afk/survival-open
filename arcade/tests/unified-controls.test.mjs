@@ -155,14 +155,14 @@ test('rented weapon and permanent tactical device have independent activation an
  const a={x:150,y:0,hp:100,maxHp:100,r:15},b={x:190,y:0,hp:100,maxHp:100,r:15};
  g.grid.insert(a);g.grid.insert(b);
  assert.equal(g.callFieldWeapon(),true,'G activates the separate rented weapon');
- assert.equal(g.fieldLoan.charges,2);
+ assert.equal(g.fieldLoan.charges,3,'G must not spend finite ammunition');
  assert.equal(g.tactical.uses,1,'the loan cannot consume the Space action');
  assert.equal(g.callTacticalField(),false,'tactical cooldown remains independent');
- assert.equal(g.fieldLoan.charges,2);
+ assert.equal(g.fieldLoan.charges,3);
  g.time+=14;
  assert.equal(g.callTacticalField(),true,'Space recovers while the rented weapon is still fitted');
  assert.equal(g.tactical.uses,2);
- assert.equal(g.fieldLoan.charges,2);
+ assert.equal(g.fieldLoan.charges,3);
  g.fieldLoan=null;g.weaponProfile.resonator=false;g.time+=14;
  assert.equal(g.callTacticalField(),true,'returning the loan does not disable the permanent device');
 });

@@ -7,6 +7,7 @@ import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1-e
 import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1';
+import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-1';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 const count = value => Math.round(value).toLocaleString('ru-RU');
@@ -61,9 +62,19 @@ export class CockpitDisplay {
    rewardXp:el('rewardXp'),rewardLevel:el('rewardLevel'),
    miningStatus:el('miningStatus'),miningPercent:el('miningPercent'),
    miningLabel:el('miningLabel'),
-   contractObjective:el('contractObjective'),interactionCue:el('interactionCue'),territoryStatus:el('territoryStatus')};
+   contractObjective:el('contractObjective'),interactionCue:el('interactionCue'),territoryStatus:el('territoryStatus'),
+   weaponDeckAuto:el('weaponDeckAuto'),weaponDeckDirect:el('weaponDeckDirect'),
+   weaponDeckCompact:el('weaponDeckCompact'),weaponDeckCount:el('weaponDeckCount'),
+   weaponDeckHeat:el('weaponDeckHeat'),weaponDeckHeatLabel:el('weaponDeckHeatLabel'),
+   weaponDeckHeatMeter:el('weaponDeckHeatMeter')};
   this.reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   this.compactHud=window.matchMedia('(pointer: coarse)').matches;
+  this.weaponDeckRows=new Map();this.weaponDeckSignature='';
+  const toggle=el('weaponDeckToggle'),deck=el('weaponDeck');
+  if(toggle&&deck)toggle.onclick=()=>{
+   const open=deck.classList.toggle('is-open');
+   toggle.setAttribute('aria-expanded',String(open));
+  };
   this.drawRadarShell();
  }
  update(game,nextXp,boostCooldown) {
@@ -276,12 +287,57 @@ export class CockpitDisplay {
     n.flightMode.setAttribute('aria-label','ОГОНЬ ЗАБЛОКИРОВАН · ПЕРЕГРЕВ');
    }
   }
+  this.renderWeaponDeck(game);
   n.message.style.opacity=game.messageUntil>game.time?'1':'0';
   // HUD remains stationary: no cockpit sway when the player steers.
   const interval=game.fps<35?.34:.2;
   if(game.time-this.lastRadar>=interval||game.time<this.lastRadar) {
    this.lastRadar=game.time;
    this.drawRadar(game);
+  }
+ }
+ renderWeaponDeck(game){
+  // Headless combat tests use a minimal DOM; constructing elements is only
+  // needed by the real browser. No weapons are simulated from this view.
+  if(!this.n.weaponDeckAuto||typeof document.createElement!=='function')return;
+  const state=weaponDeckState(game),n=this.n;
+  display(n.weaponDeckCount,state.installedCount+' УЗЛ.');
+  display(n.weaponDeckCompact,state.compact);
+  const toggle=el('weaponDeckToggle');
+  if(toggle&&toggle.getAttribute?.('aria-label')!=='Оружие: '+state.compact+'. Нажмите для подробностей')
+   toggle.setAttribute('aria-label','Оружие: '+state.compact+'. Нажмите для подробностей');
+  n.weaponDeckHeat.hidden=state.heatPercent===null;
+  if(state.heatPercent!==null){
+   display(n.weaponDeckHeatLabel,(state.heatLocked?'ПЕРЕГРЕВ · ':'НАГРЕВ · ')+state.heatPercent+'%');
+   n.weaponDeckHeatMeter.style.setProperty('--heat-fill',state.heatPercent+'%');
+   n.weaponDeckHeatMeter.setAttribute('aria-valuenow',String(state.heatPercent));
+   n.weaponDeckHeat.classList.toggle('is-hot',state.heatLocked||state.heatPercent>=75);
+  }
+  const signature=state.rows.map(item=>item.id+':'+item.name).join('|');
+  if(signature!==this.weaponDeckSignature){
+   this.weaponDeckSignature=signature;this.weaponDeckRows.clear();
+   const auto=document.createDocumentFragment(),direct=document.createDocumentFragment();
+   for(const item of state.rows){
+    const element=document.createElement('div');element.className='weapon-deck-row';
+    element.style.setProperty('--weapon-color',item.color);
+    const header=document.createElement('div');header.className='weapon-deck-row-head';
+    const name=document.createElement('strong');name.className='weapon-deck-name';
+    const status=document.createElement('span');status.className='weapon-deck-status';
+    header.append(name,status);
+    const detail=document.createElement('small');detail.className='weapon-deck-detail';
+    element.append(header,detail);
+    this.weaponDeckRows.set(item.id,{element,name,status,detail});
+    (item.kind==='auto'?auto:direct).append(element);
+   }
+   n.weaponDeckAuto.replaceChildren(auto);n.weaponDeckDirect.replaceChildren(direct);
+  }
+  for(const item of state.rows){
+   const entry=this.weaponDeckRows.get(item.id);if(!entry)continue;
+   display(entry.name,item.name);display(entry.status,item.status);
+   display(entry.detail,item.detail);
+   if(entry.state!==item.state){entry.element.dataset.state=item.state;entry.state=item.state;}
+   const spoken=item.name+'; '+item.detail+'; '+item.status;
+   if(entry.spoken!==spoken){entry.element.setAttribute('aria-label',spoken);entry.spoken=spoken;}
   }
  }
  trackWallet(player,time){

@@ -1,4 +1,4 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2-semantic-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-tactical-slot-20261110';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2-semantic-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-tactical-slot-20261110-unlimited-hud-20261110';
 import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-tactical-slot-20261110';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1-tactical-slot-20261110';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
@@ -13,11 +13,11 @@ import {FIELD_OPERATIONS,fieldOperationIds,fieldOperationOffer,fieldOperationCue
 import {abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1-station-ops-2-ops-audit-2-mission-choices-1';
 import {CARRIER_INTERCEPTION,carrierOffer,autonomousStrikeCarrier} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
-import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1';
+import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1-unlimited-1';
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1-sector-density-2';
 import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
-import {slotOpen,MODULES} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1-direct-fit-2-menu-focus-1-menu-ergonomics-1-menu-depth-2-tactical-slot-20261110';
+import {slotOpen,MODULES} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1-direct-fit-2-menu-focus-1-menu-ergonomics-1-menu-depth-2-tactical-slot-20261110-unlimited-hud-20261110';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
@@ -888,7 +888,7 @@ export function renderBasePanel(base,state){
   'Корпус '+Math.ceil(state.hp)+'/'+state.maxHp+' — ремонт не требуется.';
  const quickTrial=state.fieldTrialPickerOpen&&base.id==='0:0'&&!state.fieldTrialTaken&&!state.fieldLoan?
   '<section class="base-trial-picker" aria-label="Бесплатный полевой модуль">'+
-  '<strong>Выберите один полевой модуль</strong><p>На выбор один бесплатный модуль с тремя зарядами. При наличии свободного узла модуль установится сразу.</p>'+
+  '<strong>Выберите один полевой модуль</strong><p>Один модуль бесплатно: выстрелы не ограничены, после каждого применения нужна перезарядка. При наличии свободного узла модуль установится сразу.</p>'+
   '<div class="base-trial-options">'+
   '<div class="base-trial-option"><div class="base-trial-product"><img src="./assets/station-menu/field-ion.webp" alt="" loading="lazy" width="80" height="80"><b>Ионный проводник</b><small>Цепной разряд по целям с плазменными метками · '+fieldKey+'</small></div>'+
   action('loanField','Выбрать ионный','','ion')+'</div>'+
@@ -1016,23 +1016,21 @@ export function renderBasePanel(base,state){
  const fieldHelp=id=>id==='ion'?
   'Плазма ставит метки. '+fieldKey+' даёт мгновенный цепной разряд по отмеченной группе. Нужен плазменный луч.':
   fieldKey+' связывает 2–3 близкие цели на 4 с. Затем стреляйте: 35% урона передаётся по связи. Камни и расстояние свыше 260 м разрывают передачу.';
- const refill=refillQuote(loan,o.ore);
  const fieldIllustration=id=>'<span class="base-field-illustration"><img src="./assets/station-menu/field-'+id+'.webp" alt="" width="64" height="64" loading="lazy"></span>';
  const fieldPanel=loan?card('base-service base-local base-field-service','ПОЛЕВОЙ МОДУЛЬ',
-  spec.name+' · '+loan.charges+'/'+spec.capacity+' заряда',
+  spec.name+' · неограниченные выстрелы · перезарядка '+spec.cooldown+' с',
   fieldIllustration(spec.id)+fieldHelp(spec.id)+' Нажмите на обычный узел корабля и выберите этот модуль. '+
   (loan.assignment?'Прокат закреплён за '+(loan.assignment.kind==='operation'?'особой операцией':'полевым заказом')+'; после её завершения или отмены модуль вернётся при стыковке.':
    'Прокат будет закреплён за следующим принятым заданием. Можно вернуть досрочно.'),
-  action('fieldCharge','Купить заряд · '+spec.chargeCost+' сплава',refill.ok?'':refill.reason)+
   action('returnField','Вернуть модуль')):
   offer?.mode==='trial'?card('base-service base-local base-field-service','БЕСПЛАТНАЯ ПРОБА',
    'Выбор первого полевого модуля',
-   fieldIllustration('ion')+'Ионный проводник или резонатор: один модуль на три заряда. Выбор находится в «Обзоре», рядом с состоянием корабля.',
+   fieldIllustration('ion')+'Ионный проводник или резонатор: бесконечный боезапас, перезарядка после применения. Выбор находится в «Обзоре», рядом с состоянием корабля.',
    '<span class="base-ready">Выбор доступен выше, в карточке корабля</span>'):
   offer?'<div class="base-grid">'+Object.values(FIELD_WEAPONS).map(w=>{
    const q=fieldLoanOffer(base,state,w.id);
    return card('base-service base-local base-field-service','ПОЛЕВОЙ МОДУЛЬ · ПРОКАТ',
-    w.name,fieldIllustration(w.id)+fieldHelp(w.id)+' Три заряда. Установите в обычный узел и примените сборку. Запуск — '+readableKey((state.controls||DEFAULT_CONTROLS).fieldWeapon)+'; тактическое устройство на '+readableKey((state.controls||DEFAULT_CONTROLS).field)+' остаётся доступно. Одновременно можно взять один прокатный модуль.',
+    w.name,fieldIllustration(w.id)+fieldHelp(w.id)+' Выстрелы не ограничены; перезарядка '+w.cooldown+' с. Установите в обычный узел и примените сборку. Запуск — '+readableKey((state.controls||DEFAULT_CONTROLS).fieldWeapon)+'; тактическое устройство на '+readableKey((state.controls||DEFAULT_CONTROLS).field)+' остаётся доступно. Одновременно можно взять один прокатный модуль.',
     action('loanField',q.mode==='trial'?'Выбрать бесплатно':'Взять · '+q.cost+' сплава',q.reason,w.id),q.reason);
   }).join('')+'</div>':base.type==='dock'&&state.fieldTrialTaken?card('base-service',
    'ПОЛЕВОЕ ОРУЖИЕ','Бесплатная проба использована',

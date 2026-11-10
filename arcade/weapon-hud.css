@@ -1,0 +1,86 @@
+/* Weapon telemetry is a separate cockpit instrument, not an aiming surface.
+   The small-screen switch reveals the exact same live rows, not a duplicate. */
+#hud.cockpit-hud .weapon-deck{
+ position:absolute;right:max(16px,env(safe-area-inset-right));bottom:210px;
+ box-sizing:border-box;width:clamp(325px,30vw,440px);z-index:4;
+ max-height:calc(100vh - 490px);overflow-y:auto;overscroll-behavior:contain;
+ background:linear-gradient(150deg,#143d50f0,#071d2cf0 48%,#041421f4);
+ border:1px solid #70d5e1a6;border-radius:9px;
+ box-shadow:0 7px 23px #0009,inset 0 1px 0 #a9f5ff32;
+ scrollbar-color:#679db099 #132d3e;
+ pointer-events:auto;color:#e3f7fb;
+}
+.cockpit-hud .weapon-deck-body{padding:11px 12px 10px}
+.cockpit-hud .weapon-deck-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+ padding:0 0 7px;border-bottom:1px solid #63bfd074}
+.cockpit-hud .weapon-deck-head strong{font-weight:800;font-size:13px;letter-spacing:.09em}
+.cockpit-hud .weapon-deck-head>span{font-size:10px;font-weight:700;color:#96cdd8;white-space:nowrap}
+.cockpit-hud .weapon-deck-heat{display:flex;align-items:center;gap:12px;padding:8px 1px 4px;
+ color:#91cbd6;font-size:10px;font-weight:800;letter-spacing:.05em}
+.cockpit-hud .weapon-deck-heat.is-hot{color:#ffd089}
+.cockpit-hud .weapon-deck-heat-meter{flex:1;height:5px;border:1px solid #5e899484;
+ border-radius:4px;background:#081a2a;overflow:hidden}
+.cockpit-hud .weapon-deck-heat-meter>span{display:block;width:var(--heat-fill,0%);height:100%;
+ background:linear-gradient(90deg,#51bace,#8ee2cd);transition:width .15s linear}
+.cockpit-hud .weapon-deck-heat.is-hot .weapon-deck-heat-meter>span{
+ background:linear-gradient(90deg,#dcae67,#ff7488)}
+.cockpit-hud .weapon-deck-rows{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.cockpit-hud .weapon-deck-row{position:relative;min-width:0;padding:6px 7px 7px 12px;
+ background:#0c30427d;border:1px solid #66a3b029;border-radius:5px}
+.cockpit-hud .weapon-deck-row::before{content:"";position:absolute;left:0;top:4px;bottom:4px;
+ width:3px;background:var(--weapon-color,#8eece5);border-radius:3px}
+.cockpit-hud .weapon-deck-row-head{display:flex;align-items:center;justify-content:space-between;
+ gap:5px;min-width:0;line-height:1.15}
+.cockpit-hud .weapon-deck-name{min-width:0;font-size:11px;font-weight:800;
+ color:#e7faff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cockpit-hud .weapon-deck-status{flex:none;font-size:10px;font-weight:800;
+ color:#91f2c5;text-align:right;white-space:nowrap}
+.cockpit-hud .weapon-deck-row[data-state="cooldown"] .weapon-deck-status{color:#ffd291}
+.cockpit-hud .weapon-deck-row[data-state="blocked"] .weapon-deck-status{color:#ffabb0}
+.cockpit-hud .weapon-deck-detail{display:block;margin-top:5px;font-size:10px;
+ color:#b5d5dc;white-space:normal;line-height:1.25}
+.cockpit-hud .weapon-deck-divider{margin:10px 1px 0;padding-top:7px;
+ border-top:1px solid #5a9ab05e;color:#8ac8d7;font-size:9px;font-weight:800;letter-spacing:.11em}
+.cockpit-hud .weapon-deck-toggle{display:none}
+@media(pointer:fine) and (max-width:1100px){
+ #hud.cockpit-hud .weapon-deck{width:clamp(250px,31vw,348px);bottom:195px;
+  max-height:calc(100vh - 515px)}
+ .cockpit-hud .weapon-deck-body{padding:9px}
+ .cockpit-hud .weapon-deck-detail{font-size:9px}
+}
+@media(pointer:fine) and (max-width:820px){
+ #hud.cockpit-hud .weapon-deck{width:35vw;min-width:205px;bottom:180px;
+  max-height:calc(100vh - 500px)}
+ .cockpit-hud .weapon-deck-name{font-size:9px}
+ .cockpit-hud .weapon-deck-status{font-size:8px}
+ .cockpit-hud .weapon-deck-detail{font-size:9px}
+}
+@media(pointer:coarse){
+ #hud.cockpit-hud .weapon-deck{position:absolute;right:max(9px,env(safe-area-inset-right));
+  top:68px;bottom:auto;width:min(49vw,300px);min-width:0;max-height:calc(100vh - 90px);
+  overflow:visible;border-color:#64bdd1b5;background:#0a3042f2;z-index:6}
+ .cockpit-hud .weapon-deck-toggle{display:flex;align-items:center;justify-content:space-between;
+  gap:5px;width:100%;box-sizing:border-box;padding:9px 9px;border:0;
+  background:none;color:#e1f9ff;text-align:left;font:800 10px/1.2 system-ui,sans-serif;
+  letter-spacing:.015em;min-height:36px;cursor:pointer}
+ .cockpit-hud .weapon-deck-toggle span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+ .cockpit-hud .weapon-deck-chevron{flex:none;color:#8ee4e8}
+ .cockpit-hud .weapon-deck-body{display:none;position:absolute;right:0;top:calc(100% + 3px);
+  box-sizing:border-box;width:min(380px,calc(100vw - 16px));max-height:calc(100vh - 125px);
+  padding:10px;overflow-y:auto;overscroll-behavior:contain;border:1px solid #78dce6;
+  border-radius:8px;background:#061d2af7;box-shadow:0 9px 28px #000c}
+ #hud.cockpit-hud .weapon-deck.is-open .weapon-deck-body{display:block}
+ .cockpit-hud .weapon-deck.is-open .weapon-deck-chevron{transform:rotate(180deg)}
+}
+@media(pointer:coarse) and (orientation:portrait){
+ #hud.cockpit-hud .weapon-deck{top:182px;width:min(55vw,240px)}
+ .cockpit-hud .weapon-deck-body{max-height:calc(100vh - 390px)}
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:380px){
+ #hud.cockpit-hud .weapon-deck{top:55px}
+ .cockpit-hud .weapon-deck-body{max-height:calc(100vh - 105px)}
+}
+@media(prefers-reduced-motion:reduce){
+ .cockpit-hud .weapon-deck-heat-meter>span{transition:none}
+}

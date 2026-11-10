@@ -26,7 +26,7 @@ function docked(){
  const g=game();g.shipLoadout.frame=0;g.shipLoadout.owned={plasma:1};
  g.paused=true;g.overlay.hidden=false;g.baseTab='hangar';return g;
 }
-for(const id of ['ion','resonator'])test(id+': visible station buttons borrow, equip, refill and return the actual module',()=>{
+for(const id of ['ion','resonator'])test(id+': visible station buttons borrow, equip, never charge for ammo, and return',()=>{
  const g=docked(),before=g.player.ore;
  withControls(g,click=>{
   click('loanField',id);
@@ -35,7 +35,7 @@ for(const id of ['ion','resonator'])test(id+': visible station buttons borrow, e
   assert.equal(g.weaponProfile[id],true,'a free node is equipped without a second confirmation');
   click('hgApply');assert.equal(g.weaponProfile[id],true);
   g.fieldLoan.charges=1;g.fieldLoan.cooldownUntil=22;
-  click('fieldCharge');assert.equal(g.fieldLoan.charges,2);assert.equal(g.player.ore,before-8);
+  click('fieldCharge');assert.equal(g.fieldLoan.charges,1);assert.equal(g.player.ore,before);
   assert.equal(g.fieldLoan.cooldownUntil,22,'a menu click cannot skip the reload');
   click('returnField');assert.equal(g.fieldLoan,null);assert.equal(g.weaponProfile[id],false);
   assert.ok(!g.hangarSession.draft.slots.includes(id));
