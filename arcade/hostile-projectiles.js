@@ -9,8 +9,10 @@
 export const HOSTILE_SHOT_STYLES=Object.freeze({
  laser:{length:24,width:4,outer:'#f2586e',core:'#ffe8d8',shape:'dart'},
  fighter:{length:24,width:4.2,outer:'#ff9871',core:'#fff0c5',shape:'dart'},
+ 'fighter-close':{length:32,width:3.4,outer:'#ffd36b',core:'#fff6d5',shape:'needle'},
  'fighter-burst':{length:27,width:3.1,outer:'#ffbb6a',core:'#ffefc6',shape:'fork'},
  flanker:{length:34,width:2.8,outer:'#b38bff',core:'#f8eaff',shape:'needle'},
+ 'flanker-close':{length:42,width:2.8,outer:'#e3adff',core:'#fff4dc',shape:'needle'},
  'flanker-needle':{length:39,width:2.4,outer:'#a88bff',core:'#eee4ff',shape:'needle'},
  'flanker-impulse':{length:45,width:4,outer:'#ff6379',core:'#ffebc5',shape:'needle'},
  gunship:{length:30,width:6,outer:'#ff784c',core:'#fff0d4',shape:'heavy'},
@@ -19,6 +21,7 @@ export const HOSTILE_SHOT_STYLES=Object.freeze({
  'siege-bolt':{length:44,width:7.4,outer:'#ffbc4c',core:'#fff0b8',shape:'siege'},
  'base-turret':{length:38,width:6.5,outer:'#e94c6e',core:'#fff0d5',shape:'siege'},
  iris:{length:25,width:3,outer:'#b084ff',core:'#f2e1ff',shape:'needle'},
+ 'iris-close':{length:31,width:2.8,outer:'#bca8ff',core:'#ffffff',shape:'needle'},
  mote:{length:23,width:2.9,outer:'#63c6ff',core:'#e3fcff',shape:'fork'}
 });
 

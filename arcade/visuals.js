@@ -10,7 +10,7 @@ import {drawAnimatedEnemyShip} from '../src/disruptor-ship-sprites.js';
 import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js?v=iris-pack-1-counterattack-1-mission-pack-1';
 import {drawStationPart, STATION_PARTS} from '../src/station-art.js?v=base-86';
 import {drawTurretMount,drawTurretHead} from '../src/turret-visuals.js?v=turret-visuals-1';
-import {drawHostileProjectile} from './hostile-projectiles.js?v=corvette-20261110-1-opening-evasion-20261110-turret-defense-20261110';
+import {drawHostileProjectile} from './hostile-projectiles.js?v=corvette-20261110-1-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110';
 import {getFXSprite} from '../src/vfx-textures.js?v=arcade-vfx-mask-19';
 import {drawStationMechanisms} from '../src/station-mechanics.js?v=dock-audit-2';
 import {drawRepairDock} from './repair-dock-art.js?v=dock-identity-1';

@@ -475,7 +475,8 @@ test('combat movement and shots coexist without adding enemy damage or speed',()
     game.enemyComms.confirmExecution(game);
   }
   assert.ok(game.shots.length>=2,'both roles can exert ranged pressure');
-  assert.ok(game.shots.every(s=>s.options.kind==='fighter'||s.options.kind==='flanker'));
+  assert.ok(game.shots.every(s=>['fighter','flanker','fighter-close','flanker-close']
+   .includes(s.options.kind)),'short-range shots replace ordinary bolts');
   assert.ok(game.shots.every((s,i)=>i===0||
     s.at-game.shots[i-1].at>=.87),
     'one radio cell never fires an unfair simultaneous wall');

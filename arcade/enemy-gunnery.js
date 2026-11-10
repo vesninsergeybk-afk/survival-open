@@ -4,14 +4,20 @@
  * damage, accuracy or the projectile budget. */
 import {sweptRamHit} from './enemy-last-stand.js?v=redteam-20261109-1';
 export const ENEMY_GUNNERY=Object.freeze({
-  fighter:Object.freeze({range:405,charge:.62,reload:2.7,speed:290,damage:12,
+  fighter:Object.freeze({range:405,charge:.62,reload:2.7,speed:350,damage:12,
     upgradeAt:135,upgraded:Object.freeze({range:405,charge:.7,reload:3.1,
       speed:370,damage:6,shots:2,gap:.34,spread:.035,kind:'fighter-burst'})}),
-  flanker:Object.freeze({range:395,charge:.55,reload:2.8,speed:305,damage:9,
+  flanker:Object.freeze({range:395,charge:.55,reload:2.8,speed:365,damage:9,
     upgradeAt:155,upgraded:Object.freeze({range:445,charge:.82,reload:3.1,
       speed:510,damage:9,kind:'flanker-needle'})}),
   impulse:Object.freeze({range:405,charge:.9,reload:6.2,speed:390,
     damage:14,kind:'flanker-impulse'}),
+  // A fast short-distance bolt REPLACES the next ordinary shot. The warning
+  // retains its fixed aim point, so the pilot can still dodge by turning.
+  fighterClose:Object.freeze({range:230,charge:.65,reload:3,speed:465,
+    damage:12,kind:'fighter-close'}),
+  flankerClose:Object.freeze({range:225,charge:.62,reload:3.1,speed:500,
+    damage:9,kind:'flanker-close'}),
   gunship:Object.freeze({range:535,charge:1.03,reload:4.1,speed:380,
     damage:8,shots:3,gap:.36,spread:.115,kind:'gunship-cannon'}),
   // Close-in broadside: short, warned shrapnel burst, not a tracking aura.
@@ -77,6 +83,20 @@ function siegeAvailable(e,game,target){
  return !cam||e.x>=cam.x+15&&e.x<=cam.x+cam.w-15&&
   e.y>=cam.y+15&&e.y<=cam.y+cam.h-15;
 }
+function quickShotVisible(e,game){
+ const cam=game.camera?.();
+ return !cam||e.x>=cam.x+(e.r||14)+12&&e.x<=cam.x+cam.w-(e.r||14)-12&&
+   e.y>=cam.y+(e.r||14)+12&&e.y<=cam.y+cam.h-(e.r||14)-12;
+}
+function quickShotProfile(e,game,target){
+ if(target!==game.player||!e||distance(e,target)>218)return null;
+ // This is an opening-game option. Later special weapons retain their
+ // distinct profiles instead of being silently replaced at point-blank range.
+ if(game.time>=ENEMY_GUNNERY[e.type]?.upgradeAt||!quickShotVisible(e,game))return null;
+ if(e.type==='fighter')return ENEMY_GUNNERY.fighterClose;
+ if(e.type==='flanker')return ENEMY_GUNNERY.flankerClose;
+ return null;
+}
 
 function fireBolt(e,game,profile,aim,index=0){
  const offset=(index-(profile.shots||1)/2+.5)*(profile.spread||0);
@@ -124,6 +144,7 @@ export function updateEnemyGunnery(e,game,target){
     ENEMY_GUNNERY.pointDefense:
     e&&game&&siegeAvailable(e,game,target)?ENEMY_GUNNERY.siege:
     e&&game&&lanceAvailable(e,game,target)?ENEMY_GUNNERY.lance:
+    e&&game&&quickShotProfile(e,game,target)||
     gunProfile(e?.type,now,e?.weaponVariant));
   if(!profile||!Number.isFinite(now))return false;
   // The rare high-damage shot cannot be charged or released from outside the
@@ -180,6 +201,10 @@ export function updateEnemyGunnery(e,game,target){
   if(aim&&!lanceWarningStillValid(e,game,aim)){
     e._gunAiming=null;e._gunNextAt=now+.8;return false;
   }
+  if(aim&&(aim.profile.kind==='fighter-close'||aim.profile.kind==='flanker-close')&&
+     !quickShotVisible(e,game)){
+    e._gunAiming=null;e._gunNextAt=now+.55;return false;
+  }
   if(aim?.profile?.kind==='gunship-flak'&&
      !closeBatteryAvailable(e,game,target)){
     e._gunAiming=null;e._gunNextAt=now+.55;return false;
@@ -214,6 +239,8 @@ export function updateEnemyGunnery(e,game,target){
       }
     }
     else if(profile.kind==='flanker-impulse')game.heritage?.play?.('ramWarning',.42,e);
+    else if(profile.kind==='fighter-close'||profile.kind==='flanker-close')
+      game.heritage?.play?.('ramWarning',.2,e);
     return false;
   }
   if(now<aim.until)return false;
@@ -275,7 +302,8 @@ export function drawEnemyGunWarnings(ctx,game,cam,fps=60){
     const close=profile.kind==='gunship-flak';
     const impulse=profile.kind==='flanker-impulse';
     const siege=profile.kind==='siege-bolt';
-    const tint=siege?'#ffce64':impulse?'#ff7b8b':close?'#ffc271':e.type==='fighter'?'#ffab75':
+    const quick=profile.kind==='fighter-close'||profile.kind==='flanker-close';
+    const tint=siege?'#ffce64':quick?'#ffe27d':impulse?'#ff7b8b':close?'#ffc271':e.type==='fighter'?'#ffab75':
       e.type==='gunship'?'#ff6554':'#d0a1ff';
     const beam=profile.kind==='gunship-lance';
     ctx.save();ctx.strokeStyle=tint;ctx.lineWidth=beam?2.5+progress*3.2:
@@ -284,6 +312,7 @@ export function drawEnemyGunWarnings(ctx,game,cam,fps=60){
     ctx.setLineDash(beam?[10,6]:siege?[12,5]:impulse?[8,5]:[4,7]);ctx.beginPath();ctx.moveTo(e.x,e.y);
     ctx.lineTo(aim.x,aim.y);ctx.stroke();ctx.setLineDash([]);
     ctx.beginPath();ctx.arc(aim.x,aim.y,7+progress*4,0,Math.PI*2);ctx.stroke();
+    if(quick){ctx.beginPath();ctx.arc(aim.x,aim.y,12+progress*4,0,Math.PI*2);ctx.stroke();}
     if(siege){
       ctx.beginPath();ctx.arc(aim.x,aim.y,17+progress*6,0,Math.PI*2);ctx.stroke();
       ctx.fillStyle=tint;ctx.font='bold 10px system-ui';ctx.textAlign='center';

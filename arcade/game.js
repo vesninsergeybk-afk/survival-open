@@ -41,8 +41,9 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4-zoomread-2-territory-logistics-1';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26-redteam-20261109-1';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110';
-import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110';
+import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110';
+import {drawEnemyCloseWarnings} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
 import {BASE_TURRET_GUN,advanceBaseTurretGun,drawBaseTurretWarnings} from './base-turret-gunnery.js';
 import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1-territory-logistics-1-flux-siphon-roads-1-turret-defense-20261110';
 import {advanceTurretDefenses,drawTurretDefenses,turretShieldCapacity} from './turret-defense.js?v=turret-defense-20261110';
@@ -6574,6 +6575,7 @@ export class ArcadeGame {
   drawTacticalVfx(c,this,cam);
   drawTactical(c,this);
   drawEnemyGunWarnings(c,this,cam,this.fps);
+  drawEnemyCloseWarnings(c,this,cam,this.fps);
   drawBaseTurretWarnings(c,this,cam,this.visuals.reducedMotion);
   drawEnemyDefenseGoals(c,this,cam,this.fps);
   // Actual radio-message receipts, drawn in world space behind ship sprites.

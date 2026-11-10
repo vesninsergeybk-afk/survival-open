@@ -31,7 +31,7 @@ test('first pulse arrives during the visible purple scan, not after a helpless p
  advance(game,enemy,.35);
  assert.equal(shots.length,1,'the scout shoots before the scanning interval ends');
  assert.ok(shots[0].time-enemy._irisScanStarted>=IRIS_COMBAT.scanShotAt);
- assert.equal(shots[0].options.kind,'iris');
+ assert.ok(['iris','iris-close'].includes(shots[0].options.kind));
  assert.equal(shots[0].damage,IRIS_COMBAT.damage);
 });
 

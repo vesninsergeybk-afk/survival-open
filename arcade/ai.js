@@ -11,13 +11,14 @@ import {contourIrisDirective,contourIrisRushContacts} from './contour-trial-iris
 import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2-trial-focus-1-pressure-response-1-combat-balance-1';
 import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-ai-commander-20261110-enemy-operations-20261110-space-impact-20261110';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1-ai-commander-20261110';
-import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1-opening-evasion-20261110-turret-defense-20261110';
+import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110';
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {moveMote} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-opening-evasion-20261110';
 import {turretBranchRank} from './turret-growth.js?v=turret-defense-20261110';
 import {damageFriendlyTurret} from './turret-defense.js?v=turret-defense-20261110';
 import {updateLastStand} from './enemy-last-stand.js?v=redteam-20261109-1';
+import {advanceEnemyCloseAttack,cancelCloseAttack} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -88,7 +89,7 @@ export function scoutSteering(e,game,target,speed){
 // projectile wall. Neither health nor projectile collision rules change.
 export const IRIS_COMBAT=Object.freeze({
   range:IRIS_SWARM.fireRange,scanShotAt:.59,charge:.36,volleySpacing:.43,
-  projectileSpeed:325,damage:10
+  projectileSpeed:385,closeSpeed:490,closeRange:205,damage:10
 });
 export function scoutAttack(e,game,target,scanning=false){
   if(e.type!=='scout'||e.converted||e.boss||e.missionStructure||
@@ -129,8 +130,10 @@ export function scoutAttack(e,game,target,scanning=false){
   const lead=clamp(flight*.38,0,.3);
   const tx=target.x+clamp((target.vx||0)*lead,-45,45);
   const ty=target.y+clamp((target.vy||0)*lead,-45,45);
+  const near=distance<=IRIS_COMBAT.closeRange;
   const accepted=game.enemyShot(e.x,e.y,tx,ty,IRIS_COMBAT.damage,
-    {kind:'iris',speed:IRIS_COMBAT.projectileSpeed,r:4.5,
+    {kind:near?'iris-close':'iris',speed:near?IRIS_COMBAT.closeSpeed:
+     IRIS_COMBAT.projectileSpeed,r:4.5,
      learnToken:game.enemyLearning?.shotToken(e)});
   if(accepted===false)return false;
   game.enemyLearning?.fired(e);
@@ -291,6 +294,7 @@ const pickTarget=(e,game)=>{
 export function updateEnemy(e,game,dt){
   if(e.hp<=0)return;
   if(e.trialRetreatUntil){
+    cancelCloseAttack(e);
     e._gunAiming=null;e._gunBurst=null;e._irisChargeStarted=null;e._commsIntent=null;
     if(game.time>=e.trialRetreatUntil){e.hp=0;e.expAwarded=true;e.visualDeath=true;return;}
     const from=e.trialRetreatFrom||game.player;
@@ -300,10 +304,11 @@ export function updateEnemy(e,game,dt){
   }
   // A successfully hacked craft is friendly immediately, even if an earlier
   // hostile stasis pulse has not expired yet.
-  if(e.converted){e._commsIntent=null;e._gunAiming=null;e._gunBurst=null;updateConverted(e,game,dt);return;}
+  if(e.converted){cancelCloseAttack(e);e._commsIntent=null;e._gunAiming=null;e._gunBurst=null;updateConverted(e,game,dt);return;}
   // A connected station briefly locks ordinary hostile craft in place.
   // Authored mission targets, bosses and cargo never receive this status.
   if(game.time<(e.stasisUntil||0)){
+    cancelCloseAttack(e);
     e._commsIntent=null;
     e._gunAiming=null;e._gunBurst=null;
     e._irisChargeStarted=null;
@@ -312,10 +317,11 @@ export function updateEnemy(e,game,dt){
     return;
   }
   if(e.microSwarm){moveMote(e,game,dt);return;}
-  if(updateLastStand(e,game,dt))return;
+  if(updateLastStand(e,game,dt)){cancelCloseAttack(e);return;}
   // Every visible intent must be renewed by real steering this frame.
   e._commsIntent=null;e._theaterIntent=null;
   if(e.missionFlight){
+    cancelCloseAttack(e);
     const goal=e.missionFlight,remaining=dist(e,goal);
     const speed=Math.min(goal.speed,remaining*3);
     const detour=enemyRockDetour(e,game,goal.x,goal.y);
@@ -323,7 +329,7 @@ export function updateEnemy(e,game,dt){
     e._gunAiming=null;e._gunBurst=null;
     return;
   }
-  if(stormSeek(e,game,dt)){e._gunAiming=null;e._gunBurst=null;return;}
+  if(stormSeek(e,game,dt)){cancelCloseAttack(e);e._gunAiming=null;e._gunBurst=null;return;}
   e.think=(e.think??0)-dt;
   e.fire=(e.fire??1)-dt;
   const ram=e.ramOrder,squad=ram?.squad;
@@ -347,6 +353,7 @@ export function updateEnemy(e,game,dt){
   }
   const signalOrder=updateSignalIntent(e,game,dt);
   updateEnemyAwareness(e,game);
+  if(e._closeAttack&&advanceEnemyCloseAttack(e,game,dt,game.player))return;
   const localContact=e._enemyLearningSaw||
     (e.type==='scout'&&e._irisHasSight&&
      game.time-(e._irisLastSeenAt??-Infinity)<.58);
@@ -426,6 +433,7 @@ export function updateEnemy(e,game,dt){
     }
   }
   const selected=e.target?.hp>0?e.target:game.player;
+  if(advanceEnemyCloseAttack(e,game,dt,selected))return;
   const targetingPlayer=selected===game.player;
   const decoy=targetingPlayer?tacticalDecoy(game,e):null;
   const p=decoy|| (targetingPlayer?enemyPursuitTarget(e,game):selected);
