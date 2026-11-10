@@ -80,6 +80,8 @@ const branchMarks={
  deep:'<circle cx="12" cy="12" r="9"/><path d="M12 6v7l4 3"/>'
 };
 const branchMark=mark=>branchMarks[mark]?'<span class="prog-branch-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+branchMarks[mark]+'</svg></span>':'';
+import {doctrineRank,doctrineCost,doctrineMinLevel,doctrineBuyReason,
+ doctrineNextEffect,normalizedDoctrineRanks} from './pilot-doctrines.js?v=pilot-depth-1';
 const pointsWord=n=>n%100>=11&&n%100<=14?'очков':n%10===1?'очко':n%10>=2&&n%10<=4?'очка':'очков';
 const mastered=(rank,max)=>rank>=max;
 
@@ -106,14 +108,15 @@ function pilotNodes(state){
  const nodes=skills.map(s=>skillNode(s,state));
  if(branch==='Корабль'){
   for(const d of state.pilotDoctrines||[]){
-   const selected=state.doctrine===d.id,chosen=!!state.doctrine,level=state.level||1;
-   const reason=selected?'Доктрина выбрана':chosen?'Другая доктрина уже выбрана':
-    level<4?'Нужен уровень 4':!(state.points>0)?'Нужно 1 очко развития':'';
-   nodes.push({id:'doctrine-'+d.id,title:d.title,icon:art('upgrades','doctrine'),level:4,
-    rank:selected?1:0,max:1,status:selected?'mastered':chosen?'exclusive':
-     level<4?'locked':state.points>0?'ready':'waiting',
-    description:d.desc,effect:d.desc,activation:'Постоянная специализация пилота. Можно выбрать только одну; смена на станции стоит сплав.',
-    reason,action:'doctrine',actionId:d.id,actionLabel:'Выбрать доктрину · 1 очко',canAct:!reason,cost:'1 очко развития'});
+   const rank=doctrineRank(state,d.id),cost=doctrineCost(rank),level=doctrineMinLevel(rank);
+   const reason=doctrineBuyReason(state,d.id),done=rank>=3;
+   nodes.push({id:'doctrine-'+d.id,title:d.title,icon:art('upgrades','doctrine'),level:done?11:level,
+    rank,max:3,status:done?'mastered':(state.level||1)<level?'locked':
+     (state.points||0)<cost?'waiting':'ready',
+    description:d.desc,effect:done?'Ветка изучена полностью':doctrineNextEffect(d.id,rank),
+    activation:'Ветви совместимы: можно развить все четыре. Следующая ступень дороже предыдущей; сброс на активной станции возвращает потраченные очки.',
+    reason,action:'doctrine',actionId:d.id,actionLabel:done?'Ветка завершена':'Изучить · '+cost+' '+pointsWord(cost),canAct:!reason,
+    cost:done?'Полностью изучено':cost+' '+pointsWord(cost)+' развития'});
   }
  }
  return nodes;
@@ -348,9 +351,9 @@ function spentPointsHtml(state,ledger){
  for(const [id,rank] of Object.entries(state.skillRanks||{})){
   if(rank>0)choices.push([labels.get(id)||id,rank]);
  }
- if(state.doctrine){
-  const title=(state.pilotDoctrines||[]).find(d=>d.id===state.doctrine)?.title||state.doctrine;
-  choices.push(['Доктрина: '+title,1]);
+ for(const [id,rank] of Object.entries(normalizedDoctrineRanks(state))){
+  const title=(state.pilotDoctrines||[]).find(d=>d.id===id)?.title||id;
+  choices.push(['Доктрина: '+title,rank*(rank+1)/2]);
  }
  for(const [id,path] of Object.entries(state.loadout?.specializations||{})){
   const name=WEAPON_SPECIALIZATIONS[id]?.[path.path]?.name;

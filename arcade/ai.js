@@ -1,4 +1,5 @@
 import {theaterDestination} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2-mesh-strategy-v2-1-ai-commander-20261110';
+import {commandAllyBonus} from './pilot-doctrines.js?v=pilot-depth-1';
 import {updateParasitizedEnemy} from './field-evolution.js?v=parasite-clarity-1';
 import {stormSeek} from './regional-storms.js?v=regions-1';
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20-pressure-response-1-combat-balance-1';
@@ -792,9 +793,9 @@ export function updateAlly(a,game,dt){
     if(a.fire<=0&&dist(a,target)<335){
       a.fire=2.25;
       if(target===a.target)game.hitEnemyBase(a.target,(37+game.network.armament*6)*(
-       game.doctrine==='command'&&dist(a,p)<240?1.25:1),'bomber');
+       commandAllyBonus(game,a)),'bomber');
       else game.hitTurret(target,(37+game.network.armament*6)*(
-       game.doctrine==='command'&&dist(a,p)<240?1.25:1),null,'ally');
+       commandAllyBonus(game,a)),null,'ally');
       game.flash(a.x,a.y,target.x,target.y,'#ffcf72');
       game.heritage.play('rocket',.48,{x:a.x,y:a.y});
     }
@@ -807,7 +808,7 @@ export function updateAlly(a,game,dt){
     if(a.fire<=0&&dist(a,target)<360){
       a.fire=a.role==='scout'?.98:a.role==='bomber'?1.85:.85;
       const weapon=a.role==='scout'?12:a.role==='bomber'?5:18;
-      const command=game.doctrine==='command'&&dist(a,p)<240?1.25:1;
+      const command=commandAllyBonus(game,a);
       game.damageEnemy(target,(weapon+game.network.armament*(a.role==='bomber'?1.5:3))*command,a);
       game.flash(a.x,a.y,target.x,target.y,'#8adfff');
       game.heritage.play('allyShot',.42,{x:a.x,y:a.y});

@@ -214,19 +214,28 @@ test('a not-yet-installed howitzer shows locked choices and a direct fitting rou
  assert.match(renderProgressionScreen(state(g,'weapons')),/data-act="fitWeapon" data-id="howitzer"/);
 });
 
-test('countermaneuver is a real mutually exclusive pilot doctrine with a one-point cost',()=>{
+test('pilot doctrines have independent ranks, escalating prices and honest level locks',()=>{
  const g=docked();g.player.level=4;g.player.points=1;g.developmentDomain='pilot';
  g.skillBranch='Корабль';
  const first=progressionModel(state(g,'pilot'));
  const node=first.nodes.find(n=>n.id==='doctrine-countermaneuver');
  assert.ok(node?.canAct);
- assert.match(node.description,/рывок|Shift/);
+ assert.match(node.description,/рывок|отражает|выстрелы/);
  g.buyDoctrine('countermaneuver');
- assert.equal(g.doctrine,'countermaneuver');
+ assert.equal(g.doctrineRanks.countermaneuver,1);
  assert.equal(g.player.points,0);
  const second=progressionModel(state(g,'pilot'));
- assert.equal(second.nodes.find(n=>n.id==='doctrine-assault').status,'exclusive');
- assert.equal(second.nodes.find(n=>n.id==='doctrine-countermaneuver').status,'mastered');
+ assert.equal(second.nodes.find(n=>n.id==='doctrine-assault').status,'waiting');
+ assert.equal(second.nodes.find(n=>n.id==='doctrine-countermaneuver').status,'locked');
+ g.player.level=7;g.player.points=3;
+ const next=progressionModel(state(g,'pilot'));
+ const upgrade=next.nodes.find(n=>n.id==='doctrine-countermaneuver');
+ assert.equal(upgrade.cost,'2 очка развития');assert.equal(upgrade.rank,1);
+ assert.match(upgrade.effect,/3 снарядов/);
+ assert.equal(g.buyDoctrine('assault'),true);
+ assert.equal(g.buyDoctrine('countermaneuver'),true);
+ assert.equal(g.player.points,0);
+ assert.deepEqual(g.doctrineRanks,{countermaneuver:2,assault:1});
 });
 
 test('progression screen explains a remapped activation key and warns when field weapon occupies it',()=>{

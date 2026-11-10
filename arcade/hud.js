@@ -7,6 +7,7 @@ import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1-e
 import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1';
+import {normalizedDoctrineRanks,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 const count = value => Math.round(value).toLocaleString('ru-RU');
@@ -214,12 +215,15 @@ export class CockpitDisplay {
    !enemyBase.turrets.some(t=>t.hp>0)&&Math.hypot(enemyBase.x-p.x,enemyBase.y-p.y)<=245);
   const overcharge=Math.max(0,Math.ceil((game.overchargeUntil||0)-game.time));
   const scan=Math.max(0,Math.ceil((game.geoScanUntil||0)-game.time));
+  const doctrineCount=Object.keys(normalizedDoctrineRanks(game)).length;
   const systemStatus=condition==='critical'?'АВАРИЙНЫЙ РЕЖИМ':
    repairing?'ВОССТАНОВЛЕНИЕ ЗОНДА':extracting?'ДОБЫЧА ПОРОДЫ':boosting?'УСКОРЕНИЕ АКТИВНО':
    baseFocus?'ПРИОРИТЕТНАЯ ЦЕЛЬ':overcharge?'УСИЛЕНИЕ ЛУЧА · '+overcharge+' С':
    scan?'ГЕОРАЗВЕДКА · '+scan+' С':p.shield>0?'ЩИТ АКТИВЕН':
    condition==='wounded'?'КОРПУС ПОВРЕЖДЁН':
-    game.doctrine?('ДОКТРИНА · '+({assault:'ШТУРМ',command:'КОМАНДИР',prospect:'СТАРАТЕЛЬ'}[game.doctrine]||'')):
+    doctrineRank(game,'assault')>=2&&game.assaultBurstUntil>game.time?'ШТУРМОВОЙ РЫВОК':
+    doctrineRank(game,'prospect')>=3&&game.prospectSurgeUntil>game.time?'ГЕОФОРСАЖ':
+    doctrineCount?('ДОКТРИНЫ · '+doctrineCount+'/4'):
     'СИСТЕМЫ В НОРМЕ';
   // The mission ribbon's right bay is reserved for real route distance.
   const goal=game.waypoint;

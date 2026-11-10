@@ -1,4 +1,5 @@
 import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1';
+import {normalizedDoctrineRanks,DOCTRINES} from './pilot-doctrines.js?v=pilot-depth-1';
 import {rebaseSavedHull} from './balance.js';
 import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';
 import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
@@ -35,7 +36,7 @@ const FORBIDDEN=new Set(['__proto__','prototype','constructor']);
 // Keep serialization strict for every other field; never dismantle the live mesh.
 const DERIVED=new Set(['capitalPaintCache','_commsCell']);
 const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal moduleClocks heavyCharge heavyCooldown '+
- 'doctrine lastDamageAt network enemies allies drops shots missiles flashes support zones time '+
+ 'doctrine doctrineRanks lastDamageAt network enemies allies drops shots missiles flashes support zones time '+
  'spawnClock miningNoise lastNoiseSource noiseAlert miningNoiseWarned miningIntroShown coverWearWarned '+
  'contract operation geoScanUntil overchargeUntil fieldLoan fieldTrialTaken fieldReturnAt ionMasteryAwarded '+
  'holdFire beamClock rocketClock zoneClock stationary lastX lastY hacks activeBases enemySerial '+
@@ -157,6 +158,10 @@ export function validateCheckpoint(data){
   !Number.isInteger(s.shipLoadout.frame)||!FRAME_STEPS[s.shipLoadout.frame])return false;
  if(Object.values(s.skillRanks).some(v=>!Number.isInteger(v)||v<0||v>10)||
   Object.keys(s).some(k=>!FIELDS.includes(k)))return false;
+ if(s.doctrine!==undefined&&s.doctrine!==null&&!DOCTRINES.some(d=>d.id===s.doctrine))return false;
+ if(s.doctrineRanks!==undefined&&(!object(s.doctrineRanks)||
+  Object.entries(s.doctrineRanks).some(([id,rank])=>!DOCTRINES.some(d=>d.id===id)||
+   !Number.isInteger(rank)||rank<1||rank>3)))return false;
  if(s.manualWaypoint!=null&&(!object(s.manualWaypoint)||s.manualWaypoint.id!=='map:manual'||
   !finite(s.manualWaypoint.x)||!finite(s.manualWaypoint.y)))return false;
  if(s.sortieReports!==undefined&&!validSortieReports(s.sortieReports))return false;
@@ -313,6 +318,10 @@ export function restoreCheckpoint(game,data){
  }
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
+ game.doctrineRanks=normalizedDoctrineRanks(data.state);game.doctrine=null;
+ // Temporary combat windows belong to the previous flight, not the save.
+ game.commandMark=null;game.assaultBurstUntil=0;
+ game.prospectSurgeUntil=0;game.assaultPulseReadyAt=0;
  // Formation decisions and reinforcement timers are reconstructed at runtime.
  // A courier that had already left the screen must not become stuck waiting
  // for a queue which deliberately is not part of the saved data graph.

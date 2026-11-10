@@ -1,17 +1,25 @@
 import {SHIP_UPGRADES} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-focus-1';
 import {escapeMenu as esc,menuInfo,menuSymbol,screenHead,menuFooter,menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
-export function renderPilotContent({player:p,ranks,doctrine,skills,doctrines,branch='Корабль',nextEffect}){
+import {doctrineRank,doctrineCost,doctrineBuyReason,doctrineNextEffect,
+ normalizedDoctrineRanks,doctrineSpent,doctrinePointsWord} from './pilot-doctrines.js?v=pilot-depth-1';
+export function renderPilotContent({player:p,ranks,doctrine,doctrineRanks,skills,doctrines,branch='Корабль',nextEffect}){
  const branches=[['Корабль','Пилотирование'],['Технологии','Технологии'],
   ['Добыча','Добыча'],['Оружие','Ручное оружие']];
  const current=branches.some(([id])=>id===branch)?branch:'Корабль';
- const selectedDoctrine=doctrines.find(d=>d.id===doctrine);
- const doctrineReady=!doctrine&&p.level>=4&&p.points>0;
- const doctrinePanel=doctrines.length?'<details class="pilot-doctrines" data-hangar-section="pilot-doctrines"'+(doctrineReady?' open':'')+'><summary>Доктрина · '+
-  (selectedDoctrine?esc(selectedDoctrine.title):p.level<4?'с уровня 4':p.points?'доступен выбор':'нужно 1 очко')+'</summary>'+
-  '<p class="screen-note">Один стиль боя. Смена на активной станции стоит 12 сплава.</p><div class="pilot-doctrine-grid">'+
-  doctrines.map(d=>'<article class="pilot-choice">'+menuInfo('О доктрине: '+d.title,d.desc)+'<h3 data-help="'+esc(d.desc)+'">'+esc(d.title)+'</h3><small>'+
-   (doctrine===d.id?'Выбрана':doctrine?'Уже выбран другой стиль':p.level<4?'Нужен уровень 4':'Стоимость · 1 очко')+'</small>'+
-   '<button type="button" data-act="doctrine" data-id="'+d.id+'"'+(!doctrineReady?' disabled':'')+'>'+ (doctrine===d.id?'Установлено':'Выбрать · 1 очко')+'</button></article>').join('')+'</div></details>':'';
+ const pilotState={doctrine,doctrineRanks,level:p.level,points:p.points};
+ const spent=doctrineSpent(normalizedDoctrineRanks(pilotState));
+ const doctrineReady=doctrines.some(d=>!doctrineBuyReason(pilotState,d.id));
+ const doctrinePanel=doctrines.length?'<details class="pilot-doctrines" data-hangar-section="pilot-doctrines"'+(doctrineReady?' open':'')+'><summary>Доктрины · '+
+  (spent?spent+' потрачено':p.level<4?'с уровня 4':'четыре ветви')+'</summary>'+
+  '<p class="screen-note">Все четыре ветви доступны одному пилоту. Ступени стоят 1, 2 и 3 очка; открываются на уровнях 4, 7 и 11. Сброс всех доктрин на активной станции возвращает очки за 12 сплава.</p><div class="pilot-doctrine-grid">'+
+  doctrines.map(d=>{
+   const rank=doctrineRank(pilotState,d.id),cost=doctrineCost(rank),reason=doctrineBuyReason(pilotState,d.id);
+   const effect=rank>=3?'Ветка завершена':doctrineNextEffect(d.id,rank);
+   return '<article class="pilot-choice">'+menuInfo('О доктрине: '+d.title,d.desc)+
+    '<h3 data-help="'+esc(d.desc)+'">'+esc(d.title)+'</h3><small>Ранг '+rank+'/3 · '+
+    (rank>=3?'изучено полностью':'следующий — '+cost+' '+doctrinePointsWord(cost))+'</small><p class="pilot-next-effect">'+esc(effect)+'</p>'+
+    '<button type="button" data-act="doctrine" data-id="'+d.id+'"'+(reason?' disabled':'')+'>'+esc(reason||'Изучить · '+cost+' '+doctrinePointsWord(cost))+'</button></article>';
+  }).join('')+'</div></details>':'';
  const entries=skills.filter(s=>s.branch===current&&!SHIP_UPGRADES.has(s.id)).map(s=>{
   const rank=ranks[s.id]||0,mastered=rank>=s.max,prereq=s.requires?skills.find(x=>x.id===s.requires):null;
   const hasPrereq=!s.requires||!!ranks[s.requires],exclusive=!!s.exclusiveWith&&!!ranks[s.exclusiveWith];
@@ -36,10 +44,9 @@ export function renderPilotContent({player:p,ranks,doctrine,skills,doctrines,bra
  const future=entries.filter(s=>!s.eligible&&!s.rank);
  const tabs='<nav class="skill-branch-tabs" aria-label="Навыки пилота">'+branches.map(([id,label])=>
   '<button type="button" data-act="skillBranch" data-id="'+id+'" aria-pressed="'+(id===current)+'" tabindex="'+(id===current?0:-1)+'">'+label+'</button>').join('')+'</nav>';
- return (doctrineReady?doctrinePanel:'')+tabs+
+ return doctrinePanel+tabs+
   (currentSkills.length?grid(currentSkills):'<p class="screen-note">В этой ветви ещё нет открытых навыков.</p>')+
-  (future.length?'<details class="pilot-future" data-hangar-section="pilot-future"><summary>Будущие навыки · '+future.length+'</summary>'+grid(future)+'</details>':'')+
-  (doctrineReady?'':doctrinePanel);
+  (future.length?'<details class="pilot-future" data-hangar-section="pilot-future"><summary>Будущие навыки · '+future.length+'</summary>'+grid(future)+'</details>':'');
 }
 
 export function renderPilotMenu(options){

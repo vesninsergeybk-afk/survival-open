@@ -157,13 +157,14 @@ test('an already specialized station shows the installed module and hides unavai
  assert.doesNotMatch(html,/data-act="installModule"/,'a finalized specialization must not offer purchases');
 });
 
-test('changing a doctrine costs once, returns one point and keeps the pilot on the same development page',()=>{
- const {g}=station();g.baseTab='development';g.developmentCategory='pilot';g.player.level=5;g.player.points=1;
- g.buyDoctrine('assault');assert.equal(g.doctrine,'assault');assert.equal(g.player.points,0);
- g.player.ore=11;g.baseAction('respec','');assert.equal(g.doctrine,'assault');assert.equal(g.player.ore,11);
- g.player.ore=12;g.baseAction('respec','');assert.equal(g.doctrine,null);assert.equal(g.player.ore,0);
- assert.equal(g.player.points,1);assert.equal(g.baseTab,'development');assert.equal(g.developmentCategory,'pilot');
- assert.equal(g.overlay.dataset.mode,'base');g.baseAction('respec','');assert.equal(g.player.points,1);
+test('resetting doctrines refunds cumulative rank costs and keeps the pilot on the development page',()=>{
+ const {g}=station();g.baseTab='development';g.developmentCategory='pilot';g.player.level=7;g.player.points=4;
+ g.buyDoctrine('assault');g.buyDoctrine('assault');g.buyDoctrine('prospect');
+ assert.deepEqual(g.doctrineRanks,{assault:2,prospect:1});assert.equal(g.player.points,0);
+ g.player.ore=11;g.baseAction('respec','');assert.equal(g.doctrineRanks.assault,2);assert.equal(g.player.ore,11);
+ g.player.ore=12;g.baseAction('respec','');assert.deepEqual(g.doctrineRanks,{});assert.equal(g.player.ore,0);
+ assert.equal(g.player.points,4);assert.equal(g.baseTab,'development');assert.equal(g.developmentCategory,'pilot');
+ assert.equal(g.overlay.dataset.mode,'base');g.baseAction('respec','');assert.equal(g.player.points,4);
 });
 
 test('the first contour guide and selected-station panel give one route to the same next node',()=>{

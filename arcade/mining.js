@@ -36,7 +36,8 @@ export const rockYield = (rock,kind,skills={}) => {
  if(kind==='auto')return rock.rich?2:1;
  if(kind==='strike')return rock.rich?5:2;
  return (rock.rich?8:3)+Math.floor(Math.min(4,Math.max(0,skills.mining||0))/2)+
-  extractorStats(skills.extractor||0,skills.mining||0).bonus+(skills.doctrine==='prospect'?1:0);
+  extractorStats(skills.extractor||0,skills.mining||0).bonus+
+  ((skills.prospectRank||0)>0||skills.doctrine==='prospect'?1:0);
 };
 export function miningTarget(rocks,player,previous,range) {
  if(previous?.alive&&Math.hypot(previous.x-player.x,previous.y-player.y)<range+previous.r*.3)

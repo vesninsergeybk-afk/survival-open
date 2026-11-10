@@ -7,6 +7,8 @@ import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impa
 import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1-triangle-defense-1-frontier-siege-1';
 import {emitWeaponFx} from './weapon-fx.js';
 import {landingRock} from './aimed-terrain.js?v=manual-audit-20261110';
+import {assaultPlasmaBonus,assaultShockwave,commandMarkHit,transferCommandMark,
+ doctrinePlasmaSurge} from './pilot-doctrines.js?v=pilot-depth-1';
 import {launchFlakVolley,launchFlakInterceptors,updateFlakPellets,
  launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js?v=weapon-branches-1';
 
@@ -58,8 +60,9 @@ function fireBeamFamily(game,id){
    let damage=stats.damage*weaponDamageFactor(game.shipLoadout,id,t);
    if(id==='plasma')damage=beamDamage(damage,d,RULES.nearBeam,stats.range,RULES.beamMinFactor)*
     plasmaDamageFactor(game.shipLoadout.specializations?.plasma,d,stats.range)*weights[i]*
-    (game.doctrine==='assault'&&d<=180?1.22:1)*(game.nearArsenalBonus?1.18:1)*
+    assaultPlasmaBonus(game,d)*doctrinePlasmaSurge(game)*(game.nearArsenalBonus?1.18:1)*
     (game.overchargeUntil>game.time?1.2:1);
+   else if(id==='rail')damage*=assaultPlasmaBonus(game,d,'rail');
    const {cover,point}=lineContact(game,from,item);
    if(cover){
     game.damageRock(cover.rock,damage*.85,from.x,from.y,'auto',true,point);
@@ -74,8 +77,13 @@ function fireBeamFamily(game,id){
      emitWeaponFx(game,'rail',cover,{x:hit?.x??t.x,y:hit?.y??t.y},
       {secondary:true,blocked:!!second,rank:game.skillRanks?.beam});
     }
-   }else if(id==='rail')hitRail(game,item,damage,point);
-   else damageTarget(game,item,damage,id==='plasma'?'beam':id,point);
+   }else{
+    damage*=commandMarkHit(game,t);
+    if(id==='rail')hitRail(game,item,damage,point);
+    else damageTarget(game,item,damage,id==='plasma'?'beam':id,point);
+    if(id==='plasma'||id==='rail')assaultShockwave(game,t,damage);
+    if(t.hp<=0)transferCommandMark(game,t);
+   }
    const plasmaSpec=id==='plasma'?game.shipLoadout.specializations?.plasma:null;
    const plasmaNear=plasmaSpec?plasmaDamageFactor(plasmaSpec,RULES.nearBeam,stats.range):1;
    emitWeaponFx(game,id,from,{x:point?.x??t.x,y:point?.y??t.y},{
@@ -117,7 +125,8 @@ function fireRockets(game){
   if(game.missiles.length>=14)game.missiles.shift();
   game.missiles.push({x:from.x,y:from.y,prevX:from.x,prevY:from.y,trail:[{x:from.x,y:from.y}],
    target:t,targetKind:item.kind,targetBase:item.base||null,tx:t.x,ty:t.y,
-   damage:stats.damage*weaponDamageFactor(game.shipLoadout,'rocket',t),
+   damage:stats.damage*weaponDamageFactor(game.shipLoadout,'rocket',t)*
+    assaultPlasmaBonus(game,Math.hypot(t.x-game.player.x,t.y-game.player.y),'rocket'),
    splashDamageBase:stats.damage,speed:tuning.speed,life:tuning.life,
    splashRadius:payload?.radius||0,splashFactor:payload?.fraction||0,
    seekerRange,
