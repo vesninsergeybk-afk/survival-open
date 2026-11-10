@@ -1,7 +1,7 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2-semantic-1-menu-ergonomics-1-combat-balance-1-menu-depth-2';
 import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
-import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
+import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1-corecharge-20261110';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-integrity-2-mission-choices-1-enemy-growth-1-triangle-defense-1-station-trust-1-enemy-operations-20261110';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {FLUX_INFRASTRUCTURE,stationFluxUpgradeOffer,fluxInfrastructureRank,
@@ -23,7 +23,7 @@ import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {CONTOURS,contourFields} from './territory-system.js?v=contours-1-triangle-defense-1-territory-logistics-1';
-import {productiveContourFields} from './contour-trials.js?v=swarm-siege-1';
+import {productiveContourFields} from './contour-trials.js?v=swarm-siege-1-corecharge-20261110';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';

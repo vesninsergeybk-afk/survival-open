@@ -1,11 +1,12 @@
 import {artilleryLinks,artilleryConnection,edgeTurretOccupancy,edgeTurretLimit,ARTILLERY_MODES,FLUX_ARTILLERY,
- turnArtilleryGun} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1';
+ turnArtilleryGun} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-corecharge-20261110';
 import {frontierBuoysNear,damageFrontierBuoy} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {arcChainCount,arcRange,arcCooldown,arcSlowSeconds,laserEmitters,laserCooldown,
  laserBurst,laserRange,hiveLimit,hiveRange,hiveArmor,supportSupply,turretBranchRank,
  validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
+import {hasPoweredContour} from './contour-trials.js';
 
 // All three structures spend delivered flux. A nest pays for each replacement
 // drone; the other two consume prepaid charges instead of free damage ticks.
@@ -42,8 +43,8 @@ export function supportOffer(world,player,point,type){
  if(!cfg)return {ok:false,reason:'Неизвестный тип сооружения'};
  if(!s||!Number.isFinite(point?.x)||!Number.isFinite(point?.y))
   return {ok:false,reason:'Укажите место строительства'};
- if(!(s.trials?.completed>0))
-  return {ok:false,reason:'Сначала защитите первый треугольник'};
+ if(!hasPoweredContour(world))
+  return {ok:false,reason:'Сначала зарядите ядро первого треугольника'};
  const edges=artilleryLinks(world);
  if(!edges.length)return {ok:false,reason:'Нет работающего замкнутого контура'};
  if(d(player,point)>FLUX_ARTILLERY.buildRadius)

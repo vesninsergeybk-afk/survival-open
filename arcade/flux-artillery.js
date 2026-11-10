@@ -1,6 +1,6 @@
 import {contourFields} from './territory-system.js';
 import {frontierBuoysNear,damageFrontierBuoy} from './enemy-frontier-network.js?v=frontier-fence-1';
-import {productiveContourFields} from './contour-trials.js';
+import {productiveContourFields,hasPoweredContour} from './contour-trials.js';
 import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {artilleryBarrels,artilleryCooldown,artilleryBlast,artilleryRange,artillerySupply,
  artilleryShotUnits,artilleryShellDamage,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
@@ -134,8 +134,8 @@ export function artilleryOffer(world,player,point,preload=0){
  const state=world?.contours;
  if(!state||!Number.isFinite(point?.x)||!Number.isFinite(point?.y))
   return {ok:false,reason:'Укажите место строительства'};
- if(!(state.trials?.completed>0))
-  return {ok:false,reason:'Сначала самостоятельно защитите первый треугольник'};
+ if(!hasPoweredContour(world))
+  return {ok:false,reason:'Сначала зарядите ядро первого треугольника'};
  const edges=artilleryLinks(world);
  if(!edges.length)return {ok:false,reason:'Нет работающего замкнутого контура'};
  if(distance(player,point)>FLUX_ARTILLERY.buildRadius)

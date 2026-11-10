@@ -121,10 +121,10 @@ export class CockpitDisplay {
    liveAllies+' из 2 дронов в строю');
   const focus=game.actionHeld||game.interactionFocus;
   n.interactionCue.hidden=!focus||game.paused||game.dead||!game.overlay.hidden||
-   !!game.contourTrial&&!['station','repair','opening-repair'].includes(focus?.kind);
+   !!game.contourTrial&&!['station','repair','opening-repair','vortex'].includes(focus?.kind);
   if(!n.interactionCue.hidden) {
    const label=focus.kind==='station'?'Открыть станцию':
-    focus.kind==='vortex'?'Зарядить ядро · удерживать E':
+    focus.kind==='vortex'?'Заряд ядра · '+Math.floor(focus.target?.charge||0)+' / 18 с · удерживать (прогресс сохранится)':
     focus.kind==='turret-repair'?'Восстановить турель · удерживать':
     focus.kind==='repair'?'Ремонт зонда':
     focus.kind==='opening-repair'?'Эвакуация капсулы':'Добыча породы';

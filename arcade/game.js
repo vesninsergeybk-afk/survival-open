@@ -29,7 +29,7 @@ import {createFieldLoot,rewardEyeKill,collectFieldLoot,updateFieldLoot,
 import {createCombatTempo,recordCombatContact,ambientTempoPlan} from './combat-tempo.js?v=tempo-1-balance-audit-1';
 import {fortificationShield} from './enemy-fortifications.js?v=industrial-forts-1';
 import {renderEvolutionMenu,installedEvolution} from './evolution-menu.js?v=mouse-arms-1';
-import {updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
+import {updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1-corecharge-20261110';
 import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,offerLevelCrystals,refreshEvolutionOffers,
  enemyFieldReward,collectParasiteCore,absorbParasiteImpact,markDashPass,fieldWeaponImpact,
  updateFieldEvolution,parasiteTargetMode,setParasiteTargetMode} from './field-evolution.js?v=mouse-arms-1-manual-weapon-1';
@@ -55,7 +55,7 @@ import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110-corecharge-20261110';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1';
@@ -120,10 +120,10 @@ import {SIPHON_HIVE,FLUX_ROAD,hiveOffer,buildHive,hiveAt,hiveWorkers,hiveCargo,
  drawSiphonHives} from './flux-routes.js?v=flux-siphon-roads-1';
 import {FLUX_ARTILLERY,EDGE_SLOT_UPGRADES,ARTILLERY_UPGRADES,edgeTurretLimit,edgeTurretUpgradeOffer,upgradeEdgeTurretCapacity,artilleryUpgradeOffer,upgradeArtillery,
  artilleryAt,artilleryOffer,deployArtillery,maxArtilleryPreload,setArtilleryMode,
- advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-free-close-1-flux-siphon-roads-1-weapon-vfx-audit-1';
+ advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-free-close-1-flux-siphon-roads-1-weapon-vfx-audit-1-corecharge-20261110';
 import {SUPPORT_TYPES,supportConfig,supportOffer,deploySupport,supportAt,
  setSupportMode,supportUpgradeOffer,upgradeSupport,
- advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-flux-siphon-roads-1-weapon-vfx-audit-1';
+ advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-flux-siphon-roads-1-weapon-vfx-audit-1-corecharge-20261110';
 import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,turretCombatRadii,
  artilleryShotFlux,artilleryShotUnits,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
  buyTurretBranch,artilleryBarrels,hiveLimit} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1';
@@ -134,9 +134,9 @@ import {territoryTech,TERRITORY_TECH} from './territory-tech.js?v=territory-war-
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1-auto-1-contour-trials-1-counterattack-1-first-loops-1-flux-build-1-sector-density-2';
 import {syncContourDynamics,resumeContourTransition} from './contour-dynamics.js?v=contour-dynamics-3-auto-1';
-import {registerContourTrials,productiveContourFields,pendingContourTrials,readyContourTrials,unresolvedContourTrials,CONTOUR_TRIALS} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1-pressure-response-1';
-import {updateContourTrials,activateContourVortex,activeTrialCore} from './contour-trial-director.js?v=swarm-siege-rewards-2-formation-zoomread-2-pressure-response-1';
-import {drawContourTrialHUD} from './contour-trial-vfx.js?v=swarm-siege-1-learning-hud-1-pressure-response-1';
+import {registerContourTrials,productiveContourFields,hasPoweredContour,advanceContourCharge,pendingContourTrials,readyContourTrials,unresolvedContourTrials,CONTOUR_TRIALS} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1-pressure-response-1-corecharge-20261110';
+import {updateContourTrials,activateContourVortex,activeTrialCore} from './contour-trial-director.js?v=swarm-siege-rewards-2-formation-zoomread-2-pressure-response-1-corecharge-20261110';
+import {drawContourTrialHUD} from './contour-trial-vfx.js?v=swarm-siege-1-learning-hud-1-pressure-response-1-corecharge-20261110';
 import {drawBranchedInteraction} from './interaction-arcs.js?v=triangle-defense-1';
 import {updateRamSquads,drawRamSquads} from './ram-squads.js?v=triangle-defense-1';
 import {TURRET_REPAIR,repairableTurret,turretRepairQuote,repairTurret} from './turret-repair.js?v=triangle-defense-1-turret-audit-1';
@@ -406,8 +406,8 @@ export class ArcadeGame {
  }
  openBuildPlanner(){
   if(this.dead||this.paused||!this.overlay.hidden)return false;
-  if(!(this.world.contours?.trials?.completed>0)){
-   this.notice('Строительство откроется после защиты первого треугольника.',4);return false;
+  if(!hasPoweredContour(this.world)){
+   this.notice('Строительство откроется после зарядки ядра первого треугольника.',4);return false;
   }
   this.artilleryModeMenu(false);
   this.buildPlanning={stage:'menu',point:null,type:'artillery',
@@ -3563,7 +3563,8 @@ export class ArcadeGame {
    if(!quote.ok){this.notice(quote.reason,4);return false;}
   }
   this.heavyCharge=null;
-  this.actionHeld={kind:action.kind,source,target:action.target,progress:0};
+  this.actionHeld={kind:action.kind,source,target:action.target,
+   progress:action.kind==='vortex'?(action.target.charge||0):0};
   return true;
  }
  endInteraction(source=null){
@@ -3586,7 +3587,7 @@ export class ArcadeGame {
   if(button){
    const focus=this.actionHeld||this.interactionFocus;
    const label=focus?.kind==='repair'?'Ремонт':focus?.kind==='mine'?'Добыча':
-    focus?.kind==='vortex'?'Запуск воронки':
+    focus?.kind==='vortex'?'Заряд ядра':
     focus?.kind==='turret-repair'?'Ремонт турели':
     focus?.kind==='ruin-claim'?'Захват руин':
     ['field-work','relay-prep'].includes(focus?.kind)?focus.label:
@@ -3597,7 +3598,7 @@ export class ArcadeGame {
    button.setAttribute('aria-label',focus?(focus.kind==='station'?'Открыть станцию':
     focus.kind==='opening-repair'?'Удерживать для эвакуации капсулы':
     ['field-work','relay-prep'].includes(focus.kind)?'Удерживать для действия: '+focus.label:
-    focus.kind==='vortex'?'Удерживать для запуска воронки':
+    focus.kind==='vortex'?'Удерживать для зарядки ядра; прогресс сохраняется':
     focus.kind==='turret-repair'?'Удерживать для восстановления турели':
     focus.kind==='ruin-claim'?'Удерживать для восстановления разрушенной станции':
     focus.kind==='repair'?'Удерживать для ремонта зонда':'Удерживать для добычи'):'Нет объектов для взаимодействия');
@@ -5390,12 +5391,11 @@ export class ArcadeGame {
      dist(p,entry)>CONTOUR_TRIALS.activationRadius){
     this.endInteraction();
    }else{
-    this.actionHeld.progress=Math.min(CONTOUR_TRIALS.activationSeconds,
-     this.actionHeld.progress+dt);
+    this.actionHeld.progress=advanceContourCharge(entry,dt);
     if(this.actionHeld.progress>=CONTOUR_TRIALS.activationSeconds){
      if(activateContourVortex(this,entry)){
       this.actionHeld=null;
-      this.notice('ВОРОНКА ЗАПУЩЕНА · ожидайте первую доставку флюкса!',5);
+      if(entry.status==='complete')this.notice('ВОРОНКА ЗАПУЩЕНА · ожидайте первую доставку флюкса!',5);
      }
     }
    }

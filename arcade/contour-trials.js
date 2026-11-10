@@ -4,7 +4,7 @@ import {insidePolygon} from './territory-system.js';
 // triangulation of land already owned never creates another challenge.
 export const CONTOUR_TRIALS=Object.freeze({maxTier:12,maxEntries:256,engageRadius:990,
  retreatRadius:1650,warningSeconds:6,retreatSeconds:7,maxWaveSeconds:100,maxWaitSeconds:12,
- activationRadius:145,activationSeconds:18,minWaveSeconds:7});
+ activationRadius:145,activationSeconds:18,starterFlux:4,minWaveSeconds:7});
 
 // Most of the fleet must be defeated; isolated survivors break away instead
 // of turning a large battle into a frustrating search for one last scout.
@@ -60,7 +60,7 @@ export function registerContourTrials(world,oldFields,newFields,gainedArea){
   const entry={id:serial,x:Math.round(point.x),y:Math.round(point.y),
    // Count every newly claimed area, including a defended core still awaiting
    // the pilot's E. Otherwise that ready core makes the next siege tier 1 again.
-   tier:Math.min(CONTOUR_TRIALS.maxTier,serial),status:'pending'};
+   tier:Math.min(CONTOUR_TRIALS.maxTier,serial),status:'pending',charge:0,activated:false};
   ledger.entries.push(entry);created.push(entry);
  }
  return created;
@@ -80,8 +80,22 @@ export function trialBlockingField(world,field){
  return unresolvedContourTrials(world).find(e=>within(e,field))||null;
 }
 
+export function hasPoweredContour(world){
+ return !!world?.contours?.trials?.completed||
+  !!world?.contours?.trials?.entries.some(e=>e.activated||e.status==='complete');
+}
+
+export function advanceContourCharge(entry,dt){
+ if(!entry||entry.activated||!['pending','ready'].includes(entry.status))return entry?.charge||0;
+ entry.charge=Math.min(CONTOUR_TRIALS.activationSeconds,
+  Math.max(0,entry.charge||0)+Math.max(0,Number.isFinite(dt)?dt:0));
+ return entry.charge;
+}
+
 export function productiveContourFields(world,fields){
- return fields.filter(f=>!trialBlockingField(world,f));
+ // An energized core may supply provisional flux and defensive turrets while
+ // its three enemy waves are still in progress. Victory remains a separate step.
+ return fields.filter(f=>!unresolvedContourTrials(world).some(e=>within(e,f)&&!e.activated));
 }
 
 export function completeContourTrial(world,id){
@@ -107,7 +121,9 @@ export function validContourTrials(trials){
    !Number.isFinite(e.x)||!Number.isFinite(e.y)||
    Math.abs(e.x)>1e9||Math.abs(e.y)>1e9||
    !Number.isInteger(e.tier)||e.tier<1||e.tier>CONTOUR_TRIALS.maxTier||
-   !['pending','ready','complete'].includes(e.status))return false;
+   !['pending','ready','complete'].includes(e.status)||
+   (e.charge!==undefined&&(!Number.isFinite(e.charge)||e.charge<0||e.charge>CONTOUR_TRIALS.activationSeconds))||
+   (e.activated!==undefined&&typeof e.activated!=='boolean'))return false;
   unique.add(e.id);
  }
  return trials.completed>=trials.entries.filter(e=>e.status==='complete').length;

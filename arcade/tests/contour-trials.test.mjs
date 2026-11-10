@@ -2,8 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createContours,autoConnectContours,contourFields,advanceContours,validContours} from '../territory-system.js';
 import {registerContourTrials,pendingContourTrials,productiveContourFields,
- prepareContourVortex,readyContourTrials,completeContourTrial,planContourTrial,TRIAL_VARIANTS} from '../contour-trials.js';
+ prepareContourVortex,readyContourTrials,completeContourTrial,planContourTrial,TRIAL_VARIANTS,
+ advanceContourCharge,hasPoweredContour,CONTOUR_TRIALS} from '../contour-trials.js';
 import {updateContourTrials,activateContourVortex} from '../contour-trial-director.js';
+import {artilleryOffer,deployArtillery} from '../flux-artillery.js';
+import {outsideCamera} from '../balance.js';
 import {game} from './weapons-scene.mjs';
 
 const station=(id,x,y)=>({id,x,y,active:true,enemy:false,suppressed:false,type:'dock'});
@@ -35,6 +38,85 @@ function chargeCore(g,entry){
  assert.equal(activateContourVortex(g,entry),true);
  g.actionHeld=null;
 }
+
+test('holding E accumulates before the first wave, survives release and unlocks turrets before victory',()=>{
+ const g=game(),w=territory(),entry=claim(w)[0];
+ Object.assign(g,{world:w,contourTrial:null,operation:null,enemies:[],zones:[],time:20});
+ g.heritage.extraction=()=>{};
+ g.player.x=entry.x;g.player.y=entry.y;g.player.ore=200;
+ g.camera=()=>({x:g.player.x-600,y:g.player.y-440,w:1200,h:880});
+ updateContourTrials(g,.1);
+ assert.equal(g.contourTrial.phase,'warning');
+ assert.equal(g.beginInteraction('keyboard'),true,'the core is interactable before any enemy appears');
+ g.actionHeld.progress=advanceContourCharge(entry,7.3);
+ g.endInteraction('keyboard');
+ assert.equal(entry.charge,7.3);
+ assert.equal(g.beginInteraction('keyboard'),true);
+ assert.equal(g.actionHeld.progress,7.3,'the next hold resumes the saved charge');
+ g.actionHeld.progress=advanceContourCharge(entry,10.7);
+ assert.equal(g.actionHeld.progress,CONTOUR_TRIALS.activationSeconds);
+ assert.equal(activateContourVortex(g,entry),true);
+ g.endInteraction('keyboard');
+ assert.equal(entry.activated,true);
+ assert.equal(entry.status,'pending','charging alone never grants the victory reward');
+ assert.equal(w.contours.trials.completed,0);
+ assert.equal(w.contours.flux,CONTOUR_TRIALS.starterFlux);
+ assert.equal(g.fluxLastGain,CONTOUR_TRIALS.starterFlux);
+ assert.equal(g.fluxFirstSeenAt,g.time,'HUD must reveal the emergency flux before any siphon delivers it');
+ assert.equal(hasPoweredContour(w),true);
+ assert.equal(productiveContourFields(w,contourFields(w)).length,1);
+ assert.equal(artilleryOffer(w,g.player,{x:entry.x+180,y:entry.y},4).ok,true,
+  'the first battery can be bought and armed during the siege');
+ const built=deployArtillery(w,g.player,{x:entry.x+180,y:entry.y},g.time,4);
+ assert.equal(built.ok,true);
+ assert.equal(built.turret.ammo,4,'the battery can defend the next wave immediately');
+ assert.equal(validContours(w.contours,[...w.stations]),true,'the charged field is a valid checkpoint state');
+ const remainingFlux=w.contours.flux;
+ g.time+=6;updateContourTrials(g,.1);
+ assert.equal(g.contourTrial.phase,'wave');
+ for(let wave=0;wave<3;wave++){
+  for(const enemy of g.enemies.filter(e=>e.trialId===entry.id))enemy.hp=0;
+  g.time+=8;updateContourTrials(g,.1);
+  if(wave<2){assert.equal(g.contourTrial?.phase,'rest');g.time+=5;updateContourTrials(g,.1);}
+ }
+ assert.equal(w.contours.trials.completed,1,'the last defended wave wins without a second hold');
+ assert.equal(g.contourTrial,null);
+ assert.equal(w.contours.flux,remainingFlux,'the early activation grant is never duplicated');
+});
+
+test('partial core charge survives a failed siege and remains bounded',()=>{
+ const g=game(),w=territory(),entry=claim(w)[0];
+ Object.assign(g,{world:w,contourTrial:null,operation:null,enemies:[],zones:[],time:20});
+ g.player.x=entry.x;g.player.y=entry.y;
+ updateContourTrials(g,.1);
+ assert.equal(advanceContourCharge(entry,8.5),8.5);
+ g.player.x+=2500;g.time+=8;updateContourTrials(g,8);
+ assert.equal(g.contourTrial,null);
+ assert.equal(entry.charge,8.5,'retreat preserves the charge');
+ g.player.x=entry.x;g.time+=19;updateContourTrials(g,.1);
+ assert.equal(g.contourTrial.phase,'warning');
+ assert.equal(g.beginInteraction('keyboard'),true);
+ assert.equal(g.actionHeld.progress,8.5);
+ assert.equal(advanceContourCharge(entry,500),18);
+ assert.equal(advanceContourCharge(entry,-6),18);
+});
+
+test('new siege waves always appear beyond the visible border at the widest zoom',()=>{
+ const g=game(),w=territory(),entry=claim(w)[0];
+ Object.assign(g,{world:w,contourTrial:null,operation:null,enemies:[],zones:[],time:20});
+ g.player.x=entry.x;g.player.y=entry.y;
+ g.camera=()=>({x:entry.x-1100,y:entry.y-800,w:2200,h:1600});
+ updateContourTrials(g,.1);
+ for(let wave=0;wave<3;wave++){
+  g.time+=wave===0?6:5;updateContourTrials(g,.1);
+  const alive=g.enemies.filter(e=>e.hp>0&&e.trialId===entry.id);
+  assert.ok(alive.length>=12);
+  assert.ok(alive.every(e=>outsideCamera(e.x,e.y,g.camera(),35)),
+   `wave ${wave+1} cannot materialize on screen`);
+  for(const e of alive)e.hp=0;
+  g.time+=8;updateContourTrials(g,.1);
+ }
+});
 
 test('a new triangle queues one trial and pays no flux before victory',()=>{
  const world=territory(),created=claim(world);

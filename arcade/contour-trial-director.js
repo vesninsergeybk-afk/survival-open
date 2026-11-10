@@ -1,7 +1,7 @@
 import {recordSortieIncome} from './sortie-ledger.js';
 import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,readyContourTrials,prepareContourVortex,completeContourTrial,
- planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1-pressure-response-1';
-import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
+ planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1-pressure-response-1-corecharge-20261110';
+import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1-corecharge-20261110';
 import {contourFields,fieldAt} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js?v=pressure-response-1';
 import {ENEMY_TYPES} from './ai.js?v=first-loops-1-triangle-defense-1-pressure-response-1-ai-commander-20261110';
@@ -9,10 +9,11 @@ import {enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1
 import {recordWorldFeedback} from './world-feedback.js';
 
 const nearby=(a,b,r)=>dist(a,b)<r;
-// Approach the actual core, regardless of how far a zoomed-out camera extends.
-// Ships are visible at wide zoom and arrive within seconds instead of waiting
-// beyond an ever-expanding screen edge.
-export function siegeApproachPosition(core,side,position,member=0,depth=0){
+// A new squad must enter from OUTSIDE the real camera at every zoom level.
+// The core remains the attack objective; it is not a fixed-distance spawn ring.
+export function siegeApproachPosition(core,side,position,member=0,depth=0,camera=null){
+ if(camera&&camera.w>0&&camera.h>0)
+  return spawnOutside(camera,side,position,190+depth*28+member*13);
  const bearing=[Math.PI,0,-Math.PI/2,Math.PI/2][side]??0;
  const angle=bearing+(position-.5)*1.05;
  const radius=620+depth*85+member*13;
@@ -20,8 +21,8 @@ export function siegeApproachPosition(core,side,position,member=0,depth=0){
   y:core.y+Math.sin(angle)*radius};
 }
 export const activeTrialCore=(game,entry)=>!!entry&&
- game.contourTrial?.entry===entry&&game.contourTrial.phase==='wave'&&
- game.contourTrial.waveIndex===game.contourTrial.plan.waves.length-1;
+ entry.status==='pending'&&!entry.activated&&
+ game.contourTrial?.entry===entry&&['warning','rest','wave'].includes(game.contourTrial.phase);
 function available(game,entry){
  if(game.paused||game.dead||!nearby(game.player,entry,CONTOUR_TRIALS.engageRadius))return false;
  if((game.contourTrialRetryAt||0)>game.time)return false;
@@ -55,6 +56,7 @@ function spawnTrialWave(game,event){
  const rearSide=Math.abs(Math.cos(angle))>Math.abs(Math.sin(angle))?
   (Math.cos(angle)>0?0:1):(Math.sin(angle)>0?2:3);
  const seedSide=Math.floor(random()*4);
+ const camera=game.camera?.();
  const groupIds=[];let scoutCount=0;
  event.waveIds=[];event.waveTemplates=new Map();event.defeatedIds??=new Set();
  event.required=trialQuota(total,event.plan.tier);
@@ -72,7 +74,7 @@ function spawnTrialWave(game,event){
    formation==='авангард'?(squad===0?rearSide:(rearSide+squad%3)%4):
    (seedSide+Math.floor(squad/2))%4;
   const position=Math.max(.09,Math.min(.91,.24+(squad%3)*.23+(random()-.5)*.18));
-  const xy=siegeApproachPosition(event.entry,side,position,member,squad%3);
+  const xy=siegeApproachPosition(event.entry,side,position,member,squad%3,camera);
   const tier=event.plan.tier,hp=def.hp*(1+.085*(tier-1));
   const enemy={serial:++game.enemySerial,group:groupIds[squad],type,x:xy.x,y:xy.y,vx:0,vy:0,
    r:type==='gunship'?22:14,hp,maxHp:hp,damage:def.dmg*(1+.035*(tier-1)),
@@ -197,39 +199,50 @@ function finishTrial(game,entry){
  return true;
 }
 
-// The last kill only opens the socket. Player input must start harvesting.
-export function activateContourVortex(game,entry){
- if(!entry||!['pending','ready'].includes(entry.status)||game.dead||game.paused||
-  !fieldAt(game.world,entry.x,entry.y)||
-  dist(game.player,entry)>CONTOUR_TRIALS.activationRadius)return false;
- if(entry.status==='pending'){
-  const event=game.contourTrial;
-  if(!activeTrialCore(game,entry)||!event.quotaReached||
-     game.actionHeld?.kind!=='vortex'||game.actionHeld.target!==entry||
-     game.actionHeld.progress<CONTOUR_TRIALS.activationSeconds)return false;
-  if(!prepareContourVortex(game.world,entry.id))return false;
-  // No hostile salvo may land *after* the victory announcement, and unearned
-  // enemies must not drop loot on the way out of the encounter.
-  game.shots=game.shots?.filter(s=>s.trialId!==entry.id)||[];
-  for(const enemy of game.enemies.filter(e=>e.trialId===entry.id)){
-   if(enemy.converted){delete enemy.trialId;continue;}
-   if(enemy.hp<=0)continue;
-   enemy.trialRetreatUntil=game.time+3;
-   enemy.trialRetreatFrom={x:entry.x,y:entry.y};
-   enemy._trialDiveEnabled=false;enemy.expAwarded=true;
-   enemy.damage=0;enemy.fire=999;
-  }
+// Charging is a separate, persistent objective during the siege. It powers
+// production and emplacement building immediately; completing the third wave
+// is still required to secure the territory and receive its victory reward.
+function secureContourTrial(game,entry){
+ if(!prepareContourVortex(game.world,entry.id))return false;
+ game.shots=game.shots?.filter(s=>s.trialId!==entry.id)||[];
+ for(const enemy of game.enemies.filter(e=>e.trialId===entry.id)){
+  if(enemy.converted){delete enemy.trialId;continue;}
+  if(enemy.hp<=0)continue;
+  enemy.trialRetreatUntil=game.time+3;
+  enemy.trialRetreatFrom={x:entry.x,y:entry.y};
+  enemy._trialDiveEnabled=false;enemy.expAwarded=true;
+  enemy.damage=0;enemy.fire=999;
  }
  return finishTrial(game,entry);
 }
 
-function defendContour(game,event){
- if(!prepareContourVortex(game.world,event.entry.id))return;
- game.zones=game.zones.filter(zone=>zone.trialId!==event.entry.id);
- game.contourTrial=null;
- game.contourTrialRetryAt=game.time+1;
- game.notice?.('ТРИ ВОЛНЫ ОТРАЖЕНЫ · подлетите к красному ядру и удерживайте E, чтобы запустить воронку.',7);
- game.heritage?.play?.('upgrade',.55,event.entry);
+export function activateContourVortex(game,entry){
+ if(!entry||!['pending','ready'].includes(entry.status)||game.dead||game.paused||
+  !fieldAt(game.world,entry.x,entry.y)||
+  dist(game.player,entry)>CONTOUR_TRIALS.activationRadius)return false;
+ if(game.actionHeld?.kind!=='vortex'||game.actionHeld.target!==entry||
+    game.actionHeld.progress<CONTOUR_TRIALS.activationSeconds)return false;
+ if(entry.status==='pending'){
+  const event=game.contourTrial;
+  if(!activeTrialCore(game,entry))return false;
+  entry.charge=CONTOUR_TRIALS.activationSeconds;
+  entry.activated=true;
+  // A one-time emergency reserve makes a first turret usable before the
+  // first siphon delivery. Neither retreat nor a retry can repeat the grant.
+  game.world.contours.flux=(game.world.contours.flux||0)+CONTOUR_TRIALS.starterFlux;
+  game.fluxFirstSeenAt??=game.time;
+  game.fluxLastGainAt=game.time;
+  game.fluxLastGain=CONTOUR_TRIALS.starterFlux;
+  game.notice?.('ЯДРО ЗАРЯЖЕНО · сеть работает! '+CONTOUR_TRIALS.starterFlux+
+   ' флюкса в резерве. Стройте турели, пока противник атакует.',6);
+  game.heritage?.vfx?.nova?.(entry.x,entry.y,95,'cyan');
+  if(!event?.quotaReached)return true;
+  return secureContourTrial(game,entry);
+ }
+ // Legacy ready cores await the same held input; victory was already earned.
+ entry.charge=CONTOUR_TRIALS.activationSeconds;
+ entry.activated=true;
+ return finishTrial(game,entry);
 }
 
 /** Advance one local encounter. Remote fields wait without taking damage;
@@ -249,7 +262,7 @@ export function updateContourTrials(game,dt){
   game.contourTrial=event;
   game.notice?.('КОНТУР ЗАМКНУТ · противник обнаружил новый треугольник! '+
    'Оборона: '+event.plan.waves.length+' '+(event.plan.waves.length===1?'волна':'волны')+
-   ' · рекомендован уровень '+event.plan.recommendedLevel+'+. Отразите нападение и запустите ядро под огнём!',5);
+   ' · рекомендован уровень '+event.plan.recommendedLevel+'+. Заряжайте ядро удержанием E, затем отбейте все волны!',5);
   game.heritage?.vfx?.nova?.(entry.x,entry.y,120,'red');
   game.heritage?.play?.('orbitalWarning',1.2,entry);
   return;
@@ -290,7 +303,7 @@ export function updateContourTrials(game,dt){
    if(!original)continue;
    if(game.enemies.length>=RULES.maxEnemies)continue;
    const side=(serial+event.entry.id)%4;
-   const pos=siegeApproachPosition(event.entry,side,.2+((serial*7)%11)/18,serial%6,1);
+   const pos=siegeApproachPosition(event.entry,side,.2+((serial*7)%11)/18,serial%6,1,game.camera?.());
    game.enemies.push({...original,...pos,vx:0,vy:0,hp:original.maxHp,
     think:.15,fire:.65,state:'hunt',entryPortalPending:false});
    continue;
@@ -313,7 +326,8 @@ export function updateContourTrials(game,dt){
   }
   if(enough&&!event.quotaReached){
    event.quotaReached=true;event.nextCoreAttackAt=game.time+9;
-   game.notice?.('ТРЕТЬЯ ВОЛНА СДЕРЖАНА · враг продолжает обстрел! Влетите в ядро и удерживайте E 18 секунд.',6.5);
+   if(event.entry.activated){secureContourTrial(game,event.entry);return;}
+   game.notice?.('ТРЕТЬЯ ВОЛНА СДЕРЖАНА · завершайте заряд ядра удержанием E! Накопленный заряд сохранится.',6.5);
   }
   if(event.quotaReached&&game.time>=event.nextCoreAttackAt){
    event.nextCoreAttackAt=game.time+10;
@@ -322,7 +336,7 @@ export function updateContourTrials(game,dt){
     const group=++game.groupSerial;
     for(let i=0;i<4;i++){
      const type=i===3?'fighter':'scout',def=ENEMY_TYPES[type];
-     const xy=siegeApproachPosition(event.entry,(i+event.entry.id)%4,.48,i,0);
+     const xy=siegeApproachPosition(event.entry,(i+event.entry.id)%4,.48,i,0,game.camera?.());
      game.enemies.push({serial:++game.enemySerial,group,type,...xy,vx:0,vy:0,
       r:14,hp:def.hp,maxHp:def.hp,damage:def.dmg,
       think:.15,fire:.7,state:'hunt',commitUntil:0,target:game.player,angle:0,hit:0,
@@ -345,7 +359,6 @@ export function updateContourTrials(game,dt){
   enemy._trialDiveEnabled=false;enemy.expAwarded=true;
   enemy.damage=0;enemy.fire=999;
  }
- if(event.waveIndex+1>=event.plan.waves.length){defendContour(game,event);return;}
  event.phase='rest';event.nextWaveAt=game.time+event.plan.intermission;
  game.notice?.('Волна '+(event.waveIndex+1)+' из '+event.plan.waves.length+
   ' отражена! Оставшиеся противники отступили. Следующее нападение через '+

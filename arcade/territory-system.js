@@ -1,4 +1,4 @@
-import {newTrialLedger,productiveContourFields,validContourTrials} from './contour-trials.js?v=swarm-siege-1';
+import {newTrialLedger,productiveContourFields,validContourTrials} from './contour-trials.js?v=swarm-siege-1-corecharge-20261110';
 import {fluxFieldYields,advanceFluxMaintenance,FLUX_LOCAL_SHARE,
  syncStationFluxDepths,storeFieldFlux} from './territory-economy.js?v=flux-siphon-roads-1';
 
