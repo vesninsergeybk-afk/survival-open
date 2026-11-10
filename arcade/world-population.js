@@ -1,6 +1,7 @@
 import {hash} from './balance.js';
 import {REGIONS} from './regions.js';
 import {seedFrontierNetwork,advanceFrontierNetwork,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
+import {choosePopulationConvoyProfile,populationConvoyStats,POPULATION_CONVOY_PROFILES} from './convoy-profiles.js?v=convoy-variety-20261110';
 
 // A fixed, seeded civilization already occupies the sector at launch.
 // Distant factories and transports advance as orders, not hundreds of AI actors.
@@ -199,7 +200,12 @@ export function populationCargoPosition(world,cargo,time){
  if(!source||!depot)return {x:cargo.x,y:cargo.y,angle:cargo.angle||0};
  const dx=depot.x-source.x,dy=depot.y-source.y,mag=Math.hypot(dx,dy)||1;
  const length=cargo.routeLength||routeLength(source,depot);
- const progress=clamp((time-cargo.launchedAt)*cargo.speed/Math.max(1,length),0,1);
+ // Couriers sprint after the first hostile contact. Accumulate a finite extra
+ // distance rather than changing speed in the time-from-launch expression;
+ // this prevents an apparent teleport when the boost begins.
+ const sprint=cargo.cargoRole==='courier'&&Number.isFinite(cargo.firstHitAt)?
+  Math.min(7,Math.max(0,time-cargo.firstHitAt))*cargo.speed*.32:0;
+ const progress=clamp(((time-cargo.launchedAt)*cargo.speed+sprint)/Math.max(1,length),0,1);
  const bend=Math.sin(progress*Math.PI)*cargo.bend;
  return {x:source.x+dx*progress-dy/mag*bend,
   y:source.y+dy*progress+dx/mag*bend,
@@ -243,13 +249,17 @@ function launch(world,state,colony,now){
  const depot=world.stations.get(roleId(target,'factory'));
  if(!source||!depot||!live(world,source.id)||!live(world,depot.id))return null;
  const length=routeLength(source,depot);
+ const cargoRole=choosePopulationConvoyProfile(hash(state.serial+1,colony.index,state.seed+131));
+ const stats=populationConvoyStats(cargoRole,colony.tier,
+  POPULATION.convoyHp+colony.tier*18,POPULATION.cargoSpeed+colony.tier*11);
  const cargo={id:'population-cargo-'+(++state.serial),populationCargo:true,
   regionalCargo:true,colonyId:colony.id,targetColonyId:target.id,
   sourceId:source.id,targetId:depot.id,routeLength:length,
   bend:(hash(state.serial,colony.index,state.seed)-.5)*650,
-  speed:POPULATION.cargoSpeed+colony.tier*11,launchedAt:now,
-  hp:POPULATION.convoyHp+colony.tier*18,
-  maxHp:POPULATION.convoyHp+colony.tier*18,r:36,hit:0,seen:false,
+  speed:stats.speed,launchedAt:now,
+  hp:stats.hp,maxHp:stats.hp,r:stats.r,hit:0,seen:false,
+  cargoRole:stats.cargoRole,rewardOre:stats.rewardOre,rewardData:stats.rewardData,
+  escortPhase:hash(state.serial,colony.index,state.seed+261)*Math.PI*2,
   escortManifest:null,escorted:false,rewarded:false,
   angle:0,x:source.x,y:source.y,distance:0};
  state.convoys.push(cargo);colony.ore-=POPULATION.cargoCost;
@@ -476,7 +486,12 @@ export function validPopulation(state,stations,time){
    !Number.isFinite(cargo.launchedAt)||cargo.launchedAt<0||cargo.launchedAt>time||
    !Number.isFinite(cargo.routeLength)||cargo.routeLength<=0||
    !Number.isFinite(cargo.distance)||cargo.distance<0||
-   cargo.distance>cargo.routeLength+cargo.speed)return false;
+   cargo.distance>cargo.routeLength+cargo.speed||
+   (cargo.cargoRole!==undefined&&!POPULATION_CONVOY_PROFILES[cargo.cargoRole])||
+   (cargo.rewardOre!==undefined&&(!Number.isInteger(cargo.rewardOre)||cargo.rewardOre<0||cargo.rewardOre>60))||
+   (cargo.rewardData!==undefined&&(!Number.isInteger(cargo.rewardData)||cargo.rewardData<0||cargo.rewardData>60))||
+   (cargo.firstHitAt!==undefined&&(!Number.isFinite(cargo.firstHitAt)||cargo.firstHitAt<cargo.launchedAt||cargo.firstHitAt>time))||
+   (cargo.escortPhase!==undefined&&(!Number.isFinite(cargo.escortPhase)||cargo.escortPhase<0||cargo.escortPhase>Math.PI*2)))return false;
   convoys.add(cargo.id);
  }
  return true;

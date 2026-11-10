@@ -2,9 +2,10 @@ import {RULES,hash} from './balance.js';
 import {ENEMY_TYPES} from './ai.js';
 import {contourFields} from './territory-system.js';
 import {POPULATION,advancePopulation,populationAlarm,
- updatePopulationMiners} from './world-population.js?v=sector-density-2-frontier-siege-1';
+ updatePopulationMiners} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
 import {FRONTIER,orderFrontierNetwork} from './enemy-frontier-network.js?v=frontier-fence-1';
-import {drawIndustrialMiner,drawIndustrialConvoy,drawFrontierNetwork} from './enemy-frontier-render.js?v=frontier-art-1';
+import {drawIndustrialMiner,drawIndustrialConvoy,drawFrontierNetwork} from './enemy-frontier-render.js?v=frontier-art-1-convoy-variety-20261110';
+import {populationConvoyTitle} from './convoy-profiles.js?v=convoy-variety-20261110';
 
 const TAU=Math.PI*2;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -263,8 +264,9 @@ export function drawPopulationWorld(game,ctx,cam){
   drawIndustrialConvoy(ctx,cargo,time);
   ctx.save();ctx.textAlign='center';ctx.fillStyle='#ffe5bc';
   ctx.font='bold '+Math.round(11*zoom)+'px system-ui';
-  ctx.fillText('ПРОМЫШЛЕННЫЙ КОНВОЙ',cargo.x,cargo.y-60);
-  ctx.fillStyle='#ffb886';ctx.fillRect(cargo.x-35,cargo.y-52,70*cargo.hp/cargo.maxHp,4);
+  const labelY=cargo.y-Math.max(70,cargo.r*1.85);
+  ctx.fillText(populationConvoyTitle(cargo).toUpperCase(),cargo.x,labelY);
+  ctx.fillStyle='#ffb886';ctx.fillRect(cargo.x-35,labelY+8,70*cargo.hp/cargo.maxHp,4);
   ctx.restore();
  }
 }
