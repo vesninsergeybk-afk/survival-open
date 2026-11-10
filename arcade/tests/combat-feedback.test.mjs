@@ -39,6 +39,9 @@ test('homing missile trail uses retained points and handles zero trail',()=>{
  assert.ok(ctx.calls.filter(c=>c[0]==='stroke').length>=2);
  assert.ok(ctx.calls.some(c=>c[0]==='translate'&&c[1]===20));
  assert.doesNotThrow(()=>drawSeekingMissile(context(),{...m,trail:[]},24));
+ const boosted=context();drawSeekingMissile(boosted,{...m,fxRank:4},60);
+ assert.ok(boosted.calls.filter(c=>c[0]==='stroke').length>
+  ctx.calls.filter(c=>c[0]==='stroke').length,'upgraded missile changes its in-flight art');
 });
 
 test('hull scarring follows actual health, not shield or unrelated state',()=>{

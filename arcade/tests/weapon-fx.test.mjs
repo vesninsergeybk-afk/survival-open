@@ -60,6 +60,26 @@ test('seven distinct silhouettes remain drawn at 15 FPS and under reduced motion
  assert.equal(new Set(colors).size,7,'each weapon must have its own color and structural fingerprint');
 });
 
+test('plasma narrows along its real damage falloff and grows only after paid calibration',()=>{
+ const near={time:1},far={time:1},upgraded={time:1};
+ emitWeaponFx(near,'plasma',{x:0,y:0},{x:200,y:0},
+  {falloff:1,nearDistance:115,rank:0});
+ emitWeaponFx(far,'plasma',{x:0,y:0},{x:330,y:0},
+  {falloff:.28,nearDistance:115,rank:0});
+ emitWeaponFx(upgraded,'plasma',{x:0,y:0},{x:330,y:0},
+  {falloff:.28,nearDistance:115,rank:3});
+ const strokes=scene=>{
+  const out=canvas();drawWeaponFx(out.c,scene.weaponFx,60,false);return out.strokes
+   .filter(s=>s.path.length===2&&s.color==='#53dbff'&&s.alpha>.4);
+ };
+ const a=strokes(near),b=strokes(far),c=strokes(upgraded);
+ assert.ok(a.length>=8&&b.length>=8);
+ assert.ok(b[0].width>b.at(-1).width*2,'starter plasma must clearly taper');
+ assert.ok(a.at(-1).width>b.at(-1).width*1.6,'a distant hit cannot look equally strong');
+ assert.ok(c[0].width>b[0].width,'calibration visibly increases emitter strength');
+ assert.equal(far.weaponFx[0].falloff,.28);
+});
+
 test('reduced motion fixes animated anchors while normal mode advances them',()=>{
  for(const kind of ['plasma','resonator','howitzer']){
   const g={time:1};emitWeaponFx(g,kind,A,B);

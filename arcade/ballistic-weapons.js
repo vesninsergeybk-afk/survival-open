@@ -80,7 +80,7 @@ export function launchFlakVolley(game,from,targets,anchor,stats){
   }
  }
  const launch=point(from.x+Math.cos(orientation)*43,from.y+Math.sin(orientation)*43);
- emitWeaponFx(game,'flak',from,launch,{impact:false});
+ emitWeaponFx(game,'flak',from,launch,{impact:false,rank:game.skillRanks?.beam});
  game.heritage?.vfx?.muzzle(from.x,from.y,orientation,'flak');
  return true;
 }

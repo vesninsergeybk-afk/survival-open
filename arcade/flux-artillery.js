@@ -317,7 +317,8 @@ function impactShell(game,state,shell){
  source.lastImpactAt=game.time;source.lastImpactX=center.x;source.lastImpactY=center.y;
  game.fluxArtilleryFx??=[];
  game.fluxArtilleryFx.push({x:center.x,y:center.y,at:game.time,r:blast,
-  id:shell.turretId+shell.launchedAt*31});
+  id:shell.turretId+shell.launchedAt*31,
+  powerRank:shell.powerRank||0,anomaly:shell.anomaly||0});
  if(game.fluxArtilleryFx.length>32)game.fluxArtilleryFx.splice(0,game.fluxArtilleryFx.length-32);
  game.heritage?.vfx?.rocketImpact?.(center.x,center.y,blast*.75);
  game.heritage?.play?.('artilleryImpact',.32,center);
@@ -361,6 +362,7 @@ function fireBarrel(game,state,turret,time){
  state.artilleryShells.push({turretId:turret.id,startX,startY,targetX,targetY,
   launchedAt:time,arriveAt:time+.25+travel/FLUX_ARTILLERY.shellSpeed,
   blastRadius:artilleryBlast(turret),damage:artilleryShellDamage(turret),
+  powerRank:turretBranchRank(turret,'power'),
   anomaly:turretBranchRank(turret,'anomaly'),
   ...(guidance&&Number.isSafeInteger(turret.lockedSerial)?{
    guidanceRank:guidance,trackSerial:turret.lockedSerial,
@@ -664,16 +666,28 @@ function drawWarning(ctx,turret,time,reduced=false){
 function drawImpact(ctx,burst,time,reduced=false){
  const age=time-burst.at,phase=clamp(age/FLUX_ARTILLERY.impactLifetime,0,1);
  const r=burst.r||FLUX_ARTILLERY.blastRadius,fade=(1-phase)**1.7;
+ const power=Math.min(4,burst.powerRank||0);
  ctx.save();ctx.translate(burst.x,burst.y);
  const bloom=ctx.createRadialGradient(0,0,4,0,0,r*.9);
  bloom.addColorStop(0,`rgba(255,238,169,${.45*fade})`);
  bloom.addColorStop(.32,`rgba(255,111,38,${.3*fade})`);
  bloom.addColorStop(1,'rgba(255,79,20,0)');
  ctx.fillStyle=bloom;ctx.beginPath();ctx.arc(0,0,r*.9,0,Math.PI*2);ctx.fill();
- ctx.strokeStyle=`rgba(255,193,109,${.95*fade})`;ctx.lineWidth=8*(1-phase)+1;
+ ctx.strokeStyle=`rgba(255,193,109,${.95*fade})`;
+ ctx.lineWidth=(8+power*2)*(1-phase)+1;
  ctx.beginPath();ctx.arc(0,0,r*(.1+.9*clamp(phase*1.65,0,1)),0,Math.PI*2);ctx.stroke();
  ctx.strokeStyle=`rgba(112,202,230,${.45*fade})`;ctx.lineWidth=2;
  ctx.beginPath();ctx.arc(0,0,r*(.04+.93*clamp(phase*2,0,1)),0,Math.PI*2);ctx.stroke();
+ if(power>=2){
+  // More charge density, separate from blast radius (a different branch).
+  ctx.strokeStyle=`rgba(255,232,160,${fade*.72})`;ctx.lineWidth=1+power*.75;
+  ctx.beginPath();ctx.arc(0,0,r*(.14+.54*phase),0,Math.PI*2);ctx.stroke();
+ }
+ if(burst.anomaly){
+  ctx.strokeStyle=`rgba(121,223,255,${fade*.72})`;ctx.lineWidth=burst.anomaly;
+  ctx.setLineDash([10,8]);ctx.beginPath();ctx.arc(0,0,r*.86,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);
+ }
  for(let i=0;i<(reduced?4:14);i++){
   const angle=(i*2.39996+burst.id*1.73)%(Math.PI*2);
   const distance=r*(.24+.6*phase)*(i%3===0?1:.78);
@@ -691,6 +705,7 @@ function drawFlyingShell(ctx,shell,time,reduced=false){
  const height=Math.sin(Math.PI*fraction)*31;
  const dx=shell.targetX-shell.startX,dy=shell.targetY-shell.startY;
  const length=Math.max(1,Math.hypot(dx,dy));
+ const power=Math.min(4,shell.powerRank||0),size=4.4+power*1.55;
  ctx.save();
  ctx.fillStyle='rgba(4,9,19,.28)';ctx.beginPath();
  ctx.ellipse(x+10,y+10,7+height*.17,4+height*.07,0,0,Math.PI*2);ctx.fill();
@@ -699,14 +714,15 @@ function drawFlyingShell(ctx,shell,time,reduced=false){
   const alpha=(1-i/7)*.6;
   ctx.fillStyle=shell.guidanceRank?`rgba(83,${200+i*7},245,${alpha})`:
    `rgba(255,${112+i*18},60,${alpha})`;
-  ctx.beginPath();ctx.arc(x-dx/length*offset,y-dy/length*offset-height,2.8-i*.28,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x-dx/length*offset,y-dy/length*offset-height,
+   Math.max(.7,2.2+power*.45-i*.28),0,Math.PI*2);ctx.fill();
  }
  ctx.shadowColor=shell.guidanceRank?'#73ebfb':'#ff9d48';ctx.shadowBlur=17;
  ctx.fillStyle=shell.guidanceRank?'#e0ffff':'#fff3bc';
- ctx.beginPath();ctx.arc(x,y-height,5,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();ctx.arc(x,y-height,size,0,Math.PI*2);ctx.fill();
  ctx.shadowBlur=0;ctx.strokeStyle=shell.guidanceRank?'#49cbdc':'#f0914f';ctx.lineWidth=2;
- ctx.beginPath();ctx.moveTo(x-dy/length*4,y-height+dx/length*4);
- ctx.lineTo(x+dy/length*4,y-height-dx/length*4);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(x-dy/length*size,y-height+dx/length*size);
+ ctx.lineTo(x+dy/length*size,y-height-dx/length*size);ctx.stroke();
  ctx.restore();
 }
 export function drawFluxArtillery(ctx,game,cam,preview=null){
@@ -944,6 +960,7 @@ export function validFluxArtillery(state){
     !finite(s.launchedAt)||!finite(s.arriveAt,s.launchedAt)||
     s.arriveAt-s.launchedAt>2||
     (s.blastRadius!==undefined&&!finite(s.blastRadius,90,185))||
+    (s.powerRank!==undefined&&(!Number.isInteger(s.powerRank)||s.powerRank<0||s.powerRank>4))||
     (s.anomaly!==undefined&&(!Number.isInteger(s.anomaly)||s.anomaly<0||s.anomaly>3))||
     (s.barrelIndex!==undefined&&(!Number.isInteger(s.barrelIndex)||s.barrelIndex<0||s.barrelIndex>9))||
     (s.salvoIndex!==undefined&&(!Number.isInteger(s.salvoIndex)||s.salvoIndex<0||s.salvoIndex>9))||

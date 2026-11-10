@@ -1,5 +1,5 @@
 import {regionAt} from './regions.js?v=regions-1-living-world-population-1';
-import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-defense-1-combat-balance-1-manual-cover-1-manual-audit-20261110';
+import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-defense-1-combat-balance-1-manual-cover-1-manual-audit-20261110-weapon-vfx-audit-1';
 /**
  * Arcade presentation uses the artwork and animation systems already approved
  * for Survivor. Visual variants never consume gameplay randomness.
@@ -10,7 +10,7 @@ import {drawAnimatedEnemyShip} from '../src/disruptor-ship-sprites.js';
 import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js?v=iris-pack-1-counterattack-1-mission-pack-1';
 import {drawStationPart, STATION_PARTS} from '../src/station-art.js?v=base-86';
 import {drawTurretMount,drawTurretHead} from '../src/turret-visuals.js?v=turret-visuals-1';
-import {drawEnemyBolt} from '../src/combat-art.js?v=art-888';
+import {drawHostileProjectile} from './hostile-projectiles.js';
 import {getFXSprite} from '../src/vfx-textures.js?v=arcade-vfx-mask-19';
 import {drawStationMechanisms} from '../src/station-mechanics.js?v=dock-audit-2';
 import {drawRepairDock} from './repair-dock-art.js?v=dock-identity-1';
@@ -431,30 +431,8 @@ export class ArcadeVisuals {
   }
   ctx.restore();return drawn;
  }
- drawHostileShot(ctx,s){
-  ctx.save();ctx.translate(s.x,s.y);
-  ctx.rotate(Math.atan2(s.vy,s.vx));
-  if(s.kind==='iris'||s.kind==='mote'){
-   // A narrow violet bolt visually distinguishes the scout's dodgeable pulse.
-   ctx.strokeStyle=s.kind==='mote'?'#85dcff':'#bb8dff';ctx.lineWidth=3.2;ctx.lineCap='round';
-   ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(5,0);ctx.stroke();
-   ctx.strokeStyle='#f2dfff';ctx.lineWidth=1.1;
-   ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(4,0);ctx.stroke();
-   ctx.restore();return true;
-  }
-  if(s.kind==='fighter-burst'||s.kind==='flanker-needle'||s.kind==='gunship-cannon'){
-   const needle=s.kind==='flanker-needle',heavy=s.kind==='gunship-cannon';
-   const outer=needle?'#b78aff':heavy?'#ff7755':'#ffc17a';
-   const length=needle?28:heavy?22:16;
-   ctx.strokeStyle=outer;ctx.lineWidth=needle?2.4:heavy?5:3.6;
-   ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-length,0);
-   ctx.lineTo(5,0);ctx.stroke();
-   ctx.strokeStyle='#fff0df';ctx.lineWidth=1.2;
-   ctx.beginPath();ctx.moveTo(-length*.8,0);ctx.lineTo(2,0);ctx.stroke();
-   ctx.restore();return true;
-  }
-  const ok=drawEnemyBolt(ctx,'laser');
-  ctx.restore();return ok;
+ drawHostileShot(ctx,s,high=true){
+  return drawHostileProjectile(ctx,s,high);
  }
  friendlySprite(image){
   if(!image?.complete||!image.naturalWidth)return null;

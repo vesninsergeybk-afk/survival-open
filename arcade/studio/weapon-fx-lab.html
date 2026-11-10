@@ -54,6 +54,9 @@ label{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#a9c1d
     <button class="button" id="fire">Повторить выстрел</button>
     <button class="button secondary" id="sequence">Все семь по очереди</button>
     <label>Проверка частоты <select id="fps"><option value="60">60 FPS</option><option value="24">24 FPS</option><option value="15">15 FPS</option></select></label>
+    <label>Калибровка <select id="tier"><option value="0">Без улучшений</option><option value="2">2 ранга</option><option value="4">4 ранга</option></select></label>
+    <label>Плазма <select id="distance"><option value="115">115 м · близко</option><option value="330" selected>330 м · далеко</option></select></label>
+    <label><input type="checkbox" id="hostile"> Вражеские снаряды</label>
     <label><input type="checkbox" id="motion"> Без движения эффектов</label>
     <button class="button secondary" id="sound" aria-pressed="false">Звук выключен</button>
    </div>
@@ -66,6 +69,6 @@ label{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#a9c1d
  </section>
  <div class="caveat"><strong>Что здесь проверяется.</strong> Вспышки, осколочные снаряды и тяжёлый снаряд используют те же модули, что и основная игра. Ракета пользуется игровым изображением полёта, а взрывы — общим пулом эффектов. Корабли и мишени на стенде условные. Проверяется движение и столкновение с учебными целями; мир, задания, нагрев, опыт и полноценный боевой баланс запускаются только в самой игре.</div>
 </main>
-<script type="module" src="./weapon-fx-lab.js?v=weapon-mechanics-2"></script>
+<script type="module" src="./weapon-fx-lab.js?v=weapon-mechanics-2-weapon-vfx-audit-1"></script>
 </body>
 </html>
