@@ -5,7 +5,7 @@ import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1-triangle-defense-1-frontier-siege-1';
 import {emitWeaponFx} from './weapon-fx.js';
-import {landingRock} from './aimed-terrain.js';
+import {landingRock} from './aimed-terrain.js?v=manual-audit-20261110';
 import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js?v=frontier-siege-1-manual-cover-1';
 
 export {updateFlakPellets,drawBallisticWeapons};
@@ -280,7 +280,7 @@ export function planHowitzer(game,point=null){
  if(game.heavyShells?.length)return {ok:false,reason:'Снаряд гаубицы ещё в полёте'};
  if(game.weaponThermal.locked)return {ok:false,reason:'Оружие перегрето. Дождитесь охлаждения'};
  if(game.heavyCooldown>0)return {ok:false,reason:'Гаубица заряжается: '+Math.ceil(game.heavyCooldown)+' с'};
- // LMB uses the cursor point; F and the touch HUD retain the old automatic
+ // Right-mouse targeting uses the cursor point; F and the touch HUD retain automatic
  // target selection for players who use those controls.
  let target;
  if(point){
@@ -306,6 +306,10 @@ export function updateHowitzer(game,dt){
  game.heavyCharge.remaining-=dt;if(game.heavyCharge.remaining>0)return;
  const aim=game.heavyCharge;game.heavyCharge=null;
  if(targetDistance(game.player,aim)>900){game.notice?.('Подготовка гаубицы отменена: точка удара дальше 900 м',2.8);return;}
+ if(landingRock(game,aim,12)){
+  game.notice?.('Подготовка гаубицы отменена: астероид занял точку удара',2.8);
+  return;
+ }
  game.heavyCooldown=12;heatWeapons(game.weaponThermal,70);
  launchHeavyShell(game,mountPosition(game.player,5),aim);
  // A 15 FPS frame may cross the precise end of the charging window. Only the

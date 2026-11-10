@@ -1,8 +1,8 @@
 // Two deliberately aimed weapons complement the ship's automatic guns.
 // Gameplay uses world units; these values are prototypes, not pixel sizes.
-import {combatTargets,targetDistance,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1-frontier-siege-1';
+import {combatTargets,targetDistance,targetRadius,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1-frontier-siege-1';
 import {moduleStats} from './ship-loadout.js';
-import {landingRock,planMineSites,resolveMineLanding,blastCoverFactor,railCoverPreview} from './aimed-terrain.js';
+import {landingRock,planMineSites,resolveMineLanding,blastCoverFactor,railCoverPreview} from './aimed-terrain.js?v=manual-audit-20261110';
 
 const TAU=Math.PI*2;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -91,8 +91,7 @@ function detonate(game,arsenal,point,radius,damage,kind){
  game.heritage?.play?.(kind==='comet'?'cometBurst':'mineBurst',.15,point);
  const targets=combatTargets(game,radius+90,point,true).filter(item=>
   safeCombatTarget(item)&&
-  targetDistance(point,item.target)<=radius+targetRadius(item)&&
-  (kind==='comet'||clearLine(game,point,item.target)));
+  targetDistance(point,item.target)<=radius+targetRadius(item));
  // Directly hitting a target primes the parasite: no extra key or 14 s mark.
  if(kind==='comet'&&(game.skillRanks?.capture||game.skillRanks?.signal)){
   const chosen=targets.filter(item=>!structural(item)&&eligibleParasite(item.target))
@@ -106,7 +105,7 @@ function detonate(game,arsenal,point,radius,damage,kind){
   const centerPower=core?(core===1?.25:.45)*(1-clamp(d/radius,0,1)):0;
   const heavyBonus=pierce&&['berserker','gunship'].includes(item.target.type)?
    (pierce===1?.3:.5):0;
-  const coverFactor=kind==='comet'?blastCoverFactor(game,point,item.target):1;
+  const coverFactor=blastCoverFactor(game,point,item.target);
   const hit=damageTarget(game,item,damage*falloff*(1+centerPower+heavyBonus)*coverFactor,kind,
    {x:point.x,y:point.y,directed:true},false,true);
   if(hit){hits++;if(heavyBonus>0)pierced=true;}
@@ -275,9 +274,13 @@ export function drawMouseArsenal(ctx,game){
   const inRange=rail?targetDistance(game.player,aim.point)>12:
    targetDistance(game.player,aim.point)<=range;
   const preview=rail?railCoverPreview(game,game.player,aim.point,range):null;
-  const blocked=rail?!!preview?.cover:!!landingRock(game,aim.point,12);
-  const color=!inRange?'#ff927c':blocked?'#ffb86e':rail?'#d5faff':'#e2b6ff';
-  const endpoint=rail?(preview?.cover||preview?.end||aim.point):aim.point;
+  const blocked=rail?!!preview?.blocked:!!landingRock(game,aim.point,12);
+  const unavailable=rail?game.weaponProfile?.rail&&(
+   (game.moduleClocks?.rail||0)>0||game.weaponThermal?.locked||!!game.railSweep):
+   game.weaponProfile?.howitzer&&(
+    (game.heavyCooldown||0)>0||game.weaponThermal?.locked||!!game.heavyCharge||!!game.heavyShells?.length);
+  const color=!inRange?'#ff927c':unavailable?'#abb7c8':blocked?'#ffb86e':rail?'#d5faff':'#e2b6ff';
+  const endpoint=rail?(preview?.impact||aim.point):aim.point;
   ctx.strokeStyle=color;ctx.lineWidth=2;
   ctx.globalAlpha=.72;ctx.setLineDash([7,6]);ctx.beginPath();
   ctx.moveTo(game.player.x,game.player.y);
@@ -289,7 +292,8 @@ export function drawMouseArsenal(ctx,game){
   ctx.beginPath();ctx.arc(endpoint.x,endpoint.y,rail?23:110,0,TAU);ctx.stroke();
   ctx.setLineDash([]);ctx.font='bold 10px system-ui';ctx.textAlign='center';
   ctx.fillStyle=color;
-  ctx.fillText(!inRange?(rail?'УКАЖИТЕ НАПРАВЛЕНИЕ':'ВНЕ ДАЛЬНОСТИ'):
+  ctx.fillText(unavailable?(rail?'РЕЛЬС · ОЖИДАНИЕ':'ГАУБИЦА · ОЖИДАНИЕ'):
+   !inRange?(rail?'УКАЖИТЕ НАПРАВЛЕНИЕ':'ВНЕ ДАЛЬНОСТИ'):
    blocked?(rail?'ЛУЧ ПЕРЕКРЫТ АСТЕРОИДОМ':'ТОЧКА ЗАНЯТА АСТЕРОИДОМ'):
    rail?'РЕЛЬС · 5 с ведения луча · отпустите ПКМ':'ГАУБИЦА · отпустите ПКМ',
    endpoint.x,endpoint.y-(rail?36:124));
@@ -325,7 +329,9 @@ export function drawMouseArsenal(ctx,game){
   }
   ctx.globalAlpha=.95;ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillStyle=good?'#d1fbff':'#ffb39f';
   ctx.fillText(good?(aim.kind==='comet'?'КОМЕТА · отпустите ПКМ':'МИНЫ · отпустите ПКМ'):
-   targetDistance(game.player,aim.point)>spec.range?'ВНЕ ДАЛЬНОСТИ':'МЕШАЮТ АСТЕРОИДЫ',
+   /зарядка/.test(plan.reason)?plan.reason.toUpperCase():
+   targetDistance(game.player,aim.point)>spec.range?'ВНЕ ДАЛЬНОСТИ':
+   /астероид/.test(plan.reason)?'МЕШАЮТ АСТЕРОИДЫ':plan.reason.toUpperCase(),
    aim.point.x,aim.point.y-previewRadius-13);
  }
  ctx.restore();

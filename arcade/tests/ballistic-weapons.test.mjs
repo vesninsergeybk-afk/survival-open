@@ -129,6 +129,17 @@ test('howitzer refuses an asteroid-occupied landing before charge or cooldown',(
  assert.equal(planHowitzer(g,{x:400,y:0}).ok,true);
 });
 
+test('howitzer cancels without heat or cooldown when a rock drifts into the marked landing',()=>{
+ const g=heavy(),plan=planHowitzer(g,{x:300,y:0});
+ assert.equal(plan.ok,true);
+ g.heavyCharge=plan.charge;
+ g.rockGrid.insert(rock(300,0,45));
+ updateHowitzer(g,1.26);
+ assert.equal(g.heavyCharge,null);
+ assert.equal(g.heavyCooldown,0);
+ assert.equal(g.heavyShells?.length||0,0);
+});
+
 test('howitzer splash is reduced but still reaches a target behind asteroid cover',()=>{
  const g=heavy(),center=enemy(350),behind=enemy(445),r=rock(400,0,34);
  g.grid.insert(center);g.grid.insert(behind);g.rockGrid.insert(r);
