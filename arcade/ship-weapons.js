@@ -1,6 +1,6 @@
 import {RULES,beamDamage} from './balance.js?v=arcade-balanced-bases-30-combat-balance-1';
 import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight,
- rocketPayload,seekerRetargetRange,disruptHeavyAim} from './weapon-specializations.js?v=weapon-branches-1';
+ rocketPayload,seekerRetargetRange,disruptHeavyAim,howitzerProfile} from './weapon-specializations.js?v=howitzer-branches-1';
 import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2-unified-controls-1-menu-focus-1-combat-balance-1';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
@@ -324,7 +324,9 @@ export function planHowitzer(game,point=null){
  }
  if(landingRock(game,target,12))
   return {ok:false,reason:'Точка удара занята астероидом · сместите прицел'};
- return {ok:true,charge:{x:target.x,y:target.y,remaining:1.25,total:1.25}};
+ const profile=howitzerProfile(game.shipLoadout);
+ return {ok:true,charge:{x:target.x,y:target.y,remaining:profile.charge,total:profile.charge,
+  profile}};
 }
 export function updateHowitzer(game,dt){
  game.heavyCooldown=Math.max(0,(game.heavyCooldown||0)-dt);
@@ -340,8 +342,9 @@ export function updateHowitzer(game,dt){
   game.notice?.('Подготовка гаубицы отменена: астероид занял точку удара',2.8);
   return;
  }
- game.heavyCooldown=12;heatWeapons(game.weaponThermal,70);
- launchHeavyShell(game,mountPosition(game.player,5),aim);
+ const profile=aim.profile||howitzerProfile(game.shipLoadout);
+ game.heavyCooldown=profile.cooldown;heatWeapons(game.weaponThermal,profile.heat);
+ launchHeavyShell(game,mountPosition(game.player,5),aim,profile);
  // A 15 FPS frame may cross the precise end of the charging window. Only the
  // unspent part of that frame moves the newly launched shell.
  const flightDt=Math.max(0,dt-chargingFor);
@@ -349,8 +352,10 @@ export function updateHowitzer(game,dt){
 }
 export function drawHowitzerAim(ctx,charge){
  if(!charge)return;
- ctx.save();ctx.strokeStyle='#e2b2ff';ctx.lineWidth=2;ctx.setLineDash([9,7]);
- ctx.beginPath();ctx.arc(charge.x,charge.y,110,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+ const profile=charge.profile||{radius:110,path:null};
+ ctx.save();ctx.strokeStyle=profile.path==='cluster'?'#ffd08b':
+  profile.path==='piercing'?'#82edff':'#e2b2ff';ctx.lineWidth=2;ctx.setLineDash([9,7]);
+ ctx.beginPath();ctx.arc(charge.x,charge.y,profile.radius,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
  ctx.lineWidth=3;ctx.beginPath();ctx.arc(charge.x,charge.y,22,-Math.PI/2,-Math.PI/2+Math.PI*2*(1-charge.remaining/charge.total));ctx.stroke();ctx.restore();
 }
 // Tiny code-native module layers share the exact anchors with the hangar.

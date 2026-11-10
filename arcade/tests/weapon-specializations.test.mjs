@@ -2,15 +2,35 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLoadout,cloneLoadout,moduleStats,HangarSession} from '../ship-loadout.js';
 import {WEAPON_SPECIALIZATIONS,quoteSpecialization,applySpecialization,
- plasmaDamageFactor,weaponDamageFactor,penetrationFactor,rocketFlight}
+ plasmaDamageFactor,weaponDamageFactor,penetrationFactor,rocketFlight,
+ specializationRequirements,howitzerProfile}
  from '../weapon-specializations.js';
 
 const context=(extra={})=>({baseActive:true,level:14,activeBases:3,points:6,ore:180,...extra});
 
-test('every current permanent automatic family has two exclusive branches',()=>{
- assert.deepEqual(Object.keys(WEAPON_SPECIALIZATIONS),['plasma','rail','flak','rocket']);
+test('automatic families and the heavy howitzer each have two exclusive branches',()=>{
+ assert.deepEqual(Object.keys(WEAPON_SPECIALIZATIONS),['plasma','rail','flak','rocket','howitzer']);
  for(const alternatives of Object.values(WEAPON_SPECIALIZATIONS))
   assert.equal(Object.keys(alternatives).length,2);
+});
+
+test('late howitzer branches require their own levels and stations, without changing early weapon gates',()=>{
+ const ship=createLoadout();ship.slots[5]='howitzer';
+ assert.deepEqual(specializationRequirements('plasma',1),{level:7,bases:2});
+ assert.deepEqual(specializationRequirements('howitzer',1),{level:14,bases:3});
+ assert.deepEqual(specializationRequirements('howitzer',2),{level:18,bases:4});
+ assert.match(quoteSpecialization(ship,'howitzer','cluster',context({level:13})).reason,/уровень 14/);
+ assert.match(quoteSpecialization(ship,'howitzer','cluster',context({activeBases:2})).reason,/3 станции/);
+ const chosen=applySpecialization(ship,'howitzer','cluster',context());
+ assert.equal(chosen.ok,true);
+ assert.match(quoteSpecialization(chosen.loadout,'howitzer','piercing',context()).reason,/уже выбрана/);
+ assert.match(quoteSpecialization(chosen.loadout,'howitzer','cluster',context({level:17,activeBases:4})).reason,/уровень 18/);
+ assert.match(quoteSpecialization(chosen.loadout,'howitzer','cluster',context({level:18,activeBases:3})).reason,/4 станции/);
+ const mastered=applySpecialization(chosen.loadout,'howitzer','cluster',context({level:18,activeBases:4}));
+ assert.equal(mastered.ok,true);
+ assert.deepEqual(mastered.loadout.specializations.howitzer,{path:'cluster',rank:2});
+ assert.equal(moduleStats('howitzer',{},mastered.loadout.specializations.howitzer).targets,'радиус 180 м');
+ assert.equal(howitzerProfile(mastered.loadout).charge,1.65);
 });
 
 test('specialization requires equipped weapon, stations, level and one development point',()=>{

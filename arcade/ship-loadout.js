@@ -1,5 +1,5 @@
 import {ionDamage} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
-import {applySpecialization} from './weapon-specializations.js?v=weapons-cycle-2';
+import {applySpecialization,howitzerProfile} from './weapon-specializations.js?v=howitzer-branches-1';
 import {TACTICAL_DEVICES} from './tactical-fields.js?v=tactical-field-2';
 import {STARTER_COMBAT} from './balance.js';
 // Run-owned hardware; saved blueprints contain choices, never resources/unlocks.
@@ -46,6 +46,7 @@ export function moduleStats(id,ranks={},specialization=null){
  const beam=ranks.beam||0,range=ranks.range||0,rocket=ranks.rocket||0;
  const power=1+beam*.2,rate=1+beam*.08;
  const spread=specialization?.path==='sweep'&&id==='flak';
+ const heavy=id==='howitzer'?howitzerProfile({specializations:{howitzer:specialization}}):null;
  return ({
   plasma:{damage:STARTER_COMBAT.plasmaDamage*power,
    range:STARTER_COMBAT.plasmaRange+range*56,
@@ -55,7 +56,8 @@ export function moduleStats(id,ranks={},specialization=null){
   rocket:{damage:(48+rocket*19)*power,range:720,interval:3.5/(1+rocket*.28)/rate,targets:1},
   ion:{damage:ionDamage(beam).map(d=>Number(d.toFixed(2)).toLocaleString('ru-RU')).join(' / '),range:485,interval:4.5,targets:3},
   resonator:{damage:'35% между целями',range:485,interval:6,targets:3},
-  howitzer:{damage:180,range:900,interval:12,targets:'радиус 110 м'}
+  howitzer:{damage:heavy?.damage,range:900,interval:heavy?.cooldown,
+   targets:'радиус '+heavy?.radius+' м'}
  })[id];
 }
 export const plasmaSplitWeights=count=>count>=3?[.45,.45,.45]:count===2?[.6,.6]:[1];

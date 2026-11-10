@@ -16,9 +16,17 @@ export const WEAPON_SPECIALIZATIONS=Object.freeze({
  rocket:Object.freeze({
   seeker:{name:'Преследователь',desc:'Быстрые ракеты. Если цель погибла в полёте, ракета ищет новую рядом: в радиусе 160 м, с мастерством — 260 м.'},
   payload:{name:'Тяжёлая боеголовка',desc:'По канонеркам и берсеркам +25% урона (мастерство +45%). Медленная ракета наносит ещё и ослабленный урон по соседним целям в радиусе 65 м (с мастерством — 85 м); нагрев на 25% выше.'}
+ }),
+ howitzer:Object.freeze({
+  cluster:{name:'Осколочная кассета',desc:'Взрыв шире: 150 м при уроне 150. С мастерством — 180 м и 155 урона. Дольше готовится и перезаряжается, сильнее нагревает корабль. Удобна против скученных врагов.'},
+  piercing:{name:'Бронебойное ядро',desc:'Взрыв уже (85 м), обычный урон 130, зато прямое попадание добавляет цели ещё 135 урона. С мастерством — 90 м, 140 и ещё 190 за прямой удар. По движущейся цели легко промахнуться.'}
  })
 });
 export const specializationState=(loadout,id)=>loadout?.specializations?.[id]||null;
+export function specializationRequirements(id,rank){
+ return id==='howitzer'?{level:rank>=2?18:14,bases:rank>=2?4:3}:
+  {level:rank>=2?11:7,bases:rank>=2?3:2};
+}
 export function quoteSpecialization(loadout,id,path,context={}){
  const fail=reason=>({ok:false,reason});
  if(!context.baseActive)return fail('Нужна действующая станция');
@@ -28,7 +36,7 @@ export function quoteSpecialization(loadout,id,path,context={}){
  const current=specializationState(loadout,id);
  if(current&&current.path!==path)return fail('Ветка уже выбрана. Бесплатная смена недоступна');
  if(current?.rank>=2)return fail('Мастерство этой ветки уже достигнуто');
- const rank=current?2:1,requiredLevel=rank===1?7:11,requiredBases=rank===1?2:3;
+ const rank=current?2:1,{level:requiredLevel,bases:requiredBases}=specializationRequirements(id,rank);
  if((context.level||1)<requiredLevel)return fail('Нужен уровень '+requiredLevel);
  if((context.activeBases||0)<requiredBases)return fail('Активируйте '+requiredBases+' станции');
  if((context.points||0)<1)return fail('Нужно 1 очко развития');
@@ -84,6 +92,18 @@ export function rocketPayload(loadout){
 export function seekerRetargetRange(loadout){
  const spec=specializationState(loadout,'rocket');
  return spec?.path==='seeker'?(spec.rank>=2?260:160):0;
+}
+
+/** A single projectile snapshot drives its telegraph, damage, heat and world art. */
+export function howitzerProfile(loadout){
+ const spec=specializationState(loadout,'howitzer');
+ if(spec?.path==='cluster')return spec.rank>=2?
+  {path:'cluster',rank:2,radius:180,damage:155,directBonus:0,charge:1.65,cooldown:15,heat:84}:
+  {path:'cluster',rank:1,radius:150,damage:150,directBonus:0,charge:1.5,cooldown:14,heat:78};
+ if(spec?.path==='piercing')return spec.rank>=2?
+  {path:'piercing',rank:2,radius:90,damage:140,directBonus:190,charge:1.35,cooldown:12,heat:76}:
+  {path:'piercing',rank:1,radius:85,damage:130,directBonus:135,charge:1.35,cooldown:12,heat:76};
+ return {path:null,rank:0,radius:110,damage:180,directBonus:0,charge:1.25,cooldown:12,heat:70};
 }
 
 /** An accurate hit interrupts only an actually warned heavy shot, not an idle enemy. */

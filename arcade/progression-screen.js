@@ -1,5 +1,5 @@
 import {MODULES,FRAME_STEPS,SHIP_UPGRADES,createLoadout,moduleStats} from './ship-loadout.js?v=menu-ergonomics-1';
-import {WEAPON_SPECIALIZATIONS,quoteSpecialization} from './weapon-specializations.js';
+import {WEAPON_SPECIALIZATIONS,quoteSpecialization,specializationRequirements} from './weapon-specializations.js';
 import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalQuote} from './tactical-fields.js';
 import {developmentPointLedger} from './experience.js';
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js';
@@ -68,6 +68,8 @@ const branchMarks={
  interceptor:'<path d="m4 12 5-5 4 4 7-7M15 4h5v5M4 18l5-5"/>',
  seeker:'<path d="M4 12a8 8 0 0 1 13-6M20 12a8 8 0 0 1-13 6m7-15 3 3-4 1m-3 14-3-3 4-1"/>',
  payload:'<path d="M12 3v12m-5-7 5-5 5 5M5 17h14v4H5z"/>',
+ cluster:'<circle cx="12" cy="12" r="3"/><path d="M12 2v5M12 17v5M2 12h5m10 0h5M5 5l4 4m6 6 4 4M19 5l-4 4M9 15l-4 4"/>',
+ piercing:'<path d="M3 12 15 4v16zM15 12h7M10 8l5 4-5 4"/>',
  shell:'<path d="M12 2 4 6v6c0 5 3 8 8 10 5-2 8-5 8-10V6z"/>',
  burst:'<path d="M12 12V2m0 20V12M2 12h20M5 5l14 14M19 5 5 19"/>',
  lure:'<path d="M12 20V9m-4 0a4 4 0 0 1 8 0M5 6a9 9 0 0 1 14 0M3 2a14 14 0 0 1 18 0"/>',
@@ -154,14 +156,16 @@ function weaponNodes(state){
  for(const [path,branch] of Object.entries(paths)){
   const current=loadout.specializations?.[family.id],rank=current?.path===path?current.rank:0;
   const exclusive=!!current&&current.path!==path;
+  const firstGate=specializationRequirements(family.id,1),masteryGate=specializationRequirements(family.id,2);
   const quote=quoteSpecialization(loadout,family.id,path,{baseActive:!!state.baseActive,
    level:state.level||1,activeBases:state.activeBases||0,points:state.points||0});
   const complete=rank>=2,reason=complete?'Мастерство изучено':exclusive?'Другая специализация уже выбрана':quote.reason||'';
   nodes.push({id:'spec-'+family.id+'-'+path,title:branch.name,
-   icon:art('weapons',family.id),mark:path,level:7,masteryAt:11,rank,max:2,
+   icon:art('weapons',family.id),mark:path,level:firstGate.level,masteryAt:masteryGate.level,rank,max:2,
    status:complete?'mastered':exclusive?'exclusive':quote.ok?'ready':reason.startsWith('Нужно 1 очко')?'waiting':'locked',
    description:branch.desc,effect:branch.desc,
-   activation:'Пассивная специализация установленного оружия. Действует во время стрельбы.',
+   activation:family.id==='howitzer'?'Работает при каждом выстреле гаубицы. Радиус виден при подготовке и во время полёта снаряда.':
+    'Пассивная специализация установленного оружия. Действует во время стрельбы.',
    reason,action:'hgSpec',actionId:family.id+':'+path,actionLabel:rank?'Изучить мастерство · 1 очко':'Выбрать путь · 1 очко',
    canAct:!!quote.ok,cost:'1 очко развития'});
  }
