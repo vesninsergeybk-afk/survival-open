@@ -28,10 +28,13 @@ test('rescue requires actual held interaction in range and persists partial effo
  assert.equal(advanceOpeningArc(a,28,1,{repairing:false,withinRange:true}),'active');
  assert.equal(a.repair,1.5);
  assert.equal(a.rescuePulseUsed,false);
- assert.equal(advanceOpeningArc(a,32,2,{repairing:true,withinRange:true}),'rescue-complete');
+ assert.equal(advanceOpeningArc(a,32,10,{repairing:true,withinRange:true}),'rescue-extracted');
+ assert.equal(a.status,'active');assert.equal(a.rescueStage,'return');
+ assert.equal(advanceOpeningArc(a,33,1,{returnedToDock:false}),'active');
+ assert.equal(advanceOpeningArc(a,36,1,{returnedToDock:true}),'rescue-complete');
  assert.equal(a.status,'complete');
  assert.equal(a.rescuePulseUsed,true,'the one-time defensive pulse is earned by actual work');
- assert.equal(a.alarmUntil,32+OPENING_ARC.rescueAlarm);
+ assert.equal(a.alarmUntil,36+OPENING_ARC.rescueAlarm);
  assert.equal(advanceOpeningArc(a,33,2,{repairing:true,withinRange:true}),'idle',
   'no repeated award after completion');
 });
@@ -104,6 +107,60 @@ test('intercept arrow follows the living commander but respects a new player way
  assert.equal(g.waypoint.x,800,'the opening mission does not hijack a later chosen route');
 });
 
+test('rescue selection creates site defenders and a timed enemy recovery plan',()=>{
+ const a=arc(),g=Object.create(RuntimeHarness.prototype),notes=[];
+ Object.assign(g,{openingArc:a,time:16,enemySerial:0,groupSerial:0,
+  player:{x:home.x,y:home.y},enemies:[],waypoint:null,
+  overlay:{dataset:{mode:'opening-choice'}},dismiss:()=>{},
+  notice:t=>notes.push(t),controlLabel:()=> 'E'});
+ g.chooseOpeningRoute('rescue');
+ assert.equal(a.rescueGuardsSpawned,true);
+ assert.equal(g.enemies.length,2);
+ assert.ok(g.enemies.every(e=>e.openingRescueRole==='guard'&&e.protect?.hp===100));
+ assert.equal(a.rescueTugAt,16+OPENING_ARC.rescueTugDelay);
+ assert.equal(g.waypoint.id,'opening-rescue');
+ assert.match(notes[0],/буксир/);
+});
+
+test('the hostile tug steals unattended capsules, damage breaks its capture progress',()=>{
+ const a=arc();beginOpeningArc(a,'rescue',20);a.rescueTugLock=8;
+ assert.equal(advanceOpeningArc(a,30,2,{tugAtCapsule:false}),'active');
+ assert.ok(a.rescueTugLock<8);
+ assert.equal(advanceOpeningArc(a,34,6,{tugAtCapsule:true}),'rescue-stolen');
+ assert.equal(a.status,'failed');
+ const b=arc();beginOpeningArc(b,'rescue',20);
+ assert.equal(advanceOpeningArc(b,45,OPENING_ARC.repairSeconds,
+  {repairing:true,withinRange:true,tugAtCapsule:true}),'rescue-extracted');
+ assert.equal(b.rescueStage,'return');
+ assert.equal(validateOpeningArc({...b,rescueTugLock:500}),false);
+});
+
+test('rescue tug travels towards the capsule, and live enemies are released after success',()=>{
+ const a=arc();beginOpeningArc(a,'rescue',20);
+ const g=Object.create(RuntimeHarness.prototype);
+ Object.assign(g,{time:20+OPENING_ARC.rescueTugDelay,openingArc:a,
+  enemySerial:0,groupSerial:0,openingRepairing:false,
+  visuals:{capitalDamageQA:false},world:{home},waypoint:{id:'opening-rescue'},
+  player:{x:a.rescueX,y:a.rescueY,vx:0,vy:0,hp:110,maxHp:110,shield:0,ore:0},
+  enemies:[],notice:()=>{},heritage:{play:()=>{}},endInteraction:()=>{},
+  cockpit:{resourceGain:()=>{}},showOpeningReward:()=>{},
+  awardExperience:()=>{},rewardNotice:()=>{}});
+ g.updateOpeningArc(.05);
+ const tug=g.enemies.find(e=>e.openingRescueRole==='tug');
+ const escort=g.enemies.find(e=>e.openingRescueRole==='escort');
+ assert.ok(tug?.missionFlight,'enemy recovery is a real travelling craft');
+ assert.equal(escort?.protect,tug);
+ assert.equal(g.enemies.length,4,'two site guards and a tug with escort');
+ a.repair=OPENING_ARC.repairSeconds;a.rescueStage='return';
+ a.rescueCargoX=home.x;a.rescueCargoY=home.y;
+ g.player.x=home.x;g.player.y=home.y;
+ g.updateOpeningArc(.1);
+ assert.equal(a.status,'complete');
+ assert.equal(g.enemies.every(e=>e.openingRescueRole===undefined),true);
+ assert.equal(g.enemies.every(e=>e.missionFlight===undefined),true,
+  'a surviving tug must not hover at the capsule forever');
+});
+
 test('the opening choice does not obscure an already accepted station contract',()=>{
  const a=arc(),g=Object.create(RuntimeHarness.prototype);
  Object.assign(g,{openingArc:a,time:26,visuals:{capitalDamageQA:false},
@@ -172,6 +229,7 @@ test('timers, labels and invalid checkpoint data are bounded',()=>{
  assert.equal(validateOpeningArc({...a,commanderSerial:-2}),false);
  assert.equal(validateOpeningArc({...a,returnWaypoint:{id:'n',x:NaN,y:0}}),false);
  assert.equal(validateOpeningArc({...a,status:'unknown'}),false);
+ assert.equal(validateOpeningArc({...a,rescueStage:'return',repair:0}),false);
 });
 
 test('opening rescue briefing names the touch action without inventing a keyboard',()=>{
@@ -210,16 +268,21 @@ test('game grants interceptor payout and relief once, then offers an actual modu
 
 test('game rescue is a genuine sustained action with a consequence and one payout',()=>{
  const a=arc();beginOpeningArc(a,'rescue',20);
+ a.rescueGuardsSpawned=true;a.rescueTugSpawned=true;
  const g=Object.create(RuntimeHarness.prototype);
- Object.assign(g,{time:30,openingArc:a,openingRepairing:true,
+ Object.assign(g,{time:30,openingArc:a,openingRepairing:true,enemySerial:0,groupSerial:0,
   visuals:{capitalDamageQA:false},world:{home:{...home,id:'0:0'}},waypoint:{id:'opening-rescue'},
-  enemies:[],player:{x:a.rescueX,y:a.rescueY,hp:30,maxHp:110,ore:3,shield:0},
+  enemies:[],player:{x:a.rescueX,y:a.rescueY,vx:0,vy:0,hp:30,maxHp:110,ore:3,shield:0},
   firstHardwareReward:null,cockpit:{resourceGain:()=>{}},notice:()=>{},
   endInteraction:()=>{},showOpeningReward:()=>{g.rewardShown=true;}});
  g.updateOpeningArc(1.5);assert.equal(a.status,'active');assert.equal(g.player.ore,3);
  g.player.x+=200;g.updateOpeningArc(10);
  assert.equal(a.status,'active');assert.equal(a.repair,1.5);
- g.player.x=a.rescueX;g.updateOpeningArc(2.1);
+ g.player.x=a.rescueX;g.updateOpeningArc(10.1);
+ assert.equal(a.status,'active');assert.equal(a.rescueStage,'return');
+ assert.equal(g.player.ore,3,'extraction alone must never pay the reward');
+ assert.equal(g.waypoint.id,'opening-rescue-return');
+ g.player.x=home.x;g.player.y=home.y;g.updateOpeningArc(1);
  assert.equal(a.status,'complete');assert.equal(a.alarmUntil,130);
  assert.equal(g.player.ore,3+OPENING_ARC.rescueRewardOre);
  assert.equal(g.player.shield,OPENING_ARC.rescueShield);
@@ -230,26 +293,32 @@ test('game rescue is a genuine sustained action with a consequence and one payou
 
 test('capsule emits one shielding pulse halfway, clears nearby bullets, and cannot be farmed',()=>{
  const a=arc();beginOpeningArc(a,'rescue',20);
+ a.rescueGuardsSpawned=true;a.rescueTugSpawned=true;
  const close={x:a.rescueX+100,y:a.rescueY,alive:true};
  const far={x:a.rescueX+400,y:a.rescueY,alive:true};
  const effects=[],notes=[];
  const g=Object.create(RuntimeHarness.prototype);
- Object.assign(g,{time:28,openingArc:a,openingRepairing:true,visuals:{capitalDamageQA:false},
+ Object.assign(g,{time:28,openingArc:a,openingRepairing:true,enemySerial:0,groupSerial:0,
+  visuals:{capitalDamageQA:false},
   world:{home},waypoint:{id:'opening-rescue'},
-  player:{x:a.rescueX,y:a.rescueY,hp:110,maxHp:110,ore:0,shield:0},
+  player:{x:a.rescueX,y:a.rescueY,vx:0,vy:0,hp:110,maxHp:110,ore:0,shield:0},
   shots:[close,far],enemies:[],heritage:{vfx:{nova:(...args)=>effects.push(args)},play:()=>{}},
   cockpit:{resourceGain:()=>{}},notice:t=>notes.push(t),endInteraction:()=>{},
   showOpeningReward:()=>{g.rewardShown=true;}});
- g.updateOpeningArc(1.8);
+ g.updateOpeningArc(OPENING_ARC.repairSeconds*.52);
  assert.equal(a.status,'active');assert.equal(a.rescuePulseUsed,true);
  assert.equal(g.player.shield,OPENING_ARC.rescuePulseShield);
  assert.equal(close.alive,false);assert.equal(far.alive,true);
  assert.equal(effects.length,1);assert.match(notes[0],/Защитный импульс/);
  g.player.shield=0;g.openingRepairing=false;g.updateOpeningArc(.5);
  assert.equal(g.player.shield,0,'interrupting and returning cannot retrigger the shield');
- g.openingRepairing=true;g.updateOpeningArc(1.8);
+ g.openingRepairing=true;g.updateOpeningArc(OPENING_ARC.repairSeconds*.5);
+ assert.equal(a.rescueStage,'return');assert.equal(a.status,'active');
+ assert.equal(g.player.shield,0);assert.equal(effects.length,1);
+ assert.equal(g.rewardShown,undefined);
+ g.player.x=home.x;g.player.y=home.y;g.updateOpeningArc(1);
  assert.equal(a.status,'complete');assert.equal(g.player.shield,OPENING_ARC.rescueShield);
- assert.equal(effects.length,1);assert.equal(g.rewardShown,true);
+ assert.equal(g.rewardShown,true);
  assert.ok(validateOpeningArc(a),'a pulse-marked rescue remains checkpoint-safe');
  assert.equal(validateOpeningArc({...a,rescuePulseUsed:'yes'}),false);
  const old=arc();delete old.rescuePulseUsed;

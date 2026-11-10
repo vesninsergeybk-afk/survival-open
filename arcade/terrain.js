@@ -6,7 +6,37 @@ export const AMBER_BELT=Object.freeze({
  centerX:7200,centerY:1450,halfLength:1350,slope:.22,
  corridor:175,outerBand:850
 });
+// These deposits exist from world creation, including before the rescue is
+// offered. Two clear lanes lead through each ring, so cover never becomes a
+// sealed wall around a mission objective or a station approach.
+export const DEBRIS_POCKETS=Object.freeze([
+ {x:-395,y:585,inner:190,outer:620,gaps:[-.73,2.49]},
+ {x:2550,y:1750,inner:200,outer:740,gaps:[-.36,2.76]},
+ {x:-2250,y:-1450,inner:180,outer:660,gaps:[.44,-2.64]}
+]);
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+const angularDistance=(a,b)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)));
+export function debrisPocketDensity(x,y){
+ let highest=0;
+ for(const pocket of DEBRIS_POCKETS){
+  const dx=x-pocket.x,dy=y-pocket.y,r=Math.hypot(dx,dy);
+  if(r<=pocket.inner||r>=pocket.outer)continue;
+  // The first-flight repair orbit around the home dock must retain its
+  // pre-existing escape and combat routes. The rescue lies outside it.
+  if(pocket===DEBRIS_POCKETS[0]&&Math.hypot(x-360,y+85)<1150)continue;
+  const heading=Math.atan2(dy,dx);
+  // Corridors remain visible and wide enough for a ship and its pursuers.
+  if(pocket.gaps.some(a=>angularDistance(heading,a)<.35))continue;
+  const inner=clamp((r-pocket.inner)/110,0,1);
+  const outer=clamp((pocket.outer-r)/115,0,1);
+  highest=Math.max(highest,Math.min(inner,outer));
+ }
+ return highest;
+}
+export function inRescueClearing(x,y){
+ const site=DEBRIS_POCKETS[0];
+ return Math.hypot(x-site.x,y-site.y)<site.inner-4;
+}
 const beltCoords=(x,y)=>{
  const along=(x-AMBER_BELT.centerX)/AMBER_BELT.halfLength;
  const cross=Math.abs(y-(AMBER_BELT.centerY+

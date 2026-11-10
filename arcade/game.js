@@ -36,7 +36,7 @@ import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,offerLevelCrystals,refreshEv
 import {drawEvolutionEnvironment,drawParasiteCore,drawEvolutionEnemy,
  drawEvolutionConnections,drawEvolutionPlayer} from './field-evolution-vfx.js?v=field-evolution-1-first-loops-1';
 import {RULES, STARTER_COMBAT, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, openingSpawnRoom, burstStats} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1-combat-balance-1-balance-audit-1';
-import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1-supply-stronghold-1-flux-reserve-1-flux-offense-1-territory-war-1-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1';
+import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1-supply-stronghold-1-flux-reserve-1-flux-offense-1-territory-war-1-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1-rescue-depth-1';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4-zoomread-2-territory-logistics-1';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26-redteam-20261109-1';
@@ -68,7 +68,7 @@ import {NOISE_ESCALATION,preserveEarlyNoiseSignal,noisePatrolDirector,armNoiseCo
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-sfx-2-artillery-finish-1-support-three-1-frontier-siege-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44-weapon-vfx-audit-1';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
-import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
+import {missionImageReady,paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1';
 import {awardStationReputation,stationReputation,stationReputationGoal,stationReputationReady} from './station-reputation.js';
@@ -97,12 +97,12 @@ import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1-frontier-siege-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109-territory-logistics-1-flux-siphon-roads-1-station-trust-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109-territory-logistics-1-flux-siphon-roads-1-station-trust-1-rescue-depth-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1-sector-density-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
- openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-5-early-xp-1-combat-balance-1-balance-audit-1';
+ openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-5-early-xp-1-combat-balance-1-balance-audit-1-rescue-depth-1';
 import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2-balance-audit-1';
 import {ambientPatrolRoute,patrolCanLeave,ENEMY_AWARENESS} from './enemy-awareness.js?v=living-world-roaming-patrol-2-flight-zoom-audit-1-pressure-response-1-combat-balance-1';
 import {recordWorldFeedback,recordContourFeedback,advanceWorldFeedback,drawWorldFeedback,drawImpactInvestigation} from './world-feedback.js?v=world-feedback-1-flux-reserve-1-flux-siphon-roads-1';
@@ -236,6 +236,7 @@ const MODELS={
  convoyDebris:'./assets/missions/convoy-debris-v1.webp',
  salvageCrate:'./assets/missions/salvage-crate-v1.webp',
  missionSpecial:'./assets/missions/special-objectives-v1.webp',
+ emergencyCapsule:'./assets/missions/emergency-capsule-v1.webp',
  missionHardware:'./assets/missions/reactor-hardware-v1.webp',
  missionFreighter:'./assets/missions/hostile-freighter-v1.webp',
  missionImpacts:'./assets/missions/mission-impacts-v1.webp',
@@ -1696,6 +1697,8 @@ export class ArcadeGame {
      entryPortalPending:false});
    }
    arc.commanderSerial=serial;
+  }else{
+   this.spawnOpeningRescueGuards();
   }
   this.waypoint={id:'opening-'+kind,
    x:kind==='intercept'?arc.interceptX:arc.rescueX,
@@ -1704,8 +1707,56 @@ export class ArcadeGame {
   this.dismiss();
   this.notice(kind==='intercept'?
    'Наводчик с охраной держит дистанцию. Сближайтесь рывком ('+this.controlLabel('dash')+'). Выберите «Голубую комету» колесом мыши, зажмите ПКМ для прицеливания и отпустите, когда наводчик войдёт в круг поражения.':
-   'Капсула отмечена. Удерживайте '+(this.isTouchLayout?'«Действие»':this.controlLabel('interact'))+
-    ' рядом: прогресс сохраняется после паузы, а на половине работы сработает её защитный импульс.',6);
+   'Капсула среди обломков, район охраняется. Удерживайте '+
+    (this.isTouchLayout?'«Действие»':this.controlLabel('interact'))+
+    ' рядом с ней: работа сохраняется после пауз. Перехватите вражеский буксир, затем доставьте капсулу в док.',7);
+ }
+ spawnOpeningRescueEnemy(type,x,y,role,protect=null){
+  const spec=ENEMY_TYPES[type],serial=++this.enemySerial;
+  const enemy={serial,group:this.groupSerial,type,x,y,vx:0,vy:0,
+   r:role==='tug'?25:type==='fighter'?18:14,hp:role==='tug'?95:spec.hp,
+   maxHp:role==='tug'?95:spec.hp,damage:spec.dmg,think:.2,fire:1.2,
+   state:protect?'guard':'hunt',commitUntil:0,target:this.player,
+   angle:0,hit:0,expAwarded:false,scenario:'opening-rescue-'+role,
+   openingRescueRole:role,missionStructure:true,entryPortalPending:false,
+   protect};
+  this.enemies.push(enemy);
+  return enemy;
+ }
+ spawnOpeningRescueGuards(){
+  const arc=this.openingArc;
+  if(!openingArcActive(arc)||arc.kind!=='rescue'||arc.rescueGuardsSpawned||
+   !Array.isArray(this.enemies))return;
+  arc.rescueGuardsSpawned=true;
+  ++this.groupSerial;
+  const defend={x:arc.rescueX,y:arc.rescueY,hp:100,r:32};
+  this.spawnOpeningRescueEnemy('scout',arc.rescueX-165,arc.rescueY+85,'guard',defend);
+  this.spawnOpeningRescueEnemy('fighter',arc.rescueX+135,arc.rescueY-100,'guard',defend);
+ }
+ spawnOpeningRescueTug(){
+  const arc=this.openingArc;
+  if(!openingArcActive(arc)||arc.kind!=='rescue'||arc.rescueTugSpawned||
+   (arc.rescueStage||'extract')!=='extract'||!Array.isArray(this.enemies))return;
+  arc.rescueTugSpawned=true;
+  ++this.groupSerial;
+  const tug=this.spawnOpeningRescueEnemy('fighter',arc.rescueX-580,arc.rescueY+440,'tug');
+  tug.missionFlight={x:arc.rescueX,y:arc.rescueY,speed:94};
+  arc.rescueTugSerial=tug.serial;
+  const escort=this.spawnOpeningRescueEnemy('scout',tug.x+85,tug.y-35,'escort',tug);
+  escort.protect=tug;
+  this.heritage?.play?.('orbitalWarning',.5,{x:arc.rescueX,y:arc.rescueY});
+  this.notice('ВРАЖЕСКИЙ БУКСИР ИДЁТ К КАПСУЛЕ! Уничтожьте его, пока он не завершил захват.',5);
+ }
+ spawnOpeningRescuePursuers(){
+  const arc=this.openingArc;
+  if(arc.rescuePursuersSpawned||!Array.isArray(this.enemies))return;
+  arc.rescuePursuersSpawned=true;
+  ++this.groupSerial;
+  const toDock=Math.atan2(this.world.home.y-arc.rescueY,this.world.home.x-arc.rescueX);
+  const x=arc.rescueX+Math.cos(toDock)*390,y=arc.rescueY+Math.sin(toDock)*390;
+  this.spawnOpeningRescueEnemy('scout',x+50,y+90,'pursuer');
+  this.spawnOpeningRescueEnemy('fighter',x-65,y-85,'pursuer');
+  this.notice('Капсула закреплена! Уводите её в док. Враг перекрывает обратный маршрут.',5);
  }
  showOpeningReward(){
   if(this.firstHardwareReward!=='pending'||!this.overlay.hidden||this.dead)return;
@@ -1755,6 +1806,15 @@ export class ArcadeGame {
    return;
   }
   if(!openingArcActive(arc))return;
+  if(arc.kind==='rescue'){
+   // Restored older checkpoints must not silently omit the site defenders.
+   this.spawnOpeningRescueGuards();
+   if((arc.rescueStage||'extract')==='extract'&&!arc.rescueTugSpawned&&
+      (this.time>=(arc.rescueTugAt||arc.startedAt+OPENING_ARC.rescueTugDelay)||
+       this.time>=arc.startedAt+8&&
+       Math.hypot(this.player.x-arc.rescueX,this.player.y-arc.rescueY)<630))
+    this.spawnOpeningRescueTug();
+  }
   if(arc.kind==='intercept'&&!arc.commanderDefeated&&this.waypoint?.id==='opening-intercept'){
    // The leader actively hunts the player. The arrow must follow the ship,
    // rather than forever pointing at its original spawn coordinates.
@@ -1763,10 +1823,35 @@ export class ArcadeGame {
   }
   const near=arc.kind==='rescue'&&
    Math.hypot(this.player.x-arc.rescueX,this.player.y-arc.rescueY)<=OPENING_ARC.repairRange;
+  const tug=arc.kind==='rescue'?(this.enemies||[]).find(e=>
+   e.serial===arc.rescueTugSerial&&e.hp>0&&!e.converted):null;
+  const tugAtCapsule=!!tug&&Math.hypot(tug.x-arc.rescueX,tug.y-arc.rescueY)<=
+   OPENING_ARC.rescueTugCaptureRange&&
+   this.time-(tug.lastPlayerHitAt??-Infinity)>2;
+  if(arc.kind==='rescue'&&arc.rescueStage==='return'){
+   const p=this.player,v=Math.hypot(p.vx||0,p.vy||0);
+   const dx=v>10?(p.vx||0)/v:(p.x-arc.rescueX)/Math.max(1,Math.hypot(p.x-arc.rescueX,p.y-arc.rescueY));
+   const dy=v>10?(p.vy||0)/v:(p.y-arc.rescueY)/Math.max(1,Math.hypot(p.x-arc.rescueX,p.y-arc.rescueY));
+   const follow=Math.min(1,dt*4);
+   arc.rescueCargoX+=(p.x-dx*88-arc.rescueCargoX)*follow;
+   arc.rescueCargoY+=(p.y-dy*88-arc.rescueCargoY)*follow;
+  }
+  const returnedToDock=arc.kind==='rescue'&&arc.rescueStage==='return'&&
+   Math.hypot(this.player.x-this.world.home.x,this.player.y-this.world.home.y)<=
+    OPENING_ARC.rescueDockRange&&
+   Math.hypot(arc.rescueCargoX-this.world.home.x,arc.rescueCargoY-this.world.home.y)<275;
   const hadPulse=!!arc.rescuePulseUsed;
   const result=advanceOpeningArc(arc,this.time,dt,{
    commanderDefeated:arc.commanderDefeated===true,
-   repairing:!!this.openingRepairing,withinRange:near});
+   repairing:!!this.openingRepairing,withinRange:near,tugAtCapsule,returnedToDock});
+  if(result==='rescue-extracted'){
+   arc.rescueCargoX=arc.rescueX;arc.rescueCargoY=arc.rescueY;
+   this.endInteraction();
+   this.spawnOpeningRescuePursuers();
+   if(this.waypoint?.id==='opening-rescue')
+    this.waypoint={id:'opening-rescue-return',x:this.world.home.x,y:this.world.home.y,
+     label:'Доставить капсулу в док'};
+  }
   if(!hadPulse&&arc.rescuePulseUsed&&result!=='failed'){
    // One visible mid-task gain: the capsule can shield the pilot once and
    // disrupt nearby hostile projectiles, but cannot defeat pursuing ships.
@@ -1779,15 +1864,27 @@ export class ArcadeGame {
    this.notice('Защитный импульс капсулы: щит не ниже '+OPENING_ARC.rescuePulseShield+
     ', ближайшие снаряды погашены. Можно отбиться и продолжить спасение.',4.5);
   }
-  if(result==='failed'){
-   if(this.waypoint?.id==='opening-'+arc.kind)this.waypoint=arc.returnWaypoint;
-   this.notice('Срочный сигнал потерян. Забег продолжается; обычные операции доступны.',5);
+  if(arc.kind==='rescue'&&
+   (result==='failed'||result==='rescue-stolen'||result==='rescue-complete')){
+   // Mission craft must not remain a permanent, off-screen scripted convoy.
+   // Survivors join ordinary enemy patrols after either outcome.
+   for(const e of this.enemies||[])if(e.openingRescueRole){
+    delete e.missionFlight;delete e.openingRescueRole;delete e.protect;
+    delete e.missionStructure;
+   }
+  }
+  if(result==='failed'||result==='rescue-stolen'){
+   if(this.waypoint?.id==='opening-'+arc.kind||this.waypoint?.id==='opening-rescue-return')
+    this.waypoint=arc.returnWaypoint;
+   this.notice(result==='rescue-stolen'?'Враг увёл капсулу. Операция сорвана — продолжайте вылет.':
+    'Срочный сигнал потерян. Забег продолжается; обычные операции доступны.',5);
    return;
   }
   if(!result.endsWith('-complete'))return;
   const previousLevel=this.player.level;
   this.endInteraction();
-  if(this.waypoint?.id==='opening-'+arc.kind)this.waypoint=arc.returnWaypoint;
+  if(this.waypoint?.id==='opening-'+arc.kind||this.waypoint?.id==='opening-rescue-return')
+   this.waypoint=arc.returnWaypoint;
   if(arc.kind==='intercept'){
    this.player.ore+=OPENING_ARC.interceptRewardOre;
    recordSortieIncome(this,'ore','operation',OPENING_ARC.interceptRewardOre);
@@ -3411,6 +3508,7 @@ export class ArcadeGame {
  currentInteraction(){
   const arc=this.openingArc;
   if(openingArcActive(arc)&&arc.kind==='rescue'&&
+   (arc.rescueStage||'extract')==='extract'&&
    Math.hypot(this.player.x-arc.rescueX,this.player.y-arc.rescueY)<=OPENING_ARC.repairRange)
    return {kind:'opening-repair',target:{x:arc.rescueX,y:arc.rescueY},
     label:'Эвакуация',hold:true};
@@ -3610,14 +3708,32 @@ export class ArcadeGame {
  }
  drawOpeningBeacon(c,cam){
   const arc=this.openingArc;
-  if(!openingArcActive(arc)||arc.kind!=='rescue'||
-    outsideCamera(arc.rescueX,arc.rescueY,cam,105))return;
+  if(!openingArcActive(arc)||arc.kind!=='rescue')return;
+  if(arc.rescueStage==='return'){
+   const x=arc.rescueCargoX,y=arc.rescueCargoY;
+   if(outsideCamera(x,y,cam,110))return;
+   c.save();c.lineWidth=2.5;c.strokeStyle='rgba(113,245,222,.72)';
+   c.setLineDash([9,6]);c.beginPath();c.moveTo(this.player.x,this.player.y);
+   c.lineTo(x,y);c.stroke();c.setLineDash([]);
+   if(missionImageReady(this.images?.emergencyCapsule))
+    c.drawImage(this.images.emergencyCapsule,x-43,y-22,86,43);
+   else{
+    c.fillStyle='#668a91';c.beginPath();c.ellipse(x,y,25,17,0,0,TAU);c.fill();
+   }
+   c.lineWidth=2;c.strokeStyle='#8bfde0';c.beginPath();c.arc(x,y,43,0,TAU);c.stroke();
+   c.font='bold '+worldLabelSize(11,this.cameraZoom)+'px system-ui';
+   c.textAlign='center';c.fillStyle='#b4ffe9';c.fillText('БУКСИРУЕМАЯ КАПСУЛА',x,y-54,175);
+   c.restore();return;
+  }
+  if(outsideCamera(arc.rescueX,arc.rescueY,cam,105))return;
   const x=arc.rescueX,y=arc.rescueY;
   const glow=this.visuals.reducedMotion?0:Math.sin(this.time*3)*4;
   c.save();c.translate(x,y);
-  c.fillStyle='#10283c';c.strokeStyle='#f4c17c';c.lineWidth=2.5;
-  c.beginPath();c.roundRect(-30,-17,60,34,8);c.fill();c.stroke();
-  c.fillStyle='#f9c887';c.fillRect(-12,-7,24,14);
+  if(missionImageReady(this.images?.emergencyCapsule))
+   c.drawImage(this.images.emergencyCapsule,-49,-25,98,49);
+  else{
+   c.fillStyle='#667e8b';c.beginPath();c.ellipse(0,0,30,21,0,0,TAU);c.fill();
+  }
   c.strokeStyle='#78f5de';c.lineWidth=2;
   c.beginPath();c.arc(0,0,44+glow,0,TAU);c.stroke();
   c.strokeStyle='#ffda92';c.lineWidth=4;
@@ -3629,6 +3745,12 @@ export class ArcadeGame {
   c.font='11px system-ui';
   c.fillText(Math.round(arc.repair/OPENING_ARC.repairSeconds*100)+'% · '+
    (this.isTouchLayout?'ДЕРЖИТЕ «ДЕЙСТВИЕ»':'УДЕРЖИВАЙТЕ '+this.controlLabel('interact')),0,-51,220);
+  if((arc.rescueTugLock||0)>0){
+   c.strokeStyle='#ff796b';c.lineWidth=3;c.beginPath();c.arc(0,0,61,-Math.PI/2,
+    -Math.PI/2+TAU*arc.rescueTugLock/OPENING_ARC.rescueTugCaptureSeconds);c.stroke();
+   c.fillStyle='#ffb4a9';c.fillText('ВРАГ ЗАХВАТЫВАЕТ · '+
+    Math.ceil(OPENING_ARC.rescueTugCaptureSeconds-arc.rescueTugLock)+' С',0,81,220);
+  }
   c.restore();
   c.restore();
   if(this.openingRepairing){
@@ -3991,6 +4113,11 @@ export class ArcadeGame {
    this.notice('Вылетов: '+this.support.charges+' / 2 · B: удар у базы или прикрытие внутри своего контура',3.4);
    this.heritage.vfx.nova(b.x,b.y,70,'cyan');
   }else if(act==='transfer'){
+   if(openingArcActive(this.openingArc)&&this.openingArc.kind==='rescue'&&
+      this.openingArc.rescueStage==='return'){
+    this.notice('Капсула на буксире: сетевой перелёт недоступен. Доставьте её в док.',3);
+    return;
+   }
    const topology=this.world.networkTopology(),target=this.world.stations.get(role);
    if(!b.active||!topology.linked.has(b.id)||topology.count<2||
       !target?.active||target.enemy||target.id===b.id||!topology.linked.has(target.id)){
@@ -5082,7 +5209,10 @@ export class ArcadeGame {
   if(cruiseStarted&&this.time>this.messageUntil)
    this.notice('Маршевый перелёт ×'+EXPEDITION_CRUISE.multiplier+
     ': при угрозе корабль возвращается к обычной скорости.',3.5);
+  const hauling=openingArcActive(this.openingArc)&&this.openingArc.kind==='rescue'&&
+   this.openingArc.rescueStage==='return';
   const speed=(STARTER_COMBAT.speed+this.skillRanks.engine*35)*(this.mining.active?.78:1)*
+   (hauling?.76:1)*
    (this.cruising?EXPEDITION_CRUISE.multiplier:1);
   const boosting=p.burstRemaining>0;
   const targetX=boosting?p.burstX*speed*2.25:mx*speed;
@@ -5497,6 +5627,7 @@ export class ArcadeGame {
     (e.probeAssault&&e.probeAssault===this.operation?.baseId)||(probe&&probe.strikerSerial===e.serial)||
     (e.corridorCourier&&e.serial===(this.world.home.corridorMission||this.operation)?.radioSerial)||
     (e.openingCommander&&openingArcActive(this.openingArc))||
+    (e.openingRescueRole&&openingArcActive(this.openingArc)&&this.openingArc.kind==='rescue')||
     dist(e,p)<Math.max(this.vw,this.vh)*1.65+500);
    if(!retained){rememberCargoEscort(e);rememberPopulationShip(e);}
    return retained;
@@ -6181,6 +6312,13 @@ export class ArcadeGame {
     c.strokeStyle=preparing?'#ffc070':'#ff7552';c.lineWidth=preparing?2.5:3;
     c.beginPath();c.arc(e.x,e.y,e.r+(preparing?8+3*Math.sin(this.time*19):9),0,TAU);c.stroke();
    }
+   if(e.openingRescueRole==='tug'&&openingArcActive(this.openingArc)){
+    c.save();c.strokeStyle='#ff9c67';c.lineWidth=2.8;
+    c.beginPath();c.arc(e.x,e.y,e.r+12+2*Math.sin(this.time*5),0,TAU);c.stroke();
+    c.font='bold '+worldLabelSize(11,this.cameraZoom)+'px system-ui';
+    c.textAlign='center';c.fillStyle='#ffd0a1';
+    c.fillText('ВРАЖЕСКИЙ БУКСИР',e.x,e.y-e.r-22,180);c.restore();
+   }
    if(e.openingCommander&&openingArcActive(this.openingArc)&&
       this.openingArc.commanderSerial===e.serial){
     c.save();c.strokeStyle='#ffd08f';c.lineWidth=3;
@@ -6191,7 +6329,9 @@ export class ArcadeGame {
    }
    const spriteKey=e.type;
    drawContourIrisCharge(c,e,this.time,this.visuals.reducedMotion);
-   if(!this.visuals.drawEnemy(c,e,this.time)&&
+   if(!(e.openingRescueRole==='tug'&&
+        paintMissionCell(c,this.images?.fieldProps,3,e.x,e.y,91,70))&&
+      !this.visuals.drawEnemy(c,e,this.time)&&
       !this.drawSprite(this.images[spriteKey],e.x,e.y,e.r*3,e.r*3,e.angle)){
     c.fillStyle=e.converted?'#6fe7ba':'#f07887';c.beginPath();c.arc(e.x,e.y,e.r,0,TAU);c.fill();
    }

@@ -2,7 +2,24 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World} from '../world.js';
 import {SpatialGrid} from '../balance.js';
-import {amberBeltDensity,inAmberCorridor,nearAmberBelt,firstRockImpact} from '../terrain.js';
+import {amberBeltDensity,inAmberCorridor,nearAmberBelt,firstRockImpact,
+ debrisPocketDensity,inRescueClearing,DEBRIS_POCKETS} from '../terrain.js';
+
+test('starter debris fields exist before missions with clear paths and extraction site',()=>{
+ const pocket=DEBRIS_POCKETS[0];
+ assert.equal(inRescueClearing(pocket.x,pocket.y),true);
+ assert.equal(debrisPocketDensity(pocket.x,pocket.y),0);
+ assert.ok(debrisPocketDensity(pocket.x,pocket.y+400)>.8);
+ assert.equal(debrisPocketDensity(360,-85),0);
+ assert.equal(debrisPocketDensity(-40,270),0,
+  'the starter retreat path retains its original cover distribution');
+ for(const angle of pocket.gaps)assert.equal(debrisPocketDensity(
+  pocket.x+Math.cos(angle)*350,pocket.y+Math.sin(angle)*350),0);
+ const world=new World(),rocks=world.nearbyRocks(pocket.x,pocket.y,700);
+ assert.ok(rocks.filter(r=>Math.hypot(r.x-pocket.x,r.y-pocket.y)<680).length>=20);
+ assert.equal(rocks.some(r=>Math.hypot(r.x-pocket.x,r.y-pocket.y)<r.r+120),false);
+ const repeat=new World();assert.deepEqual(world.rockCell(-2,1),repeat.rockCell(-2,1));
+});
 
 test('charging hulls stop at their full radius without widening ordinary bullets',()=>{
  const rock={x:100,y:0,r:36,hp:100,alive:true};
