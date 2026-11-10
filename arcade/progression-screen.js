@@ -81,7 +81,7 @@ const branchMarks={
 };
 const branchMark=mark=>branchMarks[mark]?'<span class="prog-branch-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+branchMarks[mark]+'</svg></span>':'';
 import {doctrineRank,doctrineCost,doctrineMinLevel,doctrineBuyReason,
- doctrineNextEffect,normalizedDoctrineRanks} from './pilot-doctrines.js?v=pilot-depth-1';
+ doctrineNextEffect,normalizedDoctrineRanks} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 const pointsWord=n=>n%100>=11&&n%100<=14?'очков':n%10===1?'очко':n%10>=2&&n%10<=4?'очка':'очков';
 const mastered=(rank,max)=>rank>=max;
 
@@ -107,10 +107,13 @@ function pilotNodes(state){
  const skills=(state.pilotSkills||[]).filter(s=>s.branch===branch&&!SHIP_UPGRADES.has(s.id)&&!fieldSkills.has(s.id));
  const nodes=skills.map(s=>skillNode(s,state));
  if(branch==='Корабль'){
+  // Existing artwork gives each doctrine a recognizable identity before the
+  // pilot commits a scarce point; this is not another layer of navigation.
+  const doctrineIcons={assault:'calibration',command:'doctrine',prospect:'mining',countermaneuver:'dodge'};
   for(const d of state.pilotDoctrines||[]){
    const rank=doctrineRank(state,d.id),cost=doctrineCost(rank),level=doctrineMinLevel(rank);
    const reason=doctrineBuyReason(state,d.id),done=rank>=3;
-   nodes.push({id:'doctrine-'+d.id,title:d.title,icon:art('upgrades','doctrine'),level:done?11:level,
+   nodes.push({id:'doctrine-'+d.id,title:d.title,icon:art('upgrades',doctrineIcons[d.id]||'doctrine'),level:done?11:level,
     rank,max:3,status:done?'mastered':(state.level||1)<level?'locked':
      (state.points||0)<cost?'waiting':'ready',
     description:d.desc,effect:done?'Ветка изучена полностью':doctrineNextEffect(d.id,rank),

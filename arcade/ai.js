@@ -1,5 +1,5 @@
 import {theaterDestination} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2-mesh-strategy-v2-1-ai-commander-20261110';
-import {commandAllyBonus} from './pilot-doctrines.js?v=pilot-depth-1';
+import {commandAllyBonus,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 import {updateParasitizedEnemy} from './field-evolution.js?v=parasite-clarity-1';
 import {stormSeek} from './regional-storms.js?v=regions-1';
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20-pressure-response-1-combat-balance-1';
@@ -780,7 +780,11 @@ export function updateAlly(a,game,dt){
         const threat=a.role==='scout'?(e.type==='berserker'?115:e.type==='flanker'?95:0):
          a.role==='fighter'?(e.type==='gunship'?120:e.type==='healer'?100:0):
          (e.type==='flanker'?65:e.type==='berserker'?65:0);
-        const score=560-playerDistance*.85-allyDistance*.18+threat;
+        // Commander rank two makes the marked enemy an actual coordinated
+        // target for escorts, while preserving their local tether and safety.
+        const marked=doctrineRank(game,'command')>=2&&
+          game.commandMark?.target===e&&game.commandMark.until>game.time;
+        const score=560-playerDistance*.85-allyDistance*.18+threat+(marked?260:0);
         if(score>priority){priority=score;target=e;}
       }
       if(target)state='cover';

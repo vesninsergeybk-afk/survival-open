@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {game} from './weapons-scene.mjs';
 import {DEFAULT_CONTROLS} from '../control-layout.js';
-import {COUNTER_MANEUVER,deflectBurstShots} from '../pilot-countermaneuver.js';
+import {COUNTER_MANEUVER,deflectBurstShots,counterguardMultiplier} from '../pilot-countermaneuver.js';
 
 const shot=(x,y,vx,vy,r=6)=>({x,y,vx,vy,r,alive:true,damage:12});
 
@@ -53,8 +53,22 @@ test('advanced manoeuvres deflect more varied shots and recover hull only after 
   shot(115,-15,-330,40),shot(130,7,-350,0),shot(75,0,-300,0,15)];
  g.shots=shots;
  assert.equal(deflectBurstShots(g),4);
- assert.equal(g.player.hp,73);
+ assert.equal(g.player.hp,82,'four real interceptions each recover three hull points');
+ assert.equal(g.counterguardUntil,12);
+ assert.equal(counterguardMultiplier(g),.7);
  assert.equal(shots[4].vx,-300,'heavy artillery stays dangerous');
  assert.equal(deflectBurstShots(g),0,'already reflected bullets cannot heal again');
- assert.equal(g.player.hp,73);
+ assert.equal(g.player.hp,82);
+ g.time=12.01;assert.equal(counterguardMultiplier(g),1);
+});
+
+test('middle rank needs a genuine incoming projectile to grant a short defensive window',()=>{
+ const g=game();g.doctrineRanks={countermaneuver:2};
+ assert.equal(deflectBurstShots(g),0);
+ assert.equal(counterguardMultiplier(g),1);
+ g.shots=[shot(100,0,-300,0,9)];
+ assert.equal(deflectBurstShots(g),1);
+ assert.equal(counterguardMultiplier(g),.85);
+ g.time+=2.01;
+ assert.equal(counterguardMultiplier(g),1);
 });

@@ -36,12 +36,16 @@ const memory=()=>({values:new Map(),getItem(k){return this.values.get(k)||null;}
 test('specialized howitzer and several pilot doctrines survive checkpoint serialization',()=>{
  const g=scene();g.shipLoadout.specializations.howitzer={path:'piercing',rank:2};
  g.doctrineRanks={countermaneuver:2,assault:1,command:3};
+ g.prospectCharges=5;g.prospectChargeUntil=999;g.counterguardUntil=999;
  const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
  assert.equal(validateCheckpoint(snapshot),true);
  const restored=scene();restoreCheckpoint(restored,snapshot);
  assert.deepEqual(restored.shipLoadout.specializations.howitzer,{path:'piercing',rank:2});
  assert.deepEqual(restored.doctrineRanks,{assault:1,command:3,countermaneuver:2});
  assert.equal(restored.doctrine,null);
+ assert.equal(restored.prospectCharges,0,'временные боевые заряды не попадают в сохранение');
+ assert.equal(restored.prospectChargeUntil,0);
+ assert.equal(restored.counterguardUntil,0,'временная защита не переживает выход со станции');
 });
 test('legacy single doctrine becomes one rank without charging an extra point',()=>{
  const g=scene();g.doctrine='prospect';

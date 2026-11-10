@@ -218,6 +218,12 @@ test('pilot doctrines have independent ranks, escalating prices and honest level
  const g=docked();g.player.level=4;g.player.points=1;g.developmentDomain='pilot';
  g.skillBranch='Корабль';
  const first=progressionModel(state(g,'pilot'));
+ const doctrineNodes=first.nodes.filter(n=>n.id.startsWith('doctrine-'));
+ assert.equal(new Set(doctrineNodes.map(n=>n.icon)).size,4,
+  'каждая доктрина должна узнаваемо отличаться от соседней');
+ for(const doctrine of doctrineNodes)
+  assert.ok(existsSync(new URL('../'+doctrine.icon.replace('./',''),import.meta.url)),
+   'пиктограмма должна существовать: '+doctrine.icon);
  const node=first.nodes.find(n=>n.id==='doctrine-countermaneuver');
  assert.ok(node?.canAct);
  assert.match(node.description,/рывок|отражает|выстрелы/);
