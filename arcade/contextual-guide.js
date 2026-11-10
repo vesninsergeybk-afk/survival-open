@@ -24,11 +24,11 @@ export const GUIDE_LESSONS=Object.freeze([
   body:'Когда три подходящие станции замкнут территорию, противник попытается её отбить. Перед подключением третьей станции желательно улучшить оружие и проверить корпус.',
   detail:'Это совет, а не обязательное условие. Три станции должны образовать действительный контур; сама антенна радиосвязи треугольник не замыкает. Оборона состоит из трёх волн.'},
  {id:'contour',group:'Территория',title:'Защитите новый контур',icon:'territory',mode:'calm',
-  body:'Вас ждут три волны. Уничтожайте требуемое число целей, не выходите далеко за пределы зоны и следите за отметками орбитальных ударов.',
-  detail:'Пока идёт отсчёт, игра показывает боевое предупреждение; эта статья остаётся в справочнике. Если отступить, бой начнётся заново, но станции сохранятся.'},
- {id:'core',group:'Территория',title:'Запустите воронку',icon:'territory',mode:'calm',
-  body:'Все три волны отражены. Подлетите к красному ядру и удерживайте кнопку действия, пока воронка не запустится.',
-  detail:'Победа над последним кораблём ещё не завершает захват. После запуска ядра территория принесёт награду, а сборщики начнут доставлять флюкс.'}
+  body:'После замыкания треугольника противник атакует тремя волнами. Отражайте нападение, оставайтесь поблизости и следите за отметками орбитальных ударов.',
+  detail:'Заряженное ядро питает турели, которые помогут защитить территорию. При отступлении станции и накопленный заряд сохранятся, но волны придётся проходить заново.'},
+ {id:'core',group:'Территория',title:'Зарядите ядро',icon:'territory',mode:'calm',
+  body:'Подлетите к ядру и удерживайте кнопку действия. Для запуска нужно накопить 18 секунд заряда; если отпустить кнопку или отлететь, прогресс сохранится.',
+  detail:'Противник начинает нападение при приближении. После полного заряда ядро даст 4 флюкса для первых турелей. Отразите все три волны, чтобы окончательно защитить территорию и запустить добычу.'}
 ]);
 export const GUIDE_BY_ID=Object.freeze(Object.fromEntries(GUIDE_LESSONS.map(x=>[x.id,x])));
 const FIRST_STEPS=['flight','ore','noise'];
@@ -53,6 +53,7 @@ export function recommendGuide(snapshot,state,triggered=[]){
  }
  if(snapshot.points>0&&can('upgrade'))return 'upgrade';
  if(snapshot.stationCount>=2&&!snapshot.hasTerritory&&can('prepare'))return 'prepare';
+ if(snapshot.pendingContour&&!snapshot.readyCore&&!snapshot.coreActivated&&can('core'))return 'core';
  if(snapshot.pendingContour&&!snapshot.readyCore&&can('contour'))return 'contour';
  if(snapshot.readyCore&&can('core'))return 'core';
  return null;
@@ -63,7 +64,7 @@ export function masteryFromSnapshot(snapshot){
   ore:snapshot.mined,
   upgrade:snapshot.upgraded,
   prepare:snapshot.hasTerritory,
-  contour:snapshot.readyCore,
-  core:snapshot.contourCompleted
+  contour:snapshot.contourCompleted,
+  core:snapshot.coreActivated||snapshot.contourCompleted
  };
 }

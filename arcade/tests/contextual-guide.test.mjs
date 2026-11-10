@@ -7,7 +7,7 @@ import {guideSnapshot} from '../contextual-guide-ui.js';
 
 const base=()=>({blocked:false,flightTime:4,distanceMoved:0,mined:false,mining:false,
  battle:false,threatNearby:false,stationCount:1,points:0,upgraded:false,
- hasTerritory:false,pendingContour:false,readyCore:false,contourCompleted:false});
+ hasTerritory:false,pendingContour:false,coreActivated:false,readyCore:false,contourCompleted:false});
 const ready=()=>({enabled:true,seen:[],mastered:[]});
 
 test('first flight points to movement before it suggests extracting ore',()=>{
@@ -41,16 +41,20 @@ test('hazards prevent calm hints, but allow terse tips for first heavy or swarm 
  assert.equal(recommendGuide(s,progress,['heavy','swarm']),null);
 });
 
-test('preparation is advice before the first contour; vortex requires its own step',()=>{
+test('preparation precedes persistent core charge and territory defense',()=>{
  const s=base(),progress=ready();
  progress.seen.push('flight','ore','noise','upgrade');
  s.stationCount=2;s.flightTime=200;
  assert.equal(recommendGuide(s,progress),'prepare');
  s.hasTerritory=true;s.pendingContour=true;progress.mastered.push('prepare');
+ assert.equal(recommendGuide(s,progress),'core');
+ s.coreActivated=true;
+ assert.equal(masteryFromSnapshot(s).core,true,'full core charge completes the action lesson');
+ progress.mastered.push('core');
  assert.equal(recommendGuide(s,progress),'contour');
  s.readyCore=true;progress.mastered.push('contour');
- assert.equal(recommendGuide(s,progress),'core');
  s.contourCompleted=true;
+ assert.equal(masteryFromSnapshot(s).contour,true);
  assert.equal(masteryFromSnapshot(s).core,true);
 });
 

@@ -341,9 +341,9 @@ export function renderContourMap(game){
  const player=at(game.player,center,scale),visiblePlayer=player.x>14&&player.x<666&&player.y>14&&player.y<466;
  const regions='<button data-act="contourRegion" data-id="all" aria-pressed="'+!region+'">Вся карта</button>'+
   REGIONS.map(r=>'<button data-act="contourRegion" data-id="'+r.id+'" aria-pressed="'+(region?.id===r.id)+'">'+r.number+' · '+esc(r.name)+'</button>').join('');
- const stage=trials.some(t=>t.status==='ready')?'Контратака отражена · подлетите к красному ядру и удерживайте E для запуска воронки':
+ const stage=trials.some(t=>t.status==='ready')?'Три волны отражены · завершите заряд ядра удержанием E, если оно ещё не заряжено':
   trials.length?'Неустойчивых территорий: '+trials.length+
-  ' · отбейте три волны и активируйте ядро вручную':
+  ' · удерживайте E у ядра для накопления заряда и отражайте волны':
   transition?.kind==='claim'?'Контур замкнут · энергия заполняет новую территорию':
   transition?.kind==='loss'?'Связь потеряна · границы поля отступают':
   area>0?'Поле действует · сборщики перевозят флюкс':

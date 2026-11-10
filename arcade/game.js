@@ -3,7 +3,7 @@ import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-deve
 import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2';
 import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1';
-import {mountContextualGuide} from './contextual-guide-ui.js?v=prototype-1';
+import {mountContextualGuide} from './contextual-guide-ui.js?v=prototype-1-core-guide-20261110';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1-living-world-population-1-sector-density-2';
@@ -78,7 +78,7 @@ import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPositi
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
  advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1-mission-choices-1';
-import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1-mission-choices-1-control-audit-1-enemy-growth-1-flux-build-1-triangle-defense-1-flight-zoom-audit-1-living-world-population-1-sector-density-2-frontier-siege-1-station-trust-1-enemy-operations-20261110';
+import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1-mission-choices-1-control-audit-1-enemy-growth-1-flux-build-1-triangle-defense-1-flight-zoom-audit-1-living-world-population-1-sector-density-2-frontier-siege-1-station-trust-1-enemy-operations-20261110-core-guide-20261110';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {clampCameraZoom,flightCamera,flightZoomKey,stepCameraZoom,wheelCameraZoom,pointerInFlightWorld,manualWheelDirection,worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1';
@@ -903,9 +903,9 @@ export class ArcadeGame {
    if(act==='trialWaypoint'&&this.overlay.dataset.mode==='map'){
     const entry=unresolvedContourTrials(this.world).find(t=>String(t.id)===b.dataset.id);
     if(entry)this.setNavigationCourse({id:'trial-'+entry.id,x:entry.x,y:entry.y,
-     label:entry.status==='ready'?'Запуск воронки':'Оборона нового треугольника'},
-     entry.status==='ready'?'Курс к ядру. Удерживайте E для запуска добычи.':
-      'Курс к месту обороны. Нападение начнётся при сближении.');
+     label:entry.status==='ready'?'Заряд ядра':'Ядро и оборона треугольника'},
+     entry.status==='ready'?'Курс к ядру. Завершите заряд удержанием E, если он ещё не накоплен.':
+      'Курс к ядру. Удерживайте E, чтобы зарядить его и открыть турели; при сближении начнётся нападение.');
     return;
    }
    if(act==='systemMenu'){openSystemMenu(this);return;}
