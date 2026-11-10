@@ -3317,6 +3317,10 @@ export class ArcadeGame {
   // cancels a replacement that the player did not confirm.
   if(this.baseTab!=='hangar'){
    this.hangarSession.chooseReplacement=false;this.hangarSession.requestedWeapon=null;
+   // A top-level tab change must close the transient weapon picker as well.
+   // Contextual returns from Development restore their own saved picker state.
+   this.hangarSession.catalog=false;this.hangarSession.inspect=false;
+   this.hangarSession.message='';
   }
   const focusIdentity=Object.hasOwn(options,'restoreFocus')?options.restoreFocus:captureMenuControl(this.overlay);
   this.pendingStationModule=null;
