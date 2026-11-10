@@ -147,9 +147,9 @@ test('station functions explain automatic service radio and automatic territoria
  assert.match(html,/Контурные линии появляются сами/);
  assert.match(html,/Линий у станции <b>0<\/b>/);
  assert.match(html,/data-act="baseContours">Открыть контуры этой станции/);
- assert.ok(html.indexOf('Связь и территория')<html.indexOf('Технология всего флота'));
- assert.ok(html.indexOf('Технология всего флота')<html.indexOf('ОБОРОНА СТАНЦИИ'));
- assert.match(html,/Технология всего флота/);
+ assert.ok(html.indexOf('Связь и территория')<html.indexOf('Вклад станции в технологию флота'));
+ assert.ok(html.indexOf('Вклад станции в технологию флота')<html.indexOf('ОБОРОНА СТАНЦИИ'));
+ assert.match(html,/Вклад станции в технологию флота/);
  assert.match(html,/Местный модуль · выбор для этой станции/);
 });
 

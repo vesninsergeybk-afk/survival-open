@@ -1,7 +1,7 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1-menu-audit-1-pressure-response-1';
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1-manual-qa-1';
-import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1';
-import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1';
+import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2';
+import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1';
 import {mountContextualGuide} from './contextual-guide-ui.js?v=prototype-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
@@ -69,7 +69,7 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
@@ -83,7 +83,7 @@ import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue,relayWav
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 
-import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1-pressure-response-1-menu-ergonomics-1-combat-balance-1';
+import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1-pressure-response-1-menu-ergonomics-1-combat-balance-1-menu-depth-2';
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2-menu-rebuild-1-menu-audit-1-devscroll-1';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1-all-menus-1-menu-reaudit-1-menu-audit-1';
@@ -370,6 +370,8 @@ export class ArcadeGame {
   this.canvas.height=Math.max(1,Math.round(h*scale));
   this.canvas.style.width=w+'px';this.canvas.style.height=h+'px';
   this.ctx.setTransform(this.canvas.width/this.vw,0,0,this.canvas.height/this.vh,0,0);
+  if(!this.overlay?.hidden&&this.baseTab==='development')
+   paintProgressionLinks(this.overlay.querySelector('.prog-tree'));
  }
  camera(){return flightCamera(this.player,this.vw,this.vh,this.cameraZoom);}
  // Spawn lanes and screen-wide weapons retain their original world radius.
@@ -876,7 +878,7 @@ export class ArcadeGame {
    if(act==='devTactic'&&(Object.hasOwn(TACTICAL_DEVICES,b.dataset.id)||b.dataset.id==='abilities')){
     this.developmentTactic=b.dataset.id;this.developmentFocus='';this.renderDock();return;
    }
-   if(act==='fitWeapon'){this.focusFittingWeapon(b.dataset.id);return;}
+   if(act==='fitWeapon'){this.focusFittingWeapon(b.dataset.id,b.dataset.slot);return;}
    if(act==='openEquipmentTactic'&&this.docked?.active&&Object.hasOwn(TACTICAL_DEVICES,b.dataset.id)){
     this.stationMenuContext=this.baseTab==='development'?{origin:'development',
      domain:this.developmentDomain,focus:this.developmentFocus,weapon:this.developmentWeapon,
@@ -2031,10 +2033,13 @@ export class ArcadeGame {
    this.hangarSession.slot=previous.slot;
    this.hangarSession.focusWeapon=previous.weapon;
    this.hangarSession.catalog=previous.catalog;
+  }else if(previous.origin==='summary'){
+   this.baseTab='summary';
   }else return false;
   this.heritage.ui('tab');
   this.renderDock({restoreFocus:previous.returnFocus,
    focusFallback:previous.origin==='development'?'.prog-node[aria-pressed="true"]':
+    previous.origin==='summary'?'[data-act="baseTab"][data-role="summary"]':
     '[data-act="hgSlot"][aria-pressed="true"], [data-act="hgView"][aria-pressed="true"]'});
   return true;
  }
@@ -2062,22 +2067,37 @@ export class ArcadeGame {
   this.heritage.ui('tab');this.renderDock();
   this.overlay.querySelector('.prog-node[aria-pressed="true"]')?.focus({preventScroll:true});
  }
- focusFittingWeapon(id){
+ focusFittingWeapon(id,requestedSlot){
   if(this.dead||!this.docked?.active||!Object.hasOwn(MODULES,id))return;
   this.stationMenuContext=this.baseTab==='development'?{origin:'development',
    domain:this.developmentDomain,focus:this.developmentFocus,weapon:this.developmentWeapon,
-   returnFocus:captureMenuControl(this.overlay)}:null;
+   returnFocus:captureMenuControl(this.overlay)}:
+   this.baseTab==='summary'?{origin:'summary',returnFocus:captureMenuControl(this.overlay)}:null;
   const heavy=MODULES[id].kind==='heavy';
   const matches=(value,i)=>slotOpen(this.shipLoadout,i)&&(i===5)===heavy;
+  const exact=Number(requestedSlot);
+  const selectedExact=requestedSlot!==undefined&&Number.isInteger(exact)&&
+   this.shipLoadout.slots[exact]===id&&matches(id,exact)?exact:-1;
   const same=this.shipLoadout.slots.findIndex((value,i)=>value===id&&matches(value,i));
   const free=this.shipLoadout.slots.findIndex((value,i)=>!value&&matches(value,i));
-  const slot=same>=0?same:free>=0?free:heavy?5:0;
+  const available=this.shipLoadout.slots.some((_,i)=>matches(null,i));
+  const noFree=available&&same<0&&free<0;
+  const slot=selectedExact>=0?selectedExact:same>=0?same:free>=0?free:heavy?5:0;
   this.baseTab='hangar';this.hangarView='weapons';this.mapReturnToBase=false;
   this.overlay.dataset.mode='base';this.overlay.hidden=false;this.paused=true;
-  this.hangarSession.dispatch({act:'hgSlot',id:String(slot)},this.baseState());
-  this.hangarSession.dispatch({act:'hgFocusWeapon',id},this.baseState());
-  this.hangarSession.catalog=same<0;this.heritage.ui('tab');this.renderDock();
-  this.overlay.querySelector(same>=0?'.hg-ship':'.hg-weapon-inspector')?.scrollIntoView({block:'nearest'});
+  if(noFree){
+   this.hangarSession.chooseReplacement=true;
+   this.hangarSession.requestedWeapon=id;
+   this.hangarSession.focusWeapon=id;
+   this.hangarSession.catalog=false;
+   this.hangarSession.message='Все подходящие узлы заняты. Нажмите на оружие в схеме корабля, которое хотите заменить.';
+  }else{
+   this.hangarSession.dispatch({act:'hgSlot',id:String(slot)},this.baseState());
+   this.hangarSession.dispatch({act:'hgFocusWeapon',id},this.baseState());
+   this.hangarSession.catalog=available&&same<0;
+  }
+  this.heritage.ui('tab');this.renderDock();
+  this.overlay.querySelector(same>=0||noFree?'.hg-ship':'.hg-weapon-inspector')?.scrollIntoView({block:'nearest'});
  }
  skills(full=false,fromPause=''){
   if(this.dead)return;
@@ -3055,6 +3075,7 @@ export class ArcadeGame {
     if(details){details.open=true;details.scrollIntoView({block:'nearest'});}return;
    }
    if(!['weapons','tactics'].includes(data.id))return;
+   this.hangarSession.chooseReplacement=false;this.hangarSession.requestedWeapon=null;
    this.hangarView=data.id;this.hangarSession.message='';this.heritage.ui('tab');this.renderDock();
    const nav=data.id==='weapons'||data.id==='weapon-upgrades'?'.hg-weapon-views':'.hg-view-nav';
    this.overlay.querySelector(nav+' [aria-pressed="true"]')?.focus({preventScroll:true});
@@ -3100,6 +3121,7 @@ export class ArcadeGame {
    if(result.ok)this.heritage.ui('upgrade');else this.heritage.ui('deny');
    this.renderDock();return;
   }
+  const completingReplacement=data.act==='hgSlot'&&this.hangarSession.chooseReplacement;
   const result=this.hangarSession.dispatch(data,{loadout:this.shipLoadout,level:this.player.level,
    ore:this.player.ore,points:this.player.points,activeBases:this.activeBases,
    ranks:this.skillRanks,fieldLoan:this.fieldLoan,baseActive:this.docked.active,
@@ -3111,7 +3133,8 @@ export class ArcadeGame {
    this.syncShipLoadout();
    this.heritage.ui('upgrade');
   }else this.heritage.ui('tab');
-  if(data.act==='hgSlot'&&this.hangarSession.draft.slots[this.hangarSession.slot])this.hangarSession.catalog=false;
+  if(data.act==='hgSlot'&&!completingReplacement&&this.hangarSession.draft.slots[this.hangarSession.slot])
+   this.hangarSession.catalog=false;
   this.renderDock();
   const selector='[data-act="'+data.act+'"]'+(data.id?'[data-id="'+data.id+'"]':'');
   const focus=this.overlay.querySelector(selector);

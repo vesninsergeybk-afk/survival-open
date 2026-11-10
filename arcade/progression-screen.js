@@ -258,9 +258,16 @@ function branchButtons(domain,state){
     '<img src="'+art('weapons',id)+'" alt=""><span class="prog-subtab-copy"><strong>'+esc(name)+'</strong><small>'+esc(status)+'</small></span></button>';
   };
   const modules=Object.values(MODULES);
-  return '<span class="prog-subtab-label">НА КОРАБЛЕ</span>'+modules.filter(m=>count(m.id)).map(m=>tab(m.id,m.short)).join('')+
-   '<span class="prog-subtab-label">ДРУГОЕ ОРУЖИЕ</span>'+modules.filter(m=>!count(m.id)).map(m=>tab(m.id,m.short)).join('')+
-   '<span class="prog-subtab-label">РУЧНОЕ</span>'+tab('comet','Комета',true)+tab('mines','Мины',true);
+  const installed=modules.filter(m=>count(m.id));
+  const absent=modules.filter(m=>!count(m.id));
+  const group=(label,items,kind)=>'<div class="prog-weapon-group '+kind+'"><span class="prog-subtab-label">'+label+'</span>'+items+'</div>';
+  const absentSelected=absent.some(m=>m.id===current);
+  // The two flight weapons must stay visible without horizontal scrolling;
+  // uninstalled equipment is optional reference material, not the main route.
+  return group('НА КОРАБЛЕ',installed.map(m=>tab(m.id,m.short)).join(''),'is-equipped-group')+
+   group('РУЧНОЕ',tab('comet','Комета',true)+tab('mines','Мины',true),'is-manual-group')+
+   '<details class="prog-weapon-more"'+(absentSelected?' open':'')+'><summary>Другое оружие · '+absent.length+
+   '</summary><div class="prog-weapon-group is-absent-group">'+absent.map(m=>tab(m.id,m.short)).join('')+'</div></details>';
  }
  if(domain==='tactics')return [...Object.entries(TACTICAL_DEVICES).map(([id,d])=>[id,d.short]),['abilities','Способности']]
   .map(([id,name])=>'<button type="button" class="prog-subtab" data-act="devTactic" data-id="'+id+'" aria-pressed="'+((state.developmentTactic||'pulse')===id)+'">'+esc(name)+'</button>').join('');
@@ -388,16 +395,30 @@ export function renderProgressionScreen(state){
  const branch=branchButtons(domain,state);
  return '<section class="progression-ui" data-domain="'+domain+'">'+top+'<div class="prog-main">'+orbit+
   '<div class="prog-workspace"><div class="prog-workspace-head"><div><span>НАПРАВЛЕНИЕ</span><h2>'+meta.title+'</h2></div>'+
-  '<div class="prog-points-hint">'+ledger.spent+' потрачено · '+ledger.free+' '+pointsWord(ledger.free)+' свободно</div></div>'+
-  (branch?'<nav class="prog-subtabs" aria-label="'+(domain==='weapons'?'Оружие для просмотра развития':'Разделы направления')+'">'+branch+'</nav>':'')+weaponHead+weaponNote+
+  '<div class="prog-points-tools"><div class="prog-points-hint">'+ledger.spent+' потрачено · '+ledger.free+' '+pointsWord(ledger.free)+' свободно</div>'+spentPointsHtml(state,ledger)+'</div></div>'+
+  (branch?'<nav class="prog-subtabs'+(domain==='weapons'?' prog-weapon-subtabs':'')+'" aria-label="'+(domain==='weapons'?'Оружие для просмотра развития':'Разделы направления')+'">'+branch+'</nav>':'')+weaponHead+weaponNote+
   (state.stationMenuContext?.origin==='hangar'?'<button type="button" class="menu-context-return" data-act="menuContextBack">← Назад к оснащению</button>':'')+
-  treeHtml(nodes,selected)+detailHtml(selected,domain,weapon,state)+spentPointsHtml(state,ledger)+'</div></div></section>';
+  treeHtml(nodes,selected)+detailHtml(selected,domain,weapon,state)+'</div></div></section>';
 }
 
 // Decoration is computed from actual prerequisites, not an artist's hard-coded diagram.
 // The tree stays a real, extendable graph when designers add a skill or level.
 export function paintProgressionLinks(root){
  if(!root)return;
+ const workspace=root.closest?.('.prog-workspace'),detail=workspace?.querySelector('.prog-detail');
+ if(workspace&&detail){
+  const compact=typeof window!=='undefined'&&window.matchMedia?.('(max-width:1240px)').matches;
+  const chosen=root.querySelector('.prog-node[aria-pressed="true"]');
+  if(compact&&chosen){
+   // Place the inspector after the entire skill tier: keeps sibling nodes in
+   // one row and prevents the connector diagram from shifting unpredictably.
+   chosen.closest('.prog-tier').insertAdjacentElement('afterend',detail);
+   detail.classList.add('prog-detail-inline');
+  }else{
+   workspace.append(detail);
+   detail.classList.remove('prog-detail-inline');
+  }
+ }
  const svg=root.querySelector('.prog-tree-links');if(!svg)return;
  // An absolute SVG sized to scrollWidth/scrollHeight would enlarge those very
  // dimensions and create scrollbars even when the whole tree fits on screen.

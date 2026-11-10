@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {renderBasePanel,baseOffer} from '../base-panel.js';
-import {renderProgressionScreen,progressionModel} from '../progression-screen.js';
+import {renderProgressionScreen,progressionModel,paintProgressionLinks} from '../progression-screen.js';
 import {renderShipHangar} from '../hangar-panel.js';
 import {createLoadout} from '../ship-loadout.js';
 import {createTactical} from '../tactical-fields.js';
@@ -148,10 +148,106 @@ test('development groups actual mounted weapons before other guns and separates 
  const g=station();g.baseTab='development';
  const html=renderProgressionScreen(g.baseState());
  assert.match(html,/НА КОРАБЛЕ[\s\S]*data-id="plasma"/);
- assert.match(html,/ДРУГОЕ ОРУЖИЕ[\s\S]*data-id="ion"/);
- assert.match(html,/ДРУГОЕ ОРУЖИЕ[\s\S]*data-id="howitzer"/);
+ assert.match(html,/Другое оружие · \d+[\s\S]*data-id="ion"/);
+ assert.match(html,/Другое оружие · \d+[\s\S]*data-id="howitzer"/);
  assert.match(html,/РУЧНОЕ[\s\S]*data-id="comet"/);
+ assert.ok(html.indexOf('is-manual-group')<html.indexOf('class="prog-weapon-more"'),
+  'manual weapons appear before the optional uninstalled module catalog');
+ assert.match(html,/class="prog-weapon-more"/);
+ assert.doesNotMatch(html,/class="prog-weapon-more" open/);
+ g.developmentWeapon='rail';
+ assert.match(renderProgressionScreen(g.baseState()),/class="prog-weapon-more" open/,
+  'when an absent weapon is selected, its disclosure is expanded');
  assert.doesNotMatch(html,/class="prog-subtab-label">АВТО</);
+});
+
+test('the points ledger sits beside the free-point counter, before the tall skill tree',()=>{
+ const g=station();g.baseTab='development';
+ const html=renderProgressionScreen(g.baseState());
+ assert.ok(html.indexOf('class="prog-points-tools"')>=0);
+ assert.ok(html.indexOf('class="prog-ledger"')<html.indexOf('class="prog-graph"'));
+ assert.equal((html.match(/class="prog-ledger"/g)||[]).length,1);
+});
+
+test('narrow screens place the details after the chosen tier, then restore the desktop inspector',()=>{
+ const previous=globalThis.window;
+ let compact=true,placement='',inline=false;
+ const detail={classList:{add:()=>{inline=true;},remove:()=>{inline=false;}}};
+ const tier={insertAdjacentElement:(position,element)=>{
+  assert.equal(position,'afterend');assert.equal(element,detail);placement='after-tier';
+ }};
+ const workspace={querySelector:()=>detail,append:element=>{
+  assert.equal(element,detail);placement='desktop';
+ }};
+ const chosen={closest:selector=>selector==='.prog-tier'?tier:null};
+ const root={closest:()=>workspace,querySelector:selector=>selector==='.prog-node[aria-pressed="true"]'?chosen:null};
+ globalThis.window={matchMedia:()=>({matches:compact})};
+ try{
+  paintProgressionLinks(root);
+  assert.equal(placement,'after-tier');assert.equal(inline,true);
+  compact=false;paintProgressionLinks(root);
+  assert.equal(placement,'desktop');assert.equal(inline,false);
+ }finally{globalThis.window=previous;}
+});
+
+test('overview mounted guns open the exact slot with a direct return to overview',()=>{
+ const g=station();
+ g.shipLoadout.slots[1]='plasma';g.hangarSession.begin(g.shipLoadout);
+ const overview=renderBasePanel(g.docked,g.baseState());
+ assert.match(overview,/class="base-mounted-weapon" data-act="fitWeapon" data-id="plasma" data-slot="0"/);
+ assert.match(overview,/class="base-mounted-weapon" data-act="fitWeapon" data-id="plasma" data-slot="1"/);
+ const original=JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]);
+ g.focusFittingWeapon('plasma','1');
+ assert.equal(g.baseTab,'hangar');assert.equal(g.hangarSession.slot,1);
+ assert.equal(g.hangarSession.catalog,false);
+ assert.equal(g.stationMenuContext.origin,'summary');
+ assert.match(renderShipHangar({...g.baseState(),stationMenuContext:g.stationMenuContext},g.hangarSession),
+  /data-act="menuContextBack">← Назад к обзору/);
+ assert.equal(g.restoreStationMenuContext(),true);
+ assert.equal(g.baseTab,'summary');assert.equal(g.stationMenuContext,null);
+ assert.equal(JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]),original);
+});
+
+test('a full weapon rack requires an explicit slot selection before any replacement',()=>{
+ const g=station();g.baseTab='development';
+ g.shipLoadout.slots[1]='flak';g.hangarSession.begin(g.shipLoadout);
+ const original=JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]);
+ g.focusFittingWeapon('rail');
+ assert.equal(g.baseTab,'hangar');assert.equal(g.hangarSession.chooseReplacement,true);
+ assert.equal(g.hangarSession.requestedWeapon,'rail');
+ assert.equal(g.hangarSession.catalog,false);
+ assert.match(renderShipHangar({...g.baseState(),stationMenuContext:g.stationMenuContext},g.hangarSession),
+  /Нет свободных узлов для/);
+ assert.equal(JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]),original);
+ g.hangarAction({act:'hgSlot',id:'1'});
+ assert.equal(g.hangarSession.chooseReplacement,false);
+ assert.equal(g.hangarSession.slot,1);
+ assert.equal(g.hangarSession.focusWeapon,'rail');
+ assert.equal(g.hangarSession.catalog,true,'the selected occupied slot must open the requested catalog');
+ assert.equal(g.hangarSession.draft.slots[1],'flak','slot selection alone must not replace anything');
+ assert.equal(JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]),original);
+});
+
+test('locked heavy slot explains how to open it instead of prompting an impossible replacement',()=>{
+ const g=station();g.baseTab='development';
+ const original=JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]);
+ g.focusFittingWeapon('howitzer');
+ assert.equal(g.baseTab,'hangar');assert.equal(g.hangarSession.slot,5);
+ assert.equal(g.hangarSession.chooseReplacement,false);
+ assert.equal(g.hangarSession.catalog,false);
+ assert.match(renderShipHangar({...g.baseState(),stationMenuContext:g.stationMenuContext},g.hangarSession),
+  /data-act="openDevelopment" data-id="ship">Условия открытия узла/);
+ assert.equal(JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]),original);
+});
+
+test('station territory and permanent network development are clearly distinguished',()=>{
+ const g=station(),overview=renderBasePanel(g.docked,g.baseState());
+ assert.match(overview,/data-role="network"[^>]*>[^<]*Территория/);
+ g.baseTab='network';
+ const territory=renderBasePanel(g.docked,g.baseState());
+ assert.match(territory,/Управление территорией/);
+ assert.match(territory,/data-act="openDevelopment" data-id="network">Открыть развитие сети/);
+ assert.match(territory,/Вклад станции в технологию флота/);
 });
 
 test('small screens keep the two equipment sections, focus indicators and contextual return control',()=>{
@@ -168,15 +264,20 @@ test('small screens keep the two equipment sections, focus indicators and contex
 test('the published page refreshes the entire changed menu import and style chain',()=>{
  const source=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
  const version='menu-audit-fix-1';
+ const current='menu-depth-2';
  for(const [file,paths] of [
   ['index.html',['game.js','menu-consistency.css']],
-  ['game.js',['base-panel.js','development-panel.js','progression-screen.js']],
-  ['base-panel.js',['development-panel.js']],
-  ['development-panel.js',['progression-screen.js']]]){
+  ['game.js',['base-panel.js','development-panel.js','progression-screen.js','ship-loadout.js']],
+  ['base-panel.js',['development-panel.js','hangar-panel.js','ship-loadout.js']],
+  ['development-panel.js',['progression-screen.js']],
+  ['hangar-panel.js',['ship-loadout.js']]]){
   const html=source(file);
   for(const path of paths){
    const line=html.split('\n').find(line=>line.includes(path+'?v='));
-   assert.ok(line?.includes(version),file+' should refresh '+path+' after deployment');
+   if(!(['game.js','base-panel.js','hangar-panel.js'].includes(file)&&
+    (path==='ship-loadout.js'||file==='base-panel.js'&&path==='hangar-panel.js')))
+    assert.ok(line?.includes(version),file+' should keep the previous release marker for '+path);
+   assert.ok(line?.includes(current),file+' should refresh new version of '+path);
   }
  }
  assert.match(source('index.html'),/station-menu-v2\.css\?v=[^"']*overview-first-1/);
