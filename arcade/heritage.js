@@ -1,4 +1,4 @@
-import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1';
+import {WorldVFX} from '../src/world-vfx.js?v=explosion-grammar-01-weapon-feel-1-shield-readability-20261110';
 import {AudioEngine} from '../src/audio.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-finish-1-support-three-1-frontier-siege-1';
 import {frontierThreatNear} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {AdaptiveMusicDirector, MUSIC_SCENES, spatialCue} from './audio-director.js?v=foley-autofire-03';

@@ -22,8 +22,10 @@ export function planEncounter(time,director,room,side,middle,roll=0,previous='')
   let pattern=options[index];
   // Consecutive encounters should not look identical when alternatives exist.
   if(pattern===previous&&options.length>1)pattern=options[(index+1)%options.length];
+  // Early eye swarms should feel like a formation rather than a screen-filling
+  // cloud. Larger late-game packs keep their existing tactical role.
   const actualCount=pattern==='motes'?
-    Math.min(time>=205&&room>=16?16:10,Math.floor(room)):count;
+    Math.min(time<205?9:time>=205&&room>=16?16:10,Math.floor(room)):count;
   const combat=director.types.filter(t=>t==='scout'||t==='fighter'||t==='flanker');
   const weak=combat.includes('scout')?'scout':combat[0];
   const fighter=combat.includes('fighter')?'fighter':weak;

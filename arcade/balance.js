@@ -12,6 +12,15 @@ export const STARTER_COMBAT = Object.freeze({
   signalSight: 560,
   intentRange: 700
 });
+// An active shield absorbs most of a hit, but its field transmits a small
+// shock to the hull. This keeps hull condition meaningful in shielded fights.
+export const SHIELD_HULL_TRANSFER = .15;
+export function splitPlayerDamage(damage,shield){
+ const incoming=Math.max(0,Number.isFinite(damage)?damage:0);
+ const charge=Math.max(0,Number.isFinite(shield)?shield:0);
+ const absorbed=Math.min(charge,incoming*(1-SHIELD_HULL_TRANSFER));
+ return {absorbed,hullDamage:incoming-absorbed};
+}
 export const RULES = Object.freeze({
   cell: 640,
   rockCell: 460,
@@ -88,15 +97,19 @@ export const outsideCamera = (x, y, camera, radius = 0) =>
   x + radius < camera.x || x - radius > camera.x + camera.w ||
   y + radius < camera.y || y - radius > camera.y + camera.h;
 
+// About 10% less *local crowding* during the opening. Formations, paid raids
+// and missions keep their distinct size and purpose. Fade out the reduction
+// before 205 s to avoid an abrupt spawn-cap jump at the next stage.
+const openingCrowdCap=(time,cap)=>Math.round(cap*(.9+.1*clamp((time-155)/50,0,1)));
 // Nine seconds to take control, then genuine pressure from multiple scouts.
 // A larger formation is still capped, and the tougher classes arrive in order.
 export function openingThreat(time, level = 1) {
  if(time<9)return {cap:0,interval:9,groupSize:0,types:[]};
- if(time<36)return {cap:9,interval:7,groupSize:4,types:['scout']};
- if(time<75)return {cap:15,interval:5.8,groupSize:5,types:['scout','fighter']};
- if(time<118)return {cap:22,interval:5.2,groupSize:6,types:['scout','fighter','flanker']};
- if(time<155)return {cap:28,interval:4.6,groupSize:7,types:['scout','fighter','flanker','berserker']};
- if(time<205)return {cap:33,interval:4,groupSize:7,types:['scout','fighter','flanker','berserker','healer']};
+ if(time<36)return {cap:openingCrowdCap(time,9),interval:7,groupSize:4,types:['scout']};
+ if(time<75)return {cap:openingCrowdCap(time,15),interval:5.8,groupSize:5,types:['scout','fighter']};
+ if(time<118)return {cap:openingCrowdCap(time,22),interval:5.2,groupSize:6,types:['scout','fighter','flanker']};
+ if(time<155)return {cap:openingCrowdCap(time,28),interval:4.6,groupSize:7,types:['scout','fighter','flanker','berserker']};
+ if(time<205)return {cap:openingCrowdCap(time,33),interval:4,groupSize:7,types:['scout','fighter','flanker','berserker','healer']};
  const elapsed=time-205;
  return {
   // The late game becomes more dangerous through tougher ships and formations,

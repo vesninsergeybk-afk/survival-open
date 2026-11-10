@@ -472,12 +472,25 @@ export class WorldVFX {
         this._ring(x,y,shield?67:86,shield?'cyan':'red',.48);
     }
 
-    arcadePlayerHurt(x,y,shield=false,hullAlso=false,contact=null) {
+    /** A small, brief glint marks a projectile stopped by post-hit immunity. */
+    arcadePlayerDeflect(x,y,contact=null) {
+        const px=contact?.directed?contact.x:x,py=contact?.directed?contact.y:y;
+        this._ring(px,py,19,'violet',.17);
+        this._emit('star',px,py,{size:20,life:.16,tint:'violet',alpha:.72,priority:2});
+    }
+
+    arcadePlayerHurt(x,y,shield=false,hullAlso=false,contact=null,hullDamage=Infinity) {
         if(shield)this.shieldImpact(x,y,67,contact);
         if(!shield||hullAlso){
             const px=contact?.directed?contact.x:x,py=contact?.directed?contact.y:y;
-            this.hullImpact(px,py,true,contact);
-            this._ring(x,y,86,'red',.48);
+            if(shield&&hullDamage<6){
+                // Leakage through an active shield is real, but should not look
+                // like a direct heavy hull breach on top of the cyan shield.
+                this._emit('star',px,py,{size:15,life:.15,tint:'orange',alpha:.8,priority:2});
+            }else{
+                this.hullImpact(px,py,true,contact);
+                this._ring(x,y,86,'red',.48);
+            }
         }
     }
 

@@ -153,7 +153,7 @@ test('the actual spawn path creates small scout ships with one shared pack',()=>
  const rng=Math.random;let calls=0;
  Math.random=()=>[.2,.5,choice][calls++]??.3;
  try{g.spawnGroup(director);}finally{Math.random=rng;}
- assert.equal(g.enemies.length,10);
+ assert.equal(g.enemies.length,9);
  assert.ok(g.enemies.every(e=>e.microSwarm&&e.r===MOTE_SWARM.radius&&e.hp<20));
  assert.equal(new Set(g.enemies.map(e=>e.motePack)).size,1);
  assert.ok(g.enemies.every(e=>e._patrolRoute&&e.moteApproach===e._patrolRoute),

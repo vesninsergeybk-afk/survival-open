@@ -97,9 +97,9 @@ test('shield ring stays centered while damage contact faces the real source',()=
   },cockpit:{impact(){}}
  };
  C.prototype.hurt.call(game,10,{x:0,y:100});
- assert.equal(game.player.hp,110);
- assert.equal(game.player.shield,15);
- assert.deepEqual(recorded[0].slice(0,4),[100,100,true,false]);
+ assert.equal(game.player.hp,108.5);
+ assert.equal(game.player.shield,16.5);
+ assert.deepEqual(recorded[0].slice(0,4),[100,100,true,true]);
  const point=recorded[0][4];
  near(point.x,81);near(point.y,100);
  assert.equal(point.nx,-1);

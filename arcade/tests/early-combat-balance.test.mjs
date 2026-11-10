@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {RULES,STARTER_COMBAT,beamDamage,openingThreat,openingSpawnRoom,rebaseSavedHull} from '../balance.js';
+import {RULES,STARTER_COMBAT,beamDamage,openingThreat,openingSpawnRoom,rebaseSavedHull,SHIELD_HULL_TRANSFER,splitPlayerDamage} from '../balance.js';
 import {moduleStats,createLoadout} from '../ship-loadout.js';
 import {ENEMY_TYPES,IRIS_COMBAT} from '../ai.js';
 import {ENEMY_AWARENESS} from '../enemy-awareness.js';
 import {SIGNAL_AI} from '../signal-perception.js';
 import {IRIS_SWARM} from '../iris-swarm.js';
 import {ArcadeGame} from './runtime-game.mjs';
+import {game as fixture} from './weapons-scene.mjs';
 
 test('начальный корабль слабее на дистанции, но сохраняет мощный ближний бой',()=>{
  const p=moduleStats('plasma');
@@ -60,6 +61,72 @@ test('защищённые девять секунд переходят в пл�
  }
 });
 
+test('в первые минуты рядом с пилотом примерно на 10% меньше обычных патрулей',()=>{
+ const before=[9,15,22,28,33];
+ const stages=[9,36,75,118,155];
+ for(let i=0;i<stages.length;i++){
+  const actual=openingThreat(stages[i]);
+  assert.ok(Math.abs(actual.cap-before[i]*.9)<=.5,
+   `время ${stages[i]}: предел ${actual.cap} должен быть близок к -10%`);
+ }
+ assert.equal(openingThreat(204.99).cap,openingThreat(205).cap,
+  'возврат к обычной численности должен быть плавным');
+ assert.equal(openingThreat(205).cap,33,
+  'поздние патрули и полноценные бои остаются прежними');
+});
+
+test('щит передаёт корпусу часть урона, сохраняя общий баланс одного попадания',()=>{
+ assert.equal(SHIELD_HULL_TRANSFER,.15);
+ const hit=splitPlayerDamage(20,50);
+ assert.equal(hit.absorbed,17);
+ assert.equal(hit.hullDamage,3);
+ const weak=splitPlayerDamage(20,2);
+ assert.deepEqual(weak,{absorbed:2,hullDamage:18});
+ assert.deepEqual(splitPlayerDamage(20,0),{absorbed:0,hullDamage:20});
+ for(const [damage,shield] of [[3,40],[17,1],[55,22],[20,50]]){
+  const {absorbed,hullDamage}=splitPlayerDamage(damage,shield);
+  assert.ok(absorbed<=shield&&absorbed>=0&&hullDamage>=0);
+  assert.ok(Math.abs(absorbed+hullDamage-damage)<1e-9);
+ }
+});
+
+test('реальное попадание повреждает оба слоя, но повторный удар во время неуязвимости не учитывается',()=>{
+ const g=fixture();
+ g.time=75;g.player.hp=90;g.player.shield=40;g.player.invul=0;
+ g.cockpit={impact(){}};
+ const hurtEffects=[],deflectEffects=[];
+ g.heritage.vfx={
+  arcadePlayerHurt(...args){hurtEffects.push(args);},
+  arcadePlayerDeflect(...args){deflectEffects.push(args);}
+ };
+ g.hurt(20,{x:80,y:0});
+ assert.ok(Math.abs(g.player.hp-87)<1e-9);
+ assert.ok(Math.abs(g.player.shield-23)<1e-9);
+ assert.ok(g.player.invul>0);
+ assert.equal(hurtEffects.length,1);
+ assert.equal(hurtEffects[0][5],3,'эффект учитывает именно урон корпусу');
+ const firstGrace=g.player.invul;
+ g.hurt(20,{x:80,y:0});
+ assert.ok(Math.abs(g.player.hp-87)<1e-9);
+ assert.ok(Math.abs(g.player.shield-23)<1e-9);
+ assert.equal(deflectEffects.length,1,'игрок видит первое отражённое попадание');
+ assert.ok(deflectEffects[0][2]?.directed,'отражение привязано к месту попадания');
+ g.time+=.05;
+ g.hurt(20,{x:80,y:0});
+ assert.equal(deflectEffects.length,1,'поток снарядов не создаёт россыпь вспышек');
+ assert.equal(g.player.invul,firstGrace,'отражение не продлевает неуязвимость');
+ g.time+=.17;
+ g.hurt(20,{x:80,y:0});
+ assert.equal(deflectEffects.length,2,'отражённые попадания остаются читаемыми в долгом залпе');
+ assert.ok(Math.abs(g.player.hp-87)<1e-9);
+ assert.ok(Math.abs(g.player.shield-23)<1e-9);
+ g.time+=.6;g.player.invul=0;
+ g.hurt(20,{x:80,y:0});
+ assert.ok(Math.abs(g.player.hp-84)<1e-9);
+ assert.ok(Math.abs(g.player.shield-6)<1e-9);
+ assert.equal(hurtEffects.length,2);
+});
+
 test('дальние неосведомлённые патрули не перекрывают местные встречи',()=>{
  const stage=openingThreat(20);
  assert.equal(openingSpawnRoom(20,stage,5,0,5),stage.cap);
@@ -71,7 +138,7 @@ test('дальние неосведомлённые патрули не пере
   'далёкие корабли других операций не отменяют местные патрули');
  assert.equal(openingSpawnRoom(205,openingThreat(205),22,0,0),openingThreat(205).cap,
   'дальние враги не расходуют квоту местных столкновений после 205-й секунды');
- assert.equal(openingSpawnRoom(204,openingThreat(204),46,0,30),33,
+ assert.equal(openingSpawnRoom(204,openingThreat(204),46,0,30),openingThreat(204).cap,
   'старый локальный бюджет учитывает дальние патрули отдельно');
  assert.equal(openingSpawnRoom(205,openingThreat(205),43,0,27),33,
   'при переходе на 205-й секунде местный бюджет не должен внезапно стать нулём');

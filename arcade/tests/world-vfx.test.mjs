@@ -154,6 +154,33 @@ test('shield keeps its circular outline at ship center but flashes at contact',(
   .every(p=>p.vx>0),'shield sparks leave the contacted side');
 });
 
+test('small hull leakage through the shield has a modest glint, not a heavy breach',()=>{
+ const point={x:19,y:0,nx:1,ny:0,directed:true};
+ const minor=new WorldVFX();
+ minor.arcadePlayerHurt(0,0,true,true,point,3);
+ assert.ok(minor.rings.some(r=>r.tint==='cyan'&&r.x===0));
+ assert.ok(!minor.rings.some(r=>r.tint==='red'));
+ assert.ok(!minor.particles.some(p=>p.kind==='shard'));
+ assert.ok(minor.particles.some(p=>p.kind==='star'&&p.tint==='orange'&&p.x===19));
+ const major=new WorldVFX();
+ major.arcadePlayerHurt(0,0,true,true,point,8);
+ assert.ok(major.rings.some(r=>r.tint==='red'));
+ assert.ok(major.particles.some(p=>p.kind==='shard'));
+ const bare=new WorldVFX();
+ bare.arcadePlayerHurt(0,0,false,true,point,3);
+ assert.ok(bare.rings.some(r=>r.tint==='red'),
+  'попадание прямо в корпус по-прежнему заметно');
+});
+
+test('deflected hits are visible at contact without a ship-wide damage pulse',()=>{
+ const vfx=new WorldVFX({reducedMotion:true});
+ vfx.arcadePlayerDeflect(0,0,{x:19,y:0,nx:1,ny:0,directed:true});
+ assert.deepEqual(vfx.rings.map(r=>[r.x,r.y,r.radius,r.tint]),[[19,0,19,'violet']]);
+ assert.ok(vfx.particles.some(p=>p.kind==='star'&&p.tint==='violet'&&p.priority===2));
+ assert.ok(!vfx.particles.some(p=>p.kind==='shard'||p.kind==='lightning'));
+ assert.ok(vfx.particles.length<=vfx.maxParticles);
+});
+
 test('directed hull and mineral impacts eject fragments outward',()=>{
  const point={x:50,y:0,nx:1,ny:0,directed:true};
  const hull=new WorldVFX();
