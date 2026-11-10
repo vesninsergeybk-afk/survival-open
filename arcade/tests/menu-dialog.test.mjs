@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {keepTabInMenu,setMenuBackgroundInert,restoreMenuControl} from '../menu-dialog.js';
+import {keepTabInMenu,setMenuBackgroundInert,captureMenuControl,restoreMenuControl} from '../menu-dialog.js';
 import {RuntimeHarness} from './runtime-game.mjs';
 import {createLoadout} from '../ship-loadout.js';
 
@@ -46,6 +46,20 @@ test('a rerender restores the selected live control or falls back safely',()=>{
  assert.equal(doc.activeElement,old);
  restoreMenuControl(overlay,{act:'baseTab',id:'',role:'network'},'[data-act="close"]');
  assert.equal(doc.activeElement,fallback);
+});
+
+test('return focus distinguishes two hardpoints fitted with the same gun',()=>{
+ const doc={activeElement:null},first=fakeButton(doc,'fitWeapon'),second=fakeButton(doc,'fitWeapon');
+ first.dataset.id='plasma';first.dataset.slot='0';
+ second.dataset.id='plasma';second.dataset.slot='1';
+ const overlay={ownerDocument:doc,contains:el=>el===first||el===second,
+  querySelectorAll:()=>[first,second]};
+ second.focus();
+ const identity=captureMenuControl(overlay);
+ assert.equal(identity.slot,'1');
+ first.focus();
+ assert.equal(restoreMenuControl(overlay,identity),second);
+ assert.equal(doc.activeElement,second);
 });
 
 function stagedExit(mode='base'){

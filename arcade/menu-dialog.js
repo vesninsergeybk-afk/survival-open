@@ -54,8 +54,11 @@ export function keepTabInMenu(event,overlay){
 export function captureMenuControl(overlay){
  const element=overlay?.ownerDocument?.activeElement;
  if(!element||!overlay.contains?.(element)||!element.dataset?.act)return null;
- return {act:element.dataset.act,id:element.dataset.id||'',role:element.dataset.role||'',
+ const identity={act:element.dataset.act,id:element.dataset.id||'',role:element.dataset.role||'',
   target:element.dataset.target||'',focus:element.dataset.focus||''};
+ // Two hardpoints may carry the same gun. Preserve which one was activated.
+ if(element.dataset.slot!==undefined)identity.slot=element.dataset.slot;
+ return identity;
 }
 
 export function restoreMenuControl(overlay,identity,fallback=''){
@@ -64,7 +67,8 @@ export function restoreMenuControl(overlay,identity,fallback=''){
    element.dataset.act===identity.act&&(element.dataset.id||'')===identity.id&&
    (element.dataset.role||'')===identity.role&&
    (element.dataset.target||'')===(identity.target||'')&&
-   (element.dataset.focus||'')===(identity.focus||'')&&visible(element));
+   (element.dataset.focus||'')===(identity.focus||'')&&
+   (identity.slot===undefined||(element.dataset.slot||'')===identity.slot)&&visible(element));
   if(found){found.focus({preventScroll:true});return found;}
  }
  return focusMenu(overlay,fallback);
