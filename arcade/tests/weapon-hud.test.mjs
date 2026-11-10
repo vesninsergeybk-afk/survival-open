@@ -107,7 +107,7 @@ test('a fitted howitzer remains visible even when the pilot selects another mous
  assert.equal(find(state,'howitzer'),undefined,'the selected gun must not be listed twice');
 });
 
-test('the page provides a continuous desktop instrument and an accessible mobile expansion',()=>{
+test('the page provides a compact desktop instrument and an accessible mobile expansion',()=>{
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const css=readFileSync(new URL('../weapon-hud.css',import.meta.url),'utf8');
  const script=readFileSync(new URL('../hud.js',import.meta.url),'utf8');
@@ -126,6 +126,12 @@ test('the page provides a continuous desktop instrument and an accessible mobile
   'directly controlled actions are higher priority than passive auto-fire');
  assert.match(css,/@media\(pointer:coarse\)/);
  assert.match(css,/\.weapon-deck\.is-open \.weapon-deck-body/);
+ assert.match(css,/@media\(pointer:fine\)\{[\s\S]*\.weapon-deck:not\(\.is-open\) \.weapon-deck-body\{display:none\}/,
+  'desktop collapsed state must hide detailed telemetry, not merely change aria-expanded');
+ assert.match(css,/\.weapon-deck:not\(\.is-open\) \.weapon-deck-quick-readouts\{\s*display:flex/,
+  'desktop collapsed state must still display Space and G readiness');
+ assert.match(css,/\.weapon-deck-quick\[hidden\]\{display:none!important\}/,
+  'the G badge must remain visually hidden until a field weapon is fitted');
  assert.match(css,/pointer-events:none/, 'passive desktop telemetry must not block mouse aiming');
  assert.match(css,/\.weapon-deck\.is-open\{\s*pointer-events:auto/, 'an explicit expansion allows scrolling');
  assert.match(css,/min-height:45px/);
@@ -134,6 +140,11 @@ test('the page provides a continuous desktop instrument and an accessible mobile
  assert.match(script,/this\.renderWeaponDeck\(game\)/);
  assert.match(script,/state\.quick\.tactical/);
  assert.match(script,/weapon-deck-charge/);
+});
+test('station field-loan and help copy use the G binding, never the tactical Space binding',()=>{
+ const source=readFileSync(new URL('../base-panel.js',import.meta.url),'utf8');
+ assert.match(source,/const fieldKey=readableKey\(\(state\.controls\|\|DEFAULT_CONTROLS\)\.fieldWeapon\)/);
+ assert.doesNotMatch(source,/const fieldKey=readableKey\(\(state\.controls\|\|DEFAULT_CONTROLS\)\.field\)/);
 });
 test('every installed weapon and tactical device has a real purpose-drawn cockpit SVG',()=>{
  const source=readFileSync(new URL('../hud.js',import.meta.url),'utf8');

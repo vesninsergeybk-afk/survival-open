@@ -93,9 +93,49 @@
  background:#12384bf0;color:#C7EDF5;cursor:pointer;pointer-events:auto;
 }
 .cockpit-hud .weapon-deck-quick-readouts{display:none}
+.cockpit-hud .weapon-deck-quick[hidden]{display:none!important}
 .cockpit-hud .weapon-deck.is-open .weapon-deck-chevron{transform:rotate(180deg)}
 .cockpit-hud .weapon-deck-toggle:focus-visible{
  outline:2px solid #cbfaff;outline-offset:3px;
+}
+/* Desktop: the collapsed card must actually release the playfield.  Space
+   and G remain readable at a glance; the full spec opens on demand. */
+@media(pointer:fine){
+ #hud.cockpit-hud .weapon-deck:not(.is-open){
+  width:clamp(290px,29vw,355px);max-height:none;overflow:visible;
+  pointer-events:auto;
+ }
+ .cockpit-hud .weapon-deck:not(.is-open) .weapon-deck-body{display:none}
+ .cockpit-hud .weapon-deck:not(.is-open) .weapon-deck-toggle{
+  position:relative;top:auto;right:auto;display:flex;
+  justify-content:space-between;gap:5px;box-sizing:border-box;
+  width:100%;min-height:47px;padding:5px 8px;border:0;background:none;
+ }
+ .cockpit-hud .weapon-deck:not(.is-open) .weapon-deck-quick-readouts{
+  display:flex;align-items:stretch;gap:5px;min-width:0;flex:1;
+ }
+ .cockpit-hud .weapon-deck:not(.is-open) .weapon-deck-quick{
+  display:flex;align-items:center;gap:5px;flex:1;min-width:0;
+  padding:3px;border-radius:4px;background:#14364b82;
+ }
+ .cockpit-hud .weapon-deck:not(.is-open) .weapon-deck-quick kbd{
+  min-width:0;min-height:26px;padding:2px 5px;font-size:9px;
+ }
+ .cockpit-hud .weapon-deck:not(.is-open) .weapon-deck-quick-text{
+  display:flex;flex:1;flex-direction:column;min-width:0;line-height:1.15;
+ }
+ .cockpit-hud .weapon-deck:not(.is-open) .weapon-deck-quick-text b{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;
+ }
+ .cockpit-hud .weapon-deck:not(.is-open) .weapon-deck-quick-text small{
+  margin-top:3px;color:#89f3c0;font-size:10px;font-weight:850;
+  white-space:nowrap;
+ }
+ .cockpit-hud .weapon-deck:not(.is-open) .weapon-deck-quick[data-state="cooldown"] small{color:#ffd195}
+ .cockpit-hud .weapon-deck:not(.is-open) .weapon-deck-quick[data-state="blocked"] small{color:#ffafb6}
+ .cockpit-hud .weapon-deck:not(.is-open) #weaponDeckSpaceQuick{border-left:2px solid #c6b5ff}
+ .cockpit-hud .weapon-deck:not(.is-open) #weaponDeckFieldQuick{border-left:2px solid #82e8d5}
+ .cockpit-hud .weapon-deck:not(.is-open) .weapon-deck-chevron{flex:none;color:#9ce5ed}
 }
 @media(pointer:fine) and (max-width:1100px){
  #hud.cockpit-hud .weapon-deck{width:clamp(280px,31vw,348px);bottom:195px}
