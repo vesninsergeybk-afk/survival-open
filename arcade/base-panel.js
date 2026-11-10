@@ -2,7 +2,7 @@ import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-stat
 import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-integrity-2-mission-choices-1-enemy-growth-1-triangle-defense-1';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-integrity-2-mission-choices-1-enemy-growth-1-triangle-defense-1-station-trust-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {FLUX_INFRASTRUCTURE,stationFluxUpgradeOffer,fluxInfrastructureRank,
  weightedContourProduction} from './territory-economy.js?v=territory-logistics-1';
@@ -10,7 +10,7 @@ import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-sh
 import {defenseStatus} from './network-defense.js?v=network-defense-4-territory-logistics-1';
 import {corridorOffer,CORRIDOR_OPERATION,corridorScanBonus,probeOffer,probeDataReady,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2-station-ops-2-ops-audit-2';
 import {FIELD_OPERATIONS,fieldOperationIds,fieldOperationOffer,fieldOperationCue,isFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
-import {abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1';
+import {abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1-station-ops-2-ops-audit-2-mission-choices-1';
 import {CARRIER_INTERCEPTION,carrierOffer,autonomousStrikeCarrier} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1';
@@ -27,6 +27,8 @@ import {productiveContourFields} from './contour-trials.js?v=swarm-siege-1';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
+import {STATION_MIN_CONTRACTS,stationReputation,stationReputationGoal,
+ stationReputationReady,stationContractReputation} from './station-reputation.js';
 
 // Only two distinct combat drones can accompany the player. Bomber wings are
 // consumable station support, never persistent escorts.
@@ -127,11 +129,11 @@ export const contractOffer=(base,state)=>{
   progress:Math.min(current.progress,current.goal)};
  const remaining=Math.ceil((base.contractCooldownUntil||0)-(state.time||0));
  if(remaining>0)return {...chosen,status:'cooldown',remaining,progress:0};
- return {...choices[0],status:base.active?'available':'locked',progress:0};
+ return {...choices[0],status:!base.enemy&&!base.ruined&&!(base.hp<=0)?'available':'locked',progress:0};
 };
 // A finished field order is paid at its issuing station without another click.
-export const contractReadyAtStation=(contract,station)=>!!contract&&!!station?.active&&
- !station.enemy&&contract.baseId===station.id&&Number.isFinite(contract.goal)&&
+export const contractReadyAtStation=(contract,station)=>!!contract&&!!station&&
+ !station.enemy&&!station.ruined&&!(station.hp<=0)&&contract.baseId===station.id&&Number.isFinite(contract.goal)&&
  contract.goal>0&&Number.isFinite(contract.progress)&&contract.progress>=contract.goal;
 export const strikeCost=level=>40+Math.max(0,level-1)*5;
 // Only the home dock starts for free. Remote relays consume material and are
@@ -146,6 +148,10 @@ export function baseOffer(base,state){
  const cap=Math.min(RULES.maxAllies,state.connectedBases>=2?2:1);
  const upgradeCost=52+level*34;
  const relayCost=activationCost(state.civilianBases??state.activeBases??0);
+ const provisional=!base.active&&base.id!=='0:0'&&!base.enemy&&!base.ruined&&!(base.hp<=0);
+ const reputation={value:stationReputation(base),goal:stationReputationGoal(base),
+  runs:base.contractRuns||0,minRuns:STATION_MIN_CONTRACTS,
+  ready:stationReputationReady(base)};
  const antennaCost=34;
  const transfers=(state.transfers||[]).filter(t=>t.id!==base.id)
   .map(t=>({...t,cost:transitCost(base,t),distance:Math.round(Math.hypot(base.x-t.x,base.y-t.y))}))
@@ -173,7 +179,8 @@ export function baseOffer(base,state){
  const hireCost=replacing?Math.max(18,drone.cost-
   (state.droneRoles[replacementIndex]==='fighter'?20:12)):drone.cost;
  const reasons={
-  activate:base.active?'Уже включена':shortfall(relayCost,ore),
+  activate:base.active?'Уже включена':
+   !stationReputationReady(base)?'Выполните поручения станции и заслужите доверие':shortfall(relayCost,ore),
   antenna:!base.active?'Сначала включите станцию':
    base.relayBoost?'Антенна уже усилена':shortfall(antennaCost,ore),
   hire:!base.active?'Сначала включите станцию':
@@ -198,7 +205,7 @@ export function baseOffer(base,state){
     'Действует ещё '+Math.ceil(serviceRemaining)+' с'):
    shortfall(localService.cost,ore)
  };
- return {ore,drone,tech,level,cap,connected,relayCost,antennaCost,transfers,upgradeCost,repairAmount,repairCost,droneRepairCost,chargeCost,hireCost,replacementIndex,replacing,contract,contractOptions,repeatReward:(base.contractRuns||0)>0,
+ return {ore,drone,tech,level,cap,connected,relayCost,antennaCost,transfers,upgradeCost,repairAmount,repairCost,droneRepairCost,chargeCost,hireCost,replacementIndex,replacing,contract,contractOptions,repeatReward:(base.contractRuns||0)>0,provisional,reputation,
   localService,moduleOptions,rewardAlloy:state.activeBases===0?20:0,
   rewardRepair:Math.round(state.maxHp*.1),reasons};
 }
@@ -239,6 +246,12 @@ function firstContractRewardPanel(state){
 }
 const contractPanel=(o,state,compact=false)=>{
  const c=o.contract;
+ const reputationReward=choiceId=>{
+  if(!o.provisional)return '';
+  const gain=Math.max(0,Math.min(stationContractReputation(choiceId),
+   o.reputation.goal-o.reputation.value));
+  return gain?' · +'+gain+' доверия':'';
+ };
  if(c.status==='other'&&state.contract){
   const origin=state.world?.stations?.get(state.contract.baseId);
   return '<section class="base-contract other"><span class="base-kicker">УЖЕ ЕСТЬ ЗАКАЗ</span>'+
@@ -254,7 +267,7 @@ const contractPanel=(o,state,compact=false)=>{
   '<div class="base-contract-choices">'+o.contractOptions.map(choice=>
    '<article class="base-contract-choice"><strong>'+choice.name+'</strong>'+
    '<small>'+choice.desc+'</small><em>Награда: '+choice.ore+' сплава · '+choice.data+
-   ' опыта</em>'+
+   ' опыта'+reputationReward(choice.id)+'</em>'+
    action('acceptContract','Принять заказ','',choice.id)+'</article>').join('')+
   '</div></section>';
  const summary={
@@ -274,7 +287,9 @@ const contractPanel=(o,state,compact=false)=>{
  return '<section class="base-contract '+c.status+'"><div class="base-contract-copy">'+
   '<span class="base-kicker">ПОЛЕВОЙ ЗАКАЗ</span><strong>'+c.name+'</strong>'+
   '<small>'+summary[c.status]+'</small><span class="base-contract-reward">Награда: '+
-  c.ore+' сплава · '+c.data+' опыта</span></div>'+contractActions+'</section>';
+  c.ore+' сплава · '+c.data+' опыта'+
+  (['active','ready'].includes(c.status)?reputationReward(c.id):'')+
+  '</span></div>'+contractActions+'</section>';
 };
 // Tactical station briefing. The mission is a world object, not a kill counter.
 const missionSummary=summary=>'<p class="base-op-summary">'+summary+'</p>';
@@ -722,12 +737,15 @@ const stationEmblem=type=>{
 export function renderBasePanel(base,state){
  const fieldKey=readableKey((state.controls||DEFAULT_CONTROLS).field);
  const o=baseOffer(base,state),active=!!base.active;
- const status=base.suppressed?'СВЯЗЬ ПОДАВЛЕНА':active?(o.connected?'СЕТЬ ПОДКЛЮЧЕНА':'АВТОНОМНЫЙ УЗЕЛ'):'СТАНЦИЯ ВЫКЛЮЧЕНА';
+ const status=base.suppressed?'СВЯЗЬ ПОДАВЛЕНА':active?(o.connected?'СЕТЬ ПОДКЛЮЧЕНА':'АВТОНОМНЫЙ УЗЕЛ'):
+  o.provisional?'НЕЙТРАЛЬНАЯ СТАНЦИЯ':'СТАНЦИЯ ВЫКЛЮЧЕНА';
  const activation=card('base-power'+(active?' connected':''),
   'УЗЕЛ СЕТИ',active?'Станция активна':'Включить станцию',
   active?(o.connected?'Связь с домашним доком. Услуги сети доступны.':
    'Работает локально. Активируйте промежуточные станции, чтобы соединить её с сетью.'):
-   (o.relayCost?'Запуск узла требует '+o.relayCost+' сплава. После включения появятся местные услуги и доступ к сети.':'Первый док: +20 сплава и небольшой ремонт. Другие базы дают доступ к услугам и технологиям.'),
+   (o.provisional?'Прежде чем подключить узел за '+o.relayCost+' сплава, выполните местные поручения и заслужите доверие экипажа.':
+    o.relayCost?'Запуск узла требует '+o.relayCost+' сплава. После включения появятся местные услуги и доступ к сети.':
+    'Первый док: +20 сплава и небольшой ремонт. Другие базы дают доступ к услугам и технологиям.'),
   active?'<span class="base-ready">✓ Питание включено</span>':
    action('activate',o.relayCost?'Подключить · '+o.relayCost+' сплава':'Запустить бесплатно',o.reasons.activate));
  const upgrade=card('base-service'+(!active?' inactive':''),
@@ -1096,11 +1114,21 @@ export function renderBasePanel(base,state){
   tabPanel('network',selected,network):
   '<div class="base-intro">'+activation+
   '<div class="base-intro-preview"><b>После подключения</b>'+
-  '<span>Особые операции и полевые заказы</span>'+
+  '<span>Особые операции</span>'+
   '<span>Дроны, ремонт и оснащение станции</span>'+
   '<span>Маршруты между подключёнными узлами</span>'+
   (stationPromise?'<span class="base-technology-preview">'+stationPromise+'</span>':'')+
-  '</div></div>';
+  '</div>'+
+  (o.provisional?'<section class="base-provisional-orders" aria-label="Доверие станции и поручения">'+
+   '<div class="base-reputation"><div><span class="base-kicker">ДОВЕРИЕ ЭКИПАЖА</span><strong>'+
+   o.reputation.value+' / '+o.reputation.goal+'</strong><small>Выполнено заказов: '+
+   o.reputation.runs+' (нужно не менее '+o.reputation.minRuns+'). '+
+   (o.reputation.ready?'Можно подключать станцию к сети.':
+    'Выполняйте местные поручения, затем подключите станцию.')+
+   ' При стыковке здесь вылет сохраняется.</small></div>'+
+   '<progress value="'+o.reputation.value+'" max="'+o.reputation.goal+
+   '" aria-label="Доверие экипажа станции"></progress></div>'+
+   contractPanel(o,state)+'</section>':'')+'</div>';
  return interactionCopy('<div class="dialog base-dialog station-'+base.type+'" role="dialog" aria-modal="true" aria-label="Станция"><header class="base-head">'+
   '<div class="base-identity"><span class="base-emblem" aria-hidden="true">'+stationEmblem(base.type)+'</span><div>'+
   '<span class="base-system-label">ВЫЖИВШИЙ / ТЕРМИНАЛ СТАНЦИИ</span><h2>'+(baseNames[base.type]||'Станция')+'</h2>'+

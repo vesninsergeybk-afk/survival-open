@@ -9,7 +9,7 @@ export function contractReturnStation(contract, world) {
   if (!contract || !Number.isFinite(contract.goal) || contract.goal <= 0 ||
       !Number.isFinite(contract.progress) || contract.progress < contract.goal) return null;
   const station = world?.stations?.get?.(contract.baseId);
-  return station?.active && !station.enemy ? station : null;
+  return station && !station.enemy && !station.ruined ? station : null;
 }
 
 export function automaticRange(game){
@@ -61,7 +61,7 @@ export function contractDefenseZone(contract, world) {
   if (contract?.kind !== 'defend' || !Number.isFinite(contract.goal) || contract.goal <= 0 ||
       !Number.isFinite(contract.progress) || contract.progress >= contract.goal) return null;
   const station = world?.stations?.get?.(contract.baseId);
-  return station?.active && !station.enemy ? {station, radius:650} : null;
+  return station && !station.enemy && !station.ruined ? {station, radius:650} : null;
 }
 
 // Compact, literal mission status for the cockpit. Uses the same real state as map/world.

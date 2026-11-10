@@ -114,6 +114,7 @@ test('a real activation awards the technique once, and the unlock survives a che
  g.world.stations.set(b.id,b);g.world.discovered.add(b.id);g.docked=b;g.paused=true;
  g.player.x=b.x;g.player.y=b.y;
  const oreBefore=g.player.ore;
+ b.reputation=3;b.contractRuns=2; // Technology unlock after the required local assignments.
  g.baseAction('activate');
  assert.equal(b.active,true);
  assert.equal(g.player.ore,oreBefore-24);
