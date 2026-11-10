@@ -1,6 +1,7 @@
 // Tiny drones share one tactical decision per pack. Members remain individual
 // damageable ships; a split changes their formation, never their hit points.
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26-redteam-20261109-1';
+import {STARTER_COMBAT} from './balance.js';
 // size is the size of a freshly spawned squad, never an upper limit on a pack.
 // maxMotes is a separate, scene-wide performance budget.
 export const MOTE_SWARM=Object.freeze({size:10,radius:6.5,hp:12,damage:3,
@@ -29,6 +30,18 @@ const groupsOf=motes=>{
 };
 const centroid=members=>({x:members.reduce((n,e)=>n+e.x,0)/members.length,
  y:members.reduce((n,e)=>n+e.y,0)/members.length});
+const canObserve=(game,e,player)=>distance(e,player)<=STARTER_COMBAT.patrolSight&&
+ (!game.enemyCanSee||game.enemyCanSee(e,player));
+function freshestSighting(members,other=null){
+ let newest=other&&Number.isFinite(other.x)&&Number.isFinite(other.y)&&
+  Number.isFinite(other.at)?other:null;
+ for(const e of members){
+  const report=e.moteLastSeen;
+  if(report&&Number.isFinite(report.x)&&Number.isFinite(report.y)&&
+     Number.isFinite(report.at)&&(!newest||report.at>newest.at))newest=report;
+ }
+ return newest;
+}
 // Large packs shoot more often, but share one telegraphed gun and the global
 // volley limiter. They never multiply their damage by their member count.
 export function moteVolleyCooldown(count){
@@ -66,8 +79,11 @@ function statusCue(state,phase,id,now,flank=0){
  state.phase=phase;state.cue=cue;
  state.cueUntil=now+2.9;
 }
-function escapePoint(game,e){
- const p=game.player,cam=game.camera?.();
+function escapePoint(game,e,lastKnown){
+ // Couriers steer away from the latest *observed* contact. The invisible
+ // pilot's current position is never a source for an escape route.
+ const p=lastKnown||e.moteApproach||{x:e.x-1,y:e.y};
+ const cam=game.camera?.();
  const dx=e.x-p.x,dy=e.y-p.y,d=Math.hypot(dx,dy)||1;
  const side=(e.serial%2===0?1:-1);
  const reach=Math.max(MOTE_SWARM.escapeDistance,
@@ -88,7 +104,9 @@ function markEscape(game,motes,t){
      !members.some(e=>e.moteSawPlayer)||members.some(e=>e.moteCallUsed)||
      game._moteReinforcementQueue?.length)continue;
   const leader=[...members].sort((a,b)=>a.serial-b.serial)[0];
-  const goal=escapePoint(game,leader);
+  const sighting=freshestSighting(members,
+   game._moteSquadStates?.get(leader.motePack)?.lastKnown);
+  const goal=escapePoint(game,leader,sighting);
   for(const e of members){
    e.moteCallUsed=true;e.moteEscape=true;e.moteEscapeGoal=goal;
    e.moteOrder=goal;e.moteWarning=false;e.moteBoosting=false;
@@ -174,11 +192,11 @@ export function updateMoteSwarmOrders(game){
  // must not trigger a split: use only direct sight or a recent visual report.
  for(const [id,members] of packs){
   if(members.length<MOTE_SWARM.splitCount||
-     members.some(e=>(e.moteFlank||0)!==0||t<(e.moteReformUntil||0))||
+     members.some(e=>(e.moteSplitGeneration||0)>0||t<(e.moteReformUntil||0))||
      t<(members[0].moteSpawnedAt??0)+2.2)continue;
   const center=centroid(members),evade=observedMissileThreat(members,game);
-  const visible=members.some(e=>!game.enemyCanSee||game.enemyCanSee(e,game.player));
-  const sighting=states.get(id)?.lastKnown||members.find(e=>e.moteLastSeen)?.moteLastSeen;
+  const visible=members.some(e=>canObserve(game,e,game.player));
+  const sighting=freshestSighting(members,states.get(id)?.lastKnown);
   const closeContact=visible?distance(center,game.player)<MOTE_SWARM.splitAt:
    sighting&&t-sighting.at<4.5&&distance(center,sighting)<MOTE_SWARM.splitAt;
   if(!evade&&!closeContact)continue;
@@ -193,6 +211,7 @@ export function updateMoteSwarmOrders(game){
    const e=sorted[i];
    e.motePack=i>=Math.ceil(sorted.length/2)?secondId:id;
    e.moteFlank=i>=Math.ceil(sorted.length/2)?1:-1;
+   e.moteSplitGeneration=1;
    e.moteFlankAxis=sharedAxis;
    e.moteReformUntil=t+MOTE_SWARM.splitHold;
    e.moteEvasionUntil=evade?t+2.6:0;
@@ -218,7 +237,8 @@ export function updateMoteSwarmOrders(game){
       distance(centroid(a),centroid(b))>MOTE_SWARM.mergeDistance)continue;
    formationCue(game,'merge',centroid([...a,...b]),t);
    for(const e of [...a,...b]){e.motePack=id;
-    e.moteFlank=0;e.moteFlankAxis=null;e.moteReformUntil=t+4.2;}
+    e.moteFlank=0;e.moteSplitGeneration=0;
+    e.moteFlankAxis=null;e.moteReformUntil=t+4.2;}
    const host=states.get(id),guest=states.get(otherId);
    if(guest){
     if(!host)states.set(id,{...guest,warningAt:null,rushChargeAt:0});
@@ -242,8 +262,7 @@ export function updateMoteSwarmOrders(game){
   const a=ids[i],b=ids[j];
   if(distance(positions.get(a),positions.get(b))>MOTE_SWARM.allianceDistance||
      ![...packs.get(a),...packs.get(b)].some(e=>e.moteSawPlayer||
-       (distance(e,game.player)<950&&
-        (!game.enemyCanSee||game.enemyCanSee(e,game.player)))))continue;
+       canObserve(game,e,game.player)))continue;
   if(linked.get(a).size>=MOTE_SWARM.maxAlliance||
      linked.get(b).size>=MOTE_SWARM.maxAlliance)continue;
   const combined=new Set([...linked.get(a),...linked.get(b)]);
@@ -260,11 +279,13 @@ export function updateMoteSwarmOrders(game){
    game.heritage?.play?.('swarmArrival',2.1,center);
   }
   const within=distance(center,p);
-  const canSee=within<950&&members.some(e=>
-   !game.enemyCanSee||game.enemyCanSee(e,p));
+  const canSee=members.some(e=>canObserve(game,e,p));
   const allies=[...linked.get(id)].sort((a,b)=>a-b);
   const state=states.get(id)||{nextShotAt:t+1.8,nextRushAt:t+2.1,
-   warningAt:null,lastKnown:members[0].moteLastSeen||null};
+   warningAt:null,lastKnown:freshestSighting(members)};
+  const retained=freshestSighting(members);
+  if(retained&&(!state.lastKnown||retained.at>state.lastKnown.at))
+   state.lastKnown=retained;
   if(canSee){
    state.lastKnown={x:p.x,y:p.y,vx:p.vx||0,vy:p.vy||0,at:t};
    for(const e of members){e.moteSawPlayer=true;e.moteLastSeen=state.lastKnown;}
@@ -280,6 +301,7 @@ export function updateMoteSwarmOrders(game){
   // Its search is restricted to the LAST observed sector: it cannot use the
   // player's current coordinates after losing optical contact.
   const recent=age<4.5,pursuing=!!state.lastKnown;
+  const attackDistance=canSee?within:recent?distance(center,state.lastKnown):Infinity;
   const radius=Math.min(MOTE_SWARM.searchRadius,48+Math.max(0,age-4.5)*10);
   const searchAngle=t*.31+id*1.7;
   const waypoint=recent?state.lastKnown:pursuing?
@@ -312,10 +334,10 @@ export function updateMoteSwarmOrders(game){
    state.nextRushAt=Math.max(state.nextRushAt??0,t+1.5);
    statusCue(state,'evade',id,t);
   }else if(state.phase==='evade')statusCue(state,canSee?'found':'search',id,t);
-  if((!recent||within>MOTE_SWARM.rushRange+80)&&state.rushChargeAt){
+  if((!recent||attackDistance>MOTE_SWARM.rushRange+80)&&state.rushChargeAt){
    state.rushChargeAt=0;statusCue(state,canSee?'found':'search',id,t);
   }
-  const preparingRush=!evading&&recent&&within<MOTE_SWARM.rushRange&&
+  const preparingRush=!evading&&recent&&attackDistance<MOTE_SWARM.rushRange&&
    t>=(state.nextRushAt??Infinity)&&t>=(game._moteGlobalRushAt||0);
   if(preparingRush&&!state.rushChargeAt){
    state.rushChargeAt=t+MOTE_SWARM.rushWarning;

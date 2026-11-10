@@ -247,6 +247,18 @@ test('a twenty-drone group divides into two stable attack flanks without recursi
   'existing attack wings must not divide into ever smaller groups every cooldown');
 });
 
+test('reinforcement wings can divide for a real attack after their initial entrance manoeuvre',()=>{
+ const members=drones(8,7);
+ for(const e of members){
+  e.moteFlank=1;e.moteReformUntil=101;e.moteSpawnedAt=95;
+  e.moteCallUsed=true;e.moteOriginCount=8;
+ }
+ const game=scene(members,102);game.groupSerial=20;
+ updateMoteSwarmOrders(game);
+ assert.equal(new Set(members.map(e=>e.motePack)).size,2,
+  'an inherited entrance flank cannot permanently disable future attack formations');
+});
+
 test('a combined wing disperses against observed missiles without learning a hidden player position',()=>{
  const a=drones(10,7),b=drones(10,8);
  for(const e of a)e.x=775+e.serial;
@@ -301,6 +313,64 @@ test('merging preserves the newest genuine sighting and the more restrictive wea
  assert.equal(state.nextRushAt,114);
  assert.ok(game.enemies.every(e=>e.moteOrder.x<1200),
   'regrouping cannot magically acquire the pilot location behind cover');
+});
+
+test('newly merged wings retain sightings from any surviving member after tactical state was rebuilt',()=>{
+ const a=drones(10,7),b=drones(10,8);
+ for(const e of a)e.x+=420;
+ for(const e of b){
+  e.serial+=10;e.x+=510;
+  e.moteSawPlayer=true;e.moteLastSeen={x:330,y:40,at:98};
+ }
+ const game=scene([...a,...b]);game.groupSerial=20;
+ game.enemyCanSee=()=>false;game._moteSquadStates=new Map();
+ updateMoteSwarmOrders(game);
+ assert.equal(new Set(game.enemies.map(e=>e.motePack)).size,1);
+ const state=game._moteSquadStates.values().next().value;
+ assert.equal(state.lastKnown?.x,330,
+  'a restored or regrouped formation must not forget the other wing’s valid report');
+});
+
+test('hidden pilot movements cannot trigger or cancel a warned swarm rush',()=>{
+ const observeThenHide=x=>{
+  const members=drones(6),game=scene(members);
+  for(const e of members){e.x=150+e.serial;e.moteReformUntil=200;}
+  updateMoteSwarmOrders(game);
+  game.enemyCanSee=()=>false;game.player.x=x;game.time=103;
+  updateMoteSwarmOrders(game);
+  return {phase:members[0].moteStatus,charge:game._moteSquadStates.get(7).rushChargeAt||0};
+ };
+ const near=observeThenHide(0),far=observeThenHide(9000);
+ assert.equal(near.phase,far.phase,
+  'the attacker can only react to the last observed position, not the invisible ship');
+ assert.equal(near.charge,far.charge);
+});
+
+test('a courier escaping after lost contact does not know where the hidden pilot moved',()=>{
+ const leave=x=>{
+  const members=drones(10),game=scene(members);
+  for(const e of members)e.moteOriginCount=10;
+  updateMoteSwarmOrders(game);
+  for(const e of members.slice(0,8))e.hp=0;
+  game.enemyCanSee=()=>false;game.player.x=x;game.time=101;
+  updateMoteSwarmOrders(game);
+  assert.ok(members[8].moteEscape);
+  return members[8].moteEscapeGoal;
+ };
+ assert.deepEqual(leave(0),leave(9000));
+});
+
+test('defensive split beyond sighting range does not orient toward an unobserved pilot',()=>{
+ const members=drones(10),game=scene(members);
+ game.groupSerial=20;game.player.x=5000;
+ game.missiles=[members[0],members[1]].map(e=>({target:e,life:2,x:e.x+10,y:e.y}));
+ // This geometry predicate intentionally reports a clear ray at any distance.
+ // Local detection still has a finite 950-unit range.
+ game.enemyCanSee=()=>true;
+ updateMoteSwarmOrders(game);
+ assert.equal(new Set(members.map(e=>e.motePack)).size,2);
+ assert.ok(members[0].moteFlankAxis.x<0,
+  'at long range the formation axis must be based on its patrol route, not player coordinates');
 });
 
 test('two freshly hit micro-drones can trigger evasive division without visible missiles',()=>{
@@ -469,6 +539,27 @@ test('reinforcements wait until the entire formation can enter offscreen',()=>{
  courier.x=-410;
  assert.equal(g.spawnMoteReinforcements(courier,sighting,16),16);
  assert.ok(g.enemies.every(e=>e.x<0||e.x>800||e.y<0||e.y>600));
+});
+
+test('real reinforcements unite as sixteen drones and can later divide for a visible attack',()=>{
+ const g=actualGame();g.time=220;g.vw=800;g.vh=600;
+ g.camera=()=>({x:-400,y:-300,w:800,h:600});
+ g.enemyCanSee=()=>false;
+ const courier={x:1300,y:1000,hp:1,r:6.5};
+ assert.equal(g.spawnMoteReinforcements(courier,{x:25,y:15,at:210}),16);
+ const originalRoots=new Set(g.enemies.map(e=>e.moteRoot));
+ assert.equal(originalRoots.size,2);
+ g.time=225;updateMoteSwarmOrders(g);
+ assert.equal(new Set(g.enemies.map(e=>e.motePack)).size,1,
+  'entrance wings from the actual spawn method must really fuse');
+ assert.ok(g.enemies.every(e=>e.motePackCount===16));
+ g.time=231;g.player.x=1300;g.player.y=1000;g.enemyCanSee=()=>true;
+ updateMoteSwarmOrders(g);
+ assert.equal(new Set(g.enemies.map(e=>e.motePack)).size,2,
+  'the fused reinforcement must also be able to mount a new two-flank attack');
+ assert.deepEqual(new Set(g.enemies.map(e=>e.moteFlank)),new Set([-1,1]));
+ assert.deepEqual(new Set(g.enemies.map(e=>e.moteRoot)),originalRoots,
+  'physical manoeuvres may not erase the identity of the original groups');
 });
 
 test('late micro-drone encounters contain two real eight-member packs',()=>{
