@@ -1,6 +1,6 @@
-import {renderProgressionScreen} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-value-2-hud-merge-20261110';
+import {renderProgressionScreen} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-value-2-hud-merge-20261110-wingmastery-20261110';
 
-export const developmentTab=id=>['weapons','ship','tactics','pilot','network'].includes(id)?id:'pilot';
+export const developmentTab=id=>['weapons','ship','tactics','pilot','network','drones','mastery'].includes(id)?id:'pilot';
 
 // No "best build" is imposed: these are three different intentions, each
 // pointing to an upgrade whose actual level and prerequisite gates are met.

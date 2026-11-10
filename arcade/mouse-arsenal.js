@@ -3,6 +3,7 @@
 import {combatTargets,targetDistance,targetRadius,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1-frontier-siege-1';
 import {moduleStats} from './ship-loadout.js';
 import {landingRock,planMineSites,resolveMineLanding,blastCoverFactor,railCoverPreview} from './aimed-terrain.js?v=manual-audit-20261110';
+import {masteryBonus,masteryProgress,masteryMiss} from './combat-mastery.js';
 
 const TAU=Math.PI*2;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -98,7 +99,7 @@ function detonate(game,arsenal,point,radius,damage,kind){
    .sort((a,b)=>targetDistance(point,a.target)-targetDistance(point,b.target))[0];
   if(chosen)game.designatedTarget={target:chosen.target,expiresAt:(game.time||0)+3.5};
  }
- let hits=0,slowed=false,pierced=false;
+ let hits=0,combatHits=0,slowed=false,pierced=false;
  for(const item of targets){
   const d=Math.max(0,targetDistance(point,item.target)-targetRadius(item));
   const falloff=.42+.58*(1-clamp(d/radius,0,1));
@@ -106,9 +107,13 @@ function detonate(game,arsenal,point,radius,damage,kind){
   const heavyBonus=pierce&&['berserker','gunship'].includes(item.target.type)?
    (pierce===1?.3:.5):0;
   const coverFactor=blastCoverFactor(game,point,item.target);
-  const hit=damageTarget(game,item,damage*falloff*(1+centerPower+heavyBonus)*coverFactor,kind,
+  const bonus=kind==='comet'?1+masteryBonus(game.combatMastery,'comet'):1;
+  const hit=damageTarget(game,item,damage*falloff*(1+centerPower+heavyBonus)*coverFactor*bonus,kind,
    {x:point.x,y:point.y,directed:true},false,true);
-  if(hit){hits++;if(heavyBonus>0)pierced=true;}
+  if(hit){
+   hits++;if(heavyBonus>0)pierced=true;
+   if(!structural(item))combatHits++;
+  }
   if(hit&&item.target.hp>0&&canSlow(item)&&(cryo||snare)){
    const duration=cryo?(cryo===1?2.2:3.2):(snare===1?1.8:2.8);
    const factor=cryo?(cryo===1?.66:.52):(snare===1?.6:.42);
@@ -125,6 +130,12 @@ function detonate(game,arsenal,point,radius,damage,kind){
  const accent=kind==='comet'?(cryo&&slowed?'cometCryoAccent':core&&hits?'cometCoreAccent':null):
   snare&&slowed?'mineSnareAccent':pierce&&pierced?'minePierceAccent':null;
  if(accent)game.heritage?.play?.(accent,kind==='comet'?.7:1.1,point);
+ if(kind==='comet'&&game.combatMastery){
+  if(combatHits>0){
+   const award=masteryProgress(game.combatMastery,'comet');
+   if(award)game.notice?.('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);
+  }else masteryMiss(game.combatMastery,'comet');
+ }
  game.heritage?.vfx?.nova?.(point.x,point.y,Math.min(95,radius*.7),kind==='comet'?'cyan':'violet');
  return hits;
 }

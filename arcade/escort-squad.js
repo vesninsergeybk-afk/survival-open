@@ -6,10 +6,10 @@ export const ESCORT_LIMIT=RULES.maxAllies;
 export const ESCORTS=Object.freeze({
  scout:Object.freeze({name:'Страж',tag:'Перехват',cost:20,maxHp:58,r:13,
   speed:365,damage:12,reload:.98,range:330,color:'#77e7eb',
-  desc:'Быстро перехватывает таранщиков и фланговые атаки. Особенно полезен при добыче.'}),
+  desc:'Быстро перехватывает таранщиков и фланговые атаки. Ионные попадания ненадолго замедляют штурмующие цели.'}),
  fighter:Object.freeze({name:'Клинок',tag:'Истребитель',cost:40,maxHp:78,r:15,
   speed:335,damage:18,reload:.85,range:355,color:'#8fc6ff',
-  desc:'Прицельно атакует крупные корабли и ремонтников. Надёжная основа ударного звена.'}),
+  desc:'Бьёт кинетическими зарядами и пробивает броню крупных кораблей и ремонтников. Основной ударный дрон.'}),
  brawler:Object.freeze({name:'Таран',tag:'Ближний бой',cost:36,maxHp:94,r:17,
   speed:400,damage:35,reload:2.1,range:52,color:'#ffb97b',
   desc:'Бронированный штурмовик сближается с противником и наносит мощные короткие удары.'}),
@@ -46,10 +46,15 @@ export function escortTrainingOffer(base,state,key){
   (state?.ore||0)<price?'Не хватает '+(price-(state?.ore||0))+' сплава':'';
  return {ok:!reason,reason,price,key,rank,nextRank:rank+1,tech};
 }
-export function createEscort(role,serial,x,y,time=0){
+export function escortMaxHp(role,ranks={}){
+ const hp=ESCORTS[role]?.maxHp||0;
+ return Math.round(hp*(1+(ranks.wingArmor||0)*.12));
+}
+export function createEscort(role,serial,x,y,time=0,ranks={}){
  const spec=ESCORTS[role];if(!spec)return null;
- return {serial,role,x,y,vx:0,vy:0,r:spec.r,hp:spec.maxHp,
-  maxHp:spec.maxHp,fire:.3,think:0,state:'follow',commitUntil:0,
+ const hp=escortMaxHp(role,ranks);
+ return {serial,role,x,y,vx:0,vy:0,r:spec.r,hp,
+  maxHp:hp,fire:.3,think:0,state:'follow',commitUntil:0,
   message:'Вылетаю с базы',messageUntil:time+2.2,angle:0,
   serviceAt:time+3};
 }

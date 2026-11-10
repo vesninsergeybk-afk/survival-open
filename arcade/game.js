@@ -1,14 +1,14 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1-menu-audit-1-pressure-response-1';
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1-manual-qa-1-pilot-depth-1-pilot-value-2-hud-merge-20261110';
-import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-value-2-hud-merge-20261110';
-import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-depth-1-pilot-value-2-hud-merge-20261110';
+import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-value-2-hud-merge-20261110-wingmastery-20261110';
+import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-depth-1-pilot-value-2-hud-merge-20261110-wingmastery-20261110';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1-hud-merge-20261110';
 import {mountContextualGuide} from './contextual-guide-ui.js?v=prototype-1-core-guide-20261110-core-pressure-20261110-hud-merge-20261110';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2-hud-merge-20261110';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1-hud-merge-20261110';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1-living-world-population-1-sector-density-2-hud-merge-20261110';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-zoomread-2-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1-flux-siphon-roads-1-early-density-20261110-convoy-variety-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110';
-import {rememberPopulationShip} from './population-runtime.js?v=sector-density-2-frontier-siege-1-early-density-20261110-convoy-variety-20261110-pilot-value-2-hud-merge-20261110';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-zoomread-2-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1-flux-siphon-roads-1-early-density-20261110-convoy-variety-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-wingmastery-20261110';
+import {rememberPopulationShip} from './population-runtime.js?v=sector-density-2-frontier-siege-1-early-density-20261110-convoy-variety-20261110-pilot-value-2-hud-merge-20261110-wingmastery-20261110';
 import {frontierBarrierContact,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {SALVAGE,ruinEnemyIndustry,salvageQuote,claimRuinedIndustry} from './enemy-station-salvage.js?v=frontier-claim-1';
 import {POPULATION,damagePopulationShield,populationAlarm,populationColony,
@@ -26,6 +26,8 @@ import {createStrategicExperience,claimStationActivation,claimStationCapture,cla
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
 import {createFieldLoot,rewardEyeKill,collectFieldLoot,updateFieldLoot,
  fieldLootDamage,fieldLootArmor,chainFieldLoot,drawFieldLootAura,BOOSTS} from './field-loot.js?v=eye-loot-1';
+import {createCombatMastery,masteryProgress,masteryMiss,masteryBonus} from './combat-mastery.js';
+import {createConvoyRelic,updateConvoyRelic,drawConvoyRelic} from './convoy-relic.js';
 import {createCombatTempo,recordCombatContact,ambientTempoPlan} from './combat-tempo.js?v=tempo-1-balance-audit-1-opening-evasion-20261110';
 import {fortificationShield} from './enemy-fortifications.js?v=industrial-forts-1';
 import {renderEvolutionMenu,installedEvolution} from './evolution-menu.js?v=mouse-arms-1';
@@ -41,26 +43,26 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4-zoomread-2-territory-logistics-1';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26-redteam-20261109-1';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110-trial-station-defense-20261110-escort-squad-20261110';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110-trial-station-defense-20261110-escort-squad-20261110-wingmastery-20261110';
 import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110';
 import {drawEnemyCloseWarnings} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
 import {BASE_TURRET_GUN,advanceBaseTurretGun,drawBaseTurretWarnings} from './base-turret-gunnery.js';
 import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1-territory-logistics-1-flux-siphon-roads-1-turret-defense-20261110-trial-station-defense-20261110-escort-squad-20261110';
 import {advanceTurretDefenses,drawTurretDefenses,turretShieldCapacity} from './turret-defense.js?v=turret-defense-20261110-trial-station-defense-20261110';
 import {commissionStationGarrison,advanceStationGarrisons,drawStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
-import {escortHireOffer,escortTrainingOffer,createEscort,
- escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110';
+import {escortHireOffer,escortTrainingOffer,createEscort,escortMaxHp,
+ escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-ai-commander-20261110-enemy-operations-20261110-space-impact-20261110';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
-import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110';
+import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-wingmastery-20261110';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1-combat-balance-1';
 import {planEncounter,scheduledMoteSize,moteEncounterSize,MOTE_ENCOUNTER} from './encounters.js?v=arcade-balanced-bases-30-combat-hunt-20261109-shield-crowd-20261110-swarm-presence-20261110-opening-evasion-20261110';
 import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109-weapon-vfx-audit-1-corvette-20261110-1-pilot-value-2-opening-evasion-20261110-turret-defense-20261110-escort-squad-20261110';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110-corecharge-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-weapon-deck-audit-2-escort-squad-20261110';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110-corecharge-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-weapon-deck-audit-2-escort-squad-20261110-wingmastery-20261110';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1-tactical-slot-20261110';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-opening-evasion-20261110';
@@ -80,12 +82,12 @@ import {DOCTRINES,doctrineRank,doctrineCost,doctrineBuyReason,normalizedDoctrine
  doctrineDashCooldown,transferCommandMark} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 import {missionImageReady,paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1-pilot-depth-1-pilot-value-2-hud-merge-20261110-live-hud-qa-1-trial-station-defense-20261110-escort-squad-20261110';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1-pilot-depth-1-pilot-value-2-hud-merge-20261110-live-hud-qa-1-trial-station-defense-20261110-escort-squad-20261110-wingmastery-20261110';
 import {awardStationReputation,stationReputation,stationReputationGoal,stationReputationReady} from './station-reputation.js';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
- advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1-mission-choices-1-pilot-value-2-hud-merge-20261110';
+ advanceFieldOperation,fieldOperationMining,drawFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1-mission-choices-1-pilot-value-2-hud-merge-20261110-wingmastery-20261110';
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1-mission-choices-1-control-audit-1-enemy-growth-1-flux-build-1-triangle-defense-1-flight-zoom-audit-1-living-world-population-1-sector-density-2-frontier-siege-1-station-trust-1-enemy-operations-20261110-core-guide-20261110-pilot-value-2-hud-merge-20261110';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {clampCameraZoom,flightCamera,flightZoomKey,stepCameraZoom,wheelCameraZoom,pointerInFlightWorld,manualWheelDirection,worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
@@ -103,11 +105,11 @@ import {updateAutomaticWeapons,updateFlakPellets,startRailSweep,updateRailSweep,
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1-supply-stronghold-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1-living-world-population-1-sector-density-2-frontier-siege-1';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel} from './target-designation.js?v=mouse-area-1-frontier-siege-1';
-import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,drawMouseArsenal} from './mouse-arsenal.js?v=mouse-arms-1-recorded-combat-1-realfoley-2-manual-weapon-1-manual-qa-1-triangle-defense-1-frontier-siege-1-manual-cover-1-manual-audit-20261110';
+import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,drawMouseArsenal} from './mouse-arsenal.js?v=mouse-arms-1-recorded-combat-1-realfoley-2-manual-weapon-1-manual-qa-1-triangle-defense-1-frontier-siege-1-manual-cover-1-manual-audit-20261110-wingmastery-20261110';
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1-frontier-siege-1-hud-merge-20261110';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2-hud-merge-20261110';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1-hud-merge-20261110';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109-territory-logistics-1-flux-siphon-roads-1-station-trust-1-rescue-depth-1-convoy-variety-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-swarm-presence-20261110-trial-station-defense-20261110';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109-territory-logistics-1-flux-siphon-roads-1-station-trust-1-rescue-depth-1-convoy-variety-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-swarm-presence-20261110-trial-station-defense-20261110-wingmastery-20261110';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1-sector-density-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -143,7 +145,7 @@ import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-
 import {drawContourWorld} from './contour-visuals.js?v=contour-visual-1-world-feedback-1-contour-dynamics-2-enemy-domains-1-flux-offense-1-territory-war-1-auto-1-contour-trials-1-counterattack-1-first-loops-1-flux-build-1-sector-density-2-core-pressure-20261110';
 import {syncContourDynamics,resumeContourTransition} from './contour-dynamics.js?v=contour-dynamics-3-auto-1';
 import {registerContourTrials,productiveContourFields,hasPoweredContour,advanceContourCharge,contourChargeInterrupted,pendingContourTrials,readyContourTrials,unresolvedContourTrials,CONTOUR_TRIALS} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1-pressure-response-1-corecharge-20261110-core-pressure-20261110';
-import {updateContourTrials,activateContourVortex,activeTrialCore} from './contour-trial-director.js?v=swarm-siege-rewards-2-formation-zoomread-2-pressure-response-1-corecharge-20261110-core-pressure-20261110-corvette-20261110-1-pilot-value-2-trial-station-defense-20261110';
+import {updateContourTrials,activateContourVortex,activeTrialCore} from './contour-trial-director.js?v=swarm-siege-rewards-2-formation-zoomread-2-pressure-response-1-corecharge-20261110-core-pressure-20261110-corvette-20261110-1-pilot-value-2-trial-station-defense-20261110-wingmastery-20261110';
 import {drawContourTrialHUD} from './contour-trial-vfx.js?v=swarm-siege-1-learning-hud-1-pressure-response-1-corecharge-20261110-core-pressure-20261110';
 import {drawBranchedInteraction} from './interaction-arcs.js?v=triangle-defense-1';
 import {updateRamSquads,drawRamSquads} from './ram-squads.js?v=triangle-defense-1';
@@ -166,6 +168,12 @@ const SKILLS=[
  {id:'extractor',branch:'Добыча',title:'Дуговой экстрактор',max:3,from:3,requires:'mining',desc:'Экстрактор быстрее расщепляет астероиды и отделяет больше сплава'},
  {id:'radar',branch:'Технологии',title:'Навигационный радар',max:2,from:3,desc:'Обнаруживает станции раньше; каждый ранг добавляет +2 опыта за первую разведку новой станции (не более 18 станций).'},
  {id:'tactics',branch:'Технологии',title:'Боевой протокол',max:3,from:5,desc:'Союзники быстрее выбирают опасные цели'},
+ {id:'wingArmor',branch:'Дроны',title:'Композитная броня',max:4,from:2,desc:'Наёмные дроны получают по 12% дополнительной прочности за ранг. Усиление действует и на уже нанятых.'},
+ {id:'wingSpeed',branch:'Дроны',title:'Быстрые приводы',max:3,from:3,desc:'Ускоряет полёт ведомых на 6% за ранг.'},
+ {id:'wingTargeting',branch:'Дроны',title:'Синхронизация целей',max:3,from:3,desc:'Дроны быстрее выбирают цель и согласуют перехват.'},
+ {id:'wingAssault',branch:'Дроны',title:'Ударная группа',max:4,from:4,requires:'wingTargeting',desc:'Все наёмные дроны наносят на 10% больше урона за ранг.'},
+ {id:'wingRam',branch:'Дроны',title:'Штурмовой экран',max:3,from:5,requires:'wingArmor',desc:'Дополнительная защита «Тарана» на ударном заходе и усиление ближнего нападения.'},
+ {id:'wingMedic',branch:'Дроны',title:'Ремонтный контур',max:3,from:5,requires:'wingArmor',desc:'«Искра» восстанавливает дополнительно 3 единицы прочности за ранг и быстрее подпитывает щит.'},
  ...FIELD_EVOLUTION_SKILLS
 ];
 
@@ -207,6 +215,12 @@ function nextSkillEffect(id,rank,levels={}){
     ' · опыт за новую станцию: +'+(6+rank*2)+' → +'+(6+n*2);
   case 'tactics':return 'Решения ведомых: чаще на '+(Math.round(n*.2*100))+
     '% относительно базового темпа';
+  case 'wingArmor':return 'Прочность каждого дрона: +'+(rank*12)+'% → +'+(n*12)+'%';
+  case 'wingSpeed':return 'Скорость звена: +'+(rank*6)+'% → +'+(n*6)+'%';
+  case 'wingTargeting':return 'Ведомые быстрее оценивают угрозы и выбирают цель';
+  case 'wingAssault':return 'Урон ведомых: +'+(rank*10)+'% → +'+(n*10)+'%';
+  case 'wingRam':return '«Таран»: дополнительная защита на заходе · урон +'+(n*14)+'%';
+  case 'wingMedic':return '«Искра»: ремонт за импульс +'+(n*3)+' единиц';
   case 'parasite':return 'Сразу 1 заряд защиты · затем энергоядро за каждые 3 личные победы · запас до 2';
   case 'conduit':return 'Рывок оставляет метки на 4 с · точное попадание удерживает до 3 целей на 1,25 с';
   case 'wreck':return 'До 3 обломков-укрытий после побед · 19 с · 48 прочности';
@@ -322,6 +336,7 @@ export class ArcadeGame {
   this.sortieStart=null;this.sortieReports=[];this.stationExitArmed=false;
   this.lastContractReceipt=null;
   this.economyExpenses=emptyEconomyExpenses();
+  this.combatMastery=createCombatMastery();this.convoyRelic=createConvoyRelic();
    this.geoScanUntil=0;this.overchargeUntil=0;
    this.fieldLoan=null;this.fieldTrialTaken=false;this.fieldReturnAt=-Infinity;this.fieldEffects=[];
    this.tactical=createTactical();this.tacticalPointer=null;
@@ -995,7 +1010,7 @@ export class ArcadeGame {
     if(!quote.ok){this.notice(quote.reason,3);this.renderDock();return;}
     this.player.ore-=quote.price;
     recordEconomyExpense(this,'drones',quote.price);
-    this.allies.push(createEscort(role,++this.allySerial,this.docked.x,this.docked.y,this.time));
+    this.allies.push(createEscort(role,++this.allySerial,this.docked.x,this.docked.y,this.time,this.skillRanks));
     this.notice('Нанят «'+quote.spec.name+'» · ведомые '+this.allies.length+'/'+quote.cap,3);
     this.heritage?.vfx?.nova?.(this.docked.x,this.docked.y,58,'cyan');
     this.renderDock();return;
@@ -2466,6 +2481,10 @@ export class ArcadeGame {
   }
   if(id==='hull'){p.maxHp+=22;p.hp=Math.min(p.maxHp,p.hp+32);}
   if(id==='shield')p.shield+=18;
+  if(id==='wingArmor')for(const ally of this.allies){
+   const maxHp=escortMaxHp(ally.role,this.skillRanks);
+   ally.hp=Math.min(maxHp,ally.hp+Math.max(0,maxHp-ally.maxHp));ally.maxHp=maxHp;
+  }
   let moduleSuggested=false;
   if(id==='rocket'&&this.skillRanks.rocket===1){
    this.shipLoadout.owned.rocket=(this.shipLoadout.owned.rocket||0)+1;
@@ -3459,7 +3478,7 @@ export class ArcadeGame {
    turretSlotRank:this.world.contours?.turretSlotRank||0,flux:this.world.contours?.flux||0,
    activeContourTrials:this.world.contours?.trials?.completed||0,
    connected:!!this.docked?.active&&topology.linked.has(this.docked.id),
-   allies:this.allies.length,droneRoles:this.allies.map(a=>a.role),
+   allies:this.allies.length,droneRoles:this.allies.map(a=>a.role),combatMastery:this.combatMastery,
    droneRoster:this.allies.map(a=>({serial:a.serial,role:a.role,hp:a.hp,maxHp:a.maxHp})),
    network:this.network,
    doctrine:this.doctrine,doctrineRanks:normalizedDoctrineRanks(this),
@@ -4165,7 +4184,7 @@ export class ArcadeGame {
    if(!quote.ok){this.notice(quote.reason,2);return;}
    p.ore-=quote.price;
    recordEconomyExpense(this,'drones',quote.price);
-   this.allies.push(createEscort(role,++this.allySerial,b.x,b.y,this.time));
+   this.allies.push(createEscort(role,++this.allySerial,b.x,b.y,this.time,this.skillRanks));
    this.notice('Нанят «'+quote.spec.name+'» · '+this.allies.length+' / '+quote.cap,2.6);
    this.heritage.vfx.nova(b.x,b.y,58,'cyan');
   }else if(act==='upgrade'){
@@ -4511,6 +4530,7 @@ export class ArcadeGame {
   }
   if(this.nearDockField||this.nearArsenalDefense)damage*=.82;
   damage=fieldLootArmor(this,damage);
+  damage*=1-masteryBonus(this.combatMastery,'survivor');
   // Rank two of the assault doctrine lets the pilot withstand return fire
   // during a close-range dash assault, for the same 2.5-second window.
   if(doctrineRank(this,'assault')>=2&&this.assaultBurstUntil>this.time)damage*=.75;
@@ -4528,6 +4548,12 @@ export class ArcadeGame {
   p.shield-=absorbed;
   const previousHp=p.hp;
   p.hp-=remaining;p.invul=.55+this.skillRanks.dodge*.12;this.lastDamageAt=this.time;
+  masteryMiss(this.combatMastery,'ace');
+  if(p.hp>0&&this.combatMastery&&this.time-this.combatMastery.lastImpactAt>=3){
+   this.combatMastery.lastImpactAt=this.time;
+   const award=masteryProgress(this.combatMastery,'survivor');
+   if(award)this.notice('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);
+  }
   recordCombatContact(this);
   recordSortieDamage(this,Math.min(previousHp,remaining),absorbed);
   if(previousHp/p.maxHp>.3&&p.hp/p.maxHp<=.3&&p.hp>0)
@@ -4616,6 +4642,11 @@ export class ArcadeGame {
   // Apply the hired wing's armor once, for bullets, collisions, shocks and
   // regional storms alike. Individual impact callers pass unmodified damage.
   damage*=Math.max(.45,1-(this.network?.armor||0)*.07);
+  // A close-assault escort crosses the rammer's hitbox during its strike.
+  // Its brief frontal screen and withdrawal prevent contact damage from
+  // erasing the unit before it has completed the attack; bullets still hurt.
+  if(a.role==='brawler'&&this.time<(a.guardUntil||0))
+   damage*=Math.max(.38,.54-(this.skillRanks.wingRam||0)*.055);
   a.hp-=damage;a.hit=.18;
   if(this.time>(a.nextVfxHit||0)){
    this.heritage.vfx.hullImpact(a.x,a.y,false);
@@ -4678,7 +4709,7 @@ export class ArcadeGame {
   }
   // A surviving ship can infer an approximate firing sector from an impact.
   // Other attackers cannot reveal the player's coordinates by proxy.
-  const aggressor=(['beam','rocket','ion','rail','flak','howitzer','comet','mine','tactical'].includes(source))?this.player:
+  const aggressor=(['beam','rocket','ion','rail','flak','howitzer','comet','mine','tactical','trophy'].includes(source))?this.player:
     (source&&typeof source==='object'&&Number.isFinite(source.x)&&
      Number.isFinite(source.y)&&source.hp>0)?source:null;
   // A damaged patrol does not obtain a live target coordinate through a wall.
@@ -4696,10 +4727,13 @@ export class ArcadeGame {
   }
   const hpBefore=e.hp;
   damage=fieldLootDamage(this,damage,source);
+  if(aggressor===this.player&&damage>0)damage*=1+masteryBonus(this.combatMastery,'ace');
   damage=stormWeaponDamage(e,damage,source,this.time);
   // A dock checkpoint may be captured before the next death-processing frame.
   // Health must already satisfy the saved enemy state contract at that point.
   e.hp=Math.max(0,e.hp-damage);e.hit=.12;
+  if(e.hp<=0&&this.allies?.includes(source))e._masteryWingKill=true;
+  if(e.hp<=0&&aggressor===this.player)e._masteryDirectKill=true;
   if(aggressor===this.player&&damage>0)
    armLastStand(e,this,hpBefore,sawAttacker);
   if(aggressor&&damage>0){
@@ -5371,7 +5405,8 @@ export class ArcadeGame {
     ': при угрозе корабль возвращается к обычной скорости.',3.5);
   const hauling=openingArcActive(this.openingArc)&&this.openingArc.kind==='rescue'&&
    this.openingArc.rescueStage==='return';
-  const speed=(STARTER_COMBAT.speed+this.skillRanks.engine*35)*(this.mining.active?.78:1)*
+  const speed=(STARTER_COMBAT.speed+this.skillRanks.engine*35)*
+   (1+masteryBonus(this.combatMastery,'evasive'))*(this.mining.active?.78:1)*
    (hauling?.76:1)*
    (this.cruising?EXPEDITION_CRUISE.multiplier:1)*doctrineEngineSurge(this);
   const boosting=p.burstRemaining>0;
@@ -5683,6 +5718,7 @@ export class ArcadeGame {
   updateFlakPellets(this,dt);
   updateHowitzer(this,dt);
   updateMouseArsenal(this,dt);
+  updateConvoyRelic(this);
   // Defense resolves warned impacts and imminent shots before collision damage.
   // It does not kill enemies or award loot/experience while the player waits.
   updateStationDefense(this);
@@ -5722,6 +5758,14 @@ export class ArcadeGame {
       const before=p.hp+p.shield;
       this.hurt(s.damage,{x:s.x,y:s.y});
       this.enemyLearning?.dealt(s.learnToken,Math.max(0,before-p.hp-p.shield));
+    }
+    // A near miss is credited after the shot has passed a moving ship.
+    if(s.alive&&!s._masteryNear&&length(p.vx,p.vy)>100&&
+     sweptRamHit(oldShotX,oldShotY,s.x,s.y,p,s.r+p.r+35)&&
+     (s.x-p.x)*s.vx+(s.y-p.y)*s.vy>0){
+     s._masteryNear=true;
+     const award=masteryProgress(this.combatMastery,'evasive');
+     if(award)this.notice('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);
     }
    }
   }
@@ -5771,6 +5815,14 @@ export class ArcadeGame {
     e.expAwarded=true;
     const combatXp=enemyDataReward(e);
     const directXp=qualifiesForDirectCombatXp(e,this.time);
+    if(!e.microSwarm&&directXp&&e._masteryDirectKill){
+     const award=masteryProgress(this.combatMastery,'ace');
+     if(award)this.notice('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);
+    }
+    if(!e.microSwarm&&e._masteryWingKill){
+     const award=masteryProgress(this.combatMastery,'wing');
+     if(award)this.notice('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);
+    }
     if(directXp)this.awardExperience(combatXp);
     rewardEyeKill(this,e,directXp);
     if(!e.microSwarm)this.addDrop('data',e.x,e.y,combatXp,
@@ -5800,7 +5852,10 @@ export class ArcadeGame {
   for(const a of this.allies){
    for(const e of this.grid.query(a.x,a.y,a.r+35)){
     if(e.hp<=0||e.converted||dist(a,e)>a.r+e.r)continue;
-    this.hitAlly(a,e.damage*dt*.8);
+    const striking=a.role==='brawler'&&this.time<(a.guardUntil||0);
+    const withdrawing=a.role==='brawler'&&this.time<(a.retreatUntil||0);
+    const contactFactor=striking?.23:withdrawing?.47:1;
+    this.hitAlly(a,e.damage*dt*.8*contactFactor);
    }
   }
   this.updateShipWeapons(dt);
@@ -6648,6 +6703,7 @@ export class ArcadeGame {
   }
   drawBallisticWeapons(c,this,this.fps,this.visuals.reducedMotion,cam);
   drawMouseArsenal(c,this);
+  drawConvoyRelic(c,this);
   for(const s of this.shots){
    if(outsideCamera(s.x,s.y,cam,45))continue;
    this.visuals.drawHostileShot(c,s,this.fps>=28);

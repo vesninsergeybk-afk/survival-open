@@ -61,6 +61,31 @@ test('brawler makes a distinct short-range strike but will not hit beyond reach'
  assert.equal(far.hits.length,0,'contact strike cannot hit a distant target');
 });
 
+test('guard slows charging enemies while blade deals additional kinetic damage to capitals',()=>{
+ const guard=battle('scout',{x:70,y:0,r:14,hp:300,type:'berserker',converted:false});
+ updateAlly(guard.drone,guard.g,.08);
+ assert.equal(guard.hits.length,1);
+ assert.equal(guard.target.tacticalSlowFactor,.82);
+ assert.ok(guard.target.tacticalSlowUntil>guard.g.time);
+ const blade=battle('fighter',{x:70,y:0,r:22,hp:500,type:'gunship',converted:false});
+ updateAlly(blade.drone,blade.g,.08);
+ assert.equal(blade.hits.length,1);
+ assert.ok(blade.hits[0].damage>ESCORTS.fighter.damage);
+ assert.equal(blade.target.tacticalSlowUntil,undefined);
+});
+
+test('ramming drone takes reduced collision damage during a strike and retreats afterward',()=>{
+ const g=testGame(),a=createEscort('brawler',1,0,40,0);
+ g.time=20;g.allies=[a];
+ a.guardUntil=20.62;a.retreatUntil=21.03;
+ const start=a.hp;
+ g.hitAlly(a,24);
+ assert.ok(a.hp>start-15,'screen dampens an impact but never grants invulnerability');
+ g.time=22;const afterScreen=a.hp;
+ g.hitAlly(a,24);
+ assert.ok(a.hp<=afterScreen-23.9,'outside a strike the same impact hits normally');
+});
+
 test('rocket escort launches a physical homing projectile with splash instead of instant damage',()=>{
  const {g,drone,target,hits}=battle('rocket',{x:250,y:0,r:14,hp:300,type:'fighter'});
  updateAlly(drone,g,.08);

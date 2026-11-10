@@ -1,5 +1,5 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
-import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110-trial-station-defense-20261110-escort-squad-20261110';
+import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110-trial-station-defense-20261110-escort-squad-20261110-wingmastery-20261110';
 import {regionAt,centralOutline,centralBoundary,REGION_LIMIT} from './regions.js?v=regions-audit-1-living-world-population-1-sector-density-2';
 import {SUPPLY,supplyRoute,advanceRegionalSupply,interceptSupply,supplyEvent,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-renewal-1-territory-war-1';
@@ -12,9 +12,10 @@ import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 import {advanceEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
 import {advanceEnemyFortifications,FORT_STAGES} from './enemy-fortifications.js?v=industrial-forts-1';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
-import {updatePopulationWorld,drawPopulationWorld} from './population-runtime.js?v=sector-density-2-frontier-siege-1-early-density-20261110-convoy-variety-20261110-pilot-value-2';
+import {updatePopulationWorld,drawPopulationWorld} from './population-runtime.js?v=sector-density-2-frontier-siege-1-early-density-20261110-convoy-variety-20261110-pilot-value-2-wingmastery-20261110';
 import {interceptPopulationCargo,populationAlarm} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
 import {populationConvoyEscort,populationConvoyTitle,populationConvoyReward} from './convoy-profiles.js?v=convoy-variety-20261110';
+import {rewardConvoyRelic} from './convoy-relic.js';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 /** Translate *completed simulation events*, never a speculative plan, into a
@@ -491,6 +492,7 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
    x:cargo.x,y:cargo.y});
   game.notice(populationConvoyTitle(cargo)+' уничтожен. В обломках: '+value.ore+
    ' сплава и '+value.data+' данных. Фабрика недополучила сырья на три корабля.',6);
+  rewardConvoyRelic(game,cargo,source);
   return;
  }
  game.addDrop('ore',cargo.x,cargo.y,cargo.frontierRepair?4:frontier?.rewardOre??(cargo.centralCargo?CENTRAL_INDUSTRY.oreReward:SUPPLY.oreReward),{source:'salvage',life:60});
@@ -516,6 +518,7 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
   cargo.centralCargo?
   'Местный груз уничтожен: один будущий налёт из трёх кораблей лишился материалов. Прежние резервы сохраняются. Враг готовит защиту следующих рейсов — ей тоже нужна руда.':
   'Рудный груз перехвачен: военный узел не усилит один будущий патруль тяжёлым кораблём. Резервы сохраняются.',7);
+ rewardConvoyRelic(game,cargo,source);
 }
 export function drawRegionalWorld(game,c,cam){
  const p=game.player,s=game.world.regionalSupply;if(!s)return;

@@ -20,7 +20,8 @@ import {damageFriendlyTurret} from './turret-defense.js?v=turret-defense-2026111
 import {updateLastStand} from './enemy-last-stand.js?v=redteam-20261109-1';
 import {advanceEnemyCloseAttack,cancelCloseAttack} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
 import {activeStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
-import {ESCORTS,escortFocusBonus} from './escort-squad.js?v=escort-squad-20261110';
+import {ESCORTS,escortFocusBonus} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110';
+import {masteryBonus} from './combat-mastery.js';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -787,7 +788,8 @@ export function updateAlly(a,game,dt){
    a.message='Прекратил огонь';a.messageUntil=game.time+2.4;
   }
   if(a.think<=0){
-    a.think=(.34+(a.serial%4)*.06)/(1+(game.skillRanks.tactics||0)*.2);
+    a.think=(.34+(a.serial%4)*.06)/
+     (1+(game.skillRanks.tactics||0)*.2+(game.skillRanks.wingTargeting||0)*.22);
     let state='follow',target=null,priority=-Infinity;
     const enemyBase=game.nearbyEnemyBase(650);
     if(holdingFire){
@@ -848,7 +850,7 @@ export function updateAlly(a,game,dt){
   let x=p.x+Math.cos(angle)*formationRadius;
   let y=p.y+Math.sin(angle)*formationRadius;
   let speed=(a.role==='bomber'?235:spec.speed)*
-    (1+game.network.engine*.075);
+    (1+game.network.engine*.075+(game.skillRanks.wingSpeed||0)*.06);
   if(!holdingFire&&a.state==='bomb'&&a.target?.hp>0){
     const target=a.target.turrets?.find(t=>t.hp>0)||a.target;
     x=target.x+Math.cos(angle)*165;y=target.y+Math.sin(angle)*165;
@@ -863,18 +865,31 @@ export function updateAlly(a,game,dt){
     }
   }else if(!holdingFire&&a.state==='cover'&&a.target?.hp>0&&canAutoTarget(a.target)){
     const target=a.target;
-    const approach=a.role==='brawler'?34:a.role==='rocket'?235:100;
+    const withdrawing=a.role==='brawler'&&game.time<(a.retreatUntil||0);
+    const approach=a.role==='brawler'?(withdrawing?145:34):a.role==='rocket'?235:100;
     x=target.x+Math.cos(angle)*approach;y=target.y+Math.sin(angle)*approach;
+    if(withdrawing){
+     const dx=a.x-target.x,dy=a.y-target.y,d=Math.hypot(dx,dy)||1;
+     x=target.x+dx/d*approach;y=target.y+dy/d*approach;
+    }
     // Intercept toward the threat, but keep the escort within support range.
     const dx=x-p.x,dy=y-p.y,d=length(dx,dy),tether=a.role==='bomber'?170:
      a.role==='rocket'?190:a.role==='brawler'?200:155;
     if(d>tether){x=p.x+dx/d*tether;y=p.y+dy/d*tether;}
     const weaponRange=a.role==='bomber'?360:spec.range;
-    if(a.fire<=0&&dist(a,target)<weaponRange){
+    if(!withdrawing&&a.fire<=0&&dist(a,target)<weaponRange){
       a.fire=a.role==='bomber'?1.85:spec.reload;
       const weapon=a.role==='bomber'?5:spec.damage;
       const command=commandAllyBonus(game,a);
-      const damage=(weapon+game.network.armament*(a.role==='bomber'?1.5:3))*command;
+      const damage=(weapon+game.network.armament*(a.role==='bomber'?1.5:3))*command*
+       (1+(game.skillRanks.wingAssault||0)*.10)*
+       (a.role==='brawler'?1+(game.skillRanks.wingRam||0)*.14:1)*
+       (1+masteryBonus(game.combatMastery,'wing'))*
+       (a.role==='fighter'&&['gunship','healer'].includes(target.type)?1.16:1);
+      if(a.role==='brawler'){
+       a.guardUntil=game.time+.62+(game.skillRanks.wingRam||0)*.12;
+       a.retreatUntil=game.time+1.03;
+      }
       if(a.role==='rocket'&&Array.isArray(game.missiles)){
         game.missiles.push({x:a.x,y:a.y,tx:target.x,ty:target.y,
           target,targetKind:'enemy',speed:530,life:1.65,damage,
@@ -884,8 +899,17 @@ export function updateAlly(a,game,dt){
         game.heritage.play('rocket',.35,{x:a.x,y:a.y});
       }else{
         game.damageEnemy(target,damage,a);
+        if(a.role==='scout'&&target.hp>0&&
+         ['berserker','flanker','fighter'].includes(target.type)){
+         const now=game.time;
+         if((target.tacticalSlowUntil||0)<=now)
+          target.tacticalSlowFactor=.82;
+         else target.tacticalSlowFactor=Math.min(target.tacticalSlowFactor||1,.82);
+         target.tacticalSlowUntil=Math.max(target.tacticalSlowUntil||0,now+.95);
+        }
         game.flash(a.x,a.y,target.x,target.y,
-          a.role==='brawler'?'#ffb97b':a.role==='medic'?'#9df1be':'#8adfff');
+          a.role==='brawler'?'#ffb97b':a.role==='medic'?'#9df1be':
+          a.role==='scout'?'#75fff0':'#aac9ff');
         game.heritage.play('allyShot',a.role==='brawler'?.58:.42,{x:a.x,y:a.y});
       }
     }
@@ -895,13 +919,14 @@ export function updateAlly(a,game,dt){
      dist(a,other)<220).sort((left,right)=>left.hp/left.maxHp-right.hp/right.maxHp);
     const patient=wounded[0];
     if(patient){
-      patient.hp=Math.min(patient.maxHp,patient.hp+8+game.network.armament*1.5);
+      patient.hp=Math.min(patient.maxHp,patient.hp+8+game.network.armament*1.5+
+       (game.skillRanks.wingMedic||0)*3);
       game.flash(a.x,a.y,patient.x,patient.y,'#9df1be');
       a.serviceAt=game.time+3.8;
     }else if(game.time-(game.lastDamageAt??0)>5&&dist(a,p)<160){
       const shieldCap=16+(game.skillRanks.shield||0)*24;
       if(p.shield<shieldCap){
-        p.shield=Math.min(shieldCap,p.shield+4);
+        p.shield=Math.min(shieldCap,p.shield+4+(game.skillRanks.wingMedic||0)*1.5);
         game.flash(a.x,a.y,p.x,p.y,'#9df1be');
       }
       a.serviceAt=game.time+4.6;

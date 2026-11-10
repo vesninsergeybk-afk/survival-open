@@ -9,7 +9,7 @@ import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1';
 import {normalizedDoctrineRanks,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2-hud-merge-20261110';
 import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110-weapon-deck-audit-2-hud-merge-20261110';
-import {ESCORTS,escortCapacity} from './escort-squad.js?v=escort-squad-20261110';
+import {ESCORTS,escortCapacity} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110';
 const el = id => document.getElementById(id);
 const mountCountLabel=count=>{
  const last=count%10,teens=count%100>=11&&count%100<=14;
@@ -63,6 +63,9 @@ export class CockpitDisplay {
    hudThermal:el('hudThermal'),hudThermalLabel:el('hudThermalLabel'),
    hudThermalText:el('hudThermalText'),hudThermalMeter:el('hudThermalMeter'),
    droneIcons:Array.from({length:6},(_,i)=>el('hudDrone'+i)),
+   droneSlots:Array.from({length:6},(_,i)=>el('hudDroneSlot'+i)),wingAlert:el('wingAlert'),
+   droneMeters:Array.from({length:6},(_,i)=>el('hudDroneHp'+i)),
+   hudTrophy:el('hudTrophy'),hudTrophyName:el('hudTrophyName'),hudTrophyTime:el('hudTrophyTime'),hudTrophyIcon:el('hudTrophyIcon'),
    ore:el('ore'),data:el('data'),bases:el('bases'),
    flux:el('flux'),fluxResource:el('fluxResource'),fluxGain:el('fluxGain'),
    hack:el('hack'),fps:el('fps'),enemies:el('enemies'),
@@ -148,18 +151,41 @@ export class CockpitDisplay {
    this.nextWingCapacityUpdate=game.time+1;
   }
   const capacity=this.wingCapacity||1;
+  const critical=liveUnits.filter(a=>a.hp/a.maxHp<=.28),damaged=liveUnits.filter(a=>a.hp<a.maxHp);
   for(let i=0;i<n.droneIcons.length;i++){
-   const icon=n.droneIcons[i],unit=liveUnits[i];
-   icon.classList.toggle('active',!!unit);
-   icon.classList.toggle('locked',i>=capacity);
-   const sprite=unit&&ESCORTS[unit.role]&&unit.role!=='scout'?
+   const icon=n.droneIcons[i],slot=n.droneSlots[i],unit=liveUnits[i];
+   slot.classList.toggle('active',!!unit);
+   slot.classList.toggle('locked',i>=capacity);
+   const fraction=unit?clamp01(unit.hp/Math.max(1,unit.maxHp)):0;
+   slot.classList.toggle('critical',!!unit&&fraction<=.28);
+   slot.classList.toggle('wounded',!!unit&&fraction>.28&&fraction<=.6);
+   const sprite=unit&&ESCORTS[unit.role]?
     './studio/hud-kit/escort-'+unit.role+'.svg':'./studio/hud-kit/drone.svg';
    if(icon.getAttribute?.('src')!==sprite)icon.src=sprite;
-   icon.title=unit?(ESCORTS[unit.role]?.name||'Ведомый')+' · '+Math.ceil(unit.hp)+' ОЗ':
+   slot.title=unit?(ESCORTS[unit.role]?.name||'Ведомый')+' · '+Math.ceil(unit.hp)+' / '+Math.ceil(unit.maxHp)+' ОЗ':
     i>=capacity?'Место откроется после подключения ещё одной станции':'Свободное место';
    icon.style.filter=unit?'drop-shadow(0 0 4px '+(ESCORTS[unit.role]?.color||'#68eeeb')+')':'';
+   const meter=n.droneMeters[i];
+   meter.style.setProperty('--hp',(fraction*100)+'%');
+   meter.setAttribute('aria-label',unit?(ESCORTS[unit.role]?.name||'Дрон')+' · прочность':
+    'Место '+(i+1)+(i>=capacity?' закрыто':' свободно'));
+   meter.setAttribute('aria-valuenow',String(unit?Math.ceil(unit.hp):0));
+   meter.setAttribute('aria-valuemax',String(unit?Math.ceil(unit.maxHp):100));
   }
-  display(n.wingStatus,liveAllies+'/'+capacity);
+  display(n.wingStatus,(critical.length?'⚠ ':'')+liveAllies+'/'+capacity);
+  n.wingStatus.classList.toggle('has-critical',critical.length>0);
+  display(n.wingAlert,critical.length?'Критическая прочность: '+critical.map(a=>ESCORTS[a.role]?.name).join(', '):
+   damaged.length?'Повреждены дроны: '+damaged.length:'Все ведомые исправны');
+  const relic=game.convoyRelic?.active,seconds=relic?Math.max(0,Math.ceil(relic.until-game.time)):0;
+  n.hudTrophy.hidden=!relic||!seconds;
+  if(relic&&seconds){
+   display(n.hudTrophyName,({storm:'ПЛАЗМА',salvo:'КАСКАД',arc:'ИОННАЯ ГРОЗА'})[relic.id]||'ТРОФЕЙ');
+   display(n.hudTrophyTime,seconds+' с');
+   const sprite='./studio/hud-kit/'+({storm:'weapon-plasma.svg',salvo:'weapon-rocket.svg',arc:'ion.svg'})[relic.id];
+   if(n.hudTrophyIcon.getAttribute('src')!==sprite)n.hudTrophyIcon.src=sprite;
+   n.hudTrophy.classList.toggle('ending',seconds<=15);
+   n.hudTrophy.title='Трофейный автоматический модуль · '+seconds+' секунд';
+  }
   n.wingStatus.setAttribute('aria-label',bombers?'Авиагруппа выполняет удар; '+liveAllies+' дронов в строю':
    cover?'Прикрывают корабль: '+cover+'; '+liveAllies+' дронов в строю':
    liveAllies+' из '+capacity+' доступных дронов в строю');

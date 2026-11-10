@@ -22,6 +22,8 @@ import {OPENING_ARC,createOpeningArc,beginOpeningArc} from '../opening-arc.js';
 import {advanceEnemyExpansion,enemyTerritoryFields} from '../enemy-expansion.js';
 import {createFieldLoot} from '../field-loot.js';
 import {createCombatTempo} from '../combat-tempo.js';
+import {createCombatMastery,masteryProgress} from '../combat-mastery.js';
+import {createConvoyRelic} from '../convoy-relic.js';
 import {createEscort} from '../escort-squad.js';
 import {advanceEnemyFortifications} from '../enemy-fortifications.js';
 import {createStrategicExperience,claimStationActivation,claimStationCapture,
@@ -47,6 +49,19 @@ test('mixed escort wing and paid squad technologies survive a real checkpoint',(
  assert.equal(restored.allies[0].hp,45);
  assert.equal(restored.allySerial,4);
  assert.deepEqual([restored.network.armor,restored.network.engine,restored.network.armament],[2,3,4]);
+});
+
+test('earned mastery and a remaining convoy trophy timer survive a real checkpoint',()=>{
+ const g=scene();g.time=100;
+ g.combatMastery=createCombatMastery();g.convoyRelic=createConvoyRelic();
+ masteryProgress(g.combatMastery,'wing',6);
+ g.convoyRelic.active={id:'storm',until:190,nextFireAt:101};
+ g.convoyRelic.lastGrantedAt=100;
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(snapshot),true);
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ assert.equal(restored.combatMastery.tracks.wing.rank,1);
+ assert.equal(restored.convoyRelic.active.until,190);
 });
 
 test('specialized howitzer and several pilot doctrines survive checkpoint serialization',()=>{

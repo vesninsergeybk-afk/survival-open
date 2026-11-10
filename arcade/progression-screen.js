@@ -4,6 +4,7 @@ import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalQuote} from '.
 import {developmentPointLedger} from './experience.js';
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=tactical-slot-20261110';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
+import {MASTERIES,masteryGoal,masteryBonus} from './combat-mastery.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const art=(group,id)=>'./assets/progression/'+group+'/'+id+'.webp';
@@ -11,7 +12,9 @@ const domains=[
  {id:'pilot',title:'Пилот',subtitle:'Манёвры · добыча',theme:'amber'},
  {id:'weapons',title:'Оружие',subtitle:'Мощность · дальность',theme:'cyan'},
  {id:'ship',title:'Корабль',subtitle:'Корпус · узлы',theme:'ice'},
+ {id:'drones',title:'Дроны',subtitle:'Прочность · атака · поддержка',theme:'cyan',icon:'./studio/hud-kit/escort-fighter.svg'},
  {id:'tactics',title:'Тактика',subtitle:'Поля · приёмы',theme:'violet'},
+ {id:'mastery',title:'Мастерство',subtitle:'Автоматические улучшения за достижения',theme:'amber',icon:'./studio/hud-kit/mastery.svg'},
  {id:'network',title:'Сеть',subtitle:'Вместимость контуров',theme:'ice'}
 ];
 const fieldSkills=new Set(['parasite','conduit','wreck','capture','signal','tactics']);
@@ -21,6 +24,8 @@ const icons={beam:'calibration',range:'range',double:'split',rocket:'rocket',hul
  conduit:'dash_discharge',wreck:'wreck',capture:'capture',signal:'signal',
  cometRadius:'comet',mineArray:'mines',cometCore:'comet_core',cometCryo:'comet_cryo',
  minePierce:'mine_pierce',mineSnare:'mine_snare'};
+Object.assign(icons,{wingArmor:'shield',wingSpeed:'engine',wingTargeting:'scanner',
+ wingAssault:'calibration',wingRam:'dodge',wingMedic:'hull'});
 const activations={
  beam:'Автоматически усиливает установленное автооружие и ионную цепь.',
  range:'Работает автоматически: у плазменного луча увеличивается дальность.',
@@ -47,6 +52,12 @@ const activations={
  minePierce:'Бонус к урону срабатывает автоматически, когда мина поражает тяжёлый корабль.',
  mineSnare:'Замедление срабатывает автоматически, когда мина поражает выжившего противника.'
 };
+Object.assign(activations,{wingArmor:'Увеличивает запас прочности нанятых и будущих дронов.',
+ wingSpeed:'Ведомые быстрее возвращаются к кораблю и заходят на цель.',
+ wingTargeting:'Сокращает время принятия решения каждым ведомым.',
+ wingAssault:'Усиливает попадания всех наёмных дронов.',
+ wingRam:'«Таран» получает дополнительный экран во время короткого ударного захода.',
+ wingMedic:'«Искра» сильнее восстанавливает дронов и подпитывает щит пилота.'});
 const touchManualActivations={
  cometRadius:'Коснитесь точки взрыва на поле боя. Основным ручным оружием должна быть выбрана «Голубая комета».',
  mineArray:'Нажмите «Мины · выбор», затем коснитесь места установки мин.',
@@ -208,6 +219,26 @@ function shipNodes(state){
  return nodes;
 }
 
+function droneNodes(state){
+ return (state.pilotSkills||[]).filter(s=>s.branch==='Дроны').map(s=>skillNode(s,state));
+}
+
+function masteryNodes(state){
+ return Object.entries(MASTERIES).map(([id,spec])=>{
+  const rank=state.combatMastery?.tracks?.[id]?.rank||0;
+  const progress=state.combatMastery?.tracks?.[id]?.progress||0;
+  const goal=masteryGoal(id,rank),bonus=masteryBonus(state.combatMastery,id)*100;
+  return {id:'mastery-'+id,kind:'achievement',title:spec.name,icon:id==='wing'?art('upgrades','doctrine'):
+   id==='comet'?art('weapons','comet'):id==='evasive'?art('upgrades','dodge'):
+   id==='survivor'?art('upgrades','hull'):art('upgrades','calibration'),
+   level:1,rank,max:Infinity,status:'info',description:spec.task,
+   effect:spec.effect+': +'+bonus.toFixed(1).replace('.',',')+'%'+
+    (id==='survivor'?' защиты':'')+'. Следующая ступень даст небольшой дополнительный бонус.',
+   activation:'Засчитывается автоматически во время вылета. Прогресс и полученные ступени сохраняются на станции.',
+   action:'',actionId:id,actionLabel:'',canAct:false,cost:'Действиями в бою',progress,goal};
+ });
+}
+
 function tacticalNodes(state){
  const focus=state.developmentTactic||'pulse';
  if(focus==='abilities')return (state.pilotSkills||[]).filter(s=>fieldSkills.has(s.id)).map(s=>skillNode(s,state));
@@ -288,7 +319,8 @@ export function progressionModel(state){
  const domain=domains.some(d=>d.id===state.developmentDomain)?state.developmentDomain:'pilot';
  const weapon=domain==='weapons'?weaponNodes(state):null;
  const nodes=domain==='pilot'?pilotNodes(state):domain==='weapons'?weapon.nodes:
-  domain==='ship'?shipNodes(state):domain==='tactics'?tacticalNodes(state):networkNodes(state);
+  domain==='ship'?shipNodes(state):domain==='drones'?droneNodes(state):
+  domain==='mastery'?masteryNodes(state):domain==='tactics'?tacticalNodes(state):networkNodes(state);
  const selected=nodes.find(n=>n.id===state.developmentFocus)||nodes.find(n=>n.status==='ready')||nodes[0]||null;
  return {domain,nodes,selected,weapon};
 }
@@ -296,7 +328,8 @@ export function progressionModel(state){
 function nodeHtml(node,selected){
  const labels={ready:'Доступно',mastered:'Изучено',waiting:'Не выполнены условия',locked:'Закрыто',
   exclusive:'Другой путь',info:'Оснащение'};
- const progress=node.shared?'Общая технология · '+node.rank+'/'+node.max:
+ const progress=node.kind==='achievement'?'Ступень '+node.rank+' · '+node.progress+'/'+node.goal:
+  node.shared?'Общая технология · '+node.rank+'/'+node.max:
   node.kind==='navigation'?'Раздел станции':node.kind==='equipment'?(node.equipmentStatus||(node.rank?'Получено':'Не получено')):
   node.rank+'/'+node.max+' · '+(labels[node.status]||'Сведения');
  return '<button type="button" class="prog-node" data-act="devFocus" data-id="'+esc(node.id)+'" data-node="'+esc(node.id)+'"'+
@@ -304,7 +337,8 @@ function nodeHtml(node,selected){
   ' aria-label="'+esc(node.title)+', '+esc(node.status==='mastered'?'изучено':node.reason||'доступно')+'">'+
   '<span class="prog-node-art"><img src="'+art('frames','node_'+(selected?.id===node.id?'selected':node.status==='mastered'?'mastered':node.status==='ready'||node.status==='info'?'ready':'locked'))+'" alt="" class="prog-node-frame">'+
   '<img src="'+esc(node.icon)+'" alt="" class="prog-node-glyph">'+branchMark(node.mark)+'</span>'+
-  '<strong>'+esc(node.title)+'</strong><small>'+esc(progress)+'</small></button>';
+  '<strong>'+esc(node.title)+'</strong><small>'+esc(progress)+'</small>'+
+  (node.kind==='achievement'?'<span class="mastery-progress" aria-hidden="true"><i style="width:'+Math.min(100,node.progress/node.goal*100)+'%"></i></span>':'')+'</button>';
 }
 
 function treeHtml(nodes,selected){
@@ -312,10 +346,11 @@ function treeHtml(nodes,selected){
  return '<div class="prog-graph"><div class="prog-graph-head"><span>СХЕМА РАЗВИТИЯ</span><small>Выберите узел, чтобы увидеть эффект и условия.</small></div>'+
   '<div class="prog-tree" aria-label="Навыки по уровням и реальные связи между ними"><svg class="prog-tree-links" aria-hidden="true"></svg>'+
   [...groups].sort(([a],[b])=>a-b).map(([level,entries])=>{
-   const station=entries.every(n=>n.kind==='navigation');
-   return '<section class="prog-tier" aria-label="'+(station?'Системы станции':'Уровень '+level)+'">'+
-    '<div class="prog-tier-track"><span class="prog-tier-index">'+(station?'●':String(level).padStart(2,'0'))+'</span><h3>'+
-    (station?'Системы станции':'Уровень '+level)+'</h3></div><div class="prog-tier-nodes">'+
+   const station=entries.every(n=>n.kind==='navigation'),achievement=entries.every(n=>n.kind==='achievement');
+   const label=achievement?'Достижения':station?'Системы станции':'Уровень '+level;
+   return '<section class="prog-tier" aria-label="'+label+'">'+
+    '<div class="prog-tier-track"><span class="prog-tier-index">'+(station||achievement?'●':String(level).padStart(2,'0'))+'</span><h3>'+
+    label+'</h3></div><div class="prog-tier-nodes">'+
     entries.map(n=>nodeHtml(n,selected)).join('')+'</div></section>';
   }).join('')+'</div><div class="prog-graph-key" aria-label="Обозначения"><span class="is-ready">Доступно</span><span class="is-mastered">Изучено</span><span class="is-locked">Закрыто или требует ресурсов</span></div></div>';
 }
@@ -326,18 +361,18 @@ function detailHtml(node,domain,weapon,state){
  const key=action=>readableKey(bindings[action]);
  const activation=String(state.isTouchLayout&&touchManualActivations[node.actionId]||node.activation||'').replace(/\bShift\b/g,key('dash')).replace(/\bE\b/g,key('interact'))
   .replace(/%FIELD%/g,key('field'));
- const status=node.equipmentStatus|| (node.shared?'Общая технология':node.kind==='navigation'?'Раздел станции':node.status==='info'?'Оборудование':node.status==='mastered'?'Изучено':node.status==='ready'?'Доступно':
+ const status=node.equipmentStatus|| (node.kind==='achievement'?'Достижение':node.shared?'Общая технология':node.kind==='navigation'?'Раздел станции':node.status==='info'?'Оборудование':node.status==='mastered'?'Изучено':node.status==='ready'?'Доступно':
   node.status==='exclusive'?'Другая ветка выбрана':node.status==='waiting'?'Ждёт ресурса':'Закрыто');
  // The weapon summary already offers the fitting action. An information-only
  // equipment node must not repeat that same navigation at the foot of the tree.
- const cta=domain==='weapons'&&node.kind==='equipment'?'':'<button type="button" class="prog-action" data-act="'+esc(node.action)+'"'+
+ const cta=node.kind==='achievement'||domain==='weapons'&&node.kind==='equipment'?'':'<button type="button" class="prog-action" data-act="'+esc(node.action)+'"'+
   (node.actionId?' data-id="'+esc(node.actionId)+'"':'')+(node.action==='baseTab'?' data-role="network"':'')+
   (node.canAct?'':' disabled')+'>'+esc(node.actionLabel)+'</button>';
  return '<aside class="prog-detail" aria-label="Выбранное улучшение"><div class="prog-detail-main">'+
   '<span class="prog-detail-illustration"><img src="'+esc(node.icon)+'" alt="" class="prog-detail-icon">'+branchMark(node.mark)+'</span><div class="prog-detail-copy"><span class="prog-detail-status" data-status="'+esc(node.status)+'">'+status+'</span><h3>'+esc(node.title)+'</h3>'+
   '<p>'+esc(node.description)+'</p>'+(node.scope?'<p class="prog-shared-scope">'+esc(node.scope)+'</p>':'')+
   (node.masteryAt?'<p class="prog-mastery-hint">Два ранга: выбор ветки с уровня '+node.level+', мастерство с уровня '+node.masteryAt+'.</p>':'')+'</div></div><div class="prog-detail-facts">'+
-  '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p></div><div><b>Как применять</b><p>'+esc(activation)+'</p></div></div>'+
+  '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p>'+(node.kind==='achievement'?'<div class="mastery-detail-progress"><i style="width:'+Math.min(100,node.progress/node.goal*100)+'%"></i></div><p>'+node.progress+' из '+node.goal+' до следующей ступени</p>':'')+'</div><div><b>Как применять</b><p>'+esc(activation)+'</p></div></div>'+
   '<div class="prog-detail-actions"><span class="prog-cost">Стоимость: '+esc(node.cost)+'</span>'+cta+
   (domain==='ship'?'<button type="button" class="prog-secondary" data-act="baseTab" data-role="hangar">Схема корабля</button>':'')+'</div>'+
   (node.reason?'<p class="prog-detail-reason">'+esc(node.reason)+'</p>':'')+'</aside>';
@@ -379,8 +414,8 @@ export function renderProgressionScreen(state){
   '<div class="prog-orbit-center"><img src="'+heroMenuPortrait(state.level,state.hp,state.maxHp)+'" alt="Ваш корабль" loading="lazy">'+
   '<div class="prog-ship-caption"><span>ВАШ КОРАБЛЬ</span><strong>Уровень '+(state.level||1)+'</strong>'+
   '<small>'+(damaged?'Корпус серьёзно повреждён':'Текущая модель корпуса')+'</small></div></div>'+
-  domains.map((d,index)=>'<button type="button" class="prog-domain domain-'+d.id+'" data-act="devDomain" data-id="'+d.id+'" aria-pressed="'+(domain===d.id)+'"'+
-   ' title="'+esc(d.subtitle)+'"><img src="'+art('domains',d.id==='network'?'stations':d.id)+'" alt=""><strong>'+d.title+'</strong></button>').join('')+
+  domains.map(d=>'<button type="button" class="prog-domain domain-'+d.id+'" data-act="devDomain" data-id="'+d.id+'" aria-pressed="'+(domain===d.id)+'"'+
+   ' title="'+esc(d.subtitle)+'"><img src="'+(d.icon||art('domains',d.id==='network'?'stations':d.id))+'" alt=""><strong>'+d.title+'</strong></button>').join('')+
   '</div></aside>';
  const mountedSlots=weapon&&!weapon.manual?(state.loadout?.slots||[]).flatMap((id,index)=>id===weapon.family.id?[index===5?'H':index+1]:[]):[];
  const weaponHead=weapon?'<div class="prog-weapon-summary" data-installed="'+(weapon.manual?'manual':weapon.installed)+'">'+

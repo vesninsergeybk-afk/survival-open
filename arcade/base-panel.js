@@ -1,5 +1,5 @@
 import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2-semantic-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-hud-merge-20261110';
-import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-value-2-hud-merge-20261110';
+import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-value-2-hud-merge-20261110-wingmastery-20261110';
 import {normalizedDoctrineRanks,doctrineSpent} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2-hud-merge-20261110';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1-hud-merge-20261110';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1-corecharge-20261110-hud-merge-20261110';
@@ -28,7 +28,7 @@ import {productiveContourFields} from './contour-trials.js?v=swarm-siege-1-corec
 import {stationTrialField,stationGarrisonOffer,STATION_GARRISONS} from './station-garrisons.js?v=trial-station-defense-20261110';
 import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,hiveLimit,hiveArmor} from './turret-growth.js?v=trial-station-defense-20261110';
 import {ESCORTS,ESCORT_TECH,escortCapacity,escortHireOffer,
- escortTrainingOffer,escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110';
+ escortTrainingOffer,escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
