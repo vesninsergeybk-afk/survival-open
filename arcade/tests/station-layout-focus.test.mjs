@@ -82,8 +82,8 @@ test('station network exposes territory and development before defence, with opt
  const growth=renderBasePanel(home,state({baseTab:'network'}));
  assert.match(growth,/<details class="base-secondary-info base-network-future"><summary>Следующие улучшения/);
  assert.match(network,/<details class="base-secondary-info base-network-advanced"[^>]*><summary>Радиосвязь услуг/);
- assert.ok(network.indexOf('Связь и территория')<network.indexOf('Технология всего флота'));
- assert.ok(network.indexOf('Технология всего флота')<network.indexOf('ОБОРОНА СТАНЦИИ'));
+ assert.ok(network.indexOf('Связь и территория')<network.indexOf('Вклад станции в технологию флота'));
+ assert.ok(network.indexOf('Вклад станции в технологию флота')<network.indexOf('ОБОРОНА СТАНЦИИ'));
  assert.match(network,/data-act="toggleMeteorDefense"/);
  const withoutInterception=renderBasePanel({...home,defense:{charges:1,meteorEnabled:false}},state({baseTab:'network'}));
  assert.match(withoutInterception,/Перехват отключён: орбитальные удары могут поражать врагов, астероиды и Ваш корабль/);
@@ -92,7 +92,7 @@ test('station network exposes territory and development before defence, with opt
 
 test('station navigation is named for the place it manages and has no duplicate footer instructions',()=>{
  const html=renderBasePanel(home,state());
- assert.match(html,/data-role="network"[^>]*>Станция<\/button>/);
+ assert.match(html,/data-role="network"[^>]*>Территория<\/button>/);
  assert.match(html,/data-role="hangar"[^>]*>Оснащение<\/button>/);
  assert.doesNotMatch(html,/Задания, корабль и улучшения доступны в разделах выше/);
 });

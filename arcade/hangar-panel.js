@@ -6,7 +6,7 @@ import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalSpec,tacticalQ
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {MODULES,FRAME_STEPS,BLUEPRINT_NAMES,SHIP_ART,HangarSession,createLoadout,
- frameSpec,slotOpen,equipModule,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-flow-2-menu-focus-1-menu-ergonomics-1-combat-balance-1';
+ frameSpec,slotOpen,equipModule,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-flow-2-menu-focus-1-menu-ergonomics-1-combat-balance-1-menu-depth-2';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -106,7 +106,7 @@ function shipScene(context,session){
  const badges=[[14,31],[86,31],[50,9],[14,75],[86,75],[50,91]];
  let lines='',guns='',nodes='';
  for(let i=0;i<6;i++){
-  const open=slotOpen(loadout,i),id=draft.slots[i],selected=session.slot===i;
+  const open=slotOpen(loadout,i),id=draft.slots[i],selected=!session.chooseReplacement&&session.slot===i;
   const [x,y]=art[i+2],[bx,by]=badges[i];
   const color=open?(id?MODULES[id].color:'#7fadb8'):'#596b81';
   lines+='<path d="M'+bx+' '+by+' L'+(bx<50?bx+12:bx>50?bx-12:bx)+' '+by+' L'+(x*100)+' '+(y*100)+'" stroke="'+color+'" opacity="'+(selected?1:.45)+'"/>';
@@ -149,6 +149,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   report.ranges.map((d,i)=>'<tr><th scope="row">'+d+' м</th><td>'+fmt(before.dps[i])+'</td><td>'+fmt(report.dps[i])+'</td></tr>').join('')+
   '</tbody></table><ul>'+report.notes.map(note=>'<li>'+esc(note)+'</li>').join('')+'</ul></details>';
  const assembly='<section class="hg-ship"><div class="hg-section-head"><div><span class="hg-eyebrow">СХЕМА ОСНАЩЕНИЯ</span><h3>Ваш корабль</h3></div><span class="hg-stage">Узлы: '+current.slots.filter((id,i)=>id&&slotOpen(current,i)).length+' / '+(frame.nodes+(frame.heavy?1:0))+' занято</span></div>'+
+  (session.chooseReplacement?'<div class="hg-replacement-prompt" role="status"><strong>Нет свободных узлов для '+esc(MODULES[session.requestedWeapon]?.name||'этого оружия')+'</strong><p>Нажмите на занятый узел корабля, чтобы выбрать замену. До подтверждения ничего не изменится и сплав не потратится.</p></div>':'')+
   shipScene(context,session)+'<p class="hg-scene-caption">Нажмите на узел, чтобы выбрать для него оружие. Нос корабля направлен вверх.</p>'+
   (!open?'<div class="hg-locked-node"><p>Узел '+labelFor(slot)+' ещё закрыт.</p><button type="button" data-act="openDevelopment" data-id="ship">Условия открытия узла</button></div>':'')+
   '<div class="hg-slot-strip" aria-label="Состав предварительной сборки">'+draft.slots.map((item,i)=>
@@ -296,7 +297,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   selectedHead+'<p class="hg-weapon-description">'+esc(weaponDescription(focused,context.controls))+'</p>'+selectedStats+
   (session.catalog&&open?fitting:'<p class="hg-weapon-availability">'+(installed?'✓ Установлено на корабле.':
    'Не установлено. Чтобы выбрать ветку, сначала установите оружие в свободный узел.')+'</p>')+
-  '<div class="hg-inspector-actions">'+(!session.catalog?button('hgCatalog','Заменить оружие'):'')+
+  '<div class="hg-inspector-actions">'+(!session.catalog&&!session.chooseReplacement?button('hgCatalog','Заменить оружие'):'')+
   '<button type="button" class="development-shortcut" data-act="openDevelopment" data-id="weapons" data-focus="'+focusedId+'">'+menuIcon('upgrades')+'К дереву развития · '+(context.points||0)+' очк.</button></div></aside>';
  const savedBlueprints=session.blueprints.filter(Boolean).length;
  const blueprints='<details class="hg-presets" data-hangar-section="blueprints"><summary>Схемы оснащения · сохранено '+savedBlueprints+' из 3</summary><p class="hg-note">Есть три ячейки для сохранения сборок на этом устройстве. Сплав потребуется только для изготовления при применении. При новом прохождении оружие и узлы нужно открыть заново.</p><div>'+BLUEPRINT_NAMES.map((name,i)=>
@@ -313,7 +314,7 @@ export function renderShipHangar(state,session=state.hangarSession){
    quote.ok?'Модули в наличии · замена бесплатна':'Применение схемы недоступно. Проверьте условия ниже.')+'</span>'+
   (!quote.ok?'<small class="hg-error">'+esc(quote.reason)+'</small>':'')+'</div><div>'+
   button('hgReset','Отменить')+button('hgApply',quote.cost?'Изготовить и применить':'Применить','',!quote.ok,'hg-primary')+'</div></div>':
-  '<div class="hg-current-bar" role="status">'+(editing?'Выберите оружие для узла '+labelFor(slot)+'.':
+  '<div class="hg-current-bar" role="status">'+(session.chooseReplacement?'Сначала выберите узел корабля для замены.':editing?'Выберите оружие для узла '+labelFor(slot)+'.':
    '✓ Текущее вооружение установлено. Чтобы изменить его, нажмите на узел корабля.')+'</div>';
  if(standaloneDevelopment)return '<section class="ship-hangar development-hangar" aria-label="'+(category==='weapons'?'Развитие оружия':category==='tactics'?'Развитие тактики':'Развитие корабля')+'">'+
   (category==='weapons'?inspector:category==='tactics'?tacticalPanel(context,session):upgrades)+
@@ -324,7 +325,8 @@ export function renderShipHangar(state,session=state.hangarSession){
    '<button type="button" data-act="hgView" data-id="'+id+'" aria-pressed="'+(section===id)+'" tabindex="'+(section===id?0:-1)+'"'+(section===id?' class="selected"':'')+'>'+menuIcon(iconId)+label+'</button>').join('')+'</nav>';
  return '<section class="ship-hangar'+(editing&&view==='weapons'?' hg-catalog-open':'')+(development?' development-hangar':'')+'" data-ship-view="'+view+'" aria-label="Конструктор корабля">'+
   '<header class="hg-title"><div><span class="hg-eyebrow">ОСНАЩЕНИЕ КОРАБЛЯ</span><h2>'+({weapons:'Оружейные узлы',tactics:'Тактические устройства'}[view])+'</h2></div></header>'+
-  nav+(state.stationMenuContext?.origin==='development'?'<button type="button" class="menu-context-return" data-act="menuContextBack">← Назад к развитию</button>':'')+
+  nav+(state.stationMenuContext?.origin==='development'?'<button type="button" class="menu-context-return" data-act="menuContextBack">← Назад к развитию</button>':
+   state.stationMenuContext?.origin==='summary'?'<button type="button" class="menu-context-return" data-act="menuContextBack">← Назад к обзору</button>':'')+
   (dirty||view==='weapons'?pendingApply:'')+
   (view==='weapons'&&editing?fittingStrip:'')+
   (view==='weapons'?'<div class="hg-layout'+(editing?' hg-layout-editing':' hg-layout-centered')+'">'+
