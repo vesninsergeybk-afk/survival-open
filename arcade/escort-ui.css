@@ -62,4 +62,15 @@
  #overlay .progression-ui .prog-domain:nth-last-child(-n+3){grid-column:span 4!important}
 }
 #overlay .progression-ui .prog-domain.domain-drones img,#overlay .progression-ui .prog-domain.domain-mastery img{mix-blend-mode:normal}
+#overlay .base-escort-profile{display:flex;align-items:center;gap:9px;min-width:0;min-height:64px}
+#overlay .base-escort-profile>img{display:block;width:68px;height:68px;flex:0 0 68px;object-fit:contain;
+ filter:drop-shadow(0 2px 5px #000b) drop-shadow(0 0 4px #4bf4fa35)}
+#overlay .base-escort-profile>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+#overlay .base-escort-profile strong{overflow-wrap:anywhere}
+#overlay .base-escort-roster .base-escort-profile{min-height:45px}
+#overlay .base-escort-roster .base-escort-profile>img{width:43px;height:43px;flex-basis:43px}
+@media(max-width:540px){
+ #overlay .base-escort-profile>img{width:56px;height:56px;flex-basis:56px}
+ #overlay .base-escort-roster .base-escort-profile>img{width:38px;height:38px;flex-basis:38px}
+}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}

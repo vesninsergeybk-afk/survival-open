@@ -101,8 +101,13 @@ function halo(ctx,r,color,level=1,tint='cyan'){
 }
 /** World-space render dimensions; game collision radii and AI stay unchanged. */
 export const COMPACT_ESCORT_SPECS=Object.freeze({
- scout:Object.freeze({width:24,height:22,color:'#75f3e3',asset:'../assets/space/drone-guardian-v1.png'}),
- fighter:Object.freeze({width:28,height:24,color:'#82beff',asset:'../assets/space/drone-blade-v1.png'})
+ scout:Object.freeze({width:24,height:22,color:'#75f3e3',asset:'./assets/escort/scout-v2.webp'}),
+ fighter:Object.freeze({width:28,height:24,color:'#82beff',asset:'./assets/escort/fighter-v2.webp'})
+});
+export const SPECIAL_ESCORT_SPECS=Object.freeze({
+ brawler:Object.freeze({width:50,height:46,asset:'./assets/escort/brawler-v2.webp'}),
+ rocket:Object.freeze({width:35,height:52,asset:'./assets/escort/rocket-v2.webp'}),
+ medic:Object.freeze({width:49,height:46,asset:'./assets/escort/medic-v2.webp'})
 });
 
 /** Trim transparent margins and downsample once, never inside the render loop. */
@@ -173,6 +178,14 @@ export class ArcadeVisuals {
    const sprite=new Image();sprite.decoding='async';
    sprite.onload=()=>{
     this.compactEscortSprites[role]=prepareEscortSprite(sprite,spec.width,spec.height);
+   };
+   sprite.src=new URL(spec.asset,import.meta.url).href;
+  }
+  this.specialEscortSprites=Object.create(null);
+  if(typeof Image!=='undefined')for(const [role,spec] of Object.entries(SPECIAL_ESCORT_SPECS)){
+   const sprite=new Image();sprite.decoding='async';
+   sprite.onload=()=>{
+    this.specialEscortSprites[role]=prepareEscortSprite(sprite,spec.width,spec.height);
    };
    sprite.src=new URL(spec.asset,import.meta.url).href;
   }
@@ -545,8 +558,9 @@ export class ArcadeVisuals {
   const role=a.role||'scout';
   const color=role==='bomber'?'#ffce86':role==='brawler'?'#ffb97b':
    role==='rocket'?'#ffa5ad':role==='medic'?'#9df1be':'#81caff';
-  const w=role==='bomber'?70:role==='brawler'?58:54;
-  const h=role==='bomber'?53:role==='brawler'?44:41;
+  const detail=role==='bomber'?null:SPECIAL_ESCORT_SPECS[role];
+  const w=detail?.width||(role==='bomber'?70:54);
+  const h=detail?.height||(role==='bomber'?53:41);
   const speed=Math.hypot(a.vx||0,a.vy||0),throttle=clamp(speed/345,0,1);
   const flicker=.82+.18*Math.sin(time*22+(a.serial||0)*2.1);
   ctx.save();ctx.translate(a.x,a.y);ctx.rotate(a.angle||0);
@@ -563,7 +577,8 @@ export class ArcadeVisuals {
     ctx.lineTo(lane+3,h*.35);ctx.fill();
   }
   ctx.restore();
-  const sprite=this.friendlySprite(image);
+  const dedicated=this.specialEscortSprites?.[role];
+  const sprite=dedicated||this.friendlySprite(image);
   if(sprite){
     if(role==='scout')ctx.filter='hue-rotate(165deg) saturate(1.2)';
     ctx.drawImage(sprite,-w/2,-h/2,w,h);
@@ -578,7 +593,7 @@ export class ArcadeVisuals {
   ctx.strokeStyle=color;ctx.lineWidth=2.1;
   ctx.beginPath();ctx.moveTo(-w*.45,-1);ctx.lineTo(-w*.28,4);
   ctx.moveTo(w*.45,-1);ctx.lineTo(w*.28,4);ctx.stroke();
-  if(role==='brawler'||role==='rocket'||role==='medic'){
+  if(!dedicated&&(role==='brawler'||role==='rocket'||role==='medic')){
    ctx.fillStyle='#10232c';ctx.strokeStyle=color;ctx.lineWidth=1.4;
    ctx.beginPath();ctx.arc(0,-4,9,0,TAU);ctx.fill();ctx.stroke();
    ctx.fillStyle=color;ctx.font='bold 12px sans-serif';ctx.textAlign='center';

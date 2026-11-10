@@ -27,8 +27,8 @@ import {CONTOURS,contourFields} from './territory-system.js?v=contours-1-triangl
 import {productiveContourFields} from './contour-trials.js?v=swarm-siege-1-corecharge-20261110';
 import {stationTrialField,stationGarrisonOffer,STATION_GARRISONS} from './station-garrisons.js?v=trial-station-defense-20261110';
 import {renderStationContourDefense} from './station-territory-map.js?v=station-contour-map-20261110';
-import {ESCORTS,ESCORT_TECH,escortCapacity,escortHireOffer,
- escortTrainingOffer,escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110';
+import {ESCORTS,ESCORT_TECH,escortPortrait,escortCapacity,escortHireOffer,
+ escortTrainingOffer,escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
@@ -1116,7 +1116,9 @@ export function renderBasePanel(base,state){
   (roster.length?'<div class="base-grid">'+roster.map(unit=>{
    const spec=ESCORTS[unit.role];if(!spec)return '';
    const refund=escortRetirementRefund(unit);
-   return '<div class="base-card"><strong>'+spec.name+' · '+spec.tag+'</strong><small>Корпус '+
+   return '<div class="base-card base-escort-roster"><div class="base-escort-profile">'+
+    '<img src="'+escortPortrait(unit.role)+'" alt="" loading="lazy" decoding="async">'+
+    '<strong>'+spec.name+' · '+spec.tag+'</strong></div><small>Корпус '+
     Math.ceil(unit.hp)+'/'+unit.maxHp+'</small>'+action('retireEscort',
      'Отозвать · вернуть '+refund+' сплава','','','',''+unit.serial)+'</div>';
   }).join('')+'</div>':'<p>Пока нет ведомых. Начните с одного защитника или соберите своё первое ударное звено.</p>')+
@@ -1126,7 +1128,9 @@ export function renderBasePanel(base,state){
   '<h3>Пять специализаций · единые цены</h3><p>Все действующие станции продают одинаковые модели по одной цене. Выбирайте их сочетание под предстоящий бой.</p><div class="base-grid">'+
   Object.entries(ESCORTS).map(([role,spec])=>{
    const quote=escortHireOffer(base,state,role);
-   return '<div class="base-card base-escort-model"><span class="base-kicker">'+spec.tag+'</span><strong>«'+spec.name+'» · '+spec.cost+' сплава</strong>'+
+   return '<div class="base-card base-escort-model"><div class="base-escort-profile">'+
+    '<img src="'+escortPortrait(role)+'" alt="" loading="lazy" decoding="async">'+
+    '<div><span class="base-kicker">'+spec.tag+'</span><strong>«'+spec.name+'» · '+spec.cost+' сплава</strong></div></div>'+
     '<small>Прочность '+spec.maxHp+' · урон '+spec.damage+' · '+spec.desc+'</small>'+
     action('hireDrone','Нанять «'+spec.name+'»',quote.reason,role)+
     (!quote.ok?'<small>'+quote.reason+'</small>':'')+'</div>';

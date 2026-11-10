@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RELIC_SECONDS,createConvoyRelic,RELICS,validConvoyRelic,
- rewardConvoyRelic,updateConvoyRelic} from '../convoy-relic.js';
+ rewardConvoyRelic,updateConvoyRelic,drawConvoyRelic} from '../convoy-relic.js';
 
 const scene=()=>{
  const notices=[],hits=[];
@@ -84,4 +84,18 @@ test('plasma storm spreads limited damage into a nearby group',()=>{
  assert.equal(hits.length,3);
  assert.equal(hits[0].dmg,RELICS.storm.damage);
  assert.ok(hits.slice(1).every(hit=>hit.dmg<hits[0].dmg));
+});
+
+test('all three relics draw their own rotating field symbols without mutating time',()=>{
+ for(const id of Object.keys(RELICS)){
+  const {game}=scene(),calls=[];
+  game.convoyRelic.active={id,until:175,nextFireAt:101};
+  const ctx=Object.fromEntries(['save','restore','beginPath','arc','stroke','fill',
+   'translate','rotate','moveTo','lineTo','closePath'].map(method=>[
+   method,(...args)=>calls.push([method,...args])]));
+  drawConvoyRelic(ctx,game);
+  assert.equal(calls.filter(([method])=>method==='rotate').length,3,id);
+  assert.equal(calls.filter(([method])=>method==='restore').length,4,id);
+  assert.equal(game.time,100);
+ }
 });

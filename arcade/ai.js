@@ -20,7 +20,7 @@ import {damageFriendlyTurret} from './turret-defense.js?v=turret-defense-2026111
 import {updateLastStand} from './enemy-last-stand.js?v=redteam-20261109-1';
 import {advanceEnemyCloseAttack,cancelCloseAttack} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
 import {activeStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
-import {ESCORTS,escortFocusBonus} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110';
+import {ESCORTS,escortFocusBonus} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
 import {masteryBonus} from './combat-mastery.js';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{

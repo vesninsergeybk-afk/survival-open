@@ -59,7 +59,8 @@ export function updateConvoyRelic(game){
   const e=targets[i],from=i?targets[i-1]:p;
   game.flash?.(from.x,from.y,e.x,e.y,spec.color);
   game.damageEnemy?.(e,spec.damage*(i?(a.id==='storm'?.4:.53):1),'trophy');
-  if(a.id==='salvo')game.heritage?.vfx?.nova?.(e.x,e.y,36,'red');
+  if(a.id==='storm')game.heritage?.vfx?.nova?.(e.x,e.y,i?16:24,'cyan');
+  else if(a.id==='salvo')game.heritage?.vfx?.nova?.(e.x,e.y,36,'red');
   else if(a.id==='arc'&&i)game.heritage?.vfx?.nova?.(e.x,e.y,27,'cyan');
  }
  game.heritage?.play?.('allyShot',.25,{x:p.x,y:p.y});
@@ -74,7 +75,19 @@ export function drawConvoyRelic(ctx,game){
  ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.stroke();
  for(let i=0;i<3;i++){
   const angle=t+i*Math.PI*2/3,x=p.x+Math.cos(angle)*r,y=p.y+Math.sin(angle)*r;
-  ctx.globalAlpha=.5+.25*Math.sin(t*4+i);ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();
+  ctx.save();ctx.translate(x,y);ctx.rotate(angle+Math.PI/2);
+  ctx.globalAlpha=.53+.2*Math.sin(t*4+i);
+  ctx.beginPath();
+  if(a.id==='storm'){
+   ctx.moveTo(-2,-5);ctx.lineTo(2,-1);ctx.lineTo(-1,0);
+   ctx.lineTo(2,5);ctx.lineTo(-4,0);ctx.lineTo(-1,-1);
+  }else if(a.id==='salvo'){
+   ctx.moveTo(0,-5);ctx.lineTo(3,1);ctx.lineTo(2,5);
+   ctx.lineTo(-2,5);ctx.lineTo(-3,1);
+  }else{
+   ctx.arc(0,0,3.3,0,Math.PI*2);
+  }
+  ctx.closePath();ctx.fill();ctx.restore();
  }
  ctx.globalAlpha=Math.max(.15,Math.min(.75,remaining));ctx.lineWidth=2;
  ctx.beginPath();ctx.arc(p.x,p.y,r+5,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,remaining));ctx.stroke();

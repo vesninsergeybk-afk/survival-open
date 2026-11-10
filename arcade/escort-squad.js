@@ -3,6 +3,9 @@ import {RULES} from './balance.js?v=escort-squad-20261110';
 // Persistent escorts are bought at stations. Every station uses the same
 // catalogue and price list: a model costs the same regardless of its vendor.
 export const ESCORT_LIMIT=RULES.maxAllies;
+// The same portrait serves the station catalogue and the in-flight hull.
+// Bundled WebP versions keep the five detailed models inexpensive to load.
+export const escortPortrait=role=>ESCORTS[role]?'./assets/escort/'+role+'-v2.webp':'';
 export const ESCORTS=Object.freeze({
  scout:Object.freeze({name:'Страж',tag:'Перехват',cost:20,maxHp:58,r:13,
   speed:365,damage:12,reload:.98,range:330,color:'#77e7eb',

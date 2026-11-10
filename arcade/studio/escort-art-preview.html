@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Выживший · Ведомые, достижения и трофеи</title>
+<style>
+ :root{color-scheme:dark;font:15px/1.5 system-ui,-apple-system,sans-serif;color:#d9f5fc;
+  background:#06141f}
+ *{box-sizing:border-box}
+ body{margin:0;padding:26px max(18px,calc((100vw - 1180px)/2));
+  background:radial-gradient(ellipse at 80% 10%,#17335a5c,transparent 45%),
+   radial-gradient(ellipse at 12% 75%,#1b4e5b55,transparent 43%),#06141f;min-height:100vh}
+ h1{font-size:clamp(24px,3.6vw,40px);letter-spacing:.02em;margin:0}
+ h2{font-size:22px;letter-spacing:.03em;color:#caf8ff;margin:42px 0 14px}
+ p{color:#a6cbd8;max-width:820px;margin:10px 0 18px}
+ .eyebrow{color:#8de8dd;font-size:11px;font-weight:800;letter-spacing:.22em}
+ .fleet{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:13px}
+ .craft{position:relative;min-width:0;padding:15px;border:1px solid #5bacb87d;border-radius:13px;
+  background:linear-gradient(150deg,#1b3d50ee,#0c2336 65%,#15283a);box-shadow:0 8px 25px #0007}
+ .craft img{display:block;width:100%;height:170px;object-fit:contain;
+  filter:drop-shadow(0 7px 11px #000b)}
+ .craft h3{margin:11px 0 1px;font-size:19px;color:#fff}
+ .craft small{font-size:11px;color:#86bfcc;text-transform:uppercase;letter-spacing:.08em}
+ .craft p{margin:7px 0 0;font-size:13px;color:#b9d8e0}
+ .visual{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:10px}
+ .symbol{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:15px 8px 10px;border:1px solid #5a87986b;border-radius:11px;
+  background:linear-gradient(180deg,#1a3544cf,#0c2336c4);text-align:center}
+ .symbol img{width:64px;height:64px;filter:drop-shadow(0 0 8px #71ebee33)}
+ .symbol span{font-size:12px;color:#d1eef5}
+ .legend{margin-top:32px;color:#8caeba;font-size:12px;border-top:1px solid #4073835c;padding-top:14px}
+ @media(max-width:500px){body{padding:18px}.fleet{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .craft{padding:10px}.craft img{height:115px}.craft h3{font-size:16px}.craft p{font-size:11px}}
+</style>
+</head>
+<body>
+<div class="eyebrow">ВЫЖИВШИЙ · ХУДОЖЕСТВЕННЫЙ КАТАЛОГ</div>
+<h1>Ведомые и боевые достижения</h1>
+<p>Один набор корпусов для полёта и меню найма. Маленькие символы созданы отдельно: их можно различить в приборной панели и дереве развития.</p>
+<h2>Пять моделей звена</h2>
+<div class="fleet" id="craft"></div>
+<h2>Трофейное оружие конвоев</h2>
+<div class="visual" id="relics"></div>
+<h2>Достижения и автоматическое мастерство</h2>
+<div class="visual" id="masteries"></div>
+<h2>Улучшения звена</h2>
+<div class="visual" id="upgrades"></div>
+<p class="legend">Предпросмотр графики. Боевая механика, цены и значения характеристик задаются игрой; приведённые изображения предназначены для того же интерфейса.</p>
+<script>
+ const models=[
+  ['scout','Страж','Ионный перехватчик','Бирюзовые крылья-полумесяцы и центральный сенсор'],
+  ['fighter','Клинок','Кинетический истребитель','Острый стройный силуэт и два ускорителя'],
+  ['brawler','Таран','Ближний штурмовик','Широкие ударные плиты с оранжевым свечением'],
+  ['rocket','Оса','Ракетный носитель','Две боковые кассеты управляемых ракет'],
+  ['medic','Искра','Ремонтный дрон','Зелёное ядро и два захвата для обслуживания ведомых']
+ ];
+ const groups={
+  relics:[['storm','Плазменный шторм'],['salvo','Штурмовой каскад'],['arc','Ионная гроза']],
+  masteries:[['ace','Чистая охота'],['comet','Верная комета'],['wing','Слаженное звено'],
+   ['evasive','Пилотаж под огнём'],['survivor','Боевая выдержка']],
+  upgrades:[['armor','Композитная броня'],['speed','Быстрые приводы'],['targeting','Синхронизация целей'],
+   ['assault','Ударная группа'],['ram','Штурмовой экран'],['medic','Ремонтный контур']]
+ };
+ for(const [role,name,tag,desc] of models){
+  const article=document.createElement('article');article.className='craft';
+  article.innerHTML='<img alt="" loading="lazy" src="../assets/escort/'+role+'-v2.webp">'+
+   '<small>'+tag+'</small><h3>«'+name+'»</h3><p>'+desc+'</p>';
+  document.getElementById('craft').append(article);
+ }
+ for(const [group,items] of Object.entries(groups))for(const [id,name] of items){
+  const el=document.createElement('article');el.className='symbol';
+  const prefix=group==='relics'?'relic':group==='masteries'?'mastery':'wing';
+  el.innerHTML='<img alt="" loading="lazy" src="./hud-kit/'+prefix+'-'+id+'.svg"><span>'+name+'</span>';
+  document.getElementById(group).append(el);
+ }
+</script>
+</body>
+</html>

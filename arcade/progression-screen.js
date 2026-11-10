@@ -26,6 +26,8 @@ const icons={beam:'calibration',range:'range',double:'split',rocket:'rocket',hul
  minePierce:'mine_pierce',mineSnare:'mine_snare'};
 Object.assign(icons,{wingArmor:'shield',wingSpeed:'engine',wingTargeting:'scanner',
  wingAssault:'calibration',wingRam:'dodge',wingMedic:'hull'});
+const wingArt=Object.freeze({wingArmor:'armor',wingSpeed:'speed',wingTargeting:'targeting',
+ wingAssault:'assault',wingRam:'ram',wingMedic:'medic'});
 const activations={
  beam:'Автоматически усиливает установленное автооружие и ионную цепь.',
  range:'Работает автоматически: у плазменного луча увеличивается дальность.',
@@ -63,6 +65,7 @@ const touchManualActivations={
  mineArray:'Нажмите «Мины · выбор», затем коснитесь места установки мин.',
 };
 const iconFor=(id)=>{
+ if(wingArt[id])return './studio/hud-kit/wing-'+wingArt[id]+'.svg';
  const key=icons[id]||id;
  const group=['energy_parasite','dash_discharge','radio_jam','capture','signal'].includes(key)?'tactics':
   ['rocket','comet','mines','comet_core','comet_cryo','mine_pierce','mine_snare'].includes(key)?'weapons':'upgrades';
@@ -228,9 +231,8 @@ function masteryNodes(state){
   const rank=state.combatMastery?.tracks?.[id]?.rank||0;
   const progress=state.combatMastery?.tracks?.[id]?.progress||0;
   const goal=masteryGoal(id,rank),bonus=masteryBonus(state.combatMastery,id)*100;
-  return {id:'mastery-'+id,kind:'achievement',title:spec.name,icon:id==='wing'?art('upgrades','doctrine'):
-   id==='comet'?art('weapons','comet'):id==='evasive'?art('upgrades','dodge'):
-   id==='survivor'?art('upgrades','hull'):art('upgrades','calibration'),
+  return {id:'mastery-'+id,kind:'achievement',title:spec.name,
+   icon:'./studio/hud-kit/mastery-'+id+'.svg',
    level:1,rank,max:Infinity,status:'info',description:spec.task,
    effect:spec.effect+': +'+bonus.toFixed(1).replace('.',',')+'%'+
     (id==='survivor'?' защиты':'')+'. Следующая ступень даст небольшой дополнительный бонус.',

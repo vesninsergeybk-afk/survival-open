@@ -9,7 +9,7 @@ import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1';
 import {normalizedDoctrineRanks,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2-hud-merge-20261110';
 import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110-weapon-deck-audit-2-hud-merge-20261110';
-import {ESCORTS,escortCapacity} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110';
+import {ESCORTS,escortCapacity} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
 const el = id => document.getElementById(id);
 const mountCountLabel=count=>{
  const last=count%10,teens=count%100>=11&&count%100<=14;
@@ -184,7 +184,7 @@ export class CockpitDisplay {
   if(relic&&seconds){
    display(n.hudTrophyName,({storm:'ПЛАЗМА',salvo:'КАСКАД',arc:'ИОННАЯ ГРОЗА'})[relic.id]||'ТРОФЕЙ');
    display(n.hudTrophyTime,seconds+' с');
-   const sprite='./studio/hud-kit/'+({storm:'weapon-plasma.svg',salvo:'weapon-rocket.svg',arc:'ion.svg'})[relic.id];
+   const sprite='./studio/hud-kit/'+({storm:'relic-storm.svg',salvo:'relic-salvo.svg',arc:'relic-arc.svg'})[relic.id];
    if(n.hudTrophyIcon.getAttribute('src')!==sprite)n.hudTrophyIcon.src=sprite;
    n.hudTrophy.classList.toggle('ending',seconds<=15);
    n.hudTrophy.title='Трофейный автоматический модуль · '+seconds+' секунд';
