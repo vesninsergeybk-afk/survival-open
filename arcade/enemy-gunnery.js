@@ -4,12 +4,14 @@
  * damage, accuracy or the projectile budget. */
 import {sweptRamHit} from './enemy-last-stand.js?v=redteam-20261109-1';
 export const ENEMY_GUNNERY=Object.freeze({
-  fighter:Object.freeze({range:405,charge:.62,reload:2.7,speed:290,damage:10,
+  fighter:Object.freeze({range:405,charge:.62,reload:2.7,speed:290,damage:12,
     upgradeAt:135,upgraded:Object.freeze({range:405,charge:.7,reload:3.1,
       speed:370,damage:6,shots:2,gap:.34,spread:.035,kind:'fighter-burst'})}),
   flanker:Object.freeze({range:395,charge:.55,reload:2.8,speed:305,damage:9,
     upgradeAt:155,upgraded:Object.freeze({range:445,charge:.82,reload:3.1,
       speed:510,damage:9,kind:'flanker-needle'})}),
+  impulse:Object.freeze({range:405,charge:.9,reload:6.2,speed:390,
+    damage:14,kind:'flanker-impulse'}),
   gunship:Object.freeze({range:535,charge:1.03,reload:4.1,speed:380,
     damage:8,shots:3,gap:.36,spread:.115,kind:'gunship-cannon'}),
   // Close-in broadside: short, warned shrapnel burst, not a tracking aura.
@@ -25,7 +27,9 @@ export const ENEMY_GUNNERY=Object.freeze({
 });
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export const gunProfile=(type,time)=>{
+export const gunProfile=(type,time,variant=null)=>{
+ if(type==='flanker'&&variant==='impulse'&&time>=85)
+  return ENEMY_GUNNERY.impulse;
  const base=ENEMY_GUNNERY[type];
  return base?.upgraded&&time>=base.upgradeAt?base.upgraded:base;
 };
@@ -103,8 +107,17 @@ export function updateEnemyGunnery(e,game,target){
    (closeBatteryAvailable(e,game,target)?
     ENEMY_GUNNERY.pointDefense:
     e&&game&&lanceAvailable(e,game,target)?ENEMY_GUNNERY.lance:
-    gunProfile(e?.type,now));
+    gunProfile(e?.type,now,e?.weaponVariant));
   if(!profile||!Number.isFinite(now))return false;
+  // The rare high-damage shot cannot be charged or released from outside the
+  // visible field. At wide zoom its preparation must still be readable.
+  if(profile.kind==='flanker-impulse'&&target===game.player){
+   const cam=game.camera?.();
+   if(cam&&(e.x<cam.x+12||e.x>cam.x+cam.w-12||
+     e.y<cam.y+12||e.y>cam.y+cam.h-12)){
+    e._gunAiming=null;e._gunBurst=null;return false;
+   }
+  }
   // A hit or a message containing only a rough sector never grants the
   // perfect tracking required for a gun solution. A friendly craft is a
   // legitimate target only when this pilot sees it directly.
@@ -172,6 +185,7 @@ export function updateEnemyGunnery(e,game,target){
       started:now,until:now+profile.charge,target,profile,
       ...(profile.kind==='gunship-lance'?{originX:e.x,originY:e.y}:{})};
     if(profile.kind==='gunship-lance')game.heritage?.play?.('ramWarning',.65,e);
+    else if(profile.kind==='flanker-impulse')game.heritage?.play?.('ramWarning',.42,e);
     return false;
   }
   if(now<aim.until)return false;
@@ -226,18 +240,23 @@ export function drawEnemyGunWarnings(ctx,game,cam,fps=60){
        e.x<cam.x-30||e.x>cam.x+cam.w+30||
        e.y<cam.y-30||e.y>cam.y+cam.h+30||
        !game.playerCanInspectEnemyIntent(e))continue;
-    const profile=aim.profile||gunProfile(e.type,game.time);
+    const profile=aim.profile||gunProfile(e.type,game.time,e.weaponVariant);
     if(!profile)continue;
     const progress=clamp((game.time-aim.started)/profile.charge,0,1);
     const close=profile.kind==='gunship-flak';
-    const tint=close?'#ffc271':e.type==='fighter'?'#ffab75':
+    const impulse=profile.kind==='flanker-impulse';
+    const tint=impulse?'#ff7b8b':close?'#ffc271':e.type==='fighter'?'#ffab75':
       e.type==='gunship'?'#ff6554':'#d0a1ff';
     const beam=profile.kind==='gunship-lance';
-    ctx.save();ctx.strokeStyle=tint;ctx.lineWidth=beam?2.5+progress*3.2:1.15+progress*.85;
+    ctx.save();ctx.strokeStyle=tint;ctx.lineWidth=beam?2.5+progress*3.2:
+      impulse?2+progress*1.6:1.15+progress*.85;
     ctx.globalAlpha=.32+progress*.47;
-    ctx.setLineDash(beam?[10,6]:[4,7]);ctx.beginPath();ctx.moveTo(e.x,e.y);
+    ctx.setLineDash(beam?[10,6]:impulse?[8,5]:[4,7]);ctx.beginPath();ctx.moveTo(e.x,e.y);
     ctx.lineTo(aim.x,aim.y);ctx.stroke();ctx.setLineDash([]);
     ctx.beginPath();ctx.arc(aim.x,aim.y,7+progress*4,0,Math.PI*2);ctx.stroke();
+    if(impulse){
+      ctx.beginPath();ctx.arc(e.x,e.y,(e.r||14)+8+progress*6,0,Math.PI*2);ctx.stroke();
+    }
     if(close){
       // Two visible flank guns spool up before the shot. No extra entities.
       ctx.beginPath();ctx.arc(e.x,e.y,e.r+5+progress*4,

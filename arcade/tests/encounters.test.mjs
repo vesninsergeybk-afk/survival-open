@@ -21,16 +21,17 @@ test('сценарии открываются постепенно и тольк
   assert.ok(!availableEncounters(117.9,openingThreat(117.9),3).includes('pincer'));
   assert.ok(availableEncounters(118,openingThreat(118),3).includes('pincer'));
   assert.ok(!availableEncounters(117.9,openingThreat(117.9),3).includes('ram'));
-  assert.ok(availableEncounters(118,openingThreat(118),3).includes('ram'));
-  assert.ok(!availableEncounters(154.9,openingThreat(154.9),3).includes('medic'));
-  assert.ok(availableEncounters(155,openingThreat(155),3).includes('medic'));
-  assert.ok(!availableEncounters(204.9,openingThreat(204.9),3).includes('heavy'));
-  assert.ok(availableEncounters(205,openingThreat(205),3).includes('heavy'));
-  for(const t of [9,36,75,118,155,205,240,900]){
+  assert.ok(!availableEncounters(174.9,openingThreat(174.9),3).includes('ram'));
+  assert.ok(availableEncounters(175,openingThreat(175),3).includes('ram'));
+  assert.ok(!availableEncounters(189.9,openingThreat(189.9),3).includes('medic'));
+  assert.ok(availableEncounters(190,openingThreat(190),3).includes('medic'));
+  assert.ok(!availableEncounters(229.9,openingThreat(229.9),3).includes('heavy'));
+  assert.ok(availableEncounters(230,openingThreat(230),3).includes('heavy'));
+  for(const t of [9,36,80,118,155,205,240,900]){
     const director=openingThreat(t,3);
     for(const roll of [0,.25,.5,.75,.999]){
       const plan=planEncounter(t,director,50,1,.43,roll);
-      assert.ok(plan.pattern==='motes'?plan.members.length<=10:
+      assert.ok(plan.pattern==='motes'?plan.members.length<=16:
        plan.members.length<=director.groupSize);
       assert.ok(plan.members.every(m=>director.types.includes(m.type)),
         'неразрешённый тип при t='+t);
@@ -41,41 +42,43 @@ test('малые рои доступны уже во второй минуте, 
   const director=openingThreat(110,3);
   assert.ok(availableEncounters(110,director,2,10).includes('motes'));
   assert.ok(!availableEncounters(MOTE_ENCOUNTER.firstAt-.1,director,2,10).includes('motes'));
-  assert.ok(!availableEncounters(110,director,2,7).includes('motes'));
+  assert.ok(!availableEncounters(110,director,2,5).includes('motes'));
   assert.ok(!availableEncounters(110,{...director,allowMotes:false},2,10).includes('motes'));
   const options=availableEncounters(110,director,2,10);
   const index=options.indexOf('motes');
   const plan=planEncounter(110,director,10,1,.5,(index+.1)/options.length);
   assert.equal(plan.pattern,'motes');
-  assert.equal(plan.members.length,9);
+  assert.equal(plan.members.length,6);
   assert.ok(plan.members.every(e=>e.type==='scout'));
-  assert.ok(new Set(plan.members.map(e=>e.position)).size>7);
-  const cramped=planEncounter(110,director,7,1,.5,(index+.1)/options.length);
+  assert.equal(new Set(plan.members.map(e=>e.position)).size,6);
+  const cramped=planEncounter(110,director,5,1,.5,(index+.1)/options.length);
   assert.notEqual(cramped.pattern,'motes');
 });
-test('очередной рой получает приоритет, даже если лимит обычных патрулей почти заполнен',()=>{
- const d={...openingThreat(70),allowMotes:true};
- const base={time:70,nextAt:70,director:d,regularRoom:4,
+test('рой получает приоритет, но не обходит фактический бюджет экрана',()=>{
+ const d={...openingThreat(120),allowMotes:true};
+ const base={time:120,nextAt:110,director:d,regularRoom:6,
   ambientRoom:16,globalRoom:165,activeMotes:0,maxMotes:40};
- assert.equal(scheduledMoteSize(base),8);
- const chosen=planEncounter(70,d,8,0,.5,0,'motes','motes');
+ assert.equal(scheduledMoteSize(base),6);
+ const chosen=planEncounter(120,d,6,0,.5,0,'motes','motes');
  assert.equal(chosen.pattern,'motes','приоритет обходит случайный выбор и запрет повтора');
- assert.equal(chosen.members.length,8);
- assert.equal(scheduledMoteSize({...base,regularRoom:3}),0,
-  'четыре условных места всё же нужны, рой не добавляют в полный бой');
- assert.equal(scheduledMoteSize({...base,ambientRoom:7}),0,
+ assert.equal(chosen.members.length,6);
+ assert.equal(scheduledMoteSize({...base,regularRoom:5}),0,
+  'шесть реальных мест нужны для шести кораблей');
+ assert.equal(scheduledMoteSize({...base,ambientRoom:5}),0,
   'дальние патрули не могут бесконечно накапливать дополнительные дроны');
- assert.equal(scheduledMoteSize({...base,globalRoom:7}),0);
- assert.equal(scheduledMoteSize({...base,activeMotes:25}),0,
+ assert.equal(scheduledMoteSize({...base,globalRoom:5}),0);
+ assert.equal(scheduledMoteSize({...base,activeMotes:27}),0,
   'для подкреплений оставляют свободный бюджет микродронов');
- assert.equal(scheduledMoteSize({...base,time:69.9}),0);
- assert.equal(scheduledMoteSize({...base,nextAt:142}),0);
+ assert.equal(scheduledMoteSize({...base,time:109.9}),0);
+ assert.equal(scheduledMoteSize({...base,nextAt:215}),0);
  assert.equal(scheduledMoteSize({...base,director:{...d,allowMotes:false}}),0);
  const late={...base,time:260,nextAt:200,director:openingThreat(260),
-  regularRoom:8,ambientRoom:24,globalRoom:80};
+  regularRoom:16,ambientRoom:24,globalRoom:80,ready:true};
  assert.equal(scheduledMoteSize(late),16);
- assert.equal(scheduledMoteSize({...late,regularRoom:7}),0);
+ assert.equal(scheduledMoteSize({...late,regularRoom:15}),0);
  assert.equal(scheduledMoteSize({...late,activeMotes:17}),0);
+ assert.equal(scheduledMoteSize({...late,ready:false,regularRoom:8}),8,
+  'неподготовленный корабль не получает крупный поздний рой');
 });
 test('клещи действительно заходят с двух сторон и все корабли появляются за экраном',()=>{
   const d=openingThreat(120);
@@ -91,9 +94,9 @@ test('клещи действительно заходят с двух стор�
   }
 });
 test('ремонтник находится внутри защищаемой группы, охранники знают свою цель',()=>{
-  const d=openingThreat(180);
-  const opts=availableEncounters(180,d,3);
-  const plan=planEncounter(180,d,3,2,.55,(opts.indexOf('medic')+.1)/opts.length);
+  const d=openingThreat(195);
+  const opts=availableEncounters(195,d,3);
+  const plan=planEncounter(195,d,3,2,.55,(opts.indexOf('medic')+.1)/opts.length);
   assert.equal(plan.pattern,'medic');
   assert.equal(plan.members[0].type,'healer');
   assert.deepEqual(plan.members.slice(1).map(m=>m.protectIndex),[0,0]);
@@ -147,11 +150,13 @@ test('состав первых волн меняется в момент отк
   assert.deepEqual(availableEncounters(35.9,openingThreat(35.9),2),['patrol']);
   assert.deepEqual(availableEncounters(36,openingThreat(36),2),['patrol','sweep']);
   assert.equal(build(36,0).members[0].type,'fighter');
-  const d=openingThreat(75);
-  const opts=availableEncounters(75,d,2);
-  const sweep=planEncounter(75,d,2,0,.5,(opts.indexOf('sweep')+.1)/opts.length);
+  const d=openingThreat(90);
+  const opts=availableEncounters(90,d,2);
+  const sweep=planEncounter(90,d,2,0,.5,(opts.indexOf('sweep')+.1)/opts.length);
   assert.equal(sweep.pattern,'sweep');
   assert.equal(sweep.members[0].type,'flanker');
+  assert.equal(sweep.members[0].weaponVariant,'impulse');
+  assert.equal(sweep.members.filter(e=>e.weaponVariant==='impulse').length,1);
 });
 test('рост напряжения после трёх минут ограничен числом кораблей',()=>{
   let previous=openingThreat(205,1);

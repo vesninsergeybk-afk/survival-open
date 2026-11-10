@@ -8,7 +8,7 @@ test('луч даёт полный урон вблизи и слабеет вд�
  assert.equal(beamDamage(20,80),20);
  assert.equal(beamDamage(20,RULES.nearBeam),20);
  const far=beamDamage(20,RULES.beamRange);
- assert.ok(far<7 && far>5);
+ assert.ok(far<9 && far>7);
  assert.ok(beamDamage(20,260)<20);
 });
 test('стоимость уровня растёт без мгновенного лавинообразного развития',()=>{

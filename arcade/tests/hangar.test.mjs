@@ -302,5 +302,5 @@ test('the station adapter, heat gates and both manual inputs are wired into the 
  assert.match(source,/markIonCluster\(targets,item.target/);
  assert.match(source,/this.shipLoadout=result.loadout;this.player.ore=result.ore/);
  const profile=loadoutProfile(full());assert.equal(profile.plasma,1);
- assert.equal(moduleStats('plasma').damage,16);assert.equal(MODULES.plasma.heat,6);
+ assert.equal(moduleStats('plasma').damage,18);assert.equal(MODULES.plasma.heat,6);
 });

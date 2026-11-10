@@ -1,7 +1,7 @@
 // Tiny drones share one tactical decision per pack. Members remain individual
 // damageable ships; a split changes their formation, never their hit points.
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26-redteam-20261109-1';
-import {STARTER_COMBAT} from './balance.js';
+import {STARTER_COMBAT} from './balance.js?v=opening-evasion-20261110';
 // size is the size of a freshly spawned squad, never an upper limit on a pack.
 // maxMotes is a separate, scene-wide performance budget.
 export const MOTE_SWARM=Object.freeze({size:10,radius:6.5,hp:12,damage:3,

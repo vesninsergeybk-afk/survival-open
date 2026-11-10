@@ -5,9 +5,9 @@
 export const STARTER_COMBAT = Object.freeze({
   hull: 90,
   speed: 248,
-  plasmaDamage: 16,
+  plasmaDamage: 18,
   plasmaRange: 330,
-  plasmaInterval: .68,
+  plasmaInterval: .64,
   patrolSight: 620,
   signalSight: 560,
   intentRange: 700
@@ -31,7 +31,7 @@ export const RULES = Object.freeze({
   maxShots: 220,
   nearBeam: 115,
   beamRange: STARTER_COMBAT.plasmaRange,
-  beamMinFactor: .28,
+  beamMinFactor: .40,
   asteroidRange: 245,
   baseInteract: 165,
   enemyBaseUnlockLevel: 6,
@@ -97,36 +97,25 @@ export const outsideCamera = (x, y, camera, radius = 0) =>
   x + radius < camera.x || x - radius > camera.x + camera.w ||
   y + radius < camera.y || y - radius > camera.y + camera.h;
 
-// About 10% less *local crowding* during the opening. Formations, paid raids
-// and missions keep their distinct size and purpose. Fade out the reduction
-// before 205 s to avoid an abrupt spawn-cap jump at the next stage.
-const openingCrowdCap=(time,cap)=>Math.round(cap*(.9+.1*clamp((time-155)/50,0,1)));
-// Slightly longer gaps between *ordinary* opening patrols. Ease the change
-// away before the mature director takes over; swarms replace patrols.
-// Leave the first repair-or-fight decision intact; ease the relief in after
-// 85 seconds, when the first fragile micro-drone encounters are available.
-const openingPatrolInterval=(time,base)=>base*(1+
- .08*clamp((time-85)/12,0,1)*clamp((205-time)/50,0,1));
-// Nine seconds to take control, then genuine pressure from multiple scouts.
-// A larger formation is still capped, and the tougher classes arrive in order.
+// Ordinary contact density stays below what a single starter plasma can
+// dispatch. Larger authored assaults keep their separate, explicit budgets.
+// The mature director climbs gradually rather than jumping at a time gate.
 export function openingThreat(time, level = 1) {
  if(time<9)return {cap:0,interval:9,groupSize:0,types:[]};
- if(time<36)return {cap:openingCrowdCap(time,9),interval:openingPatrolInterval(time,7),groupSize:4,types:['scout']};
- if(time<75)return {cap:openingCrowdCap(time,15),interval:openingPatrolInterval(time,5.8),groupSize:5,types:['scout','fighter']};
- if(time<118)return {cap:openingCrowdCap(time,22),interval:openingPatrolInterval(time,5.2),groupSize:6,types:['scout','fighter','flanker']};
- if(time<155)return {cap:openingCrowdCap(time,28),interval:openingPatrolInterval(time,4.6),groupSize:7,types:['scout','fighter','flanker','berserker']};
- if(time<205)return {cap:openingCrowdCap(time,33),interval:openingPatrolInterval(time,4),groupSize:7,types:['scout','fighter','flanker','berserker','healer']};
- const elapsed=time-205;
+ if(time<36)return {cap:7,interval:10,groupSize:3,types:['scout']};
+ if(time<80)return {cap:10,interval:11,groupSize:4,types:['scout','fighter']};
+ if(time<120)return {cap:11,interval:11.5,groupSize:4,types:['scout','fighter','flanker']};
+ if(time<175)return {cap:14,interval:12,groupSize:5,types:['scout','fighter','flanker']};
+ if(time<230)return {cap:17,interval:11,groupSize:6,
+  types:time<190?['scout','fighter','flanker','berserker']:
+   ['scout','fighter','flanker','berserker','healer']};
+ const elapsed=time-230;
  return {
-  // The late game becomes more dangerous through tougher ships and formations,
-  // without an unbounded crowd that overwhelms lower-end GPUs.
-  cap:Math.min(70,33+Math.floor(elapsed/22)+
-   Math.floor(Math.max(0,level-1)*1.2*Math.min(1,elapsed/90))),
-  interval:Math.max(1.6,3.8-elapsed/300-
-   Math.max(0,level-1)*.025*Math.min(1,elapsed/90)),
-  // Do not replace the seven-ship stage with a four-ship stage at 205 s.
-  // The later tempo director may create a smaller wave as a deliberate rest.
-  groupSize:Math.min(7+Math.floor(elapsed/260),8),
+  cap:Math.min(70,17+Math.floor(elapsed/18)+
+   Math.floor(Math.max(0,level-1)*.65*Math.min(1,elapsed/110))),
+  interval:Math.max(3.3,10.5-elapsed/230-
+   Math.max(0,level-1)*.025*Math.min(1,elapsed/110)),
+  groupSize:Math.min(6+Math.floor(elapsed/150),8),
   types:['scout','fighter','flanker','berserker','healer','gunship']
  };
 }
@@ -137,8 +126,12 @@ export function openingThreat(time, level = 1) {
 export function openingSpawnRoom(time,director,globalCount,localCount,ambientCount){
  const globalRoom=RULES.maxEnemies-globalCount;
  return Math.max(0,Math.min(director.cap-localCount,
-  director.cap*2-ambientCount,globalRoom));
+  ambientPopulationBudget(time,director.cap)-ambientCount,globalRoom));
 }
+// Distant traffic has a separate budget. As the explored sector grows, keeping
+// the *local* opening cap small must not starve the next nearby encounter.
+export const ambientPopulationBudget=(time,cap)=>time<175?cap*2:
+ Math.max(cap*2,Math.round(34+36*clamp((time-175)/55,0,1)));
 export class SpatialGrid {
   constructor(cell = 100) { this.cell = cell; this.map = new Map(); }
   clear() { this.map.clear(); }

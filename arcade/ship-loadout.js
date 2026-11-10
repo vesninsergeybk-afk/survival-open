@@ -1,7 +1,7 @@
 import {ionDamage} from './ion-conductor.js?v=weapons-cycle-2-campaign-1-unlimited-hud-20261110';
 import {applySpecialization,howitzerProfile} from './weapon-specializations.js?v=howitzer-branches-1';
 import {TACTICAL_DEVICES} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
-import {STARTER_COMBAT} from './balance.js';
+import {STARTER_COMBAT} from './balance.js?v=opening-evasion-20261110';
 // Run-owned hardware; saved blueprints contain choices, never resources/unlocks.
 export const FRAME_STEPS=Object.freeze([
  {nodes:2,heavy:false,level:1,cost:0,name:'Лёгкий корпус'},
@@ -13,7 +13,7 @@ export const FRAME_STEPS=Object.freeze([
 export const SHIP_UPGRADES=new Set(['beam','double','range','rocket','hull','engine','shield']);
 export const MODULES=Object.freeze({
  plasma:{id:'plasma',name:'Плазменный луч',short:'Плазма',kind:'auto',role:'Ближний бой',level:1,cost:24,heat:6,color:'#6de7ef',
-  desc:'Частые залпы. Самый сильный урон вблизи; к пределу дальности остаётся 28%. Несколько лучей стреляют общим залпом.'},
+  desc:'Частые залпы. Самый сильный урон вблизи; к пределу дальности остаётся 40%. Несколько лучей стреляют общим залпом.'},
  rail:{id:'rail',name:'Рельсовое орудие',short:'Рельс',kind:'auto',role:'Дальний бой',level:3,cost:36,heat:18,color:'#a5bfff',
    desc:'Редкий дальний выстрел. Астероиды служат укрытием. После включения первого арсенала ЛКМ ведёт ручной огонь выбранным рельсом; R по умолчанию переключает режим. Нагрев и перезарядка общие.'},
  flak:{id:'flak',name:'Осколочный излучатель',short:'Картечь',kind:'auto',role:'Против роя',level:4,cost:42,heat:14,color:'#f7ce87',

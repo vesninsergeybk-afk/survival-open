@@ -10,16 +10,16 @@ test('первые 9 секунд защищены от вражеских гр�
 });
 test('первые минуты дают пространство для манёвра',()=>{
  const first=openingThreat(20),second=openingThreat(50),third=openingThreat(100);
- assert.equal(first.cap,8);
- assert.equal(second.cap,14);
+ assert.equal(first.cap,7);
+ assert.equal(second.cap,10);
  assert.ok(third.cap>second.cap);
- for(const t of [12,40,70,110,140,180,204]){
-  assert.ok(!openingThreat(t).types.includes('gunship'),'дальнобойный корвет до 205 сек');
+ for(const t of [12,40,70,110,140,180,205,229.9]){
+  assert.ok(!openingThreat(t).types.includes('gunship'),'дальнобойный корвет до 230 сек');
  }
- assert.ok(openingThreat(205).types.includes('gunship'));
- assert.equal(openingThreat(205).cap,33);
- assert.ok(openingThreat(206).cap<=38);
- assert.ok(openingThreat(205).interval>3);
+ assert.ok(openingThreat(230).types.includes('gunship'));
+ assert.equal(openingThreat(230).cap,17);
+ assert.ok(openingThreat(231).cap<=18);
+ assert.ok(openingThreat(230).interval>3);
  assert.ok(openingThreat(500,10).cap<=RULES.maxEnemies);
 });
 test('улучшение двигателя ускоряет и сокращает перезарядку рывка',()=>{

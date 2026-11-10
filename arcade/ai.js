@@ -2,7 +2,7 @@ import {theaterDestination} from './enemy-strategy.js?v=theater-1-campaign-1-the
 import {commandAllyBonus,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 import {updateParasitizedEnemy} from './field-evolution.js?v=parasite-clarity-1';
 import {stormSeek} from './regional-storms.js?v=regions-1';
-import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20-pressure-response-1-combat-balance-1';
+import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20-pressure-response-1-combat-balance-1-opening-evasion-20261110';
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1-combat-balance-1';
 import {updateIrisPerception,irisSearchGoal,irisBurstThrust,irisBurstJink} from './iris-scanning.js?v=iris-inertial-scan-2-pressure-response-1-combat-balance-1';
 import {irisCanSense,updateIrisSwarm,IRIS_SWARM} from './iris-swarm.js?v=iris-swarm-2-pressure-response-1-combat-balance-1';
@@ -11,10 +11,10 @@ import {contourIrisDirective,contourIrisRushContacts} from './contour-trial-iris
 import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2-trial-focus-1-pressure-response-1-combat-balance-1';
 import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-ai-commander-20261110-enemy-operations-20261110-space-impact-20261110';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1-ai-commander-20261110';
-import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1';
+import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1-opening-evasion-20261110';
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
-import {moveMote} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1';
+import {moveMote} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-opening-evasion-20261110';
 import {turretBranchRank} from './turret-growth.js';
 import {updateLastStand} from './enemy-last-stand.js?v=redteam-20261109-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
@@ -87,7 +87,7 @@ export function scoutSteering(e,game,target,speed){
 // projectile wall. Neither health nor projectile collision rules change.
 export const IRIS_COMBAT=Object.freeze({
   range:IRIS_SWARM.fireRange,scanShotAt:.59,charge:.36,volleySpacing:.43,
-  projectileSpeed:325,damage:8
+  projectileSpeed:325,damage:10
 });
 export function scoutAttack(e,game,target,scanning=false){
   if(e.type!=='scout'||e.converted||e.boss||e.missionStructure||

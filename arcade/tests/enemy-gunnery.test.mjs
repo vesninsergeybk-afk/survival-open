@@ -42,6 +42,23 @@ test('a fighter commits to a warning point; a dodge does not retarget its shot',
   assert.equal(updateEnemyGunnery(e,game,game.player),false,
     'no burst can bypass the individual reload');
 });
+test('rare impulse is warned, locked, stronger, and cannot fire from outside the camera',()=>{
+ const e=ship('flanker',21),game=scene([e]);
+ e.weaponVariant='impulse';e._enemyLearningSaw=true;e._gunNextAt=0;
+ game.camera=()=>({x:-100,y:-100,w:500,h:400});game.time=90;
+ assert.equal(updateEnemyGunnery(e,game,game.player),false);
+ assert.equal(e._gunAiming.profile.kind,'flanker-impulse');
+ const target={x:e._gunAiming.x,y:e._gunAiming.y};
+ game.player.x=160;game.player.y=130;game.time=90.95;
+ assert.equal(updateEnemyGunnery(e,game,game.player),true);
+ assert.equal(game.shots.length,1);
+ assert.deepEqual({x:game.shots[0].tx,y:game.shots[0].ty},target);
+ assert.equal(game.shots[0].damage,14);
+ assert.equal(game.shots[0].options.kind,'flanker-impulse');
+ e.x=550;e._gunNextAt=0;game.time=97;
+ assert.equal(updateEnemyGunnery(e,game,game.player),false);
+ assert.equal(e._gunAiming,null);
+});
 
 test('fighter can shoot a visible allied drone without pretending to see the player',()=>{
   const e=ship('fighter',11,190),game=scene([e]);
@@ -281,13 +298,13 @@ test('offscreen close corvettes cannot begin or complete a hidden flak warning',
  assert.equal(game.shots.length,0);
 });
 
-test('corvette speed and toughness grow without boosting initial scouts or fighter salvos',()=>{
+test('corvette speed and toughness grow while early fighter shots stay predictable',()=>{
  assert.equal(ENEMY_TYPES.scout.speed,158);
  assert.equal(ENEMY_TYPES.fighter.speed,120);
  assert.ok(ENEMY_TYPES.gunship.speed>110&&ENEMY_TYPES.gunship.speed<ENEMY_TYPES.fighter.speed);
  assert.ok(ENEMY_TYPES.gunship.hp>=140&&ENEMY_TYPES.gunship.hp<=160);
  assert.ok(ENEMY_TYPES.flanker.speed>ENEMY_TYPES.berserker.speed);
- assert.equal(ENEMY_GUNNERY.fighter.damage,10);
+ assert.equal(ENEMY_GUNNERY.fighter.damage,12);
 });
 
 test('a hit triggers only a short physical lateral burn, without invulnerability',()=>{

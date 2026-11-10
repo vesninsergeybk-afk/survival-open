@@ -5,14 +5,14 @@ import {OPENING_ARC} from '../opening-arc.js';
 import {game} from './weapons-scene.mjs';
 import {runEarlyCombatScenario} from '../tools/early-combat-audit.mjs';
 
-test('итоговая домашняя кривая учитывает все модификаторы вместо скрытого ограничения на два корабля',()=>{
+test('домашний конфликт сохраняет небольшие группы и наращивает давление по мере вылета',()=>{
  const g=game();g.player.level=1;
  let previous=0;
- for(const [time,minGroup] of [[9,3],[36,4],[75,5],[118,6],[175,6],[205,6]]){
+ for(const [time,minGroup] of [[9,3],[36,3],[75,3],[118,3],[175,5],[205,5]]){
   g.time=time;
   const raw=openingThreat(time,1),effective=g.sectorDirector(raw);
   assert.ok(effective.groupSize>=minGroup,
-   'на '+time+' с домашний конфликт не должен отменять рост боевой группы');
+   'на '+time+' с домашний конфликт не должен отменять постепенный рост боевой группы');
   assert.ok(effective.groupSize<=raw.groupSize);
   assert.ok(time===205||effective.cap>=previous,
    'на '+time+' с рост давления не должен исчезать за ограничением другой системы');

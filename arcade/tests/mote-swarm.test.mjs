@@ -153,7 +153,7 @@ test('the actual spawn path creates small scout ships with one shared pack',()=>
  const rng=Math.random;let calls=0;
  Math.random=()=>[.2,.5,choice][calls++]??.3;
  try{g.spawnGroup(director);}finally{Math.random=rng;}
- assert.equal(g.enemies.length,9);
+ assert.equal(g.enemies.length,6);
  assert.ok(g.enemies.every(e=>e.microSwarm&&e.r===MOTE_SWARM.radius&&e.hp<20));
  assert.equal(new Set(g.enemies.map(e=>e.motePack)).size,1);
  assert.ok(g.enemies.every(e=>e._patrolRoute&&e.moteApproach===e._patrolRoute),
@@ -517,7 +517,7 @@ test('a surviving courier physically leaves the screen and requests support once
 });
 
 test('the actual support factory enters from offscreen with two capped squads',()=>{
- const g=actualGame();g.time=220;g.vw=800;g.vh=600;
+ const g=actualGame();g.time=300;g.player.level=5;g.skillRanks.beam=1;g.vw=800;g.vh=600;
  g.camera=()=>({x:-400,y:-300,w:800,h:600});
  const courier={x:1300,y:1000,hp:1,r:6.5};
  const count=g.spawnMoteReinforcements(courier,{x:25,y:15,at:200},16);
@@ -530,7 +530,7 @@ test('the actual support factory enters from offscreen with two capped squads',(
 });
 
 test('reinforcements wait until the entire formation can enter offscreen',()=>{
- const g=actualGame();g.time=220;g.vw=800;g.vh=600;
+ const g=actualGame();g.time=300;g.player.level=5;g.skillRanks.beam=1;g.vw=800;g.vh=600;
  g.camera=()=>({x:0,y:0,w:800,h:600});
  const courier={x:-121,y:270,hp:1,r:6.5};
  const sighting={x:-101,y:800,at:210};
@@ -542,18 +542,18 @@ test('reinforcements wait until the entire formation can enter offscreen',()=>{
 });
 
 test('real reinforcements unite as sixteen drones and can later divide for a visible attack',()=>{
- const g=actualGame();g.time=220;g.vw=800;g.vh=600;
+ const g=actualGame();g.time=300;g.player.level=5;g.skillRanks.beam=1;g.vw=800;g.vh=600;
  g.camera=()=>({x:-400,y:-300,w:800,h:600});
  g.enemyCanSee=()=>false;
  const courier={x:1300,y:1000,hp:1,r:6.5};
  assert.equal(g.spawnMoteReinforcements(courier,{x:25,y:15,at:210}),16);
  const originalRoots=new Set(g.enemies.map(e=>e.moteRoot));
  assert.equal(originalRoots.size,2);
- g.time=225;updateMoteSwarmOrders(g);
+ g.time=305;updateMoteSwarmOrders(g);
  assert.equal(new Set(g.enemies.map(e=>e.motePack)).size,1,
   'entrance wings from the actual spawn method must really fuse');
  assert.ok(g.enemies.every(e=>e.motePackCount===16));
- g.time=231;g.player.x=1300;g.player.y=1000;g.enemyCanSee=()=>true;
+ g.time=311;g.player.x=1300;g.player.y=1000;g.enemyCanSee=()=>true;
  updateMoteSwarmOrders(g);
  assert.equal(new Set(g.enemies.map(e=>e.motePack)).size,2,
   'the fused reinforcement must also be able to mount a new two-flank attack');
@@ -563,7 +563,7 @@ test('real reinforcements unite as sixteen drones and can later divide for a vis
 });
 
 test('late micro-drone encounters contain two real eight-member packs',()=>{
- const g=actualGame();g.vw=1200;g.vh=800;g.time=230;
+ const g=actualGame();g.vw=1200;g.vh=800;g.time=230;g.player.level=5;g.skillRanks.beam=1;
  g.lastEncounter='';
  const director={...openingThreat(230,4),cap:70,groupSize:16};
  const available=availableEncounters(230,director,16,70);

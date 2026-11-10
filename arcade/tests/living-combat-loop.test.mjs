@@ -74,6 +74,20 @@ test('ordinary fighting earns a quiet period but scouts return, and story assaul
  assert.equal(ambientTempoPlan(game,director,()=>0).mode,'normal');
  assert.equal(validCombatTempo(game.combatTempo,game.time),true);
 });
+test('early combat grants a short, earned respite without reducing mature pressure',()=>{
+ const game={time:68,player:{x:0,y:0},enemies:[{x:110,y:0,hp:20}],
+  combatTempo:createCombatTempo()};
+ const director={cap:11,interval:11.5,groupSize:4,types:['scout','fighter','flanker']};
+ recordCombatContact(game);
+ assert.equal(ambientTempoPlan(game,director,()=>0).mode,'wait');
+ game.enemies=[];game.time=70;
+ assert.equal(ambientTempoPlan(game,director,()=>0).mode,'wait');
+ assert.equal(game.combatTempo.quietUntil,75);
+ game.time=75;
+ assert.equal(ambientTempoPlan(game,director,()=>0).mode,'normal');
+ assert.equal(game.combatTempo.encounters,0,
+  'поздняя система чередования роев не запускается раньше срока');
+});
 test('late patrol tempo preserves rising danger instead of imposing the old fixed caps',()=>{
  const game={time:1500,player:{x:0,y:0},enemies:[],combatTempo:createCombatTempo()};
  const director={cap:70,interval:2,groupSize:8,types:['scout','fighter','gunship']};

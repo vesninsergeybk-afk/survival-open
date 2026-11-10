@@ -1,5 +1,5 @@
 import {regionAt} from './regions.js?v=regions-1-living-world-population-1';
-import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-defense-1-combat-balance-1-manual-cover-1-manual-audit-20261110-weapon-vfx-audit-1-pilot-value-2';
+import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-defense-1-combat-balance-1-manual-cover-1-manual-audit-20261110-weapon-vfx-audit-1-pilot-value-2-opening-evasion-20261110';
 /**
  * Arcade presentation uses the artwork and animation systems already approved
  * for Survivor. Visual variants never consume gameplay randomness.
@@ -10,11 +10,11 @@ import {drawAnimatedEnemyShip} from '../src/disruptor-ship-sprites.js';
 import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js?v=iris-pack-1-counterattack-1-mission-pack-1';
 import {drawStationPart, STATION_PARTS} from '../src/station-art.js?v=base-86';
 import {drawTurretMount,drawTurretHead} from '../src/turret-visuals.js?v=turret-visuals-1';
-import {drawHostileProjectile} from './hostile-projectiles.js?v=corvette-20261110-1';
+import {drawHostileProjectile} from './hostile-projectiles.js?v=corvette-20261110-1-opening-evasion-20261110';
 import {getFXSprite} from '../src/vfx-textures.js?v=arcade-vfx-mask-19';
 import {drawStationMechanisms} from '../src/station-mechanics.js?v=dock-audit-2';
 import {drawRepairDock} from './repair-dock-art.js?v=dock-identity-1';
-import {hash,RULES} from './balance.js';
+import {hash,RULES} from './balance.js?v=opening-evasion-20261110';
 import {stripCapitalMatte,CAPITAL_PAINTINGS} from './capital-art.js?v=arcade-capital-mask-56';
 import {drawCapitalDamage} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';

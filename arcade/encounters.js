@@ -1,17 +1,18 @@
 // Lightweight, testable encounter plans. The world owns the spawning positions;
 // the enemy AI owns moment-to-moment movement after entering the camera.
 const clamp01=value=>Math.max(0,Math.min(.999999,Number.isFinite(value)?value:0));
-// A weak, coordinated flock periodically replaces an ordinary patrol. Count
-// its members as half of a regular ship for *admission*, but retain the hard
-// scene and ambient budgets so a swarm cannot create unlimited crowding.
-export const MOTE_ENCOUNTER=Object.freeze({firstAt:70,repeatAfter:72,
- earlySize:8,lateSize:16,lateAt:205,regularWeight:.5,reserve:8});
+// A weak, coordinated flock periodically replaces an ordinary patrol.
+// Admit every member against the same local and ambient limits as other
+// ships, so extra drones never erase the pilot's escape routes.
+export const MOTE_ENCOUNTER=Object.freeze({firstAt:110,repeatAfter:95,
+ earlySize:6,unreadySize:8,lateSize:16,lateAt:230,regularWeight:1,reserve:8});
+export const moteEncounterSize=(time,ready=false)=>time<MOTE_ENCOUNTER.lateAt?
+ MOTE_ENCOUNTER.earlySize:ready?MOTE_ENCOUNTER.lateSize:MOTE_ENCOUNTER.unreadySize;
 export function scheduledMoteSize({time,nextAt,director,regularRoom,
- ambientRoom,globalRoom,activeMotes,maxMotes}){
+ ambientRoom,globalRoom,activeMotes,maxMotes,ready=false}){
  if(!Number.isFinite(nextAt)||time<Math.max(MOTE_ENCOUNTER.firstAt,nextAt)||
     !director.types?.includes('scout')||director.allowMotes===false)return 0;
- const size=time<MOTE_ENCOUNTER.lateAt?
-  MOTE_ENCOUNTER.earlySize:MOTE_ENCOUNTER.lateSize;
+ const size=moteEncounterSize(time,ready);
  if(regularRoom<Math.ceil(size*MOTE_ENCOUNTER.regularWeight)||
     ambientRoom<size||globalRoom<size||
     activeMotes+size>maxMotes-MOTE_ENCOUNTER.reserve)return 0;
@@ -21,7 +22,7 @@ export function availableEncounters(time,director,count,room=count){
   if(time<9||count<=0||!director.types?.length)return [];
   const options=['patrol'];
   if(time>=36&&count>=2)options.push('sweep');
-  if(time>=MOTE_ENCOUNTER.firstAt&&count>=2&&room>=8&&director.types.includes('scout')&&
+  if(time>=MOTE_ENCOUNTER.firstAt&&count>=2&&room>=(director.moteSize||moteEncounterSize(time))&&director.types.includes('scout')&&
     director.allowMotes!==false)options.push('motes');
   if(time>=118&&count>=3)options.push('pincer');
   if(time>=118&&count>=2&&director.types.includes('berserker'))options.push('ram');
@@ -39,10 +40,10 @@ export function planEncounter(time,director,room,side,middle,roll=0,previous='',
   let pattern=forced?preferred:options[index];
   // Consecutive encounters should not look identical when alternatives exist.
   if(!forced&&pattern===previous&&options.length>1)pattern=options[(index+1)%options.length];
-  // Early eye swarms should feel like a formation rather than a screen-filling
-  // cloud. Larger late-game packs keep their existing tactical role.
+  // Admission and actual allocation use the same size. A six-mote early plan
+  // must never quietly turn into nine ships because the scene has free room.
   const actualCount=pattern==='motes'?
-    Math.min(time<205?9:time>=205&&room>=16?16:10,Math.floor(room)):count;
+    Math.min(director.moteSize||moteEncounterSize(time),Math.floor(room)):count;
   const combat=director.types.filter(t=>t==='scout'||t==='fighter'||t==='flanker');
   const weak=combat.includes('scout')?'scout':combat[0];
   const fighter=combat.includes('fighter')?'fighter':weak;
@@ -78,7 +79,8 @@ export function planEncounter(time,director,room,side,middle,roll=0,previous='',
     }
     members.push({type,side:entrySide,
       position:Math.max(.08,Math.min(.92,entryMiddle+offset)),
-      protectIndex});
+      protectIndex,weaponVariant:director.allowImpulse===false||time<85||
+       pattern!=='sweep'||type!=='flanker'||i!==0?null:'impulse'});
   }
   const labels={motes:'РОЙ МИКРОДРОНОВ · используйте комету или мины',pincer:'Фланговая атака',medic:'Группа ремонта',
     ram:'Таранная группа',heavy:'Тяжёлый корабль'};
