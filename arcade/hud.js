@@ -7,8 +7,21 @@ import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1-e
 import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1';
-import {normalizedDoctrineRanks,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
+import {normalizedDoctrineRanks,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2-hud-merge-20261110';
+import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110-weapon-deck-audit-2-hud-merge-20261110';
 const el = id => document.getElementById(id);
+const mountCountLabel=count=>{
+ const last=count%10,teens=count%100>=11&&count%100<=14;
+ return count+' '+(teens||last===0||last>=5?'УЗЛОВ':last===1?'УЗЕЛ':'УЗЛА');
+};
+const WEAPON_ICONS=Object.freeze({
+ plasma:'weapon-plasma.svg',rail:'weapon-rail.svg',flak:'weapon-flak.svg',
+ rocket:'weapon-rocket.svg',comet:'weapon-comet.svg',mines:'weapon-mines.svg',
+ howitzer:'weapon-howitzer.svg',pulse:'tactical-pulse.svg',
+ trap:'tactical-trap.svg',decoy:'tactical-decoy.svg',jam:'tactical-jam.svg',
+ ion:'ion.svg',resonator:'field-resonator.svg'
+});
+const weaponIcon=id=>'./studio/hud-kit/'+(WEAPON_ICONS[id]||'weapon.svg');
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 const count = value => Math.round(value).toLocaleString('ru-RU');
 export const HUD_RADAR_RANGE=1100;
@@ -62,9 +75,21 @@ export class CockpitDisplay {
    rewardXp:el('rewardXp'),rewardLevel:el('rewardLevel'),
    miningStatus:el('miningStatus'),miningPercent:el('miningPercent'),
    miningLabel:el('miningLabel'),
-   contractObjective:el('contractObjective'),interactionCue:el('interactionCue'),territoryStatus:el('territoryStatus')};
+   contractObjective:el('contractObjective'),interactionCue:el('interactionCue'),territoryStatus:el('territoryStatus'),
+   weaponDeckAuto:el('weaponDeckAuto'),weaponDeckDirect:el('weaponDeckDirect'),
+   weaponDeckCount:el('weaponDeckCount'),
+   weaponDeckSpaceQuick:el('weaponDeckSpaceQuick'),weaponDeckSpaceKey:el('weaponDeckSpaceKey'),
+   weaponDeckSpaceName:el('weaponDeckSpaceName'),weaponDeckSpaceStatus:el('weaponDeckSpaceStatus'),
+   weaponDeckFieldQuick:el('weaponDeckFieldQuick'),weaponDeckFieldKey:el('weaponDeckFieldKey'),
+   weaponDeckFieldName:el('weaponDeckFieldName'),weaponDeckFieldStatus:el('weaponDeckFieldStatus')};
   this.reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   this.compactHud=window.matchMedia('(pointer: coarse)').matches;
+  this.weaponDeckRows=new Map();this.weaponDeckSignature='';
+  const toggle=el('weaponDeckToggle'),deck=el('weaponDeck');
+  if(toggle&&deck)toggle.onclick=()=>{
+   const open=deck.classList.toggle('is-open');
+   toggle.setAttribute('aria-expanded',String(open));
+  };
   this.drawRadarShell();
  }
  update(game,nextXp,boostCooldown) {
@@ -292,12 +317,73 @@ export class CockpitDisplay {
     n.flightMode.setAttribute('aria-label','ОГОНЬ ЗАБЛОКИРОВАН · ПЕРЕГРЕВ');
    }
   }
+  this.renderWeaponDeck(game);
   n.message.style.opacity=game.messageUntil>game.time?'1':'0';
   // HUD remains stationary: no cockpit sway when the player steers.
   const interval=game.fps<35?.34:.2;
   if(game.time-this.lastRadar>=interval||game.time<this.lastRadar) {
    this.lastRadar=game.time;
    this.drawRadar(game);
+  }
+ }
+ renderWeaponDeck(game){
+  // Headless combat tests use a minimal DOM; constructing elements is only
+  // needed by the real browser. No weapons are simulated from this view.
+  if(!this.n.weaponDeckAuto||typeof document.createElement!=='function')return;
+  const state=weaponDeckState(game),n=this.n;
+  display(n.weaponDeckCount,mountCountLabel(state.installedCount));
+  const quick=(item,base)=>{
+   display(n[base+'Key'],item.key);
+   display(n[base+'Name'],item.name);
+   display(n[base+'Status'],item.status);
+   n[base+'Quick'].dataset.state=item.state;
+  };
+  quick(state.quick.tactical,'weaponDeckSpace');
+  n.weaponDeckFieldQuick.hidden=!state.quick.field;
+  if(state.quick.field)quick(state.quick.field,'weaponDeckField');
+  const toggle=el('weaponDeckToggle');
+  const toggleText='Оружие: '+[state.quick.tactical,state.quick.field].filter(Boolean)
+   .map(item=>item.key+' '+item.name+' '+(item.seconds>.05?
+    Math.ceil(item.seconds)+' секунд до готовности':item.status)).join('; ')+'. Подробности';
+  if(toggle&&toggle.getAttribute?.('aria-label')!==toggleText)toggle.setAttribute('aria-label',toggleText);
+  const ordered=[...state.rows].sort((a,b)=>{
+   const priority={tactical:0,field:1,manual:2,howitzer:3};
+   return (priority[a.id]??10)-(priority[b.id]??10);
+  });
+  const signature=ordered.map(item=>item.id+':'+item.name+':'+item.icon+':'+item.key).join('|');
+  if(signature!==this.weaponDeckSignature){
+   this.weaponDeckSignature=signature;this.weaponDeckRows.clear();
+   const auto=document.createDocumentFragment(),direct=document.createDocumentFragment();
+   for(const item of ordered){
+    const element=document.createElement('div');element.className='weapon-deck-row';
+    element.dataset.slot=item.id;
+    element.style.setProperty('--weapon-color',item.color);
+    const header=document.createElement('div');header.className='weapon-deck-row-head';
+    const icon=document.createElement('img');icon.className='weapon-deck-icon';
+    icon.src=weaponIcon(item.icon);icon.alt='';icon.setAttribute('aria-hidden','true');
+    header.append(icon);
+    if(item.key){const key=document.createElement('kbd');key.className='weapon-deck-key';
+     key.textContent=item.key;header.append(key);}
+    const name=document.createElement('strong');name.className='weapon-deck-name';
+    const status=document.createElement('span');status.className='weapon-deck-status';
+    header.append(name,status);
+    const detail=document.createElement('small');detail.className='weapon-deck-detail';
+    const charge=document.createElement('span');charge.className='weapon-deck-charge';
+    charge.setAttribute('aria-hidden','true');
+    element.append(header,detail,charge);
+    this.weaponDeckRows.set(item.id,{element,name,status,detail});
+    (item.kind==='auto'?auto:direct).append(element);
+   }
+   n.weaponDeckAuto.replaceChildren(auto);n.weaponDeckDirect.replaceChildren(direct);
+  }
+  for(const item of state.rows){
+   const entry=this.weaponDeckRows.get(item.id);if(!entry)continue;
+   display(entry.name,item.name);display(entry.status,item.status);
+   display(entry.detail,item.detail);
+   if(entry.state!==item.state){entry.element.dataset.state=item.state;entry.state=item.state;}
+   entry.element.style.setProperty('--charge-fill',item.chargePercent+'%');
+   const spoken=(item.key?item.key+'; ':'')+item.name+'; '+item.detail+'; '+item.status;
+   if(entry.spoken!==spoken){entry.element.setAttribute('aria-label',spoken);entry.spoken=spoken;}
   }
  }
  trackWallet(player,time){

@@ -1,0 +1,211 @@
+/* Weapon deck v2. The cockpit is a read-only instrument: no combat hitboxes.
+   Direct actions lead; automatic weapons remain on the same scrollable deck.
+   The original thermal gauge is in the adjacent combat console. */
+#hud.cockpit-hud .weapon-deck {
+ position:absolute;right:max(16px,env(safe-area-inset-right));bottom:210px;
+ z-index:4;box-sizing:border-box;width:clamp(330px,31vw,420px);
+ max-height:min(48dvh,calc(100dvh - 250px));overflow:hidden;overscroll-behavior:contain;
+ color:#e4f8fc;pointer-events:none;text-shadow:0 1px 3px #000b;
+ background:linear-gradient(151deg,#173b4bec,#071d2df2 44%,#061522f6);
+ border:1px solid #6bc3d5a8;border-radius:10px;
+ box-shadow:0 12px 27px #0008,inset 0 1px 0 #aaf6ff36;
+ scrollbar-color:#598a9f77 #102736;
+}
+#hud.cockpit-hud .weapon-deck.is-open{
+ pointer-events:auto;overflow-y:auto;
+ max-height:min(74dvh,calc(100dvh - 235px));border-color:#99e5e3c9;
+}
+#hud.cockpit-hud .weapon-deck::before {
+ content:"";display:block;position:sticky;top:0;height:2px;z-index:1;
+ background:linear-gradient(90deg,transparent 3%,#80e4ee 21%,#f6d092 47%,#71e5f2 75%,transparent);
+ opacity:.75;pointer-events:none;
+}
+.cockpit-hud .weapon-deck-body{padding:10px 12px 12px}
+.cockpit-hud .weapon-deck-head {
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ margin-bottom:4px;padding:0 31px 8px 1px;border-bottom:1px solid #67b9ca65;
+}
+.cockpit-hud .weapon-deck-head strong{font-weight:850;font-size:13px;letter-spacing:.12em}
+.cockpit-hud .weapon-deck-head>span{font-size:11px;font-weight:700;color:#aed9e4;white-space:nowrap}
+.cockpit-hud .weapon-deck-divider {
+ margin:10px 1px 5px;padding:0 1px;color:#a2d5e1;
+ font-size:10px;font-weight:800;letter-spacing:.095em;
+}
+.cockpit-hud .weapon-deck-divider-direct{color:#c4bbf5;margin-top:9px}
+.cockpit-hud .weapon-deck-rows{display:flex;flex-direction:column;gap:5px}
+.cockpit-hud .weapon-deck-row {
+ --weapon-color:#8de2ea;--charge-fill:100%;
+ position:relative;min-width:0;padding:7px 9px 8px 10px;
+ border:1px solid #719daf4a;border-radius:6px;
+ background:linear-gradient(120deg,#163d506b,#071e2d63 85%);
+ transition:border-color .12s ease;
+}
+.cockpit-hud .weapon-deck-row::before{
+ content:"";position:absolute;left:0;top:8px;bottom:9px;width:2px;
+ background:var(--weapon-color);border-radius:3px;box-shadow:0 0 7px var(--weapon-color);
+}
+.cockpit-hud .weapon-deck-row[data-slot="tactical"] {
+ border-color:#a89ce17b;background:linear-gradient(116deg,#303453b8,#11243683);
+}
+.cockpit-hud .weapon-deck-row[data-slot="field"]{
+ border-color:#62c3c9ad;background:linear-gradient(116deg,#174d58a3,#0c30376b);
+}
+.cockpit-hud .weapon-deck-row[data-slot="howitzer"]{opacity:.85}
+.cockpit-hud .weapon-deck-row-head{
+ display:flex;align-items:center;gap:7px;min-width:0;line-height:1.2;
+}
+.cockpit-hud .weapon-deck-icon {
+ flex:none;width:25px;height:25px;object-fit:contain;
+ filter:drop-shadow(0 0 3px #72d9ee38);opacity:.95;
+}
+.cockpit-hud .weapon-deck-key,.cockpit-hud .weapon-deck-quick kbd{
+ flex:none;display:inline-flex;align-items:center;justify-content:center;
+ box-sizing:border-box;min-width:24px;min-height:21px;padding:2px 5px;
+ color:#ebf8ff;border:1px solid #90c8d7a1;border-radius:4px;
+ background:#0a1c2e;font:850 10px/1.1 system-ui,sans-serif;letter-spacing:0;
+}
+.cockpit-hud .weapon-deck-row[data-slot="tactical"] .weapon-deck-key{color:#dfd4ff;border-color:#b7a5eeaa}
+.cockpit-hud .weapon-deck-row[data-slot="field"] .weapon-deck-key{color:#b3f9e9;border-color:#84e1cfaa}
+.cockpit-hud .weapon-deck-name{
+ min-width:0;flex:1;font-size:12px;font-weight:800;
+ color:#edfaff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.cockpit-hud .weapon-deck-status{
+ flex:none;margin-left:auto;max-width:39%;color:#9cf3c6;
+ font-size:11px;font-weight:850;text-align:right;white-space:nowrap;
+}
+.cockpit-hud .weapon-deck-row[data-state="cooldown"] .weapon-deck-status{color:#ffd18f}
+.cockpit-hud .weapon-deck-row[data-state="blocked"] .weapon-deck-status{color:#ffa8b0}
+.cockpit-hud .weapon-deck-detail{
+ display:block;margin:4px 2px 0 32px;color:#b5dce4;
+ font-size:11px;line-height:1.35;white-space:normal;
+}
+.cockpit-hud .weapon-deck-charge{
+ display:block;margin:6px 1px 0 32px;height:3px;border-radius:4px;overflow:hidden;
+ background:linear-gradient(90deg,var(--weapon-color) 0 var(--charge-fill),#233e4f var(--charge-fill) 100%);
+ opacity:.77;
+}
+.cockpit-hud .weapon-deck-row[data-state="blocked"] .weapon-deck-charge{opacity:.35}
+.cockpit-hud .weapon-deck-toggle {
+ display:flex;align-items:center;justify-content:center;position:absolute;
+ top:6px;right:8px;z-index:2;width:28px;min-height:27px;padding:2px;
+ border:1px solid #89cbd59e;border-radius:5px;
+ background:#12384bf0;color:#C7EDF5;cursor:pointer;pointer-events:auto;
+}
+.cockpit-hud .weapon-deck-quick-readouts{display:none}
+.cockpit-hud .weapon-deck.is-open .weapon-deck-chevron{transform:rotate(180deg)}
+.cockpit-hud .weapon-deck-toggle:focus-visible{
+ outline:2px solid #cbfaff;outline-offset:3px;
+}
+@media(pointer:fine) and (max-width:1100px){
+ #hud.cockpit-hud .weapon-deck{width:clamp(280px,31vw,348px);bottom:195px}
+ .cockpit-hud .weapon-deck-body{padding:9px 10px}
+}
+@media(pointer:fine) and (max-width:820px){
+ #hud.cockpit-hud .weapon-deck{width:max(255px,35vw);bottom:180px;
+  max-height:min(46dvh,calc(100dvh - 223px))}
+ .cockpit-hud .weapon-deck-detail{font-size:11px}
+ .cockpit-hud .weapon-deck-name{font-size:11px}
+}
+/* On touch devices, both Space and G stay visible without opening the deck. */
+@media(pointer:coarse){
+ #hud.cockpit-hud .weapon-deck {
+  top:7px;left:clamp(202px,26vw,278px);bottom:auto;right:auto;
+  width:clamp(211px,34vw,295px);max-height:none;overflow:visible;
+  z-index:6;pointer-events:auto;background:linear-gradient(145deg,#173c50f6,#071d30f9);
+  border-color:#78cedecc;box-shadow:0 3px 13px #0009;
+ }
+ #hud.cockpit-hud .weapon-deck.is-open{
+  max-height:none;overflow:visible;
+ }
+ #hud.cockpit-hud .weapon-deck::before{height:1px}
+ .cockpit-hud .weapon-deck-toggle{
+  position:relative;top:auto;right:auto;
+  display:flex;align-items:center;justify-content:space-between;gap:5px;
+  width:100%;box-sizing:border-box;
+  padding:5px 7px;min-height:45px;border:0;background:none;color:#e8f8ff;
+  text-align:left;cursor:pointer;
+ }
+ .cockpit-hud .weapon-deck-quick-readouts{
+  display:flex;align-items:stretch;gap:5px;min-width:0;flex:1;
+ }
+ .cockpit-hud .weapon-deck-quick{
+  display:flex;align-items:center;gap:5px;flex:1;min-width:0;
+  padding:2px 3px;border-radius:4px;background:#14364b82;
+ }
+ .cockpit-hud .weapon-deck-quick kbd{min-width:0;min-height:25px;padding:2px 4px;font-size:9px}
+ .cockpit-hud .weapon-deck-quick-text{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.16}
+ .cockpit-hud .weapon-deck-quick-text b{
+  color:#e4f9ff;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ }
+ .cockpit-hud .weapon-deck-quick-text small{
+  margin-top:3px;font-size:10px;color:#89f3c0;font-weight:850;white-space:nowrap;
+ }
+ .cockpit-hud .weapon-deck-quick[data-state="cooldown"] small{color:#ffd195}
+ .cockpit-hud .weapon-deck-quick[data-state="blocked"] small{color:#ffafb6}
+ .cockpit-hud #weaponDeckSpaceQuick{border-left:2px solid #c6b5ff}
+ .cockpit-hud #weaponDeckFieldQuick{border-left:2px solid #82e8d5}
+ .cockpit-hud .weapon-deck-chevron{flex:none;color:#9ce5ed;font-size:13px;font-weight:900}
+ .cockpit-hud .weapon-deck-body{
+  display:none;position:absolute;left:0;right:auto;top:calc(100% + 4px);
+  box-sizing:border-box;width:min(390px,calc(100vw - clamp(202px,26vw,278px) - 10px));
+  max-height:calc(100dvh - 68px);padding:11px;overflow-y:auto;
+  overscroll-behavior:contain;border:1px solid #7bcee0e0;border-radius:8px;
+  background:linear-gradient(155deg,#163b4dfb,#061b29fc 35%,#081524fd);
+  box-shadow:0 10px 28px #000d;
+ }
+ #hud.cockpit-hud .weapon-deck.is-open .weapon-deck-body{display:block}
+ .cockpit-hud .weapon-deck-detail{font-size:11px}
+ .cockpit-hud .weapon-deck-name{font-size:12px}
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-width:690px){
+ #hud.cockpit-hud .weapon-deck{left:190px;width:clamp(166px,30vw,205px)}
+ .cockpit-hud .weapon-deck-body{width:min(360px,calc(100vw - 200px))}
+ .cockpit-hud .weapon-deck-toggle{gap:3px;padding:4px 5px}
+ .cockpit-hud .weapon-deck-quick-readouts{gap:3px}
+ .cockpit-hud .weapon-deck-quick{gap:3px;padding:2px}
+ .cockpit-hud .weapon-deck-quick kbd{font-size:8px;padding:2px 3px}
+ .cockpit-hud .weapon-deck-quick-text b{font-size:9px}
+ .cockpit-hud .weapon-deck-quick-text small{font-size:9px}
+}
+/* Fullscreen adds a fourth navigation button. On a short, narrow phone,
+   reserve its thumb target and stack the two readiness readouts in the gap. */
+@media(pointer:coarse) and (orientation:landscape) and (max-width:640px){
+ body:has(#exitFullscreenBtn:not([hidden])) #hud.cockpit-hud .weapon-deck{
+  width:clamp(112px,calc(100vw - 450px),154px);
+ }
+ body:has(#exitFullscreenBtn:not([hidden])) .cockpit-hud .weapon-deck-quick-readouts{
+  flex-direction:column;gap:2px;
+ }
+ body:has(#exitFullscreenBtn:not([hidden])) .cockpit-hud .weapon-deck-quick{
+  min-height:17px;padding:0 2px;gap:4px;
+ }
+ body:has(#exitFullscreenBtn:not([hidden])) .cockpit-hud .weapon-deck-quick kbd{
+  min-height:17px;font-size:8px;
+ }
+ body:has(#exitFullscreenBtn:not([hidden])) .cockpit-hud .weapon-deck-quick-text{
+  flex-direction:row;justify-content:flex-end;
+ }
+ body:has(#exitFullscreenBtn:not([hidden])) .cockpit-hud .weapon-deck-quick-text b{
+  display:none;
+ }
+ body:has(#exitFullscreenBtn:not([hidden])) .cockpit-hud .weapon-deck-quick-text small{
+  margin:0;font-size:9px;
+ }
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:240px){
+ .cockpit-hud .weapon-deck-body{max-height:calc(100dvh - 65px)}
+}
+@media(pointer:coarse) and (orientation:portrait){
+ #hud.cockpit-hud .weapon-deck{
+  top:max(182px,calc(env(safe-area-inset-top) + 176px));left:auto;
+  right:max(8px,env(safe-area-inset-right));width:min(57vw,247px);
+ }
+ .cockpit-hud .weapon-deck-body{
+  left:auto;right:0;width:min(375px,calc(100vw - 16px));
+  max-height:calc(100dvh - 247px);
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .cockpit-hud .weapon-deck-row{transition:none}
+}

@@ -1,5 +1,5 @@
-import {EnemyMesh} from './enemy-mesh.js?v=enemy-mesh-1-tactical-field-2-backbone-2-mesh-response-v2-1-flux-offense-1-territory-war-1';
-import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-2';
+import {EnemyMesh} from './enemy-mesh.js?v=enemy-mesh-1-tactical-field-2-backbone-2-mesh-response-v2-1-flux-offense-1-territory-war-1-space-impact-20261110';
+import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-ops-1';
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
@@ -95,7 +95,7 @@ export function enemyOrderMessage(mode,threat=null){
  * firing distance. These are observations, not privileged loadout queries. */
 export function classifyEnemyAttack(weapon,range){
   if(!Number.isFinite(range)||range<0)return null;
-  if(weapon==='ion'||weapon==='howitzer')return 'area';
+  if(weapon==='ion'||weapon==='howitzer'||weapon==='tactical')return 'area';
   // Weapon signatures, not arbitrary firing distance, determine the counter.
   // Plasma loses damage with range; calling it "long" lures pilots into its
   // strongest point-blank damage. Rail and rockets work at long distances.
@@ -108,7 +108,7 @@ export function classifyEnemyAttack(weapon,range){
  * cannot measure the hidden attacker's exact distance using the game state. */
 export function estimatedWeaponRange(weapon){
   return ({beam:200,flak:180,rail:390,rocket:390,
-    ion:300,howitzer:520})[weapon]??260;
+    ion:300,howitzer:520,tactical:270})[weapon]??260;
 }
 
 /** Require repeat evidence separated in time: one lucky hit cannot change

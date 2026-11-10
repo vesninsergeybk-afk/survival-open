@@ -97,3 +97,18 @@ test('confirmed signal interruption has extra feedback; silent devices do not cl
  const hit=canvas();drawTacticalVfx(hit,g,camera);
  assert.ok(drawn(hit)>drawn(silent));
 });
+test('gravity shocks and shell shocks have bounded, impact-driven animations',()=>{
+ for(const kind of ['trap','shell']){
+  const g=game(kind);g.enemies=[];g.tactical.effects[0].pulseAt=undefined;
+  const quiet=canvas();drawTacticalVfx(quiet,g,camera);
+  g.tactical.effects[0].pulseAt=19.88;
+  const hit=canvas();drawTacticalVfx(hit,g,camera);
+  assert.ok(drawn(hit)>drawn(quiet),kind+' draws only a genuine recent shock');
+  const reduced=canvas();g.visuals.reducedMotion=true;
+  drawTacticalVfx(reduced,g,camera);
+  assert.ok(drawn(reduced)>drawn(quiet),'reduced motion still displays the impact');
+  g.time=20.55;
+  const expired=canvas();drawTacticalVfx(expired,g,camera);
+  assert.ok(drawn(expired)<=drawn(quiet)+1,'a shock flash must not persist');
+ }
+});

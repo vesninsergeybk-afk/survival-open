@@ -742,8 +742,10 @@ canvas#game.rail-manual{cursor:crosshair}
  #creditsDialog .credits-head{gap:10px}
 }
 
-/* Ion-conductor loan: a visible optional button only while equipped. */
+/* The free tactical device remains visible; loaned weapons have their own button. */
 @media(pointer:coarse){
+ #tacticBtn{border-color:#bba8ff;background:#263664ec;color:#f0ecff}
+ #tacticBtn:disabled{opacity:.54}
  #ionBtn{border-color:#81ecf7;background:#174766ec;color:#e4ffff}
  #ionBtn:disabled{opacity:.54}
 }
@@ -751,7 +753,7 @@ canvas#game.rail-manual{cursor:crosshair}
  .mobile-abilities button{width:74px}
 }
 
-/* One shared manual field action; touch uses the existing fixed button. */
+/* Independent tactical and rental actions; touch has separate buttons. */
 #fieldWeaponStatus{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);
  z-index:3;max-width:min(500px,calc(100vw - 24px));padding:5px 12px;
  border:1px solid #d5a1f077;border-radius:8px;background:#101c30e8;

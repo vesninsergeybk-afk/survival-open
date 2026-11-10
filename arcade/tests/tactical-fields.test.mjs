@@ -15,13 +15,22 @@ const enemy=(x=100,y=0,other={})=>({x,y,serial:18,type:'fighter',hp:50,maxHp:50,
  r:16,vx:0,vy:0,state:'hunt',...other});
 const game=(enemies=[enemy()])=>({time:20,player:pilot(),enemies,
  tactical:createTactical()});
+const damagingGame=(enemies=[enemy()])=>{
+ const g=game(enemies);g.strikes=[];
+ g.damageEnemy=(target,damage,source)=>{
+  g.strikes.push({target,damage,source,time:g.time});
+  target.hp=Math.max(0,target.hp-damage);
+ };
+ return g;
+};
 const station={baseActive:true,activeBases:4,level:8,ore:150,points:3};
 
 test('starter has one reliable Space device and no consumable shots',()=>{
- const g=game(),first=activateTactical(g);
+ const g=damagingGame(),first=activateTactical(g);
  assert.equal(first.ok,true);assert.equal(first.kind,'pulse');
- assert.equal(g.enemies[0].hp,50,'the ability does not cause hidden damage');
- assert.equal(g.enemies[0].tacticalSlowFactor,.6);
+ assert.equal(g.enemies[0].hp,37,'the initial blast has visible, real damage');
+ assert.equal(g.enemies[0].tacticalSlowFactor,.43);
+ assert.equal(g.strikes[0].source,'tactical');
  assert.equal(g.tactical.readyAt,34);
  assert.equal(activateTactical(g).ok,false);
  g.time=34;assert.equal(activateTactical(g).ok,true,'the device recharges without spending ore');
@@ -29,10 +38,12 @@ test('starter has one reliable Space device and no consumable shots',()=>{
 });
 test('pulse helps against nearby attackers without freezing the whole world',()=>{
  const near=enemy(100),far=enemy(500),boss=enemy(60,0,{boss:true});
- const g=game([near,far,boss]);activateTactical(g);updateTactical(g);
- assert.equal(near._tacticalSpeed,.6);assert.equal(far._tacticalSpeed,1);
+ const g=damagingGame([near,far,boss]);activateTactical(g);updateTactical(g);
+ assert.equal(near._tacticalSpeed,.43);assert.equal(far._tacticalSpeed,1);
+ assert.equal(near.hp,37);assert.equal(far.hp,50);
  assert.equal(boss._tacticalSpeed,1);
- g.time+=2.21;updateTactical(g);assert.equal(near._tacticalSpeed,1);
+ assert.equal(boss.hp,50,'boss immunity is deliberate, not accidental splash');
+ g.time+=3.21;updateTactical(g);assert.equal(near._tacticalSpeed,1);
 });
 test('all four devices unlock by station progress and have one shared slot',()=>{
  let state=createTactical();
@@ -58,14 +69,14 @@ test('exclusive branches consume one point and unlock a different behavior',()=>
  assert.equal(tacticalQuote(first.state,'upgrade','pulse',{...station,path:'burst'}).ok,false);
  const next=applyTacticalChoice(first.state,'upgrade','pulse',{...station,path:'shell'});
  assert.equal(next.state.branches.pulse.rank,2);
- assert.equal(tacticalSpec(next.state).duration,3.6);
+ assert.equal(tacticalSpec(next.state).duration,4.8);
  assert.equal(validTactical(next.state,20),true);
 });
 test('protective shell follows the player and affects new arrivals',()=>{
  const g=game([enemy(700)]);g.tactical.branches.pulse={path:'shell',rank:1};
  assert.equal(activateTactical(g).affected,0);
  g.player.x=600;updateTactical(g);
- assert.equal(g.enemies[0]._tacticalSpeed,.68);
+ assert.equal(g.enemies[0]._tacticalSpeed,.58);
  assert.equal(g.tactical.effects[0].kind,'shell');
 });
 test('vector burst interrupts an actual ram, but does not erase the enemy',()=>{
@@ -102,7 +113,7 @@ test('cursor-placed gravity trap controls a location, not the whole screen',()=>
  const target=tacticalAim(g.player,{x:300,y:0});
  assert.deepEqual(target,{x:300,y:0});
  activateTactical(g,target);updateTactical(g);
- assert.equal(g.enemies[0]._tacticalSpeed,.53);
+ assert.equal(g.enemies[0]._tacticalSpeed,.46);
  assert.equal(g.enemies[1]._tacticalSpeed,1);
  assert.equal(state.effects[0].x,300);
 });
@@ -111,9 +122,64 @@ test('trap branches meaningfully choose pulling over stronger viscosity',()=>{
  g.tactical.branches.trap={path:'sink',rank:1};
  activateTactical(g,{x:300,y:0});updateTactical(g);
  assert.equal(g.enemies[0]._tacticalPull.x,300);
- assert.equal(g.enemies[0]._tacticalSpeed,.73);
+ assert.equal(g.enemies[0]._tacticalSpeed,.67);
  const stronger={...g.tactical,branches:{trap:{path:'snare',rank:2}}};
- assert.ok(tacticalSpec(stronger).slow<.73);
+ assert.ok(tacticalSpec(stronger).slow<.67);
+});
+test('the gravity trap hurts immediately, then shocks new arrivals throughout its real duration',()=>{
+ const first=enemy(120),late=enemy(690,0,{serial:23}),ally=enemy(180,0,{converted:true}),
+  boss=enemy(80,0,{boss:true});
+ const g=damagingGame([first,late,ally,boss]);g.tactical.owned.push('trap');g.tactical.equipped='trap';
+ const result=activateTactical(g,{x:300,y:0});
+ assert.equal(result.affected,1);assert.equal(result.duration,8);
+ assert.equal(first.hp,41,'the trap opens with its own impact');
+ assert.equal(late.hp,50);assert.equal(ally.hp,50);assert.equal(boss.hp,50);
+ assert.equal(g.tactical.effects[0].lastHits,1);
+ g.time=20.8;updateTactical(g);assert.equal(first.hp,36);
+ updateTactical(g);assert.equal(first.hp,36,'repeated updates in one frame cannot double-hit');
+ late.x=500;g.time=21.6;updateTactical(g);
+ assert.equal(first.hp,31);assert.equal(late.hp,45,'arrival after activation still receives damage');
+ assert.equal(g.tactical.effects[0].lastHits,2);
+ assert.equal(validTactical(g.tactical,g.time),true,'live pulse clocks are safe to checkpoint');
+ g.time=28.01;updateTactical(g);
+ assert.equal(g.tactical.effects.length,0,'expired traps never deal delayed phantom damage');
+ assert.equal(late.hp,45);
+});
+test('gravity damage cadence matches at 30 and 60 FPS without multiplying shots',()=>{
+ const simulate=fps=>{
+  const victim=enemy(200,0,{hp:250,maxHp:250}),g=damagingGame([victim]);
+  g.tactical.owned.push('trap');g.tactical.equipped='trap';
+  activateTactical(g,{x:200,y:0});
+  for(let i=0;i<Math.round(fps*7.9);i++){
+   g.time=20+(i+1)/fps;updateTactical(g);
+  }
+  return {damage:250-victim.hp,shots:g.strikes.length};
+ };
+ const a=simulate(30),b=simulate(60);
+ assert.equal(a.damage,b.damage);
+ assert.ok(a.shots>=9&&a.shots<=11,'one shock about every 0.8 s');
+});
+test('a checkpoint preserves a running trap and its next shock exactly',()=>{
+ const initial=enemy(175,0,{hp:200,maxHp:200}),g=damagingGame([initial]);
+ g.tactical.owned.push('trap');g.tactical.equipped='trap';
+ activateTactical(g,{x:175,y:0});
+ g.time=21.61;updateTactical(g);
+ const copy=JSON.parse(JSON.stringify(g.tactical));
+ assert.equal(validTactical(copy,g.time),true);
+ const saved=damagingGame([enemy(175,0,{hp:initial.hp,maxHp:200})]);
+ saved.time=g.time;saved.tactical=copy;
+ for(const next of [21.8,22.4,22.41,23.21,26.15]){
+  g.time=next;saved.time=next;updateTactical(g);updateTactical(saved);
+  assert.equal(saved.enemies[0].hp,g.enemies[0].hp,
+   'a restored trap must neither skip nor repeat a discharge at '+next);
+ }
+});
+test('moving shell shocks new enemies on its next pulse and follows its pilot',()=>{
+ const victim=enemy(720,0,{hp:100,maxHp:100}),g=damagingGame([victim]);
+ g.tactical.branches.pulse={path:'shell',rank:1};
+ assert.equal(activateTactical(g).affected,0);
+ g.player.x=600;g.time=20.81;updateTactical(g);
+ assert.equal(victim.hp,95);assert.equal(g.tactical.effects[0].lastHits,1);
 });
 test('one-slot branches offer different tactical tradeoffs instead of a universal upgrade',()=>{
  const spec=(id,path,rank)=>tacticalSpec({equipped:id,

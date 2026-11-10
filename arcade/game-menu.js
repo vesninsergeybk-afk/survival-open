@@ -1,4 +1,4 @@
-import {DEFAULT_CONTROLS,readableKey,isMapShortcut} from './control-layout.js?v=control-audit-1';
+import {DEFAULT_CONTROLS,readableKey,isMapShortcut} from './control-layout.js?v=control-audit-1-tactical-slot-20261110';
 const states=new WeakMap();
 export const menuReturnLabels=Object.freeze({
  base:'К станции',map:'К карте',skills:'К навыкам пилота',evolution:'К выбору способности',

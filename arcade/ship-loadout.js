@@ -1,6 +1,6 @@
-import {ionDamage} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
+import {ionDamage} from './ion-conductor.js?v=weapons-cycle-2-campaign-1-unlimited-hud-20261110';
 import {applySpecialization,howitzerProfile} from './weapon-specializations.js?v=howitzer-branches-1';
-import {TACTICAL_DEVICES} from './tactical-fields.js?v=tactical-field-2';
+import {TACTICAL_DEVICES} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {STARTER_COMBAT} from './balance.js';
 // Run-owned hardware; saved blueprints contain choices, never resources/unlocks.
 export const FRAME_STEPS=Object.freeze([
@@ -21,9 +21,9 @@ export const MODULES=Object.freeze({
  rocket:{id:'rocket',name:'Самонаводящиеся ракеты',short:'Ракеты',kind:'auto',role:'Дальний бой',level:5,cost:48,heat:16,color:'#ffad85',
   desc:'Ракеты преследуют выбранный корабль. Требуется технология «Авторакеты». Её первый ранг даёт один ракетный модуль.'},
  ion:{id:'ion',name:'Ионный проводник',short:'Ион',kind:'manual',role:'Цепной разряд',level:1,cost:null,heat:0,color:'#a4f4ff',
-  desc:'Space / «Ион»: разряд по меткам плазменного луча. Калибровка орудий усиливает цепь. Прокатный модуль: три заряда, возврат после задания. Занимает обычный узел.'},
+  desc:'Разряд по меткам плазменного луча. Калибровка орудий усиливает цепь. Прокатный модуль с неограниченными выстрелами и перезарядкой 4,5 с; возврат после задания. Занимает обычный узел.'},
  resonator:{id:'resonator',name:'Резонатор',short:'Резонанс',kind:'manual',role:'Связь целей',level:1,cost:null,heat:0,color:'#d5a1f0',
-   desc:'Клавиша полевого устройства (по умолчанию пробел): связывает до трёх целей на 4 с. Между ними передаётся 35% нанесённого урона, если расстояние не больше 260 м и нет каменного экрана. Нужны минимум две цели. Три заряда, возврат после задания.'},
+   desc:'Связывает до трёх целей на 4 с. Между ними передаётся 35% нанесённого урона, если расстояние не больше 260 м и нет каменного экрана. Нужны минимум две цели. Выстрелы не ограничены, перезарядка 6 с, возврат после задания.'},
  howitzer:{id:'howitzer',name:'Осадная гаубица',short:'Гаубица',kind:'heavy',role:'Крупные цели',level:14,cost:160,heat:70,color:'#e1b2ff',
    desc:'ЛКМ / «Гаубица»: 1,25 с подготовки, затем тяжёлый снаряд летит к точке курсора. F по умолчанию сохраняет автоматический выбор цели. Камень или вражеский корпус на пути вызывают ранний взрыв радиусом 110 м. Цель может уйти.'}
 });
@@ -91,7 +91,7 @@ export function quoteLoadout(current,draft,context){
  const profile=loadoutProfile(draft);
  if(!profile.automatic)return fail('Оставьте хотя бы одно автоматическое орудие');
  if(profile.ion&&!profile.plasma)return fail('Ионному проводнику нужен луч для ионных меток');
- if(profile.ion&&profile.resonator)return fail('Выберите один полевой модуль на Space; узел H использует F');
+ if(profile.ion&&profile.resonator)return fail('Выберите один прокатный полевой модуль; узел H использует отдельную клавишу');
  const counts=countSlots(draft.slots),missing={};let cost=0;
  for(const [id,number] of Object.entries(counts)){
   const manual=MODULES[id].kind==='manual';

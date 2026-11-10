@@ -14,7 +14,7 @@ test('HUD art kit has independently loadable graphic assets',()=>{
   assert.match(name,/\.svg$/);
   const content=readFileSync(new URL(name,kit),'utf8');
   assert.match(content,/^<svg\b[^>]*viewBox=/);
-  assert.match(content,/<\/svg>$/);
+  assert.match(content.trimEnd(),/<\/svg>$/,'trailing formatting whitespace does not break SVG loading');
   assert.doesNotMatch(content,/<script\b|<foreignObject\b|xlink:href="https?:/i);
  }
  const refs=[...html.matchAll(/hud-kit\/([^"']+\.svg)/g)].map(x=>x[1]);

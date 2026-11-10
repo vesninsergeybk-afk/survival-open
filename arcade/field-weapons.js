@@ -3,8 +3,10 @@ import {contactOnCircle} from './impact-geometry.js?v=arcade-impact-51';
 import {emitWeaponFx} from './weapon-fx.js';
 
 export const FIELD_WEAPONS=Object.freeze({
- ion:{id:'ion',name:'Ионный проводник',short:'Ион',capacity:3,rentalCost:26,chargeCost:8,cooldown:4.5},
- resonator:{id:'resonator',name:'Резонатор',short:'Резонанс',capacity:3,rentalCost:26,chargeCost:8,cooldown:6}
+ // capacity is retained solely for validation of checkpoints made with the
+ // former three-shot rental. A rental now has unlimited uses and a cooldown.
+ ion:{id:'ion',name:'Ионный проводник',short:'Ион',capacity:3,rentalCost:26,cooldown:4.5},
+ resonator:{id:'resonator',name:'Резонатор',short:'Резонанс',capacity:3,rentalCost:26,cooldown:6}
 });
 export const RESONANCE=Object.freeze({range:485,linkRange:260,duration:4,fraction:.35,maxTargets:3});
 export const fieldWeapon=loan=>FIELD_WEAPONS[loan?.moduleId||'ion'];
@@ -29,24 +31,19 @@ export function fieldLoanOffer(base,state,moduleId='ion'){
  if(!base?.active||base.enemy)return null;
  const spec=FIELD_WEAPONS[moduleId];if(!spec)return null;
  const loan=state.fieldLoan||state.ionLoan;
- if(loan)return {mode:'return',cost:0,charges:loan.charges,reason:'Сначала верните текущий полевой модуль.'};
+ if(loan)return {mode:'return',cost:0,reason:'Сначала верните текущий полевой модуль.'};
  if(base.type==='dock'&&base.id==='0:0'&&!(state.fieldTrialTaken??state.ionTrialTaken))
-  return {mode:'trial',cost:0,charges:spec.capacity,reason:''};
- if(base.type==='arsenal')return {mode:'rent',cost:spec.rentalCost,charges:spec.capacity,
+  return {mode:'trial',cost:0,reason:''};
+ if(base.type==='arsenal')return {mode:'rent',cost:spec.rentalCost,
   reason:(state.ore||0)<spec.rentalCost?'Не хватает '+(spec.rentalCost-(state.ore||0))+' ед. сплава':''};
  return null;
 }
 export function refillQuote(loan,ore){
- const spec=loan&&fieldWeapon(loan);
- return !spec?{ok:false,reason:'Сначала возьмите полевой модуль'}:
-  loan.returnDue?{ok:false,reason:'Верните модуль после задания'}:
-  loan.charges>=spec.capacity?{ok:false,reason:'Боезапас полон'}:
-  ore<spec.chargeCost?{ok:false,reason:'Не хватает '+(spec.chargeCost-ore)+' ед. сплава'}:
-  {ok:true,cost:spec.chargeCost,charges:loan.charges+1};
+ // A safe response for old interface actions and imported saves.
+ return {ok:false,reason:'У полевого модуля неограниченный боезапас. Покупать заряды больше не нужно.'};
 }
 export function fieldReady(loan,now){
  if(!loan)return {ok:false,reason:'Возьмите полевой модуль на станции и установите его в ангаре.'};
- if(loan.charges<=0)return {ok:false,reason:'Заряды закончились. Пополните боезапас на станции.'};
  if(loan.cooldownUntil>now)return {ok:false,reason:'Модуль заряжается: '+Math.ceil(loan.cooldownUntil-now)+' с'};
  return {ok:true};
 }
@@ -65,7 +62,7 @@ export function planResonance(game){
  }
  if(best.length<2)return {ok:false,reason:'Резонатору нужны две близкие цели без каменного экрана.'};
  return {ok:true,effect:{until:game.time+RESONANCE.duration,targets:best},
-  chargesAfter:game.fieldLoan.charges-1,cooldownUntil:game.time+FIELD_WEAPONS.resonator.cooldown};
+  cooldownUntil:game.time+FIELD_WEAPONS.resonator.cooldown};
 }
 export function resonanceDamage(game,item,dealt){
  for(const group of game.fieldEffects||[]){

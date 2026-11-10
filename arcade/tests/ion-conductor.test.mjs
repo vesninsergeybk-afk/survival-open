@@ -8,11 +8,11 @@ const home={id:'0:0',type:'dock',active:true};
 const arsenal={id:'1:0',type:'arsenal',active:true};
 const enemy=(x,y,hp=80)=>({x,y,hp,converted:false});
 
-test('first home dock lends one free three-charge trial, then only an arsenal can rent',()=>{
+test('first home dock lends one free unlimited-use trial, then only an arsenal can rent',()=>{
  const offer=ionLoanOffer(home,{ore:0,fieldTrialTaken:false,fieldLoan:null});
  assert.equal(offer.mode,'trial');
  assert.equal(offer.cost,0);
- assert.equal(offer.charges,3);
+ assert.equal(offer.charges,undefined,'no visible ammunition quota is offered');
  assert.equal(ionLoanOffer(home,{ore:0,fieldTrialTaken:true,fieldLoan:null}),null);
  const paid=ionLoanOffer(arsenal,{ore:40,fieldTrialTaken:true,fieldLoan:null});
  assert.equal(paid.mode,'rent');
@@ -25,7 +25,7 @@ test('first home dock lends one free three-charge trial, then only an arsenal ca
 test('only one loan can be equipped; any active station accepts its return',()=>{
  const loan=createIonLoan(home.id,10);
  assert.equal(loan.sourceId,home.id);
- assert.equal(loan.charges,ION_CONDUCTOR.charges);
+ assert.equal(loan.charges,3,'legacy checkpoint value is retained but never spent');
  assert.equal(loan.used,0);
  assert.equal(ionLoanOffer(arsenal,{fieldLoan:loan,ore:999}).mode,'return');
  assert.equal(ionLoanOffer(home,{fieldLoan:loan,fieldTrialTaken:true}).mode,'return');
@@ -46,10 +46,10 @@ test('automatic beam marks live hostile ships including transport, never capture
  assert.equal(converted.ionMarkUntil,undefined);
  assert.equal(cargo.ionMarkUntil,15);
  loan.charges=0;
- assert.equal(markIonCluster(list,a,11,loan).length,0);
+ assert.equal(markIonCluster(list,a,11,loan).length,3,'spent legacy ammunition cannot disable marks');
 });
 
-test('Space discharge chains to nearby marks, not enemies across the sector',()=>{
+test('G discharge chains to nearby marks, not enemies across the sector',()=>{
  const p={x:0,y:0};
  const a={...enemy(140,0),ionMarkUntil:10};
  const b={...enemy(325,0),ionMarkUntil:10};
@@ -60,9 +60,9 @@ test('Space discharge chains to nearby marks, not enemies across the sector',()=
  assert.equal(plan.ok,true);
  assert.deepEqual(plan.targets,[a,b,c]);
  assert.deepEqual(plan.damage,[38,30,22]);
- assert.equal(plan.chargesAfter,2);
+ assert.equal(plan.chargesAfter,undefined);
  assert.equal(plan.cooldownUntil,9.5);
- assert.equal(loan.charges,3,'planning alone does not consume ammo');
+ assert.equal(loan.charges,3,'legacy checkpoint field is untouched');
 });
 
 test('manual discharge favors a marked pair over an isolated nearest enemy',()=>{
@@ -73,10 +73,10 @@ test('manual discharge favors a marked pair over an isolated nearest enemy',()=>
  const result=planIonDischarge([isolated,groupA,groupB],player,5,loan);
  assert.equal(result.ok,true);
  assert.deepEqual(result.targets,[groupA,groupB]);
- assert.equal(result.chargesAfter,2);
+ assert.equal(result.chargesAfter,undefined);
 });
 
-test('discharge is predictable with one mark and never wastes a charge on no target',()=>{
+test('discharge is predictable with one mark and never starts cooldown on no target',()=>{
  const p={x:0,y:0},loan=createIonLoan('0:0');
  assert.equal(planIonDischarge([],p,0,loan).ok,false);
  assert.equal(loan.charges,3);
@@ -85,11 +85,11 @@ test('discharge is predictable with one mark and never wastes a charge on no tar
  assert.equal(r.ok,true);
  assert.deepEqual(r.targets,[solo]);
  assert.deepEqual(r.damage,[38]);
- assert.equal(r.chargesAfter,2);
+ assert.equal(r.chargesAfter,undefined);
  assert.equal(planIonDischarge([solo],p,9,loan).ok,false,'expired mark');
  loan.charges=0;
- assert.match(planIonDischarge([solo],p,4,loan).reason,/закончились/i);
- loan.charges=1;loan.cooldownUntil=7;
+ assert.equal(planIonDischarge([solo],p,4,loan).ok,true,'old zero-ammo save can still fire');
+ loan.cooldownUntil=7;
  assert.match(planIonDischarge([solo],p,5,loan).reason,/заряжается/i);
 });
 
@@ -100,17 +100,20 @@ test('temporary chain reliably destroys two full-health scouts with one use',()=
  const plan=planIonDischarge([scoutA,scoutB],player,2,loan);
  assert.equal(plan.ok,true);assert.deepEqual(plan.damage,[38,30]);
  assert.ok(plan.damage.every((d,i)=>d>=[scoutA.hp,scoutB.hp][i]));
- assert.equal(plan.chargesAfter,2,'the heightened power is offset by limited charges');
+ assert.equal(plan.chargesAfter,undefined,'manual weapon has unlimited uses');
 });
-test('desktop and touch input share one manual action; repair and mining remain separate',()=>{
+test('desktop and touch expose tactical and rented field weapons independently',()=>{
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const panel=readFileSync(new URL('../base-panel.js',import.meta.url),'utf8');
- assert.match(game,/if\(e\.code===this\.controls\.field\)this\.callFieldWeapon\(\)/);
+ assert.match(game,/if\(e\.code===this\.controls\.field\)this\.callTacticalField\(\)/);
+ assert.match(game,/if\(e\.code===this\.controls\.fieldWeapon\)this\.callFieldWeapon\(\)/);
+ assert.match(game,/tacticButton\.onclick=\(\)=>this\.callTacticalField\(\)/);
  assert.match(game,/ionButton\.onclick=\(\)=>this\.callFieldWeapon\(\)/);
  assert.match(game,/this\.mining\.active\|\|this\.probeRepairing/);
  assert.match(game,/this\.fieldLoan\?\.missionStarted/);
  assert.match(html,/id="ionBtn"/);
+ assert.match(html,/id="tacticBtn"/);
  assert.match(panel,/action\('loanField'/);
  assert.match(panel,/action\('returnField'/);
  assert.match(panel,/action\('showFieldTrial',state\.fieldTrialPickerOpen\?'Скрыть полевые модули':'Полевой модуль · бесплатно'/);

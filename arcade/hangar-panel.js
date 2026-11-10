@@ -2,11 +2,11 @@ import {borrowAndFit} from './direct-fitting.js?v=direct-fit-1';
 import {fieldLoanOffer} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1';
 import {WEAPON_SPECIALIZATIONS,specializationState,quoteSpecialization} from './weapon-specializations.js?v=weapons-cycle-2-weapon-mechanics-2';
 import {loadoutAnalysis} from './loadout-analysis.js?v=weapons-cycle-2-campaign-1-combat-balance-1';
-import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalSpec,tacticalQuote} from './tactical-fields.js?v=tactical-field-2';
-import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1-first-loops-1';
+import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalSpec,tacticalQuote} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
+import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1-first-loops-1-tactical-slot-20261110';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {MODULES,FRAME_STEPS,BLUEPRINT_NAMES,SHIP_ART,HangarSession,createLoadout,
- frameSpec,slotOpen,equipModule,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-flow-2-menu-focus-1-menu-ergonomics-1-combat-balance-1-menu-depth-2';
+ frameSpec,slotOpen,equipModule,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-flow-2-menu-focus-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-tactical-slot-20261110-unlimited-hud-20261110';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -16,9 +16,8 @@ const labelFor=i=>i===5?'H':String(i+1);
 // The blueprint needs inline path geometry for its own SVG transforms.
 const icon=(id,blueprint=false)=>menuIcon(id,blueprint?'hg-module-icon-inline':'hg-module-icon');
 const info=(name,description)=>'<button type="button" class="menu-info" data-help-only data-help="'+esc(description)+'" aria-label="Подробнее: '+esc(name)+'">i</button>';
-const weaponDescription=(item,controls)=>item.desc
- .replace('Space / «Ион»',readableKey(controls.field)+' / «Ион»')
- .replace('Клавиша полевого устройства (по умолчанию пробел)',readableKey(controls.field))
+const weaponDescription=(item,controls)=>(item.kind==='manual'?
+ 'Полевое оружие · '+readableKey(controls.fieldWeapon)+'. '+item.desc:item.desc)
  .replace('R по умолчанию',readableKey(controls.railMode))
  .replace('F по умолчанию',readableKey(controls.howitzer));
 const moduleRequirement=(id,context)=>moduleLock(id,context);
@@ -48,7 +47,7 @@ function tacticalPanel(context,session,forInstallation=false){
   id=Object.hasOwn(TACTICAL_DEVICES,session.focusTactic)?session.focusTactic:state.equipped,
   device=TACTICAL_DEVICES[id],owned=state.owned.includes(id),equipped=state.equipped===id,
   spec=tacticalSpec({...state,equipped:id}),loan=context.fieldLoan,
-  overridden=loan&&context.loadout.slots.includes(loan.moduleId||'ion');
+  fieldMounted=loan&&context.loadout.slots.includes(loan.moduleId||'ion');
  const fieldKey=esc(readableKey((context.controls||DEFAULT_CONTROLS).field));
  const unlockHelp='<p class="hg-tactical-unlock-help">Условия «2, 3, 4 станции» означают <b>общее количество включённых дружественных станций</b>, а не уровни одной станции. Сейчас включено: <b>'+(context.activeBases||0)+'</b>. Новое устройство покупается за сплав; развитие его ветки стоит 1 очко пилота.</p>';
  const quote=tacticalQuote(state,owned?'equip':'unlock',id,context),chosen=state.branches[id];
@@ -92,7 +91,7 @@ function tacticalPanel(context,session,forInstallation=false){
    '<button type="button" class="development-shortcut" data-act="openDevelopment" data-id="tactics" data-focus="'+id+'">Открыть развитие тактики →</button></section>';
   return '<section class="hg-tactical dev-tactical" aria-label="'+(forInstallation?'Оснащение тактическим устройством':'Развитие тактики')+'"><p class="hg-tactical-equipped">'+
    'Сейчас установлено: <b>'+esc(current.short)+'</b> · '+fieldKey+'</p>'+
-   (overridden?'<p class="hg-requirement">Сейчас '+fieldKey+' запускает полевой модуль. После его возврата клавиша снова включит '+esc(current.short.toLowerCase())+'.</p>':'')+
+   (fieldMounted?'<p class="hg-note">Прокатное оружие «'+esc(MODULES[loan.moduleId||'ion'].short)+'» запускается отдельно — '+esc(readableKey((context.controls||DEFAULT_CONTROLS).fieldWeapon))+'. Оба устройства доступны в одном вылете.</p>':'')+
    '<details class="dev-weapon-description"><summary>Как открыть новые устройства</summary>'+unlockHelp+'</details><div class="dev-tactical-layout">'+
    '<section class="dev-tactical-sidebar" aria-label="Выбор устройства">'+selector+
    '<div class="dev-tactical-profile"><span class="hg-eyebrow">ВЫБРАННОЕ УСТРОЙСТВО</span><h3>'+menuIcon(id)+esc(device.name)+'</h3>'+
@@ -175,11 +174,11 @@ export function renderShipHangar(state,session=state.hangarSession){
   const stats=moduleStats(item.id,context.ranks,specializationState(current,item.id));
   const help=item.name+'\n'+weaponDescription(item,context.controls)+'\nДальность: '+stats.range+' м · нагрев: '+item.heat+
    ' · интервал: '+fmt(stats.interval)+' с\nУрон: '+fmt(stats.damage)+' · целей: '+stats.targets+
-   '\n'+(reason||equipped?'':borrowing?'Прокат до конца задания. 3 заряда. ':'')+
+   '\n'+(reason||equipped?'':borrowing?'Прокат до конца задания. Неограниченные выстрелы. ':'')+
    (reason||(equipped?'Уже установлено.':borrowing?
     'Прокат оформляется в «Обзоре» → «Другие услуги станции». При свободном узле модуль можно установить сразу.':
     'Для установки в узел '+labelFor(slot)+' нажмите кнопку установки. Просмотр не меняет оснащение и не тратит сплав.'));
-  const price=equipped?'✓ Установлено':borrowing?(cost?'Прокат · '+cost+' сплава':'Бесплатная проба · 3 заряда'):
+  const price=equipped?'✓ Установлено':borrowing?(cost?'Прокат · '+cost+' сплава':'Бесплатная проба · ∞'):
    cost?cost+' сплава':'Со склада · бесплатно';
   const caption=equipped?'Установлено':borrowing?'Оформить прокат в Обзоре →':
    cost?'Купить и установить · '+cost+' сплава':'Установить бесплатно';

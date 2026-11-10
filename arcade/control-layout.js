@@ -7,7 +7,8 @@ export const CONTROL_ACTIONS=Object.freeze([
  {id:'down',name:'Вниз',code:'KeyS'},
  {id:'right',name:'Вправо',code:'KeyD'},
  {id:'dash',name:'Рывок',code:'ShiftLeft'},
- {id:'field',name:'Полевое устройство',code:'Space'},
+ {id:'field',name:'Тактическое устройство',code:'Space'},
+ {id:'fieldWeapon',name:'Полевое оружие',code:'KeyG'},
  {id:'interact',name:'Действие / добыча',code:'KeyE'},
  {id:'cease',name:'Автоогонь',code:'KeyC'},
  {id:'hack',name:'Перепрограммирование',code:'KeyQ'},
@@ -40,15 +41,25 @@ export function validControls(candidate){
 export function readControls(storage){
  try{const saved=JSON.parse(storage?.getItem(CONTROL_STORAGE_KEY)||'null');
   if(validControls(saved))return saved;
-  // Existing players may have remapped every key before construction existed.
-  // Keep those choices; assign the new action the first unused suitable key.
+  // Keep every valid old custom binding when new actions are introduced.
+  // Some old layouts also predate the turret construction shortcut.
   if(saved&&typeof saved==='object'&&!Array.isArray(saved)&&
-    Object.keys(saved).length===CONTROL_ACTIONS.length-1&&
-    Object.keys(saved).every(k=>k!=='build'&&Object.hasOwn(DEFAULT_CONTROLS,k))){
-   const used=new Set(Object.values(saved));
-   const free=['KeyT','KeyG','KeyY','KeyH','KeyV'].find(k=>!used.has(k));
-   if(free){const migrated={...saved,build:free};
-    if(validControls(migrated))return migrated;}
+    Object.keys(saved).every(k=>Object.hasOwn(DEFAULT_CONTROLS,k))&&
+    Object.values(saved).every(allowedCode)&&
+    new Set(Object.values(saved)).size===Object.keys(saved).length){
+   const missing=Object.keys(DEFAULT_CONTROLS).filter(k=>!Object.hasOwn(saved,k));
+   if(missing.length&&missing.every(k=>['build','fieldWeapon'].includes(k))){
+    const migrated={...saved},used=new Set(Object.values(saved));
+    for(const action of ['build','fieldWeapon']){
+     if(!missing.includes(action))continue;
+     const preferred=action==='build'?['KeyT','KeyG','KeyH','KeyV','KeyY']:
+      ['KeyG','KeyH','KeyV','KeyY','KeyT'];
+     const free=preferred.find(k=>!used.has(k));
+     if(!free)break;
+     migrated[action]=free;used.add(free);
+    }
+    if(validControls(migrated))return migrated;
+   }
   }
  }catch{}
  return {...DEFAULT_CONTROLS};

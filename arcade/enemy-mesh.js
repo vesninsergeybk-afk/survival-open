@@ -7,7 +7,7 @@
  * suppressing a relay breaks the route. No neural nets, spawned units or stat
  * modifiers are involved.
  */
-import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-2';
+import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {BACKBONE,backbonePeers,backboneActive,backboneDelay,
   archiveReport,archivedWeapon} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
 export const ENEMY_MESH=Object.freeze({

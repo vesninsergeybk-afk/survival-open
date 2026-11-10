@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+ <title id="title">Выживший — проверенный эскиз оружейного HUD</title>
+ <desc id="desc">Схематичный игровой экран: справа в отдельном инструменте сначала показаны Пробел, G и ПКМ с временем готовности, ниже — автоматические пушки. У каждого орудия свой знак. Внизу отдельно показана свёрнутая мобильная панель с двумя способностями.</desc>
+ <defs>
+  <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#0B2439"/><stop offset=".6" stop-color="#081727"/><stop offset="1" stop-color="#050E18"/></linearGradient>
+  <linearGradient id="plate" x2="0" y2="1"><stop stop-color="#173E50" stop-opacity=".96"/><stop offset="1" stop-color="#071C2B" stop-opacity=".98"/></linearGradient>
+  <linearGradient id="card" x2="0" y2="1"><stop stop-color="#143D51" stop-opacity=".76"/><stop offset="1" stop-color="#0B2536" stop-opacity=".67"/></linearGradient>
+  <linearGradient id="bar" x2="0" y2="0"><stop stop-color="#76DEDA"/><stop offset="1" stop-color="#B0F7E7"/></linearGradient>
+ </defs>
+ <rect width="1440" height="900" fill="url(#bg)"/>
+ <g fill="none" stroke="#2B5066" opacity=".35"><path d="M0 150H1440M0 310H1440M0 470H1440M0 630H1440M0 790H1440M160 0V900M320 0V900M480 0V900M640 0V900M800 0V900M960 0V900M1120 0V900M1280 0V900"/></g>
+ <g fill="#D8F7FC" font-family="sans-serif">
+  <text x="46" y="42" fill="#F2C38B" font-size="13" letter-spacing="2">ВЫЖИВШИЙ · СХЕМА КОМПОНОВКИ</text>
+  <text x="46" y="74" font-size="25" font-weight="700">Оружие видно во время боя</text>
+  <text x="46" y="96" font-size="14" fill="#A8CAD5">Постоянный HUD · клавиши, готовность, боевые параметры · декоративные элементы остаются на краю экрана</text>
+ </g>
+ <g opacity=".35"><circle cx="730" cy="390" r="135" fill="none" stroke="#4389A1"/><circle cx="730" cy="390" r="60" fill="none" stroke="#4389A1"/><path d="M600 390H860M730 260V520" stroke="#4389A1"/></g>
+ <path d="M730 356L749 395L730 384L711 395Z" fill="#A2EAF2" fill-opacity=".64" stroke="#C5FBFF"/>
+ <g transform="translate(40 747)" font-family="sans-serif">
+  <rect width="328" height="123" rx="10" fill="url(#plate)" stroke="#63BFCB"/>
+  <text x="17" y="26" font-size="13" font-weight="700" fill="#C0ECF3">КОРАБЛЬ</text>
+  <text x="17" y="52" font-size="14" fill="#ECFBFF">КОРПУС 110 / 110</text><rect x="155" y="43" width="155" height="9" rx="4" fill="#173B4D"/><rect x="155" y="43" width="148" height="9" rx="4" fill="#75E4D7"/>
+  <text x="17" y="76" font-size="14" fill="#ECFBFF">ЩИТ 45 / 60</text><rect x="155" y="68" width="155" height="8" rx="4" fill="#173B4D"/><rect x="155" y="68" width="116" height="8" rx="4" fill="#73A8EB"/>
+  <text x="17" y="105" font-size="13" fill="#F1C98D">УРОВЕНЬ 4</text><text x="154" y="105" font-size="12" fill="#A9D2EA">ОПЫТ 78 / 180</text>
+ </g>
+ <g transform="translate(980 741)" font-family="sans-serif">
+  <rect width="418" height="129" rx="10" fill="url(#plate)" stroke="#6FC5D5"/>
+  <text x="18" y="28" font-size="15" font-weight="700" fill="#D5F6FB">БОЕВОЙ КОНТУР</text>
+  <text x="18" y="52" font-size="13" fill="#A6F0D4">АВТООГОНЬ · АКТИВЕН</text>
+  <text x="18" y="79" font-size="13" fill="#B4D6E4">ДРОНЫ 2/2</text><text x="240" y="79" font-size="13" fill="#F0D7A5">УДАР ×2</text>
+  <text x="18" y="108" font-size="13" fill="#FFDA9C">СПЛАВ 186</text><text x="206" y="108" font-size="13" fill="#C3ECFD">АРХИВ 72</text>
+ </g>
+ <g transform="translate(980 276)" font-family="sans-serif">
+  <rect width="418" height="413" rx="10" fill="url(#plate)" stroke="#71D0DD" stroke-width="1.6"/>
+  <path d="M18 1H399" stroke="#A6F7ED" stroke-width="2" opacity=".8"/>
+  <text x="16" y="29" fill="#EAFBFF" font-size="17" font-weight="750" letter-spacing="1">ВООРУЖЕНИЕ</text>
+  <text x="400" y="29" fill="#A4D2DD" font-size="12" text-anchor="end">3 УЗЛА</text>
+  <path d="M15 39H403" stroke="#6AA5B5" opacity=".7"/>
+  <text x="17" y="58" fill="#D6C4FF" font-size="11" font-weight="700" letter-spacing="1">ПО КОМАНДЕ</text>
+  <g transform="translate(10 66)">
+   <rect width="398" height="65" rx="6" fill="#2D3457" fill-opacity=".7" stroke="#A99BE1" stroke-opacity=".8"/>
+   <g transform="translate(10 8)"><circle cx="15" cy="15" r="14" fill="#272844" stroke="#AD9FE8"/><ellipse cx="15" cy="15" rx="12" ry="6" transform="rotate(45 15 15)" stroke="#DBCEFF" fill="none"/><ellipse cx="15" cy="15" rx="12" ry="6" transform="rotate(-45 15 15)" stroke="#AD9FE8" fill="none"/><circle cx="15" cy="15" r="3" fill="#E7DFFF"/></g>
+   <rect x="50" y="11" width="61" height="22" rx="4" fill="#0A1C30" stroke="#AD9FE8"/><text x="80" y="26" text-anchor="middle" font-size="10" font-weight="700" fill="#E5DBFF">ПРОБЕЛ</text>
+   <text x="121" y="26" font-size="13" fill="#EDFAFF" font-weight="700">ЛОВУШКА</text>
+   <text x="382" y="26" font-size="13" text-anchor="end" fill="#FFCF87" font-weight="700">8,2 с</text>
+   <text x="51" y="45" fill="#A9D5E3" font-size="11">Радиус 242 м · 8 с · урон 5 / 0,8 с</text>
+   <rect x="51" y="55" width="328" height="3" rx="2" fill="#244258"/><rect x="51" y="55" width="181" height="3" rx="2" fill="#B7A7F1"/>
+  </g>
+  <g transform="translate(10 135)">
+   <rect width="398" height="65" rx="6" fill="#164752" fill-opacity=".7" stroke="#64C6C5" stroke-opacity=".75"/>
+   <g transform="translate(10 8)"><circle cx="15" cy="15" r="14" fill="#193E43" stroke="#7DE6D9"/><path d="M18 2L9 18H16L12 28L23 12H16Z" fill="#C4FFF0"/></g>
+   <rect x="51" y="10" width="24" height="23" rx="4" fill="#091D2B" stroke="#81E7D3"/><text x="63" y="26" text-anchor="middle" fill="#C6FFEF" font-size="11" font-weight="700">G</text>
+   <text x="86" y="26" fill="#F0FBFF" font-size="13" font-weight="700">ИОННЫЙ ПРОВОДНИК · ∞</text>
+   <text x="381" y="26" text-anchor="end" fill="#9EF1CE" font-size="12" font-weight="700">ГОТОВО</text>
+   <text x="51" y="45" fill="#B2DAE4" font-size="11">Урон 24 · 485 м · перезарядка 4,5 с</text>
+   <rect x="51" y="55" width="328" height="3" rx="2" fill="#264558"/><rect x="51" y="55" width="328" height="3" rx="2" fill="#7DE2CC"/>
+  </g>
+  <g transform="translate(10 204)">
+   <rect width="398" height="65" rx="6" fill="url(#card)" stroke="#648EA3" stroke-opacity=".65"/>
+   <g transform="translate(10 8)"><circle cx="15" cy="15" r="14" fill="#18394B" stroke="#8FC3FC"/><path d="M5 25L19 11M4 17L18 10" stroke="#79C4F5" stroke-width="2"/><circle cx="20" cy="12" r="6" fill="#B8EBFF" stroke="#E6FBFF"/></g>
+   <rect x="50" y="10" width="34" height="23" rx="4" fill="#0A1C30" stroke="#C9B6A7"/><text x="67" y="26" text-anchor="middle" fill="#FFE5CA" font-size="10" font-weight="700">ПКМ</text>
+   <text x="94" y="26" fill="#F1FBFF" font-size="13" font-weight="700">ГОЛУБАЯ КОМЕТА</text>
+   <text x="382" y="26" text-anchor="end" fill="#97ECC8" font-size="12" font-weight="700">ГОТОВО</text>
+   <text x="51" y="45" fill="#AECFD9" font-size="11">Урон 35 · радиус 90 м · дальность 670 м</text>
+   <rect x="51" y="55" width="328" height="3" rx="2" fill="#264558"/><rect x="51" y="55" width="328" height="3" rx="2" fill="#F3C99B"/>
+  </g>
+  <text x="18" y="290" fill="#A9D3E4" font-size="11" font-weight="700" letter-spacing=".8">АВТОМАТИЧЕСКИЙ ОГОНЬ</text>
+  <g transform="translate(10 298)">
+   <rect width="398" height="50" rx="6" fill="url(#card)" stroke="#648EA3" stroke-opacity=".5"/>
+   <g transform="translate(10 9)"><circle cx="14" cy="14" r="13" fill="#173B47" stroke="#73D3CF"/><path d="M14 3L20 14L14 25L8 14Z" fill="#88E8E0" stroke="#D1FFF3"/><circle cx="14" cy="14" r="3" fill="#F2FFFA"/></g>
+   <text x="51" y="21" fill="#ECFAFF" font-size="13" font-weight="700">ПЛАЗМА ×2</text>
+   <text x="382" y="21" text-anchor="end" fill="#9CF0C7" font-size="12" font-weight="700">ГОТОВО</text>
+   <text x="51" y="39" fill="#B1D5DE" font-size="11">Урон вблизи 14 · 290 м · 0,7 с/залп</text>
+  </g>
+  <g transform="translate(10 352)">
+   <rect width="398" height="50" rx="6" fill="url(#card)" stroke="#648EA3" stroke-opacity=".5"/>
+   <g transform="translate(10 9)"><circle cx="14" cy="14" r="13" fill="#1D3856" stroke="#9DB4F7"/><path d="M3 8H23M3 20H23" stroke="#B3C9FF" stroke-width="2.5"/><path d="M5 14H23M20 10L26 14L20 18" stroke="#E2F2FF" stroke-width="2"/></g>
+   <text x="51" y="21" fill="#ECFAFF" font-size="13" font-weight="700">РЕЛЬС ×1</text>
+   <text x="382" y="21" text-anchor="end" fill="#FFCF8A" font-size="12" font-weight="700">1,2 с</text>
+   <text x="51" y="39" fill="#B1D5DE" font-size="11">Урон 38 · 700 м · 1,65 с/залп</text>
+  </g>
+ </g>
+ <g transform="translate(465 760)" font-family="sans-serif">
+  <text x="0" y="-31" fill="#A4CED9" font-size="13">На телефоне: обе способности видны сразу, даже когда панель закрыта</text>
+  <rect width="429" height="90" rx="12" fill="url(#plate)" stroke="#80CBDA"/>
+  <rect x="12" y="13" width="188" height="62" rx="8" fill="#2A3554" stroke="#A99DE6"/>
+  <text x="22" y="36" fill="#E7DCFF" font-size="13" font-weight="700">ПРОБЕЛ</text><text x="22" y="58" fill="#FFCE94" font-size="15">ЛОВУШКА · 8 с</text>
+  <rect x="209" y="13" width="169" height="62" rx="8" fill="#164851" stroke="#69D5CA"/>
+  <text x="221" y="36" fill="#C9F9E7" font-size="13" font-weight="700">G</text><text x="221" y="58" fill="#ACF8C8" font-size="15">ИОН · ГОТОВО</text>
+  <path d="M391 34L402 46L413 34" fill="none" stroke="#9DF1F2" stroke-width="2"/>
+ </g>
+ <text x="46" y="891" font-family="sans-serif" font-size="11" fill="#88ABBC">Эскиз показывает состав и иерархию HUD; числа приведены для примера. Панель прокручивается, если орудий больше, чем помещается по высоте.</text>
+</svg>

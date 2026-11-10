@@ -1,22 +1,23 @@
-// One active, non-damaging tactical tool. All distances use world units.
+// One active tactical weapon. All distances use world units. Damage uses the
+// normal enemy damage/reward path; control fields never create free ammo.
 // Equipment and upgrades are run-owned; no purchased module creates ammunition.
 export const TACTICAL_DEVICES=Object.freeze({
  pulse:{name:'Инерционный импульс',short:'Импульс',role:'Прервать сближение',cooldown:14,
-  desc:'Короткая волна замедляет ближайших врагов. Применяйте перед тараном или окружением.'},
+  desc:'Мгновенный разряд повреждает и замедляет врагов вокруг корабля. Особенно полезен против роя, который подошёл вплотную.'},
  decoy:{name:'Ложный маяк',short:'Маяк',role:'Разделить патруль',cooldown:21,cost:30,bases:2,
   desc:'Поставьте ложный сигнал в точке курсора. Часть противников пойдёт проверять его.'},
  trap:{name:'Гравитационная ловушка',short:'Ловушка',role:'Удержать проход',cooldown:19,cost:48,bases:3,
-  desc:'Создаёт неподвижное поле у курсора. Замедляет врагов, которые в него входят.'},
+  desc:'Создаёт широкое поле у курсора на 8 секунд: первый разряд поражает ближайшие цели, затем поле регулярно бьёт и замедляет всех врагов внутри. Новые цели тоже получают урон.'},
  jam:{name:'Радиопомеха',short:'Помеха',role:'Разорвать связь',cooldown:24,cost:64,bases:4,
   desc:'На время подавляет вражескую mesh-связь в области вокруг корабля. Не мешает врагам видеть и стрелять.'}
 });
 export const TACTICAL_BRANCHES=Object.freeze({
- pulse:{shell:{name:'Защитная оболочка',desc:'Вместо волны: движущееся с кораблём тормозящее поле на 3–3,6 с.'},
-  burst:{name:'Векторный выброс',desc:'Вместо длительного замедления: отталкивает ближайших врагов и срывает таран.'}},
+ pulse:{shell:{name:'Защитная оболочка',desc:'Вместо разовой волны: движущееся с кораблём поле на 4–4,8 с, которое замедляет и периодически поражает приблизившихся врагов.'},
+  burst:{name:'Векторный выброс',desc:'Более широкий и сильный разряд отталкивает ближайших врагов и срывает таран. Замедление заменяется отбрасыванием.'}},
  decoy:{lure:{name:'Сборщик патрулей',desc:'Маяк привлекает больше разведчиков, но быстрее исчезает.'},
   ghost:{name:'Долгий след',desc:'Маяк действует дольше; опытные патрули чаще распознают подделку.'}},
- trap:{sink:{name:'Гравитационный узел',desc:'Тянет лёгкие корабли к центру, облегчая площадные атаки.'},
-  snare:{name:'Вязкая среда',desc:'Сильнее замедляет корабли, которые пересекают поле.'}},
+ trap:{sink:{name:'Гравитационный узел',desc:'Поле шире и действует дольше; лёгкие корабли стягиваются к центру, где их удобнее поражать.'},
+  snare:{name:'Вязкая среда',desc:'Поле сильнее замедляет врагов и наносит больше урона каждым разрядом. Радиус меньше, чем у гравитационного узла.'}},
  jam:{wide:{name:'Широкий диапазон',desc:'Подавляет более удалённые узлы, но работает меньше времени.'},
   deep:{name:'Долгая тишина',desc:'Дольше удерживает область без связи, но не увеличивает радиус.'}}
 });
@@ -48,6 +49,9 @@ export function validTactical(value,now=0){
   e.until>=0&&e.until<=now+12&&Number.isFinite(e.radius)&&e.radius>=0&&e.radius<=850&&
   (e.cast===undefined||Number.isSafeInteger(e.cast)&&e.cast>0&&e.cast<=value.uses)&&
   (e.confirmed===undefined||typeof e.confirmed==='boolean')&&
+  (e.nextPulseAt===undefined||Number.isFinite(e.nextPulseAt)&&e.nextPulseAt>=0&&e.nextPulseAt<=now+2)&&
+  (e.pulseAt===undefined||Number.isFinite(e.pulseAt)&&e.pulseAt>=0&&e.pulseAt<=now+1)&&
+  (e.lastHits===undefined||Number.isInteger(e.lastHits)&&e.lastHits>=0&&e.lastHits<=10000)&&
   (e.kind!=='decoy'||Number.isFinite(e.decoyChance)&&e.decoyChance>=0&&e.decoyChance<=1));
 }
 export function tacticalQuote(state,act,id,context={}){
@@ -91,16 +95,20 @@ export function tacticalSpec(state){
  const id=state?.equipped||'pulse',branch=state?.branches?.[id]||null;
  const upgraded=branch?.rank===2;
  if(id==='pulse')return branch?.path==='shell'?{id,branch,cooldown:upgraded?14:16,
-   radius:upgraded?170:143,duration:upgraded?3.6:3,slow:.68}:
+   radius:upgraded?194:170,duration:upgraded?4.8:4,slow:.58,
+   damage:5,pulseEvery:.8}:
   branch?.path==='burst'?{id,branch,cooldown:upgraded?15:18,
-   radius:upgraded?192:165,duration:upgraded?.75:.5,slow:1}:
-  {id,branch,cooldown:14,radius:165,duration:2.2,slow:.6};
+   radius:upgraded?285:245,duration:upgraded?.85:.7,slow:1,
+   damage:upgraded?24:18}:
+  {id,branch,cooldown:14,radius:220,duration:3.2,slow:.43,damage:13};
  if(id==='decoy')return {id,branch,cooldown:21,radius:branch?.path==='lure'?700:590,
   duration:branch?.path==='ghost'?(upgraded?11:9):branch?.path==='lure'?5.7:7,
   decoyChance:branch?.path==='lure'?(upgraded?.9:.78):branch?.path==='ghost'?.5:.66};
- if(id==='trap')return {id,branch,cooldown:19,radius:branch?.path==='snare'?(upgraded?178:155):178,
-  duration:branch?.path==='sink'?(upgraded?5.2:4.2):4.7,
-  slow:branch?.path==='snare'?(upgraded?.25:.36):branch?.path==='sink'?.73:.53};
+ if(id==='trap')return {id,branch,cooldown:19,
+  radius:branch?.path==='snare'?(upgraded?252:230):branch?.path==='sink'?(upgraded?285:262):242,
+  duration:branch?.path==='snare'?(upgraded?8.6:8.1):branch?.path==='sink'?(upgraded?10:9):8,
+  slow:branch?.path==='snare'?(upgraded?.23:.34):branch?.path==='sink'?(upgraded?.59:.67):.46,
+  damage:branch?.path==='snare'?(upgraded?7:6):5,pulseEvery:.8,initialDamage:9};
  return {id,branch,cooldown:24,radius:branch?.path==='wide'?(upgraded?750:650):480,
   duration:branch?.path==='wide'?4.2:branch?.path==='deep'?(upgraded?10:8):6.4,slow:1};
 }
@@ -111,16 +119,36 @@ export function tacticalAim(player,target,maxRange=420){
   y:player.y+dy/Math.max(1,d)*Math.min(d,maxRange)};
 }
 const field=(kind,p,until,radius,other={})=>({kind,x:p.x,y:p.y,until,radius,...other});
+const fieldVictim=e=>e&&e.hp>0&&!e.converted&&!e.boss;
+function tacticalDamage(game,e,damage){
+ if(typeof game.damageEnemy==='function'&&damage>0)
+  game.damageEnemy(e,damage,'tactical');
+}
+function fieldPulse(game,effect,spec,center,initial=false){
+ let hit=0;
+ for(const e of game.enemies||[]){
+  if(!fieldVictim(e)||dist(e,center)>effect.radius+(e.r||0))continue;
+  tacticalDamage(game,e,initial?(spec.initialDamage??spec.damage):spec.damage);
+  hit++;
+ }
+ if(hit>0){effect.confirmed=true;effect.pulseAt=game.time;}
+ effect.lastHits=hit;
+ return hit;
+}
 export function activateTactical(game,target=null){
  const state=game.tactical||(game.tactical=createTactical()),now=game.time||0,player=game.player;
  if(now<state.readyAt)return {ok:false,reason:'Перезарядка: '+Math.ceil(state.readyAt-now)+' с'};
  const spec=tacticalSpec(state),choice=spec.branch?.path;
  let affected=0;
  if(spec.id==='pulse'){
-  if(choice==='shell')state.effects.push(field('shell',player,now+spec.duration,spec.radius));
+  if(choice==='shell'){
+   const aura=field('shell',player,now+spec.duration,spec.radius,{nextPulseAt:now+spec.pulseEvery});
+   affected=fieldPulse(game,aura,spec,player,true);state.effects.push(aura);
+  }
   else for(const e of game.enemies||[]){
-   if(e.hp<=0||e.converted||e.boss||dist(e,player)>spec.radius+(e.r||0))continue;
+   if(!fieldVictim(e)||dist(e,player)>spec.radius+(e.r||0))continue;
    affected++;
+   tacticalDamage(game,e,spec.damage);
    if(choice==='burst'){
     const dx=e.x-player.x,dy=e.y-player.y,d=Math.max(1,Math.hypot(dx,dy));
     e._tacticalRepel={x:dx/d,y:dy/d,until:now+spec.duration};
@@ -133,8 +161,11 @@ export function activateTactical(game,target=null){
   }
  }else{
   const point=spec.id==='jam'?player:tacticalAim(player,target);
-  state.effects.push(field(spec.id,point,now+spec.duration,spec.radius,
-   spec.id==='decoy'?{decoyChance:spec.decoyChance,cast:state.uses+1}:{}));
+  const effect=field(spec.id,point,now+spec.duration,spec.radius,
+   spec.id==='decoy'?{decoyChance:spec.decoyChance,cast:state.uses+1}:
+   spec.id==='trap'?{nextPulseAt:now+spec.pulseEvery}:{});
+  if(spec.id==='trap')affected=fieldPulse(game,effect,spec,point,true);
+  state.effects.push(effect);
  }
  state.effects=state.effects.slice(-3);state.readyAt=now+spec.cooldown;state.uses++;
  return {ok:true,name:TACTICAL_DEVICES[spec.id].short,kind:spec.id,affected,
@@ -169,9 +200,20 @@ export function tacticalDecoy(game,enemy){
 export function updateTactical(game){
  const state=game.tactical;if(!state)return;
  const now=game.time;state.effects=state.effects.filter(e=>e.until>now);
+ // Each field discharges on its own clock, independently of the frame rate.
+ // Legacy checkpoints lacking the timer receive a fresh interval safely.
+ for(const effect of state.effects){
+  if(effect.kind!=='trap'&&effect.kind!=='shell')continue;
+  const spec=tacticalSpec({...state,equipped:effect.kind==='shell'?'pulse':'trap'});
+  if(!spec.pulseEvery)continue;
+  if(effect.nextPulseAt===undefined)effect.nextPulseAt=now+spec.pulseEvery;
+  if(now+1e-6<effect.nextPulseAt)continue;
+  fieldPulse(game,effect,spec,effect.kind==='shell'?game.player:effect);
+  effect.nextPulseAt=now+spec.pulseEvery;
+ }
  for(const e of game.enemies||[]){
   e._tacticalSpeed=1;e._tacticalPull=null;e._tacticalNow=now;
-  if(e.hp<=0||e.converted||e.boss)continue;
+  if(!fieldVictim(e))continue;
   if(e.tacticalSlowUntil>now)e._tacticalSpeed=Math.min(e._tacticalSpeed,e.tacticalSlowFactor||.6);
   for(const effect of state.effects){
    if(effect.kind!=='trap'&&effect.kind!=='shell')continue;
@@ -208,7 +250,10 @@ export function drawTactical(ctx,game){
    const captions={shell:'СБЛИЖЕНИЕ ЗАМЕДЛЕНО',decoy:'МАРШРУТ ИЗМЕНЁН',
     trap:'ЦЕЛЬ ЗАДЕРЖАНА',jam:'ПЕРЕДАЧА СОРВАНА'};
    ctx.setLineDash([]);ctx.textAlign='center';ctx.font='bold 10px system-ui';
-   ctx.globalAlpha=.9*remaining;ctx.fillText(captions[e.kind],p.x,p.y-24);
+   const freshShock=(e.kind==='trap'||e.kind==='shell')&&
+    (e.lastHits||0)>0&&now-(e.pulseAt??-Infinity)<.74;
+   const caption=freshShock?'РАЗРЯД · '+e.lastHits+' ЦЕЛ.':captions[e.kind];
+   ctx.globalAlpha=.9*remaining;ctx.fillText(caption,p.x,p.y-24);
   }
  }
  if(state.pulseAt!==undefined&&now-state.pulseAt<.42){
