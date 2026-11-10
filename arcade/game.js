@@ -1,8 +1,8 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1-menu-audit-1-pressure-response-1';
 import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1-manual-qa-1';
-import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2';
-import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2';
-import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1';
+import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-tactical-slot-20261110';
+import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-tactical-slot-20261110';
+import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1-tactical-slot-20261110';
 import {mountContextualGuide} from './contextual-guide-ui.js?v=prototype-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
@@ -57,7 +57,7 @@ import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
 import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
-import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1';
+import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1-tactical-slot-20261110';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1';
 import {armLastStand,sweptRamHit} from './enemy-last-stand.js?v=redteam-20261109-1';
 import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1-triangle-defense-1-turret-gesture-1-turret-preload-20261109-1';
@@ -72,7 +72,7 @@ import {reacquireMissile,applyRocketSplash} from './rocket-branches.js?v=weapon-
 import {COUNTER_MANEUVER,deflectBurstShots} from './pilot-countermaneuver.js?v=pilot-doctrine-1';
 import {missionImageReady,paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1-tactical-slot-20261110';
 import {awardStationReputation,stationReputation,stationReputationGoal,stationReputationReady} from './station-reputation.js';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
@@ -87,7 +87,7 @@ import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue,relayWav
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {ION_CONDUCTOR,markIonCluster,planIonDischarge,ionMasteryAward,drawIonMark} from './ion-conductor.js?v=weapons-cycle-2-campaign-1';
 
-import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1-pressure-response-1-menu-ergonomics-1-combat-balance-1-menu-depth-2';
+import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHIP_UPGRADES,createThermal,coolWeapons,moduleStats,MODULES,matchingFieldLoan} from './ship-loadout.js?v=first-contract-reward-1-rpg-precision-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-2-menu-flow-2-menu-focus-1-pressure-response-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-tactical-slot-20261110';
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2-menu-rebuild-1-menu-audit-1-devscroll-1';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1-all-menus-1-menu-reaudit-1-menu-audit-1-menu-depth-audit-3';
@@ -856,7 +856,8 @@ export class ArcadeGame {
     if(e.code===this.controls.interact)this.beginInteraction('keyboard');
     if(e.code===this.controls.cease)this.toggleHoldFire();
     if(e.code===this.controls.hack)this.hack();
-    if(e.code===this.controls.field)this.callFieldWeapon();
+    if(e.code===this.controls.field)this.callTacticalField();
+    if(e.code===this.controls.fieldWeapon)this.callFieldWeapon();
     if(e.code===this.controls.howitzer)this.callHowitzer();
     if(e.code===this.controls.build){e.preventDefault();this.openBuildPlanner();return;}
     if(e.code===this.controls.strike)this.callStrike();
@@ -1313,6 +1314,7 @@ export class ArcadeGame {
    const mapButton=$('mapBtn');if(mapButton)mapButton.onclick=()=>this.openMap();
   $('quietBtn').onclick=()=>this.toggleHoldFire();
   $('hackBtn').onclick=()=>this.hack();
+   const tacticButton=$('tacticBtn');if(tacticButton)tacticButton.onclick=()=>this.callTacticalField();
    const ionButton=$('ionBtn');if(ionButton)ionButton.onclick=()=>this.callFieldWeapon();
    const heavyButton=$('heavyBtn');if(heavyButton)heavyButton.onclick=()=>this.callHowitzer();
    const railButton=$('precisionBtn');if(railButton)railButton.onclick=()=>this.toggleManualRail();
@@ -3610,16 +3612,21 @@ export class ArcadeGame {
   }
   const hack=$('hackBtn');if(hack)hack.hidden=!this.hacks.length;
   const strike=$('strikeBtn');if(strike)strike.hidden=!(this.support?.charges>0);
-   const ion=$('ionBtn'),spec=this.fieldLoan&&fieldWeapon(this.fieldLoan);
+   const ion=$('ionBtn'),tacticButton=$('tacticBtn'),spec=this.fieldLoan&&fieldWeapon(this.fieldLoan);
    const fitted=!!spec&&!!this.weaponProfile[spec.id];
    const ready=fitted&&this.fieldLoan.charges>0&&this.fieldLoan.cooldownUntil<=this.time;
    const tactic=this.tactical||createTactical(),tacticModule=TACTICAL_DEVICES[tactic.equipped];
    const tacticRemaining=Math.max(0,Math.ceil(tactic.readyAt-this.time));
-    const tacticText=tacticModule.short+(tacticRemaining?' · '+tacticRemaining+' с':' · '+this.controlLabel('field'));
-   const fieldText=spec?spec.short+' · '+this.fieldLoan.charges+'/'+spec.capacity+
-    (this.fieldLoan.cooldownUntil>this.time?' · зарядка '+Math.ceil(this.fieldLoan.cooldownUntil-this.time)+' с':' · '+this.controlLabel('field')):'';
-   if(ion){ion.hidden=false;ion.disabled=fitted?!ready:!!tacticRemaining;
-    ion.textContent=fitted?fieldText.split(' · ')[0]:tacticModule.short;}
+   const tacticText=this.controlLabel('field')+' · '+tacticModule.short+
+    (tacticRemaining?' · зарядка '+tacticRemaining+' с':' · готово');
+   const fieldText=fitted?this.controlLabel('fieldWeapon')+' · '+spec.short+' · '+this.fieldLoan.charges+'/'+spec.capacity+
+    (this.fieldLoan.cooldownUntil>this.time?' · зарядка '+Math.ceil(this.fieldLoan.cooldownUntil-this.time)+' с':' · готово'):'';
+   if(tacticButton){tacticButton.hidden=false;tacticButton.disabled=!!tacticRemaining;
+    tacticButton.textContent=tacticRemaining?tacticModule.short+' · '+tacticRemaining+'с':tacticModule.short;
+    tacticButton.setAttribute('aria-label',tacticText);}
+   if(ion){ion.hidden=!fitted;ion.disabled=!ready;
+    ion.textContent=fitted?spec.short+' · '+this.fieldLoan.charges:'Ион';
+    ion.setAttribute('aria-label',fitted?fieldText:'Полевое оружие не установлено');}
    const arsenal=this.mouseArsenal||createMouseArsenal();
    const cometRest=Math.max(0,Math.ceil(arsenal.cometReadyAt-this.time));
    const mineRest=Math.max(0,Math.ceil(arsenal.minesReadyAt-this.time));
@@ -3633,11 +3640,12 @@ export class ArcadeGame {
      manual==='howitzer'?'ПКМ · ГАУБИЦА':manual==='mines'?'ПКМ · МИНЫ'+(mineRest?' · '+mineRest+' с':' · готовы'):
      'ПКМ · КОМЕТА'+(cometRest?' · '+cometRest+' с':' · готова');
     const wheel=this.manualWeaponsHere().length>1?' · колесо: выбор':'';
-    const text=[manualText+wheel,'ЛКМ · метка',fitted?fieldText:tacticText].join(' | ');
+    const text=[manualText+wheel,'ЛКМ · метка',tacticText,...(fitted?[fieldText]:[])].join(' | ');
     status.hidden=!text||this.paused||this.dead||!this.overlay.hidden;
     // Narrow desktop windows have no space for a full-width tooltip above the
     // ability strip. Keep the selected weapon visible; retain complete help for AT.
-    status.textContent=(globalThis.window?.innerWidth??1366)<=1150?manualText:text;
+    status.textContent=(globalThis.window?.innerWidth??1366)<=1150?
+     [manualText,tacticText,...(fitted?[fieldText]:[])].join(' | '):text;
     status.setAttribute('aria-label',text);
    }
    const precision=$('precisionBtn'),precisionAvailable=!!this.weaponProfile.rail&&
@@ -4165,7 +4173,7 @@ export class ArcadeGame {
   this.pausedRenderPending=true;this.renderDock();
  }
  callFieldWeapon(){
-  if(!this.fieldLoan||!this.weaponProfile?.[this.fieldLoan.moduleId||'ion'])return this.callTacticalField();
+  if(!this.fieldLoan||!this.weaponProfile?.[this.fieldLoan.moduleId||'ion'])return false;
   if((this.fieldLoan?.moduleId||'ion')!=='resonator')return this.callIonDischarge();
   if(this.dead||this.paused||!this.overlay.hidden)return false;
   if(this.mining.active||this.probeRepairing||this.openingRepairing){

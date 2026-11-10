@@ -419,11 +419,12 @@ test('target preferences are explicit and invalid modes cannot silently alter th
 });
 
 test('legacy custom controls retain their mappings when the builder key is introduced',()=>{
- const legacy={...DEFAULT_CONTROLS};delete legacy.build;
+ const legacy={...DEFAULT_CONTROLS};delete legacy.build;delete legacy.fieldWeapon;
  legacy.skills='KeyT';
  const result=readControls({getItem:()=>JSON.stringify(legacy)});
  assert.equal(result.skills,'KeyT');
  assert.equal(result.build,'KeyG');
+ assert.equal(result.fieldWeapon,'KeyH');
 });
 
 test('the actual paused builder chooses a reachable point and returns to flight on construction',()=>{

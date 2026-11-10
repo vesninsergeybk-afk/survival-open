@@ -20,7 +20,8 @@ test('compact mobile HUD reserves the piloting view and both thumb zones',()=>{
  assert.match(touch,/#hud\.cockpit-hud #message\s*\{[\s\S]*?max-width:min\(290px,calc\(100vw - 348px\)\)/);
  assert.match(touch,/#audioControls\s*\{\s*top:max\(52px/,'audio stays below navigation');
  assert.match(touch,/#burstBtn,#quietBtn\s*\{\s*min-height:44px/,'touch targets remain usable');
- assert.match(touch,/body:has\(#ionBtn:not\(\[hidden\]\)\):has\(#hackBtn:not\(\[hidden\]\)\):has\(#strikeBtn:not\(\[hidden\]\)\)/,'all three abilities have priority over the radar');
+ assert.match(touch,/body:has\(#tacticBtn:not\(\[hidden\]\)\):has\(#hackBtn:not\(\[hidden\]\)\):has\(#strikeBtn:not\(\[hidden\]\)\)/,'all three abilities have priority over the radar');
+ assert.match(touch,/body:has\(#ionBtn:not\(\[hidden\]\)\):has\(#hackBtn:not\(\[hidden\]\)\)/,'rental plus other combat buttons yields radar space');
  assert.match(touch,/max-width:690px/,'narrow landscape prioritises the ship');
  assert.match(touch,/\.hud-support-ring:not\(\.available\) \{ display:none \}/,
   'empty special-attack badge must not crowd the mobile panel');

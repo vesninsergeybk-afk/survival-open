@@ -483,6 +483,7 @@
  }
  #hackBtn::before{background-image:url('./studio/hud-kit/code.svg')}
  #strikeBtn::before{background-image:url('./studio/hud-kit/strike.svg')}
+ #tacticBtn::before{background-image:url('./studio/hud-kit/burst.svg')}
  #ionBtn::before{background-image:url('./studio/hud-kit/ion.svg')}
  #precisionBtn::before{background-image:url('./studio/hud-kit/weapon.svg')}
  .mobile-menu button{padding:7px 10px 7px 29px;min-height:46px;font-size:11px}

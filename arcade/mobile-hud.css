@@ -101,11 +101,15 @@
   }
   #hud.cockpit-hud .radar-readout { display:none }
   #hud.cockpit-hud .radar-unit::before { inset:0 }
-  /* All three special attacks expand left of the thumb cluster. When they
-     coexist, the optional radar yields its space; Map remains available. */
-  body:has(#ionBtn:not([hidden])):has(#hackBtn:not([hidden])):has(#strikeBtn:not([hidden]))
+  /* The tactical button is always present, and the rental has its own slot.
+     Keep thumb targets legible even when several optional actions unlock. */
+  body:has(#tacticBtn:not([hidden])):has(#hackBtn:not([hidden])):has(#strikeBtn:not([hidden]))
     #hud.cockpit-hud .radar-unit { display:none }
-  body:has(#precisionBtn:not([hidden])):has(#ionBtn:not([hidden])):has(#hackBtn:not([hidden]))
+  body:has(#ionBtn:not([hidden])):has(#hackBtn:not([hidden]))
+    #hud.cockpit-hud .radar-unit { display:none }
+  body:has(#ionBtn:not([hidden])):has(#strikeBtn:not([hidden]))
+    #hud.cockpit-hud .radar-unit { display:none }
+  body:has(#precisionBtn:not([hidden])):has(#ionBtn:not([hidden]))
     #hud.cockpit-hud .radar-unit { display:none }
 
   /* A notice is a brief lower-edge caption, never a panel across the pilot.

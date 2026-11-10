@@ -102,15 +102,18 @@ test('temporary chain reliably destroys two full-health scouts with one use',()=
  assert.ok(plan.damage.every((d,i)=>d>=[scoutA.hp,scoutB.hp][i]));
  assert.equal(plan.chargesAfter,2,'the heightened power is offset by limited charges');
 });
-test('desktop and touch input share one manual action; repair and mining remain separate',()=>{
+test('desktop and touch expose tactical and rented field weapons independently',()=>{
  const game=readFileSync(new URL('../game.js',import.meta.url),'utf8');
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const panel=readFileSync(new URL('../base-panel.js',import.meta.url),'utf8');
- assert.match(game,/if\(e\.code===this\.controls\.field\)this\.callFieldWeapon\(\)/);
+ assert.match(game,/if\(e\.code===this\.controls\.field\)this\.callTacticalField\(\)/);
+ assert.match(game,/if\(e\.code===this\.controls\.fieldWeapon\)this\.callFieldWeapon\(\)/);
+ assert.match(game,/tacticButton\.onclick=\(\)=>this\.callTacticalField\(\)/);
  assert.match(game,/ionButton\.onclick=\(\)=>this\.callFieldWeapon\(\)/);
  assert.match(game,/this\.mining\.active\|\|this\.probeRepairing/);
  assert.match(game,/this\.fieldLoan\?\.missionStarted/);
  assert.match(html,/id="ionBtn"/);
+ assert.match(html,/id="tacticBtn"/);
  assert.match(panel,/action\('loanField'/);
  assert.match(panel,/action\('returnField'/);
  assert.match(panel,/action\('showFieldTrial',state\.fieldTrialPickerOpen\?'Скрыть полевые модули':'Полевой модуль · бесплатно'/);

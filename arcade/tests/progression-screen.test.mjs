@@ -229,12 +229,12 @@ test('countermaneuver is a real mutually exclusive pilot doctrine with a one-poi
  assert.equal(second.nodes.find(n=>n.id==='doctrine-countermaneuver').status,'mastered');
 });
 
-test('progression screen explains a remapped activation key and warns when field weapon occupies it',()=>{
+test('progression screen keeps a remapped tactical key available while field weapon is installed',()=>{
  const g=docked();g.player.level=5;g.player.points=1;g.developmentDomain='tactics';
  g.controls.field='KeyZ';
  g.fieldLoan={moduleId:'ion',charges:3};g.shipLoadout.slots[1]='ion';
  const html=renderProgressionScreen(state(g,'tactics'));
- assert.match(html,/клавиша Z занята/);
+ assert.doesNotMatch(html,/клавиша Z занята|полевое устройство не запускается/);
  assert.match(html,/Для применения нажмите Z/);
 });
 

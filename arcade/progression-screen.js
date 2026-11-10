@@ -1,8 +1,8 @@
-import {MODULES,FRAME_STEPS,SHIP_UPGRADES,createLoadout,moduleStats} from './ship-loadout.js?v=menu-ergonomics-1';
+import {MODULES,FRAME_STEPS,SHIP_UPGRADES,createLoadout,moduleStats} from './ship-loadout.js?v=menu-ergonomics-1-tactical-slot-20261110';
 import {WEAPON_SPECIALIZATIONS,quoteSpecialization,specializationRequirements} from './weapon-specializations.js';
 import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalQuote} from './tactical-fields.js';
 import {developmentPointLedger} from './experience.js';
-import {DEFAULT_CONTROLS,readableKey} from './control-layout.js';
+import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=tactical-slot-20261110';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -227,7 +227,7 @@ function tacticalNodes(state){
    rank,max:2,requires:'tactic-'+id,status:complete?'mastered':exclusive?'exclusive':quote.ok?'ready':
     reason.startsWith('Нужно 1 очко')?'waiting':'locked',
    description:branch.desc,effect:branch.desc,
-   activation:'Меняет действие выбранного полевого устройства. Для применения нажмите %FIELD%.',
+   activation:'Меняет действие выбранного тактического устройства. Для применения нажмите %FIELD%.',
    reason,action:'hgTacticUpgrade',actionId:id+':'+path,
    actionLabel:rank?'Мастерство · 1 очко':'Выбрать путь · 1 очко',canAct:!!quote.ok,cost:'1 очко развития'});
  }
@@ -320,9 +320,6 @@ function detailHtml(node,domain,weapon,state){
  const key=action=>readableKey(bindings[action]);
  const activation=String(state.isTouchLayout&&touchManualActivations[node.actionId]||node.activation||'').replace(/\bShift\b/g,key('dash')).replace(/\bE\b/g,key('interact'))
   .replace(/%FIELD%/g,key('field'));
- const fieldMounted=state.fieldLoan&&state.loadout?.slots?.includes(state.fieldLoan.moduleId||'ion');
- const fieldCollision=domain==='tactics'&&node.id.startsWith('tactic-')&&fieldMounted?
-  'Сейчас клавиша '+key('field')+' занята установленным полевым оружием. Пока оно установлено, полевое устройство не запускается.':null;
  const status=node.equipmentStatus|| (node.shared?'Общая технология':node.kind==='navigation'?'Раздел станции':node.status==='info'?'Оборудование':node.status==='mastered'?'Изучено':node.status==='ready'?'Доступно':
   node.status==='exclusive'?'Другая ветка выбрана':node.status==='waiting'?'Ждёт ресурса':'Закрыто');
  // The weapon summary already offers the fitting action. An information-only
@@ -334,8 +331,7 @@ function detailHtml(node,domain,weapon,state){
   '<span class="prog-detail-illustration"><img src="'+esc(node.icon)+'" alt="" class="prog-detail-icon">'+branchMark(node.mark)+'</span><div class="prog-detail-copy"><span class="prog-detail-status" data-status="'+esc(node.status)+'">'+status+'</span><h3>'+esc(node.title)+'</h3>'+
   '<p>'+esc(node.description)+'</p>'+(node.scope?'<p class="prog-shared-scope">'+esc(node.scope)+'</p>':'')+
   (node.masteryAt?'<p class="prog-mastery-hint">Два ранга: выбор ветки с уровня '+node.level+', мастерство с уровня '+node.masteryAt+'.</p>':'')+'</div></div><div class="prog-detail-facts">'+
-  '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p></div><div><b>Как применять</b><p>'+esc(activation)+'</p>'+
-  (fieldCollision?'<p class="prog-control-warning">'+esc(fieldCollision)+'</p>':'')+'</div></div>'+
+  '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p></div><div><b>Как применять</b><p>'+esc(activation)+'</p></div></div>'+
   '<div class="prog-detail-actions"><span class="prog-cost">Стоимость: '+esc(node.cost)+'</span>'+cta+
   (domain==='ship'?'<button type="button" class="prog-secondary" data-act="baseTab" data-role="hangar">Схема корабля</button>':'')+'</div>'+
   (node.reason?'<p class="prog-detail-reason">'+esc(node.reason)+'</p>':'')+'</aside>';

@@ -5,6 +5,7 @@ import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,validControls,readC
  changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from '../control-layout.js';
 import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from '../manual-weapon-controls.js';
 import {planHowitzer} from '../ship-weapons.js';
+import {createFieldLoan} from '../field-weapons.js';
 import {game} from './weapons-scene.mjs';
 import {precisionRailUnlocked} from '../station-progression.js';
 import {mapKeysLabel,mapCloseKeysLabel} from '../map-panel.js';
@@ -20,6 +21,8 @@ test('RMB over any emplacement opens its menu before a manual weapon can arm',()
 
 test('new bindings are complete, one-action-per-key and survive storage',()=>{
  assert.equal(validControls(DEFAULT_CONTROLS),true);
+ assert.equal(DEFAULT_CONTROLS.field,'Space');
+ assert.equal(DEFAULT_CONTROLS.fieldWeapon,'KeyG');
  assert.equal(new Set(CONTROL_ACTIONS.map(x=>x.code)).size,CONTROL_ACTIONS.length);
  const move=changeControl(DEFAULT_CONTROLS,'dash','KeyV');
  assert.equal(move.ok,true);
@@ -28,6 +31,18 @@ test('new bindings are complete, one-action-per-key and survive storage',()=>{
  const store={getItem(key){assert.equal(key,CONTROL_STORAGE_KEY);return JSON.stringify(move.bindings);}};
  assert.deepEqual(readControls(store),move.bindings);
  assert.equal(readableKey('Space'),'Пробел');
+});
+
+test('old saved bindings gain the rental key without losing custom keys',()=>{
+ const saved={...DEFAULT_CONTROLS};delete saved.fieldWeapon;
+ saved.field='KeyV';saved.skills='Space';saved.hack='KeyG';
+ const actual=readControls({getItem:()=>JSON.stringify(saved)});
+ assert.equal(actual.field,'KeyV');
+ assert.equal(actual.skills,'Space');
+ assert.equal(actual.hack,'KeyG');
+ assert.equal(actual.fieldWeapon,'KeyH');
+ assert.equal(validControls(actual),true);
+ assert.equal(changeControl(actual,'fieldWeapon','KeyG').ok,false);
 });
 
 test('a duplicate, unsafe or malformed key mapping cannot silently break movement',()=>{
@@ -126,6 +141,28 @@ test('flight status explains Space once and keeps the two mouse cooldowns separa
   if(originalDocument===undefined)delete globalThis.document;
   else globalThis.document=originalDocument;
  }
+});
+
+test('rented weapon and permanent tactical device have independent activation and cooldowns',()=>{
+ const g=game();
+ assert.equal(g.callFieldWeapon(),false,'G does nothing without rented hardware');
+ assert.equal(g.callTacticalField(),true,'Space works from the beginning');
+ assert.equal(g.tactical.uses,1);
+ g.fieldLoan=createFieldLoan('resonator',g.docked.id,g.time);
+ g.weaponProfile.resonator=true;
+ const a={x:150,y:0,hp:100,maxHp:100,r:15},b={x:190,y:0,hp:100,maxHp:100,r:15};
+ g.grid.insert(a);g.grid.insert(b);
+ assert.equal(g.callFieldWeapon(),true,'G activates the separate rented weapon');
+ assert.equal(g.fieldLoan.charges,2);
+ assert.equal(g.tactical.uses,1,'the loan cannot consume the Space action');
+ assert.equal(g.callTacticalField(),false,'tactical cooldown remains independent');
+ assert.equal(g.fieldLoan.charges,2);
+ g.time+=14;
+ assert.equal(g.callTacticalField(),true,'Space recovers while the rented weapon is still fitted');
+ assert.equal(g.tactical.uses,2);
+ assert.equal(g.fieldLoan.charges,2);
+ g.fieldLoan=null;g.weaponProfile.resonator=false;g.time+=14;
+ assert.equal(g.callTacticalField(),true,'returning the loan does not disable the permanent device');
 });
 
 test('manual howitzer really aims at mouse point, while F keeps its automatic target',()=>{
