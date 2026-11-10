@@ -172,6 +172,25 @@ test('a rock partly shields a target from a comet blast instead of cancelling al
  assert.ok(Math.abs(sheltered/open-.6)<.01);
 });
 
+test('a mine blast reaches an enemy behind a rock with partial cover damage',()=>{
+ const detonate=withCover=>{
+  const g=scene();
+  assert.equal(fireMouseWeapon(g,'mines',{x:300,y:0}).ok,true);
+  g.time=1;updateMouseArsenal(g,1);
+  const site=g.mouseArsenal.mines[0];
+  g.mouseArsenal.mines=[site];
+  const trigger=scout(site.x,site.y,300),behind=scout(site.x+58,site.y,300);
+  g.enemies.push(trigger,behind);
+  if(withCover)g.rockGrid.query=()=>[{x:site.x+35,y:site.y,r:34,alive:true}];
+  g.time=1.8;updateMouseArsenal(g,.05);
+  return 300-behind.hp;
+ };
+ const open=detonate(false),covered=detonate(true);
+ assert.ok(open>0,"the mine's area damage reaches the secondary enemy");
+ assert.ok(Math.abs(covered/open-.6)<.01,
+  `the rock removes forty percent, not all damage: open=${open}, covered=${covered}`);
+});
+
 test('mine pods cross rocks and occupy only clear landing sites',()=>{
  const g=scene(),travelRock={x:145,y:0,r:38,alive:true};
  g.rockGrid.query=()=>[travelRock];
@@ -229,6 +248,32 @@ test('aim preview marks blocked rail fire and asteroid-occupied landing points',
  g.mouseAim={kind:'howitzer',point:{x:160,y:0}};
  drawMouseArsenal(ctx,g);
  assert.ok(labels.some(text=>text.includes('ТОЧКА ЗАНЯТА')));
+});
+
+test('rail aim shows an enemy before a more distant rock as the first intercept',()=>{
+ const g=scene(),labels=[],arcs=[];
+ const ctx=new Proxy({fillText(label){labels.push(label);},arc(x,y,r){arcs.push([x,y,r]);}},
+  {get(target,key){return target[key]??(()=>{});}});
+ g.enemies.push(scout(110,0,100));
+ g.rockGrid.query=()=>[{x:200,y:0,r:38,alive:true}];
+ g.mouseAim={kind:'rail',point:{x:500,y:0}};
+ drawMouseArsenal(ctx,g);
+ assert.ok(labels.some(text=>text.includes('РЕЛЬС · 5 с')));
+ assert.ok(!labels.some(text=>text.includes('ЛУЧ ПЕРЕКРЫТ')));
+ assert.ok(arcs.some(([x,y,r])=>x>85&&x<110&&y===0&&r===23),
+  'first intercept marker must follow the enemy hull');
+});
+
+test('comet aim gives cooldown precedence over an asteroid warning',()=>{
+ const g=scene(),labels=[];
+ const ctx=new Proxy({fillText(label){labels.push(label);}},
+  {get(target,key){return target[key]??(()=>{});}});
+ g.rockGrid.query=()=>[{x:300,y:0,r:40,alive:true}];
+ g.mouseArsenal.cometReadyAt=5;
+ g.mouseAim={kind:'comet',point:{x:300,y:0}};
+ drawMouseArsenal(ctx,g);
+ assert.ok(labels.some(label=>label.includes('ЗАРЯДКА')));
+ assert.ok(!labels.some(label=>label.includes('МЕШАЮТ АСТЕРОИДЫ')));
 });
 
 test('a paused game cannot aim or fire mouse weapons, and mines still have independent cooldowns',()=>{
