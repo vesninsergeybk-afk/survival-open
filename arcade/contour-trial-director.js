@@ -1,6 +1,6 @@
 import {recordSortieIncome} from './sortie-ledger.js';
 import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,readyContourTrials,prepareContourVortex,completeContourTrial,
- planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1-pressure-response-1-corecharge-20261110';
+ planContourTrial,trialQuota,trialRandom} from './contour-trials.js?v=swarm-siege-2-rank-pressure-1-pressure-response-1-corecharge-20261110-core-pressure-20261110';
 import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1-corecharge-20261110';
 import {contourFields,fieldAt} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js?v=pressure-response-1';
@@ -93,7 +93,9 @@ function spawnTrialWave(game,event){
  }
  event.phase='wave';
  if(event.waveIndex===event.plan.waves.length-1)event.quotaReached=false;
- event.nextStrikeAt=game.time+3.6;
+ // An early, clearly telegraphed strike prevents the first wave from being a
+ // free 18-second charge while its ships are still travelling from offscreen.
+ event.nextStrikeAt=game.time+(event.waveIndex===0?1.8:3.6);
  game.notice?.('ОБОРОНА ТРЕУГОЛЬНИКА · волна '+
   (event.waveIndex+1)+' из '+event.plan.waves.length+' · подавите '+event.required+' из '+total+' кораблей.'+
   ' Построение: '+formation+'. Орбитальные залпы уже наведены!',4.5);
@@ -104,12 +106,17 @@ function spawnTrialWave(game,event){
 function scheduleTrialStrike(game,event){
  if(event.phase!=='wave')return;
  const plan=event.plan,p=game.player;
+ const charging=game.actionHeld?.kind==='vortex'&&
+  game.actionHeld.target===event.entry&&!event.entry.activated;
  const aim=Math.atan2(p.vy||0,p.vx||0)+.55;
  for(let i=0;i<plan.strikeCount;i++){
   const offset=plan.strikeCount===3?(i-1)*135:
    plan.strikeCount===2?(i===0?-115:115):45;
-  const x=p.x+(p.vx||0)*.7+Math.cos(aim)*offset;
-  const y=p.y+(p.vy||0)*.7+Math.sin(aim)*offset;
+  // One of the existing strike markers tracks a charging pilot's position.
+  // The 2+ second warning leaves a fair dodge window; the other marker still
+  // threatens the flank. We do not add extra untelegraphed damage.
+  const x=p.x+(p.vx||0)*.7+(charging&&i===0?0:Math.cos(aim)*offset);
+  const y=p.y+(p.vy||0)*.7+(charging&&i===0?0:Math.sin(aim)*offset);
   const zone={x,y,r:plan.tier>=9?78:66,fuse:plan.tier>=9?2:2.5,
    fuseStart:plan.tier>=9?2:2.5,ttl:.3,trialId:event.entry.id};
   game.zones.push(zone);
@@ -262,7 +269,7 @@ export function updateContourTrials(game,dt){
   game.contourTrial=event;
   game.notice?.('КОНТУР ЗАМКНУТ · противник обнаружил новый треугольник! '+
    'Оборона: '+event.plan.waves.length+' '+(event.plan.waves.length===1?'волна':'волны')+
-   ' · рекомендован уровень '+event.plan.recommendedLevel+'+. Заряжайте ядро удержанием E, затем отбейте все волны!',5);
+   ' · рекомендован уровень '+event.plan.recommendedLevel+'+. Удерживайте E для заряда ядра и отбивайтесь от атак!',5);
   game.heritage?.vfx?.nova?.(entry.x,entry.y,120,'red');
   game.heritage?.play?.('orbitalWarning',1.2,entry);
   return;

@@ -3,8 +3,8 @@ import {insidePolygon} from './territory-system.js';
 // One completed territorial expansion earns one trial. A change to the
 // triangulation of land already owned never creates another challenge.
 export const CONTOUR_TRIALS=Object.freeze({maxTier:12,maxEntries:256,engageRadius:990,
- retreatRadius:1650,warningSeconds:6,retreatSeconds:7,maxWaveSeconds:100,maxWaitSeconds:12,
- activationRadius:145,activationSeconds:18,starterFlux:4,minWaveSeconds:7});
+ retreatRadius:1650,warningSeconds:2.5,retreatSeconds:7,maxWaveSeconds:100,maxWaitSeconds:12,
+ activationRadius:145,activationSeconds:18,impactPauseSeconds:.85,starterFlux:4,minWaveSeconds:7});
 
 // Most of the fleet must be defeated; isolated survivors break away instead
 // of turning a large battle into a frustrating search for one last scout.
@@ -90,6 +90,13 @@ export function advanceContourCharge(entry,dt){
  entry.charge=Math.min(CONTOUR_TRIALS.activationSeconds,
   Math.max(0,entry.charge||0)+Math.max(0,Number.isFinite(dt)?dt:0));
  return entry.charge;
+}
+
+// A real shield/hull hit briefly stalls the held interaction. Progress already
+// banked on the core is never erased, and deflected shots cannot stall it.
+export function contourChargeInterrupted(time,lastDamageAt){
+ return Number.isFinite(time)&&Number.isFinite(lastDamageAt)&&
+  time>=lastDamageAt&&time-lastDamageAt<CONTOUR_TRIALS.impactPauseSeconds;
 }
 
 export function productiveContourFields(world,fields){

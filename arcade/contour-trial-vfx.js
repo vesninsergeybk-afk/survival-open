@@ -1,4 +1,4 @@
-import {CONTOUR_TRIALS,unresolvedContourTrials,trialBlockingField,planContourTrial,trialQuota} from './contour-trials.js?v=swarm-siege-1-pressure-response-1-corecharge-20261110';
+import {CONTOUR_TRIALS,unresolvedContourTrials,trialBlockingField,planContourTrial,trialQuota,contourChargeInterrupted} from './contour-trials.js?v=swarm-siege-1-pressure-response-1-corecharge-20261110-core-pressure-20261110';
 
 // The unstable core is visible in the physical world before the real
 // vortex can start producing flux. Follows the field across camera movement.
@@ -83,6 +83,8 @@ export function drawContourTrialHUD(c,game){
  const quota=event.required??trialQuota(total,event.plan.tier);
  const lastWave=phase==='wave'&&event.waveIndex===event.plan.waves.length-1;
  const charge=event.entry.charge||0,powered=!!event.entry.activated;
+ const holding=game.actionHeld?.kind==='vortex'&&game.actionHeld.target===event.entry;
+ const interrupted=holding&&!powered&&contourChargeInterrupted(game.time,game.lastDamageAt);
  const seconds=Math.max(0,Math.ceil((event.plan.waveSeconds||CONTOUR_TRIALS.maxWaveSeconds)-
   (game.time-(event.waveStartedAt??game.time))));
  const subtitle=event.outsideFor>0?'ВЕРНИТЕСЬ В ЗОНУ · '+Math.max(0,Math.ceil(CONTOUR_TRIALS.retreatSeconds-event.outsideFor))+' С':
@@ -92,17 +94,21 @@ export function drawContourTrialHUD(c,game){
   lastWave&&event.quotaReached?'ВОЛНЫ ОТРАЖЕНЫ · ЗАРЯД ЯДРА '+Math.floor(charge)+' / '+CONTOUR_TRIALS.activationSeconds+' С · '+seconds+' С':
   'ВОЛНА '+(event.waveIndex+1)+' ИЗ '+event.plan.waves.length+' · ПОБЕДИТЬ '+Math.min(defeated,quota)+' / '+quota+' · '+seconds+' С';
  const hint=powered?'Ядро питает сеть · стройте турели · отбейте все волны':
-  irisRush?'Зрачок атакует · E заряжает ядро, прогресс не теряется':
-  'Удерживайте '+key+' рядом с ядром · '+Math.floor(charge)+' / '+CONTOUR_TRIALS.activationSeconds+' с · заряд сохраняется';
+  interrupted?'ПОПАДАНИЕ · зарядка ненадолго остановилась, накопленный заряд сохранён':
+  holding?'ИДЁТ ЗАРЯДКА · отбивайтесь от врагов и уклоняйтесь от залпов':
+  irisRush?'Зрачок атакует · заряд ядра сохранён · вернитесь к '+key:
+  'Удерживайте '+key+' рядом с ядром · заряд сохраняется при отходе';
  const briefTitle=compact?'АТАКА НА ТРЕУГОЛЬНИК':'ВРАГ ОБНАРУЖИЛ НОВЫЙ ТРЕУГОЛЬНИК';
  const briefSubtitle=compact&&lastWave&&event.quotaReached?
   'ЗАРЯД ЯДРА '+Math.floor(charge)+'/'+CONTOUR_TRIALS.activationSeconds+' С · ВРЕМЯ '+seconds+' С':
   compact&&phase==='wave'?
   'ВОЛНА '+(event.waveIndex+1)+'/'+event.plan.waves.length+' · ЦЕЛЕЙ '+Math.min(defeated,quota)+'/'+quota+' · '+seconds+' С':subtitle;
  const briefHint=compact?(powered?'СТРОЙТЕ ТУРЕЛИ · ОТРАЗИТЕ ВСЕ ВОЛНЫ':
-  'ЗАРЯД '+Math.floor(charge)+' / '+CONTOUR_TRIALS.activationSeconds+' С · УДЕРЖИВАЙТЕ '+key+' · ПРОГРЕСС СОХРАНЁН'):hint;
+  interrupted?'ПОПАДАНИЕ · ПАУЗА ЗАРЯДКИ · ПРОГРЕСС СОХРАНЁН':
+  holding?'ИДЁТ ЗАРЯДКА · УКЛОНЯЙТЕСЬ ОТ ОГНЯ':
+  'УДЕРЖИВАЙТЕ '+key+' · ЗАРЯД СОХРАНЯЕТСЯ'):hint;
  c.save();c.scale(uiScale,uiScale);c.fillStyle='rgba(8,20,33,.94)';c.strokeStyle=event.outsideFor?'#ff7e85':'#ffb673';
- c.lineWidth=1.4;c.beginPath();c.roundRect(x,y,w,91,10);c.fill();c.stroke();
+ c.lineWidth=1.4;c.beginPath();c.roundRect(x,y,w,124,10);c.fill();c.stroke();
  c.fillStyle='#ffe7c2';c.font='bold 12px system-ui';c.textAlign='center';
  c.fillText(briefTitle,vw/2,y+19,w-16);
  c.fillStyle='#ffbe8b';c.font='bold 12px system-ui';c.fillText(briefSubtitle,vw/2,y+39,w-16);
@@ -110,10 +116,17 @@ export function drawContourTrialHUD(c,game){
  const fraction=phase==='wave'?(event.waveIndex+
   Math.min(1,defeated/Math.max(1,quota)))/event.plan.waves.length:
   phase==='rest'?(event.waveIndex+1)/event.plan.waves.length:0;
- c.fillStyle='#ffbe7e26';c.fillRect(x+12,y+70,w-24,3);
- c.fillStyle='#ffa66d';c.fillRect(x+12,y+70,(w-24)*fraction,3);
- c.fillStyle='#78ffe226';c.fillRect(x+12,y+81,w-24,4);
- c.fillStyle=powered?'#78ffe2':'#65d7ca';c.fillRect(x+12,y+81,(w-24)*(powered?1:charge/CONTOUR_TRIALS.activationSeconds),4);c.restore();
+ const fractionCharged=powered?1:Math.max(0,Math.min(1,charge/CONTOUR_TRIALS.activationSeconds));
+ c.font='bold 10px system-ui';c.fillStyle='#ffcf9d';c.textAlign='left';
+ c.fillText('ОБОРОНА · ВОЛНА '+Math.max(0,event.waveIndex+1)+' / '+event.plan.waves.length,x+12,y+75,w-24);
+ c.fillStyle='#ffbe7e26';c.fillRect(x+12,y+80,w-24,4);
+ c.fillStyle='#ffa66d';c.fillRect(x+12,y+80,(w-24)*fraction,4);
+ c.fillStyle='#a3f6e3';c.fillText('ЗАРЯД ЯДРА · '+Math.floor(charge)+' / '+CONTOUR_TRIALS.activationSeconds+' с',x+12,y+100,w-24);
+ c.textAlign='right';c.fillStyle=interrupted?'#ffbd8c':holding?'#a3ffe1':'#a7bec8';
+ c.fillText(powered?'ЗАРЯЖЕНО':interrupted?'ПАУЗА ПОСЛЕ ПОПАДАНИЯ':holding?'УДЕРЖАНИЕ '+key:'УДЕРЖИВАЙТЕ '+key,x+w-12,y+100,w*.48);
+ c.fillStyle='#78ffe226';c.fillRect(x+12,y+108,w-24,9);
+ c.fillStyle=interrupted?'#ffbc84':powered?'#78ffe2':holding?'#72ffdb':'#65d7ca';
+ c.fillRect(x+12,y+108,(w-24)*fractionCharged,9);c.restore();
 }
 
 export function pendingTrialMapArtwork(world,center,scale,atlasPoint){

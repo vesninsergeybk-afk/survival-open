@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {createContours,autoConnectContours,contourFields,advanceContours,validContours} from '../territory-system.js';
 import {registerContourTrials,pendingContourTrials,productiveContourFields,
  prepareContourVortex,readyContourTrials,completeContourTrial,planContourTrial,TRIAL_VARIANTS,
- advanceContourCharge,hasPoweredContour,CONTOUR_TRIALS} from '../contour-trials.js';
+ advanceContourCharge,contourChargeInterrupted,hasPoweredContour,CONTOUR_TRIALS} from '../contour-trials.js';
 import {updateContourTrials,activateContourVortex} from '../contour-trial-director.js';
+import {drawContourTrialHUD} from '../contour-trial-vfx.js';
 import {artilleryOffer,deployArtillery} from '../flux-artillery.js';
 import {outsideCamera} from '../balance.js';
 import {game} from './weapons-scene.mjs';
@@ -99,6 +100,48 @@ test('partial core charge survives a failed siege and remains bounded',()=>{
  assert.equal(g.actionHeld.progress,8.5);
  assert.equal(advanceContourCharge(entry,500),18);
  assert.equal(advanceContourCharge(entry,-6),18);
+});
+
+test('hits briefly stall charging without taking back the progress earned by E',()=>{
+ const entry={status:'pending',charge:7.3,activated:false};
+ assert.equal(contourChargeInterrupted(21,20.5),true);
+ assert.equal(advanceContourCharge(entry,contourChargeInterrupted(21,20.5)?0:.5),7.3);
+ assert.equal(contourChargeInterrupted(21,20.1),false);
+ assert.equal(advanceContourCharge(entry,contourChargeInterrupted(21,20.1)?0:.5),7.8);
+ assert.equal(contourChargeInterrupted(21,-Infinity),false,'no damage means no suppression');
+ const captions=[];
+ const c=new Proxy({},{get:(o,k)=>o[k]??((...args)=>{
+  if(k==='fillText')captions.push(args[0]);
+ }),set:(o,k,v)=>(o[k]=v,true)});
+ const battle={time:21,lastDamageAt:20.5,actionHeld:{kind:'vortex',target:entry},
+  contourTrial:{entry,phase:'wave',waveIndex:0,plan:{waves:[{}, {}, {}],tier:1},
+   waveStartedAt:20,required:3,defeatedIds:new Set(),waveIds:[1,2,3]},
+  enemies:[],vw:1200,controlLabel:()=> 'E'};
+ drawContourTrialHUD(c,battle);
+ assert.ok(captions.some(t=>String(t).includes('ПОПАДАНИЕ')),
+  'the player must see why the charging bar stopped');
+ assert.ok(captions.some(t=>String(t).includes('ЗАРЯД ЯДРА · 7 / 18')),
+  'the current accumulated charge is shown directly on the HUD');
+});
+
+test('charging under the first assault attracts a telegraphed strike without adding extra volleys',()=>{
+ const g=game(),w=territory(),entry=claim(w)[0];
+ Object.assign(g,{world:w,contourTrial:null,operation:null,enemies:[],zones:[],time:20});
+ g.player.x=entry.x;g.player.y=entry.y;g.player.vx=0;g.player.vy=0;
+ g.camera=()=>({x:entry.x-600,y:entry.y-440,w:1200,h:880});
+ updateContourTrials(g,.1);
+ g.time+=CONTOUR_TRIALS.warningSeconds+.1;updateContourTrials(g,.1);
+ assert.equal(g.contourTrial.phase,'wave');
+ assert.ok(g.contourTrial.nextStrikeAt-g.time<2.1,
+  'a fresh charging attempt encounters danger before eighteen uninterrupted seconds');
+ g.actionHeld={kind:'vortex',target:entry,progress:0};
+ g.time+=1.9;updateContourTrials(g,.1);
+ assert.equal(g.zones.length,g.contourTrial.plan.strikeCount,
+  'the targeting rule reuses the existing strike budget');
+ assert.ok(g.zones.some(z=>Math.hypot(z.x-g.player.x,z.y-g.player.y)<1),
+  'a visibly marked impact forces the stationary pilot to dodge');
+ assert.ok(g.zones.every(z=>z.fuse>=2),
+  'the pilot gets time to evade the marked impact');
 });
 
 test('new siege waves always appear beyond the visible border at the widest zoom',()=>{

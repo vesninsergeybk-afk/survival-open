@@ -1,5 +1,5 @@
 import {GUIDE_LESSONS,GUIDE_BY_ID,GUIDE_STORAGE_KEY,
- normalizeGuideState,recommendGuide,masteryFromSnapshot} from './contextual-guide.js?v=core-guide-20261110';
+ normalizeGuideState,recommendGuide,masteryFromSnapshot} from './contextual-guide.js?v=core-guide-20261110-core-pressure-20261110';
 
 const asset=id=>'./assets/learning/'+(GUIDE_BY_ID[id]?.icon||'flight')+'.svg';
 const isTouch=()=>globalThis.matchMedia?.('(pointer: coarse)')?.matches||false;
