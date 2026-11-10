@@ -10,6 +10,7 @@ import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 const count = value => Math.round(value).toLocaleString('ru-RU');
+export const HUD_RADAR_RANGE=1100;
 // XP is stored within the current level, so a rollover cannot be measured by
 // subtracting the two visible XP counters.
 export const experienceDifference = (before,after) => {
@@ -24,7 +25,7 @@ export const hullCondition = (hp,maxHp) => {
  const fraction=clamp01(hp/Math.max(1,maxHp));
  return fraction<=.3?'critical':fraction<=.65?'wounded':'normal';
 };
-export const radarPoint = (x,y,player,range=1100) => {
+export const radarPoint = (x,y,player,range=HUD_RADAR_RANGE) => {
  const dx=x-player.x,dy=y-player.y;
  const distance=Math.hypot(dx,dy);
  if(!Number.isFinite(distance)||distance>range)return null;
@@ -381,7 +382,7 @@ export class CockpitDisplay {
   ctx.restore();
  }
  drawRadar(game) {
-  const ctx=this.ctx,p=game.player,range=1100;
+  const ctx=this.ctx,p=game.player,range=HUD_RADAR_RANGE;
   this.drawRadarShell();
   const sweep=game.time*.31;
   ctx.save();
