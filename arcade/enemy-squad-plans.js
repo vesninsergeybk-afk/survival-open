@@ -3,7 +3,8 @@
  * speed, fire rate or weapon accuracy. Planning is once per radio tick. */
 export const ENEMY_SQUAD_PLANS=Object.freeze({
   horizon:18,phaseMinimums:Object.freeze([3.3,4.2,4.4]),
-  phaseTimeout:8.5,maxLookAhead:.52,maxLead:88
+  phaseTimeout:8.5,maxLookAhead:.52,maxLead:88,
+  failureMemory:19,failurePenalty:18
 });
 const sequences=Object.freeze({
   press:Object.freeze(['press','pincer','intercept']),
@@ -35,6 +36,33 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const basis=threat=>threat?.kind+'/' + (threat?.motion||threat?.site||'');
 
+/** Utility selection only revises an *executed and failed* plan. A tactical
+ * countermeasure remains compulsory while a witnessed area barrage or losses
+ * call for dispersal. Failure evidence is local to this radio cell and expires. */
+export function chooseSquadRecovery(votes,threat,failures,now,normalMode){
+  if(!(failures instanceof Map)||!failures.size)return normalMode;
+  const allowed=({
+    area:['scatter'],loss:['scatter'],close:['pincer','scatter'],
+    long:['close','intercept','pincer'],weak:['press','intercept','pincer'],
+    sabotage:['intercept','screen','pincer']
+  })[threat?.kind]||['press','pincer','intercept','close','scatter','screen'];
+  const currentBasis=basis(threat),candidates=allowed.filter(mode=>
+    mode!=='screen'||(votes?.screen||0)>0);
+  const recent=mode=>{
+    const failure=failures.get(mode);
+    return failure?.basis===currentBasis&&Number.isFinite(failure.at)&&
+      now-failure.at>=0&&now-failure.at<=ENEMY_SQUAD_PLANS.failureMemory;
+  };
+  if(!candidates.some(recent))return normalMode;
+  return candidates.reduce((best,mode)=>{
+    const utility=(votes?.[mode]||0)-(recent(mode)?ENEMY_SQUAD_PLANS.failurePenalty:0);
+    const previous=(votes?.[best]||0)-(recent(best)?ENEMY_SQUAD_PLANS.failurePenalty:0);
+    return utility>previous+.0001?mode:best;
+  },candidates.includes(normalMode)?normalMode:candidates[0]);
+}
+
+export const squadThreatBasis=basis;
+
 function assignRoles(members){
   const flying=members.filter(e=>e.hp>0&&!e.converted&&
     e.type!=='healer'&&!e.protect);
@@ -55,17 +83,24 @@ function assignRoles(members){
   return chosen;
 }
 
-export function createEnemySquadPlan(cell,mode,threat,now){
+export function createEnemySquadPlan(cell,mode,threat,now,options={}){
   if(!sequences[mode]||!cell?.intel||cell.intel.estimated||
      cell.members.filter(e=>e.hp>0&&!e.converted&&
        e.type!=='healer'&&!e.protect).length<2)return null;
-  const modes=counterSequences[threat?.kind]||sequences[mode];
+  const normal=counterSequences[threat?.kind]||sequences[mode];
+  // A failed counter-plan may open with a different, still legal response.
+  // Scatter stays compulsory under area fire; reversal of its lanes suffices.
+  const modes=options.recoverFrom&&mode!==normal[0]&&
+    !['area','loss'].includes(threat?.kind)?sequences[mode]:normal;
+  const flankSign=options.recoverFrom?
+    -(options.recoverFrom.flankSign||1):1;
   return {id:(cell.planSerial=(cell.planSerial||0)+1),
     baseMode:modes[0],basis:basis(threat),
     observedAt:(threat?.mesh?threat.receivedAt:null)??threat?.lastAt??cell.intel.at,
     goal:goals[modes[0]],modes,
     phase:0,phaseAt:now,startedAt:now,
-    until:now+ENEMY_SQUAD_PLANS.horizon,confirmed:false,
+    until:now+ENEMY_SQUAD_PLANS.horizon,confirmed:false,lastExecutedAt:null,
+    flankSign,recovery:!!options.recoverFrom,
     roles:assignRoles(cell.members),
     origins:new Map(cell.members.map(e=>[e,{x:e.x,y:e.y}]))};
 }
@@ -163,7 +198,8 @@ export function squadRoleDestination(member,order,point){
   const axisX=velocity>55?vX/velocity:dx/d;
   const axisY=velocity>55?vY/velocity:dy/d;
   const perpX=-axisY,perpY=axisX;
-  const side=role==='left'?-1:role==='right'?1:0;
+  const side=(role==='left'?-1:role==='right'?1:0)*
+    (order.flankSign===-1?-1:1);
   const lead=mode==='intercept'&&velocity>55?
     clamp(velocity*ENEMY_SQUAD_PLANS.maxLookAhead,0,ENEMY_SQUAD_PLANS.maxLead):0;
   let ahead=0,lateral=0;

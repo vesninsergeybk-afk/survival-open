@@ -12,6 +12,12 @@ export const THEATER=Object.freeze({
 });
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+// Own logistics can report damage to their hulls, but cannot report the
+// attacker's present location. Damage raises the value of saving a shipment;
+// it never creates a contact or teleports reinforcements across the map.
+const damagePressure=a=>Number.isFinite(a?.hp)&&
+  Number.isFinite(a?.maxHp)&&a.maxHp>0?
+    Math.round(clamp(1-a.hp/a.maxHp,0,1)*27):0;
 const eligible=e=>!!e&&e.hp>0&&!e.converted&&!e.boss&&
   !e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&!e.stationRaid&&
   !e.openingCommander&&!e.protect&&
@@ -87,7 +93,8 @@ export function theaterAssets(world,now=0){
   for(const a of cargoes(state))if(active(a)&&a.id&&cargoUseful(world,a)){
     const fundedScreen=paidScreen(world,a,now);
     items.push({asset:a,id:String(a.id),kind:'cargo',
-      fundedScreen,importance:(a.frontierRepair?92:80)+(fundedScreen?9:0),
+      fundedScreen,damaged:damagePressure(a)>=12,
+      importance:(a.frontierRepair?92:80)+(fundedScreen?9:0)+damagePressure(a),
       max:THEATER.maxCargoCells});
   }
   for(const a of world.stations?.values?.()||[]){
@@ -98,7 +105,7 @@ export function theaterAssets(world,now=0){
     const depot=/military|depot/.test(role);
     const reserves=stationReserves(state,role);
     items.push({asset:a,id:String(a.id),kind:'station',reserves,
-      importance:(depot?52:39)+Math.min(2,reserves)*6,
+      importance:(depot?52:39)+Math.min(2,reserves)*6+damagePressure(a),
       max:THEATER.maxSiteCells});
   }
   return items;
@@ -164,7 +171,7 @@ export function planTheater(cells,world,now,mesh=null){
     if(n>=max)continue;
     let role;
     if(c.item.kind==='cargo')
-      role=n===0?(c.alarm||c.item.fundedScreen||
+      role=n===0?(c.alarm||c.item.fundedScreen||c.item.damaged||
         ['long','area'].includes(c.warning?.kind)?'screen':'escort'):
         (c.contact?'repel':'screen');
     else
@@ -181,6 +188,10 @@ export function planTheater(cells,world,now,mesh=null){
       ...(c.contact?{
         contact:{x:c.contact.x,y:c.contact.y,at:c.contact.at}}:{}),
       reason:c.networkAlarm?'Сеть сообщает о нападении на объект. Усилить охрану!':
+        c.item.damaged&&role==='screen'&&!c.alarm?
+          (c.item.asset.frontierRepair?
+            'Ремонтный корабль повреждён. Закрыть его от нового удара!':
+            'Грузовой корабль повреждён. Уплотнить защитный заслон!'):
         c.warning?.archived&&role==='screen'?
           'Архив машин: повторные атаки. Перестроить охрану по данным сети!':
         role==='screen'&&c.warning?.kind==='long'?

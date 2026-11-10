@@ -1,9 +1,10 @@
 import {EnemyMesh} from './enemy-mesh.js?v=enemy-mesh-1-tactical-field-2-backbone-2-mesh-response-v2-1-flux-offense-1-territory-war-1';
 import {tacticalRadioJammed,tacticalJammingConfirmed} from './tactical-fields.js?v=tactical-field-2';
-import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2-mesh-strategy-v2-1';
+import {EnemyTheaterStrategy} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2-mesh-strategy-v2-1-ai-commander-20261110';
 import {createEnemySquadPlan,squadPlanObsolete,advanceEnemySquadPlan,
   squadPhaseExpired,squadPlanMode,squadPlanPhaseMessage,
-  squadRoleFor,squadRoleLabel} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1';
+  squadRoleFor,squadRoleLabel,chooseSquadRecovery,squadThreatBasis,
+  ENEMY_SQUAD_PLANS} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1-ai-recovery-1-ai-commander-20261110';
 import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 
 /** Bounded enemy radio. Messages carry actual local observations, and
@@ -393,6 +394,7 @@ export class EnemyComms {
           cell.brokenUntil=now+ENEMY_COMMS.breakSeconds;
           cell.mode=null;cell.intel=null;cell.proposals=new Map();
           cell.plan=null;
+          cell.failedManeuvers=new Map();
           cell.attackReports=[];cell.lossReports=[];cell.threat=null;
           cell.incident=null;cell.motionReports=[];
           cell.pendingDecision=null;cell.lastReportedTactic=null;
@@ -444,7 +446,8 @@ export class EnemyComms {
       next.push({id:++this.serial,leader,members,mode:null,intel:null,
         holdUntil:0,brokenUntil:0,nextBroadcast:0,lastDecisionAt:-Infinity,
         votes:null,proposals:new Map(),attackReports:[],lossReports:[],
-        threat:null,incident:null,motionReports:[],lastReportedTactic:null});
+        threat:null,incident:null,motionReports:[],lastReportedTactic:null,
+        failedManeuvers:new Map()});
     }
     this.cells=next;
     this.intercepts=this.intercepts.filter(e=>now-e.at<=30);
@@ -586,16 +589,33 @@ export class EnemyComms {
       const outcome=tallyVotes(accepted,cell.intel,hasMedic,cell.threat);
       const previousPlan=cell.plan;
       const failedPlan=squadPhaseExpired(previousPlan,cell,now);
+      cell.failedManeuvers??=new Map();
+      for(const [mode,failure] of cell.failedManeuvers)
+        if(now-failure.at>ENEMY_SQUAD_PLANS.failureMemory)
+          cell.failedManeuvers.delete(mode);
+      // Count failure only after a wing actually flew the earlier command.
+      // A missing radio recipient or an overridden scripted objective is not
+      // evidence that the maneuver itself was ineffective.
+      const executedFailure=failedPlan&&previousPlan?.confirmed===true&&
+        Number.isFinite(previousPlan.lastExecutedAt)&&
+        now-previousPlan.lastExecutedAt<=1.6&&
+        previousPlan.basis===squadThreatBasis(cell.threat);
+      if(executedFailure)
+        cell.failedManeuvers.set(squadPlanMode(previousPlan),{
+          at:now,basis:previousPlan.basis});
       const stalePlan=squadPlanObsolete(previousPlan,cell.threat,now,
         cell.members,cell.intel)||
         failedPlan;
-      const fallback=failedPlan&&!cell.threat&&
-        ['pincer','intercept'].includes(outcome.mode)?'press':outcome.mode;
-      if(stalePlan)cell.plan=createEnemySquadPlan(cell,fallback,
-        cell.threat,now);
+      const response=chooseSquadRecovery(outcome.votes,cell.threat,
+        cell.failedManeuvers,now,outcome.mode);
+      if(stalePlan)cell.plan=createEnemySquadPlan(cell,response,
+        cell.threat,now,executedFailure?{recoverFrom:previousPlan}:{});
       const phaseChanged=!stalePlan&&
         advanceEnemySquadPlan(cell.plan,cell,now);
+      if(phaseChanged&&previousPlan)
+        cell.failedManeuvers.delete(squadPlanMode(previousPlan));
       const desiredMode=squadPlanMode(cell.plan)||outcome.mode;
+      const replanned=stalePlan&&cell.plan?.recovery;
       const urgent=!!(distress&&cell.mode&&
         ((outcome.mode==='screen'&&outcome.votes.screen>outcome.votes[cell.mode])||
          (cell.threat?.kind==='loss'&&outcome.mode==='scatter')));
@@ -625,15 +645,17 @@ export class EnemyComms {
             intel:{...cell.intel},threat:cell.threat?{...cell.threat}:null,
             at:now,
             planId:cell.plan?.id??null,planPhase:cell.plan?.phase??null,
-            role:squadRoleFor(cell.plan,e)};
+            role:squadRoleFor(cell.plan,e),
+            flankSign:cell.plan?.flankSign||1};
           if(radioOrderCapable(e,now,cell.threat))delivered=true;
         }
         // A sent order is only a *proposal* for a subtitle. We confirm actual
         // steering after the AI loop before declaring it a tactical reaction.
-        if((changed||phaseChanged||newTactic)&&delivered)
+        if((changed||phaseChanged||newTactic||replanned)&&delivered)
           cell.pendingDecision={at:now,mode:cell.mode,
             threat:cell.threat?{...cell.threat}:null,
-            planId:cell.plan?.id??null,planPhase:cell.plan?.phase??null};
+            planId:cell.plan?.id??null,planPhase:cell.plan?.phase??null,
+            recovery:!!replanned};
       }
     }
     this.mesh.update(game,this.cells,now,this);
@@ -644,10 +666,13 @@ export class EnemyComms {
     this.theater.confirmExecution(game,this);
     const now=game.time;
     for(const cell of this.cells){
-      if(cell.plan&&!cell.brokenUntil&&cell.members.some(e=>
+      if(cell.plan&&!cell.brokenUntil&&cell.members.some(e=>e!==cell.leader&&
         e._commsIntent?.planId===cell.plan.id&&
         e._commsIntent?.planPhase===cell.plan.phase&&
-        e._commsIntent?.at===now))cell.plan.confirmed=true;
+        e._commsIntent?.at===now)){
+        cell.plan.confirmed=true;
+        cell.plan.lastExecutedAt=now;
+      }
       const pending=cell.pendingDecision;
       if(!pending||now-pending.at>1.1){cell.pendingDecision=null;continue;}
       if(pending.mode!==cell.mode){cell.pendingDecision=null;continue;}
@@ -664,7 +689,9 @@ export class EnemyComms {
       if(pending.threat?.mesh)cell.lastReportedTactic='mesh:'+pending.threat.kind;
       if(!game.playerCanInterceptEnemyRadio?.(cell.leader)&&
         !game.playerCanInspectEnemyIntent?.(cell.leader))continue;
-      const message=pending.planPhase>0&&cell.plan?.id===pending.planId?
+      const message=pending.recovery&&pending.planPhase===0?
+        'Прежний манёвр сорвался. Сменить направление захода!':
+        pending.planPhase>0&&cell.plan?.id===pending.planId?
         squadPlanPhaseMessage(cell.plan):
         enemyOrderMessage(cell.mode,pending.threat??cell.threat);
       if(!message)continue;
@@ -709,7 +736,8 @@ export class EnemyComms {
        cell.plan&&(received.planId!==cell.plan.id||
          received.planPhase!==cell.plan.phase)))return null;
     const position=cell.members.indexOf(e);
-    return {mode:cell.mode,side:position%2?1:-1,
+    const flankSign=received?.flankSign||cell.plan?.flankSign||1;
+    return {mode:cell.mode,side:(position%2?1:-1)*flankSign,
       leader:cell.leader,intel:received?.intel||cell.intel,
       medic:cell.members.find(a=>a.type==='healer'&&a.hp>0)||null,
       // Recipients act on their own delivered threat snapshot. New reports
@@ -717,6 +745,7 @@ export class EnemyComms {
       threat:e===cell.leader?cell.threat:received.threat??null,
       planId:cell.plan?.id??null,
       planPhase:cell.plan?.phase??null,
+      flankSign,
       role:received?.role||squadRoleFor(cell.plan,e),
       objective:cell.plan?.goal||null};
   }
