@@ -7,7 +7,7 @@ import {mountContextualGuide} from './contextual-guide-ui.js?v=prototype-1-core-
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2-hud-merge-20261110';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1-hud-merge-20261110';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1-living-world-population-1-sector-density-2-hud-merge-20261110';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-zoomread-2-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1-flux-siphon-roads-1-early-density-20261110-convoy-variety-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-zoomread-2-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1-flux-siphon-roads-1-early-density-20261110-convoy-variety-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110';
 import {rememberPopulationShip} from './population-runtime.js?v=sector-density-2-frontier-siege-1-early-density-20261110-convoy-variety-20261110-pilot-value-2-hud-merge-20261110';
 import {frontierBarrierContact,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {SALVAGE,ruinEnemyIndustry,salvageQuote,claimRuinedIndustry} from './enemy-station-salvage.js?v=frontier-claim-1';
@@ -41,17 +41,18 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4-zoomread-2-territory-logistics-1';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26-redteam-20261109-1';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110';
-import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1-hud-merge-20261110-opening-evasion-20261110';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110';
+import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110';
 import {BASE_TURRET_GUN,advanceBaseTurretGun,drawBaseTurretWarnings} from './base-turret-gunnery.js';
-import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1-territory-logistics-1-flux-siphon-roads-1';
+import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1-territory-logistics-1-flux-siphon-roads-1-turret-defense-20261110';
+import {advanceTurretDefenses,drawTurretDefenses,turretShieldCapacity} from './turret-defense.js?v=turret-defense-20261110';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-ai-commander-20261110-enemy-operations-20261110-space-impact-20261110';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
-import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110';
+import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1-combat-balance-1';
 import {planEncounter,scheduledMoteSize,moteEncounterSize,MOTE_ENCOUNTER} from './encounters.js?v=arcade-balanced-bases-30-combat-hunt-20261109-shield-crowd-20261110-swarm-presence-20261110-opening-evasion-20261110';
-import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109-weapon-vfx-audit-1-corvette-20261110-1-pilot-value-2-opening-evasion-20261110';
+import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109-weapon-vfx-audit-1-corvette-20261110-1-pilot-value-2-opening-evasion-20261110-turret-defense-20261110';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
@@ -123,13 +124,13 @@ import {SIPHON_HIVE,FLUX_ROAD,hiveOffer,buildHive,hiveAt,hiveWorkers,hiveCargo,
  drawSiphonHives} from './flux-routes.js?v=flux-siphon-roads-1';
 import {FLUX_ARTILLERY,EDGE_SLOT_UPGRADES,ARTILLERY_UPGRADES,edgeTurretLimit,edgeTurretUpgradeOffer,upgradeEdgeTurretCapacity,artilleryUpgradeOffer,upgradeArtillery,
  artilleryAt,artilleryOffer,deployArtillery,maxArtilleryPreload,setArtilleryMode,
- advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-free-close-1-flux-siphon-roads-1-weapon-vfx-audit-1-corecharge-20261110';
+ advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-free-close-1-flux-siphon-roads-1-weapon-vfx-audit-1-corecharge-20261110-turret-defense-20261110';
 import {SUPPORT_TYPES,supportConfig,supportOffer,deploySupport,supportAt,
  setSupportMode,supportUpgradeOffer,upgradeSupport,
- advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-flux-siphon-roads-1-weapon-vfx-audit-1-corecharge-20261110';
+ advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-flux-siphon-roads-1-weapon-vfx-audit-1-corecharge-20261110-turret-defense-20261110';
 import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,turretCombatRadii,
  artilleryShotFlux,artilleryShotUnits,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
- buyTurretBranch,artilleryBarrels,hiveLimit} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1';
+ buyTurretBranch,artilleryBarrels,hiveLimit} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1-turret-defense-20261110';
 import {launchFluxSortie,advanceFluxSortie,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {recordIndustrialBreachHit,advanceIndustrialBreaches,INDUSTRIAL_BREACH} from './industrial-breach.js?v=territory-war-1-territory-war-1-breach-fix-1';
 import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from './contour-cover.js?v=territory-war-2-territory-war-1-topology-fix-1';
@@ -142,7 +143,7 @@ import {updateContourTrials,activateContourVortex,activeTrialCore} from './conto
 import {drawContourTrialHUD} from './contour-trial-vfx.js?v=swarm-siege-1-learning-hud-1-pressure-response-1-corecharge-20261110-core-pressure-20261110';
 import {drawBranchedInteraction} from './interaction-arcs.js?v=triangle-defense-1';
 import {updateRamSquads,drawRamSquads} from './ram-squads.js?v=triangle-defense-1';
-import {TURRET_REPAIR,repairableTurret,turretRepairQuote,repairTurret} from './turret-repair.js?v=triangle-defense-1-turret-audit-1';
+import {TURRET_REPAIR,repairableTurret,turretNeedsRepair,turretRepairQuote,repairTurret} from './turret-repair.js?v=triangle-defense-1-turret-audit-1-turret-defense-20261110';
 import {drawContourIrisCharge} from './contour-trial-iris.js?v=contour-counterattack-1-pressure-1';
 
 const $=id=>document.getElementById(id);
@@ -597,6 +598,10 @@ export class ArcadeGame {
    (turret.kind==='flux-artillery'&&turret.stockpile?' · запас '+
     (turret.stockpile*FLUX_ARTILLERY.chargeCost).toFixed(2)+' флюкса':'')+
    (turret.kind==='flux-artillery'?' · ближняя защита от тарана: без расхода флюкса и снарядов':'')+
+   ' · корпус '+Math.ceil(turret.hp)+'/'+turret.maxHp+
+   ' · экран '+Math.ceil(turret.shield??0)+'/'+turretShieldCapacity(turret)+
+   (turret._defensePowered===false?' · сеть обесточена':'')+
+   (turret.hp<turret.maxHp*.6?' · ремонт удержанием E рядом с турелью':'')+
    (turret.kind==='flux-artillery'?' · стволов '+artilleryBarrels(turret):'')+
    (turret.kind==='flux-artillery'?' · полный залп '+artillerySalvoSize(turret)+' '+
     (artillerySalvoSize(turret)>=5?'снарядов':'снаряда')+
@@ -3547,7 +3552,8 @@ export class ArcadeGame {
    fieldAt(this.world,entry.x,entry.y));
   if(vortex)return {kind:'vortex',target:vortex,label:'Зарядить ядро',hold:true};
   const wreck=repairableTurret(this.world,this.player);
-  if(wreck)return {kind:'turret-repair',target:wreck,label:'Восстановить турель',hold:true};
+  if(wreck)return {kind:'turret-repair',target:wreck,
+   label:wreck.hp>0?'Починить турель':'Восстановить турель',hold:true};
   const ruin=this.world.nearbyStations(this.player.x,this.player.y,SALVAGE.range+25,true)
    .filter(b=>b.ruined&&dist(this.player,b)<=SALVAGE.range)
    .sort((a,b)=>dist(this.player,a)-dist(this.player,b))[0];
@@ -3608,7 +3614,8 @@ export class ArcadeGame {
     focus.kind==='opening-repair'?'Удерживать для эвакуации капсулы':
     ['field-work','relay-prep'].includes(focus.kind)?'Удерживать для действия: '+focus.label:
     focus.kind==='vortex'?'Удерживать для зарядки ядра; прогресс сохраняется':
-    focus.kind==='turret-repair'?'Удерживать для восстановления турели':
+    focus.kind==='turret-repair'?(focus.target?.hp>0?
+     'Удерживать для ремонта повреждённой турели':'Удерживать для восстановления турели'):
     focus.kind==='ruin-claim'?'Удерживать для восстановления разрушенной станции':
     focus.kind==='repair'?'Удерживать для ремонта зонда':'Удерживать для добычи'):'Нет объектов для взаимодействия');
   }
@@ -3700,7 +3707,7 @@ export class ArcadeGame {
    (held.kind==='vortex'&&
     (held.target?.status==='ready'||activeTrialCore(this,held.target))?{kind:'vortex',target:held.target,
     label:'Запуск воронки'}:
-    held.kind==='turret-repair'&&held.target?.hp<=0?{kind:'turret-repair',target:held.target,
+    held.kind==='turret-repair'&&turretNeedsRepair(held.target)?{kind:'turret-repair',target:held.target,
      label:'Ремонт турели'}:
     held.kind==='ruin-claim'&&held.target?.ruined?{kind:'ruin-claim',target:held.target,
      label:'Захват руин'}:
@@ -5471,7 +5478,7 @@ export class ArcadeGame {
   }
   if(this.actionHeld?.kind==='turret-repair'){
    const tower=this.actionHeld.target;
-   if(tower.hp>0||dist(p,tower)>TURRET_REPAIR.range){
+   if(!turretNeedsRepair(tower)||dist(p,tower)>TURRET_REPAIR.range){
     this.endInteraction();
    }else{
     this.actionHeld.progress+=dt;
@@ -5481,7 +5488,8 @@ export class ArcadeGame {
      if(outcome.ok){
       this.heritage?.play?.('supportUpgrade',.7,tower);
       this.heritage?.vfx?.nova?.(tower.x,tower.y,90,'cyan');
-      this.notice('Турель восстановлена · −'+outcome.ore+' сплава · −'+outcome.flux+' флюкса.',4);
+      this.notice((outcome.destroyed?'Турель восстановлена':'Турель отремонтирована')+
+       ' · −'+outcome.ore+' сплава · −'+outcome.flux+' флюкса.',4);
      }else this.notice(outcome.reason,3);
     }
    }
@@ -5625,6 +5633,7 @@ export class ArcadeGame {
   advanceFluxRoads(this.world,this.time,dt);
   advanceFluxArtillery(this,dt);
   advanceFluxSupports(this,dt);
+  advanceTurretDefenses(this,dt);
   for(const s of this.shots){
    if(!s.alive)continue;
    const oldShotX=s.x,oldShotY=s.y;
@@ -6252,6 +6261,7 @@ export class ArcadeGame {
   drawFluxSupports(c,this,cam,this.buildPlanning?.stage==='place'&&
    SUPPORT_TYPES[this.buildPlanning.type]?{
    point:this.buildPlanning.point,player:this.player,type:this.buildPlanning.type}:null);
+  drawTurretDefenses(c,this,cam);
   drawRamSquads(c,this);
   drawRailSweep(c,this);
   this.heritage.vfx.render(c,'back',

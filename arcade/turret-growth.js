@@ -23,7 +23,9 @@ export const TURRET_GROWTH=Object.freeze({
     ['Дальняя коррекция · ещё +0,25',56,9],
     ['Ударная ракета · ещё +0,50',85,15]]},
   anomaly:{name:'Экспериментальный заряд',summary:'Ионный удар, затем ложные цели и срыв строя.',
-   levels:[['Ионный след',30,5],['Рой помех',46,8],['Контурный разряд',66,12]]}
+   levels:[['Ионный след',30,5],['Рой помех',46,8],['Контурный разряд',66,12]]},
+  fortify:{name:'Защита установки',summary:'Усиленный экран, перехват обычных снарядов и ремонтные сифоны. Тяжёлые осадные заряды не перехватываются.',
+   levels:[['Противоснарядный перехват',21,3],['Ремонтные сифоны',33,5],['Защитный узел',49,8]]}
  }},
  arc:{name:'Цепной разрядник',branches:{
   chain:{name:'Цепь разрядов',summary:'Разряд поражает больше соседних целей.',
@@ -35,7 +37,9 @@ export const TURRET_GROWTH=Object.freeze({
   reach:{name:'Дальность разряда',summary:'Первая цель может находиться дальше; электрическая цепь по-прежнему перескакивает между соседями.',
    levels:[['Длинная дуга',22,3],['Дальняя катушка',34,5],['Грозовой проводник',49,8]]},
   anomaly:{name:'Возвратный разряд',summary:'Заряд отскакивает к плотному рою и наносит добавочный урон.',
-   levels:[['Усилитель потенциала',22,3],['Отражение',37,6],['Грозовой узел',54,9]]}
+   levels:[['Усилитель потенциала',22,3],['Отражение',37,6],['Грозовой узел',54,9]]},
+  fortify:{name:'Защита установки',summary:'Усиленный экран и восстановление корпуса после боя.',
+   levels:[['Полевой экран',19,3],['Ремонтные сифоны',30,5],['Усиленный корпус',45,8]]}
  }},
  laser:{name:'Лазерное гнездо',branches:{
   emitters:{name:'Излучатели',summary:'Больше параллельных лучей, каждый расходует заряд.',
@@ -45,17 +49,22 @@ export const TURRET_GROWTH=Object.freeze({
   reach:{name:'Оптическая фокусировка',summary:'Увеличивает дальность, но край остаётся слабым.',
    levels:[['Узкий луч',21,3],['Линза',33,5],['Дальний контур',48,8]]},
   anomaly:{name:'Тепловой резонанс',summary:'Повторные попадания создают взрывной перегрев цели.',
-   levels:[['Горячая метка',23,3],['Резонанс',37,6],['Цепная вспышка',54,9]]}
+   levels:[['Горячая метка',23,3],['Резонанс',37,6],['Цепная вспышка',54,9]]},
+  fortify:{name:'Защита установки',summary:'Усиленный экран и восстановление корпуса после боя.',
+   levels:[['Полевой экран',20,3],['Ремонтные сифоны',32,5],['Защитный узел',47,8]]}
  }},
  hive:{name:'Дроновая матка',branches:{
   squad:{name:'Численность роя',summary:'Больше настоящих сбиваемых дронов, каждый стоит флюкс.',
-   levels:[['Третий дрон',23,3],['Четвёртый',34,5],['Пятый',48,7],['Шестой',66,10]]},
+   levels:[['Четырнадцать микродронов',23,3],['Шестнадцать',34,5],
+    ['Восемнадцать',48,7],['Девятнадцать',56,9],['Двадцать',66,10]]},
   reach:{name:'Радиус вылета',summary:'Дроны прикрывают больше пространства вокруг матки.',
    levels:[['Расширенный патруль',20,3],['Дальний вылет',32,5],['Передовой рой',46,7]]},
   hull:{name:'Броня дронов',summary:'Дроны живут дольше под ответным огнём.',
    levels:[['Каркас',20,3],['Экранирование',34,5],['Живучий рой',49,8]]},
   anomaly:{name:'Тактический рой',summary:'Приманка для вражеских кораблей, затем замедление их двигателей.',
-   levels:[['Ложная цель',23,4],['Помеховое облако',38,6],['Срыв тяги',58,10]]}
+   levels:[['Ложная цель',23,4],['Помеховое облако',38,6],['Срыв тяги',58,10]]},
+  fortify:{name:'Защита матки',summary:'Усиленный экран матки и её ремонтные сифоны.',
+   levels:[['Экран матки',24,3],['Ремонтные сифоны',36,5],['Усиленный корпус',54,9]]}
  }}
 });
 export const turretGrowthType=t=>t?.kind==='flux-artillery'?'artillery':
@@ -84,7 +93,13 @@ export function buyTurretBranch(world,player,t,key,time=0){
  const quote=turretBranchOffer(world,player,t,key,time);
  if(!quote.ok)return quote;
  player.ore-=quote.ore;world.contours.flux=Math.max(0,world.contours.flux-quote.flux);
+ const oldFortify=turretBranchRank(t,'fortify');
  t.branches??={};t.branches[key]=quote.rank;
+ if(key==='fortify'&&Number.isFinite(t.shield)){
+  const former=Math.round(t.maxHp*(.34+.11*oldFortify)),
+   capacity=Math.round(t.maxHp*(.34+.11*quote.rank));
+  t.shield=Math.min(capacity,t.shield+capacity-former);
+ }
  if(t.type==='hive'&&key==='hull'){
   const newMax=hiveArmor(t);
   for(const drone of t.drones||[]){
@@ -101,6 +116,16 @@ export function validTurretBranches(t){
   Object.keys(t.branches).every(key=>!!cfg.branches[key]&&
    Number.isInteger(t.branches[key])&&t.branches[key]>=0&&
    t.branches[key]<=cfg.branches[key].levels.length);
+}
+// Optional in older checkpoints. Refuse malformed shield/repair state instead
+// of letting a forged NaN silently bypass collision or persist forever.
+export function validTurretProtection(t){
+ const cap=Math.round((t.maxHp||0)*(.34+.11*turretBranchRank(t,'fortify')));
+ return (t.shield===undefined||Number.isFinite(t.shield)&&t.shield>=0&&t.shield<=cap+.001)&&
+  (t.lastTurretHitAt===undefined||Number.isFinite(t.lastTurretHitAt)&&
+   t.lastTurretHitAt>=0&&t.lastTurretHitAt<1e9)&&
+  (t.nextInterceptAt===undefined||Number.isFinite(t.nextInterceptAt)&&
+   t.nextInterceptAt>=0&&t.nextInterceptAt<1e9);
 }
 export const artilleryBarrels=t=>[1,2,3,4,6,10][turretBranchRank(t,'salvo')]||1;
 export const artilleryCooldown=t=>[8,6.8,5.7,4.7,4][turretBranchRank(t,'tempo')]||8;
@@ -126,9 +151,9 @@ export const laserEmitters=t=>Math.max(t?.level>=2?2:1,[1,2,3,4,6][turretBranchR
 export const laserCooldown=t=>[2.2,1.9,1.65,1.4][turretBranchRank(t,'tempo')]||2.2;
 export const laserBurst=t=>[8,10,13,16][turretBranchRank(t,'tempo')]||8;
 export const laserRange=t=>[440,490,550,620][turretBranchRank(t,'reach')]||440;
-export const hiveLimit=t=>Math.max(Math.min(4,t?.level+1||2),[2,3,4,5,6][turretBranchRank(t,'squad')]||2);
+export const hiveLimit=t=>[12,14,16,18,19,20][turretBranchRank(t,'squad')]||12;
 export const hiveRange=t=>260+(t?.level-1||0)*85+[0,75,145,220][turretBranchRank(t,'reach')];
-export const hiveArmor=t=>[28,39,52,70][turretBranchRank(t,'hull')]||28;
+export const hiveArmor=t=>[12,16,22,30][turretBranchRank(t,'hull')]||12;
 export function turretCombatRadii(t){
  switch(turretGrowthType(t)){
   case 'artillery':return {range:artilleryRange(t),blast:artilleryBlast(t)};

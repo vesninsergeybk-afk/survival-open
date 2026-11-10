@@ -40,7 +40,8 @@ test('all four structures have real, separately purchasable paths including rang
    deployArtillery(pack.world,pack.player,pack.point,0).turret:
    deploySupport(pack.world,pack.player,pack.point,0,type).turret;
   const branches=turretGrowthRows(t);
-  assert.equal(branches.length,type==='artillery'?7:type==='arc'?5:4,type);
+  assert.equal(branches.length,type==='artillery'?8:type==='arc'?6:5,type);
+  assert.ok(branches.some(b=>b.key==='fortify'),'all mounts can reinforce their hulls');
   const first=branches[0],ore=pack.player.ore,flux=pack.world.contours.flux;
   assert.match(turretBranchOffer(pack.world,pack.player,t,first.key,0).reason,/строительства/);
   const paid=buyTurretBranch(pack.world,pack.player,t,first.key,5);
@@ -231,18 +232,18 @@ test('laser keeps visible gradient and burns through six real charges per expand
  assert.equal(validFluxSupports(world.contours),true);
 });
 
-test('mothership grows a six-drone, armored, long-range squad supplied with flux',()=>{
+test('mothership grows a twenty-drone, armored, long-range squad supplied with flux',()=>{
  const pack=fixture(),{world,player,game,point}=pack;
  const t=deploySupport(world,player,point,0,'hive').turret;
  for(const key of ['squad','reach','hull','anomaly'])buyAll(pack,t,key);
- assert.equal(hiveLimit(t),6);assert.equal(hiveArmor(t),70);
+ assert.equal(hiveLimit(t),20);assert.equal(hiveArmor(t),30);
  assert.equal(hiveRange(t),480);
  t.readyAt=0;
  for(let time=1;time<=600;time++){
   game.time=time;advanceFluxSupports(game,1);
  }
- assert.equal(t.drones.filter(x=>x.hp>0).length,6);
- assert.ok(t.drones.every(x=>x.maxHp===70));
+ assert.equal(t.drones.filter(x=>x.hp>0).length,20);
+ assert.ok(t.drones.every(x=>x.maxHp===30&&x.r===6));
  assert.equal(validFluxSupports(world.contours),true);
 });
 

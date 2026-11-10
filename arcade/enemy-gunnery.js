@@ -20,6 +20,10 @@ export const ENEMY_GUNNERY=Object.freeze({
     damage:5,shots:3,gap:.19,spread:.15,kind:'gunship-flak'}),
   lance:Object.freeze({range:500,charge:1.25,reload:4.6,
     damage:13,kind:'gunship-lance'}),
+  // Anti-emplacement shell: a clearly telegraphed, single direct hit. It
+  // replaces the capital gun's regular cycle, never adds a bonus barrage.
+  siege:Object.freeze({range:515,charge:1.4,reload:6.8,speed:300,
+    damage:22,kind:'siege-bolt'}),
   cellSpacing:.62,globalSpacing:.23,maxWarnings:4,
   // A crowded cell must not prepare more live shots than the low-FPS renderer
   // can telegraph. Queued pilots retain their normal reload and take turns.
@@ -60,6 +64,18 @@ function closeBatteryAvailable(e,game,target){
  // At high zoom the corvette must be visible before its short charge begins.
  return !cam||e.x>=cam.x+12&&e.x<=cam.x+cam.w-12&&
    e.y>=cam.y+12&&e.y<=cam.y+cam.h-12;
+}
+function siegeAvailable(e,game,target){
+ if(e?.type!=='gunship'||!['flux-artillery','flux-support'].includes(target?.kind)||
+    !target?.hp||game.time<185||(e._gunCycle||0)%3!==0||
+    game.time<(game._enemySiegeNextAt||0)||
+    distance(e,target)>ENEMY_GUNNERY.siege.range||
+    distance(game.player,target)>850)return false;
+ // Only a visible gunship may charge a heavy shell: the player has a fair
+ // chance to shoot it down or abandon the contested emplacement.
+ const cam=game.camera?.();
+ return !cam||e.x>=cam.x+15&&e.x<=cam.x+cam.w-15&&
+  e.y>=cam.y+15&&e.y<=cam.y+cam.h-15;
 }
 
 function fireBolt(e,game,profile,aim,index=0){
@@ -106,6 +122,7 @@ export function updateEnemyGunnery(e,game,target){
   const now=game?.time,profile=e?._gunAiming?.profile||
    (closeBatteryAvailable(e,game,target)?
     ENEMY_GUNNERY.pointDefense:
+    e&&game&&siegeAvailable(e,game,target)?ENEMY_GUNNERY.siege:
     e&&game&&lanceAvailable(e,game,target)?ENEMY_GUNNERY.lance:
     gunProfile(e?.type,now,e?.weaponVariant));
   if(!profile||!Number.isFinite(now))return false;
@@ -167,6 +184,10 @@ export function updateEnemyGunnery(e,game,target){
      !closeBatteryAvailable(e,game,target)){
     e._gunAiming=null;e._gunNextAt=now+.55;return false;
   }
+  if(aim?.profile?.kind==='siege-bolt'&&
+     !siegeAvailable(e,game,target)){
+    e._gunAiming=null;e._gunNextAt=now+.55;return false;
+  }
   if(!aim){
     if(now<e._gunNextAt)return false;
     // At low frame rates only two aiming rays are painted. Charging seven
@@ -185,6 +206,13 @@ export function updateEnemyGunnery(e,game,target){
       started:now,until:now+profile.charge,target,profile,
       ...(profile.kind==='gunship-lance'?{originX:e.x,originY:e.y}:{})};
     if(profile.kind==='gunship-lance')game.heritage?.play?.('ramWarning',.65,e);
+    else if(profile.kind==='siege-bolt'){
+      game.heritage?.play?.('ramWarning',.42,e);
+      if(now>=(game._siegeAlertUntil||0)){
+       game.notice?.('ОСАДНОЕ ОРУДИЕ · корвет наводится на вашу турель!',4);
+       game._siegeAlertUntil=now+13;
+      }
+    }
     else if(profile.kind==='flanker-impulse')game.heritage?.play?.('ramWarning',.42,e);
     return false;
   }
@@ -208,6 +236,7 @@ export function updateEnemyGunnery(e,game,target){
   if(now<(game._enemyRegularVolleyAt||0))return false;
   const fired=profile.kind==='gunship-lance'?
     fireLance(e,game,profile,aim,target):fireBolt(e,game,profile,aim,0);
+  if(fired&&profile.kind==='siege-bolt')game._enemySiegeNextAt=now+8.5;
   // Only main-gun cycles advance the alternation with the heavy lance.
   if(fired&&e.type==='gunship'&&profile.kind!=='gunship-flak')
     e._gunCycle=(e._gunCycle||0)+1;
@@ -245,15 +274,21 @@ export function drawEnemyGunWarnings(ctx,game,cam,fps=60){
     const progress=clamp((game.time-aim.started)/profile.charge,0,1);
     const close=profile.kind==='gunship-flak';
     const impulse=profile.kind==='flanker-impulse';
-    const tint=impulse?'#ff7b8b':close?'#ffc271':e.type==='fighter'?'#ffab75':
+    const siege=profile.kind==='siege-bolt';
+    const tint=siege?'#ffce64':impulse?'#ff7b8b':close?'#ffc271':e.type==='fighter'?'#ffab75':
       e.type==='gunship'?'#ff6554':'#d0a1ff';
     const beam=profile.kind==='gunship-lance';
     ctx.save();ctx.strokeStyle=tint;ctx.lineWidth=beam?2.5+progress*3.2:
       impulse?2+progress*1.6:1.15+progress*.85;
     ctx.globalAlpha=.32+progress*.47;
-    ctx.setLineDash(beam?[10,6]:impulse?[8,5]:[4,7]);ctx.beginPath();ctx.moveTo(e.x,e.y);
+    ctx.setLineDash(beam?[10,6]:siege?[12,5]:impulse?[8,5]:[4,7]);ctx.beginPath();ctx.moveTo(e.x,e.y);
     ctx.lineTo(aim.x,aim.y);ctx.stroke();ctx.setLineDash([]);
     ctx.beginPath();ctx.arc(aim.x,aim.y,7+progress*4,0,Math.PI*2);ctx.stroke();
+    if(siege){
+      ctx.beginPath();ctx.arc(aim.x,aim.y,17+progress*6,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle=tint;ctx.font='bold 10px system-ui';ctx.textAlign='center';
+      ctx.fillText('ОСАДНЫЙ ВЫСТРЕЛ',aim.x,aim.y-29,160);
+    }
     if(impulse){
       ctx.beginPath();ctx.arc(e.x,e.y,(e.r||14)+8+progress*6,0,Math.PI*2);ctx.stroke();
     }

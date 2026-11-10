@@ -42,6 +42,27 @@ test('a fighter commits to a warning point; a dodge does not retarget its shot',
   assert.equal(updateEnemyGunnery(e,game,game.player),false,
     'no burst can bypass the individual reload');
 });
+test('late corvette warns before a visible anti-turret shell; the shell replaces a cannon cycle',()=>{
+ const e=ship('gunship',12),game=scene([e]);
+ const turret={kind:'flux-artillery',x:0,y:0,r:38,hp:110,maxHp:110};
+ game.time=190;game.player.x=50;game.player.y=0;
+ game.camera=()=>({x:-130,y:-100,w:700,h:450});
+ game.notice=message=>{game.noticeText=message;};e._gunNextAt=0;
+ assert.equal(updateEnemyGunnery(e,game,turret),false);
+ assert.equal(e._gunAiming?.profile?.kind,'siege-bolt');
+ assert.match(game.noticeText,/ОСАДНОЕ ОРУДИЕ/);
+ game.time=191.5;
+ assert.equal(updateEnemyGunnery(e,game,turret),true);
+ assert.equal(game.shots.length,1);
+ assert.equal(game.shots[0].options.kind,'siege-bolt');
+ assert.equal(game.shots[0].damage,22);
+ assert.ok(game._enemySiegeNextAt>game.time);
+ assert.equal(e._gunCycle,1);
+ // Without a visible gunship the special shell cannot be charged.
+ e.x=950;e._gunCycle=0;e._gunNextAt=0;game.time=205;
+ updateEnemyGunnery(e,game,turret);
+ assert.notEqual(e._gunAiming?.profile?.kind,'siege-bolt');
+});
 test('rare impulse is warned, locked, stronger, and cannot fire from outside the camera',()=>{
  const e=ship('flanker',21),game=scene([e]);
  e.weaponVariant='impulse';e._enemyLearningSaw=true;e._gunNextAt=0;

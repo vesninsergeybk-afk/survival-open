@@ -1,4 +1,5 @@
 import {contactOnCircle} from './impact-geometry.js?v=arcade-impact-51';
+import {damageFriendlyTurret} from './turret-defense.js?v=turret-defense-20261110';
 
 /** Resolve an enemy bolt against both kinds of friendly ships. The game
  * processes asteroid cover first; a single bolt can hit at most one hull. */
@@ -37,9 +38,11 @@ export function hitFriendlyShip(game,shot){
   for(const turret of game.world?.contours?.artillery||[]){
     if(turret.hp<=0||game.time<turret.readyAt||
       Math.hypot(shot.x-turret.x,shot.y-turret.y)>=shot.r+turret.r)continue;
-    shot.alive=false;turret.hp=Math.max(0,turret.hp-shot.damage);
+    shot.alive=false;
+    const impact=damageFriendlyTurret(game,turret,shot);
     const point=contactOnCircle(turret.x,turret.y,turret.r,shot.x,shot.y);
-    if(turret.hp<=0){
+    if(impact.intercepted)return true;
+    if(impact.destroyed){
       game.heritage?.vfx?.shipExplosion?.(turret.x,turret.y,40,'#ffae6e');
       game.heritage?.play?.('artilleryDestroyed',.8,turret);
     }else{
@@ -63,9 +66,11 @@ export function hitFriendlyShip(game,shot){
       return true;
     }
     if(Math.hypot(shot.x-turret.x,shot.y-turret.y)>=shot.r+turret.r)continue;
-    shot.alive=false;turret.hp=Math.max(0,turret.hp-shot.damage);
+    shot.alive=false;
+    const impact=damageFriendlyTurret(game,turret,shot);
     const point=contactOnCircle(turret.x,turret.y,turret.r,shot.x,shot.y);
-    if(turret.hp<=0){
+    if(impact.intercepted)return true;
+    if(impact.destroyed){
       game.heritage?.vfx?.shipExplosion?.(turret.x,turret.y,40,'#ffa87e');
       game.heritage?.play?.('supportDestroyed',.8,turret);
     }else{

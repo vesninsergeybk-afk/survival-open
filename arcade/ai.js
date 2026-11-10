@@ -11,11 +11,12 @@ import {contourIrisDirective,contourIrisRushContacts} from './contour-trial-iris
 import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2-trial-focus-1-pressure-response-1-combat-balance-1';
 import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-ai-commander-20261110-enemy-operations-20261110-space-impact-20261110';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1-ai-commander-20261110';
-import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1-opening-evasion-20261110';
+import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1-opening-evasion-20261110-turret-defense-20261110';
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {moveMote} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-opening-evasion-20261110';
-import {turretBranchRank} from './turret-growth.js';
+import {turretBranchRank} from './turret-growth.js?v=turret-defense-20261110';
+import {damageFriendlyTurret} from './turret-defense.js?v=turret-defense-20261110';
 import {updateLastStand} from './enemy-last-stand.js?v=redteam-20261109-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
@@ -185,7 +186,8 @@ export function turretDistractionTarget(e,game){
   }
   for(const hive of game.world?.contours?.supportTurrets||[]){
     const lure=turretBranchRank(hive,'anomaly');
-    if(hive.type!=='hive'||hive.hp<=0||lure<1||game.time<hive.readyAt)continue;
+    if(hive.type!=='hive'||hive.hp<=0||lure<1||game.time<hive.readyAt||
+       dist(e,hive)>470)continue;
     for(const drone of hive.drones||[]){
       if(drone.hp<=0)continue;
       const range=dist(e,drone);
@@ -249,11 +251,15 @@ const pickTarget=(e,game)=>{
   if(target===game.player&&e.type!=='healer'&&!e.relayAssault&&!e.stationRaid){
     let closest=Infinity,nearest=null;
     for(const platform of game.world?.contours?.supportTurrets||[]){
-      if(platform.hp<=0||game.time<platform.readyAt)continue;
+      if(platform.hp<=0||game.time<platform.readyAt||dist(e,platform)>450)continue;
       const active=platform.type==='hive'&&platform.drones?.some(dr=>dr.hp>0)||
         game.time-platform.lastShotAt<9;
       if(!active)continue;
-      for(const unit of [platform,...(platform.type==='hive'?(platform.drones||[]):[])]){
+      // Scouts and fighters can thin a drone screen. A capital ship instead
+      // targets the carrier itself with its anti-emplacement weapon.
+      const units=platform.type==='hive'&&e.type!=='gunship'?
+       [platform,...(platform.drones||[])]:[platform];
+      for(const unit of units){
         if(unit.hp<=0)continue;
         const distance=dist(e,unit);
         if(distance<420&&distance<closest&&game.enemyCanSee?.(e,unit)){
@@ -330,7 +336,9 @@ export function updateEnemy(e,game,dt){
       {x:avoid.x*speed*(charge?.14:.6),y:avoid.y*speed*(charge?.14:.6)});
     e._commsIntent={x:target.x,y:target.y,mode:charge?'ram-charge':'ram-rally',at:game.time};
     if(charge&&dist(e,target)<e.r+(target.r||30)+4){
-      target.hp=Math.max(0,target.hp-e.damage*1.4);
+      if(['flux-artillery','flux-support'].includes(target.kind))
+        damageFriendlyTurret(game,target,{damage:e.damage*1.4,kind:'ram',x:e.x,y:e.y});
+      else target.hp=Math.max(0,target.hp-e.damage*1.4);
       e.hp=0;e.expAwarded=true;
       game.heritage?.vfx?.shipExplosion?.(e.x,e.y,18,'#ff8759');
       if(target.hp<=0)game.heritage?.vfx?.shipExplosion?.(target.x,target.y,25,'#9aefff');

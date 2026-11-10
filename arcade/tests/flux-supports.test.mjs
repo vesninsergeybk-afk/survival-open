@@ -184,22 +184,21 @@ test('selected support turrets draw their actual range, including an upgraded dr
  assert.ok(radii.includes(335));
 });
 
-test('mothership launches one prepaid drone, makes replacements for flux and drones can be destroyed',()=>{
+test('mothership immediately launches twelve fragile drones and replaces losses with paid flux',()=>{
  const {world,player,point,game}=fixture();
  const hive=deploySupport(world,player,point,0,'hive').turret;
  game.time=5;advanceFluxSupports(game,1);
- assert.equal(hive.drones.filter(d=>d.hp>0).length,1);
+ assert.equal(hive.drones.filter(d=>d.hp>0).length,12);
+ assert.ok(hive.drones.every(d=>d.r===6&&d.hp===12));
  const initialFlux=world.contours.flux;
- tick(game,6,145);
- assert.ok(hive.drones.filter(d=>d.hp>0).length>=2,'a paid reinforcement arrived');
- assert.ok(world.contours.flux<initialFlux-2,'additional drones spend flux');
  const old=hive.drones.find(d=>d.hp>0);
  const shot={x:old.x,y:old.y,r:5,damage:30,alive:true};
  assert.ok(hitFriendlyShip(game,shot));
  assert.equal(old.hp,0);assert.equal(shot.alive,false);
  assert.equal(validFluxSupports(world.contours),true);
- tick(game,146,265);
- assert.ok(hive.drones.filter(d=>d.hp>0).length>=2,'destroyed drone replaced');
+ tick(game,6,145);
+ assert.equal(hive.drones.filter(d=>d.hp>0).length,12,'destroyed microdrone replaced');
+ assert.ok(world.contours.flux<initialFlux-.5,'a replacement costs real flux');
  const level=upgradeSupport(world,player,hive,game.time);
  assert.equal(level.level,2);
  assert.equal(upgradeSupport(world,player,hive,game.time).level,3);
@@ -207,11 +206,25 @@ test('mothership launches one prepaid drone, makes replacements for flux and dro
  assert.equal(validFluxSupports(world.contours),true);
 });
 
+test('twelve microdrones split between nearby threats without multiplying old hive damage',()=>{
+ const {world,player,point,game}=fixture();
+ const hive=deploySupport(world,player,point,0,'hive').turret;
+ game.enemies=[0,1,2].map(i=>({x:point.x+42+i*46,y:point.y+i*27,
+  hp:1000,maxHp:1000,r:15,type:'fighter'}));
+ for(let t=5;t<=15+.00001;t+=.1){game.time=t;advanceFluxSupports(game,.1);}
+ assert.equal(hive.drones.filter(x=>x.hp>0).length,12);
+ const hitTargets=new Set(game.hits.map(hit=>hit.e));
+ assert.ok(hitTargets.size>=2,'separate wings should cover more than one threat');
+ const total=game.hits.reduce((sum,hit)=>sum+hit.amount,0);
+ assert.ok(total>15&&total<100,`a 12-drone nest must not become a sixfold DPS exploit: ${total}`);
+ assert.equal(validFluxSupports(world.contours),true);
+});
+
 test('destroying a mothership disables every surviving drone instead of leaving untargetable ghosts',()=>{
  const {world,player,point,game}=fixture();
  const hive=deploySupport(world,player,point,0,'hive').turret;
  game.time=5;advanceFluxSupports(game,.25);
- assert.equal(hive.drones.filter(d=>d.hp>0).length,1);
+ assert.equal(hive.drones.filter(d=>d.hp>0).length,12);
  hive.hp=0;game.time=5.1;advanceFluxSupports(game,.1);
  assert.equal(hive.drones.filter(d=>d.hp>0).length,0);
  assert.equal(hive.lastDestroyedAt,5.1);

@@ -5,7 +5,7 @@ import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-log
 import {artilleryBarrels,artilleryCooldown,artilleryBlast,artilleryRange,artillerySupply,
  artilleryShotUnits,artilleryShellDamage,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
  ARTILLERY_BASE_FLUX_PER_MINUTE,turretBranchRank,
- validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1';
+ validTurretBranches,validTurretProtection} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1-turret-defense-20261110';
 
 // A field emplacement is ammunition-fed, not another player ship. The pilot
 // must finish the first territorial trial before any emplacement is available.
@@ -925,7 +925,7 @@ export function validFluxArtillery(state){
     !finite(t.hp,0,FLUX_ARTILLERY.maxHp)||t.maxHp!==FLUX_ARTILLERY.maxHp||
     !Number.isInteger(t.ammo)||t.ammo<0||t.ammo>artilleryMagazine(t)||
     (t.stockpile!==undefined&&(!Number.isSafeInteger(t.stockpile)||t.stockpile<0||t.stockpile>1000000))||
-    !ARTILLERY_MODES.includes(t.mode)||!validTurretBranches(t)||
+    !ARTILLERY_MODES.includes(t.mode)||!validTurretBranches(t)||!validTurretProtection(t)||
     !finite(t.chargeCredit,0,1.00001)||
     !finite(t.readyAt)||!finite(t.nextShotAt)||!finite(t.aimingUntil)||
     !finite(t.aimX,-1e9)||!finite(t.aimY,-1e9)||

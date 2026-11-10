@@ -1,9 +1,9 @@
 import {artilleryLinks,artilleryConnection,edgeTurretOccupancy,edgeTurretLimit,ARTILLERY_MODES,FLUX_ARTILLERY,
- turnArtilleryGun} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-corecharge-20261110';
+ turnArtilleryGun} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-corecharge-20261110-turret-defense-20261110';
 import {frontierBuoysNear,damageFrontierBuoy} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {arcChainCount,arcRange,arcCooldown,arcSlowSeconds,laserEmitters,laserCooldown,
  laserBurst,laserRange,hiveLimit,hiveRange,hiveArmor,supportSupply,turretBranchRank,
- validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1';
+ validTurretBranches,validTurretProtection} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1-turret-defense-20261110';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {hasPoweredContour} from './contour-trials.js';
@@ -18,8 +18,8 @@ export const SUPPORT_TYPES=Object.freeze({
   buildSeconds:3.4,range:440,magazine:10,chargeCost:.20,fluxPerMinute:9.6,
   cooldown:2.2,damage:3.6,capacity:1,color:'#ff9762'}),
  hive:Object.freeze({name:'Дроновая матка',oreCost:32,fluxCost:4,maxHp:125,r:43,
-  buildSeconds:4.3,range:320,magazine:0,chargeCost:2.5,fluxPerMinute:4.6,
-  cooldown:1.45,damage:5.5,capacity:2,color:'#70e7be'})
+  buildSeconds:4.3,range:320,magazine:0,chargeCost:.55,fluxPerMinute:9.5,
+  cooldown:2.1,damage:1.3,capacity:12,color:'#70e7be'})
 });
 export const SUPPORT_MAX=60, SUPPORT_PACKET_MAX=256;
 const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -82,7 +82,7 @@ export function deploySupport(world,player,point,time,type){
   chargeCredit:0,readyAt:time+cfg.buildSeconds,nextShotAt:time,
   lastShotAt:-1,lastChargeAt:-1,lastDestroyedAt:-1,gunAngle:-Math.PI/2,
   aimX:point.x,aimY:point.y,burstLeft:0,burstAt:0,
-  initialReady:false,drones:[],branches:{}};
+  initialReady:false,drones:[],droneSchema:2,branches:{}};
  s.supportTurrets.push(turret);return {ok:true,turret,connection:offer.connection};
 }
 export function supportAt(world,point,radius=49){
@@ -164,7 +164,9 @@ function chooseTarget(game,origin,range,mode='smart'){
   const value=mode==='weak'?-hp-dist*.02:
    mode==='strong'?maxHp-dist*.04:
    mode==='group'?cluster*75-dist*.06:
-   cluster*24+Math.min(130,maxHp)*.17-dist*.08;
+   cluster*24+Math.min(130,maxHp)*.17-dist*.08+
+    (target.kind==='enemy'&&origin.type!=='hive'&&dist<260&&
+     (o._gunAiming?.target===origin||o.target===origin)?320:0);
   if(value>score){score=value;best=target;}
  }
  supportTargetCache.set(origin,{at:now,range,mode,enemies:game.enemies,
@@ -193,9 +195,27 @@ function createDrone(t,time){
  if(t.drones.filter(x=>x.hp>0).length>=hiveLimit(t))return;
  // Broken drones are kept only as a short death animation, not as extra slots.
  const armor=hiveArmor(t);
- t.drones.push({slot,x:t.x+22,y:t.y+12,hp:armor,maxHp:armor,r:10,
+ t.drones.push({slot,x:t.x+22,y:t.y+12,hp:armor,maxHp:armor,r:6,
   nextShotAt:time+1.1,angle:slot*2.39996,lastShotAt:-1});
  if(t.drones.length>20)t.drones=t.drones.filter(x=>x.hp>0);
+}
+function awakenHive(t,time){
+ // Existing checkpoints contain two larger legacy drones. Convert them in
+ // place before filling the starting wing, preserving their damage ratio.
+ if(t.droneSchema!==2){
+  for(const drone of t.drones){
+   const armor=hiveArmor(t),ratio=drone.hp/Math.max(1,drone.maxHp);
+   drone.maxHp=armor;drone.hp=Math.max(0,Math.min(armor,ratio*armor));
+   drone.r=6;
+  }
+  t.droneSchema=2;
+  t.initialReady=false;
+ }
+ if(!t.initialReady){
+  while(t.drones.filter(drone=>drone.hp>0).length<hiveLimit(t))
+   createDrone(t,time);
+  t.initialReady=true;
+ }
 }
 function chargePacket(t,link,cfg,time,charges,kind,depot=null){
  const route=depot?[{x:depot.x,y:depot.y},
@@ -269,21 +289,30 @@ function laserPulse(game,t,cfg){
 function updateDrones(game,t,cfg,dt){
  const radius=hiveRange(t),now=game.time;
  if(!t.drones.some(drone=>drone.hp>0))return;
- const target=chooseTarget(game,t,radius,t.mode);
+ if(d(game.player,t)>Math.max(1500,game.vw||1200))return;
+ // One launch contains three real wings. They use different enemies when
+ // possible; otherwise they fan out around the same target, not a single dot.
+ const primary=chooseTarget(game,t,radius,t.mode);
+ const threats=(game.enemies||[]).filter(e=>e.hp>0&&!e.converted&&
+  !e.trialRetreatUntil&&d(e,t)<radius).sort((a,b)=>
+  (b._gunAiming?.target===t?1:0)-(a._gunAiming?.target===t?1:0)||d(a,t)-d(b,t))
+  .slice(0,3);
  for(const drone of t.drones){
   if(drone.hp<=0)continue;
-  const angle=now*.48+drone.slot*2.39996;
-  const orbit={x:t.x+Math.cos(angle)*(60+drone.slot%2*19),
-   y:t.y+Math.sin(angle)*(59+drone.slot%2*19)};
+  const wing=(drone.slot-1)%3,angle=now*.52+drone.slot*2.39996;
+  const orbit={x:t.x+Math.cos(angle)*(52+wing*12),
+   y:t.y+Math.sin(angle)*(51+wing*12)};
+  const picked=threats.length?threats[wing%threats.length]:null,
+   target=picked?{kind:'enemy',object:picked}:primary;
   const enemy=target?.object,engaged=enemy&&d(enemy,t)<radius&&d(drone,enemy)<radius+90;
-  const point=engaged?{x:enemy.x+(drone.x-enemy.x)*.24,
-   y:enemy.y+(drone.y-enemy.y)*.24}:orbit;
+  const lateral=wing===0?-36:wing===2?36:0;
+  const point=engaged?{x:enemy.x+(drone.x-enemy.x)*.26+lateral,
+   y:enemy.y+(drone.y-enemy.y)*.26-lateral}:orbit;
   const dx=point.x-drone.x,dy=point.y-drone.y,dist=Math.hypot(dx,dy)||1;
   const speed=Math.min(dist,dt*(engaged?155:125));
   drone.x+=dx/dist*speed;drone.y+=dy/dist*speed;
   drone.angle=Math.atan2(engaged?enemy.y-drone.y:dy,engaged?enemy.x-drone.x:dx);
-  if(!engaged||d(drone,enemy)>200||now<drone.nextShotAt||
-     d(game.player,t)>Math.max(1400,game.vw||1200))continue;
+  if(!engaged||d(drone,enemy)>200||now<drone.nextShotAt)continue;
   drone.nextShotAt=now+cfg.cooldown;drone.lastShotAt=now;
   const tactic=turretBranchRank(t,'anomaly');
   damageTarget(game,target,cfg.damage*(t.level>=3?1.3:1)*(1+tactic*.09),t);
@@ -292,7 +321,7 @@ function updateDrones(game,t,cfg,dt){
    enemy.tacticalSlowUntil=Math.max(enemy.tacticalSlowUntil||0,now+(tactic>=3?1.6:.75));
   }
   fx(game,{kind:'drone',x:drone.x,y:drone.y,tx:enemy.x,ty:enemy.y});
-  game.heritage?.play?.('supportDroneShot',.3,drone);
+  if((drone.slot%4)===0)game.heritage?.play?.('supportDroneShot',.23,drone);
  }
 }
 export function advanceFluxSupports(game,dt){
@@ -337,8 +366,8 @@ export function advanceFluxSupports(game,dt){
   const cfg=supportConfig(t);if(!cfg)continue;
   if(t.readyAt>now)continue;
   if(now-dt<t.readyAt)game.heritage?.play?.('supportOnline',.8,t);
-  if(t.type==='hive'&&!t.initialReady){
-   createDrone(t,now);t.initialReady=true;
+  if(t.type==='hive'&&(!t.initialReady||t.droneSchema!==2)){
+   awakenHive(t,now);
    game.heritage?.play?.('supportDroneLaunch',.8,t);
   }
   const link=links.get(t.id);
@@ -553,11 +582,11 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
    if(drone.hp<=0||drone.x<cam.x-30||drone.x>cam.x+cam.w+30||
      drone.y<cam.y-30||drone.y>cam.y+cam.h+30)continue;
    ctx.save();ctx.translate(drone.x,drone.y);ctx.rotate(drone.angle+Math.PI/2);
-   ctx.shadowColor=cfg.color;ctx.shadowBlur=6;imageAt(ctx,'drone',30);
+   ctx.shadowColor=cfg.color;ctx.shadowBlur=4;imageAt(ctx,'drone',17);
    const hull=turretBranchRank(t,'hull');
    if(hull){
     ctx.strokeStyle=`rgba(161,243,223,${.22+hull*.1})`;
-    ctx.lineWidth=1+hull*.35;ctx.beginPath();ctx.arc(0,0,16,0,Math.PI*2);ctx.stroke();
+    ctx.lineWidth=.8+hull*.2;ctx.beginPath();ctx.arc(0,0,10,0,Math.PI*2);ctx.stroke();
    }
    ctx.restore();
   }
@@ -659,7 +688,8 @@ export function validFluxSupports(s){
     !finite(t.x,-1e9)||!finite(t.y,-1e9)||
     !finite(t.hp,0,cfg.maxHp)||t.maxHp!==cfg.maxHp||t.r!==cfg.r||
     !Number.isInteger(t.level)||t.level<1||t.level>(t.type==='hive'?3:t.type==='laser'?2:1)||
-    !ARTILLERY_MODES.includes(t.mode)||!validTurretBranches(t)||!Number.isInteger(t.ammo)||
+    !ARTILLERY_MODES.includes(t.mode)||!validTurretBranches(t)||!validTurretProtection(t)||
+    !Number.isInteger(t.ammo)||
     t.ammo<0||t.ammo>cfg.magazine||!finite(t.chargeCredit,0,cfg.chargeCost+.0001)||
     !finite(t.readyAt)||!finite(t.nextShotAt)||!finite(t.lastShotAt,-1)||
     !finite(t.lastChargeAt,-1)||!finite(t.lastDestroyedAt,-1)||
@@ -667,12 +697,18 @@ export function validFluxSupports(s){
     !finite(t.gunAngle,-Math.PI-.0001,Math.PI+.0001)||
     !Number.isInteger(t.burstLeft)||t.burstLeft<0||t.burstLeft>16||
     !finite(t.burstAt)||typeof t.initialReady!=='boolean'||
-    !Array.isArray(t.drones)||t.drones.length>20)return false;
+    !Array.isArray(t.drones)||t.drones.length>20||
+    (t.droneSchema!==undefined&&t.droneSchema!==2))return false;
   const slots=new Set();
   for(const drone of t.drones){
+   // An old checkpoint may still carry full-size drones. They are migrated
+   // on the first update, so rejecting them would discard the whole save.
+   const oldArmor=[28,39,52,70][turretBranchRank(t,'hull')]||28;
+   const modern=drone.maxHp===hiveArmor(t)&&drone.r===6;
+   const legacy=drone.maxHp===oldArmor&&drone.r===10;
    if(t.type!=='hive'||!Number.isInteger(drone.slot)||drone.slot<1||drone.slot>1e9||
       slots.has(drone.slot)||!finite(drone.x,-1e9)||!finite(drone.y,-1e9)||
-      !finite(drone.hp,0,hiveArmor(t))||drone.maxHp!==hiveArmor(t)||drone.r!==10||
+      (!modern&&!legacy)||!finite(drone.hp,0,drone.maxHp)||
       !finite(drone.nextShotAt)||!finite(drone.lastShotAt,-1)||
       !finite(drone.angle,-Math.PI*4,Math.PI*4))return false;
    slots.add(drone.slot);
@@ -686,8 +722,9 @@ export function validFluxSupports(s){
     !['energy','drone'].includes(p.kind)||p.kind==='drone'&&t.type!=='hive'||
     p.kind==='energy'&&t.type==='hive'||!Number.isInteger(p.charges)||
     p.charges<1||p.charges>(p.kind==='drone'?1:3)||
-    !finite(p.amount,cfg.chargeCost,3*cfg.chargeCost)||
-    Math.abs(p.amount-p.charges*cfg.chargeCost)>1e-6||
+    !finite(p.amount,cfg.chargeCost,3*Math.max(cfg.chargeCost,2.5))||
+    (Math.abs(p.amount-p.charges*cfg.chargeCost)>1e-6&&
+     !(p.kind==='drone'&&Math.abs(p.amount-p.charges*2.5)<1e-6))||
     !finite(p.launchedAt)||!finite(p.arriveAt,p.launchedAt)||
     p.arriveAt-p.launchedAt>1e6||!Array.isArray(p.path)||p.path.length!==3||
     p.path.some(q=>!finite(q?.x,-1e9)||!finite(q?.y,-1e9)))return false;
