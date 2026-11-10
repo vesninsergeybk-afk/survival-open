@@ -23,7 +23,7 @@ test('published module URLs expose the audited missions instead of cached statio
  assert.match(page,/src="\.\/game\.js\?v=[^"]*field-experience-1/);
  assert.match(page,/src="\.\/game\.js\?v=[^"]*mission-art-5/);
  assert.match(game,/from '\.\/base-panel\.js\?v=[^']*field-experience-1-portrait-1-menu-prof-1-mission-depth-1[^']*mission-integrity-2/);
- assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1-mission-choices-1'/);
+ assert.match(game,/from '\.\/field-operations\.js\?v=[^']*field-experience-1-mission-art-5-mission-av-1-mission-pack-1-mission-depth-1-mission-integrity-2-mission-variety-1-mission-choices-1[^']*'/);
 });
 
 test('illustrated objective props are drawn from one compact transparent sprite atlas',()=>{

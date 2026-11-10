@@ -1,10 +1,11 @@
 import {expForNext, legacyExpForNext} from './balance.js?v=xp-feedback-pass1-1';
+import {doctrineSpent,normalizedDoctrineRanks} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 
 // Legacy station saves store the current level and progress within that level.
 export const XP_CURVE_VERSION = 2;
 export const FIRST_RICH_ASTEROID_XP = 18;
 
-// Every permanent rank or doctrine consumes exactly one level point. This is
+// Skills cost one point, doctrines cost 1/2/3 points by depth. This ledger is
 // presentation/audit only: old saves must not be silently granted or charged
 // points when some historical purchases cannot be reconstructed.
 export function developmentPointLedger(state={}){
@@ -14,7 +15,7 @@ export function developmentPointLedger(state={}){
  const branchSum=entries=>Object.values(entries||{}).reduce((sum,choice)=>
   sum+(Number.isInteger(choice?.rank)&&choice.rank>0?choice.rank:0),0);
  const spent=rankSum(state.skillRanks)+branchSum(state.tactical?.branches)+
-  branchSum(state.loadout?.specializations)+(state.doctrine?1:0);
+  branchSum(state.loadout?.specializations)+doctrineSpent(normalizedDoctrineRanks(state));
  const free=Math.max(0,Math.floor(state.points||0));
  return {earned,spent,free,unaccounted:earned-spent-free};
 }

@@ -1,5 +1,5 @@
 import {contourFields,fieldAt} from './territory-system.js';
-import {trialBlockingField,pendingContourTrials,readyContourTrials,planContourTrial} from './contour-trials.js?v=swarm-siege-1';
+import {trialBlockingField,pendingContourTrials,readyContourTrials,planContourTrial} from './contour-trials.js?v=swarm-siege-1-corecharge-20261110';
 import {firstContourPlan} from './contour-plan.js';
 
 export const TERRITORY_BENEFITS=Object.freeze([
@@ -34,7 +34,7 @@ export function territoryNextStep(world,player={x:0,y:0}){
  const ready=readyContourTrials(world).filter(e=>fieldAt(world,e.x,e.y,fields))
   .sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
  if(ready)return {pending:ready,title:'Запустите защищённую воронку',
-  description:'Все три волны отражены. Подлетите к красному ядру и удерживайте E около 2 секунд. Только после этого сборщики начнут доставлять флюкс.'};
+  description:'Все три волны отражены. Подлетите к ядру и удерживайте E до 18 секунд. Заряд сохраняется, если отпустить клавишу.'};
  const waiting=pendingContourTrials(world);
  const pending=waiting.filter(e=>fieldAt(world,e.x,e.y,fields)).sort((a,b)=>
   Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))[0];
@@ -42,10 +42,11 @@ export function territoryNextStep(world,player={x:0,y:0}){
  const next=TERRITORY_BENEFITS[Math.min(completed,2)];
  if(pending){
   const waves=planContourTrial(pending.tier,pending.id).waves.length;
-  return {pending,title:'Защитите новый треугольник',
-   description:'Подлетите к оранжевому знаку !. Нападение начнётся автоматически: '+waves+
+  return {pending,title:pending.activated?'Ядро заряжено — защитите треугольник':'Зарядите ядро под огнём',
+   description:(pending.activated?'Ядро питает сеть. Стройте турели и отражайте оставшиеся волны. ': 'Подлетите к ядру и удерживайте E 18 секунд — заряд не пропадёт после отпускания. Активированное ядро откроет строительство турелей. ')+
+    'Нападение начнётся автоматически: '+waves+
     (waves===1?' волна. ':' волны. ')+(completed<3?'Новая возможность: '+next.name+'. ':'Расширится территория действия ваших сетевых способностей. ')+
-    'После трёх волн удерживайте E у ядра, чтобы запустить добычу.'};
+    'После отражения всех волн территория будет окончательно защищена.'};
  }
  if(waiting.length)return {pending:null,blocked:true,title:'Восстановите опорные станции',
   description:'Новое поле потеряло питание. На карте контуров найдите отключённые или подавленные станции и восстановите их. Пока связи не работают, оборона не начнётся.'};

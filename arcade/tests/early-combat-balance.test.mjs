@@ -127,6 +127,24 @@ test('реальное попадание повреждает оба слоя, 
  assert.equal(hurtEffects.length,2);
 });
 
+test('защитные окна доктрин уменьшают именно фактический урон при попадании',()=>{
+ const received=(ranks,windows={})=>{
+  const g=fixture();g.doctrineRanks=ranks;Object.assign(g,windows);
+  g.player.hp=90;g.player.shield=0;g.player.invul=0;
+  g.cockpit={impact(){}};
+  g.hurt(20,{x:80,y:0});
+  return 90-g.player.hp;
+ };
+ assert.equal(received({}),20);
+ assert.equal(received({assault:2},{assaultBurstUntil:12}),15);
+ assert.equal(received({countermaneuver:2},{counterguardUntil:12}),17);
+ assert.equal(received({countermaneuver:3},{counterguardUntil:12}),14);
+ assert.equal(received({assault:2,countermaneuver:3},
+  {assaultBurstUntil:12,counterguardUntil:12}),10.5);
+ assert.equal(received({countermaneuver:3},{counterguardUntil:9}),20,
+  'истёкшее защитное окно не должно уменьшать урон');
+});
+
 test('дальние неосведомлённые патрули не перекрывают местные встречи',()=>{
  const stage=openingThreat(20);
  assert.equal(openingSpawnRoom(20,stage,5,0,5),stage.cap);

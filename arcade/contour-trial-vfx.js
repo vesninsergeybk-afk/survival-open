@@ -1,4 +1,4 @@
-import {CONTOUR_TRIALS,unresolvedContourTrials,trialBlockingField,planContourTrial,trialQuota} from './contour-trials.js?v=swarm-siege-1-pressure-response-1';
+import {CONTOUR_TRIALS,unresolvedContourTrials,trialBlockingField,planContourTrial,trialQuota,contourChargeInterrupted} from './contour-trials.js?v=swarm-siege-1-pressure-response-1-corecharge-20261110-core-pressure-20261110';
 
 // The unstable core is visible in the physical world before the real
 // vortex can start producing flux. Follows the field across camera movement.
@@ -7,25 +7,30 @@ export function drawUnstableContour(c,game,field,now){
  if(!pending)return false;
  const event=game.contourTrial?.entry?.id===pending.id?game.contourTrial:null;
  const ready=pending.status==='ready';
+ const powered=!!pending.activated;
+ const key=game.controlLabel?.('interact')||'E';
  const pulse=game.visuals?.reducedMotion?0:.5+.5*Math.sin(now*3.2+pending.id);
  const x=pending.x,y=pending.y,r=43+pulse*13;
  c.save();c.translate(x,y);
  c.globalCompositeOperation='lighter';
  const glow=c.createRadialGradient(0,0,7,0,0,r*2.6);
- glow.addColorStop(0,ready?'rgba(255,44,66,.45)':event?'rgba(248,66,119,.30)':'rgba(240,158,75,.19)');
+ glow.addColorStop(0,powered?'rgba(34,242,194,.40)':ready?'rgba(255,44,66,.45)':event?'rgba(248,66,119,.30)':'rgba(240,158,75,.19)');
  glow.addColorStop(.45,event?'rgba(207,89,236,.13)':'rgba(250,150,65,.10)');
  glow.addColorStop(1,'rgba(255,170,90,0)');
  c.fillStyle=glow;c.beginPath();c.arc(0,0,r*2.6,0,Math.PI*2);c.fill();
  c.globalCompositeOperation='source-over';
- c.strokeStyle=ready?'rgba(255,83,94,.95)':event?'rgba(255,113,160,.9)':'rgba(255,175,106,.75)';c.lineWidth=2.5;
+ c.strokeStyle=powered?'rgba(70,255,198,.95)':ready?'rgba(255,83,94,.95)':event?'rgba(255,113,160,.9)':'rgba(255,175,106,.75)';c.lineWidth=2.5;
  c.setLineDash([11,10]);c.lineDashOffset=-now*18;
  c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.stroke();
  c.setLineDash([]);c.fillStyle='rgba(32,11,28,.88)';
  c.beginPath();c.arc(0,0,12,0,Math.PI*2);c.fill();
- c.fillStyle=ready?'#ffe0d9':event?'#ffe1ec':'#ffd69d';c.font='bold 17px system-ui';c.textAlign='center';
- c.textBaseline='middle';c.fillText(ready?'⚡':'!',0,1);
+ const charge=Math.max(0,Math.min(1,(pending.charge||0)/CONTOUR_TRIALS.activationSeconds));
+ c.beginPath();c.arc(0,0,r+8,-Math.PI/2,-Math.PI/2+charge*Math.PI*2);
+ c.strokeStyle='#78ffe2';c.lineWidth=5;c.stroke();
+ c.fillStyle=powered?'#adffdd':ready?'#ffe0d9':event?'#ffe1ec':'#ffd69d';c.font='bold 17px system-ui';c.textAlign='center';
+ c.textBaseline='middle';c.fillText(powered?'⚡':Math.floor(charge*100)+'%',0,1);
  c.font='bold 10px system-ui';
- c.fillText(ready?'ВОРОНКА ГОТОВА · УДЕРЖИВАЙТЕ E':event?'ОБОРОНА КОНТУРА':'ТРЕУГОЛЬНИК НЕСТАБИЛЕН',0,-r-14);
+ c.fillText(powered?'ЯДРО РАБОТАЕТ · СТРОЙТЕ ТУРЕЛИ':ready?'ВОРОНКА ГОТОВА · УДЕРЖИВАЙТЕ '+key:event?'ЗАРЯД ЯДРА · УДЕРЖИВАЙТЕ '+key:'ТРЕУГОЛЬНИК НЕСТАБИЛЕН',0,-r-19);
  c.restore();
  if(event){
   // Illuminate up to three ACTUAL supporting stations: the event belongs
@@ -71,46 +76,57 @@ export function drawContourTrialHUD(c,game){
   c.restore();return;
  }
  const phase=event.phase;
+ const key=game.controlLabel?.('interact')||'E';
  const irisRush=phase==='wave'&&game.enemies.some(e=>e.trialId===event.entry.id&&e.hp>0&&e._trialDive?.phase==='rush');
  const defeated=event.waveIds?.filter(id=>event.defeatedIds?.has(id)).length||0;
  const total=event.waveIds?.length||0;
  const quota=event.required??trialQuota(total,event.plan.tier);
  const lastWave=phase==='wave'&&event.waveIndex===event.plan.waves.length-1;
- const charge=game.actionHeld?.kind==='vortex'&&game.actionHeld.target===event.entry?
-  game.actionHeld.progress:0;
+ const charge=event.entry.charge||0,powered=!!event.entry.activated;
+ const holding=game.actionHeld?.kind==='vortex'&&game.actionHeld.target===event.entry;
+ const interrupted=holding&&!powered&&contourChargeInterrupted(game.time,game.lastDamageAt);
  const seconds=Math.max(0,Math.ceil((event.plan.waveSeconds||CONTOUR_TRIALS.maxWaveSeconds)-
   (game.time-(event.waveStartedAt??game.time))));
  const subtitle=event.outsideFor>0?'ВЕРНИТЕСЬ В ЗОНУ · '+Math.max(0,Math.ceil(CONTOUR_TRIALS.retreatSeconds-event.outsideFor))+' С':
   event.waitingForSpace?'ДРУГОЙ БОЙ ЗАНИМАЕТ СЕКТОР · НАПАДЕНИЕ ОЖИДАЕТ':
   phase==='warning'?'АТАКА ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С · ВСЕГО ВОЛН: '+event.plan.waves.length:
   phase==='rest'?'ВОЛНА ОТРАЖЕНА · СЛЕДУЮЩАЯ ЧЕРЕЗ '+Math.max(0,Math.ceil(event.nextWaveAt-game.time))+' С':
-  lastWave&&event.quotaReached?'ЯДРО ЖДЁТ ЗАРЯДА · E '+Math.ceil(charge)+' / '+CONTOUR_TRIALS.activationSeconds+' С · '+seconds+' С':
+  lastWave&&event.quotaReached?'ВОЛНЫ ОТРАЖЕНЫ · ЗАРЯД ЯДРА '+Math.floor(charge)+' / '+CONTOUR_TRIALS.activationSeconds+' С · '+seconds+' С':
   'ВОЛНА '+(event.waveIndex+1)+' ИЗ '+event.plan.waves.length+' · ПОБЕДИТЬ '+Math.min(defeated,quota)+' / '+quota+' · '+seconds+' С';
- const hint=phase==='wave'?(irisRush?'Зрачок бросается по красной линии — уйдите поперёк неё':
-  lastWave?'Держите E у ядра 18 с, уклоняйтесь и сбивайте врагов. Автоогонь действует.':
-  'Построение: '+(event.plan.formations?.[event.waveIndex]||'рой')+
-  ' · орбитальные круги опасны для всех кораблей'):
-  'Победа даст сплав и усилит вашу территорию. Станции при отходе сохранятся.';
+ const hint=powered?'Ядро питает сеть · стройте турели · отбейте все волны':
+  interrupted?'ПОПАДАНИЕ · зарядка ненадолго остановилась, накопленный заряд сохранён':
+  holding?'ИДЁТ ЗАРЯДКА · отбивайтесь от врагов и уклоняйтесь от залпов':
+  irisRush?'Зрачок атакует · заряд ядра сохранён · вернитесь к '+key:
+  'Удерживайте '+key+' рядом с ядром · заряд сохраняется при отходе';
  const briefTitle=compact?'АТАКА НА ТРЕУГОЛЬНИК':'ВРАГ ОБНАРУЖИЛ НОВЫЙ ТРЕУГОЛЬНИК';
  const briefSubtitle=compact&&lastWave&&event.quotaReached?
-  'ЗАРЯД ЯДРА '+Math.ceil(charge)+'/'+CONTOUR_TRIALS.activationSeconds+' С · ВРЕМЯ '+seconds+' С':
+  'ЗАРЯД ЯДРА '+Math.floor(charge)+'/'+CONTOUR_TRIALS.activationSeconds+' С · ВРЕМЯ '+seconds+' С':
   compact&&phase==='wave'?
   'ВОЛНА '+(event.waveIndex+1)+'/'+event.plan.waves.length+' · ЦЕЛЕЙ '+Math.min(defeated,quota)+'/'+quota+' · '+seconds+' С':subtitle;
- const briefHint=compact?(lastWave?'Держите E в ядре, уворачиваясь от огня.':phase==='wave'?'Уклоняйтесь от орбитальных ударов.':
-  'Отход сохранит станции, но бой придётся повторить.'):hint;
+ const briefHint=compact?(powered?'СТРОЙТЕ ТУРЕЛИ · ОТРАЗИТЕ ВСЕ ВОЛНЫ':
+  interrupted?'ПОПАДАНИЕ · ПАУЗА ЗАРЯДКИ · ПРОГРЕСС СОХРАНЁН':
+  holding?'ИДЁТ ЗАРЯДКА · УКЛОНЯЙТЕСЬ ОТ ОГНЯ':
+  'УДЕРЖИВАЙТЕ '+key+' · ЗАРЯД СОХРАНЯЕТСЯ'):hint;
  c.save();c.scale(uiScale,uiScale);c.fillStyle='rgba(8,20,33,.94)';c.strokeStyle=event.outsideFor?'#ff7e85':'#ffb673';
- c.lineWidth=1.4;c.beginPath();c.roundRect(x,y,w,81,10);c.fill();c.stroke();
+ c.lineWidth=1.4;c.beginPath();c.roundRect(x,y,w,124,10);c.fill();c.stroke();
  c.fillStyle='#ffe7c2';c.font='bold 12px system-ui';c.textAlign='center';
  c.fillText(briefTitle,vw/2,y+19,w-16);
  c.fillStyle='#ffbe8b';c.font='bold 12px system-ui';c.fillText(briefSubtitle,vw/2,y+39,w-16);
  c.fillStyle='#cee0e5';c.font='11px system-ui';c.fillText(briefHint,vw/2,y+58,w-16);
  const fraction=phase==='wave'?(event.waveIndex+
-  (lastWave?.5*Math.min(1,defeated/Math.max(1,quota))+
-   .5*(event.quotaReached?Math.min(1,charge/CONTOUR_TRIALS.activationSeconds):0):
-   Math.min(1,defeated/Math.max(1,quota))))/event.plan.waves.length:
+  Math.min(1,defeated/Math.max(1,quota)))/event.plan.waves.length:
   phase==='rest'?(event.waveIndex+1)/event.plan.waves.length:0;
- c.fillStyle='#ffbe7e26';c.fillRect(x+12,y+70,w-24,3);
- c.fillStyle='#ffa66d';c.fillRect(x+12,y+70,(w-24)*fraction,3);c.restore();
+ const fractionCharged=powered?1:Math.max(0,Math.min(1,charge/CONTOUR_TRIALS.activationSeconds));
+ c.font='bold 10px system-ui';c.fillStyle='#ffcf9d';c.textAlign='left';
+ c.fillText('ОБОРОНА · ВОЛНА '+Math.max(0,event.waveIndex+1)+' / '+event.plan.waves.length,x+12,y+75,w-24);
+ c.fillStyle='#ffbe7e26';c.fillRect(x+12,y+80,w-24,4);
+ c.fillStyle='#ffa66d';c.fillRect(x+12,y+80,(w-24)*fraction,4);
+ c.fillStyle='#a3f6e3';c.fillText('ЗАРЯД ЯДРА · '+Math.floor(charge)+' / '+CONTOUR_TRIALS.activationSeconds+' с',x+12,y+100,w-24);
+ c.textAlign='right';c.fillStyle=interrupted?'#ffbd8c':holding?'#a3ffe1':'#a7bec8';
+ c.fillText(powered?'ЗАРЯЖЕНО':interrupted?'ПАУЗА ПОСЛЕ ПОПАДАНИЯ':holding?'УДЕРЖАНИЕ '+key:'УДЕРЖИВАЙТЕ '+key,x+w-12,y+100,w*.48);
+ c.fillStyle='#78ffe226';c.fillRect(x+12,y+108,w-24,9);
+ c.fillStyle=interrupted?'#ffbc84':powered?'#78ffe2':holding?'#72ffdb':'#65d7ca';
+ c.fillRect(x+12,y+108,(w-24)*fractionCharged,9);c.restore();
 }
 
 export function pendingTrialMapArtwork(world,center,scale,atlasPoint){
@@ -119,10 +135,10 @@ export function pendingTrialMapArtwork(world,center,scale,atlasPoint){
   if(p.x<12||p.x>668||p.y<12||p.y>468)return '';
   const count=planContourTrial(e.tier,e.id).waves.length;
   const wording=count===1?'одну волну':count===2?'две волны':'три волны';
-  const ready=e.status==='ready';
-  return `<g class="contour-pending-trial" role="img" aria-label="${ready?'Запуск воронки доступен':'Нестабильный контур. Отразите '+wording}" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})">
-   <circle r="17" fill="#321c24ee" stroke="${ready?'#ff696a':'#ffba74'}" stroke-width="2" stroke-dasharray="5 4"/>
-   <text text-anchor="middle" y="5" fill="#ffe8cc" font-size="14" font-weight="900">${ready?'⚡':'!'}</text>
-   <title>${ready?'Волны отражены. Подлетите к ядру и удерживайте E для активации.':'Враг обнаружил треугольник. Отразите '+wording+', затем запустите воронку вручную.'}</title></g>`;
+  const ready=e.status==='ready',powered=!!e.activated;
+  return `<g class="contour-pending-trial" role="img" aria-label="${powered?'Ядро заряжено, требуется оборона':ready?'Запуск воронки доступен':'Зарядите ядро и отразите '+wording}" transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})">
+   <circle r="17" fill="#321c24ee" stroke="${powered?'#78ffe2':ready?'#ff696a':'#ffba74'}" stroke-width="2" stroke-dasharray="5 4"/>
+   <text text-anchor="middle" y="5" fill="#ffe8cc" font-size="14" font-weight="900">${powered||ready?'⚡':'!'}</text>
+   <title>${powered?'Ядро заряжено: стройте оборону и отразите '+wording+'.':ready?'Волны отражены. Подлетите к ядру и удерживайте E до полного заряда.':'Враг обнаружил треугольник. Зарядите ядро удержанием E и отразите '+wording+'.'}</title></g>`;
  }).join('');
 }

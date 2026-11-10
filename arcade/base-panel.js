@@ -1,16 +1,17 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2-semantic-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-tactical-slot-20261110-unlimited-hud-20261110-space-impact-20261110';
-import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-tactical-slot-20261110-space-impact-20261110';
-import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1-tactical-slot-20261110';
-import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
-import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-integrity-2-mission-choices-1-enemy-growth-1-triangle-defense-1-station-trust-1-enemy-operations-20261110';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2-semantic-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-hud-merge-20261110';
+import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-value-2-hud-merge-20261110';
+import {normalizedDoctrineRanks,doctrineSpent} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2-hud-merge-20261110';
+import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1-hud-merge-20261110';
+import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1-corecharge-20261110-hud-merge-20261110';
+import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-integrity-2-mission-choices-1-enemy-growth-1-triangle-defense-1-station-trust-1-enemy-operations-20261110-pilot-value-2-hud-merge-20261110';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {FLUX_INFRASTRUCTURE,stationFluxUpgradeOffer,fluxInfrastructureRank,
  weightedContourProduction,stationFluxCapacity,FLUX_LOCAL_SHARE} from './territory-economy.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-territory-war-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4-territory-logistics-1';
 import {corridorOffer,CORRIDOR_OPERATION,corridorScanBonus,probeOffer,probeDataReady,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2-station-ops-2-ops-audit-2';
-import {FIELD_OPERATIONS,fieldOperationIds,fieldOperationOffer,fieldOperationCue,isFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
-import {abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1';
+import {FIELD_OPERATIONS,fieldOperationIds,fieldOperationOffer,fieldOperationCue,isFieldOperation} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-pilot-value-2';
+import {abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1-pilot-value-2';
 import {RELAY_DEFENSE,relayOffer,relayDefenseCue} from './relay-defense.js?v=relay-def-1-station-ops-2-ops-audit-2-mission-choices-1';
 import {CARRIER_INTERCEPTION,carrierOffer,autonomousStrikeCarrier} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer} from './field-weapons.js?v=weapons-cycle-2-regions-1-campaign-1-unlimited-1';
@@ -23,7 +24,7 @@ import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
 import {renderStationThreats} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {CONTOURS,contourFields} from './territory-system.js?v=contours-1-triangle-defense-1-territory-logistics-1';
-import {productiveContourFields} from './contour-trials.js?v=swarm-siege-1';
+import {productiveContourFields} from './contour-trials.js?v=swarm-siege-1-corecharge-20261110';
 import {contourConnectionChoices,contourCandidateInstruction} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
@@ -1099,8 +1100,8 @@ export function renderBasePanel(base,state){
      offer.ok?'':offer.reason,key):'<span>Ветка завершена</span>')+'</div>';
   }).join('')+'</div></section>';
  const development=renderDevelopmentPanel({...state,baseActive:active,station:base})+
-  (state.doctrine?'<section class="base-doctrine-service"><h3>Смена доктрины</h3><p>Вернёт 1 очко развития. Новый стиль можно выбрать здесь же.</p>'+
-   action('respec','Сменить доктрину · 12 сплава',o.ore<12?'Нужно 12 сплава':'')+'</section>':'');
+  (doctrineSpent(normalizedDoctrineRanks(state))?'<section class="base-doctrine-service"><h3>Сброс доктрин</h3><p>Вернёт все потраченные на доктрины очки. Остальные навыки сохранятся.</p>'+
+   action('respec','Сбросить доктрины · 12 сплава',o.ore<12?'Нужно 12 сплава':'')+'</section>':'');
  const network='<div class="base-operations"><section class="base-network-scope"><h3>Управление территорией</h3>'+
   '<p>Здесь вы управляете выбранной станцией, местными сооружениями, флюксом и обороной. Постоянная вместимость опорных линий развивается отдельно.</p>'+
   '<button type="button" data-act="openDevelopment" data-id="network">Открыть развитие сети →</button></section>'+

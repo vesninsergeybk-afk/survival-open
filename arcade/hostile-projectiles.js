@@ -14,6 +14,7 @@ export const HOSTILE_SHOT_STYLES=Object.freeze({
  'flanker-needle':{length:39,width:2.4,outer:'#a88bff',core:'#eee4ff',shape:'needle'},
  gunship:{length:30,width:6,outer:'#ff784c',core:'#fff0d4',shape:'heavy'},
  'gunship-cannon':{length:34,width:6,outer:'#ef6845',core:'#fff1c9',shape:'heavy'},
+ 'gunship-flak':{length:19,width:5.3,outer:'#ffaf64',core:'#fff3bc',shape:'fork'},
  'base-turret':{length:38,width:6.5,outer:'#e94c6e',core:'#fff0d5',shape:'siege'},
  iris:{length:25,width:3,outer:'#b084ff',core:'#f2e1ff',shape:'needle'},
  mote:{length:23,width:2.9,outer:'#63c6ff',core:'#e3fcff',shape:'fork'}

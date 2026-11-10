@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {game} from './weapons-scene.mjs';
 import {DEFAULT_CONTROLS} from '../control-layout.js';
-import {COUNTER_MANEUVER,deflectBurstShots} from '../pilot-countermaneuver.js';
+import {COUNTER_MANEUVER,deflectBurstShots,counterguardMultiplier} from '../pilot-countermaneuver.js';
 
 const shot=(x,y,vx,vy,r=6)=>({x,y,vx,vy,r,alive:true,damage:12});
 
@@ -30,6 +30,13 @@ test('other doctrines cannot deflect bullets, even when Shift is pressed',()=>{
  assert.equal(incoming.vx,-300);
  assert.equal(deflectBurstShots(g),0);
 });
+test('first countermaneuver rank also shortens ordinary dash cooldown without incoming shots',()=>{
+ const plain=game(),pilot=game();
+ assert.equal(plain.startBurst(),true);
+ pilot.doctrineRanks={countermaneuver:1};
+ assert.equal(pilot.startBurst(),true);
+ assert.ok(Math.abs(pilot.player.burstCooldown/plain.player.burstCooldown-0.88)<1e-9);
+});
 
 test('the manoeuvre doctrine activates on a real dash, spends normal dash cooldown and reports a visible counter',()=>{
  const g=game(),incoming=shot(90,0,-300,0);
@@ -39,4 +46,29 @@ test('the manoeuvre doctrine activates on a real dash, spends normal dash cooldo
  assert.ok(incoming.vx>0);
  assert.match(g.lastNotice,/КОНТРМАНЁВР/);
  assert.equal(g.startBurst(),false,'cannot repeatedly turn shots during an unavailable dash');
+});
+test('advanced manoeuvres deflect more varied shots and recover hull only after genuine protection',()=>{
+ const g=game();g.doctrineRanks={countermaneuver:3};g.player.hp=70;g.time=10;
+ const shots=[shot(90,0,-300,0,10),shot(100,15,-300,-45),
+  shot(115,-15,-330,40),shot(130,7,-350,0),shot(75,0,-300,0,15)];
+ g.shots=shots;
+ assert.equal(deflectBurstShots(g),4);
+ assert.equal(g.player.hp,82,'four real interceptions each recover three hull points');
+ assert.equal(g.counterguardUntil,12);
+ assert.equal(counterguardMultiplier(g),.7);
+ assert.equal(shots[4].vx,-300,'heavy artillery stays dangerous');
+ assert.equal(deflectBurstShots(g),0,'already reflected bullets cannot heal again');
+ assert.equal(g.player.hp,82);
+ g.time=12.01;assert.equal(counterguardMultiplier(g),1);
+});
+
+test('middle rank needs a genuine incoming projectile to grant a short defensive window',()=>{
+ const g=game();g.doctrineRanks={countermaneuver:2};
+ assert.equal(deflectBurstShots(g),0);
+ assert.equal(counterguardMultiplier(g),1);
+ g.shots=[shot(100,0,-300,0,9)];
+ assert.equal(deflectBurstShots(g),1);
+ assert.equal(counterguardMultiplier(g),.85);
+ g.time+=2.01;
+ assert.equal(counterguardMultiplier(g),1);
 });

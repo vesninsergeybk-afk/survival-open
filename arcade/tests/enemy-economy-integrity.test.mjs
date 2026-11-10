@@ -39,7 +39,7 @@ test('paid cargo escort returns after distance culling with the same damage, but
 
 test('a converted escort is no longer cloned into a hostile escort on return',()=>{
  const {cargo,game}=encounter();updateRegionalWorld(game,.1);
- const escort=game.enemies.find(e=>e.escortSlot===0);
+ const escort=game.enemies.find(e=>e.protect===cargo&&e.escortSlot===0);
  escort.converted=true;rememberCargoEscort(escort);
  game.enemies=[];game.time=81.5;updateRegionalWorld(game,.1);
  assert.deepEqual(game.enemies.filter(e=>e.protect===cargo).map(e=>e.escortSlot),[1]);
@@ -47,7 +47,7 @@ test('a converted escort is no longer cloned into a hostile escort on return',()
 
 test('checkpoint graph preserves the paid escort manifest without a phantom replacement',()=>{
  const {cargo,game}=encounter();updateRegionalWorld(game,.1);
- const first=game.enemies.find(e=>e.escortSlot===0);
+ const first=game.enemies.find(e=>e.protect===cargo&&e.escortSlot===0);
  first.hp-=23;rememberCargoEscort(first);
  game.enemies=[]; // Player left the encounter, so the live ships were culled.
  const saved=unpackRun(packRun({supply:game.world.regionalSupply,enemies:game.enemies}));

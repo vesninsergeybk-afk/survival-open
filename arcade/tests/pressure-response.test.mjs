@@ -5,7 +5,7 @@ import {registerContourTrials} from '../contour-trials.js';
 import {updateContourTrials,activateContourVortex,activeTrialCore,siegeApproachPosition} from '../contour-trial-director.js';
 import {ENEMY_AWARENESS,updateEnemyAwareness} from '../enemy-awareness.js';
 import {ATTACK_ALARM,alertFleetUnderFire} from '../enemy-attack-alarm.js';
-import {SpatialGrid} from '../balance.js';
+import {SpatialGrid,outsideCamera} from '../balance.js';
 import {game as fixture} from './weapons-scene.mjs';
 
 const station=(id,x,y)=>({id,x,y,active:true,enemy:false,suppressed:false,type:'dock'});
@@ -61,15 +61,13 @@ test('one station can create two cores, but each requires its own held E during 
  assert.equal(activateContourVortex(g,entries[1]),false,'payout cannot be repeated');
 });
 
-test('large flight zoom never pushes siege reinforcements to the remote camera edge',()=>{
+test('all siege attackers enter outside the actual viewport at wide zoom',()=>{
  const core={x:1200,y:-2800};
- const approaches=[];
+ const camera={x:core.x-1100,y:core.y-800,w:2200,h:1600},approaches=[];
  for(let flank=0;flank<4;flank++)for(let group=0;group<5;group++)
-  approaches.push(siegeApproachPosition(core,flank,.4,group,2));
- assert.ok(approaches.every(ship=>{
-  const d=Math.hypot(ship.x-core.x,ship.y-core.y);
-  return d>=620&&d<=1000;
- }),'all four flanks must arrive near the defended territory at every zoom');
+  approaches.push(siegeApproachPosition(core,flank,.4,group,2,camera));
+ assert.ok(approaches.every(ship=>outsideCamera(ship.x,ship.y,camera,35)),
+  'no enemy appears within the camera even when the player has zoomed out');
 });
 
 test('the actual E interaction selects the active siege core before an overlapping asteroid',()=>{

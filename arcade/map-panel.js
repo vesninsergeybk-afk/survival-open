@@ -14,16 +14,16 @@ export const mapCloseKeysLabel=bindings=>{
  const keys=[controls.map,'KeyM'].filter(code=>isMapCloseShortcut(code,controls));
  return [...new Set(keys)].map(readableKey).concat('Esc').join(' / ');
 };
-import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
-import {unresolvedContourTrials} from './contour-trials.js?v=swarm-siege-1';
-import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=swarm-siege-1';
+import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1-corecharge-20261110';
+import {unresolvedContourTrials} from './contour-trials.js?v=swarm-siege-1-corecharge-20261110';
+import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=swarm-siege-1-corecharge-20261110';
 import {renderRegionAtlas,regionalMapOverlay} from './regional-map.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-enemy-growth-1-living-world-population-1-sector-density-2';
 import {visibleBackbone} from './enemy-backbone.js?v=enemy-backbone-2-flux-offense-1-territory-war-1';
 import {CORRIDOR_OPERATION,corridorPosition,corridorAmbush,corridorScanBonus,probeSearchArea,operationDestination,
  isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=station-operations-2-ops-audit-2';
-import {isFieldOperation,fieldOperationCue} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
+import {isFieldOperation,fieldOperationCue} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-pilot-value-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
-import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1';
+import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1-pilot-value-2';
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=station-operations-2-ops-audit-2-mission-choices-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
@@ -33,7 +33,7 @@ import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './stat
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=menu-rebuild-territory-war-20261106-enemy-growth-1';
 import {renderStationThreats} from './strategic-command.js?v=menu-rebuild-territory-war-20261106';
-import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1-contour-trials-1-counterattack-1-first-loops-1-menu-audit-1-flux-build-1-triangle-defense-1-flight-zoom-audit-1-living-world-population-1-sector-density-2';
+import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1-contour-trials-1-counterattack-1-first-loops-1-menu-audit-1-flux-build-1-triangle-defense-1-flight-zoom-audit-1-living-world-population-1-sector-density-2-core-guide-20261110';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';

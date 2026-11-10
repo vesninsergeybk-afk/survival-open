@@ -1,4 +1,4 @@
-import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
+import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1-corecharge-20261110';
 import {menuInfo,renderMapActions} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {REGIONS,regionAt} from './regions.js?v=regions-1-living-world-population-1-sector-density-2';
 import {baseNames} from './balance.js?v=arcade-network-20';
@@ -16,8 +16,8 @@ import {firstContourPlan} from './contour-plan.js?v=map-ux-1';
 import {fluxSortieOffer,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {warFronts} from './war-fronts.js?v=campaign-1-repair-qa-1-enemy-balance-2-territory-war-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
-import {productiveContourFields,unresolvedContourTrials,trialBlockingField} from './contour-trials.js?v=swarm-siege-1';
-import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=swarm-siege-1';
+import {productiveContourFields,unresolvedContourTrials,trialBlockingField} from './contour-trials.js?v=swarm-siege-1-corecharge-20261110';
+import {pendingTrialMapArtwork} from './contour-trial-vfx.js?v=swarm-siege-1-corecharge-20261110';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const name=b=>!b.discovered&&!b.active&&!b.strategicRole?'Неизвестный узел':
@@ -341,9 +341,9 @@ export function renderContourMap(game){
  const player=at(game.player,center,scale),visiblePlayer=player.x>14&&player.x<666&&player.y>14&&player.y<466;
  const regions='<button data-act="contourRegion" data-id="all" aria-pressed="'+!region+'">Вся карта</button>'+
   REGIONS.map(r=>'<button data-act="contourRegion" data-id="'+r.id+'" aria-pressed="'+(region?.id===r.id)+'">'+r.number+' · '+esc(r.name)+'</button>').join('');
- const stage=trials.some(t=>t.status==='ready')?'Контратака отражена · подлетите к красному ядру и удерживайте E для запуска воронки':
+ const stage=trials.some(t=>t.status==='ready')?'Три волны отражены · завершите заряд ядра удержанием E, если оно ещё не заряжено':
   trials.length?'Неустойчивых территорий: '+trials.length+
-  ' · отбейте три волны и активируйте ядро вручную':
+  ' · удерживайте E у ядра для накопления заряда и отражайте волны':
   transition?.kind==='claim'?'Контур замкнут · энергия заполняет новую территорию':
   transition?.kind==='loss'?'Связь потеряна · границы поля отступают':
   area>0?'Поле действует · сборщики перевозят флюкс':

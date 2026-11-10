@@ -1,5 +1,5 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
-import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-space-impact-20261110';
+import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110';
 import {regionAt,centralOutline,centralBoundary,REGION_LIMIT} from './regions.js?v=regions-audit-1-living-world-population-1-sector-density-2';
 import {SUPPLY,supplyRoute,advanceRegionalSupply,interceptSupply,supplyEvent,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-renewal-1-territory-war-1';
@@ -12,8 +12,9 @@ import {recordWorldFeedback} from './world-feedback.js?v=world-feedback-1';
 import {advanceEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
 import {advanceEnemyFortifications,FORT_STAGES} from './enemy-fortifications.js?v=industrial-forts-1';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
-import {updatePopulationWorld,drawPopulationWorld} from './population-runtime.js?v=sector-density-2-frontier-siege-1-early-density-20261110';
-import {interceptPopulationCargo,populationAlarm} from './world-population.js?v=sector-density-2-frontier-siege-1';
+import {updatePopulationWorld,drawPopulationWorld} from './population-runtime.js?v=sector-density-2-frontier-siege-1-early-density-20261110-convoy-variety-20261110-pilot-value-2';
+import {interceptPopulationCargo,populationAlarm} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
+import {populationConvoyEscort,populationConvoyTitle,populationConvoyReward} from './convoy-profiles.js?v=convoy-variety-20261110';
 const outline=centralOutline();
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 /** Translate *completed simulation events*, never a speculative plan, into a
@@ -103,8 +104,7 @@ function makeEnemy(game,type,x,y,scenario,protect=null,frontierRole=null){
   healReserve:frontierRole==='teal'&&type==='healer'?90:undefined};
 }
 function cargoEscortTypes(cargo){
- if(cargo.populationCargo)return ['fighter','flanker','fighter','scout','fighter','gunship',
-  'flanker','fighter'];
+ if(cargo.populationCargo)return populationConvoyEscort(cargo);
  return cargo.frontierRepair?
   (cargo.frontierNetwork==='azure'?(cargo.screened?['flanker','gunship']:['fighter','flanker']):
    cargo.screened?['gunship','healer']:['fighter','healer']):cargo.frontierCargo?
@@ -264,6 +264,15 @@ export function updateRegionalWorld(game,dt){
     cargo.escortManifest=cargoEscortTypes(cargo).map(type=>({type,hp:ENEMY_TYPES[type].hp,
      maxHp:ENEMY_TYPES[type].hp}));
    }
+   if(cargo.populationCargo&&!cargo.profileAnnounced&&
+     game.time>=(game._nextCargoIntelAt??-Infinity)){
+    const value=populationConvoyReward(cargo);
+    const defenders=cargo.escortManifest.filter(unit=>unit.hp>0).length;
+    game.notice('Обнаружен '+populationConvoyTitle(cargo).toLowerCase()+'. Охрана: '+
+     defenders+' кораблей. В обломках можно найти до '+value.ore+
+     ' сплава и '+value.data+' данных. Перехват лишит вражеский завод поставки.',6);
+    cargo.profileAnnounced=true;game._nextCargoIntelAt=game.time+7;
+   }
    cargo.escorted=true;
    for(const enemy of game.enemies)if(enemy.protect===cargo&&
      (enemy.hp<=0||enemy.converted))rememberCargoEscort(enemy);
@@ -282,8 +291,10 @@ export function updateRegionalWorld(game,dt){
      (upgraded?25:22)+8*(stage-1));
     if(stored.hp<=0||game.enemies.length>=escortBudget)continue;
     ++game.groupSerial;
-    const escortAngle=i*Math.PI*2/cargo.escortManifest.length;
-    const escortRadius=cargo.populationCargo?115+Math.floor(i/4)*50:105;
+    const escortAngle=i*Math.PI*2/cargo.escortManifest.length+
+     (cargo.populationCargo?(cargo.escortPhase||0):0);
+    const escortRadius=cargo.populationCargo?
+     (cargo.cargoRole==='courier'?100:115)+Math.floor(i/4)*50:105;
     const enemy=makeEnemy(game,stored.type,
      cargo.x+Math.cos(escortAngle)*escortRadius,
      cargo.y+Math.sin(escortAngle)*escortRadius,
@@ -440,6 +451,15 @@ export function spawnRegionalRaid(game,director){
 }
 export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  if(cargo.hp<=0||!Number.isFinite(damage)||damage<=0)return;
+ if(cargo.populationCargo&&!Number.isFinite(cargo.firstHitAt)){
+  cargo.firstHitAt=game.time;
+  if(cargo.cargoRole==='courier')game.notice(
+   'Шифрокурьер включил форсаж! На перехват осталось меньше времени.',4);
+  if(cargo.cargoRole==='military'){
+   populationAlarm(game.world,cargo.x,cargo.y,game.time,'convoy-attack');
+   game.notice('Военный эшелон передал тревогу. К месту нападения могут подойти перехватчики.',5);
+  }
+ }
  const silentLoss=(cargo.frontierCargo||cargo.frontierRepair)&&
   !frontierRadioCoverage(game.world,cargo.frontierNetwork,cargo);
  if(cargo.frontierCargo||cargo.frontierRepair)recordFrontierCargoAttack(game.world,cargo,source,
@@ -462,9 +482,15 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  game.heritage.play('largeExplosion',.22,cargo);
  const frontier=cargo.frontierCargo?FRONTIERS[cargo.frontierNetwork]:null;
  if(cargo.populationCargo){
-  game.addDrop('ore',cargo.x,cargo.y,12,{source:'salvage',life:60});
-  game.addDrop('data',cargo.x+14,cargo.y,9,{source:'combat',life:60});
-  game.notice('Конвой уничтожен: материалы не дошли до верфи. Выпуск новых кораблей задержится.',5);
+  const value=populationConvoyReward(cargo);
+  game.addDrop('ore',cargo.x,cargo.y,value.ore,{source:'salvage',life:60});
+  game.addDrop('data',cargo.x+14,cargo.y,value.data,{source:'combat',life:60});
+  recordWorldFeedback(game,{key:'cargo-loss:'+cargo.id,kind:'loss',
+   label:'ПОСТАВКА КОЛОНИИ СОРВАНА',cause:'Вы уничтожили '+populationConvoyTitle(cargo).toLowerCase(),
+   effect:'Фабрика недополучила 9 единиц сырья — столько стоит постройка трёх кораблей',
+   x:cargo.x,y:cargo.y});
+  game.notice(populationConvoyTitle(cargo)+' уничтожен. В обломках: '+value.ore+
+   ' сплава и '+value.data+' данных. Фабрика недополучила сырья на три корабля.',6);
   return;
  }
  game.addDrop('ore',cargo.x,cargo.y,cargo.frontierRepair?4:frontier?.rewardOre??(cargo.centralCargo?CENTRAL_INDUSTRY.oreReward:SUPPLY.oreReward),{source:'salvage',life:60});

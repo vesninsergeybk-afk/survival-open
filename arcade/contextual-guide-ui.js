@@ -1,5 +1,5 @@
 import {GUIDE_LESSONS,GUIDE_BY_ID,GUIDE_STORAGE_KEY,
- normalizeGuideState,recommendGuide,masteryFromSnapshot} from './contextual-guide.js';
+ normalizeGuideState,recommendGuide,masteryFromSnapshot} from './contextual-guide.js?v=core-guide-20261110-core-pressure-20261110';
 
 const asset=id=>'./assets/learning/'+(GUIDE_BY_ID[id]?.icon||'flight')+'.svg';
 const isTouch=()=>globalThis.matchMedia?.('(pointer: coarse)')?.matches||false;
@@ -27,6 +27,7 @@ export function guideSnapshot(game,origin){
   upgraded:Object.values(game.skillRanks||{}).some(rank=>rank>0),
   hasTerritory:trials.length>0,
   pendingContour:trials.some(e=>e.status==='pending'),
+  coreActivated:trials.some(e=>e.activated),
   readyCore:trials.some(e=>e.status==='ready'),
   contourCompleted:trials.some(e=>e.status==='complete')
  };

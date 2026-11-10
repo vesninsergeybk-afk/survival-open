@@ -33,14 +33,35 @@ const {ArcadeGame}=await import('data:text/javascript;base64,'+Buffer.from(sourc
 const noop=()=>{};
 const memory=()=>({values:new Map(),getItem(k){return this.values.get(k)||null;},setItem(k,v){this.values.set(k,v);}});
 
-test('specialized howitzer and manoeuvre doctrine survive checkpoint serialization',()=>{
+test('specialized howitzer and several pilot doctrines survive checkpoint serialization',()=>{
  const g=scene();g.shipLoadout.specializations.howitzer={path:'piercing',rank:2};
- g.doctrine='countermaneuver';
+ g.doctrineRanks={countermaneuver:2,assault:1,command:3};
+ g.prospectCharges=5;g.prospectChargeUntil=999;g.counterguardUntil=999;
  const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
  assert.equal(validateCheckpoint(snapshot),true);
  const restored=scene();restoreCheckpoint(restored,snapshot);
  assert.deepEqual(restored.shipLoadout.specializations.howitzer,{path:'piercing',rank:2});
- assert.equal(restored.doctrine,'countermaneuver');
+ assert.deepEqual(restored.doctrineRanks,{assault:1,command:3,countermaneuver:2});
+ assert.equal(restored.doctrine,null);
+ assert.equal(restored.prospectCharges,0,'временные боевые заряды не попадают в сохранение');
+ assert.equal(restored.prospectChargeUntil,0);
+ assert.equal(restored.counterguardUntil,0,'временная защита не переживает выход со станции');
+});
+test('legacy single doctrine becomes one rank without charging an extra point',()=>{
+ const g=scene();g.doctrine='prospect';
+ const saved=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(saved),true);
+ const restored=scene();restored.doctrineRanks={assault:3};restored.commandMark={target:g.player,until:999};
+ restoreCheckpoint(restored,saved);
+ assert.deepEqual(restored.doctrineRanks,{prospect:1});
+ assert.equal(restored.commandMark,null);
+ assert.equal(restored.player.points,g.player.points);
+});
+test('checkpoint rejects unknown and out-of-range doctrine ranks',()=>{
+ const g=scene(),snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ snapshot.state.doctrineRanks={command:4};assert.equal(validateCheckpoint(snapshot),false);
+ snapshot.state.doctrineRanks={alien:1};assert.equal(validateCheckpoint(snapshot),false);
+ snapshot.state.doctrineRanks={command:2};assert.equal(validateCheckpoint(snapshot),true);
 });
 function scene(){
  const g=Object.create(ArcadeGame.prototype),world=new World(20261102),base=world.home;

@@ -34,11 +34,14 @@ function advanceUntilFirstShell(game,step=.05){
  assert.fail('battery did not complete its turn, aim and first launch');
 }
 
-test('the builder is locked until the pilot personally clears the first contour',()=>{
+test('the builder is locked until a core is charged, including during its siege',()=>{
  const {world,player,point}=fixture();world.contours.flux=20;
- assert.match(artilleryOffer(world,player,point).reason,/Сначала самостоятельно/);
+ assert.match(artilleryOffer(world,player,point).reason,/Сначала зарядите ядро/);
  assert.equal(deployArtillery(world,player,point,0).ok,false);
  assert.equal(world.contours.artillery.length,0);
+ world.contours.trials.entries=[{id:1,x:600,y:350,tier:1,status:'pending',charge:18,activated:true}];
+ assert.equal(artilleryOffer(world,player,point).ok,true,'turrets become available before wave three is defeated');
+ world.contours.trials.entries=[];
  world.contours.trials.completed=1;
  assert.equal(artilleryOffer(world,player,point).ok,true);
 });

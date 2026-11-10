@@ -1,13 +1,14 @@
 /* Survivor cockpit HUD: presentation only. World state and combat stay in game.js.
    The local radar is deliberately bounded to 1.1km and redraws <=5 times/sec. */
 import {miningSignal} from './mining.js?v=arcade-extraction-risk-34-pressure-response-1';
-import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1';
+import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1-pilot-value-2';
 import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-5';
 import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1-enemy-balance-2';
 import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1';
-import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110-weapon-deck-audit-2';
+import {normalizedDoctrineRanks,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2-hud-merge-20261110';
+import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110-weapon-deck-audit-2-hud-merge-20261110';
 const el = id => document.getElementById(id);
 const mountCountLabel=count=>{
  const last=count%10,teens=count%100>=11&&count%100<=14;
@@ -146,10 +147,10 @@ export class CockpitDisplay {
    liveAllies+' из 2 дронов в строю');
   const focus=game.actionHeld||game.interactionFocus;
   n.interactionCue.hidden=!focus||game.paused||game.dead||!game.overlay.hidden||
-   !!game.contourTrial&&!['station','repair','opening-repair'].includes(focus?.kind);
+   !!game.contourTrial&&!['station','repair','opening-repair','vortex'].includes(focus?.kind);
   if(!n.interactionCue.hidden) {
    const label=focus.kind==='station'?'Открыть станцию':
-    focus.kind==='vortex'?'Зарядить ядро · удерживать E':
+    focus.kind==='vortex'?'Заряд ядра · '+Math.floor(focus.target?.charge||0)+' / 18 с · удерживать (прогресс сохранится)':
     focus.kind==='turret-repair'?'Восстановить турель · удерживать':
     focus.kind==='repair'?'Ремонт зонда':
     focus.kind==='opening-repair'?'Эвакуация капсулы':'Добыча породы';
@@ -239,12 +240,21 @@ export class CockpitDisplay {
    !enemyBase.turrets.some(t=>t.hp>0)&&Math.hypot(enemyBase.x-p.x,enemyBase.y-p.y)<=245);
   const overcharge=Math.max(0,Math.ceil((game.overchargeUntil||0)-game.time));
   const scan=Math.max(0,Math.ceil((game.geoScanUntil||0)-game.time));
+  const doctrineCount=Object.keys(normalizedDoctrineRanks(game)).length;
+  const assaultWindow=doctrineRank(game,'assault')>=2&&game.assaultBurstUntil>game.time;
+  const prospectCharge=doctrineRank(game,'prospect')>=3&&game.prospectChargeUntil>game.time?
+   Math.max(0,game.prospectCharges||0):0;
+  const quietProspect=doctrineRank(game,'prospect')>=1;
+  const counterguard=doctrineRank(game,'countermaneuver')>=2&&game.counterguardUntil>game.time;
   const systemStatus=condition==='critical'?'АВАРИЙНЫЙ РЕЖИМ':
    repairing?'ВОССТАНОВЛЕНИЕ ЗОНДА':extracting?'ДОБЫЧА ПОРОДЫ':boosting?'УСКОРЕНИЕ АКТИВНО':
    baseFocus?'ПРИОРИТЕТНАЯ ЦЕЛЬ':overcharge?'УСИЛЕНИЕ ЛУЧА · '+overcharge+' С':
-   scan?'ГЕОРАЗВЕДКА · '+scan+' С':p.shield>0?'ЩИТ АКТИВЕН':
+   scan?'ГЕОРАЗВЕДКА · '+scan+' С':counterguard?'КОНТРМАНЁВР · ЗАЩИТА':
+   assaultWindow?'ШТУРМОВОЙ РЫВОК · ЗАЩИТА':
+   prospectCharge?'ГЕОЗАРЯД · '+prospectCharge+'/6 ПОПАДАНИЙ':p.shield>0?'ЩИТ АКТИВЕН':
    condition==='wounded'?'КОРПУС ПОВРЕЖДЁН':
-    game.doctrine?('ДОКТРИНА · '+({assault:'ШТУРМ',command:'КОМАНДИР',prospect:'СТАРАТЕЛЬ'}[game.doctrine]||'')):
+    doctrineRank(game,'prospect')>=3&&game.prospectSurgeUntil>game.time?'ГЕОФОРСАЖ':
+    doctrineCount?('ДОКТРИНЫ · '+doctrineCount+'/4'):
     'СИСТЕМЫ В НОРМЕ';
   // The mission ribbon's right bay is reserved for real route distance.
   const goal=game.waypoint;
@@ -261,9 +271,13 @@ export class CockpitDisplay {
    String(goal.label||'МАРШРУТ').toUpperCase():systemStatus);
   const modeFull=game.holdFire?'АВТООГОНЬ · ВЫКЛЮЧЕН':
    repairing?'ОРУЖИЕ ОТКЛ. · РЕМОНТ':
-   extracting?(game.nearQuietLab?'ДОБЫЧА · ШУМ −32%':'ОРУЖИЕ ОТКЛ. · ДОБЫЧА'):
+   extracting?(game.nearQuietLab?'ДОБЫЧА · ШУМ −32%':
+    quietProspect||(game.skillRanks?.mining||0)>=1?'ДОБЫЧА · СНИЖЕН ШУМ':'ОРУЖИЕ ОТКЛ. · ДОБЫЧА'):
    boosting?'МАНЁВР · ФОРСАЖ':baseFocus?'АВТОЦЕЛЬ · БАЗА':
    overcharge?'ЛУЧ +20% · '+overcharge+' С':
+   prospectCharge?'ГЕОЗАРЯД · ПЛАЗМА +45% · '+prospectCharge+'/6 ПОПАДАНИЙ':
+   counterguard?'КОНТРМАНЁВР · ЗАЩИТА +'+(doctrineRank(game,'countermaneuver')>=3?30:15)+'%':
+   assaultWindow?'ШТУРМОВОЙ РЫВОК · ЗАЩИТА +25%':
    game.nearArsenalBonus?'РЕТРАНСЛЯТОР · ЛУЧ +18%':
    game.nearDockField||game.nearArsenalDefense?'ПОЛЕ СТАНЦИИ · УРОН −18%':
    game.nearDock?.module==='workshop'?'ДОК · РЕМОНТ +60%':
@@ -271,9 +285,11 @@ export class CockpitDisplay {
   // Phone instrument uses short, readable states; full context stays available
   // as the accessible label. Desktop retains its detailed telemetry.
   const modeCompact=game.holdFire?'ТИХИЙ РЕЖИМ':
-   repairing?'РЕМОНТ':extracting?(game.nearQuietLab?'ДОБЫЧА · ТИХО':'ДОБЫЧА'):
+   repairing?'РЕМОНТ':extracting?(game.nearQuietLab||quietProspect?'ДОБЫЧА · ТИХО':'ДОБЫЧА'):
    boosting?'ФОРСАЖ':baseFocus?'БАЗА · ЦЕЛЬ':
-   overcharge?'ЛУЧ +20%':game.nearArsenalBonus?'ЛУЧ +18%':
+   overcharge?'ЛУЧ +20%':prospectCharge?'ГЕОЗАРЯД · '+prospectCharge+'/6':
+   counterguard?'ЗАЩИТА +'+(doctrineRank(game,'countermaneuver')>=3?30:15)+'%':
+   assaultWindow?'ЗАЩИТА +25%':game.nearArsenalBonus?'ЛУЧ +18%':
    game.nearDockField||game.nearArsenalDefense?'ЗАЩИТА +18%':
    game.nearDock?.module==='workshop'?'РЕМОНТ +60%':
    game.nearQuietLab?'ШУМ −32%':'АВТООГОНЬ';
