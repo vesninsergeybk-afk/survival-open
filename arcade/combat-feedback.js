@@ -110,26 +110,29 @@ export function drawSeekingMissile(ctx,missile,fps=60){
  const angle=Math.atan2(missile.ty-missile.y,missile.tx-missile.x);
  const trail=missile.trail||[];
  const rank=Math.max(0,Math.min(6,missile.fxRank||0));
+ const seeker=missile.fxBranch==='seeker',payload=missile.fxBranch==='payload';
+ const edge=seeker?'#7fe9ff':payload?'#ff9c55':'#ff6035';
+ const core=seeker?'#e0ffff':payload?'#ffe0a1':'#ffbc68';
  ctx.save();
  ctx.lineCap='round';
  if(trail.length>1){
   if(fps>=34){
-   ctx.globalAlpha=.2+rank*.02;ctx.strokeStyle=rank>=3?'#e38cfa':'#ff6035';
+   ctx.globalAlpha=.2+rank*.02;ctx.strokeStyle=seeker||payload?edge:rank>=3?'#e38cfa':edge;
    ctx.lineWidth=9+rank*1.1;
    ctx.beginPath();ctx.moveTo(trail[0].x,trail[0].y);
    for(let i=1;i<trail.length;i++)ctx.lineTo(trail[i].x,trail[i].y);
    ctx.lineTo(missile.x,missile.y);ctx.stroke();
   }
-  ctx.globalAlpha=.75;ctx.strokeStyle=rank>=3?'#ffe1ee':'#ffbc68';ctx.lineWidth=2.5+rank*.45;
+  ctx.globalAlpha=.75;ctx.strokeStyle=seeker||payload?core:rank>=3?'#ffe1ee':core;
   ctx.beginPath();ctx.moveTo(trail[Math.max(0,trail.length-5)].x,trail[Math.max(0,trail.length-5)].y);
   for(let i=Math.max(1,trail.length-4);i<trail.length;i++)ctx.lineTo(trail[i].x,trail[i].y);
   ctx.lineTo(missile.x,missile.y);ctx.stroke();
  }
  ctx.translate(missile.x,missile.y);ctx.rotate(angle);
  ctx.globalAlpha=1;ctx.globalCompositeOperation='lighter';
- ctx.fillStyle='#ff8c45';ctx.beginPath();
+ ctx.fillStyle=edge;ctx.beginPath();
  ctx.moveTo(-14,0);ctx.lineTo(-8,-4.5);ctx.lineTo(-7,4.5);ctx.closePath();ctx.fill();
- ctx.fillStyle='#fff1bd';ctx.beginPath();
+ ctx.fillStyle=core;ctx.beginPath();
  ctx.moveTo(10,0);ctx.lineTo(-5,-4);ctx.lineTo(-5,4);ctx.closePath();ctx.fill();
  ctx.fillStyle='#ff633c';ctx.fillRect(-8,-3,3,6);
  if(rank>0){
@@ -139,6 +142,18 @@ export function drawSeekingMissile(ctx,missile,fps=60){
    ctx.beginPath();ctx.moveTo(-13,side*(4+rank*.4));
    ctx.lineTo(-3,side*(6+rank*.6));ctx.lineTo(3,side*2);ctx.stroke();
   }
+ }
+ if(seeker){
+  // Navigation fins make the retargeting missile recognizable even at 15 FPS.
+  ctx.strokeStyle='#c2faff';ctx.lineWidth=1.5;
+  for(const side of [-1,1]){
+   ctx.beginPath();ctx.moveTo(-7,side*4);ctx.lineTo(-14,side*8);
+   ctx.lineTo(-2,side*5);ctx.stroke();
+  }
+ }else if(payload){
+  ctx.strokeStyle='#ffd496';ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.moveTo(-4,-6.5);ctx.lineTo(6,-6.5);
+  ctx.lineTo(6,6.5);ctx.lineTo(-4,6.5);ctx.closePath();ctx.stroke();
  }
  ctx.restore();
 }

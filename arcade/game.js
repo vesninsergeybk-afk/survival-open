@@ -68,6 +68,7 @@ import {NOISE_ESCALATION,preserveEarlyNoiseSignal,noisePatrolDirector,armNoiseCo
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-sfx-2-artillery-finish-1-support-three-1-frontier-siege-1';
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44-weapon-vfx-audit-1';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
+import {reacquireMissile,applyRocketSplash} from './rocket-branches.js?v=weapon-branches-1';
 import {missionImageReady,paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1';
@@ -174,7 +175,8 @@ function nextSkillEffect(id,rank,levels={}){
     ' · темп ×'+fmt(1+rank*.08)+' → ×'+fmt(1+n*.08)+' · тот же прирост урона ионной цепи';
   case 'double':return n===1?'Две цели получают по 60% залпа; одиночная — 100%':
     'Три цели получают по 45% залпа; две — по 60%; одиночная — 100%';
-  case 'range':return 'Дальность луча: '+(365+rank*56)+' → '+(365+n*56);
+   case 'range':return 'Дальность луча: '+(STARTER_COMBAT.plasmaRange+rank*56)+' → '+
+    (STARTER_COMBAT.plasmaRange+n*56);
   case 'rocket':{
    const before=moduleStats('rocket',levels),after=moduleStats('rocket',{...levels,rocket:n});
    return rank===0?'Даст ракетный модуль: '+fmt(after.damage)+' урона каждые '+fmt(after.interval)+
@@ -4457,7 +4459,10 @@ export class ArcadeGame {
  }
  updateMissiles(dt){
   for(const m of this.missiles){
-   const item={kind:m.targetKind||'enemy',target:m.target,base:m.targetBase};
+   const impactSize=m.splashRadius?Math.round(m.splashRadius/1.15):26;
+   let item={kind:m.targetKind||'enemy',target:m.target,base:m.targetBase};
+   if(!targetAlive(this,item)&&reacquireMissile(this,m))
+    item={kind:m.targetKind||'enemy',target:m.target,base:m.targetBase};
    if(targetAlive(this,item)){m.tx=m.target.x;m.ty=m.target.y;}
    m.prevX=m.x;m.prevY=m.y;
    if(!m.trail)m.trail=[];
@@ -4472,8 +4477,9 @@ export class ArcadeGame {
     this.rockGrid.query((m.prevX+m.x)*.5,(m.prevY+m.y)*.5,step*.5+60),3,this.player);
    if(cover){
     const contact=contactAtPoint(cover.rock.x,cover.rock.y,cover.x,cover.y);
+    applyRocketSplash(this,m,{x:cover.x,y:cover.y});
     this.damageRock(cover.rock,m.damage*.85,m.prevX,m.prevY,'auto',true,contact);
-    this.heritage.vfx.rocketImpact(cover.x,cover.y,26,contact);
+    this.heritage.vfx.rocketImpact(cover.x,cover.y,impactSize,contact);
     this.heritage.play('rocketImpact',.2,{x:cover.x,y:cover.y});
     m.life=-1;continue;
    }
@@ -4482,9 +4488,11 @@ export class ArcadeGame {
     const e=m.target;
     const hit=targetAlive(this,item)&&Math.hypot(m.x-e.x,m.y-e.y)<targetRadius(item)+24;
     const contact=hit?contactOnCircle(e.x,e.y,targetRadius(item),m.prevX,m.prevY):null;
+    // Resolve splash before a hit destroys a turret and exposes its station core.
+    applyRocketSplash(this,m,{x:contact?.x??m.x,y:contact?.y??m.y},hit?e:null);
     if(hit)damageTarget(this,item,m.damage,'rocket',contact);
-    if(hit)this.heritage.vfx.rocketImpact(contact?.x??m.x,contact?.y??m.y,26,contact);
-    else this.heritage.vfx.rocketImpact(m.x,m.y,12);
+    if(hit)this.heritage.vfx.rocketImpact(contact?.x??m.x,contact?.y??m.y,impactSize,contact);
+    else this.heritage.vfx.rocketImpact(m.x,m.y,m.splashRadius?impactSize:12);
     // The warhead has an audible detonation, not just a visual flash.
     this.heritage.play('rocketImpact',.2,{x:contact?.x??m.x,y:contact?.y??m.y});
     m.life=-1;
