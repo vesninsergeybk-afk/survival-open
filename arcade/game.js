@@ -35,7 +35,7 @@ import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,offerLevelCrystals,refreshEv
  updateFieldEvolution,parasiteTargetMode,setParasiteTargetMode} from './field-evolution.js?v=mouse-arms-1-manual-weapon-1';
 import {drawEvolutionEnvironment,drawParasiteCore,drawEvolutionEnemy,
  drawEvolutionConnections,drawEvolutionPlayer} from './field-evolution-vfx.js?v=field-evolution-1-first-loops-1';
-import {RULES, STARTER_COMBAT, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, openingSpawnRoom, burstStats, splitPlayerDamage} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1-combat-balance-1-balance-audit-1-shield-crowd-20261110';
+import {RULES, STARTER_COMBAT, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, openingSpawnRoom, burstStats, splitPlayerDamage} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1-combat-balance-1-balance-audit-1-shield-crowd-20261110-swarm-presence-20261110';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1-supply-stronghold-1-flux-reserve-1-flux-offense-1-territory-war-1-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1-rescue-depth-1-convoy-variety-20261110';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4-zoomread-2-territory-logistics-1';
@@ -50,7 +50,7 @@ import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from '
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1-combat-balance-1';
-import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30-combat-hunt-20261109-shield-crowd-20261110';
+import {planEncounter,scheduledMoteSize,MOTE_ENCOUNTER} from './encounters.js?v=arcade-balanced-bases-30-combat-hunt-20261109-shield-crowd-20261110-swarm-presence-20261110';
 import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109-weapon-vfx-audit-1-corvette-20261110-1-pilot-value-2';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
@@ -102,7 +102,7 @@ import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1-frontier-siege-1-hud-merge-20261110';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2-hud-merge-20261110';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1-hud-merge-20261110';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109-territory-logistics-1-flux-siphon-roads-1-station-trust-1-rescue-depth-1-convoy-variety-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109-territory-logistics-1-flux-siphon-roads-1-station-trust-1-rescue-depth-1-convoy-variety-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-swarm-presence-20261110';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1-sector-density-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -326,7 +326,7 @@ export class ArcadeGame {
   this.beamClock=.25;this.rocketClock=4;this.zoneClock=80;
   this.stationary=0;this.lastX=0;this.lastY=0;this.hacks=[];this.activeBases=0;
   this.enemySerial=0;this.allySerial=0;this.groupSerial=0;this.heavyPortalShown=false;
-  this.lastEncounter='';this.lastEncounterLabelAt=-30;this.paused=false;
+  this.lastEncounter='';this.lastEncounterLabelAt=-30;this.nextMoteEncounterAt=MOTE_ENCOUNTER.firstAt;this.paused=false;
   this.pausedRenderPending=false;
   this.buildPlanning=null;this.artilleryMenuTarget=null;
   this.dead=false;this.deathSceneEnd=0;this.deathVfxAt=0;this.fps=60;this.frameSamples=[];this.lastHud=0;
@@ -4948,17 +4948,23 @@ export class ArcadeGame {
   if(available<=0)return 0;
   const side=Math.floor(Math.random()*4),middle=this.time<118?
    .34+Math.random()*.32:.2+Math.random()*.6;
-  const ambient={...director,allowMotes:!noiseSignal&&
-   this.enemies.filter(e=>e.microSwarm&&e.hp>0).length<25};
+  const activeMotes=this.enemies.filter(e=>e.microSwarm&&e.hp>0).length;
+  const ambient={...director,allowMotes:!noiseSignal&&activeMotes<25};
+  const plannedMotes=ambientPatrol?scheduledMoteSize({time:this.time,
+   nextAt:this.nextMoteEncounterAt,director:ambient,regularRoom:available,
+   ambientRoom:cap*2-ambientCount,globalRoom:RULES.maxEnemies-this.enemies.length,
+   activeMotes,maxMotes:MOTE_SWARM.maxMotes}):0;
   // A noise report coordinates two approach lanes even in the first sortie:
   // either a wide search sweep or a genuine pincer. Ordinary traffic retains
   // its stage-gated encounter patterns and never learns the pilot's position.
   const encounterTime=noiseSignal?Math.max(this.time,118):this.time;
   const encounterRoll=noiseSignal ? .34+Math.random()*.66 : Math.random();
-  const plan=planEncounter(encounterTime,ambient,available,side,middle,
-    encounterRoll,noiseSignal?'':this.lastEncounter);
+  const plan=planEncounter(encounterTime,ambient,Math.max(available,plannedMotes),side,middle,
+    encounterRoll,noiseSignal?'':this.lastEncounter,plannedMotes?'motes':'');
   if(!plan.members.length)return 0;
   if(!noiseSignal)this.lastEncounter=plan.pattern;
+  if(!noiseSignal&&plan.pattern==='motes')
+   this.nextMoteEncounterAt=this.time+MOTE_ENCOUNTER.repeatAfter;
   const group=++this.groupSerial,cam=this.spawnEntryCamera(),created=[];
   const doubleMotePack=plan.pattern==='motes'&&plan.members.length>10;
   const secondMotePack=doubleMotePack?++this.groupSerial:group;

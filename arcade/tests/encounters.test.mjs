@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {openingThreat,spawnOutside,outsideCamera} from '../balance.js';
-import {availableEncounters,planEncounter} from '../encounters.js';
+import {availableEncounters,planEncounter,MOTE_ENCOUNTER,scheduledMoteSize} from '../encounters.js';
 import {ENEMY_TYPES,updateEnemy} from '../ai.js';
 
 const build=(t,roll=0,room=10,previous='')=>
@@ -37,10 +37,10 @@ test('сценарии открываются постепенно и тольк
     }
   }
 });
-test('малые рои появляются после освоения кометы и только при достаточном месте',()=>{
+test('малые рои доступны уже во второй минуте, если достаточно места',()=>{
   const director=openingThreat(110,3);
   assert.ok(availableEncounters(110,director,2,10).includes('motes'));
-  assert.ok(!availableEncounters(94.9,director,2,10).includes('motes'));
+  assert.ok(!availableEncounters(MOTE_ENCOUNTER.firstAt-.1,director,2,10).includes('motes'));
   assert.ok(!availableEncounters(110,director,2,7).includes('motes'));
   assert.ok(!availableEncounters(110,{...director,allowMotes:false},2,10).includes('motes'));
   const options=availableEncounters(110,director,2,10);
@@ -52,6 +52,30 @@ test('малые рои появляются после освоения ком�
   assert.ok(new Set(plan.members.map(e=>e.position)).size>7);
   const cramped=planEncounter(110,director,7,1,.5,(index+.1)/options.length);
   assert.notEqual(cramped.pattern,'motes');
+});
+test('очередной рой получает приоритет, даже если лимит обычных патрулей почти заполнен',()=>{
+ const d={...openingThreat(70),allowMotes:true};
+ const base={time:70,nextAt:70,director:d,regularRoom:4,
+  ambientRoom:16,globalRoom:165,activeMotes:0,maxMotes:40};
+ assert.equal(scheduledMoteSize(base),8);
+ const chosen=planEncounter(70,d,8,0,.5,0,'motes','motes');
+ assert.equal(chosen.pattern,'motes','приоритет обходит случайный выбор и запрет повтора');
+ assert.equal(chosen.members.length,8);
+ assert.equal(scheduledMoteSize({...base,regularRoom:3}),0,
+  'четыре условных места всё же нужны, рой не добавляют в полный бой');
+ assert.equal(scheduledMoteSize({...base,ambientRoom:7}),0,
+  'дальние патрули не могут бесконечно накапливать дополнительные дроны');
+ assert.equal(scheduledMoteSize({...base,globalRoom:7}),0);
+ assert.equal(scheduledMoteSize({...base,activeMotes:25}),0,
+  'для подкреплений оставляют свободный бюджет микродронов');
+ assert.equal(scheduledMoteSize({...base,time:69.9}),0);
+ assert.equal(scheduledMoteSize({...base,nextAt:142}),0);
+ assert.equal(scheduledMoteSize({...base,director:{...d,allowMotes:false}}),0);
+ const late={...base,time:260,nextAt:200,director:openingThreat(260),
+  regularRoom:8,ambientRoom:24,globalRoom:80};
+ assert.equal(scheduledMoteSize(late),16);
+ assert.equal(scheduledMoteSize({...late,regularRoom:7}),0);
+ assert.equal(scheduledMoteSize({...late,activeMotes:17}),0);
 });
 test('клещи действительно заходят с двух сторон и все корабли появляются за экраном',()=>{
   const d=openingThreat(120);

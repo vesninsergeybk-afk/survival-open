@@ -47,7 +47,9 @@ test('защищённые девять секунд переходят в пл�
  const first=openingThreat(9),second=openingThreat(36),third=openingThreat(75);
  assert.equal(openingThreat(8.99).groupSize,0);
  assert.equal(first.groupSize,4);
- assert.ok(first.interval<=7);
+ assert.equal(first.interval,7,'первые патрули сохраняют проверенный темп');
+ assert.ok(openingThreat(118).interval>4.6,
+  'после знакомства с микродронами обычные патрули становятся немного реже');
  assert.ok(second.cap>first.cap&&third.cap>second.cap);
  assert.ok(second.types.includes('fighter'));
  assert.ok(!second.types.includes('gunship'));
@@ -175,6 +177,23 @@ test('настоящий создатель встреч выпускает гр
  ArcadeGame.prototype.spawnGroup.call(game,openingThreat(20));
  assert.equal(game.enemies.length-previous,4);
  assert.ok(game.enemies.slice(previous).every(e=>e.hp>0&&e._patrolRoute));
+});
+test('первый приоритетный рой заменяет патруль, не требуя восьми свободных мест',()=>{
+ const g=Object.create(ArcadeGame.prototype);
+ Object.assign(g,{time:70,player:{x:0,y:0,level:1,hp:90},
+  enemies:Array.from({length:10},(_,i)=>({x:350+i*14,y:0,hp:28,
+   _patrolRoute:{x:1600,y:0}})),groupSerial:0,enemySerial:10,
+  nextMoteEncounterAt:70,lastEncounter:'motes',lastEncounterLabelAt:-Infinity,
+  spawnEntryCamera:()=>({x:-600,y:-400,w:1200,h:800})});
+ const recovery=g.spawnGroup(openingThreat(70));
+ const newShips=g.enemies.slice(10);
+ assert.equal(newShips.length,8);
+ assert.ok(newShips.every(e=>e.microSwarm&&e._patrolRoute));
+ assert.ok(recovery>=3);
+ assert.equal(g.nextMoteEncounterAt,142);
+ g.time=75;
+ assert.equal(g.spawnGroup(openingThreat(75)),0,
+  'после роя обычные формирования ждут, пока в секторе освободится место');
 });
 
 test('промышленные эскадры нового мира не занимают квоту обычных патрулей',()=>{

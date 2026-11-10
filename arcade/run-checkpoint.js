@@ -40,7 +40,7 @@ const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal m
  'spawnClock miningNoise lastNoiseSource noiseAlert miningNoiseWarned miningIntroShown coverWearWarned '+
  'contract operation geoScanUntil overchargeUntil fieldLoan fieldTrialTaken fieldReturnAt ionMasteryAwarded '+
  'holdFire beamClock rocketClock zoneClock stationary lastX lastY hacks activeBases enemySerial '+
- 'allySerial groupSerial heavyPortalShown lastEncounter lastEncounterLabelAt amberBeltSeen ionFieldSeen '+
+ 'allySerial groupSerial heavyPortalShown lastEncounter lastEncounterLabelAt nextMoteEncounterAt amberBeltSeen ionFieldSeen '+
  'waypoint manualWaypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc fieldEvolution fieldLoot combatTempo').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -164,6 +164,8 @@ export function validateCheckpoint(data){
    !Number.isInteger(rank)||rank<1||rank>3)))return false;
  if(s.manualWaypoint!=null&&(!object(s.manualWaypoint)||s.manualWaypoint.id!=='map:manual'||
   !finite(s.manualWaypoint.x)||!finite(s.manualWaypoint.y)))return false;
+ if(s.nextMoteEncounterAt!==undefined&&
+  !finite(s.nextMoteEncounterAt,0,1e9))return false;
  if(s.sortieReports!==undefined&&!validSortieReports(s.sortieReports))return false;
  if(s.economyExpenses!==undefined&&!validEconomyExpenses(s.economyExpenses))return false;
  if(s.openingArc!==undefined&&!validateOpeningArc(s.openingArc))return false;

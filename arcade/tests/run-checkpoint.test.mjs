@@ -47,6 +47,17 @@ test('specialized howitzer and several pilot doctrines survive checkpoint serial
  assert.equal(restored.prospectChargeUntil,0);
  assert.equal(restored.counterguardUntil,0,'временная защита не переживает выход со станции');
 });
+test('интервал между стаями переживает сохранение, старые вылеты открываются',()=>{
+ const g=scene();g.nextMoteEncounterAt=315.5;
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.ok(validateCheckpoint(snapshot));
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ assert.equal(restored.nextMoteEncounterAt,315.5);
+ const old=unpackRun(packRun(snapshot));delete old.state.nextMoteEncounterAt;
+ assert.ok(validateCheckpoint(old));
+ const invalid=unpackRun(packRun(snapshot));invalid.state.nextMoteEncounterAt=-10;
+ assert.equal(validateCheckpoint(invalid),false);
+});
 test('legacy single doctrine becomes one rank without charging an extra point',()=>{
  const g=scene();g.doctrine='prospect';
  const saved=unpackRun(packRun(captureCheckpoint(g,g.docked)));

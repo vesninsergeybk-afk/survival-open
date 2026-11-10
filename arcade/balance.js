@@ -101,15 +101,21 @@ export const outsideCamera = (x, y, camera, radius = 0) =>
 // and missions keep their distinct size and purpose. Fade out the reduction
 // before 205 s to avoid an abrupt spawn-cap jump at the next stage.
 const openingCrowdCap=(time,cap)=>Math.round(cap*(.9+.1*clamp((time-155)/50,0,1)));
+// Slightly longer gaps between *ordinary* opening patrols. Ease the change
+// away before the mature director takes over; swarms replace patrols.
+// Leave the first repair-or-fight decision intact; ease the relief in after
+// 85 seconds, when the first fragile micro-drone encounters are available.
+const openingPatrolInterval=(time,base)=>base*(1+
+ .08*clamp((time-85)/12,0,1)*clamp((205-time)/50,0,1));
 // Nine seconds to take control, then genuine pressure from multiple scouts.
 // A larger formation is still capped, and the tougher classes arrive in order.
 export function openingThreat(time, level = 1) {
  if(time<9)return {cap:0,interval:9,groupSize:0,types:[]};
- if(time<36)return {cap:openingCrowdCap(time,9),interval:7,groupSize:4,types:['scout']};
- if(time<75)return {cap:openingCrowdCap(time,15),interval:5.8,groupSize:5,types:['scout','fighter']};
- if(time<118)return {cap:openingCrowdCap(time,22),interval:5.2,groupSize:6,types:['scout','fighter','flanker']};
- if(time<155)return {cap:openingCrowdCap(time,28),interval:4.6,groupSize:7,types:['scout','fighter','flanker','berserker']};
- if(time<205)return {cap:openingCrowdCap(time,33),interval:4,groupSize:7,types:['scout','fighter','flanker','berserker','healer']};
+ if(time<36)return {cap:openingCrowdCap(time,9),interval:openingPatrolInterval(time,7),groupSize:4,types:['scout']};
+ if(time<75)return {cap:openingCrowdCap(time,15),interval:openingPatrolInterval(time,5.8),groupSize:5,types:['scout','fighter']};
+ if(time<118)return {cap:openingCrowdCap(time,22),interval:openingPatrolInterval(time,5.2),groupSize:6,types:['scout','fighter','flanker']};
+ if(time<155)return {cap:openingCrowdCap(time,28),interval:openingPatrolInterval(time,4.6),groupSize:7,types:['scout','fighter','flanker','berserker']};
+ if(time<205)return {cap:openingCrowdCap(time,33),interval:openingPatrolInterval(time,4),groupSize:7,types:['scout','fighter','flanker','berserker','healer']};
  const elapsed=time-205;
  return {
   // The late game becomes more dangerous through tougher ships and formations,

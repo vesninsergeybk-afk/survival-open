@@ -1,11 +1,27 @@
 // Lightweight, testable encounter plans. The world owns the spawning positions;
 // the enemy AI owns moment-to-moment movement after entering the camera.
 const clamp01=value=>Math.max(0,Math.min(.999999,Number.isFinite(value)?value:0));
+// A weak, coordinated flock periodically replaces an ordinary patrol. Count
+// its members as half of a regular ship for *admission*, but retain the hard
+// scene and ambient budgets so a swarm cannot create unlimited crowding.
+export const MOTE_ENCOUNTER=Object.freeze({firstAt:70,repeatAfter:72,
+ earlySize:8,lateSize:16,lateAt:205,regularWeight:.5,reserve:8});
+export function scheduledMoteSize({time,nextAt,director,regularRoom,
+ ambientRoom,globalRoom,activeMotes,maxMotes}){
+ if(!Number.isFinite(nextAt)||time<Math.max(MOTE_ENCOUNTER.firstAt,nextAt)||
+    !director.types?.includes('scout')||director.allowMotes===false)return 0;
+ const size=time<MOTE_ENCOUNTER.lateAt?
+  MOTE_ENCOUNTER.earlySize:MOTE_ENCOUNTER.lateSize;
+ if(regularRoom<Math.ceil(size*MOTE_ENCOUNTER.regularWeight)||
+    ambientRoom<size||globalRoom<size||
+    activeMotes+size>maxMotes-MOTE_ENCOUNTER.reserve)return 0;
+ return size;
+}
 export function availableEncounters(time,director,count,room=count){
   if(time<9||count<=0||!director.types?.length)return [];
   const options=['patrol'];
   if(time>=36&&count>=2)options.push('sweep');
-  if(time>=95&&count>=2&&room>=8&&director.types.includes('scout')&&
+  if(time>=MOTE_ENCOUNTER.firstAt&&count>=2&&room>=8&&director.types.includes('scout')&&
     director.allowMotes!==false)options.push('motes');
   if(time>=118&&count>=3)options.push('pincer');
   if(time>=118&&count>=2&&director.types.includes('berserker'))options.push('ram');
@@ -13,15 +29,16 @@ export function availableEncounters(time,director,count,room=count){
   if(time>=205&&count>=2&&director.types.includes('gunship'))options.push('heavy');
   return options;
 }
-export function planEncounter(time,director,room,side,middle,roll=0,previous=''){
+export function planEncounter(time,director,room,side,middle,roll=0,previous='',preferred=''){
   const count=Math.max(0,Math.min(
     Math.floor(director.groupSize||0),Math.floor(room||0)));
   const options=availableEncounters(time,director,count,room);
   if(!options.length)return {pattern:'none',members:[],pause:0,label:''};
   let index=Math.floor(clamp01(roll)*options.length);
-  let pattern=options[index];
+  const forced=options.includes(preferred);
+  let pattern=forced?preferred:options[index];
   // Consecutive encounters should not look identical when alternatives exist.
-  if(pattern===previous&&options.length>1)pattern=options[(index+1)%options.length];
+  if(!forced&&pattern===previous&&options.length>1)pattern=options[(index+1)%options.length];
   // Early eye swarms should feel like a formation rather than a screen-filling
   // cloud. Larger late-game packs keep their existing tactical role.
   const actualCount=pattern==='motes'?
