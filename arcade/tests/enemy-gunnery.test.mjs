@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {ENEMY_GUNNERY,gunProfile,updateEnemyGunnery,drawEnemyGunWarnings,
  drawEnemyDefenseGoals}
  from '../enemy-gunnery.js';
-import {updateEnemy} from '../ai.js';
+import {updateEnemy,ENEMY_TYPES} from '../ai.js';
 import {EnemyComms} from '../enemy-comms.js';
 
 const ship=(type,serial,x=245)=>({type,serial,group:1,x,y:40,vx:0,vy:0,
@@ -215,6 +215,97 @@ test('interceptors use a faster, clearly warned needle and heavy ships fire a fa
  assert.equal(game.shots.filter(s=>s.options.kind==='gunship-cannon').length,3);
  assert.ok(new Set(game.shots.slice(-3).map(s=>s.ty)).size>1,
   'the heavy cannon has a spread pattern');
+});
+
+test('corvette close battery gives a warned, dodgeable three-shot broadside rather than free extra DPS',()=>{
+ const e=ship('gunship',8,190),game=scene([e]);
+ game.time=215;e.state='standoff';e._enemyLearningSaw=true;e._gunNextAt=0;
+ updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunAiming?.profile,ENEMY_GUNNERY.pointDefense);
+ const locked={...e._gunAiming};
+ assert.ok(locked.until-game.time>=.55);
+ game.playerCanInspectEnemyIntent=()=>true;
+ let rings=0;
+ const ctx={save(){},restore(){},setLineDash(){},beginPath(){},
+  moveTo(){},lineTo(){},stroke(){},arc(){rings++;}};
+ assert.equal(drawEnemyGunWarnings(ctx,game,{x:-250,y:-130,w:550,h:350},18),1);
+ assert.ok(rings>=3,'the close charge draws its aim and two flank-gun cues');
+ game.player.x=40;game.player.y=90;
+ game.time=215.7;updateEnemyGunnery(e,game,game.player);
+ assert.equal(game.shots.length,1);
+ assert.equal(game.shots[0].options.kind,'gunship-flak');
+ assert.equal(game.shots[0].damage,5);
+ assert.equal(e._gunCycle??0,0,'the defensive battery does not grant extra lance cycles');
+ game.time=216;updateEnemyGunnery(e,game,game.player);
+ game.time=216.3;updateEnemyGunnery(e,game,game.player);
+ assert.equal(game.shots.length,3);
+ assert.equal(game.shots.reduce((sum,s)=>sum+s.damage,0),15);
+ assert.ok(game.shots.every(s=>Math.hypot(s.tx-locked.x,s.ty-locked.y)<45),
+  'the burst stays on its earlier aiming line after the player changes course');
+ game.time=216.6;updateEnemyGunnery(e,game,game.player);
+ assert.equal(game.shots.length,3,'the point battery has a real reload');
+});
+
+test('a corvette uses main artillery at range and abandons close firing when cover or range breaks',()=>{
+ const e=ship('gunship',8,345),game=scene([e]);
+ game.time=215;e.state='standoff';e._enemyLearningSaw=true;e._gunNextAt=0;
+ updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunAiming?.profile.kind,'gunship-cannon');
+ e._gunAiming=null;e._gunNextAt=0;e.x=195;
+ game.time=216;updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunAiming?.profile.kind,'gunship-flak');
+ game.enemyCanSee=()=>false;game.time=216.2;
+ updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunAiming,null);
+ assert.equal(game.shots.length,0,'asteroid cover cancels an unfired burst');
+ game.enemyCanSee=()=>true;e._gunNextAt=0;
+ game.time=217;updateEnemyGunnery(e,game,game.player);
+ game.player.x=-80;game.time=217.3;
+ updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunAiming,null,'leaving the short range defeats the battery');
+ assert.equal(game.shots.length,0);
+});
+
+test('offscreen close corvettes cannot begin or complete a hidden flak warning',()=>{
+ const e=ship('gunship',8,175),game=scene([e]);
+ e.state='standoff';e._enemyLearningSaw=true;e._gunNextAt=0;
+ game.camera=()=>({x:-130,y:-100,w:260,h:200});
+ updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunAiming,null,'an offscreen close corvette cannot use the main cannon instead');
+ e._gunAiming=null;e._gunNextAt=0;e.x=95;
+ game.time=2;updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunAiming?.profile.kind,'gunship-flak');
+ e.x=175;game.time=2.7;
+ updateEnemyGunnery(e,game,game.player);
+ assert.equal(e._gunAiming,null);
+ assert.equal(game.shots.length,0);
+});
+
+test('corvette speed and toughness grow without boosting initial scouts or fighter salvos',()=>{
+ assert.equal(ENEMY_TYPES.scout.speed,158);
+ assert.equal(ENEMY_TYPES.fighter.speed,120);
+ assert.ok(ENEMY_TYPES.gunship.speed>110&&ENEMY_TYPES.gunship.speed<ENEMY_TYPES.fighter.speed);
+ assert.ok(ENEMY_TYPES.gunship.hp>=140&&ENEMY_TYPES.gunship.hp<=160);
+ assert.ok(ENEMY_TYPES.flanker.speed>ENEMY_TYPES.berserker.speed);
+ assert.equal(ENEMY_GUNNERY.fighter.damage,10);
+});
+
+test('a hit triggers only a short physical lateral burn, without invulnerability',()=>{
+ const e=ship('gunship',8,320),game=scene([e]);
+ e.hp=ENEMY_TYPES.gunship.hp;e.maxHp=e.hp;e.r=22;
+ e.state='standoff';e.think=10;e.target=game.player;
+ game.time=300;e._awarenessLast={at:300,x:0,y:0,vx:0,vy:0};
+ e._awarenessNextAt=301;e.hit=.2;e._gunNextAt=310;
+ updateEnemy(e,game,.1);
+ assert.ok(e._gunshipSlipUntil>300);
+ assert.ok(e._gunshipSlipReadyAt>307);
+ assert.ok(Math.abs(e.vy)>0,'the evasive manoeuvre changes actual velocity');
+ assert.equal(e.hp,ENEMY_TYPES.gunship.hp,'thrusters do not heal or grant armour');
+ const until=e._gunshipSlipUntil;
+ game.time=300.5;updateEnemy(e,game,.1);
+ assert.equal(e._gunshipSlipUntil,until,'repeated hits cannot refresh the burn');
+ game.time=301.5;updateEnemy(e,game,.1);
+ assert.ok(game.time>e._gunshipSlipUntil,'the manoeuvre expires');
 });
 
 test('a burst stops at cover or lost target; no stale shot leaks through it',()=>{

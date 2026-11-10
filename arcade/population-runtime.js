@@ -1,5 +1,5 @@
 import {RULES,hash} from './balance.js';
-import {ENEMY_TYPES} from './ai.js';
+import {ENEMY_TYPES} from './ai.js?v=corvette-20261110-1';
 import {contourFields} from './territory-system.js';
 import {POPULATION,advancePopulation,populationAlarm,
  updatePopulationMiners} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
