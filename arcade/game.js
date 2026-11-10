@@ -3614,13 +3614,16 @@ export class ArcadeGame {
   const strike=$('strikeBtn');if(strike)strike.hidden=!(this.support?.charges>0);
    const ion=$('ionBtn'),tacticButton=$('tacticBtn'),spec=this.fieldLoan&&fieldWeapon(this.fieldLoan);
    const fitted=!!spec&&!!this.weaponProfile[spec.id];
-   const ready=fitted&&this.fieldLoan.cooldownUntil<=this.time;
+   const blockedField=this.weaponThermal?.locked?' · перегрев':this.heavyCharge?' · занята гаубица':
+    this.mining?.active||this.probeRepairing||this.openingRepairing?' · занято действием':'';
+   const ready=fitted&&this.fieldLoan.cooldownUntil<=this.time&&!blockedField;
    const tactic=this.tactical||createTactical(),tacticModule=TACTICAL_DEVICES[tactic.equipped];
    const tacticRemaining=Math.max(0,Math.ceil(tactic.readyAt-this.time));
    const tacticText=this.controlLabel('field')+' · '+tacticModule.short+
     (tacticRemaining?' · зарядка '+tacticRemaining+' с':' · готово');
    const fieldText=fitted?this.controlLabel('fieldWeapon')+' · '+spec.short+' · ∞'+
-    (this.fieldLoan.cooldownUntil>this.time?' · зарядка '+Math.ceil(this.fieldLoan.cooldownUntil-this.time)+' с':' · готово'):'';
+    (this.fieldLoan.cooldownUntil>this.time?' · зарядка '+Math.ceil(this.fieldLoan.cooldownUntil-this.time)+' с':
+     blockedField||' · готово'):'';
    if(tacticButton){tacticButton.hidden=false;tacticButton.disabled=!!tacticRemaining;
     tacticButton.textContent=tacticRemaining?tacticModule.short+' · '+tacticRemaining+'с':tacticModule.short;
     tacticButton.setAttribute('aria-label',tacticText);}

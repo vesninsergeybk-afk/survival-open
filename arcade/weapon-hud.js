@@ -81,7 +81,8 @@ export function weaponDeckState(game){
    spec.id==='ion'?'По меткам · '+stats.range+' м · зарядка '+round(spec.cooldown)+' с':
     '2–3 цели · '+stats.range+' м · связь 4 с · зарядка '+round(spec.cooldown)+' с',
    remaining(loan.cooldownUntil,time),!fitted?'НЕ УСТАНОВЛЕНО':
-    inactive?'НЕДОСТУПНО':heat.locked?'ПЕРЕГРЕВ':'',MODULES[spec.id].color));
+    inactive?'НЕДОСТУПНО':heat.locked?'ПЕРЕГРЕВ':
+    game.heavyCharge?'ЗАНЯТА ГАУБИЦА':'',MODULES[spec.id].color));
  }
  const autoCount=rows.filter(item=>item.kind==='auto').reduce((sum,item)=>
   sum+Number(profile[item.id]||0),0);
