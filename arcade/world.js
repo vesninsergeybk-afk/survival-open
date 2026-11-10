@@ -8,7 +8,7 @@ import {amberBeltDensity,nearAmberBelt,inAmberCorridor,
 import {createContours,fieldAt} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1-triangle-defense-1';
 import {createEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
 import {POPULATION,createPopulation,ensurePopulationStations,
- nearbyPopulationStations,seedPopulationTerritory} from './world-population.js?v=sector-density-2-frontier-siege-1';
+ nearbyPopulationStations,seedPopulationTerritory} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
 import {createSpaceAnomalies} from './space-anomalies.js?v=sector-density-2';
 import {moveRockOutOfCore} from './core-rock-clearance.js';
 const BASE_CELL = 1250;

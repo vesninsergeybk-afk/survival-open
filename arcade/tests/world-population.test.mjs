@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import {World} from '../world.js';
 import {POPULATION,advancePopulation,interceptPopulationCargo,
  populationAlarm,populationShield,damagePopulationShield,validPopulation,
- damagePopulationWorker,populationWorkersNear} from '../world-population.js';
+ damagePopulationWorker,populationWorkersNear,populationCargoPosition} from '../world-population.js';
 import {updatePopulationWorld,rememberPopulationShip,drawPopulationWorld,populationCombatLimit} from '../population-runtime.js';
+import {choosePopulationConvoyProfile,POPULATION_CONVOY_PROFILES,populationConvoyStats,
+ populationConvoyEscort,populationConvoyReward} from '../convoy-profiles.js';
+import {hitRegionalCargo} from '../region-runtime.js';
 import {createSpaceAnomalies,updateSpaceAnomalies,drawSpaceAnomalies} from '../space-anomalies.js';
 
 const round=n=>Math.round(n*1000)/1000;
@@ -85,6 +88,67 @@ test('destroyed cargo loses its materials permanently and a captured mine stops 
  advancePopulation(world,35);
  assert.equal(origin.produced,produced,'captured mines cannot mine off-screen');
  assert.ok(origin.ore<=ore,'a mine without extraction cannot mint new cargo');
+});
+
+test('industrial convoys generate distinct, deterministic profiles with proportional loot',()=>{
+ const roles=['ore','courier','military','technical'];
+ assert.deepEqual([.05,.35,.6,.9].map(choosePopulationConvoyProfile),roles);
+ for(const role of roles){
+  const spec=POPULATION_CONVOY_PROFILES[role],low=populationConvoyStats(role,1,198,221),
+   high=populationConvoyStats(role,5,270,265);
+  assert.ok(low.hp>0&&low.speed>0&&low.rewardOre>=0&&low.rewardData>=0);
+  assert.ok(high.rewardOre>low.rewardOre&&high.rewardData>low.rewardData);
+  assert.equal(low.cargoRole,role);
+  assert.equal(populationConvoyEscort(low).length,spec.escort.length);
+ }
+ assert.equal(POPULATION_CONVOY_PROFILES.courier.speed>1,true);
+ assert.deepEqual(populationConvoyReward({}),{ore:12,data:9},
+  'old checkpoints without a profile keep their original cargo reward');
+ const a=new World(20261110),b=new World(20261110);
+ advancePopulation(a,180);advancePopulation(b,180);
+ const describe=world=>world.population.convoys.map(c=>
+  [c.id,c.cargoRole,c.hp,c.speed,c.rewardOre,c.rewardData,c.escortPhase]);
+ assert.deepEqual(describe(a),describe(b));
+ assert.deepEqual([...new Set(a.population.convoys.map(c=>c.cargoRole))].sort(),roles.slice().sort());
+ assert.ok(validPopulation(a.population,[...a.stations],180));
+});
+
+test('courier boost adds distance smoothly after being hit without jumping at contact',()=>{
+ const world=new World(20261110),colony=world.population.colonies[0];
+ const src=world.stations.get(colony.id+':extractor');
+ const target=world.population.colonies.find(c=>c!==colony);
+ const dest=world.stations.get(target.id+':factory');
+ const cargo={sourceId:src.id,targetId:dest.id,launchedAt:100,speed:260,
+  routeLength:12000,bend:100,cargoRole:'courier',firstHitAt:102};
+ const atContact=populationCargoPosition(world,cargo,102);
+ const noBoost=populationCargoPosition(world,{...cargo,firstHitAt:undefined},102);
+ assert.deepEqual(atContact,noBoost,'the first hit does not teleport the courier');
+ const ahead=populationCargoPosition(world,cargo,105);
+ const ordinary=populationCargoPosition(world,{...cargo,firstHitAt:undefined},105);
+ assert.ok(ahead.distance>ordinary.distance);
+ const late=populationCargoPosition(world,cargo,122);
+ const lateBase=populationCargoPosition(world,{...cargo,firstHitAt:undefined},122);
+ assert.ok(late.distance-lateBase.distance<=260*.32*7+1e-9,
+  'speed boost is finite even when the transport remains in flight');
+});
+
+test('destroyed generated convoy drops its own manifest and removes the real factory delivery',()=>{
+ const world=new World(20261110);advancePopulation(world,10);
+ const cargo=world.population.convoys[0];
+ assert.ok(cargo,'a new industrial route carries a real shipment');
+ const reward=populationConvoyReward(cargo),drops=[],messages=[];
+ const game={world,time:10,player:{x:cargo.x,y:cargo.y},
+  enemyComms:{reportIncident:()=>0},
+  heritage:{vfx:{hullImpact(){},shipExplosion(){}},play(){}},
+  addDrop(type,x,y,value){drops.push({type,value});},
+  notice(message){messages.push(message);}};
+ hitRegionalCargo(game,cargo,cargo.hp);
+ assert.equal(cargo.hp,0);
+ assert.equal(cargo.rewarded,true);
+ assert.equal(world.population.convoys.includes(cargo),false);
+ assert.deepEqual(drops,[{type:'ore',value:reward.ore},{type:'data',value:reward.data}]);
+ assert.ok(game.worldFeedback.history.some(e=>e.effect.includes('трёх кораблей')));
+ assert.ok(messages.some(m=>m.includes('Фабрика недополучила')));
 });
 test('two physical miners power each mine, can be sabotaged and rebuild only from paid stock',()=>{
  const world=new World(),c=world.population.colonies[0];

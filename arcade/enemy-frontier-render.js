@@ -1,4 +1,5 @@
 import {FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
+import {POPULATION_CONVOY_PROFILES} from './convoy-profiles.js?v=convoy-variety-20261110';
 
 // Fixed-size transparent production sprites. No per-frame image allocation.
 const artwork={};
@@ -42,19 +43,52 @@ export function drawIndustrialMiner(c,miner,time,extractor=null){
 
 export function drawIndustrialConvoy(c,cargo,time){
  const atlas=sprite('freighter','./assets/missions/hostile-freighter-v1.webp');
+ const role=cargo.cargoRole,spec=POPULATION_CONVOY_PROFILES[role];
+ const color=spec?.color||'#5ee2ff',scale=role==='courier'?.8:role==='ore'?1.12:1;
  c.save();c.translate(cargo.x,cargo.y);c.rotate(cargo.angle);
+ // Reuse the freighter atlas, but make the cargo modules and armor silhouette
+ // distinguish its actual shipment role before the pilot enters weapon range.
+ if(role==='ore'||role==='military'||role==='technical'){
+  const wide=role==='ore'?30:role==='military'?19:17;
+  const height=role==='ore'?66:role==='military'?54:41;
+  c.lineWidth=2.6;c.strokeStyle=color;c.fillStyle=role==='ore'?'#584b36':
+   role==='military'?'#4d323f':'#314d46';
+  for(const side of [-1,1]){
+   const x=side*(role==='ore'?52:48)-wide/2;
+   c.fillRect(x,-height*.44,wide,height);
+   c.strokeRect(x,-height*.44,wide,height);
+   c.globalAlpha=.7;c.fillStyle=color;
+   c.fillRect(x+4,-height*.32,wide-8,4);
+   c.globalAlpha=1;c.fillStyle=role==='ore'?'#584b36':
+    role==='military'?'#4d323f':'#314d46';
+  }
+ }
  if(atlas){
   // The left half is an undamaged top-down freighter. Right half is damaged.
   const damaged=cargo.hp/cargo.maxHp<.45;
-  c.drawImage(atlas,damaged?512:0,0,512,512,-60,-60,120,120);
+  c.drawImage(atlas,damaged?512:0,0,512,512,-60*scale,-60*scale,120*scale,120*scale);
  }else{
   c.fillStyle='#39313a';c.strokeStyle='#ffba7b';c.lineWidth=3;
   c.beginPath();c.moveTo(0,-42);c.lineTo(31,-11);
   c.lineTo(28,35);c.lineTo(-28,35);c.lineTo(-31,-11);c.closePath();c.fill();c.stroke();
  }
+ if(spec){
+  c.globalCompositeOperation='lighter';
+  if(role==='courier'){
+   const sprint=Number.isFinite(cargo.firstHitAt)&&time-cargo.firstHitAt<7;
+   light(c,-11,43,sprint?38:25,color,sprint?.45:.28);
+   light(c,11,43,sprint?38:25,color,sprint?.45:.28);
+  }else if(role==='military'){
+   light(c,-30,-8,15,color,.42);light(c,30,-8,15,color,.42);
+  }else if(role==='technical'){
+   light(c,0,-31,26,color,.38);
+  }else{
+   light(c,-47,0,18,color,.30);light(c,47,0,18,color,.30);
+  }
+ }
  c.globalCompositeOperation='lighter';
- light(c,-16,49,20,'#5ee2ff',.21+.13*Math.sin(time*9));
- light(c,16,49,20,'#5ee2ff',.21+.13*Math.sin(time*9+.6));
+ light(c,-16,49*scale,20,color,.21+.13*Math.sin(time*9));
+ light(c,16,49*scale,20,color,.21+.13*Math.sin(time*9+.6));
  if(cargo.hit>0)light(c,0,0,56,'#ffb2aa',.56);
  c.restore();
 }
