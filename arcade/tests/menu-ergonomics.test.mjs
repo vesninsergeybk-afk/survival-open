@@ -196,11 +196,14 @@ test('overview mounted guns open the exact slot with a direct return to overview
  const overview=renderBasePanel(g.docked,g.baseState());
  assert.match(overview,/class="base-mounted-weapon" data-act="fitWeapon" data-id="plasma" data-slot="0"/);
  assert.match(overview,/class="base-mounted-weapon" data-act="fitWeapon" data-id="plasma" data-slot="1"/);
+ const origin={dataset:{act:'fitWeapon',id:'plasma',slot:'1'}};
+ g.overlay.ownerDocument={activeElement:origin};g.overlay.contains=el=>el===origin;
  const original=JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]);
  g.focusFittingWeapon('plasma','1');
  assert.equal(g.baseTab,'hangar');assert.equal(g.hangarSession.slot,1);
  assert.equal(g.hangarSession.catalog,false);
  assert.equal(g.stationMenuContext.origin,'summary');
+ assert.equal(g.stationMenuContext.returnFocus.slot,'1');
  assert.match(renderShipHangar({...g.baseState(),stationMenuContext:g.stationMenuContext},g.hangarSession),
   /data-act="menuContextBack">← Назад к обзору/);
  assert.equal(g.restoreStationMenuContext(),true);
@@ -226,6 +229,22 @@ test('a full weapon rack requires an explicit slot selection before any replacem
  assert.equal(g.hangarSession.catalog,true,'the selected occupied slot must open the requested catalog');
  assert.equal(g.hangarSession.draft.slots[1],'flak','slot selection alone must not replace anything');
  assert.equal(JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]),original);
+});
+
+test('leaving an unfinished replacement clears its request without spending resources',()=>{
+ const g=station();g.baseTab='development';g.shipLoadout.slots[1]='flak';
+ g.hangarSession.begin(g.shipLoadout);
+ const initial=JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]);
+ g.focusFittingWeapon('rail');
+ assert.equal(g.hangarSession.chooseReplacement,true);
+ assert.equal(g.restoreStationMenuContext(),true);
+ assert.equal(g.baseTab,'development');
+ assert.equal(g.hangarSession.chooseReplacement,false);
+ assert.equal(g.hangarSession.requestedWeapon,null);
+ g.baseTab='hangar';
+ assert.doesNotMatch(renderShipHangar({...g.baseState(),stationMenuContext:null},g.hangarSession),
+  /class="hg-replacement-prompt"/);
+ assert.equal(JSON.stringify([g.shipLoadout,g.player.ore,g.player.points]),initial);
 });
 
 test('locked heavy slot explains how to open it instead of prompting an impossible replacement',()=>{
@@ -284,4 +303,6 @@ test('the published page refreshes the entire changed menu import and style chai
  assert.match(source('index.html'),/game\.js\?v=[^"']*overview-free-close-1/);
  assert.match(source('game.js'),/base-panel\.js\?v=[^"']*overview-first-1/);
  assert.match(source('game.js'),/flux-artillery\.js\?v=[^"']*free-close-1/);
+ assert.match(source('index.html'),/game\.js\?v=[^"']*menu-depth-audit-3/);
+ assert.match(source('game.js'),/menu-dialog\.js\?v=[^"']*menu-depth-audit-3/);
 });
