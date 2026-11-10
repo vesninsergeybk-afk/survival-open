@@ -4,7 +4,7 @@
 // Upgrades still extend these values; later sector pressure is a separate curve.
 export const STARTER_COMBAT = Object.freeze({
   hull: 90,
-  speed: 248,
+  speed: 260,
   plasmaDamage: 16,
   plasmaRange: 330,
   plasmaInterval: .68,
@@ -70,10 +70,18 @@ export function rebaseSavedHull(player,hullRanks=0){
  player.maxHp=nextMax;
  return true;
 }
-// Ease the opening decisions; from level 8 the existing curve is unchanged.
-const EARLY_XP_THRESHOLDS = Object.freeze([42, 68, 105, 155, 230, 330, 475]);
+// Earlier published curve (checkpoint version 2). Keep it to convert an
+// ongoing flight without erasing the experience already earned.
+const PREVIOUS_EARLY_XP_THRESHOLDS = Object.freeze([42,68,105,155,230,330,475]);
+// Preserve the first four choices. From level 5, additional ranks arrive
+// sooner while the ship is still fragile; level 13 resumes the late curve.
+const EARLY_XP_THRESHOLDS = Object.freeze([
+  42,68,105,155,195,260,355,495,720,1030,1480,2140
+]);
 export const legacyExpForNext = level =>
   Math.round(75 * Math.pow(1.36, Math.max(0, level - 1)));
+export const previousExpForNext = level =>
+  PREVIOUS_EARLY_XP_THRESHOLDS[level - 1] ?? legacyExpForNext(level);
 export const expForNext = level =>
   EARLY_XP_THRESHOLDS[level - 1] ?? legacyExpForNext(level);
 export const baseNames = Object.freeze({
