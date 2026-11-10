@@ -736,7 +736,7 @@ const stationEmblem=type=>{
 };
 
 export function renderBasePanel(base,state){
- const fieldKey=readableKey((state.controls||DEFAULT_CONTROLS).field);
+ const fieldKey=readableKey((state.controls||DEFAULT_CONTROLS).fieldWeapon);
  const o=baseOffer(base,state),active=!!base.active;
  const status=base.suppressed?'СВЯЗЬ ПОДАВЛЕНА':active?(o.connected?'СЕТЬ ПОДКЛЮЧЕНА':'АВТОНОМНЫЙ УЗЕЛ'):
   o.provisional?'НЕЙТРАЛЬНАЯ СТАНЦИЯ':'СТАНЦИЯ ВЫКЛЮЧЕНА';
