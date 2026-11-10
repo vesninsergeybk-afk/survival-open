@@ -102,7 +102,7 @@ export function runFirstLoopScenario({seed=111,seconds=120,hz=60,
  let stage=initialDelay>0?'orient':'home',hits=0,netAliveDrops=0,
   repairCount=0,upgradeCount=0,returns=0;
  let firstDockAt=null,missionCompleteAt=null,secondDockAt=null;
- let firstRadarEnemyAt=null,firstOpticalThreatAt=null,
+ let firstRadarEnemyAt=null,firstOpticalThreatAt=null,firstSensorSightingAt=null,
   firstEnemyInPlasmaRangeAt=null,firstDamageAt=null;
  const events=[],samples=[],step=1/hz,originalRandom=Math.random;
  const initialOre=g.player.ore;
@@ -197,14 +197,20 @@ export function runFirstLoopScenario({seed=111,seconds=120,hz=60,
     if(firstDamageAt===null)firstDamageAt=g.time;
    }
    const alive=g.enemies.filter(e=>e.hp>0&&!e.converted);
-   // These are actual positions and real optical checks from the update
-   // loop, not inferred from patrol spawn timers or weapon specifications.
+   // Radar entry and line-of-sight are GEOMETRIC opportunities, not proof
+   // that a throttled HUD actually drew the contact or a sampled sensor saw it.
    if(firstRadarEnemyAt===null&&alive.some(e=>
     Math.hypot(e.x-g.player.x,e.y-g.player.y)<=HUD_RADAR_RANGE))
     firstRadarEnemyAt=g.time;
    if(firstOpticalThreatAt===null&&alive.some(e=>
     Math.hypot(e.x-g.player.x,e.y-g.player.y)<=STARTER_COMBAT.patrolSight&&
     g.enemyCanSee(e,g.player)))firstOpticalThreatAt=g.time;
+   // Unlike a line-of-sight query, this checks a sighting actually stored by
+   // the ordinary enemy-awareness or scout scan during the real update tick.
+   if(firstSensorSightingAt===null&&alive.some(e=>
+    (e._awarenessLast&&g.time-e._awarenessLast.at<=step+.001)||
+    (e._irisHasSight&&g.time-(e._irisLastSeenAt??-Infinity)<=step+.001)))
+    firstSensorSightingAt=g.time;
    if(firstEnemyInPlasmaRangeAt===null&&alive.some(e=>
     Math.hypot(e.x-g.player.x,e.y-g.player.y)<=plasmaRange))
     firstEnemyInPlasmaRangeAt=g.time;
@@ -219,7 +225,7 @@ export function runFirstLoopScenario({seed=111,seconds=120,hz=60,
   return {seed,seconds:+g.time.toFixed(1),dead:g.dead,stage,allowRetreat,
    initialDelay,patrolMode,firstDockAt,
    secondDockAt,missionCompleteAt,
-   firstRadarEnemyAt,firstOpticalThreatAt,firstEnemyInPlasmaRangeAt,
+   firstRadarEnemyAt,firstOpticalThreatAt,firstSensorSightingAt,firstEnemyInPlasmaRangeAt,
    firstDamageAt,initialOre,ore:g.player.ore,
    hull:+g.player.hp.toFixed(1),maxHull:g.player.maxHp,level:g.player.level,
    points:g.player.points,returns,repairCount,upgradeCount,hits,
