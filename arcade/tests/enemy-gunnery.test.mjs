@@ -152,6 +152,32 @@ test('independent cells also share a small global cap on hostile salvos',()=>{
   assert.equal(game.shots.length,2);
 });
 
+test('all live gun charges fit the warning budget even at low frame rates',()=>{
+ const ships=Array.from({length:7},(_,index)=>ship('fighter',index+1,155+index*23));
+ const game=scene(ships);game.time=15;
+ game.playerCanInspectEnemyIntent=()=>true;
+ for(const e of ships){e._enemyLearningSaw=true;e._gunNextAt=0;}
+ for(const e of ships)updateEnemyGunnery(e,game,game.player);
+ const charged=ships.filter(e=>e._gunAiming);
+ assert.equal(charged.length,2,
+  'a third charged weapon would fire without a visible low-FPS telegraph');
+ const ctx={save(){},restore(){},setLineDash(){},beginPath(){},
+  moveTo(){},lineTo(){},stroke(){},arc(){}};
+ assert.equal(drawEnemyGunWarnings(ctx,game,{x:0,y:-80,w:500,h:250},18),2);
+ game.time=15.8;
+ for(const e of ships)updateEnemyGunnery(e,game,game.player);
+ assert.ok(game.shots.length>=1,'throttling must not disable combat');
+ assert.ok(ships.filter(e=>e._gunAiming).length<=2,
+  'a fired weapon releases its warning slot for the next attacker');
+ for(let step=1;step<=130;step++){
+  game.time=15.8+step*.1;
+  for(const e of ships)updateEnemyGunnery(e,game,game.player);
+  assert.ok(ships.filter(e=>e._gunAiming).length<=2);
+ }
+ assert.equal(new Set(game.shots.map(shot=>shot.x)).size,ships.length,
+  'later pilots must eventually fire instead of starving behind the first pair');
+});
+
 test('later fighters fire two spaced bolts at an old warning point, never a tracking burst',()=>{
  const e=ship('fighter',3,250),game=scene([e]);
  game.time=155;e._enemyLearningSaw=true;e._gunNextAt=0;
