@@ -5,6 +5,7 @@
  * No live player state, hidden attacker location, extra enemies or combat
  * multipliers are consulted. Local flights receive orders over real radio.
  */
+import {operationalFront,operationalPriorities} from './enemy-operational-command.js?v=enemy-operations-1';
 export const THEATER=Object.freeze({
   tick:1.05,link:510,orderAge:2.3,maxCargoCells:2,maxSiteCells:2,
   maxLines:3,noticeGap:6,contactAge:2.6,threatRadius:430,
@@ -123,6 +124,7 @@ const freshContact=(cell,asset,now)=>{
  * An unobserved player cannot be pursued from the economic state alone. */
 export function planTheater(cells,world,now,mesh=null){
   const assets=theaterAssets(world,now),candidates=[];
+  const priorities=operationalPriorities(assets,world);
   for(const cell of cells||[]){
     if(!cell||cell.brokenUntil||cell.leader?.hp<=0||
        !Array.isArray(cell.members)||!cell.members.includes(cell.leader))continue;
@@ -157,8 +159,11 @@ export function planTheater(cells,world,now,mesh=null){
       const previous=continuing?11+(commitment?24:0):0;
       // A genuine new alarm can interrupt routine escort duty.
       const emergency=networkAlarm&&!continuing?27:0;
+      const operation=priorities.get(operationalFront(item.asset));
+      const selected=operation?.assetId===item.id?operation:null;
       candidates.push({cell,item,score:item.importance-d/24+
-        (alarm?36:0)+previous+emergency,alarm,contact,warning,networkAlarm});
+        (alarm?36:0)+previous+emergency+(selected?.bonus||0),
+        operation:selected,alarm,contact,warning,networkAlarm});
     }
   }
   candidates.sort((a,b)=>b.score-a.score||
@@ -175,7 +180,8 @@ export function planTheater(cells,world,now,mesh=null){
         ['long','area'].includes(c.warning?.kind)?'screen':'escort'):
         (c.contact?'repel':'screen');
     else
-      role=c.alarm?(n>0&&c.contact?'repel':'reinforce'):'defend';
+      role=c.alarm||c.operation&&c.operation.code!=='supply'?
+        (n>0&&c.contact?'repel':'reinforce'):'defend';
     // Archive summaries can alter a formation, never weapons, hulls or
     // production. A delivered warning is required; remote station state
     // is not read as global knowledge by a disconnected squad.
@@ -183,11 +189,13 @@ export function planTheater(cells,world,now,mesh=null){
     const prior=c.cell.theaterAssignment;
     const entry={asset:c.item.asset,assetId:c.item.id,
       role,kind:c.item.kind,at:now,
+      ...(c.operation?{operation:{...c.operation}}:{}),
       startedAt:prior?.assetId===c.item.id?(prior.startedAt??prior.at):now,
       spread:wide?1.25:1,
       ...(c.contact?{
         contact:{x:c.contact.x,y:c.contact.y,at:c.contact.at}}:{}),
       reason:c.networkAlarm?'Сеть сообщает о нападении на объект. Усилить охрану!':
+        c.operation?c.operation.reason:
         c.item.damaged&&role==='screen'&&!c.alarm?
           (c.item.asset.frontierRepair?
             'Ремонтный корабль повреждён. Закрыть его от нового удара!':
@@ -262,7 +270,8 @@ export class EnemyTheaterStrategy{
         continue;
       }
       const changed=!prior||prior.assetId!==chosen.assetId||
-        prior.role!==chosen.role||prior.spread!==chosen.spread;
+        prior.role!==chosen.role||prior.spread!==chosen.spread||
+        prior.operation?.code!==chosen.operation?.code;
       let recipients=0;
       for(const e of cell.members){
         if(!eligible(e)){e._theaterOrder=null;continue;}
@@ -307,7 +316,8 @@ export class EnemyTheaterStrategy{
       if(!cell.theaterAssignment||
          pending.assetId!==cell.theaterAssignment.assetId||
          pending.role!==cell.theaterAssignment.role||
-         pending.spread!==cell.theaterAssignment.spread){
+         pending.spread!==cell.theaterAssignment.spread||
+         pending.operation?.code!==cell.theaterAssignment.operation?.code){
         cell.pendingTheater=null;continue;
       }
       // A spoken squad order requires a *recipient* flying it, never the
@@ -321,22 +331,23 @@ export class EnemyTheaterStrategy{
       if(!game.playerCanInterceptEnemyRadio?.(cell.leader)&&
          !game.playerCanInspectEnemyIntent?.(cell.leader))continue;
       const item={at:now,until:now+3.2,
-        mode:pending.role==='repel'?'intercept':'screen',
-        message:pending.reason,leader:cell.leader,cellId:cell.id};
+        mode:pending.operation?'operation':pending.role==='repel'?'intercept':'screen',
+        message:pending.operation?'Оперативный штаб: '+pending.reason:pending.reason,
+        leader:cell.leader,cellId:cell.id};
       net.intercepts.push(item);
       if(net.intercepts.length>8)net.intercepts.shift();
       cell.lastTheaterIntercept=item;
       if(now-this.lastMessageAt>=THEATER.noticeGap){
-        game.notice?.('Радиоперехват: '+pending.reason,3.4);
+        game.notice?.('Радиоперехват: '+item.message,3.4);
         this.lastMessageAt=now;
       }
     }
   }
   render(ctx,cam,now,game,fps=60){
     if(!game?.playerCanInspectEnemyIntent)return;
-    let drawn=0;
+    let drawn=0;const highlighted=new Set();
     for(const cell of this.assignments.keys()){
-      if(drawn>=THEATER.maxLines)return;
+      if(drawn>=THEATER.maxLines)break;
       const order=cell.theaterAssignment,a=order?.asset;
       const pilot=cell.members.find(e=>e!==cell.leader&&
         this.directiveFor(e,now)&&e._theaterIntent?.at===now&&
@@ -345,17 +356,94 @@ export class EnemyTheaterStrategy{
       if(!pilot||!a||!game.playerCanInspectEnemyIntent(a)||
          pilot.x<cam.x-30||pilot.x>cam.x+cam.w+30||
          pilot.y<cam.y-30||pilot.y>cam.y+cam.h+30)continue;
-      ctx.globalAlpha=fps<28?.3:.53;
-      ctx.strokeStyle='#8ee0b5';ctx.lineWidth=1.4;
+      ctx.globalAlpha=fps<28?0.35:(order.operation?0.72:0.53);
+      ctx.strokeStyle=order.operation?'#f2c284':'#8ee0b5';
+      ctx.lineWidth=order.operation?2:1.4;
       if(fps>=28)ctx.setLineDash([5,9]);
       ctx.beginPath();ctx.moveTo(pilot.x,pilot.y);
       ctx.lineTo(a.x,a.y);ctx.stroke();
       ctx.setLineDash([]);
-      ctx.font='bold 9px system-ui';ctx.fillStyle='#a8f2ce';
+      if(order.operation){
+        if(!highlighted.has(order.assetId)&&ctx.arc){
+          ctx.globalAlpha=.55;ctx.beginPath();ctx.arc(a.x,a.y,29,0,Math.PI*2);ctx.stroke();
+          highlighted.add(order.assetId);
+        }
+        const dx=a.x-pilot.x,dy=a.y-pilot.y,
+          length=Math.hypot(dx,dy)||1,ux=dx/length,uy=dy/length;
+        const tipX=pilot.x+dx*.7,tipY=pilot.y+dy*.7;
+        ctx.globalAlpha=.88;ctx.fillStyle='#f4c77e';ctx.beginPath();
+        ctx.moveTo(tipX,tipY);
+        ctx.lineTo(tipX-ux*11-uy*5,tipY-uy*11+ux*5);
+        ctx.lineTo(tipX-ux*11+uy*5,tipY-uy*11-ux*5);
+        ctx.closePath?.();ctx.fill?.();
+      }
+      ctx.font='bold 9px system-ui';ctx.fillStyle=order.operation?'#f5ce98':'#a8f2ce';
       ctx.textAlign='center';
-      ctx.fillText(label(order.role),pilot.x,
+      ctx.fillText(order.operation?.title||label(order.role),pilot.x,
         pilot.y-(pilot.r||14)-40,152);
       drawn++;
     }
+    // One short interception over a *seen* commander. This is the same
+    // confirmed order as the cockpit notice and map log, not extra intel.
+    if(fps<24)return;
+    let captions=0;
+    for(const cell of this.assignments.keys()){
+      if(captions>=1)break;
+      const item=cell.lastTheaterIntercept,lead=cell.leader;
+      if(!item||item.mode!=='operation'||now>item.until||now<item.at||
+         !lead||!game.playerCanInspectEnemyIntent(lead)||
+         lead.x<cam.x-180||lead.x>cam.x+cam.w+180||
+         lead.y<cam.y-90||lead.y>cam.y+cam.h+90||
+         cell.lastIntercept?.until>now)continue;
+      const text=item.message.replace(/^Оперативный штаб: /,''),words=text.split(' '),lines=[''];
+      for(const word of words){
+        const i=lines.length-1;
+        if((lines[i]+' '+word).trim().length>43&&lines.length<2)lines.push(word);
+        else lines[i]+=(lines[i]?' ':'')+word;
+      }
+      const y=lead.y-(lead.r||14)-118;
+      ctx.globalAlpha=Math.min(.92,Math.max(.12,item.until-now));
+      ctx.fillStyle='#261f18ed';ctx.fillRect?.(lead.x-158,y-12,316,61);
+      ctx.strokeStyle='#f2c284';ctx.strokeRect?.(lead.x-158,y-12,316,61);
+      ctx.textAlign='center';ctx.font='bold 10px system-ui';
+      ctx.fillStyle='#f2c284';ctx.fillText('ПЕРЕХВАТ · ОПЕРАТИВНЫЙ ШТАБ',lead.x,y+2,300);
+      ctx.font='11px system-ui';ctx.fillStyle='#fff2d7';
+      lines.forEach((line,i)=>ctx.fillText(line,lead.x,y+21+i*15,300));
+      captions++;
+    }
   }
+}
+
+/** An operational arrow on the close map needs two *observed* endpoints and
+ * a wingman actually flying the received order. Radio text alone grants no
+ * map coordinates of hidden factories or ships. */
+export function theaterMapPaths(game,project,visible){
+ const theater=game?.enemyComms?.theater,now=game?.time;
+ if(!theater||!Number.isFinite(now)||
+    !game.playerCanInspectEnemyIntent)return '';
+ const seen=new Set(),paths=[];
+ for(const cell of theater.assignments.keys()){
+  if(paths.length>=3)break;
+  const order=cell.theaterAssignment,asset=order?.asset;
+  if(!asset||seen.has(order.assetId)||
+     !game.playerCanInspectEnemyIntent(asset))continue;
+  const pilot=cell.members.find(e=>e!==cell.leader&&
+   theater.directiveFor(e,now)&&e._theaterIntent?.at===now&&
+   e._theaterIntent.assetId===order.assetId&&
+   e._theaterIntent.mode===order.role&&
+   game.playerCanInspectEnemyIntent(e));
+  if(!pilot)continue;
+  const a=project(pilot.x,pilot.y),b=project(asset.x,asset.y);
+  if(!visible(a)||!visible(b))continue;
+  const fmt=v=>Number(v).toFixed(1),title=order.operation?.title||label(order.role);
+  paths.push('<g class="enemy-map-operation"><title>'+title+'</title>'+
+   '<path d="M '+fmt(a.x)+' '+fmt(a.y)+' L '+fmt(b.x)+' '+fmt(b.y)+
+   '" fill="none" stroke="'+(order.operation?'#f2c284':'#8ee0b5')+
+   '" stroke-width="2.5" stroke-dasharray="5 5" opacity=".85"/>'+
+   '<circle cx="'+fmt(b.x)+'" cy="'+fmt(b.y)+'" r="10" fill="none" stroke="'+
+   (order.operation?'#f2c284':'#8ee0b5')+'" stroke-width="1.6"/>'+
+   '<circle cx="'+fmt(a.x)+'" cy="'+fmt(a.y)+'" r="4" fill="#f2c284"/></g>');
+  seen.add(order.assetId);
+ }
+ return paths.join('');
 }

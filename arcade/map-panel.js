@@ -27,6 +27,7 @@ import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,aba
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=station-operations-2-ops-audit-2-mission-choices-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
+import {theaterMapPaths} from './enemy-strategy.js?v=theater-ops-1';
 import {STATION_DEFENSE,defenseRadius,defenseLinked} from './network-defense.js?v=network-defense-4';
 import {precisionRailUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-home-conflict-1-campaign-1-repair-qa-1';
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
@@ -154,6 +155,7 @@ export function renderWorldMap(game){
     '" stroke-width="'+(active?'3':'1.5')+'"'+(active?'':' stroke-dasharray="5 6"')+'/>';
   }))).join('');
  const enemyOrders=enemyIntentMapPaths(game,(x,y)=>point(x,y,center,scale),visible);
+ const theaterOrders=theaterMapPaths(game,(x,y)=>point(x,y,center,scale),visible);
  const parasiteEchoes=(game.fieldEvolution?.reveals||[])
   .filter(e=>e.until>game.time).map(e=>{
    const q=point(e.x,e.y,center,scale);
@@ -362,8 +364,10 @@ export function renderWorldMap(game){
   '<details class="map-objective map-radio-log"><summary>Перехваченные приказы · '+
   intercepted.length+'</summary><ul>'+intercepted.slice(0,3).map(order=>
    '<li><span>'+enc(({press:'Нажим',pincer:'Обход',intercept:'Перехват',
-    screen:'Прикрытие',close:'Сближение',scatter:'Рассредоточение',network:'Сетевое донесение'})[order.mode]||'Манёвр')+
-   '</span> '+enc(order.message)+'</li>').join('')+'</ul></details>':'';
+    screen:'Прикрытие',close:'Сближение',scatter:'Рассредоточение',network:'Сетевое донесение',
+    operation:'Оперативный приказ'})[order.mode]||'Манёвр')+
+   '</span> '+enc(order.message)+'</li>').join('')+'</ul>'+
+   '<small>Пунктир на ближней карте показывает выполняемый приказ, только если видны и корабль, и его цель.</small></details>':'';
  // Only an active friendly laboratory lets the player inspect hostile
  // radio activity. Both endpoint stations must already be discovered.
  const knownTrunks=intel.unlocked?visibleBackbone(game):[];
@@ -420,7 +424,7 @@ export function renderWorldMap(game){
   '<section class="map-shell"><div class="map-canvas"><div class="map-plot"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   chartBackdrop(world.seed,center,scale)+atlasStars(world.seed,center,scale,false)+
   '<circle cx="'+pilot.x.toFixed(1)+'" cy="'+pilot.y.toFixed(1)+'" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
-  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+hostileFronts+defenseRing+securedRoutes+carrierPath+ambushMark+route+echoes+intelMarks+marks+operationMark+fieldMarks+enemyOrders+parasiteEchoes+
+  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+hostileFronts+defenseRing+securedRoutes+carrierPath+ambushMark+route+echoes+intelMarks+marks+operationMark+fieldMarks+enemyOrders+theaterOrders+parasiteEchoes+
   pendingTrialMapArtwork(world,center,scale,(entry,c,s)=>point(entry.x,entry.y,c,s))+
   pilotGlyph(pilot.x,pilot.y)+chartFrame(center,scale,{local:true})+
   '<text x="'+(pilot.x+11).toFixed(1)+'" y="'+(pilot.y+26).toFixed(1)+'" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
