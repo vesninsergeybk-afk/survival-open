@@ -50,6 +50,12 @@ test('first contract advertises free hardware, then offers one clear choice loca
  assert.doesNotMatch(ready,/Первый сданный заказ даст бесплатное оружие на выбор/);
 });
 
+test('новичку объясняют, как отличить цель первого геологического заказа',()=>{
+ const menu=renderBasePanel(station(),state({baseTab:'operations'}));
+ assert.match(menu,/богатый астероид с янтарными прожилками, удерживая E/);
+ assert.match(menu,/Меньше сплава, зато больше опыта/);
+});
+
 test('alternate task pays its own reward and remains selected after claiming',()=>{
  const dock=station(),game=fakeGame(dock);
  Actions.prototype.baseAction.call(game,'acceptContract','alternate');

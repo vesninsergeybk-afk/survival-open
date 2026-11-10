@@ -58,11 +58,13 @@ test('стоянка у домашнего дока под огнём не за�
 test('начальная угроза обнаруживается до первого попадания по кораблю',()=>{
  for(const seed of [111,222,333]){
   const run=runFirstLoopScenario({seed,seconds:35,allowRetreat:false});
-  for(const field of ['firstRadarEnemyAt','firstOpticalThreatAt',
+  for(const field of ['firstRadarEnemyAt','firstOpticalThreatAt','firstSensorSightingAt',
    'firstEnemyInPlasmaRangeAt','firstDamageAt'])
    assert.ok(Number.isFinite(run[field]),`seed=${seed}: нет ${field}`);
   assert.ok(run.firstRadarEnemyAt<run.firstOpticalThreatAt);
-  assert.ok(run.firstOpticalThreatAt<run.firstDamageAt);
+  assert.ok(run.firstOpticalThreatAt<=run.firstSensorSightingAt,
+   'расчётную видимость нельзя объявлять фактической фиксацией датчиком');
+  assert.ok(run.firstSensorSightingAt<run.firstDamageAt);
   assert.ok(run.firstEnemyInPlasmaRangeAt<run.firstDamageAt);
   assert.ok(run.firstDamageAt-run.firstRadarEnemyAt>=5,
    'радар должен дать хотя бы несколько секунд перед первым повреждением');

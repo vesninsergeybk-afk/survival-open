@@ -88,7 +88,7 @@ const CONTRACTS=Object.freeze({
 export const contractFor=type=>CONTRACTS[type]||CONTRACTS.dock;
 // A station offers two tasks; only one is active at a time. Rewards renew after a cooldown.
 const ALT_CONTRACTS=Object.freeze({
- dock:{kind:'rich',goal:1,ore:10,data:24,name:'Геологические сведения',desc:'Разберите один богатый астероид, удерживая E. Меньше сплава, зато больше опыта.'},
+ dock:{kind:'rich',goal:1,ore:10,data:24,name:'Геологические сведения',desc:'Разберите один богатый астероид с янтарными прожилками, удерживая E. Меньше сплава, зато больше опыта.'},
  lab:{kind:'kill',goal:4,ore:31,data:9,name:'Очистка маршрута',desc:'Участвуйте в уничтожении 4 кораблей противника. Больше сплава, но мало опыта.'},
  arsenal:{kind:'intercept',goal:3,ore:18,data:35,name:'Охота на перехватчики',desc:'Участвуйте в уничтожении 3 боевых кораблей, кроме разведчиков. Меньше сплава, больше опыта.'},
  carrier:{kind:'defend',goal:5,ore:28,data:45,name:'Оборона авианосца',desc:'Участвуйте в уничтожении 5 врагов в радиусе 650 м от авианосца. Меньше сплава, больше опыта.'}
