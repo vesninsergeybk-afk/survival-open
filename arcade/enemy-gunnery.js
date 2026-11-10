@@ -14,7 +14,10 @@ export const ENEMY_GUNNERY=Object.freeze({
     damage:8,shots:3,gap:.36,spread:.115,kind:'gunship-cannon'}),
   lance:Object.freeze({range:500,charge:1.25,reload:4.6,
     damage:13,kind:'gunship-lance'}),
-  cellSpacing:.62,globalSpacing:.23,maxWarnings:4,warningRange:555
+  cellSpacing:.62,globalSpacing:.23,maxWarnings:4,
+  // A crowded cell must not prepare more live shots than the low-FPS renderer
+  // can telegraph. Queued pilots retain their normal reload and take turns.
+  concurrentCharges:2,warningRange:555
 });
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -125,6 +128,13 @@ export function updateEnemyGunnery(e,game,target){
   }
   if(!aim){
     if(now<e._gunNextAt)return false;
+    // At low frame rates only two aiming rays are painted. Charging seven
+    // weapons at once would produce five genuinely unannounced attacks.
+    // Count ALL live aimers, including those targeting allies and the lance,
+    // because they compete for the same visible warning slots.
+    const activeCharges=(game.enemies||[]).reduce((count,pilot)=>count+
+      Number(pilot!==e&&pilot.hp>0&&!pilot.converted&&!!pilot._gunAiming),0);
+    if(activeCharges>=ENEMY_GUNNERY.concurrentCharges)return false;
     // Lock a bounded prediction. The marker does not follow a subsequent
     // dodge, so changing course during the warning really defeats the shot.
     const lead=profile.kind==='gunship-lance'?0:
