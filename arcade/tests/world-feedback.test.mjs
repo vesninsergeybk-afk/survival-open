@@ -157,7 +157,7 @@ test('real contour collectors explain deliveries and losses; untouched simulatio
  }
  assert.equal(delivered,true);
  assert.ok(w.contours.flux>0);
- assert.match(g.worldFeedback.history[0].effect,/Запас вырос на/);
+ assert.match(g.worldFeedback.history[0].effect,/Добыто .* флюкса: .* в местных хранилищах и .* в казне/);
  const field=contourFields(w)[0];
  g.time+=1;
  const before=JSON.stringify(w.contours);

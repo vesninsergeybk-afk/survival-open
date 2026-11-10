@@ -3,6 +3,38 @@
 // It is derived from the current topology, so losing a border automatically
 // changes the yield of the remaining faces without invalidating old saves.
 const edgeKey=(a,b)=>String(a)<String(b)?a+'|'+b:b+'|'+a;
+export const FLUX_LOCAL_SHARE=.72;
+export const stationFluxCapacity=station=>4+8*Math.max(0,Math.min(6,station?.fluxDepth||0));
+export function syncStationFluxDepths(world,fields){
+ const depths=fieldDepths(fields),rank=new Map();
+ for(let i=0;i<fields.length;i++)for(const id of fields[i].vertices||[])
+  rank.set(id,Math.max(rank.get(id)||0,depths[i]||0));
+ for(const station of world.stations.values()){
+  station.fluxDepth=rank.get(station.id)||0;
+  station.fluxStored??=0;
+  const extra=Math.max(0,station.fluxStored-stationFluxCapacity(station));
+  if(extra){station.fluxStored-=extra;world.contours.fluxSpilled=(world.contours.fluxSpilled||0)+extra;}
+ }
+}
+export function fieldStationFree(world,field,inflight=0){
+ return (field?.vertices||[]).reduce((sum,id)=>{
+  const s=world.stations.get(id);
+  return sum+(s?.active&&!s.enemy&&!s.suppressed?
+   Math.max(0,stationFluxCapacity(s)-(s.fluxStored||0)):0);
+ },0)-inflight;
+}
+export function storeFieldFlux(world,field,amount){
+ let remaining=Math.max(0,amount);
+ const stations=(field?.vertices||[]).map(id=>world.stations.get(id))
+  .filter(s=>s?.active&&!s.enemy&&!s.suppressed)
+  .sort((a,b)=>(a.fluxStored||0)/stationFluxCapacity(a)-
+   (b.fluxStored||0)/stationFluxCapacity(b));
+ for(const station of stations){
+  const added=Math.min(remaining,Math.max(0,stationFluxCapacity(station)-(station.fluxStored||0)));
+  station.fluxStored=(station.fluxStored||0)+added;remaining-=added;
+ }
+ return Math.max(0,amount-remaining);
+}
 export const FLUX_INFRASTRUCTURE=Object.freeze({
  extractor:{name:'Глубинный коллектор',prices:[15,40,100],description:'Увеличивает добычу флюкса в прилегающих треугольниках.'},
  relay:{name:'Транспортный узел',prices:[12,35,85],description:'Ускоряет доставку флюкса к складам у этого узла.'},
@@ -85,7 +117,14 @@ export function validFluxEconomy(state,stations){
  if(state.maintenanceDebt!==undefined&&(!Number.isFinite(state.maintenanceDebt)||
    state.maintenanceDebt<0||state.maintenanceDebt>.500001))return false;
  if(state.territoryPowered!==undefined&&typeof state.territoryPowered!=='boolean')return false;
- for(const station of stations?.values?.()||[]){
+ for(const key of ['fluxSpilled','fluxHarvestedLocally'])if(state[key]!==undefined&&
+  (!Number.isFinite(state[key])||state[key]<0||state[key]>1e12))return false;
+ for(const entry of stations?.values?.()||[]){
+  const station=Array.isArray(entry)?entry[1]:entry;
+  if(station.fluxDepth!==undefined&&(!Number.isInteger(station.fluxDepth)||
+   station.fluxDepth<0||station.fluxDepth>6))return false;
+  if(station.fluxStored!==undefined&&(!Number.isFinite(station.fluxStored)||
+   station.fluxStored<0||station.fluxStored>stationFluxCapacity(station)+1e-6))return false;
   const infra=station.fluxInfrastructure;if(infra===undefined)continue;
   if(!infra||Array.isArray(infra)||typeof infra!=='object'||
    Object.keys(infra).some(key=>!FLUX_INFRASTRUCTURE[key]||

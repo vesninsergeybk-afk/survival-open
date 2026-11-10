@@ -1,7 +1,7 @@
 import {contourFields} from './territory-system.js';
 import {frontierBuoysNear,damageFrontierBuoy} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {productiveContourFields} from './contour-trials.js';
-import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1';
+import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {artilleryBarrels,artilleryCooldown,artilleryBlast,artilleryRange,artillerySupply,
  artilleryShotUnits,artilleryShellDamage,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
  ARTILLERY_BASE_FLUX_PER_MINUTE,turretBranchRank,
@@ -144,7 +144,8 @@ export function artilleryOffer(world,player,point,preload=0){
  const live=[...(state.artillery||[]),...(state.supportTurrets||[])];
  if(live.filter(t=>t.hp>0).length>=FLUX_ARTILLERY.maxTurrets)
   return {ok:false,reason:'Достигнут технический предел сооружений'};
- if([...live,...(state.fluxDepots||[]).filter(t=>t.hp>0)]
+ if([...live,...(state.fluxDepots||[]).filter(t=>t.hp>0),
+  ...(state.fluxSiphonHives||[]).filter(t=>t.hp>0)]
   .some(t=>distance(t,point)<FLUX_ARTILLERY.clearance))
   return {ok:false,reason:'Слишком близко к другому сооружению'};
  if([...world.stations.values()].some(s=>distance(s,point)<FLUX_ARTILLERY.stationClearance))

@@ -267,8 +267,10 @@ const pickTarget=(e,game)=>{
   if(target===game.player&&['flanker','fighter','gunship'].includes(e.type)&&
      !e.relayAssault&&!e.stationRaid){
     let nearest=null,closest=Infinity;
-    for(const depot of game.world?.contours?.fluxDepots||[]){
-      if(depot.hp<=0||depot.stored<.25||game.time<depot.readyAt)continue;
+    for(const depot of [...(game.world?.contours?.fluxDepots||[]),
+      ...(game.world?.contours?.fluxSiphonHives||[])]){
+      if(depot.hp<=0||(depot.kind!=='flux-siphon-hive'&&depot.stored<.25)||
+         game.time<depot.readyAt)continue;
       const distance=dist(e,depot);
       if(distance<350&&distance<closest&&game.enemyCanSee?.(e,depot)){
         nearest=depot;closest=distance;

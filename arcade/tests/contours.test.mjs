@@ -125,8 +125,9 @@ test('frequent miniature collectors form a visible convoy without multiplying pr
  assert.ok(shipments>=20,'flux reaches the station in repeated small deliveries');
  assert.ok(Math.abs(w.contours.delivered-expected)/expected<.1,
   'shortening the departure interval must not fabricate more total flux');
- assert.ok(Math.abs(w.contours.delivered-w.contours.flux-.24*180/60)<1e-5,
-  'the visible convoy produces the same flux while the active field pays its continuous upkeep');
+ const local=[...w.stations.values()].reduce((sum,s)=>sum+(s.fluxStored||0),0);
+ assert.ok(Math.abs(w.contours.delivered-w.contours.flux-local-.24*180/60)<1e-5,
+  'the visible convoy credits physical station tanks plus treasury, with no invented flux');
 });
 
 test('the field state is saveable and rejects forged resources and broken links',()=>{
