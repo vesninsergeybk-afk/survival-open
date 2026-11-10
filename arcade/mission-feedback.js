@@ -2,7 +2,7 @@ import {MODULES,moduleStats} from './ship-loadout.js?v=weapons-cycle-2-campaign-
 import {RELAY_DEFENSE,relayDefenseCue,relayAttacker} from './relay-defense.js?v=station-operations-2-ops-audit-1-mission-choices-1';
 import {PROBE_OPERATION} from './operations.js?v=station-operations-2-ops-audit-1';
 import {CARRIER_INTERCEPTION,carrierDistanceRemaining,carrierTacticalCue,carrierPulseState} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
-import {isFieldOperation,fieldOperationCue} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
+import {isFieldOperation,fieldOperationCue} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-pilot-value-2';
 // Pure state-derived cues shared by the world renderer and tactical map.
 // Rendering never advances mission progress or changes rewards.
 export function contractReturnStation(contract, world) {

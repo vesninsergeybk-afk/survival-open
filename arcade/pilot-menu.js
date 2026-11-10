@@ -1,7 +1,7 @@
 import {SHIP_UPGRADES} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-focus-1';
 import {escapeMenu as esc,menuInfo,menuSymbol,screenHead,menuFooter,menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {doctrineRank,doctrineCost,doctrineBuyReason,doctrineNextEffect,
- normalizedDoctrineRanks,doctrineSpent,doctrinePointsWord} from './pilot-doctrines.js?v=pilot-depth-1';
+ normalizedDoctrineRanks,doctrineSpent,doctrinePointsWord} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 export function renderPilotContent({player:p,ranks,doctrine,doctrineRanks,skills,doctrines,branch='Корабль',nextEffect}){
  const branches=[['Корабль','Пилотирование'],['Технологии','Технологии'],
   ['Добыча','Добыча'],['Оружие','Ручное оружие']];

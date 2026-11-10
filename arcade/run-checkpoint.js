@@ -1,5 +1,5 @@
-import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1';
-import {normalizedDoctrineRanks,DOCTRINES} from './pilot-doctrines.js?v=pilot-depth-1';
+import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1-pilot-value-2';
+import {normalizedDoctrineRanks,DOCTRINES} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 import {rebaseSavedHull} from './balance.js';
 import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';
 import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
@@ -27,7 +27,7 @@ import {createEnemyExpansion,validEnemyExpansion} from './enemy-expansion.js?v=e
 import {validStationId} from './station-ids.js?v=living-world-checkpoint-1-living-world-population-1-sector-density-2';
 import {expandSavedPopulation,ensurePopulationStations,seedPopulationTerritory,validPopulation} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
 import {compressCheckpoint,decompressCheckpoint} from './checkpoint-compression.js?v=sector-density-2';
-import {validFieldOperation,FIELD_OPERATIONS} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
+import {validFieldOperation,FIELD_OPERATIONS} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-pilot-value-2';
 
 export const RUN_KEYS=['survivor.run.v1.a','survivor.run.v1.b'];
 export const MAX_CHECKPOINT_LENGTH=850000;
@@ -321,7 +321,8 @@ export function restoreCheckpoint(game,data){
  game.doctrineRanks=normalizedDoctrineRanks(data.state);game.doctrine=null;
  // Temporary combat windows belong to the previous flight, not the save.
  game.commandMark=null;game.assaultBurstUntil=0;
- game.prospectSurgeUntil=0;game.assaultPulseReadyAt=0;
+ game.prospectSurgeUntil=0;game.prospectCharges=0;game.prospectChargeUntil=0;
+ game.assaultPulseReadyAt=0;game.counterguardUntil=0;
  // Formation decisions and reinforcement timers are reconstructed at runtime.
  // A courier that had already left the screen must not become stuck waiting
  // for a queue which deliberately is not part of the saved data graph.

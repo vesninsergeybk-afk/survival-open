@@ -1,5 +1,5 @@
 import {expForNext, legacyExpForNext} from './balance.js?v=xp-feedback-pass1-1';
-import {doctrineSpent,normalizedDoctrineRanks} from './pilot-doctrines.js?v=pilot-depth-1';
+import {doctrineSpent,normalizedDoctrineRanks} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 
 // Legacy station saves store the current level and progress within that level.
 export const XP_CURVE_VERSION = 2;

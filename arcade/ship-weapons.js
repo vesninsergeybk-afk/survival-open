@@ -8,7 +8,7 @@ import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,line
 import {emitWeaponFx} from './weapon-fx.js';
 import {landingRock} from './aimed-terrain.js?v=manual-audit-20261110';
 import {assaultPlasmaBonus,assaultShockwave,commandMarkHit,transferCommandMark,
- doctrinePlasmaSurge} from './pilot-doctrines.js?v=pilot-depth-1';
+ doctrinePlasmaSurge,consumeProspectCharge} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 import {launchFlakVolley,launchFlakInterceptors,updateFlakPellets,
  launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js?v=weapon-branches-1';
 
@@ -22,6 +22,16 @@ function hitRail(game,item,damage,contact,...flags){
  const dealt=damageTarget(game,item,damage,'rail',contact,...flags);
  if(dealt>0&&disruptHeavyAim(game.shipLoadout,item.target,game.time))
   game.notice?.('Рельсовый охотник сорвал подготовку тяжёлого залпа',2.6);
+ return dealt;
+}
+// The same purchased doctrines must apply to rail hits regardless of whether
+// the pilot selected automatic fire, the aimed shot, or the sustained sweep.
+function doctrineRailHit(game,item,damage,contact,...flags){
+ const target=item.target,d=targetDistance(game.player,target);
+ const adjusted=damage*assaultPlasmaBonus(game,d,'rail')*commandMarkHit(game,target);
+ const dealt=hitRail(game,item,adjusted,contact,...flags);
+ if(dealt>0)assaultShockwave(game,target,adjusted);
+ if(target.hp<=0)transferCommandMark(game,target);
  return dealt;
 }
 const positions=(g,id)=>{
@@ -62,7 +72,6 @@ function fireBeamFamily(game,id){
     plasmaDamageFactor(game.shipLoadout.specializations?.plasma,d,stats.range)*weights[i]*
     assaultPlasmaBonus(game,d)*doctrinePlasmaSurge(game)*(game.nearArsenalBonus?1.18:1)*
     (game.overchargeUntil>game.time?1.2:1);
-   else if(id==='rail')damage*=assaultPlasmaBonus(game,d,'rail');
    const {cover,point}=lineContact(game,from,item);
    if(cover){
     game.damageRock(cover.rock,damage*.85,from.x,from.y,'auto',true,point);
@@ -73,16 +82,21 @@ function fireBeamFamily(game,id){
      const hit=second?contactAtPoint(second.rock.x,second.rock.y,second.x,second.y):
       contactOnCircle(t.x,t.y,targetRadius(item),cover.x,cover.y);
      if(second)game.damageRock(second.rock,damage*penetration,cover.x,cover.y,'auto',true,hit);
-     else hitRail(game,item,damage*penetration,hit);
+     else doctrineRailHit(game,item,damage*penetration,hit);
      emitWeaponFx(game,'rail',cover,{x:hit?.x??t.x,y:hit?.y??t.y},
       {secondary:true,blocked:!!second,rank:game.skillRanks?.beam});
     }
    }else{
-    damage*=commandMarkHit(game,t);
-    if(id==='rail')hitRail(game,item,damage,point);
-    else damageTarget(game,item,damage,id==='plasma'?'beam':id,point);
-    if(id==='plasma'||id==='rail')assaultShockwave(game,t,damage);
-    if(t.hp<=0)transferCommandMark(game,t);
+    if(id==='rail')doctrineRailHit(game,item,damage,point);
+    else{
+     damage*=commandMarkHit(game,t);
+     const dealt=damageTarget(game,item,damage,'beam',point);
+     if(dealt>0){
+      assaultShockwave(game,t,damage);
+      if(consumeProspectCharge(game))game.heritage?.vfx?.nova?.(t.x,t.y,17,'green');
+     }
+     if(t.hp<=0)transferCommandMark(game,t);
+    }
    }
    const plasmaSpec=id==='plasma'?game.shipLoadout.specializations?.plasma:null;
    const plasmaNear=plasmaSpec?plasmaDamageFactor(plasmaSpec,RULES.nearBeam,stats.range):1;
@@ -217,7 +231,7 @@ export function updateRailSweep(game){
    const factor=hit===first?1:.28;
    const target=hit.item.target;
    const damage=totalDamage*factor*weaponDamageFactor(game.shipLoadout,'rail',target);
-   hitRail(game,hit.item,damage,onRay(from,end,hit.t),false,true);
+   doctrineRailHit(game,hit.item,damage,onRay(from,end,hit.t),false,true);
   }
   if(!first&&rock&&rock.rock?.alive){
    game.damageRock(rock.rock,totalDamage*.6,from.x,from.y,'auto',true,
@@ -273,7 +287,7 @@ export function fireAimedRail(game,point){
   let impact=end,exitImpact=null,exitBlocked=false;
   if(before){
    impact=onRay(from,end,before.t);
-   if(hitRail(game,before.item,damage,impact,false,true)>0)hits++;
+   if(doctrineRailHit(game,before.item,damage,impact,false,true)>0)hits++;
   }else if(cover){
    impact=cover;rocksHit++;
    game.damageRock(cover.rock,damage*.85,from.x,from.y,'auto',true,
@@ -288,7 +302,7 @@ export function fireAimedRail(game,point){
      exitImpact={x:second.x,y:second.y};exitBlocked=true;
     }else if(beyond){
      exitImpact=onRay(from,end,beyond.t);
-     if(hitRail(game,beyond.item,damage*penetration,exitImpact,false,true)>0)hits++;
+     if(doctrineRailHit(game,beyond.item,damage*penetration,exitImpact,false,true)>0)hits++;
     }
    }
   }
