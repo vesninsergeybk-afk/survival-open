@@ -53,6 +53,41 @@ function save(g,storage=memory()){
  const store=new RunCheckpointStore(storage,()=>1234);store.load();assert.ok(store.startNew().ok);
  assert.ok(store.save(captureCheckpoint(g,g.docked)).ok);return {storage,store};
 }
+test('neutral station saves trust progress, but hostile and ruined checkpoints are rejected',()=>{
+ const g=scene(),b={...g.world.home,id:'1:0',x:g.player.x+100,y:g.player.y,
+  type:'lab',active:false,enemy:false,ruined:false,rank:1,discovered:true,
+  reputation:2,contractRuns:1,contractCooldownUntil:g.time+4};
+ g.world.stations.set(b.id,b);g.world.discovered.add(b.id);
+ g.docked=b;g.player.x=b.x;g.player.y=b.y;
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,b)));
+ assert.equal(validateCheckpoint(snapshot),true);
+ const storage=memory(),store=new RunCheckpointStore(storage,()=>1);
+ store.load();assert.equal(store.startNew().ok,true);
+ g.runStore=store;
+ assert.match(g.saveAtStation(),/Вылет сохранён/,
+  'the real save action must work before station activation');
+ assert.equal(new RunCheckpointStore(storage).load()?.baseId,b.id);
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ assert.equal(restored.docked.id,b.id);
+ assert.equal(restored.docked.active,false);
+ assert.equal(restored.docked.reputation,2);
+ assert.equal(restored.docked.contractRuns,1);
+ assert.equal(restored.docked.contractCooldownUntil,g.time+4);
+ const old=unpackRun(packRun(snapshot));
+ delete old.world.stations.find(([id])=>id===b.id)[1].reputation;
+ assert.equal(validateCheckpoint(old),true,'older checkpoints did not contain reputation');
+ const fake=unpackRun(packRun(snapshot));
+ fake.world.stations.find(([id])=>id===b.id)[1].reputation=900;
+ assert.equal(validateCheckpoint(fake),false,'reputation must be bounded');
+ const hostile=unpackRun(packRun(snapshot));
+ hostile.world.stations.find(([id])=>id===b.id)[1].enemy=true;
+ assert.equal(validateCheckpoint(hostile),false);
+ const ruin=unpackRun(packRun(snapshot));
+ ruin.world.stations.find(([id])=>id===b.id)[1].ruined=true;
+ assert.equal(validateCheckpoint(ruin),false);
+ b.ruined=true;
+ assert.throws(()=>captureCheckpoint(g,b),/not-docked/);
+});
 test('damaged hostile frontier and neutral ruins survive checkpoint validation and restoration',()=>{
  const g=scene(),c=g.world.population.colonies.find(c=>c.tier===1&&!c.fronts.length);
  const front=orderFrontierNetwork(g.world,c,{x:c.x+3700,y:c.y},g.time);

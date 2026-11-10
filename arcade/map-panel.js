@@ -1,5 +1,6 @@
 import {menuInfo,renderMapActions} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1';
+import {stationReputation,stationReputationGoal} from './station-reputation.js';
 import {DEFAULT_CONTROLS,readableKey,interactionCopy,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1';
 
 // Shortcuts honor user remapping; while open, Tab belongs to keyboard focus.
@@ -22,7 +23,7 @@ import {CORRIDOR_OPERATION,corridorPosition,corridorAmbush,corridorScanBonus,pro
  isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=station-operations-2-ops-audit-2';
 import {isFieldOperation,fieldOperationCue} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
-import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1';
+import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1';
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=station-operations-2-ops-audit-2-mission-choices-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
@@ -330,7 +331,7 @@ export function renderWorldMap(game){
   (objective.progress>=objective.goal?'Награда готова. Вернитесь на '+
     (readyStation?baseNames[readyStation.type]:'станцию')+'.':
    'Поручение: '+objective.name+' · '+objective.progress+'/'+objective.goal):
-  'Активных поручений нет. На включённых станциях доступны задания.';
+  'Активных поручений нет. На нейтральных станциях задания открывают доступ к сети.';
  const readyRoute=readyStation?'<button type="button" data-act="waypoint" data-id="'+enc(readyStation.id)+
   '" data-x="'+Number(readyStation.x).toFixed(2)+'" data-y="'+Number(readyStation.y).toFixed(2)+
   '" data-label="'+enc(baseNames[readyStation.type]||'Станция')+'">Построить маршрут к награде</button>':'';
@@ -338,7 +339,7 @@ export function renderWorldMap(game){
   const label=isSignal?'Неопознанный сигнал':b.title||baseNames[b.type]||'Станция';
   const d=distance(b,p),same=navigator?.id===b.id;
   const status=isSignal?'координаты приблизительные (погрешность до 170 м)':
-   b.enemy?'вражеская база':b.suppressed?'связь подавлена · восстановление через '+Math.max(0,Math.ceil(b.suppressedUntil-game.time))+' с':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети · ПВО'+(topology.count>=2?' и стазис':'')+(b.relayBoost?' · усиленная связь':''):'автономный узел · ПВО'+(b.relayBoost?' · усиленная связь':'')):'ожидает включения';
+   b.enemy?'вражеская база':b.suppressed?'связь подавлена · восстановление через '+Math.max(0,Math.ceil(b.suppressedUntil-game.time))+' с':readyStation?.id===b.id?'НАГРАДА ГОТОВА':b.active?(topology.linked.has(b.id)?'узел сети · ПВО'+(topology.count>=2?' и стазис':'')+(b.relayBoost?' · усиленная связь':''):'автономный узел · ПВО'+(b.relayBoost?' · усиленная связь':'')):'доверие экипажа · '+stationReputation(b)+'/'+stationReputationGoal(b)+' · заказов '+(b.contractRuns||0)+'/2';
   const value=isSignal?'Проложить курс к сигналу':'Построить маршрут';
   const discovery=!isSignal&&!b.enemy&&b.type==='arsenal'&&!precisionUnlocked?
    ' · ОТКРЫТИЕ: ручной прицел для рельсового орудия':

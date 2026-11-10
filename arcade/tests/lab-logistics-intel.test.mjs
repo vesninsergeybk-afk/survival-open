@@ -33,6 +33,7 @@ test('the first lab opens a real, approximate supply lead and the unlock survive
  const mine=g.world.stations.get(CENTRAL_INDUSTRY.sourceId);
  const unknownMap=renderWorldMap(g);
  assert.doesNotMatch(unknownMap,/data-id="intel:central-source"/);
+ b.reputation=3;b.contractRuns=2; // Already completed local trust orders in this technology test.
  g.baseAction('activate');
  assert.equal(b.active,true);
  assert.equal(labLogisticsUnlocked(g.world),true);

@@ -39,13 +39,19 @@ test('the station modal offers its own working sound toggle',()=>{
  assert.match(source,/if\(act==='toggleAudio'\)/,'station click must reach the audio toggle');
 });
 
-test('additional bases have rising, capped activation prices and no repeat reward',()=>{
+test('additional bases have rising, capped activation prices and a trust prerequisite',()=>{
  assert.deepEqual([0,1,2,3,10,100].map(activationCost),[0,24,34,44,84,84]);
- const o=baseOffer(base('arsenal'),state({ore:10,activeBases:1}));
+ const remote=base('arsenal',{id:'1:0'});
+ const o=baseOffer(remote,state({ore:10,activeBases:1}));
  assert.equal(o.relayCost,24);
  assert.equal(o.rewardAlloy,0);
- assert.equal(o.reasons.activate,'Не хватает 14 ед. сплава');
- assert.match(renderBasePanel(base('arsenal'),state({ore:10,activeBases:1})),
+ assert.match(o.reasons.activate,/поручения станции/);
+ assert.match(renderBasePanel(remote,state({ore:10,activeBases:1})),/ДОВЕРИЕ ЭКИПАЖА/);
+ assert.match(renderBasePanel(remote,state({ore:10,activeBases:1})),/Принять заказ/);
+ remote.contractRuns=2;remote.reputation=3;
+ assert.equal(baseOffer(remote,state({ore:10,activeBases:1})).reasons.activate,
+  'Не хватает 14 ед. сплава');
+ assert.match(renderBasePanel(remote,state({ore:10,activeBases:1})),
   /Подключить · 24 сплава/);
 });
 

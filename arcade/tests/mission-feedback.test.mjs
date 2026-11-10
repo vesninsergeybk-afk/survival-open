@@ -21,6 +21,9 @@ test('reward marker points only to the issuing station when the award is ready',
  contract.progress=6;
  assert.equal(contractReturnStation(contract,scene)?.id,'lab');
  scene.stations.get('lab').active=false;
+ assert.equal(contractReturnStation(contract,scene)?.id,'lab',
+  'the player can return a completed order to a neutral, not yet powered station');
+ scene.stations.get('lab').ruined=true;
  assert.equal(contractReturnStation(contract,scene),null);
 });
 

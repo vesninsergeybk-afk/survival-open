@@ -115,7 +115,8 @@ export function unpackRun(text){
 }
 
 export function captureCheckpoint(game,base){
- if(game.dead||!game.paused||!base?.active||base.enemy)throw new Error('not-docked');
+ if(game.dead||!game.paused||!base||base.enemy||base.ruined||base.hp<=0)
+  throw new Error('not-docked');
  const state={};for(const name of FIELDS)if(game[name]!==undefined)state[name]=game[name];
  const rocks=[];
  for(const [key,list] of game.world.rocks){
@@ -186,6 +187,8 @@ export function validateCheckpoint(data){
    !validFieldCounters(b.fieldOperationFullRuns)||
    !validFieldCounters(b.fieldOperationAttempts)||
    !validFieldHistory(b.fieldOperationHistory))return false;
+  if(b.reputation!==undefined&&(!Number.isInteger(b.reputation)||b.reputation<0||b.reputation>5))return false;
+  if(b.contractRuns!==undefined&&(!Number.isInteger(b.contractRuns)||b.contractRuns<0||b.contractRuns>100000))return false;
   // Persistent regional machine archives contain only bounded, dated threat
   // categories. Older checkpoints without this optional field remain valid.
   if(b.meshArchive!==undefined&&(!Array.isArray(b.meshArchive)||
@@ -216,7 +219,8 @@ export function validateCheckpoint(data){
    !finite(b.defense.visualAt,-Infinity,1e9)))return false;
   ids.add(b.id);if(b.id===data.baseId)dock=b;if(b.id==='0:0')home=true;
  }
- if(!home||!dock?.active||dock.enemy||Math.hypot(p.x-dock.x,p.y-dock.y)>210||
+ if(!home||!dock||dock.enemy||dock.ruined||dock.hp<=0||
+  (!dock.active&&!dock.discovered)||Math.hypot(p.x-dock.x,p.y-dock.y)>210||
   w.discovered.some(id=>!ids.has(id)))return false;
  if(p.strategicXp!==undefined&&!validStrategicExperience(p.strategicXp,w.stations))return false;
  if(w.contours!==undefined&&(!validContours(w.contours,w.stations)||
