@@ -55,3 +55,33 @@ test('relic respects hold fire, targets enemies only and does not permanently st
  assert.equal(hits.length,2);
  assert.ok(Object.keys(RELICS).includes(game.convoyRelic.active.id));
 });
+
+test('trophy does not reveal distant investigating patrols or shoot through asteroids',()=>{
+ const {game,hits}=scene();
+ game.convoyRelic.active={id:'storm',until:190,nextFireAt:99};
+ const patrol={x:260,y:0,hp:100,r:14,type:'scout',
+  signalIntel:{mode:'investigate'}};
+ game.enemies=[patrol];
+ assert.equal(updateConvoyRelic(game),false);
+ assert.equal(hits.length,0,'unconfirmed patrol must not receive automatic fire');
+ patrol.signalIntel.mode='engaged';
+ game.rockGrid={query:()=>[{x:115,y:0,r:48,alive:true}]};
+ game.time+=2;
+ assert.equal(updateConvoyRelic(game),false);
+ assert.equal(hits.length,0,'solid cover must stop the temporary beam');
+ game.rockGrid.query=()=>[];
+ game.time+=2;
+ assert.equal(updateConvoyRelic(game),true);
+ assert.equal(hits.length,1);
+});
+
+test('plasma storm spreads limited damage into a nearby group',()=>{
+ const {game,hits}=scene();
+ game.convoyRelic.active={id:'storm',until:190,nextFireAt:99};
+ game.enemies=[{x:180,y:0,hp:100,type:'fighter'},
+  {x:212,y:24,hp:100,type:'scout'},{x:240,y:-15,hp:100,type:'fighter'}];
+ assert.equal(updateConvoyRelic(game),true);
+ assert.equal(hits.length,3);
+ assert.equal(hits[0].dmg,RELICS.storm.damage);
+ assert.ok(hits.slice(1).every(hit=>hit.dmg<hits[0].dmg));
+});

@@ -1,4 +1,4 @@
-// Earned, permanent micro-upgrades. Milestones have no hard final rank, but
+// Earned, permanent micro-upgrades. Ranks have a high technical save limit;
 // benefits approach a modest limit so long runs cannot break combat balance.
 export const MASTERIES=Object.freeze({
  ace:{name:'Чистая охота',group:'Бой',first:8,growth:1.6,cap:.09,
@@ -14,7 +14,7 @@ export const MASTERIES=Object.freeze({
   task:'На скорости уклоняйтесь от вражеских снарядов, проходящих вплотную к кораблю.',
   effect:'Скорость корабля'},
  survivor:{name:'Боевая выдержка',group:'Корпус',first:10,growth:1.55,cap:.08,
-  task:'Переживайте настоящие попадания с интервалом не менее трёх секунд.',
+  task:'Переживайте попадания вне защитных полей станций с интервалом не менее трёх секунд.',
   effect:'Снижение входящего урона'}
 });
 export const createCombatMastery=()=>({version:1,tracks:Object.fromEntries(
@@ -30,6 +30,7 @@ export const masteryBonus=(state,id)=>{
 export function masteryProgress(state,id,amount=1){
  if(!state||!MASTERIES[id]||!Number.isInteger(amount)||amount<0||amount>10000)return null;
  const track=state.tracks[id],old=track.rank;
+ if(track.rank>=10000)return null;
  track.progress+=amount;
  while(track.progress>=masteryGoal(id,track.rank)&&track.rank<10000){
   track.progress-=masteryGoal(id,track.rank);track.rank++;

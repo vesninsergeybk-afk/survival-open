@@ -23,6 +23,7 @@ const WEAPON_ICONS=Object.freeze({
  ion:'ion.svg',resonator:'field-resonator.svg'
 });
 const weaponIcon=id=>'./studio/hud-kit/'+(WEAPON_ICONS[id]||'weapon.svg');
+const DRONE_CODES=Object.freeze({scout:'СТР',fighter:'КЛН',brawler:'ТРН',rocket:'ОСА',medic:'ИСК'});
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 const count = value => Math.round(value).toLocaleString('ru-RU');
 export const HUD_RADAR_RANGE=1100;
@@ -65,6 +66,7 @@ export class CockpitDisplay {
    droneIcons:Array.from({length:6},(_,i)=>el('hudDrone'+i)),
    droneSlots:Array.from({length:6},(_,i)=>el('hudDroneSlot'+i)),wingAlert:el('wingAlert'),
    droneMeters:Array.from({length:6},(_,i)=>el('hudDroneHp'+i)),
+   droneNames:Array.from({length:6},(_,i)=>el('hudDroneName'+i)),
    hudTrophy:el('hudTrophy'),hudTrophyName:el('hudTrophyName'),hudTrophyTime:el('hudTrophyTime'),hudTrophyIcon:el('hudTrophyIcon'),
    ore:el('ore'),data:el('data'),bases:el('bases'),
    flux:el('flux'),fluxResource:el('fluxResource'),fluxGain:el('fluxGain'),
@@ -164,6 +166,7 @@ export class CockpitDisplay {
    if(icon.getAttribute?.('src')!==sprite)icon.src=sprite;
    slot.title=unit?(ESCORTS[unit.role]?.name||'Ведомый')+' · '+Math.ceil(unit.hp)+' / '+Math.ceil(unit.maxHp)+' ОЗ':
     i>=capacity?'Место откроется после подключения ещё одной станции':'Свободное место';
+   display(n.droneNames[i],unit?DRONE_CODES[unit.role]||'?':'—');
    icon.style.filter=unit?'drop-shadow(0 0 4px '+(ESCORTS[unit.role]?.color||'#68eeeb')+')':'';
    const meter=n.droneMeters[i];
    meter.style.setProperty('--hp',(fraction*100)+'%');

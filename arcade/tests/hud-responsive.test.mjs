@@ -5,6 +5,7 @@ import {CockpitDisplay,hullCondition,radarPoint,experienceDifference} from '../h
 
 const source=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const css=readFileSync(new URL('../hud.css',import.meta.url),'utf8');
+const wingCss=readFileSync(new URL('../escort-ui.css',import.meta.url),'utf8');
 const ids=[...source.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);
 
 test('HUD contract: unique live element IDs, cache versions and mobile layout',()=>{
@@ -27,6 +28,19 @@ test('HUD contract: unique live element IDs, cache versions and mobile layout',(
  assert.match(css,/@media\(pointer:coarse\) and \(orientation:landscape\)/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
  assert.match(css,/\.cockpit-hud \[hidden\]\{display:none!important\}/);
+ for(let i=0;i<6;i++){
+  assert.ok(ids.includes('hudDroneHp'+i));
+  assert.ok(ids.includes('hudDroneName'+i));
+ }
+ assert.match(wingCss,/grid-template-columns:repeat\(12,minmax\(0,1fr\)\)/,
+  'seven development directions must wrap into readable rows');
+ assert.doesNotMatch(wingCss,/repeat\(7,minmax\(0,1fr\)\)/);
+ assert.match(wingCss,/\.wing-right \.hud-drone-band\{top:107%;/,
+  'touch consoles must not overlap their heat and resource meters');
+ assert.match(wingCss,/\.wing-right\{overflow:visible\}/,
+  'the out-of-panel roster must not be clipped by its parent console');
+ assert.match(wingCss,/@media\(pointer:coarse\) and \(orientation:portrait\)/,
+  'portrait HUD must reserve space under the visible drone roster');
 });
 
 test('HUD status boundaries and local radar contacts',()=>{
@@ -105,6 +119,14 @@ test('HUD reads game state and changes contextual prompts without changing simul
    'touch HUD uses a short, complete weapon state');
   assert.equal(node('flightMode')['aria-label'],'АВТООГОНЬ · АКТИВЕН',
    'the original detailed state remains accessible');
+  game.allies=[{role:'scout',hp:16,maxHp:58,state:'cover'}];
+  hud.update(game,100,5);
+  assert.equal(node('hudDroneName0').textContent,'СТР');
+  assert.equal(node('hudDroneHp0')['aria-valuenow'],'16');
+  assert.equal(node('wingStatus').textContent,'⚠ 1/1');
+  game.allies=[];
+  hud.update(game,100,5);
+  assert.equal(node('hudDroneName0').textContent,'—');
   // The active dock is next to the pilot. Navigation deliberately targets an
   // inactive station; its distance must not be labelled ambiguously.
   game.world.nearbyStations=()=>[

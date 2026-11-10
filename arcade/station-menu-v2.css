@@ -56,6 +56,55 @@
 #overlay .base-dialog .base-turret-growth{margin:9px 0}
 #overlay .base-dialog .base-turret-growth summary{cursor:pointer;line-height:1.65;padding:5px 2px;color:#d5e9ee}
 #overlay .base-dialog .base-turret-growth[open] summary{border-bottom:1px solid #395363;margin-bottom:9px}
+#overlay .base-dialog .base-contour-defense{min-width:0}
+#overlay .base-dialog .base-contour-defense>p{color:#afc5cd;line-height:1.55}
+#overlay .base-dialog .base-contour-map{
+ margin:12px 0;padding:12px;border:1px solid #416a77;border-radius:12px;
+ background:radial-gradient(ellipse at 55% 30%,#1e3946 0%,#10212c 70%);
+ box-shadow:inset 0 0 22px #081821;
+}
+#overlay .base-dialog .base-contour-scheme{display:block;width:100%;height:auto;max-height:355px}
+#overlay .base-dialog .base-contour-scheme .base-contour-edges line{stroke:#608797;stroke-width:1.8;stroke-dasharray:5 4}
+#overlay .base-dialog .base-contour-scheme .base-contour-face{cursor:pointer}
+#overlay .base-dialog .base-contour-scheme .base-contour-face:hover polygon{stroke:#d7fbff;stroke-width:3.4}
+#overlay .base-dialog .base-contour-scheme .base-contour-face-label{
+ font:700 18px system-ui,sans-serif;fill:#d7f9fc;text-anchor:middle;
+ paint-order:stroke;stroke:#102733;stroke-width:4px;stroke-linejoin:round;
+}
+#overlay .base-dialog .base-contour-scheme .base-contour-node text{
+ font:700 14px system-ui,sans-serif;fill:#c8e7f4;
+ paint-order:stroke;stroke:#102733;stroke-width:4px;
+}
+#overlay .base-dialog .base-contour-scheme .base-contour-turret text{
+ font:700 12px system-ui,sans-serif;text-anchor:middle;
+}
+#overlay .base-dialog .base-contour-key{
+ display:flex;flex-wrap:wrap;gap:5px 16px;margin:9px 4px 1px;
+ color:#bcd3dd;font-size:12px;
+}
+#overlay .base-dialog .base-contour-key b{color:#f7c685}
+#overlay .base-dialog .base-contour-choices{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:12px 0 15px;
+}
+#overlay .base-dialog .base-contour-choice{
+ display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;
+ background:#193340;color:#c7e5ee;border:1px solid #426778;border-radius:9px;
+ padding:10px 12px;text-align:left;cursor:pointer;
+}
+#overlay .base-dialog .base-contour-choice strong{font-size:13px}
+#overlay .base-dialog .base-contour-choice small{font-size:11px;line-height:1.35;color:#b0cad3}
+#overlay .base-dialog .base-contour-choice:hover,
+#overlay .base-dialog .base-contour-choice:focus-visible{border-color:#a6e6f2;outline-offset:2px}
+#overlay .base-dialog .base-contour-choice.is-selected{
+ background:#285564;border-color:#a5eef6;color:#f0fdff;
+ box-shadow:inset 0 -2px #94e4e7;
+}
+#overlay .base-dialog .base-contour-defense>h4{margin:12px 0 8px;color:#bff0ef}
+#overlay .base-dialog .base-contour-turret-number{
+ display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;
+ border:1px solid var(--turret-color);color:var(--turret-color);font-size:12px;
+}
+#overlay .base-dialog .base-contour-empty{border:1px dashed #486778;padding:12px;border-radius:8px}
 #overlay .base-dialog .base-escort-panel .base-card{min-width:0}
 #overlay .base-dialog .base-tabs button:hover:not([aria-selected="true"]){background:#1b3442!important;border-color:#64818e!important;color:#e7f1f4}
 #overlay .base-dialog .base-tabs button[aria-selected="true"]{

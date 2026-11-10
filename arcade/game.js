@@ -82,7 +82,7 @@ import {DOCTRINES,doctrineRank,doctrineCost,doctrineBuyReason,normalizedDoctrine
  doctrineDashCooldown,transferCommandMark} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 import {missionImageReady,paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1-pilot-depth-1-pilot-value-2-hud-merge-20261110-live-hud-qa-1-trial-station-defense-20261110-escort-squad-20261110-wingmastery-20261110';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1-pilot-depth-1-pilot-value-2-hud-merge-20261110-live-hud-qa-1-trial-station-defense-20261110-escort-squad-20261110-wingmastery-20261110-station-contour-map-20261110';
 import {awardStationReputation,stationReputation,stationReputationGoal,stationReputationReady} from './station-reputation.js';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
@@ -137,6 +137,7 @@ import {SUPPORT_TYPES,supportConfig,supportOffer,deploySupport,supportAt,
 import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,turretCombatRadii,
  artilleryShotFlux,artilleryShotUnits,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
  buyTurretBranch,artilleryBarrels,hiveLimit} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1-turret-defense-20261110-trial-station-defense-20261110';
+import {stationContourDefenseModel} from './station-territory-map.js?v=station-contour-map-20261110';
 import {launchFluxSortie,advanceFluxSortie,FLUX_SORTIE} from './flux-offense.js?v=flux-offense-1-territory-war-1';
 import {recordIndustrialBreachHit,advanceIndustrialBreaches,INDUSTRIAL_BREACH} from './industrial-breach.js?v=territory-war-1-territory-war-1-breach-fix-1';
 import {contourCoverOffer,selectCoverTarget,CONTOUR_COVER} from './contour-cover.js?v=territory-war-2-territory-war-1-topology-fix-1';
@@ -170,7 +171,7 @@ const SKILLS=[
  {id:'tactics',branch:'Технологии',title:'Боевой протокол',max:3,from:5,desc:'Союзники быстрее выбирают опасные цели'},
  {id:'wingArmor',branch:'Дроны',title:'Композитная броня',max:4,from:2,desc:'Наёмные дроны получают по 12% дополнительной прочности за ранг. Усиление действует и на уже нанятых.'},
  {id:'wingSpeed',branch:'Дроны',title:'Быстрые приводы',max:3,from:3,desc:'Ускоряет полёт ведомых на 6% за ранг.'},
- {id:'wingTargeting',branch:'Дроны',title:'Синхронизация целей',max:3,from:3,desc:'Дроны быстрее выбирают цель и согласуют перехват.'},
+ {id:'wingTargeting',branch:'Дроны',title:'Синхронизация целей',max:3,from:3,desc:'Дроны чаще оценивают обстановку и быстрее переключаются между целями.'},
  {id:'wingAssault',branch:'Дроны',title:'Ударная группа',max:4,from:4,requires:'wingTargeting',desc:'Все наёмные дроны наносят на 10% больше урона за ранг.'},
  {id:'wingRam',branch:'Дроны',title:'Штурмовой экран',max:3,from:5,requires:'wingArmor',desc:'Дополнительная защита «Тарана» на ударном заходе и усиление ближнего нападения.'},
  {id:'wingMedic',branch:'Дроны',title:'Ремонтный контур',max:3,from:5,requires:'wingArmor',desc:'«Искра» восстанавливает дополнительно 3 единицы прочности за ранг и быстрее подпитывает щит.'},
@@ -217,7 +218,7 @@ function nextSkillEffect(id,rank,levels={}){
     '% относительно базового темпа';
   case 'wingArmor':return 'Прочность каждого дрона: +'+(rank*12)+'% → +'+(n*12)+'%';
   case 'wingSpeed':return 'Скорость звена: +'+(rank*6)+'% → +'+(n*6)+'%';
-  case 'wingTargeting':return 'Ведомые быстрее оценивают угрозы и выбирают цель';
+  case 'wingTargeting':return 'Ведомые быстрее выбирают и при необходимости меняют цель';
   case 'wingAssault':return 'Урон ведомых: +'+(rank*10)+'% → +'+(n*10)+'%';
   case 'wingRam':return '«Таран»: дополнительная защита на заходе · урон +'+(n*14)+'%';
   case 'wingMedic':return '«Искра»: ремонт за импульс +'+(n*3)+' единиц';
@@ -1032,19 +1033,36 @@ export class ArcadeGame {
     this.heritage?.play?.('supportUpgrade',.5,this.docked);
     this.renderDock();return;
    }
+   if(act==='selectTerritoryContour'&&this.docked?.active){
+    const plan=stationContourDefenseModel(this.world,this.docked),faceId=b.dataset.target;
+    if(!plan.faces.some(face=>face.id===faceId))return;
+    this.territoryContourSelection={stationId:this.docked.id,faceId};
+    this.territoryOpenTurret=null;
+    this.renderDock();
+    [...this.overlay.querySelectorAll('[data-act="selectTerritoryContour"]')]
+     .find(button=>button.dataset.target===faceId)?.focus({preventScroll:true});
+    return;
+   }
    if((act==='upgradeTerritoryTurret'||act==='upgradeHiveBranch')&&this.docked?.active){
     const key=b.dataset.target||'',parts=key.split(':');
     const collection=act==='upgradeHiveBranch'||parts[0]==='s'?'supportTurrets':
      parts[0]==='a'?'artillery':null;
     const id=Number(act==='upgradeHiveBranch'?key:parts[1]);
-    const turret=collection&&Number.isSafeInteger(id)?
+    const plan=act==='upgradeTerritoryTurret'?stationContourDefenseModel(this.world,this.docked):null;
+    const chosenFace=plan?.faces.find(face=>face.id===this.territoryContourSelection?.faceId&&
+     this.territoryContourSelection?.stationId===this.docked.id)||plan?.faces[0];
+    const permitted=act==='upgradeHiveBranch'||chosenFace?.turrets.some(item=>item.target===key);
+    const turret=permitted&&collection&&Number.isSafeInteger(id)?
      (this.world.contours?.[collection]||[]).find(t=>t.id===id&&t.hp>0&&
-      dist(t,this.docked)<=3000):null;
+      (act==='upgradeTerritoryTurret'||dist(t,this.docked)<=3000)):null;
     if(!turret||act==='upgradeHiveBranch'&&turret.type!=='hive')return;
     const result=buyTurretBranch(this.world,this.player,turret,b.dataset.role,this.time);
     const title=TURRET_GROWTH[turretGrowthType(turret)]?.name||'Турель';
     this.notice(result.ok?title+': '+result.title+' · ступень '+result.rank+'.':result.reason,3.5);
-    if(result.ok)this.heritage?.play?.('supportUpgrade',.6,turret);
+    if(result.ok){
+     this.heritage?.play?.('supportUpgrade',.6,turret);
+     if(act==='upgradeTerritoryTurret')this.territoryOpenTurret={stationId:this.docked.id,target:key};
+    }
     this.renderDock();return;
    }
    if(act==='runNew'){
@@ -3484,6 +3502,10 @@ export class ArcadeGame {
    doctrine:this.doctrine,doctrineRanks:normalizedDoctrineRanks(this),
    droneDamage:this.allies.reduce((sum,a)=>sum+Math.max(0,a.maxHp-a.hp),0),
    charges:this.support.charges,contract:this.contract,operation:this.operation,baseTab:this.baseTab,
+   territoryContourId:this.territoryContourSelection?.stationId===this.docked?.id?
+    this.territoryContourSelection.faceId:null,
+   territoryOpenTurret:this.territoryOpenTurret?.stationId===this.docked?.id?
+    this.territoryOpenTurret.target:null,
    menuBackLabel:this.menuBackLabel(),
    soundOn:this.heritage.soundOn,
    hangarView:this.hangarView||'weapons',skillBranch:this.skillBranch,
@@ -4549,7 +4571,8 @@ export class ArcadeGame {
   const previousHp=p.hp;
   p.hp-=remaining;p.invul=.55+this.skillRanks.dodge*.12;this.lastDamageAt=this.time;
   masteryMiss(this.combatMastery,'ace');
-  if(p.hp>0&&this.combatMastery&&this.time-this.combatMastery.lastImpactAt>=3){
+  if(p.hp>0&&!this.nearDockField&&!this.nearArsenalDefense&&this.combatMastery&&
+   this.time-this.combatMastery.lastImpactAt>=3){
    this.combatMastery.lastImpactAt=this.time;
    const award=masteryProgress(this.combatMastery,'survivor');
    if(award)this.notice('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);
@@ -4637,16 +4660,18 @@ export class ArcadeGame {
   }
   this.missiles=this.missiles.filter(m=>m.life>0);
  }
- hitAlly(a,damage){
+ hitAlly(a,damage,kind='other'){
   if(!a||a.hp<=0||damage<=0)return;
   // Apply the hired wing's armor once, for bullets, collisions, shocks and
   // regional storms alike. Individual impact callers pass unmodified damage.
   damage*=Math.max(.45,1-(this.network?.armor||0)*.07);
-  // A close-assault escort crosses the rammer's hitbox during its strike.
-  // Its brief frontal screen and withdrawal prevent contact damage from
-  // erasing the unit before it has completed the attack; bullets still hurt.
-  if(a.role==='brawler'&&this.time<(a.guardUntil||0))
-   damage*=Math.max(.38,.54-(this.skillRanks.wingRam||0)*.055);
+  // The rammer's screen helps specifically against colliding hulls. Other
+  // damage remains dangerous, including shots fired during its withdrawal.
+  if(a.role==='brawler'&&kind==='contact'){
+   if(this.time<(a.guardUntil||0))
+    damage*=Math.max(.34,.48-(this.skillRanks.wingRam||0)*.045);
+   else if(this.time<(a.retreatUntil||0))damage*=.72;
+  }
   a.hp-=damage;a.hit=.18;
   if(this.time>(a.nextVfxHit||0)){
    this.heritage.vfx.hullImpact(a.x,a.y,false);
@@ -5852,10 +5877,7 @@ export class ArcadeGame {
   for(const a of this.allies){
    for(const e of this.grid.query(a.x,a.y,a.r+35)){
     if(e.hp<=0||e.converted||dist(a,e)>a.r+e.r)continue;
-    const striking=a.role==='brawler'&&this.time<(a.guardUntil||0);
-    const withdrawing=a.role==='brawler'&&this.time<(a.retreatUntil||0);
-    const contactFactor=striking?.23:withdrawing?.47:1;
-    this.hitAlly(a,e.damage*dt*.8*contactFactor);
+    this.hitAlly(a,e.damage*dt*.8,'contact');
    }
   }
   this.updateShipWeapons(dt);

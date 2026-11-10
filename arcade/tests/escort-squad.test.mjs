@@ -52,10 +52,15 @@ function battle(role,target={x:30,y:0,r:14,hp:300,type:'fighter',converted:false
 }
 
 test('brawler makes a distinct short-range strike but will not hit beyond reach',()=>{
- const near=battle('brawler');updateAlly(near.drone,near.g,.08);
+ const near=battle('brawler',{x:20,y:18,r:14,hp:300,type:'fighter'});
+ updateAlly(near.drone,near.g,.08);
  assert.equal(near.hits.length,1);
  assert.equal(near.hits[0].source,near.drone);
  assert.ok(near.hits[0].damage>=35);
+ assert.ok(near.drone.retreatUntil-near.g.time>1.7,
+  'rammer must withdraw until nearly reloaded');
+ const distant=battle('brawler');updateAlly(distant.drone,distant.g,.08);
+ assert.equal(distant.hits.length,0,'52-unit melee reach must not bypass hull contact');
  const far=battle('brawler',{x:180,y:0,r:14,hp:300,type:'fighter'});
  updateAlly(far.drone,far.g,.08);
  assert.equal(far.hits.length,0,'contact strike cannot hit a distant target');
@@ -79,11 +84,23 @@ test('ramming drone takes reduced collision damage during a strike and retreats 
  g.time=20;g.allies=[a];
  a.guardUntil=20.62;a.retreatUntil=21.03;
  const start=a.hp;
- g.hitAlly(a,24);
+ g.hitAlly(a,24,'contact');
  assert.ok(a.hp>start-15,'screen dampens an impact but never grants invulnerability');
+ const beforeShot=a.hp;
+ g.hitAlly(a,24,'projectile');
+ assert.ok(a.hp<=beforeShot-23.9,'contact shield must not protect against bullets');
  g.time=22;const afterScreen=a.hp;
- g.hitAlly(a,24);
+ g.hitAlly(a,24,'contact');
  assert.ok(a.hp<=afterScreen-23.9,'outside a strike the same impact hits normally');
+});
+
+test('targeting skill reduces commitment to an obsolete escort target',()=>{
+ const baseline=battle('fighter'),trained=battle('fighter');
+ trained.g.skillRanks.wingTargeting=3;
+ updateAlly(baseline.drone,baseline.g,.08);
+ updateAlly(trained.drone,trained.g,.08);
+ assert.ok(trained.drone.commitUntil<trained.g.time+1.3);
+ assert.ok(baseline.drone.commitUntil-trained.drone.commitUntil>.5);
 });
 
 test('rocket escort launches a physical homing projectile with splash instead of instant damage',()=>{

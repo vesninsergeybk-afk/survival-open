@@ -836,7 +836,7 @@ export function updateAlly(a,game,dt){
         a.messageUntil=game.time+2.4;
       }
       a.commitUntil=game.time+(guardingExtraction?1.15:farFromPlayer?.65:
-       1.75/(1+(game.skillRanks.tactics||0)*.18));
+       1.75/(1+(game.skillRanks.tactics||0)*.18+(game.skillRanks.wingTargeting||0)*.18));
       a.target=target;
     }
   }
@@ -876,7 +876,10 @@ export function updateAlly(a,game,dt){
     const dx=x-p.x,dy=y-p.y,d=length(dx,dy),tether=a.role==='bomber'?170:
      a.role==='rocket'?190:a.role==='brawler'?200:155;
     if(d>tether){x=p.x+dx/d*tether;y=p.y+dy/d*tether;}
-    const weaponRange=a.role==='bomber'?360:spec.range;
+    // The rammer needs actual hull contact. Six units of tolerance account
+    // for movement between frames; a long-distance melee hit is impossible.
+    const weaponRange=a.role==='brawler'?a.r+(target.r||14)+6:
+     a.role==='bomber'?360:spec.range;
     if(!withdrawing&&a.fire<=0&&dist(a,target)<weaponRange){
       a.fire=a.role==='bomber'?1.85:spec.reload;
       const weapon=a.role==='bomber'?5:spec.damage;
@@ -888,7 +891,7 @@ export function updateAlly(a,game,dt){
        (a.role==='fighter'&&['gunship','healer'].includes(target.type)?1.16:1);
       if(a.role==='brawler'){
        a.guardUntil=game.time+.62+(game.skillRanks.wingRam||0)*.12;
-       a.retreatUntil=game.time+1.03;
+       a.retreatUntil=game.time+Math.max(1.03,spec.reload-.15);
       }
       if(a.role==='rocket'&&Array.isArray(game.missiles)){
         game.missiles.push({x:a.x,y:a.y,tx:target.x,ty:target.y,

@@ -1,9 +1,10 @@
 // A reward for actively intercepting a supply convoy. It does not occupy a
 // ship slot or consume ammunition. One independent 90-second clock is shown.
+import {targetAlive,clearLine} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1-living-world-population-1-sector-density-2-frontier-siege-1';
 export const RELIC_SECONDS=90;
 export const RELICS=Object.freeze({
  storm:{name:'Плазменный шторм',color:'#94f7ff',interval:1.05,damage:24,range:460,
-  desc:'Частые плазменные залпы по ближайшему противнику'},
+  desc:'Частые плазменные залпы, которые цепляют соседние корабли'},
  salvo:{name:'Штурмовой каскад',color:'#ffb678',interval:2.1,damage:45,range:435,
   desc:'Мощный залп по цели и двум соседним кораблям'},
  arc:{name:'Ионная гроза',color:'#c5b6ff',interval:1.65,damage:31,range:445,
@@ -40,21 +41,24 @@ export function updateConvoyRelic(game){
  const spec=RELICS[a.id];if(!spec)return false;
  a.nextFireAt=game.time+spec.interval;
  const p=game.player;
- const visible=(game.enemies||[]).filter(e=>e.hp>0&&!e.converted&&!e.regionalCargo&&
+ const visible=(game.enemies||[]).filter(e=>!e.regionalCargo&&
   !e.interceptCargo&&!e.populationWorker&&e.type&&
-  Math.hypot(e.x-p.x,e.y-p.y)<=spec.range);
+  targetAlive(game,{kind:'enemy',target:e})&&
+  Math.hypot(e.x-p.x,e.y-p.y)<=spec.range&&clearLine(game,p,e));
  if(!visible.length)return false;
  visible.sort((x,y)=>Math.hypot(x.x-p.x,x.y-p.y)-Math.hypot(y.x-p.x,y.y-p.y));
  const primary=visible[0];
  const targets=[primary];
- if(a.id==='salvo'||a.id==='arc')for(const e of visible.slice(1)){
-  if(Math.hypot(e.x-primary.x,e.y-primary.y)<(a.id==='salvo'?120:180))targets.push(e);
-  if(targets.length===(a.id==='salvo'?3:2))break;
+ for(const e of visible.slice(1)){
+  const chainRange=a.id==='arc'?180:a.id==='storm'?110:120;
+  if(Math.hypot(e.x-primary.x,e.y-primary.y)<chainRange&&clearLine(game,targets.at(-1),e))
+   targets.push(e);
+  if(targets.length===(a.id==='arc'?2:3))break;
  }
  for(let i=0;i<targets.length;i++){
   const e=targets[i],from=i?targets[i-1]:p;
   game.flash?.(from.x,from.y,e.x,e.y,spec.color);
-  game.damageEnemy?.(e,spec.damage*(i?.53:1),'trophy');
+  game.damageEnemy?.(e,spec.damage*(i?(a.id==='storm'?.4:.53):1),'trophy');
   if(a.id==='salvo')game.heritage?.vfx?.nova?.(e.x,e.y,36,'red');
   else if(a.id==='arc'&&i)game.heritage?.vfx?.nova?.(e.x,e.y,27,'cyan');
  }
