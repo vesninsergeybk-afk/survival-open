@@ -12,6 +12,10 @@ export const ENEMY_GUNNERY=Object.freeze({
       speed:510,damage:9,kind:'flanker-needle'})}),
   gunship:Object.freeze({range:535,charge:1.03,reload:4.1,speed:380,
     damage:8,shots:3,gap:.36,spread:.115,kind:'gunship-cannon'}),
+  // Close-in broadside: short, warned shrapnel burst, not a tracking aura.
+  // It replaces the next main-cannon cycle, so damage cannot stack freely.
+  pointDefense:Object.freeze({range:235,charge:.58,reload:4.55,speed:315,
+    damage:5,shots:3,gap:.19,spread:.15,kind:'gunship-flak'}),
   lance:Object.freeze({range:500,charge:1.25,reload:4.6,
     damage:13,kind:'gunship-lance'}),
   cellSpacing:.62,globalSpacing:.23,maxWarnings:4,
@@ -44,6 +48,14 @@ function lanceWarningStillValid(e,game,aim){
  return (!cam||e.x>=cam.x+15&&e.x<=cam.x+cam.w-15&&
    e.y>=cam.y+15&&e.y<=cam.y+cam.h-15)&&
    distance(e,{x:aim.originX,y:aim.originY})<=26;
+}
+function closeBatteryAvailable(e,game,target){
+ if(e?.type!=='gunship'||!target||target.hp<=0||
+    distance(e,target)>ENEMY_GUNNERY.pointDefense.range)return false;
+ const cam=game?.camera?.();
+ // At high zoom the corvette must be visible before its short charge begins.
+ return !cam||e.x>=cam.x+12&&e.x<=cam.x+cam.w-12&&
+   e.y>=cam.y+12&&e.y<=cam.y+cam.h-12;
 }
 
 function fireBolt(e,game,profile,aim,index=0){
@@ -80,8 +92,17 @@ function fireLance(e,game,profile,aim,target){
 }
 
 export function updateEnemyGunnery(e,game,target){
+  // At maximum zoom a very close corvette could sit entirely offscreen.
+  // Neither its broadside nor its more damaging main cannon may fire there.
+  if(e?.type==='gunship'&&target?.hp>0&&
+     distance(e,target)<=ENEMY_GUNNERY.pointDefense.range&&
+     !closeBatteryAvailable(e,game,target)){
+    e._gunAiming=null;e._gunBurst=null;return false;
+  }
   const now=game?.time,profile=e?._gunAiming?.profile||
-   (e&&game&&lanceAvailable(e,game,target)?ENEMY_GUNNERY.lance:
+   (closeBatteryAvailable(e,game,target)?
+    ENEMY_GUNNERY.pointDefense:
+    e&&game&&lanceAvailable(e,game,target)?ENEMY_GUNNERY.lance:
     gunProfile(e?.type,now));
   if(!profile||!Number.isFinite(now))return false;
   // A hit or a message containing only a rough sector never grants the
@@ -123,8 +144,15 @@ export function updateEnemyGunnery(e,game,target){
     e._gunAiming=null;e._gunNextAt=Math.max(now,e._gunNextAt||0);
     return false;
   }
+  if(aim&&game.enemyCanSee&&!game.enemyCanSee(e,target)){
+    e._gunAiming=null;e._gunNextAt=now+.55;return false;
+  }
   if(aim&&!lanceWarningStillValid(e,game,aim)){
     e._gunAiming=null;e._gunNextAt=now+.8;return false;
+  }
+  if(aim?.profile?.kind==='gunship-flak'&&
+     !closeBatteryAvailable(e,game,target)){
+    e._gunAiming=null;e._gunNextAt=now+.55;return false;
   }
   if(!aim){
     if(now<e._gunNextAt)return false;
@@ -166,7 +194,9 @@ export function updateEnemyGunnery(e,game,target){
   if(now<(game._enemyRegularVolleyAt||0))return false;
   const fired=profile.kind==='gunship-lance'?
     fireLance(e,game,profile,aim,target):fireBolt(e,game,profile,aim,0);
-  if(fired&&e.type==='gunship')e._gunCycle=(e._gunCycle||0)+1;
+  // Only main-gun cycles advance the alternation with the heavy lance.
+  if(fired&&e.type==='gunship'&&profile.kind!=='gunship-flak')
+    e._gunCycle=(e._gunCycle||0)+1;
   if(fired&&(profile.shots||1)>1){
     e._gunBurst={target,profile,aim,index:1,remaining:profile.shots-1,
       nextAt:now+profile.gap,expires:now+1.8};
@@ -199,13 +229,22 @@ export function drawEnemyGunWarnings(ctx,game,cam,fps=60){
     const profile=aim.profile||gunProfile(e.type,game.time);
     if(!profile)continue;
     const progress=clamp((game.time-aim.started)/profile.charge,0,1);
-    const tint=e.type==='fighter'?'#ffab75':e.type==='gunship'?'#ff6554':'#d0a1ff';
+    const close=profile.kind==='gunship-flak';
+    const tint=close?'#ffc271':e.type==='fighter'?'#ffab75':
+      e.type==='gunship'?'#ff6554':'#d0a1ff';
     const beam=profile.kind==='gunship-lance';
     ctx.save();ctx.strokeStyle=tint;ctx.lineWidth=beam?2.5+progress*3.2:1.15+progress*.85;
     ctx.globalAlpha=.32+progress*.47;
     ctx.setLineDash(beam?[10,6]:[4,7]);ctx.beginPath();ctx.moveTo(e.x,e.y);
     ctx.lineTo(aim.x,aim.y);ctx.stroke();ctx.setLineDash([]);
     ctx.beginPath();ctx.arc(aim.x,aim.y,7+progress*4,0,Math.PI*2);ctx.stroke();
+    if(close){
+      // Two visible flank guns spool up before the shot. No extra entities.
+      ctx.beginPath();ctx.arc(e.x,e.y,e.r+5+progress*4,
+        -Math.PI*.28,Math.PI*.28);ctx.stroke();
+      ctx.beginPath();ctx.arc(e.x,e.y,e.r+5+progress*4,
+        Math.PI*.72,Math.PI*1.28);ctx.stroke();
+    }
     ctx.restore();drawn++;
   }
   return drawn;

@@ -10,7 +10,7 @@ import {drawAnimatedEnemyShip} from '../src/disruptor-ship-sprites.js';
 import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js?v=iris-pack-1-counterattack-1-mission-pack-1';
 import {drawStationPart, STATION_PARTS} from '../src/station-art.js?v=base-86';
 import {drawTurretMount,drawTurretHead} from '../src/turret-visuals.js?v=turret-visuals-1';
-import {drawHostileProjectile} from './hostile-projectiles.js';
+import {drawHostileProjectile} from './hostile-projectiles.js?v=corvette-20261110-1';
 import {getFXSprite} from '../src/vfx-textures.js?v=arcade-vfx-mask-19';
 import {drawStationMechanisms} from '../src/station-mechanics.js?v=dock-audit-2';
 import {drawRepairDock} from './repair-dock-art.js?v=dock-identity-1';
@@ -428,6 +428,17 @@ export class ArcadeVisuals {
   }else if(e.type==='berserker'){
    ctx.beginPath();ctx.moveTo(e.x-4,e.y-e.r-13);
    ctx.lineTo(e.x,e.y-e.r-19);ctx.lineTo(e.x+4,e.y-e.r-13);ctx.stroke();
+  }
+  if(e.type==='gunship'&&time<(e._gunshipSlipUntil||0)){
+   // Brief flank thruster trails make the actual evasive burn readable.
+   // The effect is anchored to the ship, without shaking the camera.
+   ctx.save();ctx.translate(e.x,e.y);ctx.rotate(e.angle||0);
+   ctx.strokeStyle='#ffb77b';ctx.lineWidth=2.5;ctx.globalAlpha=.85;
+   for(const side of [-1,1]){
+    ctx.beginPath();ctx.moveTo(side*10,e.r*.55);
+    ctx.lineTo(side*13,e.r*.55+(this.reducedMotion?6:10));ctx.stroke();
+   }
+   ctx.restore();
   }
   ctx.restore();return drawn;
  }

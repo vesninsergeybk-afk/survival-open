@@ -11,7 +11,7 @@ import {contourIrisDirective,contourIrisRushContacts} from './contour-trial-iris
 import {updateEnemyAwareness,enemyPursuitTarget,unalertedPatrolRoute} from './enemy-awareness.js?v=living-world-roaming-patrol-2-trial-focus-1-pressure-response-1-combat-balance-1';
 import {radioOrderCapable} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-ai-commander-20261110-enemy-operations-20261110';
 import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1-enemy-fixes-1-mesh-response-v2-1-ai-commander-20261110';
-import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1';
+import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1';
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-2';
 import {moveMote} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1';
@@ -30,7 +30,8 @@ const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   speed*=slowing;extra={x:extra.x*slowing,y:extra.y*slowing};
   const dir=norm(tx-body.x,ty-body.y);
   const vx=dir.x*speed+extra.x,vy=dir.y*speed+extra.y;
-  const blend=1-Math.exp(-3.8*dt);
+  // Capital ships have attitude thrusters: deliberate, but no longer inert.
+  const blend=1-Math.exp(-(body.type==='gunship'?4.45:3.8)*dt);
   body.vx+=(vx-body.vx)*blend; body.vy+=(vy-body.vy)*blend;
   const m=length(body.vx,body.vy),max=speed*1.35;
   if(m>max){body.vx=body.vx/m*max;body.vy=body.vy/m*max;}
@@ -157,9 +158,9 @@ export const ENEMY_TYPES = Object.freeze({
   scout:{name:'Разведчик',hp:38,speed:158,dmg:10,score:7},
   fighter:{name:'Штурмовик',hp:58,speed:120,dmg:12,score:10},
   flanker:{name:'Перехватчик',hp:50,speed:178,dmg:13,score:13},
-  healer:{name:'Ремонтник',hp:75,speed:118,dmg:5,score:22},
-  berserker:{name:'Таранщик',hp:70,speed:135,dmg:18,score:16},
-  gunship:{name:'Корвет',hp:120,speed:95,dmg:13,score:25}
+  healer:{name:'Ремонтник',hp:75,speed:124,dmg:5,score:22},
+  berserker:{name:'Таранщик',hp:70,speed:140,dmg:18,score:16},
+  gunship:{name:'Корвет',hp:150,speed:114,dmg:13,score:25}
 });
 const findHealer=(enemy,game)=>{
   let best=null,min=Infinity;
@@ -436,11 +437,13 @@ export function updateEnemy(e,game,dt){
   }else if(e.state==='standoff'){
     const d=dist(e,p),v=norm(e.x-p.x,e.y-p.y);
     // Continuous orbital steering avoids the old 260-unit approach/retreat flip.
-    const ideal=e.openingCommander?495:learningStyle==='sideslip'?340:
-      learningStyle==='intercept'?255:290;
+    // The main cannon is a stand-off weapon; only a cornered corvette should
+    // use its anti-boarding battery. These radii stay within visual sight.
+    const ideal=e.openingCommander?495:learningStyle==='sideslip'?405:
+      learningStyle==='intercept'?345:375;
     const correction=clamp((d-ideal)/90,-1,1);
     const direction=e.serial%2===0?1:-1;
-    const lateral=learningStyle==='sideslip'?84:55;
+    const lateral=learningStyle==='sideslip'?106:77;
     goalX=e.x-v.x*correction*125-v.y*lateral*direction;
     goalY=e.y-v.y*correction*125+v.x*lateral*direction;
   }else if(e.state==='guard'&&e.protect?.hp>0){
@@ -645,6 +648,22 @@ export function updateEnemy(e,game,dt){
   const detour=enemyRockDetour(e,game,goalX,goalY);
   let extraX=(avoid.x*1.3+detour.x)*speed,
     extraY=(avoid.y*1.3+detour.y)*speed;
+  if(e.type==='gunship'&&targetingPlayer&&!decoy&&e._enemyLearningSaw&&
+    (e.hit||0)>0&&dist(e,p)<450&&game.time>=(e._gunshipSlipReadyAt||0)&&
+    e._gunAiming?.profile?.kind!=='gunship-lance'){
+    // A brief, bounded lateral burn after taking a hit. The ship remains
+    // fully vulnerable, and its capital lance still requires stabilisation.
+    e._gunshipSlipUntil=game.time+1.05;
+    e._gunshipSlipReadyAt=game.time+7.2+(Math.abs(e.serial||0)%4)*.45;
+  }
+  if(e.type==='gunship'&&game.time<(e._gunshipSlipUntil||0)&&
+    e._gunAiming?.profile?.kind!=='gunship-lance'){
+    const heading=norm(p.x-e.x,p.y-e.y);
+    const side=e.serial%2===0?1:-1;
+    speed*=1.16;
+    extraX-=heading.y*side*speed*.34;
+    extraY+=heading.x*side*speed*.34;
+  }
   if(e.type==='scout'){
     const burst=trialDive?0:irisBurstJink(e,game.time),heading=norm(goalX-e.x,goalY-e.y);
     extraX-=heading.y*speed*burst;

@@ -121,6 +121,20 @@ test('оптическое обнаружение действительно з�
  assert.equal(sight.call(scene,enemy,pilot),false,'за пределом датчика цель исчезает');
 });
 
+test('кормовые датчики корвета замечают близкую цель, но не видят сквозь астероиды',()=>{
+ const sight=ArcadeGame.prototype.enemyCanSee;
+ const gunship={type:'gunship',x:0,y:0,vx:114,vy:0};
+ const target={x:-180,y:0,r:19,hp:100};
+ const view={rockGrid:{query:()=>[]}};
+ assert.equal(sight.call(view,gunship,target),true);
+ target.x=-245;
+ assert.equal(sight.call(view,gunship,target),false,
+  'за пределами ближнего радиуса остаётся ограничение по направлению');
+ target.x=-180;view.rockGrid.query=()=>[{x:-85,y:0,r:38,alive:true}];
+ assert.equal(sight.call(view,gunship,target),false,
+  'боковые датчики не должны раскрывать игрока за камнем');
+});
+
 test('стресс-проба держит точное число врагов и предел снарядов',()=>{
  for(const count of [20,60,120,RULES.maxEnemies]){
   const result=runEncounterStress({count,frames:90});

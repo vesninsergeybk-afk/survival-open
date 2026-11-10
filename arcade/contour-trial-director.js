@@ -4,8 +4,8 @@ import {CONTOUR_TRIALS,ensureTrialLedger,pendingContourTrials,readyContourTrials
 import {TERRITORY_BENEFITS,updateTerritoryBenefits} from './territory-benefits.js?v=first-loops-1-triangle-defense-1-corecharge-20261110';
 import {contourFields,fieldAt} from './territory-system.js';
 import {spawnOutside,dist,RULES} from './balance.js?v=pressure-response-1';
-import {ENEMY_TYPES} from './ai.js?v=first-loops-1-triangle-defense-1-pressure-response-1-ai-commander-20261110';
-import {enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2';
+import {ENEMY_TYPES} from './ai.js?v=first-loops-1-triangle-defense-1-pressure-response-1-ai-commander-20261110-corvette-20261110-1';
+import {enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-corvette-20261110-1';
 import {recordWorldFeedback} from './world-feedback.js';
 
 const nearby=(a,b,r)=>dist(a,b)<r;
