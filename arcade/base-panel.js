@@ -5,7 +5,7 @@ import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-t
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-integrity-2-mission-choices-1-enemy-growth-1-triangle-defense-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {FLUX_INFRASTRUCTURE,stationFluxUpgradeOffer,fluxInfrastructureRank,
- weightedContourProduction} from './territory-economy.js?v=territory-logistics-1';
+ weightedContourProduction,stationFluxCapacity,FLUX_LOCAL_SHARE} from './territory-economy.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-territory-war-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4-territory-logistics-1';
 import {corridorOffer,CORRIDOR_OPERATION,corridorScanBonus,probeOffer,probeDataReady,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2-station-ops-2-ops-audit-2';
@@ -1070,6 +1070,10 @@ export function renderBasePanel(base,state){
   '<p>Добыча '+fluxRate.toFixed(2)+' флюкса/мин · поддержание поля '+
   (fluxFields.length*.24).toFixed(2)+' флюкса/мин · доступно '+
   (state.world?.contours?.flux||0).toFixed(2)+' флюкса. '+
+  'На этой станции: '+(base.fluxStored||0).toFixed(2)+'/'+stationFluxCapacity(base)+
+  ' флюкса; глубина '+(base.fluxDepth||0)+'. '+
+  'Добыча распределяется: '+Math.round(FLUX_LOCAL_SHARE*100)+'% местным складам, '+
+  Math.round((1-FLUX_LOCAL_SHARE)*100)+'% общей казне. '+
   (state.world?.contours?.territoryPowered===false?'Контур обесточен: снабжение возобновится после пополнения запаса.':
    'Поддержание поля оплачивается автоматически.')+'</p>'+
   '<div class="base-grid">'+Object.entries(FLUX_INFRASTRUCTURE).map(([key,cfg])=>{

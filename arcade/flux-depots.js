@@ -1,6 +1,6 @@
-import {contourFields,fieldAt} from './territory-system.js';
+import {contourFields,fieldAt} from './territory-system.js?v=flux-siphon-roads-1';
 import {productiveContourFields} from './contour-trials.js';
-import {fluxInfrastructureRank} from './territory-economy.js';
+import {fluxInfrastructureRank,fieldDepths} from './territory-economy.js?v=flux-siphon-roads-1';
 
 export const FLUX_DEPOT=Object.freeze({name:'Склад флюкса',oreCost:18,fluxCost:5,
  buildSeconds:3,buildRadius:560,capacity:12,supplyRadius:680,
@@ -9,7 +9,7 @@ export const FLUX_DEPOT=Object.freeze({name:'Склад флюкса',oreCost:18
 const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const active=t=>t?.hp>0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-export const depotCapacity=t=>FLUX_DEPOT.capacity+8*(t?.level||0);
+export const depotCapacity=t=>FLUX_DEPOT.capacity+12*Math.max(0,Math.min(6,t?.depth||0))+8*(t?.level||0);
 export const depotSupplyRadius=t=>FLUX_DEPOT.supplyRadius+120*(t?.level||0);
 const DEPOT_UPGRADES=Object.freeze([{ore:22,flux:6},{ore:35,flux:12},{ore:60,flux:26}]);
 export function depotUpgradeOffer(world,player,t,time){
@@ -40,8 +40,8 @@ export function depotOffer(world,player,point){
  if(d(player,point)<75)return {ok:false,reason:'Освободите место у корабля'};
  if((state.fluxDepots||[]).filter(active).length>=FLUX_DEPOT.maxDepots)
   return {ok:false,reason:'Достигнут предел складов'};
- if([...(state.fluxDepots||[]),...(state.artillery||[]),...(state.supportTurrets||[])]
-  .some(t=>(active(t)||t.kind!=='flux-depot')&&d(t,point)<FLUX_DEPOT.clearance))
+ if([...(state.fluxDepots||[]),...(state.fluxSiphonHives||[]),...(state.artillery||[]),...(state.supportTurrets||[])]
+  .some(t=>(active(t)||!['flux-depot','flux-siphon-hive'].includes(t.kind))&&d(t,point)<FLUX_DEPOT.clearance))
   return {ok:false,reason:'Слишком близко к другому сооружению'};
  if([...world.stations.values()].some(t=>d(t,point)<120))
   return {ok:false,reason:'Слишком близко к станции'};
@@ -53,11 +53,18 @@ export function deployDepot(world,player,point,time){
  const offer=depotOffer(world,player,point);if(!offer.ok)return offer;
  const state=world.contours;
  state.fluxDepots??=[];state.fluxDepotPackets??=[];
- if(state.fluxDepots.length>=FLUX_DEPOT.maxDepots)
+ if(state.fluxDepots.length>=FLUX_DEPOT.maxDepots){
   state.fluxDepots=state.fluxDepots.filter(active);
+  const ids=new Set(state.fluxDepots.map(d=>d.id));
+  state.fluxRoads=(state.fluxRoads||[]).filter(r=>ids.has(r.fromId)&&ids.has(r.toId));
+  const roads=new Set(state.fluxRoads.map(r=>r.id));
+  state.fluxRoadPackets=(state.fluxRoadPackets||[]).filter(p=>roads.has(p.roadId));
+ }
  state.fluxDepotSerial=(state.fluxDepotSerial||0)+1;
+ const fields=productiveContourFields(world,contourFields(world)),
+  depths=fieldDepths(fields),depth=depths[fields.findIndex(f=>f.id===offer.field.id)]||0;
  const depot={kind:'flux-depot',id:state.fluxDepotSerial,x:point.x,y:point.y,
-  r:38,hp:100,maxHp:100,stored:0,chargeCredit:0,level:0,readyAt:time+FLUX_DEPOT.buildSeconds};
+  r:38,hp:100,maxHp:100,stored:0,chargeCredit:0,level:0,depth,readyAt:time+FLUX_DEPOT.buildSeconds};
  state.fluxDepots.push(depot);state.flux=Math.max(0,state.flux-FLUX_DEPOT.fluxCost);
  player.ore-=FLUX_DEPOT.oreCost;
  return {ok:true,depot,connection:offer.connection};
@@ -83,15 +90,28 @@ export function advanceFluxDepots(world,time,dt){
  const state=world?.contours;if(!state)return;
  state.fluxDepots??=[];state.fluxDepotPackets??=[];
  const fields=productiveContourFields(world,contourFields(world));
+ const depths=fieldDepths(fields);
+ for(const depot of state.fluxDepots){
+  const field=fieldAt(world,depot.x,depot.y,fields);
+  const depth=field?depths[fields.indexOf(field)]||0:0;
+  if((depot.depth||0)!==depth){
+   depot.depth=depth;
+   const extra=Math.max(0,depot.stored-depotCapacity(depot));
+   if(extra){depot.stored-=extra;state.fluxSpilled=(state.fluxSpilled||0)+extra;}
+  }
+ }
  for(const packet of state.fluxDepotPackets){
   const target=state.fluxDepots.find(t=>t.id===packet.depotId);
-  if(!target||!active(target)){packet.done=true;continue;}
+  if(!target||!active(target)){
+   packet.done=true;state.fluxSpilled=(state.fluxSpilled||0)+packet.amount;continue;
+  }
   if(time<packet.arriveAt)continue;
-  target.stored=Math.min(depotCapacity(target),target.stored+packet.amount);
+  const accepted=Math.min(packet.amount,Math.max(0,depotCapacity(target)-target.stored));
+  target.stored+=accepted;state.fluxSpilled=(state.fluxSpilled||0)+packet.amount-accepted;
   packet.done=true;
  }
  state.fluxDepotPackets=state.fluxDepotPackets.filter(p=>!p.done);
- if(!fields.length||state.flux<2.25||
+ if(!fields.length||
     state.fluxDepotPackets.length>=FLUX_DEPOT.maxPackets)return;
  const sources=fields.map(field=>({field,at:centerOf(field),relay:
   (field.vertices||[]).reduce((rank,id)=>
@@ -99,6 +119,8 @@ export function advanceFluxDepots(world,time,dt){
  const incoming=new Map();
  for(const packet of state.fluxDepotPackets)
   incoming.set(packet.depotId,(incoming.get(packet.depotId)||0)+packet.amount);
+ for(const packet of state.fluxRoadPackets||[])
+  incoming.set(packet.toId,(incoming.get(packet.toId)||0)+packet.amount);
  // Under a scarce treasury, a depot built first must not monopolize every
  // dispatch. Include packets already in flight, otherwise a depot with a
  // long route would keep being selected before its first delivery arrived.
@@ -109,7 +131,16 @@ export function advanceFluxDepots(world,time,dt){
   if(!active(depot)||depot.readyAt>time||
      depot.stored+(incoming.get(depot.id)||0)>=depotCapacity(depot)-.24)continue;
   let source=null,sourceDistance=Infinity;
-  for(const item of sources){
+  const ownField=fieldAt(world,depot.x,depot.y,fields);
+  if(ownField)for(const id of ownField.vertices||[]){
+   const station=world.stations.get(id);
+   if(!station?.active||station.enemy||station.suppressed||(station.fluxStored||0)<.25)continue;
+   const distance=d(depot,station);
+   if(distance<sourceDistance){source={at:station,station,
+    relay:fluxInfrastructureRank(station,'relay')};sourceDistance=distance;}
+  }
+  // Allow legacy saves to commission their first warehouse from existing treasury.
+  if(!source&&!state.fluxHarvestedLocally)for(const item of sources){
    const distance=d(depot,item.at);
    if(distance<sourceDistance){source=item;sourceDistance=distance;}
   }
@@ -121,11 +152,15 @@ export function advanceFluxDepots(world,time,dt){
   depot.chargeCredit=clamp(depot.chargeCredit+fillRate/60*Math.max(0,dt),0,1);
   const amount=Math.min(.5,Math.floor((depot.chargeCredit+1e-8)/.25)*.25,
    Math.floor((depotCapacity(depot)-depot.stored-(incoming.get(depot.id)||0)+1e-8)/.25)*.25,
-   Math.floor((state.flux-2+1e-8)/.25)*.25);
+   source.station?Math.floor(((source.station.fluxStored||0)+1e-8)/.25)*.25:
+    Math.floor((state.flux-2+1e-8)/.25)*.25);
   if(amount<.25||state.fluxDepotPackets.length>=FLUX_DEPOT.maxPackets)continue;
-  state.flux=Math.max(0,state.flux-amount);depot.chargeCredit-=amount;
+  if(source.station)source.station.fluxStored=Math.max(0,source.station.fluxStored-amount);
+  else state.flux=Math.max(0,state.flux-amount);
+  depot.chargeCredit-=amount;
   state.fluxDepotPackets.push({depotId:depot.id,amount,
    startX:source.at.x,startY:source.at.y,
+   ...(source.station?{sourceStationId:source.station.id}:{}),
    launchedAt:time,arriveAt:time+.5+sourceDistance/FLUX_DEPOT.packetSpeed});
   incoming.set(depot.id,(incoming.get(depot.id)||0)+amount);
  }
@@ -152,10 +187,18 @@ export function drawFluxDepots(ctx,game,cam,preview=null){
    ctx.fillStyle='#9befff';ctx.fillRect(-5,-31,10,11);ctx.restore();
   }
   ctx.fillStyle='#12293b';ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='#6ef4df';ctx.lineWidth=4;
-  ctx.beginPath();ctx.arc(0,0,17,-Math.PI/2,-Math.PI/2+Math.PI*2*clamp(depot.stored/depotCapacity(depot),0,1));ctx.stroke();
+  const fullness=clamp(depot.stored/depotCapacity(depot),0,1),sockets=14;
+  for(let i=0;i<sockets;i++){
+   const angle=i*2.39996322973,r=Math.sqrt((i+.5)/sockets)*18;
+   const lit=(i+.5)/sockets<=fullness;
+   ctx.fillStyle=lit?'#ffc45b':'#305166';ctx.shadowColor='#ffa72e';
+   ctx.shadowBlur=lit&&!game.visuals?.reducedMotion?7+pulse*7:0;
+   ctx.beginPath();ctx.arc(Math.cos(angle)*r,Math.sin(angle)*r,lit?3.2:2.1,0,Math.PI*2);ctx.fill();
+  }
+  ctx.shadowBlur=0;ctx.strokeStyle='#ffca67';ctx.lineWidth=4;
+  ctx.beginPath();ctx.arc(0,0,17,-Math.PI/2,-Math.PI/2+Math.PI*2*fullness);ctx.stroke();
   ctx.fillStyle=online?'#effff7':'#a2c0cb';ctx.font='bold 12px system-ui';ctx.textAlign='center';
-  ctx.fillText(depot.hp<=0?'×':depot.stored.toFixed(1),0,4);
+  ctx.fillText(depot.hp<=0?'×':depot.stored.toFixed(1),0,29);
   ctx.restore();
  }
  for(const packet of state.fluxDepotPackets||[]){
@@ -201,6 +244,7 @@ export function validFluxDepots(state){
    !finite(t.x,-1e9,1e9)||!finite(t.y,-1e9,1e9)||!finite(t.hp,0,100)||
    (t.r!==undefined&&t.r!==38)||
    t.maxHp!==100||(t.level!==undefined&&(!Number.isInteger(t.level)||t.level<0||t.level>3))||
+   (t.depth!==undefined&&(!Number.isInteger(t.depth)||t.depth<0||t.depth>6))||
    !finite(t.stored,0,depotCapacity(t)+.0001)||
    !finite(t.chargeCredit,0,1.0001)||!finite(t.readyAt,0,1e9))return false;
   ids.add(t.id);
@@ -208,6 +252,7 @@ export function validFluxDepots(state){
  for(const p of packets)if(!p||!ids.has(p.depotId)||
   !finite(p.amount,.25,.5)||Math.round(p.amount*4)!==p.amount*4||
   !finite(p.startX,-1e9,1e9)||!finite(p.startY,-1e9,1e9)||
+  (p.sourceStationId!==undefined&&typeof p.sourceStationId!=='string')||
   !finite(p.launchedAt,0,1e9)||!finite(p.arriveAt,p.launchedAt,p.launchedAt+1e6))return false;
  return true;
 }

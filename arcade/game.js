@@ -7,7 +7,7 @@ import {mountContextualGuide} from './contextual-guide-ui.js?v=prototype-1';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1-living-world-population-1-sector-density-2';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-zoomread-2-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-zoomread-2-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1-flux-siphon-roads-1';
 import {rememberPopulationShip} from './population-runtime.js?v=sector-density-2-frontier-siege-1';
 import {frontierBarrierContact,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {SALVAGE,ruinEnemyIndustry,salvageQuote,claimRuinedIndustry} from './enemy-station-salvage.js?v=frontier-claim-1';
@@ -41,13 +41,13 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4-zoomread-2-territory-logistics-1';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26-redteam-20261109-1';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1';
 import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1';
-import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1-territory-logistics-1';
+import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1-territory-logistics-1-flux-siphon-roads-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
-import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1';
+import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1-combat-balance-1';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30-combat-hunt-20261109';
 import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109';
@@ -69,7 +69,7 @@ import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissi
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
 import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,createFieldOperation,fieldOperationInteraction,
@@ -95,7 +95,7 @@ import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1-frontier-siege-1';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109-territory-logistics-1';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109-territory-logistics-1-flux-siphon-roads-1';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1-sector-density-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -103,20 +103,23 @@ import {OPENING_ARC,createOpeningArc,beginOpeningArc,advanceOpeningArc,
  openingArcActive,openingArcPressure,openingArcObjective,openingWaypointCue,recordOpeningCommanderDefeat,runClock} from './opening-arc.js?v=opening-arc-5-early-xp-1-combat-balance-1-balance-audit-1';
 import {homeConflictPressure,homeConflictTarget,updateHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2-balance-audit-1';
 import {ambientPatrolRoute,patrolCanLeave,ENEMY_AWARENESS} from './enemy-awareness.js?v=living-world-roaming-patrol-2-flight-zoom-audit-1-pressure-response-1-combat-balance-1';
-import {recordWorldFeedback,recordContourFeedback,advanceWorldFeedback,drawWorldFeedback,drawImpactInvestigation} from './world-feedback.js?v=world-feedback-1-flux-reserve-1';
+import {recordWorldFeedback,recordContourFeedback,advanceWorldFeedback,drawWorldFeedback,drawImpactInvestigation} from './world-feedback.js?v=world-feedback-1-flux-reserve-1-flux-siphon-roads-1';
 import {regionalCampaignPressure,campaignDestination,strongholdThreat} from './regional-campaign.js?v=campaign-1-repair-qa-1-enemy-economy-1-stronghold-1-territory-war-1-enemy-growth-1-living-world-population-1-sector-density-2';
 import {updateStationInterdiction,interruptStationInterdiction,threatenedStations} from './strategic-command.js?v=campaign-1-repair-qa-1-tactical-balance-1-world-feedback-1-flux-reserve-1-flux-offense-1-territory-war-1';
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
-import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-2-contour-trials-1-first-loops-1-flux-build-1-support-three-1-triangle-defense-1-territory-logistics-1';
-import {weightedContourProduction,buyStationFluxUpgrade} from './territory-economy.js?v=territory-logistics-1';
+import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-2-contour-trials-1-first-loops-1-flux-build-1-support-three-1-triangle-defense-1-territory-logistics-1-flux-siphon-roads-1';
+import {weightedContourProduction,buyStationFluxUpgrade} from './territory-economy.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {FLUX_DEPOT,depotOffer,deployDepot,depotAt,depotUpgradeOffer,upgradeDepot,
- depotCapacity,depotSupplyRadius,advanceFluxDepots,drawFluxDepots} from './flux-depots.js?v=territory-logistics-1';
+ depotCapacity,depotSupplyRadius,advanceFluxDepots,drawFluxDepots} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
+import {SIPHON_HIVE,FLUX_ROAD,hiveOffer,buildHive,hiveAt,hiveWorkers,hiveCargo,
+ hiveUpgradeOffer,upgradeHive,roadOffer,buildRoad,advanceFluxRoads,drawFluxRoads,
+ drawSiphonHives} from './flux-routes.js?v=flux-siphon-roads-1';
 import {FLUX_ARTILLERY,EDGE_SLOT_UPGRADES,ARTILLERY_UPGRADES,edgeTurretLimit,edgeTurretUpgradeOffer,upgradeEdgeTurretCapacity,artilleryUpgradeOffer,upgradeArtillery,
  artilleryAt,artilleryOffer,deployArtillery,maxArtilleryPreload,setArtilleryMode,
- advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-free-close-1';
+ advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-free-close-1-flux-siphon-roads-1';
 import {SUPPORT_TYPES,supportConfig,supportOffer,deploySupport,supportAt,
  setSupportMode,supportUpgradeOffer,upgradeSupport,
- advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1';
+ advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-flux-siphon-roads-1';
 import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,turretCombatRadii,
  artilleryShotFlux,artilleryShotUnits,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
  buyTurretBranch,artilleryBarrels,hiveLimit} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1';
@@ -440,7 +443,7 @@ export class ArcadeGame {
  }
  selectBuildArtillery(type='artillery'){
   if(this.buildPlanning?.stage!=='menu')return;
-  if(type!=='artillery'&&type!=='depot'&&!SUPPORT_TYPES[type])return;
+  if(type!=='artillery'&&type!=='depot'&&type!=='siphon-hive'&&!SUPPORT_TYPES[type])return;
   this.buildPlanning.type=type;
   this.buildPlanning.stage='place';
   this.buildPlanning.point={x:this.player.x+Math.min(230,this.vw*.25),y:this.player.y};
@@ -448,17 +451,27 @@ export class ArcadeGame {
   this.updateArtilleryPreloadUI();
   const title=$('buildPlaceTitle');
   if(title)title.textContent=(type==='artillery'?'ГРОМОВАЯ БАТАРЕЯ':
-   type==='depot'?FLUX_DEPOT.name.toUpperCase():SUPPORT_TYPES[type].name.toUpperCase())+
+   type==='depot'?FLUX_DEPOT.name.toUpperCase():
+   type==='siphon-hive'?SIPHON_HIVE.name.toUpperCase():SUPPORT_TYPES[type].name.toUpperCase())+
    ' · ВЫБОР МЕСТА';
   this.updateBuildHint();this.pausedRenderPending=true;
  }
  updateBuildHint(){
-  if(this.buildPlanning?.stage!=='place')return;
+  if(!['place','link'].includes(this.buildPlanning?.stage))return;
   const type=this.buildPlanning.type;
+  if(type==='road'){
+   const from=this.world.contours.fluxDepots.find(d=>d.id===this.buildPlanning.sourceDepotId),
+    to=depotAt(this.world,this.buildPlanning.point,70),offer=roadOffer(this.world,this.player,from,to);
+   const hint=$('buildPlaceHint');if(hint)hint.textContent=offer.ok?
+    'ЛКМ: соединить склады · '+FLUX_ROAD.oreCost+' сплава + '+FLUX_ROAD.fluxCost+' флюкса':offer.reason;
+   return;
+  }
   const result=type==='artillery'?artilleryOffer(this.world,this.player,this.buildPlanning.point,
    this.buildPlanning.preload):type==='depot'?depotOffer(this.world,this.player,this.buildPlanning.point):
+   type==='siphon-hive'?hiveOffer(this.world,this.player,this.buildPlanning.point):
    supportOffer(this.world,this.player,this.buildPlanning.point,type);
-  const cfg=type==='artillery'?FLUX_ARTILLERY:type==='depot'?FLUX_DEPOT:SUPPORT_TYPES[type];
+  const cfg=type==='artillery'?FLUX_ARTILLERY:type==='depot'?FLUX_DEPOT:
+   type==='siphon-hive'?SIPHON_HIVE:SUPPORT_TYPES[type];
   const hint=$('buildPlaceHint');
   if(hint)hint.textContent=result.ok?
    'ЛКМ: построить · '+cfg.oreCost+' сплава + '+
@@ -466,23 +479,43 @@ export class ArcadeGame {
    ' флюкса · линия '+Math.round(result.connection.cable)+' м':result.reason;
  }
  placeBuildArtillery(point){
-  if(this.buildPlanning?.stage!=='place')return false;
+  if(!['place','link'].includes(this.buildPlanning?.stage))return false;
   this.buildPlanning.point=point;
   const type=this.buildPlanning.type;
+  if(type==='road'){
+   const from=this.world.contours.fluxDepots.find(d=>d.id===this.buildPlanning.sourceDepotId),
+    to=depotAt(this.world,point,70),result=buildRoad(this.world,this.player,from,to,this.time);
+   if(!result.ok){this.updateBuildHint();this.pausedRenderPending=true;return false;}
+   this.closeBuildPlanner();this.notice('Дорога строится. Сифоны автоматически перевезут излишки флюкса.',5);
+   return true;
+  }
   const placed=type==='artillery'?deployArtillery(this.world,this.player,point,this.time,
    this.buildPlanning.preload):type==='depot'?deployDepot(this.world,this.player,point,this.time):
+   type==='siphon-hive'?buildHive(this.world,this.player,point,this.time):
    deploySupport(this.world,this.player,point,this.time,type);
   if(!placed.ok){this.updateBuildHint();this.pausedRenderPending=true;return false;}
   this.heritage?.play?.(type==='artillery'?'artilleryBuild':'supportBuild',.5,point);
-  const cfg=type==='artillery'?FLUX_ARTILLERY:type==='depot'?FLUX_DEPOT:SUPPORT_TYPES[type];
+  const cfg=type==='artillery'?FLUX_ARTILLERY:type==='depot'?FLUX_DEPOT:
+   type==='siphon-hive'?SIPHON_HIVE:SUPPORT_TYPES[type];
   this.closeBuildPlanner();
   this.notice((type==='artillery'?'Громовая батарея':cfg.name)+' строится · '+cfg.buildSeconds+
    ' с. Подключение к контуру: '+Math.round(placed.connection.cable)+
    ' м. '+(type==='artillery'?'Стартовых снарядов: '+placed.preload+'.':
-    type==='depot'?'Ресурс будет прибывать отдельными транспортными пакетами.':
+    type==='depot'?'Янтарные сферы покажут заполнение. Связать склады можно через ПКМ.':
+    type==='siphon-hive'?'Сифоны автоматически ускорят перевозки в этом треугольнике.':
     type==='hive'?'Новые дроны требуют 2,5 флюкса каждый.':
     'Заряды поступят по энергетической линии.'),5);
   return true;
+ }
+ startDepotRoad(from){
+  if(!from||this.dead)return;
+  this.artilleryModeMenu(false);
+  this.buildPlanning={stage:'link',type:'road',sourceDepotId:from.id,
+   point:{x:from.x,y:from.y}};
+  this.paused=true;this.pausedRenderPending=true;this.keys.clear();this.endInteraction();
+  $('buildPlanning').hidden=false;$('buildRing').hidden=true;$('buildPlacement').hidden=false;
+  const title=$('buildPlaceTitle');if(title)title.textContent='ТРАНСПОРТНАЯ ДОРОГА · ВЫБЕРИТЕ ВТОРОЙ СКЛАД';
+  this.updateBuildHint();
  }
  artilleryModeMenu(show,turret=null,event=null){
   const menu=$('artilleryModeMenu');if(!menu)return;
@@ -506,7 +539,8 @@ export class ArcadeGame {
   if(turret.kind==='flux-depot'){
    const title=$('artilleryModeTitle');if(title)title.textContent='СКЛАД · ФЛЮКС';
    if(stats)stats.textContent='Запас '+turret.stored.toFixed(2)+'/'+depotCapacity(turret)+
-    ' флюкса · снабжение в радиусе '+depotSupplyRadius(turret)+' м · уровень '+(turret.level||0)+'/3';
+    ' флюкса · глубина '+(turret.depth||0)+' · снабжение '+depotSupplyRadius(turret)+
+    ' м · уровень '+(turret.level||0)+'/3';
    const list=$('turretGrowthList');if(list){list.replaceChildren();
     const offer=depotUpgradeOffer(this.world,this.player,turret,this.time);
     const button=document.createElement('button');button.type='button';
@@ -515,6 +549,27 @@ export class ArcadeGame {
      (offer.flux??'')+' флюкса + '+(offer.ore??'')+' сплава';
     button.disabled=!offer.ok;button.title=offer.ok?'Увеличит вместимость, скорость приёма и радиус снабжения':offer.reason;
     if(!offer.ok)button.textContent=offer.reason;list.append(button);
+    const road=document.createElement('button');road.type='button';road.className='growth-branch';
+    road.dataset.depotRoad='true';road.textContent='Соединить с другим складом · '+
+     FLUX_ROAD.oreCost+' сплава + '+FLUX_ROAD.fluxCost+' флюкса';
+    road.disabled=this.player.ore<FLUX_ROAD.oreCost||this.world.contours.flux<FLUX_ROAD.fluxCost;
+    road.title='Выберите второй склад в другом защищённом треугольнике';list.append(road);
+   }
+   for(const button of menu.querySelectorAll('[data-art-mode]'))button.hidden=true;
+   if($('supportUpgrade'))$('supportUpgrade').hidden=true;
+   if($('supportUpgradeHint'))$('supportUpgradeHint').hidden=true;
+   return;
+  }
+  if(turret.kind==='flux-siphon-hive'){
+   const title=$('artilleryModeTitle');if(title)title.textContent='УЛЕЙ · СИФОНЫ';
+   if(stats)stats.textContent='Сифонов: '+hiveWorkers(turret)+
+    ' · груз каждого '+hiveCargo(turret).toFixed(2)+' флюкса · уровень '+turret.level+'/3';
+   const list=$('turretGrowthList');if(list){list.replaceChildren();
+    const offer=hiveUpgradeOffer(this.world,this.player,turret,this.time),
+     button=document.createElement('button');button.type='button';button.className='growth-branch';
+    button.dataset.hiveUpgrade='true';button.textContent=offer.ok?
+     'Развить улей · '+offer.ore+' сплава + '+offer.flux+' флюкса':offer.reason;
+    button.disabled=!offer.ok;list.append(button);
    }
    for(const button of menu.querySelectorAll('[data-art-mode]'))button.hidden=true;
    if($('supportUpgrade'))$('supportUpgrade').hidden=true;
@@ -655,6 +710,7 @@ export class ArcadeGame {
   });
   $('buildArtillery')?.addEventListener('click',()=>this.selectBuildArtillery());
   $('buildDepot')?.addEventListener('click',()=>this.selectBuildArtillery('depot'));
+  $('buildSiphonHive')?.addEventListener('click',()=>this.selectBuildArtillery('siphon-hive'));
   $('buildPreload')?.addEventListener('input',e=>{
    if(this.buildPlanning?.type!=='artillery')return;
    const value=Number(e.target.value);
@@ -672,6 +728,7 @@ export class ArcadeGame {
   $('buildCancel')?.addEventListener('click',()=>this.closeBuildPlanner());
   $('buildPlaceCancel')?.addEventListener('click',()=>this.closeBuildPlanner());
   $('buildBack')?.addEventListener('click',()=>{
+   if(this.buildPlanning?.stage==='link'){this.closeBuildPlanner();return;}
    if(this.buildPlanning){this.buildPlanning.stage='menu';
     $('buildRing').hidden=false;$('buildPlacement').hidden=true;
     this.updateArtilleryPreloadUI();
@@ -696,6 +753,17 @@ export class ArcadeGame {
    this.artilleryModeMenu(false);
   });
   $('turretGrowthList')?.addEventListener('click',e=>{
+   if(e.target.closest?.('[data-depot-road]')&&this.artilleryMenuTarget?.kind==='flux-depot'){
+    this.startDepotRoad(this.artilleryMenuTarget);return;
+   }
+   if(e.target.closest?.('[data-hive-upgrade]')&&this.artilleryMenuTarget?.kind==='flux-siphon-hive'){
+    const hive=this.artilleryMenuTarget;
+    const result=upgradeHive(this.world,this.player,hive,this.time);
+    this.notice(result.ok?'Улей: '+hiveWorkers(hive)+' сифонов, '+
+     hiveCargo(hive).toFixed(2)+' флюкса за рейс.':result.reason,3);
+    if(result.ok)this.heritage?.play?.('supportUpgrade',.7,hive);
+    this.artilleryModeMenu(true,hive,{refresh:true});this.pausedRenderPending=true;return;
+   }
    if(e.target.closest?.('[data-depot-upgrade]')&&this.artilleryMenuTarget?.kind==='flux-depot'){
     const depot=this.artilleryMenuTarget;
     const previousRadius=depotSupplyRadius(depot);
@@ -1284,7 +1352,7 @@ export class ArcadeGame {
    if(this.artilleryMenuTarget){
     e.preventDefault();this.artilleryModeMenu(false);return;
    }
-   if(this.buildPlanning?.stage==='place'){
+   if(['place','link'].includes(this.buildPlanning?.stage)){
     if(e.button===0){e.preventDefault();try{this.canvas.setPointerCapture?.(e.pointerId);}catch{}}
     return;
    }
@@ -1292,7 +1360,8 @@ export class ArcadeGame {
    let tower=null;
    if(e.button===0||e.button===2){
     const point=worldAt(e.clientX,e.clientY)||{x:Infinity,y:Infinity};
-    tower=supportAt(this.world,point)||artilleryAt(this.world,point)||depotAt(this.world,point);
+    tower=supportAt(this.world,point)||artilleryAt(this.world,point)||
+     depotAt(this.world,point)||hiveAt(this.world,point);
     if(tower&&e.button===2){
      e.preventDefault();this.mouseAim=null;
      this.artilleryModeMenu(true,tower,e);return;
@@ -1334,7 +1403,7 @@ export class ArcadeGame {
    }
   });
   this.canvas?.addEventListener('pointermove',e=>{
-   if(this.buildPlanning?.stage==='place'){
+   if(['place','link'].includes(this.buildPlanning?.stage)){
     const point=worldAt(e.clientX,e.clientY);
     if(point){this.buildPlanning.point=point;this.updateBuildHint();
      this.pausedRenderPending=true;}
@@ -1350,7 +1419,7 @@ export class ArcadeGame {
   this.canvas?.addEventListener('contextmenu',e=>e.preventDefault());
   this.canvas?.addEventListener('pointerleave',()=>{this.tacticalPointer=null;});
   this.canvas?.addEventListener('pointerup',e=>{
-   if(this.buildPlanning?.stage==='place'){
+   if(['place','link'].includes(this.buildPlanning?.stage)){
     if(e.button===0){e.preventDefault();const point=worldAt(e.clientX,e.clientY);
      if(point)this.placeBuildArtillery(point);}
     return;
@@ -5302,6 +5371,7 @@ export class ArcadeGame {
   // It does not kill enemies or award loot/experience while the player waits.
   updateStationDefense(this);
   advanceFluxDepots(this.world,this.time,dt);
+  advanceFluxRoads(this.world,this.time,dt);
   advanceFluxArtillery(this,dt);
   advanceFluxSupports(this,dt);
   for(const s of this.shots){
@@ -5927,8 +5997,15 @@ export class ArcadeGame {
   drawFluxDepots(c,this,cam,this.buildPlanning?.stage==='place'&&
    this.buildPlanning.type==='depot'?{
    point:this.buildPlanning.point,player:this.player}:null);
+  const roadPlan=this.buildPlanning?.stage==='link'?this.buildPlanning:null;
+  drawFluxRoads(c,this,cam,roadPlan?{
+   from:this.world.contours.fluxDepots.find(d=>d.id===roadPlan.sourceDepotId),
+   point:roadPlan.point,player:this.player}:null);
+  drawSiphonHives(c,this,cam,this.buildPlanning?.stage==='place'&&
+   this.buildPlanning.type==='siphon-hive'?{
+   point:this.buildPlanning.point,player:this.player}:null);
   drawFluxSupports(c,this,cam,this.buildPlanning?.stage==='place'&&
-   this.buildPlanning.type!=='artillery'&&this.buildPlanning.type!=='depot'?{
+   SUPPORT_TYPES[this.buildPlanning.type]?{
    point:this.buildPlanning.point,player:this.player,type:this.buildPlanning.type}:null);
   drawRamSquads(c,this);
   drawRailSweep(c,this);

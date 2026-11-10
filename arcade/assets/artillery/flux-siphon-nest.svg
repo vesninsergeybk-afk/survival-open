@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+ <defs>
+  <radialGradient id="core"><stop stop-color="#fff6bb"/><stop offset=".5" stop-color="#ffcc55"/><stop offset="1" stop-color="#c06926"/></radialGradient>
+  <linearGradient id="shell" x2="1" y2="1"><stop stop-color="#4b92aa"/><stop offset="1" stop-color="#19364f"/></linearGradient>
+ </defs>
+ <path d="M64 8 111 36v56L64 120 17 92V36Z" fill="url(#shell)" stroke="#77d5dd" stroke-width="5"/>
+ <path d="M64 18 102 41v46L64 109 26 87V41Z" fill="none" stroke="#de9d55" stroke-width="3"/>
+ <circle cx="64" cy="64" r="27" fill="#11293b" stroke="#ffcb70" stroke-width="4"/>
+ <circle cx="64" cy="64" r="17" fill="url(#core)"/>
+ <g fill="#89dbe6" stroke="#23455a" stroke-width="3">
+  <path d="m64 12 10 13-10-5-10 5Z"/><path d="m108 40 7 15-13-5-2-10Z"/>
+  <path d="m108 88-7 14-3-13 9-9Z"/><path d="m64 116-11-13 11 5 10-5Z"/>
+  <path d="M20 88 13 75l13 4 2 12Z"/><path d="m20 40 7-14 4 14-10 9Z"/>
+ </g>
+ <g fill="#ffd470"><circle cx="64" cy="12" r="3"/><circle cx="108" cy="40" r="3"/>
+  <circle cx="108" cy="88" r="3"/><circle cx="64" cy="116" r="3"/>
+  <circle cx="20" cy="88" r="3"/><circle cx="20" cy="40" r="3"/></g>
+</svg>
