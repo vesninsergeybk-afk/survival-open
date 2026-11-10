@@ -253,6 +253,10 @@ test('shell flies visibly before its real area hit, even if the gun is destroyed
  assert.equal(world.contours.artilleryShells.length,1);
  const shell=world.contours.artilleryShells[0];
  assert.ok(shell.arriveAt>shell.launchedAt);
+ assert.equal(shell.powerRank,0,'starting shell has the small unupgraded visual core');
+ shell.powerRank=5;
+ assert.equal(validFluxArtillery(world.contours),false,'invalid visual tier cannot enter a checkpoint');
+ shell.powerRank=0;
  assert.equal(enemy.hp,120,'the aiming phase never causes an invisible instantaneous hit');
  turret.hp=0;
  game.time=(shell.launchedAt+shell.arriveAt)/2;advanceFluxArtillery(game,.1);

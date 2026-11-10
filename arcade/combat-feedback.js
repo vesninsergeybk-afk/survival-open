@@ -109,16 +109,18 @@ export function drawHullDamage(ctx,unit,time=0,fps=60,reducedMotion=false){
 export function drawSeekingMissile(ctx,missile,fps=60){
  const angle=Math.atan2(missile.ty-missile.y,missile.tx-missile.x);
  const trail=missile.trail||[];
+ const rank=Math.max(0,Math.min(6,missile.fxRank||0));
  ctx.save();
  ctx.lineCap='round';
  if(trail.length>1){
   if(fps>=34){
-   ctx.globalAlpha=.2;ctx.strokeStyle='#ff6035';ctx.lineWidth=9;
+   ctx.globalAlpha=.2+rank*.02;ctx.strokeStyle=rank>=3?'#e38cfa':'#ff6035';
+   ctx.lineWidth=9+rank*1.1;
    ctx.beginPath();ctx.moveTo(trail[0].x,trail[0].y);
    for(let i=1;i<trail.length;i++)ctx.lineTo(trail[i].x,trail[i].y);
    ctx.lineTo(missile.x,missile.y);ctx.stroke();
   }
-  ctx.globalAlpha=.75;ctx.strokeStyle='#ffbc68';ctx.lineWidth=2.5;
+  ctx.globalAlpha=.75;ctx.strokeStyle=rank>=3?'#ffe1ee':'#ffbc68';ctx.lineWidth=2.5+rank*.45;
   ctx.beginPath();ctx.moveTo(trail[Math.max(0,trail.length-5)].x,trail[Math.max(0,trail.length-5)].y);
   for(let i=Math.max(1,trail.length-4);i<trail.length;i++)ctx.lineTo(trail[i].x,trail[i].y);
   ctx.lineTo(missile.x,missile.y);ctx.stroke();
@@ -130,5 +132,13 @@ export function drawSeekingMissile(ctx,missile,fps=60){
  ctx.fillStyle='#fff1bd';ctx.beginPath();
  ctx.moveTo(10,0);ctx.lineTo(-5,-4);ctx.lineTo(-5,4);ctx.closePath();ctx.fill();
  ctx.fillStyle='#ff633c';ctx.fillRect(-8,-3,3,6);
+ if(rank>0){
+  // The upgraded motor is visible throughout flight, not only at launch.
+  ctx.strokeStyle=rank>=3?'#d7a6ff':'#ffd69a';ctx.lineWidth=1+rank*.2;
+  for(const side of [-1,1]){
+   ctx.beginPath();ctx.moveTo(-13,side*(4+rank*.4));
+   ctx.lineTo(-3,side*(6+rank*.6));ctx.lineTo(3,side*2);ctx.stroke();
+  }
+ }
  ctx.restore();
 }

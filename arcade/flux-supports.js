@@ -234,9 +234,11 @@ function electricShot(game,t,cfg){
   const bounce=hits[0],last=hits.at(-1);
   damageTarget(game,bounce,cfg.damage*(experimental===3?.75:.4),t);
   fx(game,{kind:'arc',points:[{x:last.object.x,y:last.object.y},
-   {x:bounce.object.x,y:bounce.object.y}]});
+   {x:bounce.object.x,y:bounce.object.y}],hold:turretBranchRank(t,'hold'),
+   anomaly:experimental});
  }
- fx(game,{kind:'arc',points:[{x:t.x,y:t.y},...hits.map(x=>({x:x.object.x,y:x.object.y}))]});
+ fx(game,{kind:'arc',points:[{x:t.x,y:t.y},...hits.map(x=>({x:x.object.x,y:x.object.y}))],
+  hold:turretBranchRank(t,'hold'),anomaly:experimental});
  game.heritage?.play?.('supportArc',.45,t);return true;
 }
 function laserPulse(game,t,cfg){
@@ -246,7 +248,7 @@ function laserPulse(game,t,cfg){
  damageTarget(game,target,cfg.damage*falloff*shots,t);
  t.aimX=target.object.x;t.aimY=target.object.y;
  fx(game,{kind:'laser',x:t.x,y:t.y,tx:target.object.x,ty:target.object.y,
-  fade:falloff,shots});
+  fade:falloff,shots,range:laserRange(t),reach:turretBranchRank(t,'reach')});
  const heat=turretBranchRank(t,'anomaly'),victim=target.object;
  if(heat&&target.kind==='enemy'&&victim.hp>0){
   if((victim.fluxHeatUntil||0)<game.time)victim.fluxHeatStacks=0;
@@ -567,7 +569,8 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
    const points=effect.points;
    for(let i=1;i<points.length;i++){
     const a=points[i-1],b=points[i];
-    ctx.strokeStyle=`rgba(163,140,255,${fade*.8})`;ctx.lineWidth=5*fade;
+    ctx.strokeStyle=`rgba(163,140,255,${fade*.8})`;
+    ctx.lineWidth=(4.2+Math.min(3,effect.anomaly||0)*.65)*fade;
     ctx.shadowColor='#aa8bff';ctx.shadowBlur=13;
     ctx.beginPath();ctx.moveTo(a.x,a.y);
     for(let j=1;j<7;j++){
@@ -577,6 +580,14 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
       a.y+(b.y-a.y)*u+(b.x-a.x)/len*offset);
     }
     ctx.lineTo(b.x,b.y);ctx.stroke();
+   }
+   if(effect.hold){
+    // Electro-capture is a real slow/stasis effect: a restrained ring on the
+    // last affected hull displays its purchased duration, not extra damage.
+    const target=points.at(-1);
+    ctx.shadowBlur=0;ctx.strokeStyle=`rgba(194,171,255,${fade*.8})`;
+    ctx.lineWidth=1.5+effect.hold*.45;
+    ctx.beginPath();ctx.arc(target.x,target.y,12+effect.hold*3,0,Math.PI*2);ctx.stroke();
    }
   }else if(effect.kind==='heat'){
    ctx.strokeStyle=`rgba(255,147,84,${fade})`;ctx.lineWidth=4*fade;
@@ -588,11 +599,27 @@ export function drawFluxSupports(ctx,game,cam,preview=null){
    for(let i=0;i<(effect.kind==='laser'?effect.shots:1);i++){
     const offset=effect.kind==='laser'?(i-(effect.shots-1)/2)*8:0;
     ctx.shadowColor=effect.kind==='laser'?'#ff8256':'#6ef6b9';ctx.shadowBlur=12;
-    ctx.strokeStyle=effect.kind==='laser'?`rgba(255,147,84,${fade*effect.fade})`:
-     `rgba(107,245,184,${fade})`;
-    ctx.lineWidth=effect.kind==='laser'?4:2;
-    ctx.beginPath();ctx.moveTo(effect.x+normalX*offset,effect.y+normalY*offset);
-    ctx.lineTo(effect.tx+normalX*offset*.1,effect.ty+normalY*offset*.1);ctx.stroke();
+    if(effect.kind==='laser'){
+     // Each segment follows the *actual* nonlinear laserFalloff curve.
+     // Extended-range ranks add focusing at the emitter; the distant edge
+     // still looks thin and weak even with six separate emitters.
+     const count=6,reach=effect.reach||0;
+     for(let j=0;j<count;j++){
+      const a=j/count,b=(j+1)/count;
+      const power=laserFalloff(length*b,effect.range||440);
+      ctx.strokeStyle=`rgba(255,147,84,${fade*(.2+.8*power)})`;
+      ctx.lineWidth=(3.5+reach*.4)*(.19+.81*power);
+      ctx.beginPath();
+      ctx.moveTo(effect.x+dx*a+normalX*offset*(1-a*.9),
+       effect.y+dy*a+normalY*offset*(1-a*.9));
+      ctx.lineTo(effect.x+dx*b+normalX*offset*(1-b*.9),
+       effect.y+dy*b+normalY*offset*(1-b*.9));ctx.stroke();
+     }
+    }else{
+     ctx.strokeStyle=`rgba(107,245,184,${fade})`;ctx.lineWidth=2;
+     ctx.beginPath();ctx.moveTo(effect.x,effect.y);
+     ctx.lineTo(effect.tx,effect.ty);ctx.stroke();
+    }
    }
   }
   ctx.restore();

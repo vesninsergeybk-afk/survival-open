@@ -43,6 +43,7 @@ import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26-redte
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110';
 import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1';
+import {BASE_TURRET_GUN,advanceBaseTurretGun,drawBaseTurretWarnings} from './base-turret-gunnery.js';
 import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1-territory-logistics-1-flux-siphon-roads-1';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-ai-commander-20261110';
@@ -50,7 +51,7 @@ import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1-combat-balance-1';
 import {planEncounter} from './encounters.js?v=arcade-balanced-bases-30-combat-hunt-20261109';
-import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109';
+import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109-weapon-vfx-audit-1';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
@@ -65,7 +66,7 @@ import {clearCoreRocks} from './core-rock-clearance.js';
 import {alertFleetUnderFire} from './enemy-attack-alarm.js';
 import {NOISE_ESCALATION,preserveEarlyNoiseSignal,noisePatrolDirector,armNoiseCourier,updateNoiseEscalation} from './noise-escalation.js?v=noise-pressure-2-pressure-response-1-balance-audit-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-sfx-2-artillery-finish-1-support-three-1-frontier-siege-1';
-import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44';
+import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44-weapon-vfx-audit-1';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
@@ -88,7 +89,7 @@ import {createLoadout,loadoutProfile,stageOwnedModule,HangarSession,slotOpen,SHI
 import {claimFirstContractModule} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-station-clear-2-menu-rebuild-1-menu-audit-1-devscroll-1';
 import {keepTabInMenu,focusMenu,captureMenuControl,restoreMenuControl,setMenuBackgroundInert} from './menu-dialog.js?v=menu-exit-1-all-menus-1-menu-reaudit-1-menu-audit-1-menu-depth-audit-3';
-import {updateAutomaticWeapons,updateFlakPellets,startRailSweep,updateRailSweep,drawRailSweep,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons,RAIL_AIM_ASSIST} from './ship-weapons.js?v=triangle-defense-1-triangle-defense-1-combat-balance-1-frontier-siege-1-manual-cover-1-manual-audit-20261110';
+import {updateAutomaticWeapons,updateFlakPellets,startRailSweep,updateRailSweep,drawRailSweep,planHowitzer,updateHowitzer,drawHowitzerAim,drawBallisticWeapons,RAIL_AIM_ASSIST} from './ship-weapons.js?v=triangle-defense-1-triangle-defense-1-combat-balance-1-frontier-siege-1-manual-cover-1-manual-audit-20261110-weapon-vfx-audit-1';
 import {precisionRailUnlocked,PRECISION_RAIL_TECH,labLogisticsUnlocked,labLogisticsIntel,LAB_LOGISTICS_TECH} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1-supply-stronghold-1';
 import {combatTargets,targetAlive,targetRadius,clearLine,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1-living-world-population-1-sector-density-2-frontier-siege-1';
 import {pickDesignatedTarget,activeDesignatedTarget,designationLabel} from './target-designation.js?v=mouse-area-1-frontier-siege-1';
@@ -117,10 +118,10 @@ import {SIPHON_HIVE,FLUX_ROAD,hiveOffer,buildHive,hiveAt,hiveWorkers,hiveCargo,
  drawSiphonHives} from './flux-routes.js?v=flux-siphon-roads-1';
 import {FLUX_ARTILLERY,EDGE_SLOT_UPGRADES,ARTILLERY_UPGRADES,edgeTurretLimit,edgeTurretUpgradeOffer,upgradeEdgeTurretCapacity,artilleryUpgradeOffer,upgradeArtillery,
  artilleryAt,artilleryOffer,deployArtillery,maxArtilleryPreload,setArtilleryMode,
- advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-free-close-1-flux-siphon-roads-1';
+ advanceFluxArtillery,drawFluxArtillery} from './flux-artillery.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-free-close-1-flux-siphon-roads-1-weapon-vfx-audit-1';
 import {SUPPORT_TYPES,supportConfig,supportOffer,deploySupport,supportAt,
  setSupportMode,supportUpgradeOffer,upgradeSupport,
- advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-flux-siphon-roads-1';
+ advanceFluxSupports,drawFluxSupports} from './flux-supports.js?v=turret-preload-20261109-1-audit-1-frontier-siege-1-territory-logistics-1-flux-siphon-roads-1-weapon-vfx-audit-1';
 import {TURRET_GROWTH,turretGrowthType,turretGrowthRows,turretBranchOffer,turretCombatRadii,
  artilleryShotFlux,artilleryShotUnits,artilleryMagazine,artillerySalvoSize,artilleryReadyShells,
  buyTurretBranch,artilleryBarrels,hiveLimit} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1';
@@ -4098,7 +4099,7 @@ export class ArcadeGame {
    target.ionMarkUntil=0;
    const item=candidates.find(x=>x.target===target);
    const point=contactOnCircle(target.x,target.y,targetRadius(item),from.x,from.y);
-   emitWeaponFx(this,'ion',from,point);
+   emitWeaponFx(this,'ion',from,point,{rank:this.skillRanks?.beam});
    const preparing=target.stationRaid?.chargeAt!=null;
    damageTarget(this,item,plan.damage[i],'ion',point);
    if(preparing&&target.hp>0&&target.stationRaid?.chargeAt===null)disrupted=true;
@@ -5509,29 +5510,22 @@ export class ArcadeGame {
   this.updateShipWeapons(dt);
   updateRegionalStorms(this,dt);
   const radar=400+this.skillRanks.radar*220;
+  const baseTurretCamera=this.camera();
+  let simultaneousBaseAims=0;
   for(const b of this.world.nearbyStations(p.x,p.y,Math.max(900,radar))){
    if(!b.enemy||(!b.strategicRole&&!this.enemyBasesUnlocked())||b.captured)continue;
    if(dist(b,p)>850)continue;
    for(const t of b.turrets){
     if(t.hp<=0||t.kind&&t.kind!=='turret')continue;
-    const turretStyle=this.enemyLearning?.styleFor(t,this.time,'turret');
-    t.shot-=dt;t.flash=Math.max(0,(t.flash||0)-dt);
-    if(t.shot<=0){
-     t.shot=2.2+Math.random()*.35;
-     const target=this.support.missions.flatMap(m=>m.craft)
-      .filter(a=>a.hp>0&&dist(a,t)<350)
-      .sort((a,c)=>dist(t,a)-dist(t,c))[0]||p;
-     if(dist(t,target)<530){
-      // Turrets track only a target within their own weapon envelope.
-      // Other patrols' motion sightings cannot adjust this gun's aim.
-      if(target===p)this.enemyLearning?.observePlayer(p,this.time,t);
-      const aim=target===p?learnedTurretAim(target,turretStyle,
-       t._learningObservation?.turnSign||0):{x:target.x,y:target.y};
-      if(this.enemyShot(t.x,t.y,aim.x,aim.y,16+b.rank*2,
-       {learnToken:this.enemyLearning?.shotToken(t)})!==false)
-       this.enemyLearning?.fired(t);
-     }
-    }
+    const target=t._baseAim?.target||this.support.missions.flatMap(m=>m.craft)
+     .filter(a=>a.hp>0&&dist(a,t)<350)
+     .sort((a,c)=>dist(t,a)-dist(t,c))[0]||p;
+    const onscreen=t.x>=baseTurretCamera.x-35&&t.x<=baseTurretCamera.x+baseTurretCamera.w+35&&
+     t.y>=baseTurretCamera.y-35&&t.y<=baseTurretCamera.y+baseTurretCamera.h+35;
+    if(!onscreen&&t._baseAim){t._baseAim=null;t.shot=Math.max(.55,t.shot||0);}
+    advanceBaseTurretGun(this,t,b.rank,target,dt,
+     onscreen&&simultaneousBaseAims<BASE_TURRET_GUN.maxConcurrent);
+    if(t._baseAim)simultaneousBaseAims++;
    }
   }
   for(const z of this.zones){
@@ -6320,6 +6314,7 @@ export class ArcadeGame {
   drawTacticalVfx(c,this,cam);
   drawTactical(c,this);
   drawEnemyGunWarnings(c,this,cam,this.fps);
+  drawBaseTurretWarnings(c,this,cam,this.visuals.reducedMotion);
   drawEnemyDefenseGoals(c,this,cam,this.fps);
   // Actual radio-message receipts, drawn in world space behind ship sprites.
   this.enemyComms?.render(c,cam,this.time,this.visuals.reducedMotion,this.fps,this);
@@ -6334,14 +6329,8 @@ export class ArcadeGame {
   drawBallisticWeapons(c,this,this.fps,this.visuals.reducedMotion,cam);
   drawMouseArsenal(c,this);
   for(const s of this.shots){
-   if(outsideCamera(s.x,s.y,cam,15))continue;
-   if(this.fps>=28&&this.visuals.drawHostileShot(c,s))continue;
-   const d=Math.hypot(s.vx,s.vy)||1,ux=s.vx/d,uy=s.vy/d;
-   c.save();c.strokeStyle=s.kind==='iris'?'#c49aff':s.kind==='mote'?'#8bdcff':
-    s.kind==='flanker-needle'?'#b58dff':s.kind==='fighter-burst'?'#ffbd7c':'#ff7186';
-   c.lineWidth=s.kind==='iris'||s.kind==='mote'?3.2:4;c.lineCap='round';
-   c.beginPath();c.moveTo(s.x-ux*12,s.y-uy*12);
-   c.lineTo(s.x+ux*5,s.y+uy*5);c.stroke();c.restore();
+   if(outsideCamera(s.x,s.y,cam,45))continue;
+   this.visuals.drawHostileShot(c,s,this.fps>=28);
   }
   if(!this.dead&&(p.invul<=0||Math.sin(this.time*35)>.1)){
    if(!this.visuals.drawPlayer(c,p,p.level,this.time)){

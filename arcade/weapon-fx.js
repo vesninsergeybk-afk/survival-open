@@ -28,7 +28,11 @@ export function emitWeaponFx(game,kind,from,to,options={}){
   age:0,life:LIFE[kind],seed:seed%997,
   impact:kind==='rocket'?false:options.impact!==false,
   secondary:!!options.secondary,
-  blocked:!!options.blocked});
+  blocked:!!options.blocked,
+  // Numeric combat properties, never cosmetic levels invented by the renderer.
+  rank:clamp(Math.trunc(Number(options.rank)||0),0,12),
+  falloff:clamp(Number.isFinite(options.falloff)?options.falloff:1,.05,1),
+  nearDistance:Math.max(0,Number(options.nearDistance)||0)});
  return true;
 }
 
@@ -70,37 +74,60 @@ function along(e,ux,uy,t,offset=0){
 }
 function drawPlasma(c,e,ux,uy,dist,fade,high,reducedMotion){
  const primary=e.blocked?'#ffc884':'#53dbff';
- if(high)line(c,e.x,e.y,e.x2,e.y2,e.secondary?9:18,primary,fade*.31);
- line(c,e.x,e.y,e.x2,e.y2,e.secondary?3.8:6.5,primary,fade*.94);
- if(high)line(c,e.x,e.y,e.x2,e.y2,1.8,'#ecffff',fade*.96);
+ const rank=e.rank||0,falloff=e.falloff??1;
+ // The first metres retain full energy, then the beam narrows in proportion
+ // to the same falloff used for damage. A far hit cannot look as strong as a
+ // close one. The old single 18px stroke hid the 72% loss of damage.
+ const startWidth=(e.secondary?3.2:4.8)+Math.min(4,rank)*.65;
+ const segments=high?8:5,near=clamp(e.nearDistance/dist,0,1);
+ for(let i=0;i<segments;i++){
+  const a=i/segments,b=(i+1)/segments;
+  const fraction=clamp((b-near)/Math.max(.001,1-near),0,1);
+  const strength=1-(1-falloff)*fraction;
+  const p=along(e,ux,uy,a),q=along(e,ux,uy,b);
+  const width=startWidth*(.28+.72*strength);
+  if(high&&i%2===0)line(c,p.x,p.y,q.x,q.y,width*2.5,primary,fade*(.10+.17*strength));
+  line(c,p.x,p.y,q.x,q.y,width,primary,fade*(.35+.62*strength));
+  if(high&&i%2===0&&strength>.34)line(c,p.x,p.y,q.x,q.y,width*.29,'#ecffff',fade*.78*strength);
+ }
  // Three packets give plasma its own rhythm at a glance. They travel only
  // along the already resolved hit segment and cannot strike another target.
  const shift=reducedMotion?0:clamp(e.age/e.life*.19,0,.19);
  for(let i=0;i<3;i++){
-  const p=along(e,ux,uy,.19+i*.29+shift);
-  if(high)orb(c,p.x,p.y,i===1?10:7.3,primary,fade*.26);
-  orb(c,p.x,p.y,high?4.3:3.3,'#dffeff',fade*.94);
+  const t=.19+i*.29+shift,p=along(e,ux,uy,t);
+  const strength=1-(1-falloff)*clamp((t-near)/Math.max(.001,1-near),0,1);
+  if(high)orb(c,p.x,p.y,(i===1?7:5)*strength,primary,fade*.22*strength);
+  orb(c,p.x,p.y,(high?3.3:2.8)*strength,'#dffeff',fade*.9*strength);
  }
- circle(c,e.x,e.y,high?10:7,2,'#92efff',fade);
- orb(c,e.x,e.y,high?5:4,'#b5f9ff',fade*.88);
+ circle(c,e.x,e.y,(high?8:6)+rank*.9,1.5+rank*.18,'#92efff',fade);
+ orb(c,e.x,e.y,(high?4:3)+rank*.3,'#b5f9ff',fade*.88);
+ if(rank>=2){
+  // Purchased calibration leaves a recognisable double helical trace.
+  for(const sign of [-1,1]){
+   const p=along(e,ux,uy,.32,sign*(3+rank*.6)),q=along(e,ux,uy,.66,-sign*(3+rank*.6));
+   line(c,p.x,p.y,q.x,q.y,1.2,'#9cffff',fade*.62*falloff);
+  }
+ }
  if(e.impact){
-  circle(c,e.x2,e.y2,high?15:9,2.4,primary,fade*.9);
-  orb(c,e.x2,e.y2,high?5:4,'#eaffff',fade*.9);
+  circle(c,e.x2,e.y2,(high?11:7)*Math.sqrt(falloff)+rank*.6,
+   1.2+falloff,primary,fade*(.42+.5*falloff));
+  orb(c,e.x2,e.y2,(high?4:3)*Math.sqrt(falloff),'#eaffff',fade*falloff);
  }
 }
 function drawRail(c,e,ux,uy,dist,fade,high){
  const primary=e.blocked?'#ffcf8b':'#8eb7ff';
+ const upgrade=Math.min(e.rank||0,6);
  if(high){
-  line(c,e.x,e.y,e.x2,e.y2,e.secondary?7:15,'#5067d7',fade*.31);
+  line(c,e.x,e.y,e.x2,e.y2,(e.secondary?7:12)+upgrade*1.2,'#5067d7',fade*.31);
   const nx=-uy*5,ny=ux*5;
   line(c,e.x+nx,e.y+ny,e.x2+nx,e.y2+ny,high?2.2:1,'#7b9eff',fade*.77);
   line(c,e.x-nx,e.y-ny,e.x2-nx,e.y2-ny,high?2.2:1,'#7b9eff',fade*.77);
  }
- line(c,e.x,e.y,e.x2,e.y2,e.secondary?2.6:4.6,primary,fade);
+ line(c,e.x,e.y,e.x2,e.y2,(e.secondary?2.6:4)+upgrade*.42,primary,fade);
  line(c,e.x,e.y,e.x2,e.y2,1.5,'#fffefa',fade*.96);
  // Mechanical crossbars echo paired magnetic rails rather than plasma beads.
- for(let i=0;i<3;i++){
-  const p=along(e,ux,uy,.24+i*.28);
+ for(let i=0;i<3+Math.min(3,Math.floor(upgrade/2));i++){
+  const p=along(e,ux,uy,.17+i*.7/(3+Math.min(3,Math.floor(upgrade/2))));
   line(c,p.x+uy*8,p.y-ux*8,p.x-uy*8,p.y+ux*8,
    high?2:1.5,primary,fade*.75);
  }
@@ -116,13 +143,13 @@ function drawRail(c,e,ux,uy,dist,fade,high){
 function drawFlak(c,e,ux,uy,dist,fade,high){
  // Short separated strokes signal a burst, not a continuous beam; all strokes
  // terminate on the confirmed hit line. No simulated collateral impacts.
- const strokes=dist<85?3:5;
+ const strokes=dist<85?3:5,rank=Math.min(e.rank||0,6);
  c.lineCap='butt';
  if(high)line(c,e.x,e.y,e.x2,e.y2,9,'#e37c39',fade*.17);
  for(let i=0;i<strokes;i++){
   const a=.06+i*.87/strokes,b=Math.min(.97,a+.50/strokes);
   const p=along(e,ux,uy,a),q=along(e,ux,uy,b);
-  line(c,p.x,p.y,q.x,q.y,high?5.2:4,'#ffa85d',fade*.94);
+  line(c,p.x,p.y,q.x,q.y,(high?4.5:3.5)+rank*.38,'#ffa85d',fade*.94);
   if(high)line(c,p.x,p.y,q.x,q.y,1.7,'#ffe8bd',fade);
  }
  circle(c,e.x,e.y,high?5:3.5,2,'#ffc28a',fade);
@@ -137,15 +164,23 @@ function drawRocket(c,e,ux,uy,fade,high){
  // Launch plume only. The real missile is drawn by drawSeekingMissile and can
  // change course: a line to the originally selected target would be false.
  const nx=-uy,ny=ux;
- const size=high?25:18;
+ const rank=Math.min(e.rank||0,6),size=(high?25:18)+rank*1.1;
  const backX=e.x-ux*size,backY=e.y-uy*size;
  line(c,e.x,e.y,backX,backY,high?8:5,'#fa7b42',fade*.62);
  line(c,e.x,e.y,e.x-ux*size*.65,e.y-uy*size*.65,2.4,'#ffe1a7',fade);
  line(c,e.x-nx*5,e.y-ny*5,backX-nx*3,backY-ny*3,1.4,'#ffb56a',fade*.9);
  line(c,e.x+nx*5,e.y+ny*5,backX+nx*3,backY+ny*3,1.4,'#ffb56a',fade*.9);
+ if(rank>0){
+  // Each autorocket upgrade increases real payload and flight performance.
+  // Twin exhaust vanes distinguish the advanced exhaust from the starter.
+  for(const sign of [-1,1])
+   line(c,e.x+nx*sign*(5+rank),e.y+ny*sign*(5+rank),
+    backX+nx*sign*(7+rank),backY+ny*sign*(7+rank),1.4+rank*.2,'#fff1bc',fade*.75);
+ }
 }
 function drawIon(c,e,ux,uy,dist,fade,high){
- const steps=high?11:7,jitter=Math.min(high?15:9,dist*.10);
+ const rank=Math.min(6,e.rank||0);
+ const steps=(high?11:7)+Math.min(3,rank),jitter=Math.min((high?15:9)+rank,dist*.10);
  c.lineJoin='bevel';c.lineCap='round';
  const segments=[];
  for(let i=0;i<=steps;i++){

@@ -6,7 +6,7 @@ import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impa
 import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1-triangle-defense-1-frontier-siege-1';
 import {emitWeaponFx} from './weapon-fx.js';
 import {landingRock} from './aimed-terrain.js?v=manual-audit-20261110';
-import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js?v=frontier-siege-1-manual-cover-1';
+import {launchFlakVolley,updateFlakPellets,launchHeavyShell,updateHeavyShells,drawBallisticWeapons} from './ballistic-weapons.js?v=frontier-siege-1-manual-cover-1-weapon-vfx-audit-1';
 
 export {updateFlakPellets,drawBallisticWeapons};
 
@@ -62,10 +62,15 @@ function fireBeamFamily(game,id){
      if(second)game.damageRock(second.rock,damage*penetration,cover.x,cover.y,'auto',true,hit);
      else damageTarget(game,item,damage*penetration,id,hit);
      emitWeaponFx(game,'rail',cover,{x:hit?.x??t.x,y:hit?.y??t.y},
-      {secondary:true,blocked:!!second});
+      {secondary:true,blocked:!!second,rank:game.skillRanks?.beam});
     }
    }else damageTarget(game,item,damage,id==='plasma'?'beam':id,point);
-   emitWeaponFx(game,id,from,{x:point?.x??t.x,y:point?.y??t.y},{blocked:!!cover});
+   emitWeaponFx(game,id,from,{x:point?.x??t.x,y:point?.y??t.y},{
+    blocked:!!cover,rank:game.skillRanks?.beam,
+    ...(id==='plasma'?{
+     falloff:beamDamage(1,d,RULES.nearBeam,stats.range,RULES.beamMinFactor),
+     nearDistance:RULES.nearBeam}:{}),
+   });
    firstFiredTarget??=t;
   }
   // A second mount may find the target already destroyed by the first.
@@ -95,8 +100,9 @@ function fireRockets(game){
   if(game.missiles.length>=14)game.missiles.shift();
   game.missiles.push({x:from.x,y:from.y,prevX:from.x,prevY:from.y,trail:[{x:from.x,y:from.y}],
    target:t,targetKind:item.kind,targetBase:item.base||null,tx:t.x,ty:t.y,
-   damage:stats.damage*weaponDamageFactor(game.shipLoadout,'rocket',t),speed:tuning.speed,life:tuning.life});
-  emitWeaponFx(game,'rocket',from,t,{impact:false});
+   damage:stats.damage*weaponDamageFactor(game.shipLoadout,'rocket',t),speed:tuning.speed,life:tuning.life,
+   fxRank:Math.max(0,Math.min(6,game.skillRanks?.rocket||0))});
+  emitWeaponFx(game,'rocket',from,t,{impact:false,rank:game.skillRanks?.rocket});
   game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(t.y-from.y,t.x-from.x),'knife');
  }
  heatWeapons(game.weaponThermal,MODULES.rocket.heat*game.weaponProfile.rocket);
@@ -188,7 +194,8 @@ export function updateRailSweep(game){
     contactAtPoint(rock.rock.x,rock.rock.y,rock.x,rock.y));
   }
   sweep.pulses++;
-  if(sweep.pulses%3===1)emitWeaponFx(game,'rail',from,sweep.lastEnd,{impact:!!first||!!rock,blocked:!!rock});
+  if(sweep.pulses%3===1)emitWeaponFx(game,'rail',from,sweep.lastEnd,
+   {impact:!!first||!!rock,blocked:!!rock,rank:game.skillRanks?.beam});
  }
  sweep.lastPulse+=ticks*RAIL_SWEEP.pulse;
 }
@@ -255,8 +262,10 @@ export function fireAimedRail(game,point){
     }
    }
   }
-  emitWeaponFx(game,'rail',from,impact,{impact:!!before||!!cover,blocked:!!cover});
-  if(exitImpact)emitWeaponFx(game,'rail',impact,exitImpact,{secondary:true,blocked:exitBlocked});
+  emitWeaponFx(game,'rail',from,impact,
+   {impact:!!before||!!cover,blocked:!!cover,rank:game.skillRanks?.beam});
+  if(exitImpact)emitWeaponFx(game,'rail',impact,exitImpact,
+   {secondary:true,blocked:exitBlocked,rank:game.skillRanks?.beam});
   game.heritage.vfx.muzzle(from.x,from.y,Math.atan2(uy,ux),'railgun');
  }
  heatWeapons(game.weaponThermal,MODULES.rail.heat*game.weaponProfile.rail);
