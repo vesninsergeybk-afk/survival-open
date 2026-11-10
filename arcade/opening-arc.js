@@ -3,7 +3,9 @@
 // station checkpoint can restore it without creating duplicate enemies.
 export const OPENING_ARC=Object.freeze({
  // Present the first decision before off-screen scouts can open sustained fire.
- offerAt:11,deadline:155,repairSeconds:3.5,repairRange:155,
+  offerAt:11,deadline:155,repairSeconds:11.5,repairRange:155,
+  rescueTugDelay:31,rescueTugCaptureSeconds:12,rescueTugCaptureRange:110,
+  rescueReturnSeconds:75,rescueDockRange:175,
  interceptRewardData:27,interceptRewardOre:8,
  rescueRewardOre:28,rescueRewardXp:18,rescueShield:35,
  interceptRelief:120,rescueAlarm:100,
@@ -14,7 +16,9 @@ export const OPENING_ARC=Object.freeze({
 export function createOpeningArc(home){
  return {version:1,status:'offer',kind:null,startedAt:0,expiresAt:0,
   commanderSerial:null,commanderDefeated:false,commanderDefeatedAt:null,repair:0,
-  rescuePulseUsed:false,
+   rescuePulseUsed:false,rescueStage:'extract',rescueTugAt:0,
+   rescueTugSerial:null,rescueTugSpawned:false,rescueGuardsSpawned:false,
+   rescuePursuersSpawned:false,rescueTugLock:0,rescueCargoX:0,rescueCargoY:0,
   rescueX:home.x-755,rescueY:home.y+670,
   interceptX:home.x+625,interceptY:home.y-500,
   reliefUntil:0,alarmUntil:0,returnWaypoint:null};
@@ -25,7 +29,9 @@ export const openingArcActive=arc=>arc?.status==='active';
 export function beginOpeningArc(arc,kind,now){
  if(arc?.status!=='offer'||!['intercept','rescue'].includes(kind))return false;
  arc.status='active';arc.kind=kind;arc.startedAt=now;
- arc.expiresAt=now+OPENING_ARC.deadline;return true;
+ arc.expiresAt=now+OPENING_ARC.deadline;
+ if(kind==='rescue')arc.rescueTugAt=now+OPENING_ARC.rescueTugDelay;
+ return true;
 }
 
 export function recordOpeningCommanderDefeat(arc,enemy,now){
@@ -35,7 +41,8 @@ export function recordOpeningCommanderDefeat(arc,enemy,now){
  arc.commanderDefeated=true;arc.commanderDefeatedAt=now;return true;
 }
 
-export function advanceOpeningArc(arc,now,dt,{commanderDefeated=false,repairing=false,withinRange=false}={}){
+export function advanceOpeningArc(arc,now,dt,{commanderDefeated=false,repairing=false,
+ withinRange=false,tugAtCapsule=false,returnedToDock=false}={}){
  if(!openingArcActive(arc))return 'idle';
  // One success transition only; a late kill cannot award a failed assignment.
  const timelyKill=arc.kind==='intercept'&&commanderDefeated&&arc.commanderSerial!==null&&
@@ -49,6 +56,16 @@ export function advanceOpeningArc(arc,now,dt,{commanderDefeated=false,repairing=
    return 'intercept-complete';
   }
  }else if(arc.kind==='rescue'){
+  if((arc.rescueStage||'extract')==='return'){
+   if(returnedToDock){arc.status='complete';arc.alarmUntil=now+OPENING_ARC.rescueAlarm;
+    return 'rescue-complete';}
+   return 'active';
+  }
+  arc.rescueTugLock=Math.max(0,Math.min(OPENING_ARC.rescueTugCaptureSeconds,
+   (arc.rescueTugLock||0)+(tugAtCapsule?Math.max(0,dt):-Math.max(0,dt)*.65)));
+  if(arc.rescueTugLock>=OPENING_ARC.rescueTugCaptureSeconds){
+   arc.status='failed';return 'rescue-stolen';
+  }
   if(repairing&&withinRange)arc.repair=Math.min(OPENING_ARC.repairSeconds,
    arc.repair+Math.max(0,dt));
   // Halfway through extraction the capsule releases its one emergency
@@ -57,8 +74,8 @@ export function advanceOpeningArc(arc,now,dt,{commanderDefeated=false,repairing=
     arc.repair>=OPENING_ARC.repairSeconds*OPENING_ARC.rescuePulseProgress)
    arc.rescuePulseUsed=true;
   if(arc.repair>=OPENING_ARC.repairSeconds){
-   arc.status='complete';arc.alarmUntil=now+OPENING_ARC.rescueAlarm;
-   return 'rescue-complete';
+    arc.rescueStage='return';arc.expiresAt=now+OPENING_ARC.rescueReturnSeconds;
+    return 'rescue-extracted';
   }
  }
  return 'active';
@@ -105,8 +122,11 @@ export function openingArcObjective(arc,now,touch=false){
  if(!openingArcActive(arc))return '';
  const seconds=Math.max(0,Math.ceil(arc.expiresAt-now));
  if(arc.kind==='intercept')return 'ПЕРЕХВАТ · уничтожьте наводчика · '+seconds+' с';
+ if((arc.rescueStage||'extract')==='return')
+  return 'КАПСУЛА НА БУКСИРЕ · ВЕРНИТЕСЬ В ДОК · '+seconds+' С';
  return 'ЭВАКУАЦИЯ · '+(touch?'держите «Действие»':'удерживайте E у капсулы')+' · '+
-  Math.round(arc.repair/OPENING_ARC.repairSeconds*100)+'% · '+seconds+' с';
+   Math.round(arc.repair/OPENING_ARC.repairSeconds*100)+'% · '+
+   ((arc.rescueTugLock||0)>0?'ВРАГ ЗАХВАТЫВАЕТ · ':'')+seconds+' с';
 }
 
 export function openingWaypointCue(waypoint,distance){
@@ -122,8 +142,21 @@ export function validateOpeningArc(arc){
  for(const key of ['startedAt','expiresAt','repair','rescueX','rescueY','interceptX','interceptY',
   'reliefUntil','alarmUntil'])if(typeof arc[key]!=='number'||!Number.isFinite(arc[key])||
    Math.abs(arc[key])>1e9)return false;
- if(arc.repair<0||arc.repair>OPENING_ARC.repairSeconds||
+  if(arc.repair<0||arc.repair>OPENING_ARC.repairSeconds||
   (arc.commanderSerial!==null&&(!Number.isInteger(arc.commanderSerial)||arc.commanderSerial<1)))return false;
+  if(arc.rescueStage!==undefined&&!['extract','return'].includes(arc.rescueStage))return false;
+  for(const key of ['rescueTugAt','rescueTugLock','rescueCargoX','rescueCargoY']){
+   if(arc[key]===undefined)continue; // Saves from earlier releases.
+   if(!Number.isFinite(arc[key])||Math.abs(arc[key])>1e9)return false;
+   if((key==='rescueTugAt'||key==='rescueTugLock')&&arc[key]<0)return false;
+  }
+  if(arc.rescueStage==='return'&&
+   (arc.kind!=='rescue'||arc.repair<OPENING_ARC.repairSeconds))return false;
+  if((arc.rescueTugLock||0)>OPENING_ARC.rescueTugCaptureSeconds)return false;
+  if(arc.rescueTugSerial!==undefined&&arc.rescueTugSerial!==null&&
+   (!Number.isInteger(arc.rescueTugSerial)||arc.rescueTugSerial<1))return false;
+  for(const flag of ['rescueTugSpawned','rescueGuardsSpawned','rescuePursuersSpawned'])
+   if(arc[flag]!==undefined&&typeof arc[flag]!=='boolean')return false;
  if(arc.commanderDefeated!==undefined&&typeof arc.commanderDefeated!=='boolean')return false;
  if(arc.commanderDefeated&&arc.kind!=='intercept')return false;
  if(arc.rescuePulseUsed!==undefined&&typeof arc.rescuePulseUsed!=='boolean')return false;

@@ -18,7 +18,7 @@ import {updatePopulationWorld} from '../population-runtime.js';
 import {startSortie,finishSortie,appendSortieReport} from '../sortie-economy.js';
 import {emptyEconomyExpenses,recordEconomyExpense} from '../sortie-ledger.js';
 import {transitCost} from '../base-panel.js';
-import {createOpeningArc,beginOpeningArc} from '../opening-arc.js';
+import {OPENING_ARC,createOpeningArc,beginOpeningArc} from '../opening-arc.js';
 import {advanceEnemyExpansion,enemyTerritoryFields} from '../enemy-expansion.js';
 import {createFieldLoot} from '../field-loot.js';
 import {createCombatTempo} from '../combat-tempo.js';
@@ -488,6 +488,28 @@ test('the optional opening crisis and its objective survive a station checkpoint
  assert.equal(validateCheckpoint(damaged),false);
  const old=unpackRun(packRun(loaded));delete old.state.openingArc.commanderDefeated;
  assert.ok(validateCheckpoint(old),'checkpoints predating the kill flag remain readable');
+});
+test('restoring an active capsule rescue reconnects the escort to its living tug',()=>{
+ const g=scene();g.openingArc=createOpeningArc(g.world.home);
+ beginOpeningArc(g.openingArc,'rescue',30);
+ g.openingArc.rescueGuardsSpawned=true;
+ g.openingArc.rescueTugSpawned=true;
+ g.openingArc.rescueTugSerial=72;
+ g.openingArc.rescueTugLock=3.5;
+ g.openingArc.repair=OPENING_ARC.repairSeconds*.3;
+ const tug={serial:72,type:'fighter',x:g.player.x+280,y:g.player.y+20,
+  hp:95,maxHp:95,r:25,vx:0,vy:0,openingRescueRole:'tug',
+  missionFlight:{x:g.openingArc.rescueX,y:g.openingArc.rescueY,speed:94}};
+ const escort={serial:73,type:'scout',x:g.player.x+240,y:g.player.y+50,
+  hp:30,maxHp:30,r:14,vx:0,vy:0,openingRescueRole:'escort',protect:tug};
+ g.enemies=[tug,escort];
+ const packed=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(packed),true);
+ const restored=scene();restoreCheckpoint(restored,packed);
+ assert.equal(restored.openingArc.rescueTugLock,3.5);
+ assert.equal(restored.enemies[1].protect,restored.enemies[0],
+  'escort must steer towards the live saved tug, not an old coordinate copy');
+ assert.equal(restored.enemies[0].missionFlight.speed,94);
 });
 test('an announced, funded industrial response survives a save without a duplicate charge',()=>{
  const g=scene(),s=g.world.regionalSupply.frontier.azure;

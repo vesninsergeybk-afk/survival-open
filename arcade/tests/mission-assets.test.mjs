@@ -11,7 +11,8 @@ const missionRoot=new URL('../assets/missions/',import.meta.url);
 const sheets={missionSpecial:'special-objectives-v1.webp',
  missionHardware:'reactor-hardware-v1.webp',
  missionFreighter:'hostile-freighter-v1.webp',
- missionImpacts:'mission-impacts-v1.webp'};
+ missionImpacts:'mission-impacts-v1.webp',
+ emergencyCapsule:'emergency-capsule-v1.webp'};
 const source=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 
 function fakeCanvas(){
@@ -22,7 +23,7 @@ function fakeCanvas(){
  return {c,drawn};
 }
 
-test('all four new painted sheets are small valid WebP assets used by production',()=>{
+test('all mission paintings, including the actual rescue capsule, are valid WebP assets',()=>{
  for(const [key,file] of Object.entries(sheets)){
   const raw=readFileSync(new URL(file,missionRoot));
   assert.ok(raw.length>40_000&&raw.length<360_000,file);
@@ -34,6 +35,7 @@ test('all four new painted sheets are small valid WebP assets used by production
  assert.match(source,/drawCorridorBeacon\(c,cam\)[\s\S]*?paintMissionCell\(c,this.images\?\.missionSpecial/);
  assert.match(source,/drawProbe\(c,cam\)[\s\S]*?paintMissionMorph\(c,this.images\?\.missionSpecial/);
  assert.match(source,/drawRelaySite\(c,cam,op,online=false\)[\s\S]*?paintMissionCell\(c,this.images\?\.missionHardware/);
+ assert.match(source,/drawOpeningBeacon\(c,cam\)[\s\S]*?missionImageReady\(this.images\?\.emergencyCapsule\)/);
 });
 
 test('different source quadrants render as independent sprite states',()=>{

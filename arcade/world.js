@@ -3,7 +3,8 @@ import {STRATEGIC_STATIONS,createRegionalSupply} from './regional-supply.js?v=li
 import {CENTRAL_STATIONS} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {FRONTIER_STATIONS} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1-territory-war-1';
 import {RULES, hash, dist, baseNames} from './balance.js?v=arcade-network-20-pressure-response-1';
-import {amberBeltDensity,nearAmberBelt,inAmberCorridor} from './terrain.js?v=arcade-belt-26';
+import {amberBeltDensity,nearAmberBelt,inAmberCorridor,
+  debrisPocketDensity,inRescueClearing} from './terrain.js?v=arcade-belt-26-rescue-debris-1';
 import {createContours,fieldAt} from './territory-system.js?v=contours-2-operational-reserve-1-flux-offense-1-triangle-defense-1';
 import {createEnemyExpansion} from './enemy-expansion.js?v=enemy-expansion-1-enemy-balance-2-living-world-population-1-sector-density-2';
 import {POPULATION,createPopulation,ensurePopulationStations,
@@ -91,20 +92,26 @@ export class World {
       return [];
     const list=[];
     const ordinary=2+Math.floor(hash(cx,cy,this.seed+5)*4);
-    // Only the amber test field gets additional rocks; elsewhere the old
-    // procedural world and its resource economy remain exactly the same.
+    // Add permanent rubble belts without changing the identity, size or
+    // durability of existing ore rocks in old checkpoint saves.
     const field=nearAmberBelt((cx+.5)*ROCK_CELL,(cy+.5)*ROCK_CELL);
     const regional=amberRegion((cx+.5)*ROCK_CELL,(cy+.5)*ROCK_CELL);
-    const count=ordinary+(field?5:regional?3:0);
+    const pocketDensity=debrisPocketDensity((cx+.5)*ROCK_CELL,(cy+.5)*ROCK_CELL);
+    const count=ordinary+(field?5:regional?3:0)+Math.round(pocketDensity*8);
     for(let i=0;i<count;i++){
       const x=(cx+hash(cx*17+i,cy,this.seed))*ROCK_CELL;
       const y=(cy+hash(cx,cy*13+i,this.seed+3))*ROCK_CELL;
       if(Math.hypot(x,y)<250||inAmberCorridor(x,y)||
+        (i>=ordinary&&inRescueClearing(x,y))||
         (amberRegion(x,y)&&Math.abs(y-x*.2)<175))continue;
       const density=amberBeltDensity(x,y);
-      if(i>=ordinary&&density<.25&&!amberRegion(x,y))continue;
+      const pocket=debrisPocketDensity(x,y);
+      if(i>=ordinary+(field?5:regional?3:0)&&pocket<.22)continue;
+      if(i>=ordinary&&i<ordinary+(field?5:regional?3:0)&&
+       density<.25&&!amberRegion(x,y))continue;
       const r=23+Math.floor(hash(cx+i*3,cy-i*5,this.seed+8)*24)+
-        (density>=.25?10:0);
+        (density>=.25?10:0)+
+        (i>=ordinary+(field?5:regional?3:0)&&pocket>=.35?12:0);
       if(this.nearbyStations(x,y,170).some(b=>dist(b,{x,y})<105+r))continue;
       const rich=hash(Math.floor(x),Math.floor(y),this.seed)>(amberRegion(x,y)?.65:.82);
       const durability=(30+r*.65)*(rich?1.35:1);
