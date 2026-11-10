@@ -1,11 +1,11 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2-semantic-1-menu-ergonomics-1-combat-balance-1';
-import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2-semantic-1-menu-ergonomics-1-combat-balance-1-menu-depth-2';
+import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1';
 import {renderStationRoutePreview} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-network-defense-4-living-world-3-frontier-3-rpg-precision-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-world-feedback-1-menu-focus-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-integrity-2-mission-choices-1-enemy-growth-1-triangle-defense-1-station-trust-1';
 import {RULES, baseNames} from './balance.js?v=arcade-network-20';
 import {FLUX_INFRASTRUCTURE,stationFluxUpgradeOffer,fluxInfrastructureRank,
- weightedContourProduction} from './territory-economy.js?v=territory-logistics-1';
+ weightedContourProduction,stationFluxCapacity,FLUX_LOCAL_SHARE} from './territory-economy.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {RELAY_RANGE, RELAY_EXTENSION} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-territory-war-1';
 import {defenseStatus} from './network-defense.js?v=network-defense-4-territory-logistics-1';
 import {corridorOffer,CORRIDOR_OPERATION,corridorScanBonus,probeOffer,probeDataReady,PROBE_OPERATION} from './operations.js?v=weapons-cycle-2-station-ops-2-ops-audit-2';
@@ -17,7 +17,7 @@ import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer,refillQuote} from './field-weap
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1-sector-density-2';
 import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
-import {slotOpen,MODULES} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1-direct-fit-2-menu-focus-1-menu-ergonomics-1';
+import {slotOpen,MODULES} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1-direct-fit-2-menu-focus-1-menu-ergonomics-1-menu-depth-2';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
@@ -916,7 +916,8 @@ export function renderBasePanel(base,state){
  // never advertises an imaginary ship or an outdated hull configuration.
  const heroArt=heroMenuPortrait(state.level,state.hp,state.maxHp);
  const currentWeapons=(state.loadout?.slots||[]).map((id,i)=>id&&slotOpen(state.loadout,i)?
-  '<span class="base-mounted-weapon"><b>'+ (i===5?'H':i+1)+'</b> '+(MODULES[id]?.short||id)+'</span>':'').filter(Boolean);
+  '<button type="button" class="base-mounted-weapon" data-act="fitWeapon" data-id="'+id+'" data-slot="'+i+'" aria-label="Узел '+(i===5?'H':i+1)+': '+(MODULES[id]?.name||id)+'. Открыть оснащение">'+
+  '<b>'+(i===5?'H':i+1)+'</b> '+(MODULES[id]?.short||id)+'</button>':'').filter(Boolean);
  const quickRepair=o.repairAmount>0?
   action('repair','Починить · '+o.repairCost+' сплава · +'+Math.ceil(o.repairAmount)+' прочности',o.reasons.repair):
   '<span class="base-ready">Корпус исправен</span>';
@@ -1071,7 +1072,7 @@ export function renderBasePanel(base,state){
   '<p>ПВО отражает одну угрозу за заряд. Между перехватами проходит не меньше 0,7 с; снаряды остаются под защитой и при пропуске орбитальных ударов.</p>'+
   '<p>Стазис действует только в сети с домашним доком. Два обычных врага должны одновременно находиться не дальше 235 м от станции и 185 м от вас. Импульс останавливает до трёх на 2,6 с, затем восстанавливается 26 с. На боссов и цели операций не действует.</p>'+
   '<p>Пропуск орбитальных ударов позволяет использовать их против врагов и астероидов, но опасен и для вас.</p></div></details></section>';
- const stationDevelopment='<section class="base-station-development" aria-label="Развитие станции"><h3>'+menuIcon('upgrades')+'Технология всего флота</h3>'+
+ const stationDevelopment='<section class="base-station-development" aria-label="Развитие станции"><h3>'+menuIcon('upgrades')+'Вклад станции в технологию флота</h3>'+
   '<p class="dev-station-currency">На каждой станции можно один раз улучшить общую технологию флота. Результат действует во всём мире. Нужен сплав; очки пилота не расходуются.</p>'+
   '<div class="dev-station-level" aria-label="Развитие технологии сети"><strong>'+o.tech.name+'</strong><span>Общий уровень '+o.level+' из 6 · '+(base.usedUpgrade?'вклад этой станции уже использован':'эта станция ещё может улучшить технологию')+'</span>'+
   '<progress value="'+o.level+'" max="6" aria-label="Изучено уровней технологии"></progress></div>'+
@@ -1087,6 +1088,10 @@ export function renderBasePanel(base,state){
   '<p>Добыча '+fluxRate.toFixed(2)+' флюкса/мин · поддержание поля '+
   (fluxFields.length*.24).toFixed(2)+' флюкса/мин · доступно '+
   (state.world?.contours?.flux||0).toFixed(2)+' флюкса. '+
+  'На этой станции: '+(base.fluxStored||0).toFixed(2)+'/'+stationFluxCapacity(base)+
+  ' флюкса; глубина '+(base.fluxDepth||0)+'. '+
+  'Добыча распределяется: '+Math.round(FLUX_LOCAL_SHARE*100)+'% местным складам, '+
+  Math.round((1-FLUX_LOCAL_SHARE)*100)+'% общей казне. '+
   (state.world?.contours?.territoryPowered===false?'Контур обесточен: снабжение возобновится после пополнения запаса.':
    'Поддержание поля оплачивается автоматически.')+'</p>'+
   '<div class="base-grid">'+Object.entries(FLUX_INFRASTRUCTURE).map(([key,cfg])=>{
@@ -1098,14 +1103,17 @@ export function renderBasePanel(base,state){
  const development=renderDevelopmentPanel({...state,baseActive:active,station:base})+
   (state.doctrine?'<section class="base-doctrine-service"><h3>Смена доктрины</h3><p>Вернёт 1 очко развития. Новый стиль можно выбрать здесь же.</p>'+
    action('respec','Сменить доктрину · 12 сплава',o.ore<12?'Нужно 12 сплава':'')+'</section>':'');
- const network='<div class="base-operations">'+threats+territorySummary(base,state)+
+ const network='<div class="base-operations"><section class="base-network-scope"><h3>Управление территорией</h3>'+
+  '<p>Здесь вы управляете выбранной станцией, местными сооружениями, флюксом и обороной. Постоянная вместимость опорных линий развивается отдельно.</p>'+
+  '<button type="button" data-act="openDevelopment" data-id="network">Открыть развитие сети →</button></section>'+
+  threats+territorySummary(base,state)+
   stationDevelopment+fluxInfrastructure+defense+capturedWing+
   '<section class="base-network-direct" data-hangar-section="transit"><h3>'+menuIcon('navigation')+'Перелёты между станциями</h3>'+
   (transit||'<p>Для перелёта нужна связь этой станции с домашним доком и ещё хотя бы одна доступная станция назначения.</p>')+'</section></div>';
  const opening=active?
   '<nav class="base-tabs" role="tablist" aria-label="Разделы станции">'+
   tabButton('summary','Обзор',selected)+tabButton('operations','Задания',selected,o.contract.status==='ready'?'Награда':state.firstHardwareReward==='pending'?'Оружие':'')+
-  tabButton('hangar','Оснащение',selected)+tabButton('development','Развитие',selected,state.points?'Свободно очков: '+state.points:'')+tabButton('network','Станция',selected,threats?'Угроза':'')+'</nav>'+
+  tabButton('hangar','Оснащение',selected)+tabButton('development','Развитие',selected,state.points?'Свободно очков: '+state.points:'')+tabButton('network','Территория',selected,threats?'Угроза':'')+'</nav>'+
   tabPanel('summary',selected,dashboard+overviewServices+(report?'<details class="base-secondary-info base-report-details">'+
     '<summary>Итоги последнего вылета</summary>'+report+'</details>':''))+
   tabPanel('operations',selected,operations)+

@@ -13,7 +13,7 @@ import {squadRoleDestination} from './enemy-squad-plans.js?v=enemy-squad-plans-1
 import {updateEnemyGunnery} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1';
 import {enemyRockDetour} from './enemy-navigation.js?v=enemy-nav-1';
 import {tacticalDecoy} from './tactical-fields.js?v=tactical-field-2';
-import {moveMote} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1';
+import {moveMote} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1';
 import {turretBranchRank} from './turret-growth.js';
 import {updateLastStand} from './enemy-last-stand.js?v=redteam-20261109-1';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
@@ -267,8 +267,10 @@ const pickTarget=(e,game)=>{
   if(target===game.player&&['flanker','fighter','gunship'].includes(e.type)&&
      !e.relayAssault&&!e.stationRaid){
     let nearest=null,closest=Infinity;
-    for(const depot of game.world?.contours?.fluxDepots||[]){
-      if(depot.hp<=0||depot.stored<.25||game.time<depot.readyAt)continue;
+    for(const depot of [...(game.world?.contours?.fluxDepots||[]),
+      ...(game.world?.contours?.fluxSiphonHives||[])]){
+      if(depot.hp<=0||(depot.kind!=='flux-siphon-hive'&&depot.stored<.25)||
+         game.time<depot.readyAt)continue;
       const distance=dist(e,depot);
       if(distance<350&&distance<closest&&game.enemyCanSee?.(e,depot)){
         nearest=depot;closest=distance;

@@ -1,7 +1,7 @@
 /** Short, witnessed cause-and-effect records. The industrial and radio systems
  * remain the source of truth; these entries never change enemy resources.
  * Undiscovered stations and invisible radio traffic must not reach this API. */
-import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1-triangle-defense-1';
+import {contourFields} from './territory-system.js?v=contours-1-world-feedback-1-triangle-defense-1-flux-siphon-roads-1';
 const html=s=>String(s).replace(/[&<>"']/g,c=>({
  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
 }[c]));
@@ -47,12 +47,15 @@ export function recordContourFeedback(game,events){
  }
  const deliveries=events.filter(e=>e.kind==='delivered'&&e.amount>0);
  const total=deliveries.reduce((sum,e)=>sum+e.amount,0);
+ const local=deliveries.reduce((sum,e)=>sum+(e.local??0),0),
+  treasury=deliveries.reduce((sum,e)=>sum+(e.treasury??e.amount),0);
  if(total>.05){
   const field=fields.get(deliveries[0].fieldId);
   recorded+=Number(recordWorldFeedback(game,{key:'contour-flux:'+Math.floor(game.time),
    label:'ФЛЮКС ДОСТАВЛЕН',kind:'industry',
    cause:'Плазмофаги вернулись с флюксом',
-   effect:'Запас вырос на '+total.toFixed(1)+'; его можно направить на щит или ложный маяк станции',
+   effect:'Добыто '+total.toFixed(1)+' флюкса: '+local.toFixed(1)+
+    ' в местных хранилищах и '+treasury.toFixed(1)+' в казне',
    x:field?.anchor.x,y:field?.anchor.y}));
  }
  return recorded;

@@ -1,5 +1,6 @@
 import {newTrialLedger,productiveContourFields,validContourTrials} from './contour-trials.js?v=swarm-siege-1';
-import {fluxFieldYields,advanceFluxMaintenance} from './territory-economy.js';
+import {fluxFieldYields,advanceFluxMaintenance,FLUX_LOCAL_SHARE,
+ syncStationFluxDepths,storeFieldFlux} from './territory-economy.js?v=flux-siphon-roads-1';
 
 // Territorial links appear automatically between powered friendly stations.
 // They remain distinct from the shorter-range radio tree for station services.
@@ -25,7 +26,9 @@ export const createContours=()=>({links:[],flux:0,launches:{},harvesters:[],deli
  nextLaunchAt:0,pulseReadyAt:0,reserve:null,sortie:null,nextSortieAt:0,
  trials:newTrialLedger(),artillery:[],artilleryPackets:[],artilleryShells:[],artillerySerial:0,
  supportTurrets:[],supportPackets:[],supportSerial:0,turretSlotRank:0,
- fluxDepots:[],fluxDepotPackets:[],fluxDepotSerial:0,maintenanceDebt:0,territoryPowered:true});
+ fluxDepots:[],fluxDepotPackets:[],fluxDepotSerial:0,maintenanceDebt:0,territoryPowered:true,
+ fluxSiphonHives:[],fluxSiphonSerial:0,fluxRoads:[],fluxRoadPackets:[],fluxRoadSerial:0,
+ fluxHarvestedLocally:0,fluxSpilled:0});
 
 export function contourLinkOffer(world,firstId,secondId){
  const state=world.contours,a=world.stations.get(firstId),b=world.stations.get(secondId);
@@ -269,6 +272,7 @@ export function consumeContourReserve(world,stationId,time){
 export function advanceContours(world,time,dt,enemies=[],player=null){
  const state=world.contours;if(!state||dt<=0)return [];
  const fields=productiveContourFields(world,contourFields(world)),byId=new Map(fields.map(f=>[f.id,f]));
+ syncStationFluxDepths(world,fields);
  const yields=fluxFieldYields(world,fields),yieldById=new Map(yields.map(y=>[y.field.id,y.output]));
  const events=[];
  advanceFluxMaintenance(state,fields.length,dt);
@@ -299,9 +303,15 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
   if(h.phase==='out'&&h.progress>=1){h.phase='gather';h.progress=0;}
   else if(h.phase==='gather'&&h.progress>=.24){h.phase='back';h.progress=0;}
   else if(h.phase==='back'&&h.progress>=1){
-   state.flux+=h.value;
-   state.delivered+=h.value;h.phase='done';
-   events.push({kind:'delivered',amount:h.value,fieldId:h.fieldId});continue;
+   const plannedLocal=h.value*FLUX_LOCAL_SHARE,
+    local=storeFieldFlux(world,field,plannedLocal),
+    treasury=h.value*(1-FLUX_LOCAL_SHARE),total=local+treasury;
+   state.fluxSpilled=(state.fluxSpilled||0)+Math.max(0,plannedLocal-local);
+   state.flux+=treasury;
+   state.fluxHarvestedLocally=(state.fluxHarvestedLocally||0)+local;
+   state.delivered+=total;h.phase='done';
+   if(total>0)events.push({kind:'delivered',amount:total,local,treasury,fieldId:h.fieldId});
+   continue;
   }
   const t=h.phase==='out'?Math.min(1,h.progress):h.phase==='back'?1-Math.min(1,h.progress):1;
   const x=field.anchor.x+(field.center.x-field.anchor.x)*t;

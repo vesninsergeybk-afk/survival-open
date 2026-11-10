@@ -115,7 +115,7 @@ test('station module choice and network transit no longer require expanding anot
  const network=renderBasePanel(dock,state({baseTab:'network',connectedBases:2,transfers:[friend]}));
  assert.match(network,/<section class="base-network-direct" aria-label="Оснащение станции">/);
  assert.match(network,/data-act="installModule"/);
- assert.match(network,/Технология всего флота/);
+ assert.match(network,/Вклад станции в технологию флота/);
  assert.doesNotMatch(network,/data-act="openDevelopment" data-id="station"/);
  assert.match(network,/<section class="base-network-direct" data-hangar-section="transit">/);
  assert.match(network,/data-act="transfer" data-role="1:0"/);

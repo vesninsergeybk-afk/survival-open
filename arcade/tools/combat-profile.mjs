@@ -6,6 +6,9 @@ import {beamDamage,STARTER_COMBAT} from '../balance.js';
 import {ENEMY_TYPES,IRIS_COMBAT} from '../ai.js';
 import {ENEMY_GUNNERY,gunProfile} from '../enemy-gunnery.js';
 import {moduleStats} from '../ship-loadout.js';
+import {ENEMY_AWARENESS} from '../enemy-awareness.js';
+import {SIGNAL_AI} from '../signal-perception.js';
+import {HUD_RADAR_RANGE} from '../hud.js';
 
 // Rank allocations total no more than one skill point per level gained.
 // They are illustrative builds, not promises about the typical player's gear.
@@ -45,6 +48,10 @@ export function combatTierProfile(build){
   ship:{hull:hullHp,speed:STARTER_COMBAT.speed+35*engine,
    plasmaDamage:+spec.damage.toFixed(2),plasmaRange:spec.range,
    plasmaInterval:+spec.interval.toFixed(3)},
+  // Distances are nominal radii only: rocks, facing, sensor sampling and
+  // combat state determine whether an actual contact occurs.
+  contactDistances:{plasmaBeforePatrolSight:ENEMY_AWARENESS.directRange-spec.range,
+   plasmaBeforeSignalSight:SIGNAL_AI.detectRadius-spec.range},
   enemyFire:{scout:shot(IRIS_COMBAT.damage,IRIS_COMBAT.projectileSpeed,
    IRIS_COMBAT.charge),
    fighter:shot(fighter.damage,fighter.speed,fighter.charge,fighter.shots||1),
@@ -56,6 +63,12 @@ export function combatTierProfile(build){
 }
 export const combatTierMatrix=()=>({
  scope:'Theory: one unblocked plasma emitter; enemy HP grows with flight time; no actual hit rate or enemy count',
+ sensorEnvelope:{patrolDirectSight:ENEMY_AWARENESS.directRange,
+  extractionPatrolSight:SIGNAL_AI.detectRadius,
+  pilotIntentLineOfSight:STARTER_COMBAT.intentRange,
+  cockpitRadarRange:HUD_RADAR_RANGE,
+  stationDiscoveryByRadarRank:[570,760,950],
+  caveat:'Station discovery is separate from tactical radar. Optical contact requires unobstructed facing and sampled sight; radar range does not imply lock-on.'},
  tiers:BENCHMARK_BUILDS.map(combatTierProfile)
 });
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)

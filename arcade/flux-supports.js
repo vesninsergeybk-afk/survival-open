@@ -5,7 +5,7 @@ import {arcChainCount,arcRange,arcCooldown,arcSlowSeconds,laserEmitters,laserCoo
  laserBurst,laserRange,hiveLimit,hiveRange,hiveArmor,supportSupply,turretBranchRank,
  validTurretBranches} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
-import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1';
+import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
 
 // All three structures spend delivered flux. A nest pays for each replacement
 // drone; the other two consume prepaid charges instead of free damage ticks.
@@ -53,7 +53,8 @@ export function supportOffer(world,player,point,type){
   return {ok:false,reason:'Достигнут предел сооружений'};
  if((s.supportTurrets||[]).filter(t=>t.hp>0).length>=SUPPORT_MAX)
   return {ok:false,reason:'Достигнут предел вспомогательных установок'};
- if([...(s.artillery||[]),...(s.supportTurrets||[]),...(s.fluxDepots||[]).filter(t=>t.hp>0)]
+ if([...(s.artillery||[]),...(s.supportTurrets||[]),...(s.fluxDepots||[]).filter(t=>t.hp>0),
+  ...(s.fluxSiphonHives||[]).filter(t=>t.hp>0)]
   .some(t=>d(t,point)<FLUX_ARTILLERY.clearance))
   return {ok:false,reason:'Слишком близко к другому сооружению'};
  if([...world.stations.values()].some(st=>d(st,point)<FLUX_ARTILLERY.stationClearance))

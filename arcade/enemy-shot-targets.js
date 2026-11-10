@@ -74,7 +74,8 @@ export function hitFriendlyShip(game,shot){
     }
     return true;
   }
-  for(const depot of game.world?.contours?.fluxDepots||[]){
+  for(const depot of [...(game.world?.contours?.fluxDepots||[]),
+   ...(game.world?.contours?.fluxSiphonHives||[])]){
     if(depot.hp<=0||game.time<depot.readyAt||
       Math.hypot(shot.x-depot.x,shot.y-depot.y)>=shot.r+(depot.r||38))continue;
     shot.alive=false;depot.hp=Math.max(0,depot.hp-shot.damage);

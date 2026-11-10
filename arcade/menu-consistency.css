@@ -134,6 +134,8 @@
  display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border:1px solid #466c7d;
  border-radius:5px;background:#0e2635;color:#d5edf3;
 }
+#overlay .base-dialog button.base-mounted-weapon{min-height:44px;margin:0;cursor:pointer;font:inherit}
+#overlay .base-dialog button.base-mounted-weapon:hover{background:#214557;border-color:#9bc8d9}
 #overlay .base-dialog .base-mounted-weapon b{
  display:inline-grid;place-items:center;min-width:22px;min-height:22px;border-radius:4px;
  background:#245165;color:#d8fbff;
@@ -153,6 +155,23 @@
 #overlay .base-dialog .base-action-reason{flex:1 1 100%;font-size:12px;color:#d3bda5;line-height:1.3}
 #overlay .base-dialog .base-overview-other-services{margin-top:12px}
 #overlay .base-dialog .base-overview-other-services .base-sortie-context{margin:12px 0}
+#overlay .base-dialog .base-network-scope{padding:12px 15px;border:1px solid #507483;border-radius:6px;background:#142d3a;margin-bottom:12px}
+#overlay .base-dialog .base-network-scope h3{font-size:17px;margin:0 0 6px;color:#edf1ed}
+#overlay .base-dialog .base-network-scope p{font-size:13px;color:#bbd3dd;line-height:1.5;margin:0 0 9px}
+#overlay .base-dialog .base-network-scope button{min-height:44px;margin:0;padding:9px 13px;background:#24495a;color:#e5f8fb;border:1px solid #658da0;border-radius:5px}
+#overlay .base-dialog .hg-replacement-prompt{margin:0 0 10px;padding:12px;border:1px solid #c89c60;border-radius:6px;background:#413223;color:#ffe8bb}
+#overlay .base-dialog .hg-replacement-prompt p{font-size:13px;color:#f0d9b6;margin:5px 0 0;line-height:1.5}
+#overlay .progression-ui .prog-weapon-subtabs{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;overflow:visible;padding:2px 0 12px}
+#overlay .progression-ui .prog-weapon-group{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0}
+#overlay .progression-ui .prog-weapon-group>.prog-subtab-label{min-width:90px;font-size:11px;letter-spacing:.06em}
+#overlay .progression-ui .prog-weapon-group>button{flex:0 1 auto;white-space:normal}
+#overlay .progression-ui .prog-weapon-more{min-width:0;border-top:1px solid #355666;padding-top:5px}
+#overlay .progression-ui .prog-weapon-more>summary{display:flex;align-items:center;min-height:44px;padding:6px 11px;border:1px solid #486979;border-radius:5px;background:#152e3b;color:#c9dce4;font-size:12px;font-weight:700;cursor:pointer}
+#overlay .progression-ui .prog-weapon-more[open]>.prog-weapon-group{padding:8px 0 3px}
+#overlay .progression-ui .prog-workspace-head .prog-points-tools{display:grid;gap:4px;justify-items:end;min-width:0}
+#overlay .progression-ui .prog-workspace-head .prog-ledger{margin:0;width:min(100%,370px)}
+#overlay .progression-ui .prog-workspace-head .prog-ledger-body{max-height:220px;overflow:auto}
+#overlay .progression-ui .prog-tree>.prog-detail-inline{display:block;width:100%;max-width:100%;margin:3px 0 16px;grid-column:auto}
 #overlay .base-dialog .hg-view-nav{grid-template-columns:repeat(2,minmax(0,1fr))}
 #overlay .base-dialog .menu-context-return{
  display:inline-flex;justify-content:center;align-items:center;min-height:40px;margin:8px 0 12px;
@@ -179,4 +198,7 @@
  #overlay .base-dialog .base-action-reason{flex:auto}
  #overlay .base-dialog .base-mounted-weapon{font-size:11px}
  #overlay .base-dialog .prog-weapon-fit{flex:1 1 100%;margin-left:0}
+ #overlay .progression-ui .prog-weapon-group>.prog-subtab-label{flex:1 1 100%;padding-left:3px}
+ #overlay .progression-ui .prog-weapon-group>button{flex:1 1 120px}
+ #overlay .progression-ui .prog-workspace-head .prog-points-tools{justify-items:start;width:100%}
 }

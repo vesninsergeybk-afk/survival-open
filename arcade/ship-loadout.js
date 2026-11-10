@@ -169,9 +169,11 @@ export class HangarSession {
     this.blueprints=this.blueprints.map((_,i)=>validBlueprint(saved.items[i])?{slots:[...saved.items[i].slots]}:null);
   }catch{/* Storage is optional, including blocked or damaged storage. */}
   this.slot=0;this.filter='all';this.catalog=false;this.inspect=false;this.selected='plasma';
+  this.chooseReplacement=false;this.requestedWeapon=null;
   this.focusWeapon='plasma';this.focusTactic=null;this.message='';
  }
- begin(loadout){this.draft=cloneLoadout(loadout);this.catalog=false;this.inspect=false;this.message='';}
+ begin(loadout){this.draft=cloneLoadout(loadout);this.catalog=false;this.inspect=false;this.message='';
+  this.chooseReplacement=false;this.requestedWeapon=null;}
  dirty(loadout){return this.draft?.slots.some((id,i)=>id!==loadout.slots[i]);}
  dispatch(data,context){
   const current=context.loadout;if(!this.draft)this.begin(current);
@@ -181,8 +183,9 @@ export class HangarSession {
    const slot=Number(data.id);if(!Number.isInteger(slot)||slot<0||slot>5)return;
    if((this.slot===5)!==(slot===5))this.filter='all';
    this.slot=slot;this.catalog=true;this.inspect=!slotOpen(current,slot);
-   this.selected=this.draft.slots[slot]||(slot===5?'howitzer':'plasma');
+   this.selected=this.chooseReplacement&&this.requestedWeapon||this.draft.slots[slot]||(slot===5?'howitzer':'plasma');
    this.focusWeapon=this.selected;
+   this.chooseReplacement=false;this.requestedWeapon=null;
   }
   if(act==='hgFocusWeapon'&&Object.hasOwn(MODULES,data.id)){
    this.focusWeapon=data.id;

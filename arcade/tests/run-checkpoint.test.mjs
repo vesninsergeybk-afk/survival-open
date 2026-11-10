@@ -247,6 +247,41 @@ test('territorial warehouses, in-flight cargo and paid station technology surviv
  assert.equal(migrated.world.contours.territoryPowered,true);
 });
 
+test('siphon hives, transport roads, in-flight road cargo and station tanks survive checkpoint',()=>{
+ const g=scene(),state=g.world.contours;
+ state.fluxSiphonSerial=1;state.fluxRoadSerial=1;
+ state.fluxHarvestedLocally=4;state.fluxSpilled=.5;
+ state.fluxDepotSerial=2;
+ state.fluxDepots=[1,2].map((id)=>({kind:'flux-depot',id,
+  x:g.player.x+100*id,y:g.player.y+150*id,r:38,hp:100,maxHp:100,
+  stored:2,chargeCredit:0,level:0,depth:0,readyAt:1}));
+ state.fluxSiphonHives=[{kind:'flux-siphon-hive',id:1,x:g.player.x+300,
+  y:g.player.y+200,r:37,hp:90,maxHp:90,level:2,readyAt:1}];
+ state.fluxRoads=[{id:1,fromId:1,toId:2,readyAt:1,nextLaunchAt:260}];
+ state.fluxRoadPackets=[{roadId:1,fromId:1,toId:2,amount:.5,launchedAt:240,arriveAt:260}];
+ g.docked.fluxStored=2;g.docked.fluxDepth=0;
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(snapshot),true);
+ const fresh=scene();restoreCheckpoint(fresh,snapshot);
+ assert.equal(fresh.world.contours.fluxRoadPackets[0].amount,.5);
+ assert.equal(fresh.world.contours.fluxSiphonHives[0].level,2);
+ assert.equal(fresh.world.contours.fluxSpilled,.5);
+ assert.equal(fresh.world.home.fluxStored,2);
+ const forged=unpackRun(packRun(snapshot));
+ forged.world.contours.fluxRoadPackets[0].amount=300;
+ assert.equal(validateCheckpoint(forged),false);
+ const invalidTank=unpackRun(packRun(snapshot));
+ invalidTank.world.stations.find(([id])=>id===g.docked.id)[1].fluxStored=1000;
+ assert.equal(validateCheckpoint(invalidTank),false);
+ const old=unpackRun(packRun(snapshot));
+ for(const key of ['fluxSiphonHives','fluxRoads','fluxRoadPackets','fluxSiphonSerial',
+  'fluxRoadSerial','fluxHarvestedLocally','fluxSpilled'])delete old.world.contours[key];
+ assert.equal(validateCheckpoint(old),true);
+ const migrated=scene();restoreCheckpoint(migrated,old);
+ assert.deepEqual(migrated.world.contours.fluxSiphonHives,[]);
+ assert.deepEqual(migrated.world.contours.fluxRoads,[]);
+});
+
 test('field mission attempts, full wins and bounded results survive a station checkpoint',()=>{
  const g=scene(),base=g.docked;
  base.fieldOperationRuns={'line-break':3};
