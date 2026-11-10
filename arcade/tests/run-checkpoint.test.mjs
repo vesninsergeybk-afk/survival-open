@@ -32,6 +32,16 @@ const source=readFileSync(entry,'utf8').replace(/\nnew ArcadeGame\(\);\s*$/,'\n'
 const {ArcadeGame}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 const noop=()=>{};
 const memory=()=>({values:new Map(),getItem(k){return this.values.get(k)||null;},setItem(k,v){this.values.set(k,v);}});
+
+test('specialized howitzer and manoeuvre doctrine survive checkpoint serialization',()=>{
+ const g=scene();g.shipLoadout.specializations.howitzer={path:'piercing',rank:2};
+ g.doctrine='countermaneuver';
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(snapshot),true);
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ assert.deepEqual(restored.shipLoadout.specializations.howitzer,{path:'piercing',rank:2});
+ assert.equal(restored.doctrine,'countermaneuver');
+});
 function scene(){
  const g=Object.create(ArcadeGame.prototype),world=new World(20261102),base=world.home;
  base.active=true;base.discovered=true;world.discovered.add(base.id);

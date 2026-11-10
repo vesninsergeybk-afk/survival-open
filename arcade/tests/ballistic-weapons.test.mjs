@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {game} from './weapons-scene.mjs';
 import {segmentCircle,FLAK_PELLETS_PER_TARGET,FLAK_POOL_CAP,FLAK_SPEED,
  HEAVY_SHELL_SPEED,updateFlakPellets,updateHeavyShells,drawBallisticWeapons} from '../ballistic-weapons.js';
-import {updateHowitzer,planHowitzer} from '../ship-weapons.js';
+import {updateHowitzer,planHowitzer,drawHowitzerAim} from '../ship-weapons.js';
 
 const enemy=(x,y=0,hp=500)=>({x,y,vx:0,vy:0,r:15,hp,maxHp:hp,type:'fighter',converted:false});
 const rock=(x,y=0,r=40)=>({x,y,r,hp:700,maxHp:700,alive:true});
@@ -101,6 +101,59 @@ test('howitzer telegraphs, launches a moving shell, and damages only on arrival'
  strike(g,.6);assert.equal(g.heavyShells.length,0);
  assert.equal(t.hp,320);
  strike(g,.3);assert.equal(t.hp,320,'a finished explosion must not repeat');
+});
+
+test('cluster howitzer actually reaches a wider formation at the cost of time and heat',()=>{
+ const g=heavy(),center=enemy(350),edge=enemy(350,138);
+ g.shipLoadout.specializations.howitzer={path:'cluster',rank:1};
+ g.grid.insert(center);g.grid.insert(edge);
+ const plan=planHowitzer(g);assert.ok(plan.ok);
+ assert.equal(plan.charge.total,1.5);
+ assert.equal(plan.charge.profile.radius,150);
+ g.heavyCharge=plan.charge;updateHowitzer(g,1.51);
+ assert.equal(g.heavyCooldown,14);
+ assert.equal(g.weaponThermal.current,78);
+ assert.equal(g.heavyShells[0].profile.path,'cluster');
+ strike(g,.8);
+ assert.equal(center.hp,350);
+ assert.equal(edge.hp,350,'the edge of the formation takes real splash damage');
+});
+
+test('piercing howitzer rewards an actual direct hull hit, but not a nearby splash victim',()=>{
+ const g=heavy(),center=enemy(350),neighbor=enemy(365,75);
+ g.shipLoadout.specializations.howitzer={path:'piercing',rank:1};
+ g.grid.insert(center);g.grid.insert(neighbor);
+ const plan=planHowitzer(g);assert.equal(plan.charge.profile.radius,85);
+ g.heavyCharge=plan.charge;updateHowitzer(g,1.36);
+ assert.equal(g.weaponThermal.current,76);
+ strike(g,.8);
+ assert.equal(center.hp,235,'direct impact receives 130+135 damage');
+ assert.equal(neighbor.hp,370,'secondary target receives only 130 damage');
+});
+
+test('howitzer aim indicator uses the exact purchased radius',()=>{
+ const g=heavy();g.shipLoadout.specializations.howitzer={path:'cluster',rank:2};
+ const plan=planHowitzer(g,{x:300,y:0});assert.ok(plan.ok);
+ const circles=[];
+ const ctx={save(){},restore(){},setLineDash(){},beginPath(){},stroke(){},
+  arc(x,y,r){circles.push(r);}};
+ drawHowitzerAim(ctx,plan.charge);
+ assert.equal(circles[0],180);
+ assert.equal(plan.charge.total,1.65);
+});
+
+test('a piercing shell cannot damage the protected station core when it breaks the last turret',()=>{
+ const g=heavy(),turret={x:350,y:0,r:22,hp:80,maxHp:80};
+ const base={id:'heavy-guard-test',x:350,y:0,r:60,hp:500,enemy:true,
+  captured:false,strategicRole:'military',turrets:[turret]};
+ g.world.nearbyStations=()=>[base];
+ g.hitTurret=(t,damage)=>{t.hp=Math.max(0,t.hp-damage);};
+ g.hitEnemyBase=(b,damage)=>{b.hp=Math.max(0,b.hp-damage);};
+ g.shipLoadout.specializations.howitzer={path:'piercing',rank:2};
+ const plan=planHowitzer(g,{x:350,y:0});assert.ok(plan.ok);
+ g.heavyCharge=plan.charge;updateHowitzer(g,1.36);strike(g,.8);
+ assert.equal(turret.hp,0);
+ assert.equal(base.hp,500,'a turret cannot expose the core during the same explosion');
 });
 
 test('a moving target can escape the old marked point during heavy-shell flight',()=>{

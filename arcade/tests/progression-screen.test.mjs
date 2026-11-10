@@ -204,13 +204,29 @@ test('network tree offers only the real flux-funded upgrade, without redirect ca
  assert.doesNotMatch(html,/0\/1 · доступно/);
 });
 
-test('special weapons with no purchase tree still have a real route to fitting',()=>{
+test('a not-yet-installed howitzer shows locked choices and a direct fitting route',()=>{
  const g=docked();g.hangarSession.focusWeapon='howitzer';
  const model=progressionModel(state(g,'weapons'));
- assert.equal(model.nodes.length,1);
- assert.equal(model.nodes[0].action,'fitWeapon');
- assert.equal(model.nodes[0].actionId,'howitzer');
+ assert.equal(model.nodes.length,2);
+ assert.ok(model.nodes.every(node=>node.action==='hgSpec'&&!node.canAct));
+ assert.deepEqual(model.nodes.map(node=>node.level),[14,14]);
+ assert.deepEqual(model.nodes.map(node=>node.masteryAt),[18,18]);
  assert.match(renderProgressionScreen(state(g,'weapons')),/data-act="fitWeapon" data-id="howitzer"/);
+});
+
+test('countermaneuver is a real mutually exclusive pilot doctrine with a one-point cost',()=>{
+ const g=docked();g.player.level=4;g.player.points=1;g.developmentDomain='pilot';
+ g.skillBranch='Корабль';
+ const first=progressionModel(state(g,'pilot'));
+ const node=first.nodes.find(n=>n.id==='doctrine-countermaneuver');
+ assert.ok(node?.canAct);
+ assert.match(node.description,/рывок|Shift/);
+ g.buyDoctrine('countermaneuver');
+ assert.equal(g.doctrine,'countermaneuver');
+ assert.equal(g.player.points,0);
+ const second=progressionModel(state(g,'pilot'));
+ assert.equal(second.nodes.find(n=>n.id==='doctrine-assault').status,'exclusive');
+ assert.equal(second.nodes.find(n=>n.id==='doctrine-countermaneuver').status,'mastered');
 });
 
 test('progression screen explains a remapped activation key and warns when field weapon occupies it',()=>{

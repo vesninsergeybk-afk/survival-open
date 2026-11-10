@@ -176,24 +176,27 @@ export function updateFlakPellets(game,dt){
 }
 
 /** One unguided shell per heavy mount. Targets may dodge after the telegraph. */
-export function launchHeavyShell(game,from,aim){
+export function launchHeavyShell(game,from,aim,profile={radius:110,damage:180,directBonus:0}){
  const d=distance(from,aim);if(!(d>0))return false;
  const ux=(aim.x-from.x)/d,uy=(aim.y-from.y)/d;
  game.heavyShells=[{x:from.x,y:from.y,px:from.x,py:from.y,
-  vx:ux,vy:uy,tx:aim.x,ty:aim.y,remaining:d,totalDistance:d}];
+  vx:ux,vy:uy,tx:aim.x,ty:aim.y,remaining:d,totalDistance:d,profile:{...profile}}];
  emitWeaponFx(game,'howitzer',from,point(from.x+ux*60,from.y+uy*60),{impact:false});
  game.heritage?.play?.('rocketShot',.2,from);
  return true;
 }
 
-function detonateHeavy(game,hit){
- game.heritage?.vfx?.nova(hit.x,hit.y,110,'violet');
+function detonateHeavy(game,hit,shell,direct=null){
+ const profile=shell.profile||{radius:110,damage:180,directBonus:0};
+ const tint=profile.path==='cluster'?'gold':profile.path==='piercing'?'cyan':'violet';
+ game.heritage?.vfx?.nova(hit.x,hit.y,profile.radius,tint);
  game.heritage?.play?.('howitzerShot',.35,hit);
  // Preserve target snapshots: a turret destroyed by this blast must not
  // expose its protected station core to the *same* explosion.
- for(const item of combatTargets(game,180,hit)){
-  const t=item.target;if(distance(t,hit)>110+targetRadius(item))continue;
-  damageTarget(game,item,180*blastCoverFactor(game,hit,t),'howitzer',
+ for(const item of combatTargets(game,profile.radius+90,hit)){
+  const t=item.target;if(distance(t,hit)>profile.radius+targetRadius(item))continue;
+  const bonus=direct?.target===t?profile.directBonus||0:0;
+  damageTarget(game,item,(profile.damage+bonus)*blastCoverFactor(game,hit,t),'howitzer',
    contactOnCircle(t.x,t.y,targetRadius(item),hit.x,hit.y));
  }
 }
@@ -213,9 +216,9 @@ export function updateHeavyShells(game,dt){
   shell.px=from.x;shell.py=from.y;shell.x=end.x;shell.y=end.y;
   shell.remaining-=step;
   if(first){
-   shells.splice(i,1);detonateHeavy(game,at(from,end,first.t));
+   shells.splice(i,1);detonateHeavy(game,at(from,end,first.t),shell,first.item);
   }else if(shell.remaining<=.01){
-   shells.splice(i,1);detonateHeavy(game,point(shell.tx,shell.ty));
+   shells.splice(i,1);detonateHeavy(game,point(shell.tx,shell.ty),shell);
   }
  }
 }
@@ -234,23 +237,25 @@ export function drawBallisticWeapons(ctx,game,fps=60,reducedMotion=false,camera=
   ctx.beginPath();ctx.moveTo(p.x-p.vx*9,p.y-p.vy*9);ctx.lineTo(p.x,p.y);ctx.stroke();
  }
  for(const s of game.heavyShells||[]){
+  const heavy=s.profile||{radius:110,path:null};
+  const color=heavy.path==='cluster'?'#ffd08b':heavy.path==='piercing'?'#82edff':'#c68afa';
   const fraction=1-s.remaining/Math.max(1,s.totalDistance||s.remaining||1);
   const height=Math.sin(Math.PI*Math.max(0,Math.min(1,fraction)))*
    Math.min(110,Math.max(32,(s.totalDistance||300)*.13));
   if(visible(s.x,s.y-height,40)||visible(s.x,s.y,40)){
    const drawY=s.y-height;
-   ctx.fillStyle='#c68afa';ctx.globalAlpha=.2;
+   ctx.fillStyle=color;ctx.globalAlpha=.2;
    ctx.beginPath();ctx.arc(s.x,s.y,8,0,TAU);ctx.fill();
    ctx.globalAlpha=1;
-   ctx.strokeStyle='#b06dff';ctx.lineWidth=fps<28?5:10;
+   ctx.strokeStyle=color;ctx.lineWidth=fps<28?5:10;
    ctx.beginPath();ctx.moveTo(s.x-s.vx*28,drawY-s.vy*28);ctx.lineTo(s.x,drawY);ctx.stroke();
-   ctx.strokeStyle='#ffdcff';ctx.lineWidth=2.6;
+   ctx.strokeStyle=heavy.path==='cluster'?'#fff0be':'#d7faff';ctx.lineWidth=2.6;
    ctx.beginPath();ctx.moveTo(s.x-s.vx*13,drawY-s.vy*13);ctx.lineTo(s.x,drawY);ctx.stroke();
    ctx.fillStyle='#fff4ff';ctx.beginPath();ctx.arc(s.x,drawY,fps<28?5:7,0,TAU);ctx.fill();
   }
   if(visible(s.tx,s.ty,120)){
-   ctx.strokeStyle='#e2b2ff99';ctx.lineWidth=2;
-   ctx.setLineDash([7,7]);ctx.beginPath();ctx.arc(s.tx,s.ty,110,0,TAU);ctx.stroke();ctx.setLineDash([]);
+   ctx.strokeStyle=color;ctx.globalAlpha=.55;ctx.lineWidth=2;
+   ctx.setLineDash([7,7]);ctx.beginPath();ctx.arc(s.tx,s.ty,heavy.radius,0,TAU);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
    if(!reducedMotion){
     ctx.strokeStyle='#e9b8ff66';ctx.beginPath();ctx.arc(s.tx,s.ty,18,0,TAU);ctx.stroke();
    }

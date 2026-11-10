@@ -69,6 +69,7 @@ import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon
 import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44-weapon-vfx-audit-1';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {reacquireMissile,applyRocketSplash} from './rocket-branches.js?v=weapon-branches-1';
+import {COUNTER_MANEUVER,deflectBurstShots} from './pilot-countermaneuver.js?v=pilot-doctrine-1';
 import {missionImageReady,paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
 import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1';
@@ -163,7 +164,8 @@ const SKILLS=[
 const DOCTRINES=[
  {id:'assault',title:'Штурмовик',desc:'Плазменный луч наносит на 22% больше урона в пределах 180 м. Подходите ближе к опасным целям.'},
  {id:'command',title:'Командир',desc:'Ведомые рядом с вами наносят на 25% больше урона. Сильнее всего с развитой эскадрой.'},
- {id:'prospect',title:'Старатель',desc:'Экстрактор на 15% мощнее и приносит ещё 1 сплав за астероид.'}
+ {id:'prospect',title:'Старатель',desc:'Экстрактор на 15% мощнее и приносит ещё 1 сплав за астероид.'},
+ {id:'countermaneuver',title:'Контрманёвр',desc:'Каждый рывок на Shift разворачивает до двух небольших снарядов, которые летят прямо в корабль, если они ближе 115 м. Тяжёлый огонь остаётся опасным.'}
 ];
 const fmt=n=>Number(n.toFixed(2)).toString().replace('.',',');
 const pointsWord=n=>n%100>=11&&n%100<=14?'очков':n%10===1?'очко':
@@ -1529,6 +1531,12 @@ export class ArcadeGame {
    p.burstCooldown=stats.cooldown;
    this.heritage.vfx.engineTrail(p.x,p.y,p.angle,'fighter',true,.12);
    this.heritage.play('boost',.6,{x:p.x,y:p.y});
+   const diverted=deflectBurstShots(this);
+   if(diverted){
+    this.heritage.vfx.nova(p.x,p.y,COUNTER_MANEUVER.radius,'cyan');
+    this.heritage.play('shieldBreak',.24,{x:p.x,y:p.y});
+    this.notice('КОНТРМАНЁВР · отклонено снарядов: '+diverted,1.8);
+   }
    return true;
   }
   presentMenu(preferred=''){
