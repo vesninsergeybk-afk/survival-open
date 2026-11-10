@@ -1,4 +1,4 @@
-/** Visual language for the four non-damaging tactical devices.
+/** Visual language for the four tactical devices, including their actual impacts.
  * The effect radius and expiry come from live gameplay state. Drawing is pure:
  * no timers, random state, physics changes or generated textures per frame.
  */
@@ -49,7 +49,7 @@ function pulseVfx(c,game,now,low,still,cam){
  }
 }
 
-function shellVfx(c,p,r,t,fade,low){
+function shellVfx(c,p,r,t,fade,low,field,now){
  // Rotating petals ride with the ship. The solid border is drawn by the base
  // field renderer; these inner arcs are movement and charge, not extra range.
  const count=low?2:4;
@@ -64,6 +64,12 @@ function shellVfx(c,p,r,t,fade,low){
   ray(c,p.x,p.y,r*.52,r*.78,a,'#8deafb',fade*.26,2);
  }
  dot(c,p.x,p.y,5,'#d8ffff',fade*.34);
+ const pulseAge=now-(field.pulseAt??-Infinity);
+ if(pulseAge>=0&&pulseAge<.42){
+  const progress=clamp(pulseAge/.42);
+  arc(c,p.x,p.y,r*(.22+.77*progress),0,TAU,'#c6ffff',
+   fade*(1-progress)*.85,low?2.2:3.4);
+ }
 }
 
 function decoyVfx(c,e,t,fade,low,game,cam){
@@ -99,7 +105,7 @@ function decoyVfx(c,e,t,fade,low,game,cam){
  }
 }
 
-function trapVfx(c,e,t,fade,low,branch){
+function trapVfx(c,e,t,fade,low,branch,now){
  const {x,y,radius:r}=e,sink=branch==='sink',snare=branch==='snare';
  const levels=low?2:3;
  for(let i=0;i<levels;i++){
@@ -130,6 +136,15 @@ function trapVfx(c,e,t,fade,low,branch){
  }
  dot(c,x,y,6,'#e0c7ff',fade*.56);
  arc(c,x,y,13,0,TAU,'#e6d6ff',fade*.56,1.3);
+ // These rings appear only after a real timed pulse found a target.
+ const hitAge=now-(e.pulseAt??-Infinity);
+ if(hitAge>=0&&hitAge<.45){
+  const progress=clamp(hitAge/.45);
+  arc(c,x,y,r*(.2+.72*progress),0,TAU,'#f3dcff',
+   fade*(1-progress)*.83,low?2.3:3.5);
+  if(!low)arc(c,x,y,r*(.14+.52*progress),0,TAU,'#ffeafa',
+   fade*(1-progress)*.43,1.7);
+ }
 }
 
 function jamVfx(c,e,t,fade,low){
@@ -165,7 +180,8 @@ function affectedEnemyVfx(c,game,now,low,cam){
   if(rendered>=(low?3:7))break;
   if(e.hp<=0||e.converted||!visible(e,26,cam)||
     !game.playerCanInspectEnemyIntent?.(e))continue;
-  const slowed=e.tacticalSlowUntil>now,repelled=e._tacticalRepel?.until>now;
+  const slowed=e.tacticalSlowUntil>now||(e._tacticalSpeed??1)<1,
+   repelled=e._tacticalRepel?.until>now;
   if(!slowed&&!repelled)continue;
   const radius=(e.r||14)+6;
   arc(c,e.x,e.y,radius,-Math.PI*.75,Math.PI*.1,
@@ -194,10 +210,10 @@ export function drawTacticalVfx(ctx,game,cam=null){
   const p=e.kind==='shell'?game.player:e;
   if(!p||!visible(p,e.radius,cam))continue;
   const fade=clamp((e.until-now)/.6);
-  if(e.kind==='shell')shellVfx(ctx,p,e.radius,t,fade,low);
+  if(e.kind==='shell')shellVfx(ctx,p,e.radius,t,fade,low,e,now);
   else if(e.kind==='decoy')decoyVfx(ctx,e,t,fade,low,game,cam);
   else if(e.kind==='trap')trapVfx(ctx,e,t,fade,low,
-   state.branches?.trap?.path);
+   state.branches?.trap?.path,now);
   else if(e.kind==='jam')jamVfx(ctx,e,t,fade,low);
  }
  pulseVfx(ctx,game,now,low,still,cam);

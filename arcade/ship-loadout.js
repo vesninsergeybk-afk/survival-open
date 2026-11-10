@@ -1,6 +1,6 @@
 import {ionDamage} from './ion-conductor.js?v=weapons-cycle-2-campaign-1-unlimited-hud-20261110';
 import {applySpecialization,howitzerProfile} from './weapon-specializations.js?v=howitzer-branches-1';
-import {TACTICAL_DEVICES} from './tactical-fields.js?v=tactical-field-2';
+import {TACTICAL_DEVICES} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {STARTER_COMBAT} from './balance.js';
 // Run-owned hardware; saved blueprints contain choices, never resources/unlocks.
 export const FRAME_STEPS=Object.freeze([

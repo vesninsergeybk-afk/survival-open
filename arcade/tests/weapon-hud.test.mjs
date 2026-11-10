@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {game} from './weapons-scene.mjs';
 import {createFieldLoan,fieldReady} from '../field-weapons.js';
 import {moduleStats} from '../ship-loadout.js';
+import {createTactical} from '../tactical-fields.js';
 import {weaponDeckState} from '../weapon-hud.js';
 
 const find=(state,id)=>state.rows.find(row=>row.id===id);
@@ -50,6 +51,21 @@ test('G field weapon is infinite and distinct from Space; loan without mounting 
  state=weaponDeckState(g);
  assert.equal(find(state,'field').status,'ГОТОВО');
  assert.equal(fieldReady(g.fieldLoan,g.time).ok,true,'legacy zero ammo cannot lock rental');
+});
+test('Space telemetry shows actual offensive effects and the live trapped crowd',()=>{
+ const g=game();g.tactical=createTactical();g.tactical.owned.push('trap');g.tactical.equipped='trap';
+ let row=find(weaponDeckState(g),'tactical');
+ assert.match(row.detail,/Радиус 242 м/);
+ assert.match(row.detail,/действует 8 с/);
+ assert.match(row.detail,/первый удар 9/);
+ assert.match(row.detail,/урон 5 \/ 0,8 с/);
+ g.tactical.effects.push({kind:'trap',x:100,y:0,radius:242,until:g.time+8});
+ g.enemies=[{x:150,y:0,hp:30,r:15},{x:800,y:0,hp:40,r:15}];
+ row=find(weaponDeckState(g),'tactical');
+ assert.match(row.detail,/в поле 1/);
+ g.tactical.equipped='jam';g.tactical.owned.push('jam');
+ assert.match(find(weaponDeckState(g),'tactical').detail,/подавление связи/);
+ assert.doesNotMatch(find(weaponDeckState(g),'tactical').detail,/урон 0/);
 });
 
 test('manual mouse weapon selection changes the live parameters, not just the label',()=>{

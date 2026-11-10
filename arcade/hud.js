@@ -7,7 +7,7 @@ import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1-e
 import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1';
-import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-1';
+import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110';
 const el = id => document.getElementById(id);
 const clamp01 = value => Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 const count = value => Math.round(value).toLocaleString('ru-RU');

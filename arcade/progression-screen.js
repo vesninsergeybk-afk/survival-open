@@ -1,6 +1,6 @@
 import {MODULES,FRAME_STEPS,SHIP_UPGRADES,createLoadout,moduleStats} from './ship-loadout.js?v=menu-ergonomics-1-tactical-slot-20261110';
 import {WEAPON_SPECIALIZATIONS,quoteSpecialization,specializationRequirements} from './weapon-specializations.js';
-import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalQuote} from './tactical-fields.js';
+import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalQuote} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {developmentPointLedger} from './experience.js';
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=tactical-slot-20261110';
 import {heroMenuPortrait} from './hero-menu-portrait.js';

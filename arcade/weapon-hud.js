@@ -3,7 +3,7 @@
 import {MODULES,moduleStats} from './ship-loadout.js';
 import {FIELD_WEAPONS} from './field-weapons.js';
 import {cometSpec,minesSpec} from './mouse-arsenal.js';
-import {TACTICAL_DEVICES,tacticalSpec} from './tactical-fields.js';
+import {TACTICAL_DEVICES,tacticalSpec} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {manualWeapons,selectedManual} from './manual-weapon-controls.js';
 import {plasmaDamageFactor} from './weapon-specializations.js';
 import {RULES} from './balance.js';
@@ -74,8 +74,25 @@ export function weaponDeckState(game){
  const tactic=TACTICAL_DEVICES[tactical.equipped]||TACTICAL_DEVICES.pulse;
  const tacticStats=tacticalSpec(tactical);
  const tacticKey=game.controlLabel?.('field')||'Пробел';
+ const fieldKind=tacticStats.id==='trap'?'trap':
+  tacticStats.id==='pulse'&&tacticStats.branch?.path==='shell'?'shell':null;
+ const liveField=fieldKind?(tactical.effects||[]).findLast(effect=>
+  effect.kind===fieldKind&&effect.until>time):null;
+ const liveCenter=liveField?.kind==='shell'?game.player:liveField;
+ const caught=liveField&&liveCenter?(game.enemies||[]).filter(enemy=>enemy.hp>0&&
+  !enemy.converted&&!enemy.boss&&Math.hypot(enemy.x-liveCenter.x,enemy.y-liveCenter.y)<=
+  liveField.radius+(enemy.r||0)).length:0;
+ const effectDetail='Радиус '+round(tacticStats.radius)+' м · '+
+  'действует '+round(tacticStats.duration)+' с · '+
+  (tacticStats.pulseEvery?(tacticStats.initialDamage?
+   'первый удар '+round(tacticStats.initialDamage)+' · ':'')+
+   'урон '+round(tacticStats.damage)+' / '+round(tacticStats.pulseEvery)+' с':
+   Number.isFinite(tacticStats.damage)?
+   'урон '+round(tacticStats.damage):tacticStats.id==='jam'?
+   'подавление связи':'отвлечение патруля')+
+  (liveField?' · в поле '+caught:'');
  rows.push(row('tactical','manual',tacticKey.toUpperCase()+' · '+tactic.short.toUpperCase(),
-  'Радиус '+round(tacticStats.radius)+' м · зарядка '+round(tacticStats.cooldown)+' с',
+  effectDetail+' · перезарядка '+round(tacticStats.cooldown)+' с',
   remaining(tactical.readyAt,time),inactive?'НЕДОСТУПНО':'','#c6b5ff'));
  const loan=game.fieldLoan,spec=loan&&FIELD_WEAPONS[loan.moduleId||'ion'];
  if(spec){

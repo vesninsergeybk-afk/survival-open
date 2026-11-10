@@ -1,8 +1,8 @@
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
 import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-direct-fit-2-menu-flow-2-menu-focus-1-tactical-slot-20261110';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-menu-rebuild-1-menu-audit-1-semantic-1-devscroll-1';
-import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1-tactical-field-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-menu-audit-1-semantic-1-tactical-slot-20261110';
-import {createTactical,applyTacticalChoice} from './tactical-fields.js?v=tactical-field-2';
+import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1-tactical-field-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-menu-audit-1-semantic-1-tactical-slot-20261110-space-impact-20261110';
+import {createTactical,applyTacticalChoice} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 
 let context,session;
 function setup(advanced){
