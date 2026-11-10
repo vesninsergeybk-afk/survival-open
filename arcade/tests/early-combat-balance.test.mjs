@@ -28,6 +28,13 @@ test('начальный корабль слабее на дистанции, н
   'с края дальности нельзя быстро срезать разведчика без ответного огня');
 });
 
+test('небольшой прирост стартовой скорости оставляет рывок и развитие двигателя полезными',()=>{
+ assert.equal(STARTER_COMBAT.speed,260);
+ assert.ok(STARTER_COMBAT.speed<248*1.06,'раннее облегчение не должно заменить двигатель');
+ assert.ok(STARTER_COMBAT.speed+35>STARTER_COMBAT.speed*1.12,
+  'первый ранг двигателя всё ещё даёт заметное ускорение');
+});
+
 test('обнаружение согласовано между патрулём, визуальным контактом и сигналом добычи',()=>{
  assert.equal(ENEMY_AWARENESS.directRange,STARTER_COMBAT.patrolSight);
  assert.equal(SIGNAL_AI.detectRadius,STARTER_COMBAT.signalSight);

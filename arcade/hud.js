@@ -6,7 +6,7 @@ import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=
 import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1-enemy-balance-2';
 import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
-import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1';
+import {expForNext} from './balance.js?v=early-progression-3';
 import {normalizedDoctrineRanks,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2-hud-merge-20261110';
 import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110-weapon-deck-audit-2-hud-merge-20261110';
 const el = id => document.getElementById(id);

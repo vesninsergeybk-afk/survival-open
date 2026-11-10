@@ -1,4 +1,4 @@
-import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1-pilot-value-2';
+import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1-pilot-value-2-early-progression-3';
 import {normalizedDoctrineRanks,DOCTRINES} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 import {rebaseSavedHull} from './balance.js';
 import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';

@@ -17,13 +17,23 @@ test('the chosen early weapon remains legal after removal, but other advanced we
  const context={baseActive:true,level:1,ore:0,loadout:rewarded,firstHardwareReward:'flak',ranks:{}};
  assert.equal(moduleLock('flak',context),'');
  assert.match(moduleLock('rail',context),/уровень 3/);
- assert.match(moduleLock('rocket',context),/уровень 5/);
+ assert.match(moduleLock('rocket',context),/уровень 4/);
  const bare=cloneLoadout(rewarded);bare.slots[1]=null;
  const removed=applyLoadout(rewarded,bare,context);
  assert.equal(removed.ok,true);assert.equal(removed.cost,0);
  const reequipped=applyLoadout(removed.loadout,rewarded,{...context,loadout:removed.loadout});
  assert.equal(reequipped.ok,true);assert.equal(reequipped.cost,0);
  assert.equal(quoteLoadout(removed.loadout,rewarded,{...context,firstHardwareReward:null,loadout:removed.loadout}).ok,false);
+});
+
+test('levels 3 and 4 unlock alternative guns without opening a new slot',()=>{
+ const current=createLoadout(),ctx={baseActive:true,loadout:current,ore:100,ranks:{}};
+ assert.match(moduleLock('flak',{...ctx,level:2}),/уровень 3/);
+ assert.equal(moduleLock('flak',{...ctx,level:3}),'');
+ assert.match(moduleLock('rocket',{...ctx,level:3}),/уровень 4/);
+ assert.match(moduleLock('rocket',{...ctx,level:4}),/Авторакеты/);
+ assert.equal(moduleLock('rocket',{...ctx,level:4,ranks:{rocket:1}}),'');
+ assert.deepEqual(current.slots.slice(0,3),['plasma',null,null]);
 });
 
 test('a full ship receives its first reward in storage; duplicate and invalid requests do nothing',()=>{

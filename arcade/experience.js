@@ -1,8 +1,8 @@
-import {expForNext, legacyExpForNext} from './balance.js?v=xp-feedback-pass1-1';
+import {expForNext, previousExpForNext, legacyExpForNext} from './balance.js?v=early-progression-3';
 import {doctrineSpent,normalizedDoctrineRanks} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 
 // Legacy station saves store the current level and progress within that level.
-export const XP_CURVE_VERSION = 2;
+export const XP_CURVE_VERSION = 3;
 export const FIRST_RICH_ASTEROID_XP = 18;
 
 // Skills cost one point, doctrines cost 1/2/3 points by depth. This ledger is
@@ -53,15 +53,18 @@ export function firstRichAsteroidExperience(player,rock,kind){
  return FIRST_RICH_ASTEROID_XP;
 }
 
-// Credit the historical cost difference without losing level or spent points.
-// Beyond level 8 both curves have identical step costs, so credit stays bounded.
+// Reconcile checkpoints from the original curve or the previously published
+// early curve. Keep total lifetime XP and every point the player has spent;
+// lower thresholds can award an extra level, but never revoke an old rank.
 export function migrateLegacyPlayerExperience(player){
  if(!player || player.xpCurveVersion===XP_CURVE_VERSION ||
   !Number.isInteger(player.level) || player.level<1 ||
   !Number.isFinite(player.xp) || player.xp<0)return 0;
+ if(Number.isInteger(player.xpCurveVersion)&&player.xpCurveVersion>XP_CURVE_VERSION)return 0;
+ const oldThreshold=player.xpCurveVersion===2?previousExpForNext:legacyExpForNext;
  let credit=0;
- for(let lvl=1;lvl<Math.min(8,player.level);lvl++)
-  credit+=legacyExpForNext(lvl)-expForNext(lvl);
+ for(let lvl=1;lvl<Math.min(13,player.level);lvl++)
+  credit+=oldThreshold(lvl)-expForNext(lvl);
  player.xpCurveVersion=XP_CURVE_VERSION;
  return grantExperience(player,credit);
 }

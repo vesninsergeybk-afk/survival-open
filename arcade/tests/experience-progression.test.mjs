@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {expForNext,legacyExpForNext} from '../balance.js';
+import {expForNext,previousExpForNext,legacyExpForNext} from '../balance.js';
 import {experienceDifference} from '../hud.js';
 import {enemyDataReward} from '../combat-rewards.js';
 import {contractChoices} from '../base-panel.js';
@@ -13,11 +13,17 @@ const pilot=(level=1,xp=0,points=0)=>({level,xp,points});
 const total=(level,xp,formula)=>Array.from({length:level-1},(_,i)=>formula(i+1))
  .reduce((sum,step)=>sum+step,xp);
 
-test('the first levels accelerate but level eight and later keep existing costs',()=>{
- assert.deepEqual(Array.from({length:8},(_,i)=>expForNext(i+1)),
-  [42,68,105,155,230,330,475,645]);
- for(const level of [8,9,10,15,40])
+test('levels 1–4 stay familiar; levels 5–12 ease the first territorial battles',()=>{
+ assert.deepEqual(Array.from({length:12},(_,i)=>expForNext(i+1)),
+  [42,68,105,155,195,260,355,495,720,1030,1480,2140]);
+ assert.equal(expForNext(4),previousExpForNext(4));
+ for(let level=5;level<=12;level++)
+  assert.ok(expForNext(level)<previousExpForNext(level),`level ${level} should ease`);
+ for(const level of [13,14,15,40])
   assert.equal(expForNext(level),legacyExpForNext(level));
+ assert.equal(total(8,0,previousExpForNext),1405);
+ assert.equal(total(8,0,expForNext),1180);
+ assert.ok(total(11,0,expForNext)<total(11,0,previousExpForNext)*.85);
 });
 
 test('the opening combat contract now grants a meaningful first level',()=>{
@@ -116,6 +122,23 @@ test('legacy checkpoint conversion preserves total XP and spent skill points',()
   const after={...p};
   assert.equal(migrateLegacyPlayerExperience(p),0,'migration must run only once');
   assert.deepEqual(p,after,'second restore cannot award extra XP');
+ }
+});
+
+test('version 2 saves keep lifetime XP and purchases under the gentler curve',()=>{
+ const examples=[pilot(1,0,0),pilot(4,80,2),pilot(5,225,0),
+  pilot(6,250,3),pilot(8,400,4),pilot(12,1800,7),pilot(20,123,13)];
+ for(const p of examples){
+  p.xpCurveVersion=2;
+  const before=total(p.level,p.xp,previousExpForNext),level=p.level,points=p.points;
+  const gained=migrateLegacyPlayerExperience(p);
+  assert.equal(total(p.level,p.xp,expForNext),before);
+  assert.ok(p.level>=level);
+  assert.equal(p.points,points+gained);
+  assert.equal(p.xpCurveVersion,XP_CURVE_VERSION);
+  const after={...p};
+  assert.equal(migrateLegacyPlayerExperience(p),0);
+  assert.deepEqual(p,after,'restoring again cannot duplicate the credit');
  }
 });
 
