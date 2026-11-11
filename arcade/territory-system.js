@@ -1,11 +1,13 @@
 import {newTrialLedger,productiveContourFields,validContourTrials} from './contour-trials.js?v=swarm-siege-1-corecharge-20261110';
 import {fluxFieldYields,advanceFluxMaintenance,FLUX_LOCAL_SHARE,
  syncStationFluxDepths,storeFieldFlux} from './territory-economy.js?v=flux-siphon-roads-1';
+import {ensureLegacyDefenseCapacitors,shipDefenseFlux,advanceDefenseCapacitors,
+ validDefenseCapacitors} from './defense-capacitors.js';
 
 // Territorial links appear automatically between powered friendly stations.
 // They remain distinct from the shorter-range radio tree for station services.
 export const CONTOURS=Object.freeze({maxLength:2800,maxDegree:5,maxLinks:160,
- minFaceArea:200000,launchInterval:5,cycleSeconds:180,maxHarvestersPerField:6,
+ minFaceArea:200000,launchInterval:5,cycleSeconds:180,maxHarvestersPerField:10,
  reserveCost:6,reserveArmSeconds:12});
 const EPS=1e-7;
 const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -28,7 +30,7 @@ export const createContours=()=>({links:[],flux:0,launches:{},harvesters:[],deli
  supportTurrets:[],supportPackets:[],supportSerial:0,turretSlotRank:0,
  fluxDepots:[],fluxDepotPackets:[],fluxDepotSerial:0,maintenanceDebt:0,territoryPowered:true,
  fluxSiphonHives:[],fluxSiphonSerial:0,fluxRoads:[],fluxRoadPackets:[],fluxRoadSerial:0,
- fluxHarvestedLocally:0,fluxSpilled:0});
+ fluxHarvestedLocally:0,fluxSpilled:0,defenseCapacitors:[],defenseCapacitorPackets:[]});
 
 export function contourLinkOffer(world,firstId,secondId){
  const state=world.contours,a=world.stations.get(firstId),b=world.stations.get(secondId);
@@ -275,6 +277,8 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
  syncStationFluxDepths(world,fields);
  const yields=fluxFieldYields(world,fields),yieldById=new Map(yields.map(y=>[y.field.id,y.output]));
  const events=[];
+ ensureLegacyDefenseCapacitors(world,time,fields);
+ advanceDefenseCapacitors(world,time);
  advanceFluxMaintenance(state,fields.length,dt);
  if(state.reserve){
   const base=world.stations.get(state.reserve.stationId);
@@ -289,10 +293,22 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
  if(fields.length&&time>=state.nextLaunchAt){
   state.nextLaunchAt=time+CONTOURS.launchInterval;
   for(const field of fields){
-   if(state.harvesters.filter(h=>h.fieldId===field.id).length>=CONTOURS.maxHarvestersPerField)continue;
+   const existing=state.harvesters.filter(h=>h.fieldId===field.id).length;
+   const count=Math.min(CONTOURS.maxHarvestersPerField-existing,320-state.harvesters.length);
+   if(count<=0)continue;
    state.launches[field.id]=time;
-   state.harvesters.push({fieldId:field.id,progress:0,phase:'out',hp:2,launchedAt:time,
-    value:(yieldById.get(field.id)||0)*CONTOURS.launchInterval/CONTOURS.cycleSeconds});
+   const speed=Math.max(.004,190/Math.max(100,d(field.anchor,field.center)));
+   const tripSeconds=2.24/speed;
+   // Ten physically independent carriers remain in circulation. Their
+   // individual payload is scaled by trip duration: adding ships does not
+   // multiply the amount of flux produced by the triangle.
+   for(let i=0;i<count;i++){
+    const slot=existing+i,phase=slot%2===0?'out':'back';
+    state.harvesters.push({fieldId:field.id,
+     progress:(Math.floor(slot/2)+.5)/5,phase,hp:2,launchedAt:time,
+     workerIndex:slot,value:(yieldById.get(field.id)||0)*tripSeconds/
+      (CONTOURS.maxHarvestersPerField*CONTOURS.cycleSeconds)});
+   }
   }
  }
  for(const h of state.harvesters){
@@ -303,14 +319,19 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
   if(h.phase==='out'&&h.progress>=1){h.phase='gather';h.progress=0;}
   else if(h.phase==='gather'&&h.progress>=.24){h.phase='back';h.progress=0;}
   else if(h.phase==='back'&&h.progress>=1){
-   const plannedLocal=h.value*FLUX_LOCAL_SHARE,
+   const special=shipDefenseFlux(world,field,h.value,time);
+   const plannedLocal=h.value*FLUX_LOCAL_SHARE-special,
     local=storeFieldFlux(world,field,plannedLocal),
-    treasury=h.value*(1-FLUX_LOCAL_SHARE),total=local+treasury;
+    treasury=h.value*(1-FLUX_LOCAL_SHARE),total=local+treasury+special;
    state.fluxSpilled=(state.fluxSpilled||0)+Math.max(0,plannedLocal-local);
    state.flux+=treasury;
    state.fluxHarvestedLocally=(state.fluxHarvestedLocally||0)+local;
-   state.delivered+=total;h.phase='done';
-   if(total>0)events.push({kind:'delivered',amount:total,local,treasury,fieldId:h.fieldId});
+   state.delivered+=total;
+   if(total>0)events.push({kind:'delivered',amount:total,local,treasury,special,fieldId:h.fieldId});
+   const speed=Math.max(.004,190/Math.max(100,d(field.anchor,field.center)));
+   h.phase='out';h.progress=0;h.hp=Math.min(2,h.hp+.4);h.launchedAt=time;
+   h.value=(yieldById.get(field.id)||0)*2.24/speed/
+    (CONTOURS.maxHarvestersPerField*CONTOURS.cycleSeconds);
    continue;
   }
   const t=h.phase==='out'?Math.min(1,h.progress):h.phase==='back'?1-Math.min(1,h.progress):1;
@@ -335,7 +356,7 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
 
 export function validContours(state,stations){
  if(!state||typeof state!=='object'||!Array.isArray(state.links)||state.links.length>CONTOURS.maxLinks||
-  !validContourTrials(state.trials)||
+  !validContourTrials(state.trials)||!validDefenseCapacitors(state)||
   !Number.isFinite(state.flux)||state.flux<0||state.flux>1e12||
   !Number.isFinite(state.delivered)||state.delivered<0||
   (state.turretSlotRank!==undefined&&(!Number.isInteger(state.turretSlotRank)||
