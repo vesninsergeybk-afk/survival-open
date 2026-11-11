@@ -131,7 +131,7 @@ import {updateStationInterdiction,interruptStationInterdiction,threatenedStation
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-2-contour-trials-1-first-loops-1-flux-build-1-support-three-1-triangle-defense-1-territory-logistics-1-flux-siphon-roads-1';
 import {weightedContourProduction,buyStationFluxUpgrade} from './territory-economy.js?v=territory-logistics-1-flux-siphon-roads-1';
-import {drawDefenseCapacitors} from './defense-capacitors.js';
+import {drawDefenseCapacitors,DEFENSE_CAPACITOR} from './defense-capacitors.js';
 import {FLUX_DEPOT,depotOffer,deployDepot,depotAt,depotUpgradeOffer,upgradeDepot,
  depotCapacity,depotSupplyRadius,advanceFluxDepots,drawFluxDepots} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {SIPHON_HIVE,FLUX_ROAD,hiveOffer,buildHive,hiveAt,hiveWorkers,hiveCargo,
@@ -447,7 +447,7 @@ export class ArcadeGame {
   }
   this.artilleryModeMenu(false);
   this.buildPlanning={stage:'menu',point:null,type:'artillery',
-   preload:Math.min(4,maxArtilleryPreload(this.world))};this.paused=true;
+   preload:FLUX_ARTILLERY.magazine};this.paused=true;
   this.keys.clear();this.endInteraction();this.pausedRenderPending=true;
   $('buildPlanning').hidden=false;$('buildRing').hidden=false;$('buildPlacement').hidden=true;
   this.updateEdgeSlotUpgradeUI();
@@ -458,16 +458,14 @@ export class ArcadeGame {
   const control=$('buildPreload'),group=$('buildPreloadGroup');
   if(!this.buildPlanning||!control||!group)return;
   const active=this.buildPlanning.type==='artillery',max=maxArtilleryPreload(this.world);
-  group.hidden=!active;
+  // Full initial basic magazine is included with construction: no player
+  // micromanagement and no strategic flux spent on everyday shells.
+  group.hidden=true;
   if(!active)return;
-  const requested=this.buildPlanning.preload||0;
-  this.buildPlanning.preload=Math.min(max,Math.max(0,Math.floor(requested)));
+  this.buildPlanning.preload=FLUX_ARTILLERY.magazine;
   control.max=String(max);control.value=String(this.buildPlanning.preload);
   const cost=$('buildPreloadCost');
-  if(cost)cost.textContent='Снаряды: '+this.buildPlanning.preload+' × 0,25 = '+
-   (this.buildPlanning.preload*FLUX_ARTILLERY.chargeCost).toFixed(2)+
-   ' флюкса · всего с постройкой '+
-   (FLUX_ARTILLERY.fluxCost+this.buildPlanning.preload*FLUX_ARTILLERY.chargeCost).toFixed(2);
+  if(cost)cost.textContent='Базовые снаряды заряжаются от сети бесплатно';
  }
  updateEdgeSlotUpgradeUI(){
   const rank=this.world.contours?.turretSlotRank||0,limit=edgeTurretLimit(this.world);
@@ -518,7 +516,7 @@ export class ArcadeGame {
   const hint=$('buildPlaceHint');
   if(hint)hint.textContent=result.ok?
    'ЛКМ: построить · '+cfg.oreCost+' сплава + '+
-   (cfg.fluxCost+(type==='artillery'?this.buildPlanning.preload*cfg.chargeCost:0)).toFixed(2)+
+   cfg.fluxCost.toFixed(2)+
    ' флюкса · линия '+Math.round(result.connection.cable)+' м':result.reason;
  }
  placeBuildArtillery(point){
@@ -543,11 +541,11 @@ export class ArcadeGame {
   this.closeBuildPlanner();
   this.notice((type==='artillery'?'Громовая батарея':cfg.name)+' строится · '+cfg.buildSeconds+
    ' с. Подключение к контуру: '+Math.round(placed.connection.cable)+
-   ' м. '+(type==='artillery'?'Стартовых снарядов: '+placed.preload+'.':
+   ' м. '+(type==='artillery'?'Обычный огонь — от сети, особые заряды — из накопителя.':
     type==='depot'?'Янтарные сферы покажут заполнение. Связать склады можно через ПКМ.':
     type==='siphon-hive'?'Сифоны автоматически ускорят перевозки в этом треугольнике.':
-    type==='hive'?'Новые дроны требуют 2,5 флюкса каждый.':
-    'Заряды поступят по энергетической линии.'),5);
+    type==='hive'?'Обычные микродроны восстанавливаются от сети; усиленный рой использует флюкс.':
+    'Базовый огонь питается от сети; специальные атаки расходуют флюкс.'),5);
   return true;
  }
  startDepotRoad(from){
@@ -626,13 +624,16 @@ export class ArcadeGame {
   if(stats)stats.textContent=(turret.kind==='flux-artillery'?
    'Готовых снарядов: '+artilleryReadyShells(turret)+'/'+
    Math.floor(artilleryMagazine(turret)/artilleryShotUnits(turret))+
-   ' · в магазине '+(turret.ammo*FLUX_ARTILLERY.chargeCost).toFixed(2)+' флюкса':
+   ' · основная стрельба питается от сети':
    turret.type==='hive'?'Дроны: '+turret.drones.filter(x=>x.hp>0).length+'/'+hiveLimit(turret):
    'Заряды: '+turret.ammo+'/'+config.magazine)+
-   (turret.kind==='flux-artillery'?' · '+artilleryShotFlux(turret).toFixed(2)+' флюкса за снаряд':'')+
+   (turret.kind==='flux-artillery'?' · зарядка от сети '+artilleryShotFlux(turret).toFixed(2)+' ед./снаряд':'')+
    (turret.kind==='flux-artillery'&&turret.stockpile?' · запас '+
-    (turret.stockpile*FLUX_ARTILLERY.chargeCost).toFixed(2)+' флюкса':'')+
-   (turret.kind==='flux-artillery'?' · ближняя защита от тарана: без расхода флюкса и снарядов':'')+
+    turret.stockpile+' обычных снарядов':'')+
+   (turret.kind==='flux-artillery'?' · ближняя защита от тарана: не расходует боезапас':'')+
+   (this.world.contours?.defenseCapacitors?.some(c=>c.fieldId===turret.defenseCellFieldId)?
+    ' · особый резерв '+this.world.contours.defenseCapacitors.find(c=>c.fieldId===turret.defenseCellFieldId).charge.toFixed(2)+
+    '/'+DEFENSE_CAPACITOR.capacity.toFixed(1)+' флюкса':'')+
    ' · корпус '+Math.ceil(turret.hp)+'/'+turret.maxHp+
    ' · экран '+Math.ceil(turret.shield??0)+'/'+turretShieldCapacity(turret)+
    (turret._defensePowered===false?' · сеть обесточена':'')+
@@ -660,13 +661,13 @@ export class ArcadeGame {
       after.blast!==before.blast?' Взрыв: '+before.blast+' → '+after.blast+'.':'';
      details.textContent+=delta;
      if(turret.kind==='flux-artillery'&&artilleryShotFlux(nextTower)!==artilleryShotFlux(turret))
-      details.textContent+=' Цена снаряда: '+artilleryShotFlux(turret).toFixed(2)+' → '+
-       artilleryShotFlux(nextTower).toFixed(2)+' флюкса.';
+      details.textContent+=' Зарядка от сети: '+artilleryShotFlux(turret).toFixed(2)+' → '+
+       artilleryShotFlux(nextTower).toFixed(2)+' ед. энергии на снаряд.';
      if(turret.kind==='flux-artillery'&&artilleryShotFlux(nextTower)*artillerySalvoSize(nextTower)!==
         artilleryShotFlux(turret)*artillerySalvoSize(turret))
-      details.textContent+=' Полный залп: '+
+      details.textContent+=' Энергия полного залпа: '+
        (artilleryShotFlux(turret)*artillerySalvoSize(turret)).toFixed(2)+' → '+
-       (artilleryShotFlux(nextTower)*artillerySalvoSize(nextTower)).toFixed(2)+' флюкса.';
+       (artilleryShotFlux(nextTower)*artillerySalvoSize(nextTower)).toFixed(2)+' ед. сетевой энергии.';
     }
     const cost=document.createElement('small');
     cost.textContent=branch.next?branch.next[0]+' · '+branch.next[1]+
