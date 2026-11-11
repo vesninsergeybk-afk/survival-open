@@ -8,12 +8,12 @@ export const CONTROL_ACTIONS=Object.freeze([
  {id:'right',name:'Вправо',code:'KeyD'},
  {id:'dash',name:'Рывок',code:'ShiftLeft'},
  {id:'field',name:'Тактическое устройство',code:'Space'},
- {id:'fieldWeapon',name:'Полевое оружие',code:'KeyG'},
+ {id:'fieldWeapon',name:'Полевое оружие',code:'KeyF'},
  {id:'interact',name:'Действие / добыча',code:'KeyE'},
  {id:'cease',name:'Автоогонь',code:'KeyC'},
  {id:'hack',name:'Перепрограммирование',code:'KeyQ'},
  {id:'strike',name:'Авиаудар',code:'KeyB'},
- {id:'howitzer',name:'Гаубица (доп.)',code:'KeyF'},
+ {id:'howitzer',name:'Гаубица (доп.)',code:'KeyG'},
  {id:'build',name:'Построить турель',code:'KeyT'},
  {id:'railMode',name:'Рельс: авто / вручную',code:'KeyR'},
  {id:'map',name:'Карта',code:'Tab'},
@@ -22,14 +22,14 @@ export const CONTROL_ACTIONS=Object.freeze([
 export const DEFAULT_CONTROLS=Object.freeze(Object.fromEntries(CONTROL_ACTIONS.map(x=>[x.id,x.code])));
 const RESERVED=new Set(['Escape','Enter','Backspace','Delete','CapsLock','NumLock',
  'ArrowUp','ArrowLeft','ArrowDown','ArrowRight','F1','F2','F3','F4','F5','F6',
- 'F7','F8','F9','F10','F11','F12','MetaLeft','MetaRight','AltLeft','AltRight',
+ 'F7','F8','F9','F10','F11','F12','MetaLeft','MetaRight','AltRight',
  'ControlLeft','ControlRight']);
-export const readableKey=code=>code==='Space'?'Пробел':code==='Tab'?'Tab':
+export const readableKey=code=>code==='Space'?'Пробел':code==='Tab'?'Tab':code==='AltLeft'?'Левый Alt':
  code==='ShiftLeft'||code==='ShiftRight'?'Shift':
  code?.startsWith('Key')?code.slice(3):code?.startsWith('Digit')?code.slice(5):code||'?';
 export const allowedCode=code=>typeof code==='string'&&!RESERVED.has(code)&&
  (/^Key[A-Z]$/.test(code)||/^Digit[0-9]$/.test(code)||
- ['Space','Tab','ShiftLeft','ShiftRight','Backquote','Minus','Equal','BracketLeft',
+ ['Space','Tab','ShiftLeft','ShiftRight','AltLeft','Backquote','Minus','Equal','BracketLeft',
   'BracketRight','Semicolon','Quote','Comma','Period','Slash','Backslash'].includes(code));
 export function validControls(candidate){
  if(!candidate||typeof candidate!=='object')return false;
@@ -40,7 +40,14 @@ export function validControls(candidate){
 }
 export function readControls(storage){
  try{const saved=JSON.parse(storage?.getItem(CONTROL_STORAGE_KEY)||'null');
-  if(validControls(saved))return saved;
+  if(validControls(saved)){
+   // Only migrate the fully standard old layout. An explicitly customised
+   // layout must never be rewritten behind the pilot's back.
+   const oldDefaults=Object.entries(DEFAULT_CONTROLS).every(([id,code])=>
+    id==='fieldWeapon'?saved[id]==='KeyG':
+    id==='howitzer'?saved[id]==='KeyF':saved[id]===code);
+   return oldDefaults?{...saved,fieldWeapon:'KeyF',howitzer:'KeyG'}:saved;
+  }
   // Keep every valid old custom binding when new actions are introduced.
   // Some old layouts also predate the turret construction shortcut.
   if(saved&&typeof saved==='object'&&!Array.isArray(saved)&&
@@ -52,8 +59,8 @@ export function readControls(storage){
     const migrated={...saved},used=new Set(Object.values(saved));
     for(const action of ['build','fieldWeapon']){
      if(!missing.includes(action))continue;
-     const preferred=action==='build'?['KeyT','KeyG','KeyH','KeyV','KeyY']:
-      ['KeyG','KeyH','KeyV','KeyY','KeyT'];
+     const preferred=action==='build'?['KeyT','KeyH','KeyV','KeyY','KeyG']:
+      ['KeyF','KeyV','KeyY','KeyH','KeyT'];
      const free=preferred.find(k=>!used.has(k));
      if(!free)break;
      migrated[action]=free;used.add(free);
