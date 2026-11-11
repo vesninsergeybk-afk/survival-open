@@ -2,6 +2,7 @@ import {ArcadeGame} from './runtime-game.mjs';
 import {World} from '../world.js';
 import {SpatialGrid,STARTER_COMBAT} from '../balance.js';
 import {createLoadout,createThermal,loadoutProfile,HangarSession} from '../ship-loadout.js';
+import {createAreaDenial} from '../area-denial.js';
 const noop=()=>{};
 export function game(slots=['plasma',null,null,null,null,null]){
  const g=Object.create(ArcadeGame.prototype),world=new World(20261102),base=world.home;
@@ -14,7 +15,7 @@ export function game(slots=['plasma',null,null,null,null,null]){
   heavyCharge:null,heavyCooldown:0,fieldLoan:null,fieldTrialTaken:false,fieldEffects:[],fieldReturnAt:-Infinity,
   ionMasteryAwarded:false,operation:null,contract:null,holdFire:false,mining:{active:false},probeRepairing:false,
   network:{armor:0,armament:0,engine:0,strikePower:0},support:{charges:0,cooldown:0,missions:[]},
-  grid:new SpatialGrid(110),rockGrid:new SpatialGrid(140),enemies:[],allies:[],shots:[],missiles:[],drops:[],zones:[],hacks:[],flashes:[],
+  grid:new SpatialGrid(110),rockGrid:new SpatialGrid(140),enemies:[],allies:[],shots:[],missiles:[],drops:[],zones:[],hacks:[],flashes:[],areaDenial:createAreaDenial(),
   nearArsenalBonus:false,overchargeUntil:0,doctrine:null,enemySerial:0,groupSerial:0,
   overlay:{hidden:true,dataset:{mode:'base'},querySelector:()=>null},keys:new Set(),touch:{x:0,y:0},
   heritage:{play:noop,ui:noop,station:noop,pause:noop,vfx:new Proxy({},{get:()=>noop})},cockpit:{resourceGain:noop},

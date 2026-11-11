@@ -15,10 +15,11 @@ export const STARTER_COMBAT = Object.freeze({
 // An active shield absorbs most of a hit, but its field transmits a small
 // shock to the hull. This keeps hull condition meaningful in shielded fights.
 export const SHIELD_HULL_TRANSFER = .15;
-export function splitPlayerDamage(damage,shield){
+export function splitPlayerDamage(damage,shield,hullTransfer=SHIELD_HULL_TRANSFER){
  const incoming=Math.max(0,Number.isFinite(damage)?damage:0);
  const charge=Math.max(0,Number.isFinite(shield)?shield:0);
- const absorbed=Math.min(charge,incoming*(1-SHIELD_HULL_TRANSFER));
+ const transfer=Number.isFinite(hullTransfer)?Math.max(0,Math.min(1,hullTransfer)):SHIELD_HULL_TRANSFER;
+ const absorbed=Math.min(charge,incoming*(1-transfer));
  return {absorbed,hullDamage:incoming-absorbed};
 }
 export const RULES = Object.freeze({

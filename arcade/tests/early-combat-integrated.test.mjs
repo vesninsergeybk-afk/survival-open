@@ -44,3 +44,15 @@ test('пилот должен уклоняться, но движение поз
   'маневрирование должно оставлять игроку шанс продолжить бой');
  assert.ok(moving.maxNearby>=3,'настоящий игровой цикл создаёт заметные контакты');
 });
+
+test('усиленный корабль не должен безнаказанно стоять под обстрелом до первого контура',()=>{
+ const idle=runEarlyCombatScenario({seed:111,mode:'idle',seconds:110,build:'reinforced'});
+ const moving=runEarlyCombatScenario({seed:111,mode:'circle',seconds:110,build:'reinforced'});
+ assert.equal(idle.dead,true,
+  'две плазмы, калибровка III и щит III не должны позволять стоять под огнём без конца');
+ assert.ok(idle.seconds>=70&&idle.seconds<=110,
+  'броня должна удержать первые волны, но не бесконечный обстрел');
+ assert.equal(moving.dead,false,'маневрирование должно оставаться надёжным способом выживания');
+ assert.ok(moving.hull>95,
+  'боевое превосходство при грамотном пилотировании должно сохраняться');
+});

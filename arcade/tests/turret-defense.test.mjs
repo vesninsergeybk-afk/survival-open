@@ -56,6 +56,49 @@ test('new shields charge fully when a building goes online, not during construct
  assert.equal(validFluxArtillery(world.contours),true);
 });
 
+test('an emplacement gets one paid reserve screen under sustained fire, not infinite protection',()=>{
+ const {world,player,game}=fixture();
+ const turret=deployArtillery(world,player,{x:700,y:300},0).turret;
+ advanceTurretDefenses(game,.1);
+ const initialFlux=world.contours.flux;
+ for(let i=0;i<8;i++)damageFriendlyTurret(game,turret,{
+  damage:22,kind:'fighter',x:710,y:300});
+ assert.ok(turret.nextEmergencyScreenAt>game.time,'a reserve screen should activate');
+ const nextReady=turret.nextEmergencyScreenAt;
+ assert.ok(world.contours.flux<initialFlux,'reserve screen must use flux');
+ assert.ok(turret.hp>0,'first focus-fire volley should not instantly destroy a gun');
+ for(let i=0;i<6;i++)damageFriendlyTurret(game,turret,{
+  damage:22,kind:'fighter',x:710,y:300});
+ assert.equal(turret.nextEmergencyScreenAt,nextReady,
+  'one volley may not repeatedly refill the emergency capacitor');
+ assert.equal(validFluxArtillery(world.contours),true);
+});
+
+test('heavy siege bolts cannot activate the emergency screen',()=>{
+ const {world,player,game}=fixture();
+ const turret=deployArtillery(world,player,{x:700,y:300},0).turret;
+ advanceTurretDefenses(game,.1);
+ turret.shield=3;
+ const original=world.contours.flux;
+ damageFriendlyTurret(game,turret,{damage:22,kind:'siege-bolt',x:710,y:300});
+ assert.equal(turret.nextEmergencyScreenAt,undefined);
+ assert.ok(turret.hp<turret.maxHp);
+ assert.equal(world.contours.flux,original);
+});
+
+test('an already detonated area blast cannot be intercepted like a projectile',()=>{
+ const {world,player,game}=fixture();
+ const turret=deployArtillery(world,player,{x:700,y:300},0).turret;
+ advanceTurretDefenses(game,.1);
+ assert.equal(buyTurretBranch(world,player,turret,'fortify',game.time).ok,true);
+ const initialShield=turret.shield;
+ const impact=damageFriendlyTurret(game,turret,{
+  damage:22,kind:'area-blast',x:700,y:300});
+ assert.equal(impact.intercepted,false);
+ assert.equal(turret.shield,initialShield-22);
+ assert.equal(turret.hp,turret.maxHp);
+});
+
 test('without a contour cable shields and repair stop, even with stored flux',()=>{
  const {world,player,game}=fixture();
  const turret=deploySupport(world,player,{x:700,y:300},0,'laser').turret;

@@ -224,10 +224,12 @@ test('all four authored operations finish with three builds at 30 and 60 simulat
  }
 });
 
-test('starter plasma can protect a relay by intercepting, while parking on it loses the relay',async()=>{
+test('starter plasma can protect a relay, while parking loses the pilot or the relay',async()=>{
  const {runOperationScenario}=await import('../tools/weapons-cycle-scenarios.mjs');
  const parked=runOperationScenario('relay','starter',1/60,{stationary:true});
- assert.equal(parked.completed,false);assert.equal(parked.objectiveHP,0);assert.equal(parked.dead,false);
+ assert.equal(parked.completed,false);
+ assert.ok(parked.dead||parked.objectiveHP===0,
+  'standing in a defended sector must end in a lost relay or a destroyed ship');
  for(const [worldSeed,hz] of [[20261102,60],[8,30],[92,60]]){
   const flown=runOperationScenario('relay','starter',1/hz,{worldSeed});
   assert.ok(flown.completed&&flown.checkpointSaved&&flown.hull>0,JSON.stringify(flown));

@@ -22,6 +22,7 @@ import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shad
 import {disableCentralWorker} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1-territory-war-1';
 import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifiesForDirectCombatXp,XP_CURVE_VERSION} from './experience.js?v=early-experience-1-xp-feedback-pass1-1-clarity-pass-1-pilot-depth-1-pilot-value-2-data-economy-20261111-xp-audit-20261111';
+import {registerImpact,shieldGrazeInGrace} from './impact-pressure.js?v=impact-pressure-20261111';
 import {createStrategicExperience,claimStationActivation,claimStationCapture,claimExploration,
  claimContourExpansion,claimFirstFluxDelivery,claimGeologicalSurvey,claimStrategicSabotage} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
@@ -51,7 +52,8 @@ import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=e
 import {drawEnemyCloseWarnings} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
 import {BASE_TURRET_GUN,advanceBaseTurretGun,drawBaseTurretWarnings} from './base-turret-gunnery.js';
 import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1-territory-logistics-1-flux-siphon-roads-1-turret-defense-20261110-trial-station-defense-20261110-escort-squad-20261110';
-import {advanceTurretDefenses,drawTurretDefenses,turretShieldCapacity} from './turret-defense.js?v=turret-defense-20261110-trial-station-defense-20261110';
+import {advanceTurretDefenses,drawTurretDefenses,turretShieldCapacity,friendlyTurrets} from './turret-defense.js?v=turret-defense-20261110-trial-station-defense-20261110';
+import {createAreaDenial,trackAreaDenial,advanceMineVolley,insideMineBlasts,mineVolleyDamage,AREA_DENIAL} from './area-denial.js?v=enemy-launched-mines-20261111';
 import {commissionStationGarrison,advanceStationGarrisons,drawStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
 import {escortHireOffer,escortTrainingOffer,createEscort,escortMaxHp,
  escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
@@ -65,7 +67,7 @@ import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=opening-attack-202611
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110-corecharge-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-weapon-deck-audit-2-escort-squad-20261110-wingmastery-20261110-escort-art-20261110-data-economy-20261111-manual-hardpoints-20261111';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110-corecharge-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-weapon-deck-audit-2-escort-squad-20261110-wingmastery-20261110-escort-art-20261110-data-economy-20261111-manual-hardpoints-20261111-impact-pressure-20261111';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1-tactical-slot-20261110';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-opening-evasion-20261110';
@@ -80,7 +82,7 @@ import {clearCoreRocks} from './core-rock-clearance.js';
 import {alertFleetUnderFire} from './enemy-attack-alarm.js';
 import {NOISE_ESCALATION,preserveEarlyNoiseSignal,noisePatrolDirector,armNoiseCourier,updateNoiseEscalation} from './noise-escalation.js?v=noise-pressure-2-pressure-response-1-balance-audit-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-sfx-2-artillery-finish-1-support-three-1-frontier-siege-1-shield-readability-20261110';
-import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44-weapon-vfx-audit-1';
+import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnemyMineVolley,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=enemy-launched-mines-20261111';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {reacquireMissile,applyRocketSplash} from './rocket-branches.js?v=weapon-branches-1-escort-squad-20261110';
 import {deflectBurstShots,countermaneuverRadius,counterguardMultiplier} from './pilot-countermaneuver.js?v=pilot-doctrine-1-pilot-depth-1-pilot-value-2';
@@ -359,7 +361,7 @@ export class ArcadeGame {
   this.mining={active:false,target:null,fxClock:0};
   this.actionHeld=null;this.interactionFocus=null;this.holdFire=false;this.localStations=[];
   this.beamClock=.25;this.rocketClock=4;this.zoneClock=80;
-  this.stationary=0;this.lastX=0;this.lastY=0;this.hacks=[];this.activeBases=0;
+  this.areaDenial=createAreaDenial();this.hacks=[];this.activeBases=0;
   this.enemySerial=0;this.allySerial=0;this.groupSerial=0;this.heavyPortalShown=false;
   this.lastEncounter='';this.lastEncounterLabelAt=-30;this.nextMoteEncounterAt=MOTE_ENCOUNTER.firstAt;this.paused=false;
   this.pausedRenderPending=false;
@@ -4685,11 +4687,18 @@ export class ArcadeGame {
   this.heritage.play('hack');
   this.notice('Перепрограммировано кораблей: '+count,3.5);
  }
- hurt(damage,source=null){
+ hurt(damage,source=null,options={}){
   const p=this.player;
-  if(p.invul>0){
+  if(p.invul>0&&!options.ignoreHitGrace){
    // The projectile was stopped by the brief post-hit grace period. Show a
-   // restrained contact cue, but do not restart immunity or register damage.
+   // restrained contact cue. The hull stays safe; repeated contacts can
+   // still wear down an energized shield, at a strictly throttled rate.
+   const graze=shieldGrazeInGrace(this,damage,this.time);
+   if(graze>0){
+    this.lastDamageAt=this.time;
+    recordCombatContact(this);
+    recordSortieDamage(this,0,graze);
+   }
    if(damage>0&&this.time>=(this._playerDeflectNextAt??-Infinity)){
     this._playerDeflectNextAt=this.time+.16;
     const contact=source?contactOnCircle(p.x,p.y,p.r,source.x,source.y):null;
@@ -4706,6 +4715,9 @@ export class ArcadeGame {
   damage*=counterguardMultiplier(this);
   damage=absorbParasiteImpact(this,damage);
   if(damage<=0){p.invul=.28;this.lastDamageAt=this.time;return;}
+  // Repeated hits overload the shield's reserves. A depleted shield cannot
+  // amplify direct hull damage: the pilot is vulnerable enough at that point.
+  const impactMultiplier=registerImpact(this,this.time);
   if(this.actionHeld?.kind==='ruin-claim'){
    this.endInteraction();
    this.notice('ЗАХВАТ ПРЕРВАН ОГНЁМ. Сначала подавите охрану или подведите свои турели.',3);
@@ -4713,8 +4725,10 @@ export class ArcadeGame {
   // An energised shield stops 85% of the impact at most; the remainder reaches
   // the hull. When the shield is nearly drained, its remaining charge is spent
   // and the unabsorbed part passes through without duplicating damage.
-  const {absorbed,hullDamage:remaining}=splitPlayerDamage(damage,p.shield);
-  p.shield-=absorbed;
+  const {absorbed,hullDamage:remaining}=splitPlayerDamage(damage,p.shield,options.hullTransfer);
+  // The overload consumes reserve energy only, never additional hull HP.
+  const overload=Math.min(Math.max(0,p.shield-absorbed),damage*(impactMultiplier-1));
+  p.shield-=absorbed+overload;
   const previousHp=p.hp;
   p.hp-=remaining;p.invul=.55+this.skillRanks.dodge*.12;this.lastDamageAt=this.time;
   masteryMiss(this.combatMastery,'ace');
@@ -5650,16 +5664,17 @@ export class ArcadeGame {
    p.shield<16+this.skillRanks.shield*24)
    p.shield=Math.min(16+this.skillRanks.shield*24,
     p.shield+dt*(1.8+this.skillRanks.shield*1.2)*(1+.12*masteryPerkTier(this.combatMastery,'survivor')));
-  if(length(p.x-this.lastX,p.y-this.lastY)>120){
-   this.lastX=p.x;this.lastY=p.y;this.stationary=0;
-  }else this.stationary+=dt;
-  if(!this.contourTrial&&this.time>55&&this.stationary>8){
-   this.stationary=0;this.zones.push({x:p.x+35,y:p.y-25,r:85,fuse:1.8,fuseStart:1.8,ttl:.3});
-   this.heritage.play('orbitalWarning',1.3,{x:p.x+35,y:p.y-25});
-   this.notice('Орбитальная наводка — уходите из круга!',2);
+  const mine=trackAreaDenial(this);
+  if(mine){
+   this.zones.push(mine);
+   this.heritage.vfx.nova(mine.launcherX,mine.launcherY,28,'orange');
+   this.heritage.play('orbitalWarning',1.3,mine);
+   this.notice((ENEMY_TYPES[mine.launcherType]?.name||'Вражеский корабль')+
+    ' выпустил мины! Уходите из отмеченной зоны.',2.7);
   }
   if(!this.contourTrial)this.zoneClock-=dt;
-  if(!this.contourTrial&&this.zoneClock<=0){
+  if(!this.contourTrial&&this.zoneClock<=0&&
+   !this.zones.some(z=>z.fuse>0&&dist(z,p)<z.r+180)){
    this.zoneClock=Math.max(12,28-this.time/110);
    const a=Math.random()*TAU;
    const zone={x:p.x+Math.cos(a)*135,y:p.y+Math.sin(a)*110,
@@ -6082,13 +6097,31 @@ export class ArcadeGame {
    }
   }
   for(const z of this.zones){
+   if(z.kind==='enemy-mine-volley'){
+    if(z.done){z.ttl-=dt;continue;}
+    const blasts=advanceMineVolley(this,z,dt,friendlyTurrets(this.world));
+    if(!z.done)continue;
+    if(!blasts.length){z.ttl=0;continue;}
+    for(const blast of blasts)this.heritage.vfx.nova(blast.x,blast.y,blast.r,'orange');
+    this.heritage.play('largeExplosion',.28,z);
+    const mineDamage=mineVolleyDamage(p,blasts,p.r,z.damage);
+    if(mineDamage>0)this.hurt(mineDamage,z,{
+     ignoreHitGrace:true,hullTransfer:AREA_DENIAL.hullTransfer});
+    // Hostile mines recognise their own faction: enemy craft cannot destroy
+    // their allies by planting explosives close to the player's position.
+    for(const a of this.allies)
+     if(a.hp>0&&insideMineBlasts(a,blasts,a.r))this.hitAlly(a,31);
+    // Enemy anti-ship mines deliberately cannot damage static emplacements.
+    // Their built-in point defence can instead intercept the actual charges.
+    continue;
+   }
    if(z.fuse>0){z.fuse-=dt;continue;}
    z.ttl-=dt;
    if(!z.done){
     z.done=true;z.ttl=.62;
     this.heritage.vfx.meteorStrike(z.x,z.y,z.r,z.r>80);
     this.heritage.play('largeExplosion',.28,{x:z.x,y:z.y});
-    if(dist(z,p)<z.r+p.r)this.hurt(27,{x:z.x,y:z.y});
+    if(dist(z,p)<z.r+p.r)this.hurt(27,z);
     for(const e of this.grid.query(z.x,z.y,z.r+30))
      if(e.hp>0&&dist(z,e)<z.r+e.r)this.damageEnemy(e,32);
     for(const a of this.allies)if(a.hp>0&&dist(z,a)<z.r+a.r)this.hitAlly(a,31);
@@ -6664,6 +6697,14 @@ export class ArcadeGame {
    if(d.type==='fieldCell'){c.font='bold 10px system-ui';c.textAlign='center';c.fillStyle='#ffffff';c.fillText('+',d.x,d.y+3);c.fillText('ЗАРЯД',d.x,d.y-13);}
   }
   for(const z of this.zones){
+   if(z.kind==='enemy-mine-volley'){
+    if(z.fuse>0)drawEnemyMineVolley(c,z,this.time,this.visuals.reducedMotion);
+    else if(z.done&&z.ttl>0)for(const mine of z.mines){
+     if(mine.intercepted||outsideCamera(mine.tx,mine.ty,cam,mine.r*1.75))continue;
+     drawOrbitalAfterglow(c,{x:mine.tx,y:mine.ty,r:mine.r,ttl:z.ttl});
+    }
+    continue;
+   }
    if(z.fuse>0){
     drawOrbitalWarning(c,z,this.time,this.visuals.reducedMotion);
    }else if(z.done&&z.ttl>0){

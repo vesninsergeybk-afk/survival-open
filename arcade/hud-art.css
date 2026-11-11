@@ -35,6 +35,10 @@
 .cockpit-hud .hud-stat-head b{margin-left:auto;color:#F2FEFF;
  font-size:15px;font-variant-numeric:tabular-nums;letter-spacing:.01em}
 .cockpit-hud .hud-stat-shield .hud-stat-head b{color:#8DE5F5}
+.cockpit-hud .hud-segment-meter.combat-pressure::after{
+ filter:drop-shadow(0 0 5px rgba(255,159,76,.85)) saturate(1.4);
+}
+.cockpit-hud .hud-stat-shield:has(.combat-pressure) .hud-stat-head b{color:#FFCB87}
 .cockpit-hud .hud-stat-boost .hud-stat-head b{color:#FFD08B;font-size:13px}
 .cockpit-hud .hud-segment-meter,
 .cockpit-hud .wing-left .ship-meter.hud-segment-meter{

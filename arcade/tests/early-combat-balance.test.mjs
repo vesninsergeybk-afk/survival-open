@@ -8,6 +8,7 @@ import {SIGNAL_AI} from '../signal-perception.js';
 import {IRIS_SWARM} from '../iris-swarm.js';
 import {ArcadeGame} from './runtime-game.mjs';
 import {game as fixture} from './weapons-scene.mjs';
+import {IMPACT_PRESSURE,impactPressureLevel,registerImpact,shieldGrazeInGrace} from '../impact-pressure.js';
 
 test('начальный корабль слабее на дистанции, но сохраняет мощный ближний бой',()=>{
  const p=moduleStats('plasma');
@@ -90,7 +91,7 @@ test('щит передаёт корпусу часть урона, сохран
  }
 });
 
-test('реальное попадание повреждает оба слоя, но повторный удар во время неуязвимости не учитывается',()=>{
+test('корпус защищён в короткое окно после удара, но повторные попадания истощают щит',()=>{
  const g=fixture();
  g.time=75;g.player.hp=90;g.player.shield=40;g.player.invul=0;
  g.cockpit={impact(){}};
@@ -108,23 +109,64 @@ test('реальное попадание повреждает оба слоя, 
  const firstGrace=g.player.invul;
  g.hurt(20,{x:80,y:0});
  assert.ok(Math.abs(g.player.hp-87)<1e-9);
- assert.ok(Math.abs(g.player.shield-23)<1e-9);
+ assert.ok(Math.abs(g.player.shield-19.5)<1e-9,
+  'часть последующего удара расходует щит, но не корпус');
  assert.equal(deflectEffects.length,1,'игрок видит первое отражённое попадание');
  assert.ok(deflectEffects[0][2]?.directed,'отражение привязано к месту попадания');
  g.time+=.05;
  g.hurt(20,{x:80,y:0});
+ assert.equal(g.player.shield,19.5,'частые повторные касания ограничены по времени');
  assert.equal(deflectEffects.length,1,'поток снарядов не создаёт россыпь вспышек');
  assert.equal(g.player.invul,firstGrace,'отражение не продлевает неуязвимость');
  g.time+=.17;
  g.hurt(20,{x:80,y:0});
  assert.equal(deflectEffects.length,2,'отражённые попадания остаются читаемыми в долгом залпе');
  assert.ok(Math.abs(g.player.hp-87)<1e-9);
- assert.ok(Math.abs(g.player.shield-23)<1e-9);
+ assert.ok(Math.abs(g.player.shield-19.5)<1e-9);
+ g.time+=.04;
+ g.hurt(20,{x:80,y:0});
+ assert.equal(g.player.shield,16,'щит снова тратится лишь после интервала защиты');
  g.time+=.6;g.player.invul=0;
  g.hurt(20,{x:80,y:0});
- assert.ok(Math.abs(g.player.hp-84)<1e-9);
- assert.ok(Math.abs(g.player.shield-6)<1e-9);
+ assert.ok(Math.abs(g.player.hp-83)<1e-9,
+  'истощённый щит не усиливает прямой урон корпусу');
+ assert.ok(Math.abs(g.player.shield)<1e-9);
  assert.equal(hurtEffects.length,2);
+});
+
+test('серия прямых попаданий ускоряет истощение развитого щита без дополнительного урона корпусу',()=>{
+ const g=fixture();g.player.hp=90;g.player.shield=80;g.player.invul=0;
+ g.skillRanks.shield=3;
+ g.time=10;g.cockpit={impact(){}};
+ g.hurt(20,{x:80,y:0});
+ assert.equal(g.player.shield,63);
+ assert.equal(g.player.hp,87);
+ g.time+=.8;g.player.invul=0;
+ g.hurt(20,{x:80,y:0});
+ assert.ok(Math.abs(g.player.shield-42)<1e-9,
+  'защитный запас тратится на 4 больше из-за повторного попадания');
+ assert.equal(g.player.hp,84,'урон корпусу при целом щите остаётся 15%');
+});
+
+test('нагрузка от серии попаданий растёт постепенно и сбрасывается после уклонения',()=>{
+ const game={player:{shield:88}};
+ assert.equal(registerImpact(game,10),1);
+ assert.equal(registerImpact(game,11),1.2);
+ assert.equal(registerImpact(game,12),1.4);
+ assert.equal(registerImpact(game,13),1.4,'нагрузка ограничена');
+ assert.equal(impactPressureLevel(game.impactPressure,17.9),3);
+ assert.equal(impactPressureLevel(game.impactPressure,18.01),0);
+ assert.equal(registerImpact(game,18.01),1,'долгое уклонение полностью сбрасывает нагрузку');
+ assert.equal(IMPACT_PRESSURE.window,5);
+});
+
+test('отражённый удар расходует только существующий щит и не снимает защиту корпуса',()=>{
+ const game={player:{shield:3}};
+ assert.equal(shieldGrazeInGrace(game,50,0),3);
+ assert.equal(game.player.shield,0);
+ assert.equal(shieldGrazeInGrace(game,50,.3),0,
+  'после истощения щита окно неуязвимости остаётся полноценным');
+ assert.equal(registerImpact(game,1),1,'отражённые попадания не наращивают урон');
 });
 
 test('защитные окна доктрин уменьшают именно фактический урон при попадании',()=>{
