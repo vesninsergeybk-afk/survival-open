@@ -12,8 +12,8 @@ import {artilleryBarrels,artilleryCooldown,artilleryBlast,artilleryRange,artille
 export const FLUX_ARTILLERY=Object.freeze({
  name:'Громовая батарея',
  buildRadius:560,clearance:125,stationClearance:105,oreCost:20,fluxCost:1,
- maxHp:110,magazine:15,chargeCost:.25,damage:18,blastRadius:110,
- range:740,aimSeconds:.42,cooldown:8,buildSeconds:3,
+ maxHp:110,magazine:15,chargeCost:.25,damage:26,blastRadius:110,
+ range:940,aimSeconds:.35,cooldown:6,buildSeconds:3,
  cableScale:700,baseFluxPerMinute:ARTILLERY_BASE_FLUX_PER_MINUTE,packetSpeed:520,maxTurrets:72,maxPackets:256,
  maxShells:96,shellSpeed:830,impactLifetime:.9,wreckLifetime:5,
  collisionRadius:38,turnSpeed:2.9,muzzleOffset:60,
