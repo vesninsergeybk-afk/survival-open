@@ -1,14 +1,15 @@
 // Every paid rank changes a concrete combat behavior. The four independently
 // purchased paths belong to a single emplacement and are saved with it.
-// Cost is up front (alloy + flux); ammunition and replacement drones still
-// require a working contour and paid deliveries.
+// Construction and upgrades cost alloy + flux. Basic shells, laser bursts and
+// replacement drones recharge from the network; only rare special strikes
+// consume actual collected flux delivered to a shared defense capacitor.
 // Shares the same capacity rule with the damage solver and save validator.
 // A static emplacement needs a substantially deeper screen than a ship that
 // can evade: concentrated trial fire must leave time for a rescue or retreat.
 export const TURRET_SCREEN=Object.freeze({base:.9,perFortify:.17});
 export const TURRET_GROWTH=Object.freeze({
  artillery:{name:'Громовая батарея',branches:{
-  salvo:{name:'Орудийный залп',summary:'Дополнительные стволы. Каждый снаряд расходует заряд.',
+  salvo:{name:'Орудийный залп',summary:'Дополнительные стволы расходуют сетевую энергию, не запас добытого флюкса.',
    levels:[['Два ствола',24,3],['Три ствола',34,4],['Четыре ствола',46,6],
     ['Шесть стволов',62,9],['Десять стволов',90,14]]},
   tempo:{name:'Ритм батареи',summary:'Меньше пауза между залпами и быстрее зарядка магазина.',
@@ -46,7 +47,7 @@ export const TURRET_GROWTH=Object.freeze({
    levels:[['Полевой экран',19,3],['Ремонтные сифоны',30,5],['Усиленный корпус',45,8]]}
  }},
  laser:{name:'Лазерное гнездо',branches:{
-  emitters:{name:'Излучатели',summary:'Больше параллельных лучей, каждый расходует заряд.',
+  emitters:{name:'Излучатели',summary:'Больше параллельных лучей, которым требуется больше времени для перезарядки от сети.',
    levels:[['Двойная установка',24,3],['Тройная',35,5],['Четверная',49,7],['Шестизарядная',72,11]]},
   tempo:{name:'Плотность огня',summary:'Дольше поливает цель и быстрее получает заряды.',
    levels:[['Частые очереди',20,2],['Длинная очередь',30,4],['Стабильный залп',45,7]]},
@@ -58,7 +59,7 @@ export const TURRET_GROWTH=Object.freeze({
    levels:[['Полевой экран',20,3],['Ремонтные сифоны',32,5],['Защитный узел',47,8]]}
  }},
  hive:{name:'Дроновая матка',branches:{
-  squad:{name:'Численность роя',summary:'Больше настоящих сбиваемых дронов, каждый стоит флюкс.',
+  squad:{name:'Численность роя',summary:'Больше сбиваемых микродронов. Их обычное восстановление питается от сети.',
    levels:[['Четырнадцать микродронов',23,3],['Шестнадцать',34,5],
     ['Восемнадцать',48,7],['Девятнадцать',56,9],['Двадцать',66,10]]},
   reach:{name:'Радиус вылета',summary:'Дроны прикрывают больше пространства вокруг матки.',
