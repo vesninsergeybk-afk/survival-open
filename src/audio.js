@@ -343,6 +343,13 @@ export class AudioEngine {
                 console.warn('[audio] Music playback blocked:', err));
             return;
         }
+        // Avoid a second reset when an alert escalates into a full battle:
+        // the action arrangement should finish its phrase before rotating.
+        if (!forceNext && prev?.id === 'singularity_action' &&
+            ['tension','combat','boss'].includes(state)) {
+            prev.category = state;
+            return;
+        }
         const resumed = !forceNext && this._resumeMusic?.category === state ?
             this._resumeMusic : null;
         // The two Singularity versions share one arrangement and timeline.
