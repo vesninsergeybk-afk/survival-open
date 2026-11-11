@@ -6,9 +6,9 @@ import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-de
  * The original src/ modules own their shared sprite atlases and licenses.
  */
 import {drawEvolvedHero, heroMotionPose} from '../src/hero-evolution.js?v=hangar-2';
-import {drawAnimatedEnemyShip} from '../src/disruptor-ship-sprites.js';
-import {drawOpeningHostile} from './opening-hostile-art.js?v=opening-craft-20261111';
-import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js?v=iris-pack-1-counterattack-1-mission-pack-1';
+import {drawAnimatedEnemyShip} from '../src/disruptor-ship-sprites.js?v=opening-attack-20261111';
+import {drawOpeningHostile} from './opening-hostile-art.js?v=opening-attack-20261111';
+import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js?v=iris-pack-1-counterattack-1-mission-pack-1-opening-attack-20261111';
 import {drawStationPart, STATION_PARTS} from '../src/station-art.js?v=base-86';
 import {drawTurretMount,drawTurretHead} from '../src/turret-visuals.js?v=turret-visuals-1';
 import {drawHostileProjectile} from './hostile-projectiles.js?v=corvette-20261110-1-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110';

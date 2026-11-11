@@ -75,20 +75,23 @@ test('missing or unrelated commanders never turn an intercept into a free reward
  assert.equal(validateOpeningArc({...a,commanderDefeated:'yes'}),false);
 });
 
-test('real ship selection spawns one marked pilot and two escorts, with one priority goal',()=>{
+test('interception spawns armed ordinary ships and a three-drone blue school',()=>{
  const g=Object.create(RuntimeHarness.prototype),a=arc(),events=[];
  Object.assign(g,{openingArc:a,time:16,enemySerial:0,groupSerial:0,
   player:{x:0,y:0,hp:110},enemies:[],waypoint:{id:'0:0',x:360,y:-85,label:'Док'},
   overlay:{dataset:{mode:'opening-choice'}},dismiss:()=>{},notice:t=>events.push(t)});
  g.chooseOpeningRoute('intercept');
  assert.equal(a.status,'active');assert.equal(a.kind,'intercept');
- assert.equal(g.enemies.length,3);
+ assert.equal(g.enemies.length,6);
  assert.equal(g.enemies.filter(e=>e.openingCommander).length,1);
  assert.equal(g.enemies[0].hp>=100,true);
  assert.ok(g.enemies.slice(1).every(e=>e.protect===g.enemies[0]));
  assert.ok(g.enemies.slice(1).every(e=>e.missionStructure&&
   e.scenario==='opening-escort'));
- assert.deepEqual(g.enemies.slice(1).map(e=>e.openingEscortSlot),[-1,1]);
+ assert.deepEqual(g.enemies.slice(1,3).map(e=>e.openingEscortSlot),[-1,1]);
+ assert.deepEqual(g.enemies.slice(1,3).map(e=>e.type),['fighter','flanker']);
+ assert.deepEqual(g.enemies.slice(3).map(e=>e.openingTriangleSlot),[0,1,2]);
+ assert.ok(g.enemies.slice(3).every(e=>e.openingBlueTriangle&&e.hp===26));
  assert.equal(g.waypoint.id,'opening-intercept');
  assert.deepEqual(a.returnWaypoint,{id:'0:0',x:360,y:-85,label:'Док'});
  assert.equal(events.length,1);
@@ -110,7 +113,7 @@ test('intercept arrow follows the living commander but respects a new player way
  assert.equal(g.waypoint.x,800,'the opening mission does not hijack a later chosen route');
 });
 
-test('rescue selection creates site defenders and a timed enemy recovery plan',()=>{
+test('rescue selection creates three ordinary guards, blue interceptors and a timed tug',()=>{
  const a=arc(),g=Object.create(RuntimeHarness.prototype),notes=[];
  Object.assign(g,{openingArc:a,time:16,enemySerial:0,groupSerial:0,
   player:{x:home.x,y:home.y},enemies:[],waypoint:null,
@@ -118,10 +121,12 @@ test('rescue selection creates site defenders and a timed enemy recovery plan',(
   notice:t=>notes.push(t),controlLabel:()=> 'E'});
  g.chooseOpeningRoute('rescue');
  assert.equal(a.rescueGuardsSpawned,true);
- assert.equal(g.enemies.length,2);
+ assert.equal(g.enemies.length,6);
  assert.ok(g.enemies.every(e=>e.openingRescueRole==='guard'&&e.protect?.hp===100));
  assert.ok(g.enemies.every(e=>e.guardPost?.x===e.x&&e.guardPost?.y===e.y));
- assert.deepEqual(g.enemies.map(e=>e.rescueSlot),[0,1]);
+ assert.deepEqual(g.enemies.map(e=>e.rescueSlot),[0,1,2,3,4,5]);
+ assert.deepEqual(g.enemies.slice(0,3).map(e=>e.type),['fighter','flanker','fighter']);
+ assert.equal(g.enemies.filter(e=>e.openingBlueTriangle).length,3);
  assert.equal(a.rescueTugAt,16+OPENING_ARC.rescueTugDelay);
  assert.equal(g.waypoint.id,'opening-rescue');
  assert.match(notes[0],/буксир/);
@@ -156,7 +161,7 @@ test('rescue tug travels towards the capsule, and live enemies are released afte
  assert.ok(tug?.missionFlight,'enemy recovery is a real travelling craft');
  assert.equal(escort?.protect,tug);
  assert.equal(escort?.rescueSlot,1);
- assert.equal(g.enemies.length,4,'two site guards and a tug with escort');
+ assert.equal(g.enemies.length,8,'six site defenders and a tug with escort');
  a.repair=OPENING_ARC.repairSeconds;a.rescueStage='return';
  a.rescueCargoX=home.x;a.rescueCargoY=home.y;
  g.player.x=home.x;g.player.y=home.y;

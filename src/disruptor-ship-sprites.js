@@ -24,13 +24,16 @@ if(typeof Image!=='undefined'){
         import.meta.url).href;
 }
 export const isAnimatedShipAtlasReady=()=>atlas!==null;
+export const usesRegularEnemyShipArt=enemy=>!!enemy&&!enemy.boss&&
+    enemy.openingRescueRole!=='tug'&&(!enemy.missionStructure||
+    ['guard','escort','pursuer'].includes(enemy.openingRescueRole)||
+    enemy.openingCommander||enemy.scenario==='opening-escort');
 
 /** Returns true if an animated sprite replaced the fallback artwork. */
 export function drawAnimatedEnemyShip(ctx,enemy){
-    // Rescue guards are real armed fighters; only the tug itself uses the
-    // mission-objective painting instead of the regular animated fleet.
-    if(!atlas||enemy.boss||(enemy.missionStructure&&
-       !['guard','escort','pursuer'].includes(enemy.openingRescueRole)))return false;
+    // Both opening missions use the same approved fleet atlas as the rest
+    // of the game. Only the rescue tug retains its mission-objective art.
+    if(!atlas||!usesRegularEnemyShipArt(enemy))return false;
     const choices=ROWS[enemy.id||enemy.type?.id];
     if(!choices)return false;
     if(!Number.isInteger(enemy._disruptorRow)){

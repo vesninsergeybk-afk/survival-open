@@ -44,13 +44,78 @@ test('the command wing keeps opposite flanks and formation craft brake at their 
  assert.equal(rescueArrivalSpeed(atPost,{x:atPost.x+100,y:atPost.y},120,11),120);
 });
 
+test('blue interceptors keep three separate moving formation lanes',()=>{
+ const leader={x:300,y:400,vx:90,vy:0,hp:110};
+ const ships=[0,1,2].map(slot=>({type:'scout',scenario:'opening-escort',
+  openingBlueTriangle:true,openingTriangleSlot:slot,protect:leader}));
+ const points=ships.map(e=>rescueGuardDestination(e,5));
+ assert.ok(points[0].y<points[1].y&&points[1].y<points[2].y);
+ assert.ok(points.every(p=>p.x<leader.x));
+ assert.ok(points[2].y-points[0].y>=150);
+});
+
+test('the opening commander enters its actual weapon range and opens fire',()=>{
+ const shots=[],player={x:0,y:0,vx:0,vy:0,hp:90,r:19,invul:99};
+ const commander={serial:12,group:2,type:'fighter',openingCommander:true,
+  missionStructure:true,x:495,y:0,vx:0,vy:0,r:18,hp:110,maxHp:110,
+  damage:12,think:.2,fire:.9,state:'standoff',commitUntil:0,
+  target:player};
+ const game={time:12,player,enemies:[commander],allies:[],missiles:[],shots:[],
+  avoidance:()=>({x:0,y:0}),enemyCanSee:()=>true,
+  grid:{query:()=>[commander]},heritage:{play(){},vfx:{shipExplosion(){}}},
+  enemyShot:(...args)=>{shots.push(args);return true;},hurt(){}};
+ let minimum=Infinity;
+ for(let i=0;i<200;i++){
+  game.time+=.05;updateEnemy(commander,game,.05);
+  minimum=Math.min(minimum,Math.hypot(commander.x-player.x,
+   commander.y-player.y));
+ }
+ assert.ok(minimum<390,`commander must close into gun range, got ${minimum}`);
+ assert.ok(shots.length>=1,'commander must fire, not just orbit');
+});
+
+test('all six capsule defenders engage an approaching pilot, including blue ships',()=>{
+ const capsule={x:500,y:500,hp:100};
+ const types=['fighter','flanker','fighter','scout','scout','scout'];
+ const posts=[[325,585],[635,400],[520,685],
+  [670,320],[760,500],[670,680]];
+ const guards=types.map((type,i)=>({serial:40+i,group:2,type,
+  openingRescueRole:'guard',openingBlueTriangle:i>=3,
+  missionStructure:true,x:posts[i][0],y:posts[i][1],vx:0,vy:0,
+  r:type==='fighter'?18:12,hp:30,maxHp:30,damage:10,
+  think:.2,fire:0,state:'guard',commitUntil:0,
+  protect:capsule,guardPost:{x:posts[i][0],y:posts[i][1]}}));
+ const player={x:500,y:520,vx:0,vy:0,hp:90,r:19,invul:99};
+ const fired=new Map();
+ const game={time:12,player,enemies:guards,allies:[],missiles:[],shots:[],
+  avoidance:()=>({x:0,y:0}),enemyCanSee:()=>true,
+  grid:{query:()=>guards},heritage:{play(){},vfx:{shipExplosion(){}}},
+  enemyShot:(x,y)=>{
+   const shooter=guards.find(e=>Math.hypot(e.x-x,e.y-y)<.01);
+   if(shooter)fired.set(shooter.serial,(fired.get(shooter.serial)||0)+1);
+   return true;
+  },hurt(){}};
+ for(let i=0;i<340;i++){
+  game.time+=.05;
+  for(const ship of guards)updateEnemy(ship,game,.05);
+ }
+ assert.ok(guards.some(e=>e.state==='intercept'),
+  'site defenders must leave their passive posts on real player contact');
+ assert.ok([...fired.keys()].some(id=>id<43),
+  'ordinary fighters must visibly attack');
+ assert.ok([...fired.keys()].some(id=>id>=43),
+  'blue triangular interceptors must also fire');
+ assert.ok(guards.every(e=>fired.has(e.serial)),
+  `every defender must eventually fire: ${JSON.stringify([...fired])}`);
+});
+
 test('a mission defender fights inside a bounded screen without following the player away',()=>{
  const capsule={x:500,y:700,hp:100};
  const guard={serial:4,openingRescueRole:'guard',x:335,y:785,
   protect:capsule,guardPost:{x:335,y:785}};
  const anchor=rescueGuardDestination(guard,20);
  const intercept=rescueBoundedIntercept(guard,{x:1300,y:1600},20);
- assert.ok(Math.hypot(intercept.x-anchor.x,intercept.y-anchor.y)<=155.01);
+ assert.ok(Math.hypot(intercept.x-anchor.x,intercept.y-anchor.y)<=350.01);
  assert.deepEqual(rescueBoundedIntercept(guard,{x:anchor.x+20,y:anchor.y},20),
   {x:anchor.x+20,y:anchor.y});
  assert.equal(rescueBoundedIntercept({...guard,protect:{...capsule,hp:0}},

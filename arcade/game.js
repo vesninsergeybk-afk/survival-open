@@ -7,7 +7,7 @@ import {mountContextualGuide} from './contextual-guide-ui.js?v=prototype-1-core-
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2-hud-merge-20261110';
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1-hud-merge-20261110';
 import {updateRegionalStorms,drawRegionalStorms,drawStormCharge,stormWeaponDamage} from './regional-storms.js?v=regions-1-living-world-population-1-sector-density-2-hud-merge-20261110';
-import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-zoomread-2-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1-flux-siphon-roads-1-early-density-20261110-convoy-variety-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-wingmastery-20261110-xp-audit-20261111';
+import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid,spawnCentralRaid,spawnFrontierRaid,rememberCargoEscort} from './region-runtime.js?v=living-world-4-logistics-audit-1-lab-logistics-1-enemy-gunnery-1-opening-arc-1-lab-logistics-qa-1-enemy-objectives-1-radio-shadow-1-home-conflict-1-theater-1-expedition-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-economy-1-enemy-domains-1-enemy-balance-2-supply-stronghold-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-zoomread-2-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1-flux-siphon-roads-1-early-density-20261110-convoy-variety-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-wingmastery-20261110-xp-audit-20261111-opening-attack-20261111';
 import {rememberPopulationShip} from './population-runtime.js?v=sector-density-2-frontier-siege-1-early-density-20261110-convoy-variety-20261110-pilot-value-2-hud-merge-20261110-wingmastery-20261110';
 import {frontierBarrierContact,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {SALVAGE,ruinEnemyIndustry,salvageQuote,claimRuinedIndustry} from './enemy-station-salvage.js?v=frontier-claim-1';
@@ -46,7 +46,7 @@ import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefen
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4-zoomread-2-territory-logistics-1';
 import {firstRockImpact,nearAmberBelt} from './terrain.js?v=arcade-belt-26-redteam-20261109-1';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
-import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110-trial-station-defense-20261110-escort-squad-20261110-wingmastery-20261110-xp-audit-20261111-opening-craft-20261111-r2';
+import {ENEMY_TYPES, updateEnemy, updateAlly} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110-trial-station-defense-20261110-escort-squad-20261110-wingmastery-20261110-xp-audit-20261111-opening-craft-20261111-r2-opening-attack-20261111';
 import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=enemy-gunnery-1-opening-arc-1-enemy-fixes-1-pressure-response-1-combat-hunt-20261109-redteam-20261109-1-corvette-20261110-1-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110';
 import {drawEnemyCloseWarnings} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
 import {BASE_TURRET_GUN,advanceBaseTurretGun,drawBaseTurretWarnings} from './base-turret-gunnery.js';
@@ -58,10 +58,10 @@ import {escortHireOffer,escortTrainingOffer,createEscort,escortMaxHp,
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-ai-commander-20261110-enemy-operations-20261110-space-impact-20261110';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
-import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-wingmastery-20261110-data-economy-20261111-xp-audit-20261111';
+import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-wingmastery-20261110-data-economy-20261111-xp-audit-20261111-opening-attack-20261111';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1-combat-balance-1';
 import {planEncounter,scheduledMoteSize,moteEncounterSize,MOTE_ENCOUNTER} from './encounters.js?v=arcade-balanced-bases-30-combat-hunt-20261109-shield-crowd-20261110-swarm-presence-20261110-opening-evasion-20261110';
-import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109-weapon-vfx-audit-1-corvette-20261110-1-pilot-value-2-opening-evasion-20261110-turret-defense-20261110-escort-squad-20261110-escort-art-20261110-opening-craft-20261111';
+import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=opening-attack-20261111-regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109-weapon-vfx-audit-1-corvette-20261110-1-pilot-value-2-opening-evasion-20261110-turret-defense-20261110-escort-squad-20261110-escort-art-20261110-opening-craft-20261111';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
@@ -1826,19 +1826,33 @@ export class ArcadeGame {
    const commander={serial,group,type:'fighter',
     x:arc.interceptX,y:arc.interceptY,vx:0,vy:0,r:18,
     hp:Math.max(100,spec.hp*1.8),maxHp:Math.max(100,spec.hp*1.8),
-    damage:spec.dmg,think:.2,fire:1.1,state:'hunt',commitUntil:0,
+    damage:spec.dmg,think:.2,fire:.9,state:'standoff',commitUntil:0,
     target:this.player,angle:0,hit:0,expAwarded:false,scenario:'opening-intercept',
     protect:null,openingCommander:true,missionStructure:true,entryPortalPending:false};
    this.enemies.push(commander);
-   for(const offset of [-1,1]){
-    const scout=ENEMY_TYPES.scout;
-    this.enemies.push({serial:++this.enemySerial,group,type:'scout',
-     x:arc.interceptX+offset*78,y:arc.interceptY+offset*64,vx:0,vy:0,r:14,
+   for(const [offset,type] of [[-1,'fighter'],[1,'flanker']]){
+    const scout=ENEMY_TYPES[type];
+    this.enemies.push({serial:++this.enemySerial,group,type,
+     x:arc.interceptX+offset*78,y:arc.interceptY+offset*64,vx:0,vy:0,
+     r:type==='fighter'?18:16,
      hp:scout.hp,maxHp:scout.hp,damage:scout.dmg,think:.15,fire:1.3,
      state:'hunt',commitUntil:0,target:this.player,angle:0,hit:0,
      expAwarded:false,scenario:'opening-escort',protect:commander,
      openingEscortSlot:offset,missionStructure:true,
      entryPortalPending:false});
+   }
+   // Three light blue interceptors fly together, separate from the regular
+   // fighter/flanker escort. Every one is a real, damageable, firing enemy.
+   for(let slot=0;slot<3;slot++){
+    const spec=ENEMY_TYPES.scout;
+    this.enemies.push({serial:++this.enemySerial,group,type:'scout',
+     x:arc.interceptX+(slot-1)*78,y:arc.interceptY+175,
+     vx:0,vy:0,r:12,hp:26,maxHp:26,damage:spec.dmg,
+     think:.15,fire:.7+slot*.2,state:'guard',commitUntil:0,
+     target:this.player,angle:0,hit:0,expAwarded:false,
+     scenario:'opening-escort',protect:commander,
+     openingBlueTriangle:true,openingTriangleSlot:slot,
+     missionStructure:true,entryPortalPending:false});
    }
    arc.commanderSerial=serial;
   }else{
@@ -1876,8 +1890,18 @@ export class ArcadeGame {
   arc.rescueGuardsSpawned=true;
   ++this.groupSerial;
   const defend={x:arc.rescueX,y:arc.rescueY,hp:100,r:32};
-  this.spawnOpeningRescueEnemy('scout',arc.rescueX-165,arc.rescueY+85,'guard',defend,0);
-  this.spawnOpeningRescueEnemy('fighter',arc.rescueX+135,arc.rescueY-100,'guard',defend,1);
+  this.spawnOpeningRescueEnemy('fighter',arc.rescueX-165,arc.rescueY+85,'guard',defend,0);
+  this.spawnOpeningRescueEnemy('flanker',arc.rescueX+135,arc.rescueY-100,'guard',defend,1);
+  this.spawnOpeningRescueEnemy('fighter',arc.rescueX+20,arc.rescueY+185,'guard',defend,2);
+  // A compact school of blue triangular drones screens the ordinary ships.
+  for(let slot=0;slot<3;slot++){
+   const angle=(-.92+slot*.92),radius=260;
+   const x=arc.rescueX+Math.cos(angle)*radius;
+   const y=arc.rescueY+Math.sin(angle)*radius;
+   const drone=this.spawnOpeningRescueEnemy('scout',x,y,'guard',defend,slot+3);
+   drone.openingBlueTriangle=true;drone.openingTriangleSlot=slot;
+   drone.hp=26;drone.maxHp=26;drone.r=12;drone.fire=.7+slot*.2;
+  }
  }
  spawnOpeningRescueTug(){
   const arc=this.openingArc;
@@ -2016,7 +2040,8 @@ export class ArcadeGame {
    // Survivors join ordinary enemy patrols after either outcome.
    for(const e of this.enemies||[])if(e.openingRescueRole){
     delete e.missionFlight;delete e.openingRescueRole;delete e.protect;
-    delete e.missionStructure;
+    delete e.missionStructure;delete e.openingBlueTriangle;
+    delete e.openingTriangleSlot;
    }
   }
   if(arc.kind==='intercept'&&
@@ -2026,7 +2051,8 @@ export class ArcadeGame {
    for(const e of this.enemies||[])if(
     e.scenario==='opening-escort'||e.scenario==='opening-intercept'){
     delete e.missionStructure;delete e.openingCommander;
-    delete e.openingEscortSlot;delete e.protect;
+    delete e.openingEscortSlot;delete e.openingBlueTriangle;
+    delete e.openingTriangleSlot;delete e.protect;
     e.commitUntil=0;e.think=0;
    }
   }

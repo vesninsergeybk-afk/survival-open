@@ -24,7 +24,7 @@ import {ESCORTS,escortFocusBonus} from './escort-squad.js?v=escort-squad-2026111
 import {masteryBonus} from './combat-mastery.js?v=xp-audit-20261111';
 import {rescueArmedDrone,rescueGuardDestination,rescuePursuitDestination,
  rescueBoundedIntercept,rescueArrivalSpeed}
- from './rescue-formation.js?v=opening-craft-20261111';
+from './rescue-formation.js?v=opening-craft-20261111-opening-attack-20261111';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -442,9 +442,12 @@ export function updateEnemy(e,game,dt){
           !!memory&&t-memory.at<=4.8||
           !!order?.intel&&t-order.intel.at<=2.6||
           !!e.signalIntel&&t-(e.signalIntel.lastSeenAt??-Infinity)<=3.4;
+        // Opening guards are meant to fight the pilot approaching the
+        // capsule/commander. The old 225-unit leash let the pilot attack
+        // from outside the defenders' willingness to respond.
         const nearThreat=hasThreat&&
           dist(enemyPursuitTarget(e,game),e.protect)<
-            (e.state==='intercept'?275:225);
+            (rescueArmedDrone(e)?540:e.state==='intercept'?275:225);
         state=nearThreat?'intercept':'guard';
       }
       else if(e.type==='flanker')state='flank';
@@ -482,7 +485,9 @@ export function updateEnemy(e,game,dt){
     // Continuous orbital steering avoids the old 260-unit approach/retreat flip.
     // The main cannon is a stand-off weapon; only a cornered corvette should
     // use its anti-boarding battery. These radii stay within visual sight.
-    const ideal=e.openingCommander?495:learningStyle==='sideslip'?405:
+    // The opening commander uses a 405-unit fighter gun. At 495 units it
+    // kept orbiting in permanent silence despite having line of sight.
+    const ideal=e.openingCommander?305:learningStyle==='sideslip'?405:
       learningStyle==='intercept'?345:375;
     const correction=clamp((d-ideal)/90,-1,1);
     const direction=e.serial%2===0?1:-1;

@@ -34,6 +34,14 @@ export function rescueGuardDestination(enemy,time=0){
   const motion=Math.hypot(leader.vx||0,leader.vy||0);
   const directionVector=motion>8?
    direction(leader.vx,leader.vy):{x:0,y:-1};
+  if(enemy.openingBlueTriangle){
+   // A three-ship school keeps three distinct lanes behind its commander.
+   const lane=(enemy.openingTriangleSlot??1)-1;
+   return {x:leader.x-directionVector.x*155-
+      directionVector.y*lane*82,
+    y:leader.y-directionVector.y*155+
+      directionVector.x*lane*82};
+  }
   const side=enemy.openingEscortSlot===-1?-1:1;
   return {x:leader.x-directionVector.x*48-directionVector.y*side*88,
    y:leader.y-directionVector.y*48+directionVector.x*side*88};
@@ -57,7 +65,9 @@ export function rescueBoundedIntercept(enemy,goal,time=0){
  if(!rescueArmedDrone(enemy)||!enemy?.protect?.hp)return null;
  const post=rescueGuardDestination(enemy,time)||enemy.protect;
  if(!Number.isFinite(post.x)||!Number.isFinite(post.y))return null;
- const reach=enemy.openingRescueRole==='guard'?155:190;
+ // Let combat pilots close into their REAL firing ranges while preserving
+ // a finite defence perimeter around their assigned objective.
+ const reach=enemy.openingRescueRole==='guard'?350:385;
  const dx=goal.x-post.x,dy=goal.y-post.y,d=Math.hypot(dx,dy);
  return d>reach?{x:post.x+dx/d*reach,y:post.y+dy/d*reach}:
   {x:goal.x,y:goal.y};
