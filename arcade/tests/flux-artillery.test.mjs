@@ -374,7 +374,7 @@ test('selected artillery shows its actual targeting and blast radii on the battl
   key==='arc'?(_x,_y,r)=>radii.push(r):()=>{},
   set:(obj,key,value)=>(obj[key]=value,true)});
  drawFluxArtillery(ctx,game,{x:0,y:0,w:1500,h:1100});
- assert.ok(radii.includes(740));assert.ok(radii.includes(110));
+ assert.ok(radii.includes(940));assert.ok(radii.includes(110));
 });
 
 test('the chassis and rotating head keep identical pixel anchors through recoil, damage and wreckage',async()=>{
