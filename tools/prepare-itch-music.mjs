@@ -25,12 +25,12 @@ const mergeCookies=(a,b)=>{
   return [...pairs].map(([k,v])=>k+'='+v).join('; ');
 };
 const header=(cookie,referer)=>({'User-Agent':agent,...(cookie?{Cookie:cookie}:{}),...(referer?{Referer:referer}:{})});
-const csrf=(html)=>html.match(/csrf_token["']\\s+value=["']([^"']+)/)?.[1]||
+const csrf=(html)=>html.match(/csrf_token["']\s+value=["']([^"']+)/)?.[1]||
   html.match(/name=["']csrf_token["'][^>]*value=["']([^"']+)/)?.[1]||'';
-const uploadIds=(html)=>[...html.matchAll(/data-upload_id=["'](\\d+)/g)].map(m=>m[1]);
+const uploadIds=(html)=>[...html.matchAll(/data-upload_id=["'](\d+)/g)].map(m=>m[1]);
 const uploadMap=(html)=>{
   const out=new Map();
-  const re=/<a[^>]*data-upload_id=["'](\\d+)["'][^>]*>[\\s\\S]*?<strong[^>]*class=["'][^"']*name[^"']*["'][^>]*>([^<]+)<\\/strong>/g;
+  const re=/<a[^>]*data-upload_id=["'](\d+)["'][^>]*>[\s\S]*?<strong[^>]*class=["'][^"']*name[^"']*["'][^>]*>([^<]+)<\/strong>/g;
   for(const m of html.matchAll(re)){
     const name=m[2].replace(/&amp;/g,'&').replace(/&#39;|&apos;/g,"'").replace(/&quot;/g,'"').trim();
     out.set(name,m[1]);
@@ -54,7 +54,7 @@ try {
       throw Error('Unapproved author page or license: '+bundle.page);
     const missing=[];
     for(const t of bundle.tracks){
-      if(!/^[a-z0-9][a-z0-9-]*\\.ogg$/.test(t.file))throw Error('Bad music file '+t.file);
+      if(!/^[a-z0-9][a-z0-9-]*\.ogg$/.test(t.file))throw Error('Bad music file '+t.file);
       if(!(await valid(join(output,t.file))))missing.push(t);
     }
     if(!missing.length){console.log('CACHED BUNDLE',bundle.page);continue;}
