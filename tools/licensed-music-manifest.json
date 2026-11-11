@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "notes": "Only CC BY 4.0 and CC0 sources. Each listed downloadable URL was linked from its author/asset page on 2026-11-11. Raw recordings are fetched and transcoded solely for the game build.",
+  "version": 2,
+  "notes": "Official artist/CC0 sources, downloaded during CI and transcoded to Ogg/Opus. Track and source licensing documented per-item; no standalone restricted EULAs.",
   "tracks": [
     {
       "id": "adrift_among_infinite_stars",
@@ -118,6 +118,168 @@
       "source": "https://opengameart.org/content/boss-battle-9-metal",
       "url": "https://opengameart.org/sites/default/files/boss_battle_9_metal_loop.wav",
       "file": "boss-battle-9-metal-loop.ogg"
+    },
+    {
+      "id": "goliath",
+      "title": "Goliath",
+      "artist": "Scott Buckley",
+      "license": "CC BY 4.0",
+      "source": "https://www.scottbuckley.com.au/library/goliath/",
+      "url": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/08/sb_goliath.mp3",
+      "file": "goliath.ogg"
+    },
+    {
+      "id": "wildflowers",
+      "title": "Wildflowers",
+      "artist": "Scott Buckley",
+      "license": "CC BY 4.0",
+      "source": "https://www.scottbuckley.com.au/library/wildflowers/",
+      "url": "https://www.scottbuckley.com.au/library/wp-content/uploads/2025/12/Wildflowers.mp3",
+      "file": "wildflowers.ogg"
+    },
+    {
+      "id": "claimed_by_void",
+      "title": "Claimed by the Void",
+      "artist": "vitalezzz",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/claimed-by-the-void",
+      "url": "https://opengameart.org/sites/default/files/claimed_by_the_void_loop.mp3",
+      "file": "claimed-by-the-void-loop.ogg"
+    },
+    {
+      "id": "our_expanse",
+      "title": "Our Expanse",
+      "artist": "Bobjt",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/our-expanse",
+      "url": "https://opengameart.org/sites/default/files/our_expanse_-_loop-version-.mp3",
+      "file": "our-expanse-loop.ogg"
+    },
+    {
+      "id": "safe_space",
+      "title": "Safe Space",
+      "artist": "Tsorthan Grove",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/safe-space-0",
+      "url": "https://opengameart.org/sites/default/files/safe_space_loop.flac",
+      "file": "safe-space-loop.ogg"
+    },
+    {
+      "id": "once_more_metal",
+      "title": "Once More [Metal]",
+      "artist": "nene",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/once-more-metal",
+      "url": "https://opengameart.org/sites/default/files/once_more_metal.wav",
+      "file": "once-more-metal.ogg"
+    },
+    {
+      "id": "fight_better_future",
+      "title": "Fight for Better Future",
+      "artist": "nene",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/fight-for-better-future-rockmetal",
+      "url": "https://opengameart.org/sites/default/files/fight_for_better_future.wav",
+      "file": "fight-for-better-future.ogg"
+    },
+    {
+      "id": "cybershaman",
+      "title": "Cybershaman",
+      "artist": "Ruskerdax",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/cybershaman",
+      "url": "https://opengameart.org/sites/default/files/ruskerdax_-_cybershaman.flac",
+      "file": "cybershaman.ogg"
+    },
+    {
+      "id": "starfield_romance",
+      "title": "Starfield Romance",
+      "artist": "Yoiyami",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/starfield-romance-%E2%80%93-cc0-ambient-emotional-space-theme-yoiyami-blue-series-%E2%80%93-no3",
+      "url": "https://opengameart.org/sites/default/files/starfield_romance1.wav",
+      "file": "starfield-romance.ogg"
+    },
+    {
+      "id": "first_light_particles",
+      "title": "First Light Particles",
+      "artist": "Yoiyami",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/first-light-particles-%E2%80%93-cc0-atmospheric-pianoambient-track",
+      "url": "https://opengameart.org/sites/default/files/first_light_particles_0.wav",
+      "file": "first-light-particles.ogg"
+    },
+    {
+      "id": "devoted_guard",
+      "title": "Devoted Guard",
+      "artist": "vitalezzz",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/devoted-guard",
+      "url": "https://opengameart.org/sites/default/files/devoted_guard_0.mp3",
+      "file": "devoted-guard.ogg"
+    },
+    {
+      "id": "realm_of_torment",
+      "title": "Realm of Torment",
+      "artist": "vitalezzz",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/realm-of-torment",
+      "url": "https://opengameart.org/sites/default/files/realm_of_torment_4.mp3",
+      "file": "realm-of-torment.ogg"
+    },
+    {
+      "id": "boss_battle_10",
+      "title": "Boss Battle #10 [Metal]",
+      "artist": "nene",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/boss-battle-10-metal",
+      "url": "https://opengameart.org/sites/default/files/boss_battle_10_metal.wav",
+      "file": "boss-battle-10-metal.ogg"
+    },
+    {
+      "id": "boss_battle_8",
+      "title": "Boss Battle #8 [Metal]",
+      "artist": "nene",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/boss-battle-8-metal",
+      "url": "https://opengameart.org/sites/default/files/boss_battle_8_metal_loop.wav",
+      "file": "boss-battle-8-metal-loop.ogg"
+    },
+    {
+      "id": "i_do_know",
+      "title": "I Do Know",
+      "artist": "You're Perfect Studio / Memoraphile",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/i-do-know",
+      "url": "https://opengameart.org/sites/default/files/I_Do_Know_by_Memoraphile_CC0.ogg",
+      "file": "i-do-know.ogg"
+    },
+    {
+      "id": "dark_sector",
+      "title": "Sector",
+      "artist": "SRG774",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/dark-sci-fi-audio-pack",
+      "url": "https://opengameart.org/sites/default/files/sector_0.mp3",
+      "file": "dark-sector.ogg"
+    },
+    {
+      "id": "dark_airy",
+      "title": "Airy",
+      "artist": "SRG774",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/dark-sci-fi-audio-pack",
+      "url": "https://opengameart.org/sites/default/files/airy_0.mp3",
+      "file": "dark-airy.ogg"
+    },
+    {
+      "id": "dark_pulse",
+      "title": "Pulse",
+      "artist": "SRG774",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/dark-sci-fi-audio-pack",
+      "url": "https://opengameart.org/sites/default/files/pulse_0.mp3",
+      "file": "dark-pulse.ogg"
     }
   ]
 }

@@ -28,16 +28,43 @@ export const MUSIC_TRACKS = Object.freeze({
   silver_bullet: Object.freeze({title:"Silver Bullet",file:"silver-bullet.ogg",level:0.48,source:"https://opengameart.org/content/silver-bullet"}),
   unholy_surge: Object.freeze({title:"Unholy Surge",file:"unholy-surge.ogg",level:0.46,source:"https://opengameart.org/content/unholy-surge"}),
   space_boss_battle: Object.freeze({title:"Space Boss Battle",file:"space-boss-battle.ogg",level:0.52,source:"https://opengameart.org/content/space-boss-battle"}),
-  boss_battle_9_metal: Object.freeze({title:"Boss Battle #9 (Metal loop)",file:"boss-battle-9-metal-loop.ogg",level:0.49,source:"https://opengameart.org/content/boss-battle-9-metal"})
+  boss_battle_9_metal: Object.freeze({title:"Boss Battle #9 (Metal loop)",file:"boss-battle-9-metal-loop.ogg",level:0.49,source:"https://opengameart.org/content/boss-battle-9-metal"}),
+  goliath: Object.freeze({title:"Goliath",file:"goliath.ogg",level:0.53,source:"https://www.scottbuckley.com.au/library/goliath/"}),
+  wildflowers: Object.freeze({title:"Wildflowers",file:"wildflowers.ogg",level:0.69,source:"https://www.scottbuckley.com.au/library/wildflowers/"}),
+  claimed_by_void: Object.freeze({title:"Claimed by the Void",file:"claimed-by-the-void-loop.ogg",level:0.65,source:"https://opengameart.org/content/claimed-by-the-void"}),
+  our_expanse: Object.freeze({title:"Our Expanse",file:"our-expanse-loop.ogg",level:0.66,source:"https://opengameart.org/content/our-expanse"}),
+  safe_space: Object.freeze({title:"Safe Space",file:"safe-space-loop.ogg",level:0.65,source:"https://opengameart.org/content/safe-space-0"}),
+  once_more_metal: Object.freeze({title:"Once More [Metal]",file:"once-more-metal.ogg",level:0.47,source:"https://opengameart.org/content/once-more-metal"}),
+  fight_better_future: Object.freeze({title:"Fight for Better Future",file:"fight-for-better-future.ogg",level:0.52,source:"https://opengameart.org/content/fight-for-better-future-rockmetal"}),
+  cybershaman: Object.freeze({title:"Cybershaman",file:"cybershaman.ogg",level:0.55,source:"https://opengameart.org/content/cybershaman"}),
+  starfield_romance: Object.freeze({title:"Starfield Romance",file:"starfield-romance.ogg",level:0.73,source:"https://opengameart.org/content/starfield-romance-%E2%80%93-cc0-ambient-emotional-space-theme-yoiyami-blue-series-%E2%80%93-no3"}),
+  first_light_particles: Object.freeze({title:"First Light Particles",file:"first-light-particles.ogg",level:0.74,source:"https://opengameart.org/content/first-light-particles-%E2%80%93-cc0-atmospheric-pianoambient-track"}),
+  devoted_guard: Object.freeze({title:"Devoted Guard",file:"devoted-guard.ogg",level:0.48,source:"https://opengameart.org/content/devoted-guard"}),
+  realm_of_torment: Object.freeze({title:"Realm of Torment",file:"realm-of-torment.ogg",level:0.45,source:"https://opengameart.org/content/realm-of-torment"}),
+  boss_battle_10: Object.freeze({title:"Boss Battle #10 [Metal]",file:"boss-battle-10-metal.ogg",level:0.5,source:"https://opengameart.org/content/boss-battle-10-metal"}),
+  boss_battle_8: Object.freeze({title:"Boss Battle #8 [Metal]",file:"boss-battle-8-metal-loop.ogg",level:0.49,source:"https://opengameart.org/content/boss-battle-8-metal"}),
+  i_do_know: Object.freeze({title:"I Do Know",file:"i-do-know.ogg",level:0.64,source:"https://opengameart.org/content/i-do-know"}),
+  dark_sector: Object.freeze({title:"Sector",file:"dark-sector.ogg",level:0.62,source:"https://opengameart.org/content/dark-sci-fi-audio-pack"}),
+  dark_airy: Object.freeze({title:"Airy",file:"dark-airy.ogg",level:0.65,source:"https://opengameart.org/content/dark-sci-fi-audio-pack"}),
+  dark_pulse: Object.freeze({title:"Pulse",file:"dark-pulse.ogg",level:0.55,source:"https://opengameart.org/content/dark-sci-fi-audio-pack"}),
+  cosmic_journey: Object.freeze({title:"Cosmic Journey",file:"cosmic-journey.ogg",level:0.64,source:"https://davidkbd.itch.io/cosmic-journey-space-themed-music-pack"}),
+  galactic_pulse: Object.freeze({title:"Galactic Pulse",file:"galactic-pulse.ogg",level:0.56,source:"https://davidkbd.itch.io/cosmic-journey-space-themed-music-pack"}),
+  stellar_confrontation: Object.freeze({title:"Stellar Confrontation",file:"stellar-confrontation.ogg",level:0.51,source:"https://davidkbd.itch.io/cosmic-journey-space-themed-music-pack"}),
+  lunar_rampage: Object.freeze({title:"Lunar Rampage",file:"lunar-rampage.ogg",level:0.48,source:"https://davidkbd.itch.io/cosmic-journey-space-themed-music-pack"}),
+  plasma_storm: Object.freeze({title:"Plasma Storm",file:"plasma-storm.ogg",level:0.46,source:"https://davidkbd.itch.io/interstellar-edm-metal-music-pack"}),
+  forgotten_station: Object.freeze({title:"Forgotten Station",file:"forgotten-station.ogg",level:0.58,source:"https://davidkbd.itch.io/interstellar-edm-metal-music-pack"}),
+  galactic_battle: Object.freeze({title:"Galactic Battle",file:"galactic-battle.ogg",level:0.49,source:"https://davidkbd.itch.io/interstellar-vol2-edm-metal-music-pack"}),
+  endless_void_ambient: Object.freeze({title:"The Endless Void (ambient)",file:"endless-void-ambient.ogg",level:0.63,source:"https://davidkbd.itch.io/eternity-vol2-djentmetal-scfi-horror-music-pack"}),
+  endless_void_action: Object.freeze({title:"The Endless Void (action)",file:"endless-void-action.ogg",level:0.46,source:"https://davidkbd.itch.io/eternity-vol2-djentmetal-scfi-horror-music-pack"}),
+  purgatory_gateways: Object.freeze({title:"Gateways",file:"purgatory-gateways.ogg",level:0.44,source:"https://davidkbd.itch.io/purgatory-extreme-metal-music-pack"})
 });
 
 export const MUSIC_POOLS = Object.freeze({
-  opening: Object.freeze(['starfire','aphelion','shadows_and_dust','adrift_among_infinite_stars']),
-  exploration: Object.freeze(['starfire','aphelion','shadows_and_dust','decoherence','meanwhile',
-    'adrift_among_infinite_stars','permafrost','penumbra','echoes','memories_of_stone','unraveling','aurora','singularity_calm']),
-  tension: Object.freeze(['nightfall','convergence','decoherence','meanwhile','singularity_action','unraveling']),
-  combat: Object.freeze(['pursuit','simulacra','red','ambush','starfire','singularity_action','silver_bullet','unholy_surge']),
-  boss: Object.freeze(['eyes_in_the_void','ambush','convergence','red','space_boss_battle','boss_battle_9_metal','unholy_surge'])
+  opening: Object.freeze(["starfire","aphelion","shadows_and_dust","adrift_among_infinite_stars","wildflowers","cosmic_journey"]),
+  exploration: Object.freeze(["starfire","aphelion","shadows_and_dust","decoherence","meanwhile","adrift_among_infinite_stars","permafrost","penumbra","echoes","memories_of_stone","unraveling","aurora","singularity_calm","wildflowers","claimed_by_void","our_expanse","safe_space","starfield_romance","first_light_particles","i_do_know","dark_sector","dark_airy","cosmic_journey","forgotten_station"]),
+  tension: Object.freeze(["nightfall","convergence","decoherence","meanwhile","singularity_action","unraveling","claimed_by_void","cybershaman","dark_pulse","galactic_pulse","endless_void_ambient"]),
+  combat: Object.freeze(["pursuit","simulacra","red","ambush","starfire","singularity_action","silver_bullet","unholy_surge","once_more_metal","fight_better_future","devoted_guard","realm_of_torment","stellar_confrontation","plasma_storm","galactic_battle","endless_void_action"]),
+  boss: Object.freeze(["eyes_in_the_void","ambush","convergence","red","space_boss_battle","boss_battle_9_metal","unholy_surge","goliath","boss_battle_10","boss_battle_8","lunar_rampage","purgatory_gateways","stellar_confrontation"])
 });
 
 const STORAGE_KEY = 'survivor_arcade_music_rotation_v1';

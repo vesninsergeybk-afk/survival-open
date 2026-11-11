@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "artist": "David KBD",
+  "license": "CC BY 4.0",
+  "source": "https://davidkbd.itch.io/",
+  "description": "Only official zero-price OGG assets. Do not include paid WAV archives. Resolver requires exact upload filename and validates downloaded Ogg signature.",
+  "bundles": [
+    {
+      "page": "https://davidkbd.itch.io/cosmic-journey-space-themed-music-pack",
+      "tracks": [
+        {
+          "id": "cosmic_journey",
+          "title": "Cosmic Journey",
+          "originalName": "DavidKBD - Cosmic Pack 01 - Cosmic Journey-full.ogg",
+          "file": "cosmic-journey.ogg",
+          "scene": "exploration"
+        },
+        {
+          "id": "galactic_pulse",
+          "title": "Galactic Pulse",
+          "originalName": "DavidKBD - Cosmic Pack 02 - Galactic Pulse-full.ogg",
+          "file": "galactic-pulse.ogg",
+          "scene": "tension"
+        },
+        {
+          "id": "stellar_confrontation",
+          "title": "Stellar Confrontation",
+          "originalName": "DavidKBD - Cosmic Pack 05 - Stellar Confrontation-full.ogg",
+          "file": "stellar-confrontation.ogg",
+          "scene": "combat"
+        },
+        {
+          "id": "lunar_rampage",
+          "title": "Lunar Rampage",
+          "originalName": "DavidKBD - Cosmic Pack 06 - Lunar Rampage-full.ogg",
+          "file": "lunar-rampage.ogg",
+          "scene": "boss"
+        }
+      ]
+    },
+    {
+      "page": "https://davidkbd.itch.io/interstellar-edm-metal-music-pack",
+      "tracks": [
+        {
+          "id": "plasma_storm",
+          "title": "Plasma Storm",
+          "originalName": "DavidKBD - InterstellarPack - 02 - Plasma Storm.ogg",
+          "file": "plasma-storm.ogg",
+          "scene": "combat"
+        },
+        {
+          "id": "forgotten_station",
+          "title": "Forgotten Station",
+          "originalName": "DavidKBD - InterstellarPack - 05 - Forgotten Station.ogg",
+          "file": "forgotten-station.ogg",
+          "scene": "exploration"
+        }
+      ]
+    },
+    {
+      "page": "https://davidkbd.itch.io/interstellar-vol2-edm-metal-music-pack",
+      "tracks": [
+        {
+          "id": "galactic_battle",
+          "title": "Galactic Battle",
+          "originalName": "DavidKBD - Interstellar vol2 04 - Galactic Battle.ogg",
+          "file": "galactic-battle.ogg",
+          "scene": "combat"
+        }
+      ]
+    },
+    {
+      "page": "https://davidkbd.itch.io/eternity-vol2-djentmetal-scfi-horror-music-pack",
+      "tracks": [
+        {
+          "id": "endless_void_ambient",
+          "title": "The Endless Void (ambient)",
+          "originalName": "DavidKBD-02 - The Endless Void-ambient.ogg",
+          "file": "endless-void-ambient.ogg",
+          "scene": "tension"
+        },
+        {
+          "id": "endless_void_action",
+          "title": "The Endless Void (action)",
+          "originalName": "DavidKBD-02 - The Endless Void-action.ogg",
+          "file": "endless-void-action.ogg",
+          "scene": "combat"
+        }
+      ]
+    },
+    {
+      "page": "https://davidkbd.itch.io/purgatory-extreme-metal-music-pack",
+      "tracks": [
+        {
+          "id": "purgatory_gateways",
+          "title": "Gateways",
+          "originalName": "02 - DavidKBD - Purgatory Pack - Gateways.ogg",
+          "file": "purgatory-gateways.ogg",
+          "scene": "boss"
+        }
+      ]
+    }
+  ]
+}

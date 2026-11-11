@@ -11,11 +11,12 @@ const arcade = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const root = resolve(arcade, '..');
 
 test('all licensed tracks exist and every score state resolves to a nonempty playlist', () => {
-  assert.equal(Object.keys(MUSIC_TRACKS).length, 25);
-  assert.equal(new Set(Object.values(MUSIC_TRACKS).map(t=>t.file)).size, 25);
+  assert.equal(Object.keys(MUSIC_TRACKS).length, 53);
+  assert.equal(new Set(Object.values(MUSIC_TRACKS).map(t=>t.file)).size, 53);
   for (const [id, track] of Object.entries(MUSIC_TRACKS)) {
     assert.ok(track.source.startsWith('https://www.scottbuckley.com.au/library/') ||
-      track.source.startsWith('https://opengameart.org/content/'), id);
+      track.source.startsWith('https://opengameart.org/content/') ||
+      track.source.startsWith('https://davidkbd.itch.io/'), id);
     assert.ok(track.level>0 && track.level<=1, id);
     const path = resolve(root, 'assets/audio/music', track.file);
     assert.ok(existsSync(path), id + ' missing from public repository');
@@ -34,13 +35,28 @@ test('all licensed tracks exist and every score state resolves to a nonempty pla
 
 test('the additional licensed-music manifest matches the runtime catalog',()=>{
   const data=JSON.parse(readFileSync(resolve(root,'tools/licensed-music-manifest.json'),'utf8'));
-  assert.equal(data.tracks.length,13);
-  assert.equal(new Set(data.tracks.map(item=>item.file)).size,13);
+  assert.equal(data.tracks.length,31);
+  assert.equal(new Set(data.tracks.map(item=>item.file)).size,31);
   for(const item of data.tracks){
     assert.ok(['CC0','CC BY 4.0'].includes(item.license),item.id);
     assert.equal(MUSIC_TRACKS[item.id]?.file,item.file,item.id);
     assert.equal(MUSIC_TRACKS[item.id]?.source,item.source,item.id);
     assert.ok(item.url.startsWith('https://'),item.id);
+  }
+});
+
+test('all imported David KBD free OGGs have exact attributed source files',()=>{
+  const data=JSON.parse(readFileSync(resolve(root,'tools/itch-music-manifest.json'),'utf8'));
+  const entries=data.bundles.flatMap(b=>b.tracks.map(t=>({...t,source:b.page})));
+  assert.equal(entries.length,10);
+  assert.equal(data.license,'CC BY 4.0');
+  assert.equal(new Set(entries.map(t=>t.id)).size,entries.length);
+  assert.equal(new Set(entries.map(t=>t.file)).size,entries.length);
+  for(const t of entries){
+    assert.ok(t.source.startsWith('https://davidkbd.itch.io/'),t.id);
+    assert.ok(t.originalName.endsWith('.ogg'),t.id);
+    assert.equal(MUSIC_TRACKS[t.id]?.file,t.file,t.id);
+    assert.equal(MUSIC_TRACKS[t.id]?.source,t.source,t.id);
   }
 });
 
