@@ -15,6 +15,9 @@ on:
       - "tools/prepare-cc0-sfx.mjs"
       - "tools/prepare-licensed-music.mjs"
       - "tools/licensed-music-manifest.json"
+      - "tools/itch-music-manifest.json"
+      - "tools/prepare-itch-music.mjs"
+      - "tools/verify-live-music.mjs"
       - "assets/**"
       - "visual-lab/**"
       - "asset-gallery.html"
@@ -43,7 +46,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: assets/audio/music/*.ogg
-          key: licensed-music-${{ hashFiles('tools/licensed-music-manifest.json') }}
+          key: licensed-music-${{ hashFiles('tools/licensed-music-manifest.json', 'tools/itch-music-manifest.json') }}
 
       - name: Install FFmpeg and FFprobe for music conversion
         run: |
@@ -54,6 +57,9 @@ jobs:
 
       - name: Download and prepare CC-licensed soundtrack
         run: node tools/prepare-licensed-music.mjs
+
+      - name: Download and prepare official David KBD OGG soundtracks
+        run: node tools/prepare-itch-music.mjs
 
       - name: Validate arcade before publication
         run: node --test arcade/tests/*.test.mjs
@@ -106,3 +112,11 @@ jobs:
       - name: Publish
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Check out published soundtrack manifest
+        uses: actions/checkout@v4
+      - name: Set up Node for live audio audit
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify all soundtrack files over HTTP from published Pages
+        run: node tools/verify-live-music.mjs
