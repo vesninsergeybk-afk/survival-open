@@ -1,5 +1,6 @@
 // Earned skills: regular ranks improve familiar moves; milestone ranks unlock
 // visible tactical properties. Diminishing bonuses keep very long saves fair.
+import {createDataResearch,validDataResearch,researchBonus} from './data-research.js';
 export const MASTERIES=Object.freeze({
  ace:{name:'Чистая охота',group:'Бой',first:8,growth:1.6,cap:.09,
   task:'Уничтожайте обычных врагов лично, не получая урона.',
@@ -25,7 +26,8 @@ export const MASTERIES=Object.freeze({
 });
 export const MASTERY_MILESTONES=Object.freeze([3,8,16,32]);
 export const createCombatMastery=()=>({version:2,tracks:Object.fromEntries(
- Object.keys(MASTERIES).map(id=>[id,{rank:0,progress:0}])),lastImpactAt:-1000});
+ Object.keys(MASTERIES).map(id=>[id,{rank:0,progress:0}])),lastImpactAt:-1000,
+ research:createDataResearch()});
 export function masteryGoal(id,rank){
  const spec=MASTERIES[id];if(!spec)return 0;
  const n=Math.max(0,rank);
@@ -52,12 +54,39 @@ export function masteryProgress(state,id,amount=1){
  if(!state||!MASTERIES[id]||!Number.isInteger(amount)||amount<0||amount>10000)return null;
  const track=state.tracks[id],old=track.rank;
  if(track.rank>=10000)return null;
- track.progress+=amount;
+ if(!state.research)state.research=createDataResearch();
+ const previous=state.research.masteryRemainder[id]||0;
+ const accelerated=amount*(1+researchBonus(state,'learning'))+previous;
+ const earned=Math.floor(accelerated+1e-9);
+ state.research.masteryRemainder[id]=Math.max(0,Math.min(.999999999,accelerated-earned));
+ track.progress+=earned;
  while(track.progress>=masteryGoal(id,track.rank)&&track.rank<10000){
   track.progress-=masteryGoal(id,track.rank);track.rank++;
  }
  return track.rank>old?{id,name:MASTERIES[id].name,rank:track.rank,
-  perkUnlocked:MASTERY_MILESTONES.some(goal=>goal>old&&goal<=track.rank)}:null;
+  perkUnlocked:MASTERY_MILESTONES.some(goal=>goal>old&&goal<=track.rank),
+  pointMilestones:MASTERY_MILESTONES.filter(goal=>goal>old&&goal<=track.rank).length}:null;
+}
+// Old saves earned these milestones before they started granting level points.
+// Grant the historical difference once, without recomputing it on later loads.
+export function creditLegacyMasteryPoints(player,state){
+ if(!player||Number.isInteger(player.masteryPoints))return 0;
+ const count=Object.keys(MASTERIES).reduce((sum,id)=>sum+masteryPerkTier(state,id),0);
+ player.masteryPoints=count;
+ player.points+=count;
+ return count;
+}
+// Percentage bonuses must accumulate across weak enemies. Rounding each scout
+// kill separately made the first ace milestone produce exactly zero extra XP.
+export function masteryKillExperience(state,base,personal=false){
+ if(!Number.isFinite(base)||base<0)return 0;
+ if(!personal||!state)return base;
+ state.research??=createDataResearch();
+ const previous=state.research.aceRemainder||0;
+ const bonus=base*.04*masteryPerkTier(state,'ace')+previous;
+ const extra=Math.floor(bonus+1e-9);
+ state.research.aceRemainder=Math.max(0,Math.min(.999999999,bonus-extra));
+ return base+extra;
 }
 export function masteryMiss(state,id){
  if(state?.tracks?.[id])state.tracks[id].progress=0;
@@ -65,7 +94,8 @@ export function masteryMiss(state,id){
 export function validCombatMastery(state){
  if(state===undefined)return true;
  if(!state||![1,2].includes(state.version)||!state.tracks||
-  !Number.isFinite(state.lastImpactAt)||state.lastImpactAt< -1000||state.lastImpactAt>1e9)return false;
+  !Number.isFinite(state.lastImpactAt)||state.lastImpactAt< -1000||state.lastImpactAt>1e9||
+  !validDataResearch(state.research))return false;
  const ids=state.version===1?['ace','comet','wing','evasive','survivor']:Object.keys(MASTERIES);
  return Object.keys(state.tracks).length===ids.length&&ids.every(id=>{
   const t=state.tracks[id];
@@ -78,7 +108,7 @@ export function validCombatMastery(state){
 }
 export function migrateCombatMastery(state){
  if(!state)return createCombatMastery();
- if(state.version===2)return state;
+ if(state.version===2){state.research??=createDataResearch();return state;}
  if(!validCombatMastery(state))return createCombatMastery();
  const next=createCombatMastery();next.lastImpactAt=state.lastImpactAt;
  for(const id of Object.keys(state.tracks)){

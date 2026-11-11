@@ -1,10 +1,11 @@
 import {MODULES,FRAME_STEPS,SHIP_UPGRADES,createLoadout,moduleStats} from './ship-loadout.js?v=menu-ergonomics-1-tactical-slot-20261110';
 import {WEAPON_SPECIALIZATIONS,quoteSpecialization,specializationRequirements} from './weapon-specializations.js';
 import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalQuote} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
-import {developmentPointLedger} from './experience.js';
+import {developmentPointLedger} from './experience.js?v=data-economy-20261111';
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=tactical-slot-20261110';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
-import {MASTERIES,masteryGoal,masteryBonus,masteryPerkTier,masteryNextMilestone} from './combat-mastery.js';
+import {MASTERIES,masteryGoal,masteryBonus,masteryPerkTier,masteryNextMilestone} from './combat-mastery.js?v=data-economy-20261111';
+import {DATA_RESEARCH,DATA_PROTOCOL,researchRank,researchOffer,researchProtocolOffer} from './data-research.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const art=(group,id)=>'./assets/progression/'+group+'/'+id+'.webp';
@@ -238,9 +239,34 @@ function masteryNodes(state){
    effect:spec.effect+': +'+bonus.toFixed(1).replace('.',',')+'%'+
     (id==='survivor'?' защиты':'')+'. '+spec.perk+': '+tier+'/4'+
     (next?' · следующая особая ступень — '+next+'-й ранг.':' · все особые ступени открыты.') ,
-   activation:'События засчитываются автоматически. На рангах 3, 8, 16 и 32 открываются новые свойства. Дальше растёт постоянный бонус.',
+   activation:'События засчитываются автоматически. На рангах 3, 8, 16 и 32 открываются новые свойства и начисляется по одному очку развития. Дальше растёт постоянный бонус.',
    action:'',actionId:id,actionLabel:'',canAct:false,cost:'Действиями в бою',progress,goal};
  });
+}
+
+function researchNodes(state){
+ const icons={analysis:'scanner',learning:'doctrine',targeting:'calibration',thrusters:'engine'};
+ const nodes=Object.entries(DATA_RESEARCH).map(([id,spec])=>{
+  const rank=researchRank(state.combatMastery,id),offer=researchOffer(state.combatMastery,state.data||0,id);
+  const bonus=(rank*spec.step*100).toFixed(1).replace('.',',');
+  return {id:'research-'+id,kind:'research',title:spec.name,icon:art('upgrades',icons[id]),
+   level:1,rank,max:spec.max,status:rank>=spec.max?'mastered':offer.ok?'ready':'waiting',
+   description:spec.description,effect:'Сейчас: +'+bonus+'%. '+spec.description,
+   activation:'Действует постоянно в этом прохождении. Голубые ядра дают данные, которые можно тратить даже в полёте через меню пилота.',
+   reason:offer.reason||'',action:'dataResearch',actionId:id,
+   actionLabel:rank>=spec.max?'Исследовано':'Улучшить · '+offer.cost+' данных',
+   canAct:offer.ok,cost:rank>=spec.max?'Максимальный ранг':offer.cost+' данных'};
+ });
+ const offer=researchProtocolOffer(state.combatMastery,state.data||0,state.time||0);
+ nodes.push({id:'research-protocol',kind:'protocol',title:DATA_PROTOCOL.name,
+  icon:art('upgrades','calibration'),level:2,rank:0,max:1,
+  status:offer.ok?'ready':'waiting',description:DATA_PROTOCOL.description,
+  effect:'На 90 секунд: +15% к урону личного оружия и +10% к скорости корабля.',
+  activation:'Активируется сразу. Во время действия повторная покупка недоступна; после завершения протокол можно включить снова.',
+  reason:offer.reason||'',action:'dataProtocol',actionId:'protocol',
+  actionLabel:offer.ok?'Включить · '+DATA_PROTOCOL.cost+' данных':offer.reason,
+  canAct:offer.ok,cost:DATA_PROTOCOL.cost+' данных'});
+ return nodes;
 }
 
 function tacticalNodes(state){
@@ -316,6 +342,8 @@ function branchButtons(domain,state){
  }
  if(domain==='tactics')return [...Object.entries(TACTICAL_DEVICES).map(([id,d])=>[id,d.short]),['abilities','Способности']]
   .map(([id,name])=>'<button type="button" class="prog-subtab" data-act="devTactic" data-id="'+id+'" aria-pressed="'+((state.developmentTactic||'pulse')===id)+'">'+esc(name)+'</button>').join('');
+ if(domain==='mastery')return [['automatic','Автоматическое мастерство'],['research','Анализ данных · '+(state.data||0)]]
+  .map(([id,name])=>'<button type="button" class="prog-subtab" data-act="devMasteryTab" data-id="'+id+'" aria-pressed="'+((state.developmentMasteryTab||'automatic')===id)+'">'+esc(name)+'</button>').join('');
  return '';
 }
 
@@ -324,7 +352,8 @@ export function progressionModel(state){
  const weapon=domain==='weapons'?weaponNodes(state):null;
  const nodes=domain==='pilot'?pilotNodes(state):domain==='weapons'?weapon.nodes:
   domain==='ship'?shipNodes(state):domain==='drones'?droneNodes(state):
-  domain==='mastery'?masteryNodes(state):domain==='tactics'?tacticalNodes(state):networkNodes(state);
+  domain==='mastery'?(state.developmentMasteryTab==='research'?researchNodes(state):masteryNodes(state)):
+  domain==='tactics'?tacticalNodes(state):networkNodes(state);
  const selected=nodes.find(n=>n.id===state.developmentFocus)||nodes.find(n=>n.status==='ready')||nodes[0]||null;
  return {domain,nodes,selected,weapon};
 }
@@ -333,6 +362,7 @@ function nodeHtml(node,selected){
  const labels={ready:'Доступно',mastered:'Изучено',waiting:'Не выполнены условия',locked:'Закрыто',
   exclusive:'Другой путь',info:'Оснащение'};
  const progress=node.kind==='achievement'?'Ступень '+node.rank+' · '+node.progress+'/'+node.goal:
+  node.kind==='protocol'?'Повторяемый · 90 секунд':
   node.shared?'Общая технология · '+node.rank+'/'+node.max:
   node.kind==='navigation'?'Раздел станции':node.kind==='equipment'?(node.equipmentStatus||(node.rank?'Получено':'Не получено')):
   node.rank+'/'+node.max+' · '+(labels[node.status]||'Сведения');
@@ -351,9 +381,10 @@ function treeHtml(nodes,selected){
   '<div class="prog-tree" aria-label="Навыки по уровням и реальные связи между ними"><svg class="prog-tree-links" aria-hidden="true"></svg>'+
   [...groups].sort(([a],[b])=>a-b).map(([level,entries])=>{
    const station=entries.every(n=>n.kind==='navigation'),achievement=entries.every(n=>n.kind==='achievement');
-   const label=achievement?'Достижения':station?'Системы станции':'Уровень '+level;
+   const protocol=entries.every(n=>n.kind==='protocol');
+   const label=achievement?'Достижения':station?'Системы станции':protocol?'Повторяемый протокол':'Уровень '+level;
    return '<section class="prog-tier" aria-label="'+label+'">'+
-    '<div class="prog-tier-track"><span class="prog-tier-index">'+(station||achievement?'●':String(level).padStart(2,'0'))+'</span><h3>'+
+    '<div class="prog-tier-track"><span class="prog-tier-index">'+(station||achievement||protocol?'●':String(level).padStart(2,'0'))+'</span><h3>'+
     label+'</h3></div><div class="prog-tier-nodes">'+
     entries.map(n=>nodeHtml(n,selected)).join('')+'</div></section>';
   }).join('')+'</div><div class="prog-graph-key" aria-label="Обозначения"><span class="is-ready">Доступно</span><span class="is-mastered">Изучено</span><span class="is-locked">Закрыто или требует ресурсов</span></div></div>';
@@ -412,7 +443,7 @@ export function renderProgressionScreen(state){
  const {domain,nodes,selected,weapon}=progressionModel(state),points=state.points||0;
  const ledger=developmentPointLedger(state),meta=domains.find(d=>d.id===domain);
  const top='<header class="prog-header"><div><span>ТЕРМИНАЛ / ДЕРЕВО РАЗВИТИЯ</span><h2>Развитие</h2></div>'+
-  '<div class="prog-resource-bar"><span class="prog-chip points">Очки <b>'+points+'</b></span><span class="prog-chip alloy">Сплав <b>'+(state.ore||0)+'</b></span><span class="prog-chip level">Пилот · ур. <b>'+(state.level||1)+'</b></span></div></header>';
+  '<div class="prog-resource-bar"><span class="prog-chip points">Очки <b>'+points+'</b></span><span class="prog-chip data">Данные <b>'+(state.data||0)+'</b></span><span class="prog-chip alloy">Сплав <b>'+(state.ore||0)+'</b></span><span class="prog-chip level">Пилот · ур. <b>'+(state.level||1)+'</b></span></div></header>';
  const damaged=Number(state.maxHp)>0&&Number(state.hp)/Number(state.maxHp)<.4;
  const orbit='<aside class="prog-domains" aria-label="Направления развития"><div class="prog-orbit">'+
   '<div class="prog-orbit-center"><img src="'+heroMenuPortrait(state.level,state.hp,state.maxHp)+'" alt="Ваш корабль" loading="lazy">'+

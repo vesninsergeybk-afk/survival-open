@@ -128,9 +128,9 @@ test('no firing through blocked sight, and frozen members respect stasis',()=>{
  assert.equal(e.x,x,'motes respect the same station stasis as other enemies');
 });
 
-test('micro drones yield tiny XP but no scrap or parasite/buff farming',()=>{
+test('micro drones yield two XP but no scrap or parasite/buff farming',()=>{
  const e=drones(1)[0];e.hp=0;
- assert.equal(enemyDataReward(e),1);
+ assert.equal(enemyDataReward(e),2);
  assert.equal(enemySalvage(e),0);
  const game={time:100,fieldLoot:{kills:0},fieldEvolution:{charge:0,kills:0},
   skillRanks:{parasite:1},enemies:[e],player:{x:0,y:0},addDrop(){throw Error('unexpected reward');}};

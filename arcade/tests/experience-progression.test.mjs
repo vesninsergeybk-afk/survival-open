@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {expForNext,legacyExpForNext} from '../balance.js';
+import {expForNext,previousExpForNext,legacyExpForNext} from '../balance.js';
 import {experienceDifference} from '../hud.js';
 import {enemyDataReward} from '../combat-rewards.js';
 import {contractChoices} from '../base-panel.js';
@@ -13,11 +13,13 @@ const pilot=(level=1,xp=0,points=0)=>({level,xp,points});
 const total=(level,xp,formula)=>Array.from({length:level-1},(_,i)=>formula(i+1))
  .reduce((sum,step)=>sum+step,xp);
 
-test('the first levels accelerate but level eight and later keep existing costs',()=>{
+test('the early levels stay accessible and midgame costs rise steadily',()=>{
  assert.deepEqual(Array.from({length:8},(_,i)=>expForNext(i+1)),
-  [42,68,105,155,230,330,475,645]);
- for(const level of [8,9,10,15,40])
-  assert.equal(expForNext(level),legacyExpForNext(level));
+  [42,68,105,155,205,265,345,430]);
+ for(const level of [8,9,10,15,25,40]){
+  assert.ok(expForNext(level)<previousExpForNext(level));
+  if(level>=9)assert.ok(expForNext(level)/expForNext(level-1)<1.15);
+ }
 });
 
 test('the opening combat contract now grants a meaningful first level',()=>{
@@ -116,6 +118,18 @@ test('legacy checkpoint conversion preserves total XP and spent skill points',()
   const after={...p};
   assert.equal(migrateLegacyPlayerExperience(p),0,'migration must run only once');
   assert.deepEqual(p,after,'second restore cannot award extra XP');
+ }
+});
+
+test('version two checkpoints keep lifetime XP when migrated to the new curve',()=>{
+ for(const [level,xp] of [[1,57],[4,100],[8,340],[12,1270],[23,3000]]){
+  const p={...pilot(level,xp,2),xpCurveVersion:2};
+  const before=total(level,xp,previousExpForNext);
+  const gained=migrateLegacyPlayerExperience(p);
+  assert.equal(total(p.level,p.xp,expForNext),before);
+  assert.ok(p.level>=level);
+  assert.equal(p.points,2+gained);
+  assert.equal(migrateLegacyPlayerExperience(p),0);
  }
 });
 

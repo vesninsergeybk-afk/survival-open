@@ -1,4 +1,4 @@
-import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1-pilot-value-2';
+import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1-pilot-value-2-data-economy-20261111';
 import {normalizedDoctrineRanks,DOCTRINES} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 import {rebaseSavedHull} from './balance.js';
 import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';
@@ -9,7 +9,7 @@ import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world
 import {createTactical,validTactical} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {validFieldEvolution} from './field-evolution.js?v=parasite-clarity-1';
 import {validFieldLoot,createFieldLoot} from './field-loot.js?v=eye-loot-1';
-import {validCombatMastery,createCombatMastery,migrateCombatMastery} from './combat-mastery.js';
+import {validCombatMastery,createCombatMastery,migrateCombatMastery,creditLegacyMasteryPoints} from './combat-mastery.js?v=data-economy-20261111';
 import {validMeteorFront,createMeteorFront} from './meteor-front.js';
 import {validConvoyRelic,createConvoyRelic} from './convoy-relic.js';
 import {validCombatTempo,createCombatTempo} from './combat-tempo.js?v=tempo-1';
@@ -160,6 +160,8 @@ export function validateCheckpoint(data){
   !['xp','ore','data','points'].every(k=>finite(p[k],0,1e12))||!finite(s.time,0,1e9)||
   !object(s.skillRanks)||!object(s.network)||!object(s.support)||!object(s.shipLoadout)||
   !Number.isInteger(s.shipLoadout.frame)||!FRAME_STEPS[s.shipLoadout.frame])return false;
+ if(p.masteryPoints!==undefined&&(!Number.isInteger(p.masteryPoints)||p.masteryPoints<0||
+  p.masteryPoints>28))return false;
  if(Object.values(s.skillRanks).some(v=>!Number.isInteger(v)||v<0||v>10)||
   Object.keys(s).some(k=>!FIELDS.includes(k)))return false;
  if(s.doctrine!==undefined&&s.doctrine!==null&&!DOCTRINES.some(d=>d.id===s.doctrine))return false;
@@ -203,6 +205,11 @@ export function validateCheckpoint(data){
    !validFieldHistory(b.fieldOperationHistory))return false;
   if(b.reputation!==undefined&&(!Number.isInteger(b.reputation)||b.reputation<0||b.reputation>5))return false;
   if(b.contractRuns!==undefined&&(!Number.isInteger(b.contractRuns)||b.contractRuns<0||b.contractRuns>100000))return false;
+  if(b.contractChoiceRuns!==undefined&&(!object(b.contractChoiceRuns)||
+   Object.keys(b.contractChoiceRuns).length>3||
+   Object.entries(b.contractChoiceRuns).some(([id,count])=>
+    !['standard','alternate','expedition'].includes(id)||
+    !Number.isInteger(count)||count<0||count>100000)))return false;
   // Persistent regional machine archives contain only bounded, dated threat
   // categories. Older checkpoints without this optional field remain valid.
   if(b.meshArchive!==undefined&&(!Array.isArray(b.meshArchive)||
@@ -327,7 +334,6 @@ export function restoreCheckpoint(game,data){
  }
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
- game.combatMastery=migrateCombatMastery(game.combatMastery);
  game.meteorFront=game.meteorFront||createMeteorFront();
  game.doctrineRanks=normalizedDoctrineRanks(data.state);game.doctrine=null;
  // Temporary combat windows belong to the previous flight, not the save.
@@ -347,7 +353,9 @@ export function restoreCheckpoint(game,data){
  }
  rebaseSavedHull(game.player,game.skillRanks?.hull);
  game.fieldLoot=data.state.fieldLoot||createFieldLoot();
- game.combatMastery=data.state.combatMastery||createCombatMastery();
+ // The migrated mastery must not be overwritten by the legacy saved object.
+ game.combatMastery=migrateCombatMastery(data.state.combatMastery||createCombatMastery());
+ creditLegacyMasteryPoints(game.player,game.combatMastery);
  game.convoyRelic=data.state.convoyRelic||createConvoyRelic();
  game.combatTempo=data.state.combatTempo||createCombatTempo();
  game._nextFieldLootCheckAt=0;

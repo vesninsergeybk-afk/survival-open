@@ -23,6 +23,7 @@ import {advanceEnemyExpansion,enemyTerritoryFields} from '../enemy-expansion.js'
 import {createFieldLoot} from '../field-loot.js';
 import {createCombatTempo} from '../combat-tempo.js';
 import {createCombatMastery,masteryProgress} from '../combat-mastery.js';
+import {buyDataResearch,buyResearchProtocol} from '../data-research.js';
 import {createConvoyRelic} from '../convoy-relic.js';
 import {createMeteorFront} from '../meteor-front.js';
 import {createEscort} from '../escort-squad.js';
@@ -63,6 +64,57 @@ test('earned mastery and a remaining convoy trophy timer survive a real checkpoi
  const restored=scene();restoreCheckpoint(restored,snapshot);
  assert.equal(restored.combatMastery.tracks.wing.rank,1);
  assert.equal(restored.convoyRelic.active.until,190);
+});
+
+test('bought data research, running protocol, and mastery points survive real checkpoints',()=>{
+ const g=scene();g.combatMastery=createCombatMastery();g.player.data=240;
+ assert.equal(buyDataResearch(g.combatMastery,g.player,'analysis').ok,true);
+ assert.equal(buyResearchProtocol(g.combatMastery,g.player,200).ok,true);
+ g.combatMastery.research.xpRemainder=.6;
+ g.player.masteryPoints=1;g.player.points=1;
+ const saved=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(saved),true);
+ const restored=scene();restoreCheckpoint(restored,saved);
+ assert.equal(restored.player.data,80);
+ assert.equal(restored.player.points,1);
+ assert.equal(restored.player.masteryPoints,1);
+ assert.equal(restored.combatMastery.research.ranks.analysis,1);
+ assert.equal(restored.combatMastery.research.protocolUntil,290);
+ assert.equal(restored.combatMastery.research.xpRemainder,.6);
+});
+
+test('old mastery saves get earned bonus points once without losing rank',()=>{
+ const g=scene();g.combatMastery=createCombatMastery();
+ g.combatMastery.tracks.mining.rank=8;g.combatMastery.tracks.ace.rank=3;
+ const legacy=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ delete legacy.state.player.masteryPoints;
+ delete legacy.state.combatMastery.research;
+ assert.equal(validateCheckpoint(legacy),true);
+ const first=scene();restoreCheckpoint(first,legacy);
+ assert.equal(first.player.masteryPoints,3);
+ assert.equal(first.player.points,3);
+ assert.equal(first.combatMastery.tracks.mining.rank,8);
+ assert.ok(first.combatMastery.research);
+ const saved=unpackRun(packRun(captureCheckpoint(first,first.docked)));
+ const second=scene();restoreCheckpoint(second,saved);
+ assert.equal(second.player.masteryPoints,3);
+ assert.equal(second.player.points,3);
+});
+
+test('real game buy button spends data once and XP research changes actual level timing',()=>{
+ const g=scene();g.combatMastery=createCombatMastery();g.player.data=200;
+ g.player.xp=0;g.renderDock=()=>{};
+ assert.equal(g.buyResearch('analysis'),true);
+ assert.equal(g.player.data,160);
+ assert.equal(g.player.points,0);
+ for(let i=0;i<4;i++)g.awardExperience(10);
+ assert.equal(g.player.level,2,'four 10-XP rewards gain three researched XP and cross 42');
+ assert.equal(g.player.xp,1);
+ assert.equal(g.player.points,1);
+ assert.equal(g.buyResearch('protocol'),true);
+ assert.equal(g.player.data,40);
+ assert.equal(g.buyResearch('protocol'),false);
+ assert.equal(g.player.data,40);
 });
 
 test('a passing meteor front and its finite ore vein survive a station checkpoint',()=>{
@@ -138,7 +190,7 @@ function scene(){
   contract:null,operation:null,fieldLoan:null,fieldTrialTaken:false,ionMasteryAwarded:false,
   lastDamageAt:-Infinity,fieldReturnAt:-Infinity,activeBases:1,
   keys:new Set(),touch:{x:0,y:0},overlay:{hidden:false,dataset:{mode:'base'}},
-  cockpit:{resourceGain:noop},heritage:{play:noop,station:noop,vfx:{nova:noop}},notice:noop});
+  cockpit:{resourceGain:noop},heritage:{play:noop,station:noop,ui:noop,vfx:{nova:noop}},notice:noop});
  return g;
 }
 function save(g,storage=memory()){

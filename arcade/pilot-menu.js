@@ -2,12 +2,29 @@ import {SHIP_UPGRADES} from './ship-loadout.js?v=first-contract-reward-1-campaig
 import {escapeMenu as esc,menuInfo,menuSymbol,screenHead,menuFooter,menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {doctrineRank,doctrineCost,doctrineBuyReason,doctrineNextEffect,
  normalizedDoctrineRanks,doctrineSpent,doctrinePointsWord} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
-export function renderPilotContent({player:p,ranks,doctrine,doctrineRanks,skills,doctrines,branch='Корабль',nextEffect}){
+import {DATA_RESEARCH,DATA_PROTOCOL,researchRank,researchOffer,
+ researchProtocolOffer} from './data-research.js';
+export function renderPilotContent({player:p,ranks,doctrine,doctrineRanks,combatMastery,time=0,skills,doctrines,branch='Корабль',nextEffect}){
  const branches=[['Корабль','Пилотирование'],['Технологии','Технологии'],
   ['Добыча','Добыча'],['Оружие','Ручное оружие']];
  const current=branches.some(([id])=>id===branch)?branch:'Корабль';
  const pilotState={doctrine,doctrineRanks,level:p.level,points:p.points};
  const spent=doctrineSpent(normalizedDoctrineRanks(pilotState));
+ const protocol=researchProtocolOffer(combatMastery,p.data,time);
+ const researchPanel='<details class="pilot-doctrines pilot-data-research" data-hangar-section="data-research" open><summary>Анализ данных · '+p.data+' доступно</summary>'+
+  '<p class="screen-note">Голубые ядра дают данные. Постоянные исследования действуют весь вылет; боевой протокол можно включать повторно. Очки развития при этом сохраняются.</p><div class="pilot-doctrine-grid">'+
+  Object.entries(DATA_RESEARCH).map(([id,spec])=>{
+   const rank=researchRank(combatMastery,id),offer=researchOffer(combatMastery,p.data,id);
+   return '<article class="pilot-choice">'+menuInfo('Об исследовании: '+spec.name,spec.description)+
+    '<h3>'+esc(spec.name)+'</h3><small>Ранг '+rank+'/'+spec.max+' · бонус +'+
+    (rank*spec.step*100).toFixed(1).replace('.',',')+'%</small><p class="pilot-next-effect">'+esc(spec.description)+'</p>'+
+    '<button type="button" data-act="dataResearch" data-id="'+id+'"'+(offer.ok?'':' disabled')+'>'+
+    esc(offer.ok?'Улучшить · '+offer.cost+' данных':offer.reason)+'</button></article>';
+  }).join('')+'<article class="pilot-choice">'+menuInfo('О протоколе: '+DATA_PROTOCOL.name,DATA_PROTOCOL.description)+
+   '<h3>'+esc(DATA_PROTOCOL.name)+'</h3><small>Повторяемый · '+DATA_PROTOCOL.duration+' с</small><p class="pilot-next-effect">'+
+   esc(DATA_PROTOCOL.description)+'</p><button type="button" data-act="dataProtocol"'+
+   (protocol.ok?'':' disabled')+'>'+esc(protocol.ok?'Включить · '+DATA_PROTOCOL.cost+' данных':protocol.reason)+
+   '</button></article></div></details>';
  const doctrineReady=doctrines.some(d=>!doctrineBuyReason(pilotState,d.id));
  const doctrinePanel=doctrines.length?'<details class="pilot-doctrines" data-hangar-section="pilot-doctrines"'+(doctrineReady?' open':'')+'><summary>Доктрины · '+
   (spent?spent+' потрачено':p.level<4?'с уровня 4':'четыре ветви')+'</summary>'+
@@ -44,7 +61,7 @@ export function renderPilotContent({player:p,ranks,doctrine,doctrineRanks,skills
  const future=entries.filter(s=>!s.eligible&&!s.rank);
  const tabs='<nav class="skill-branch-tabs" aria-label="Навыки пилота">'+branches.map(([id,label])=>
   '<button type="button" data-act="skillBranch" data-id="'+id+'" aria-pressed="'+(id===current)+'" tabindex="'+(id===current?0:-1)+'">'+label+'</button>').join('')+'</nav>';
- return doctrinePanel+tabs+
+ return researchPanel+doctrinePanel+tabs+
   (currentSkills.length?grid(currentSkills):'<p class="screen-note">В этой ветви ещё нет открытых навыков.</p>')+
   (future.length?'<details class="pilot-future" data-hangar-section="pilot-future"><summary>Будущие навыки · '+future.length+'</summary>'+grid(future)+'</details>':'');
 }
@@ -53,7 +70,7 @@ export function renderPilotMenu(options){
  const {player:p,nextXp,atStation=false,backLabel}=options;
  return '<div class="dialog wide skill-dialog pilot-dialog" role="dialog" aria-modal="true" aria-labelledby="skill-menu-title">'+
   screenHead('skills','НАВЫКИ И ДОКТРИНА','Пилот','skill-menu-title')+
-  '<div class="pilot-status"><span>Уровень <b>'+p.level+'</b></span><span>Свободно очков <b>'+p.points+'</b></span><span>Опыт <b>'+Math.floor(p.xp)+'/'+nextXp+'</b></span></div>'+
+  '<div class="pilot-status"><span>Уровень <b>'+p.level+'</b></span><span>Свободно очков <b>'+p.points+'</b></span><span>Опыт <b>'+Math.floor(p.xp)+'/'+nextXp+'</b></span><span>Данные <b>'+p.data+'</b></span></div>'+
   renderPilotContent(options)+
 
   '<div class="pilot-ship-link"><span>Навыки «Голубой кометы» и мин доступны во вкладке «Ручное оружие». Модули автооружия, корпус и устройства улучшайте на станции.</span><button type="button" data-act="'+(atStation?'pilotHangar':'pilotMap')+'">'+(atStation?'К оснащению корабля':'Найти станцию')+'</button></div>'+

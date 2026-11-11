@@ -1,7 +1,7 @@
 import {renderContinuation,renderDeathScreen,renderOpeningSignals,renderOpeningHardware,renderRunConfirmation} from './menu-screens.js?v=all-menus-1-menu-audit-1-pressure-response-1';
-import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1-manual-qa-1-pilot-depth-1-pilot-value-2-hud-merge-20261110';
+import {renderPilotMenu} from './pilot-menu.js?v=all-menus-1-menu-rebuild-1-development-tree-1-devux-3-first-loops-1-menu-audit-1-manual-qa-1-pilot-depth-1-pilot-value-2-hud-merge-20261110-data-economy-20261111';
 import {developmentTab} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-value-2-hud-merge-20261110-wingmastery-20261110';
-import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-depth-1-pilot-value-2-hud-merge-20261110-wingmastery-20261110-escort-art-20261110';
+import {paintProgressionLinks} from './progression-screen.js?v=progression-art-6-sketch-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-1-triangle-defense-1-turret-gesture-1-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-depth-1-pilot-value-2-hud-merge-20261110-wingmastery-20261110-escort-art-20261110-data-economy-20261111';
 import {openSystemMenu,mountSystemMenu,attachMenuAccess,menuReturnLabels} from './game-menu.js?v=all-menus-1-first-loops-1-menu-audit-1-menu-shortcuts-2-control-audit-1-hud-merge-20261110';
 import {mountContextualGuide} from './contextual-guide-ui.js?v=prototype-1-core-guide-20261110-core-pressure-20261110-hud-merge-20261110';
 import {borrowAndFit} from './direct-fitting.js?v=direct-fit-2-hud-merge-20261110';
@@ -21,13 +21,15 @@ import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expeditio
 import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {disableCentralWorker} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1-territory-war-1';
-import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifiesForDirectCombatXp,XP_CURVE_VERSION} from './experience.js?v=early-experience-1-xp-feedback-pass1-1-clarity-pass-1-pilot-depth-1-pilot-value-2';
+import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifiesForDirectCombatXp,XP_CURVE_VERSION} from './experience.js?v=early-experience-1-xp-feedback-pass1-1-clarity-pass-1-pilot-depth-1-pilot-value-2-data-economy-20261111';
 import {createStrategicExperience,claimStationActivation,claimStationCapture,claimExploration,
  claimContourExpansion,claimFirstFluxDelivery,claimGeologicalSurvey,claimStrategicSabotage} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
 import {createFieldLoot,rewardEyeKill,collectFieldLoot,updateFieldLoot,
  fieldLootDamage,fieldLootArmor,chainFieldLoot,drawFieldLootAura,BOOSTS} from './field-loot.js?v=eye-loot-1';
-import {MASTERIES,createCombatMastery,masteryProgress,masteryMiss,masteryBonus,masteryPerkTier,masteryOperationReward} from './combat-mastery.js';
+import {MASTERIES,createCombatMastery,masteryProgress,masteryMiss,masteryBonus,masteryPerkTier,masteryOperationReward,masteryKillExperience} from './combat-mastery.js?v=data-economy-20261111';
+import {buyDataResearch as purchaseDataResearch,buyResearchProtocol,researchBonus,
+ researchProtocolBonus,researchedExperience} from './data-research.js';
 import {createConvoyRelic,updateConvoyRelic,drawConvoyRelic} from './convoy-relic.js';
 import {createCombatTempo,recordCombatContact,ambientTempoPlan} from './combat-tempo.js?v=tempo-1-balance-audit-1-opening-evasion-20261110';
 import {fortificationShield} from './enemy-fortifications.js?v=industrial-forts-1';
@@ -38,7 +40,7 @@ import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,offerLevelCrystals,refreshEv
  updateFieldEvolution,parasiteTargetMode,setParasiteTargetMode} from './field-evolution.js?v=mouse-arms-1-manual-weapon-1';
 import {drawEvolutionEnvironment,drawParasiteCore,drawEvolutionEnemy,
  drawEvolutionConnections,drawEvolutionPlayer} from './field-evolution-vfx.js?v=field-evolution-1-first-loops-1';
-import {RULES, STARTER_COMBAT, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, openingSpawnRoom, ambientPopulationBudget, burstStats, splitPlayerDamage} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1-combat-balance-1-balance-audit-1-shield-crowd-20261110-swarm-presence-20261110-opening-evasion-20261110';
+import {RULES, STARTER_COMBAT, clamp, dist, length, hash, expForNext, spawnOutside, outsideCamera, SpatialGrid, baseNames, baseColor, openingThreat, openingSpawnRoom, ambientPopulationBudget, burstStats, splitPlayerDamage} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1-combat-balance-1-balance-audit-1-shield-crowd-20261110-swarm-presence-20261110-opening-evasion-20261110-data-economy-20261111';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-domains-1-supply-stronghold-1-flux-reserve-1-flux-offense-1-territory-war-1-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1-rescue-depth-1-convoy-variety-20261110';
 import {updateStationDefense,drawStationDefense,defenseLinked,ensureStationDefense,
  synchronizeStationDefenses} from './network-defense.js?v=network-defense-4-zoomread-2-territory-logistics-1';
@@ -56,14 +58,14 @@ import {escortHireOffer,escortTrainingOffer,createEscort,escortMaxHp,
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-ai-commander-20261110-enemy-operations-20261110-space-impact-20261110';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
-import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-wingmastery-20261110';
+import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-wingmastery-20261110-data-economy-20261111';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1-combat-balance-1';
 import {planEncounter,scheduledMoteSize,moteEncounterSize,MOTE_ENCOUNTER} from './encounters.js?v=arcade-balanced-bases-30-combat-hunt-20261109-shield-crowd-20261110-swarm-presence-20261110-opening-evasion-20261110';
 import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109-weapon-vfx-audit-1-corvette-20261110-1-pilot-value-2-opening-evasion-20261110-turret-defense-20261110-escort-squad-20261110-escort-art-20261110';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110-corecharge-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-weapon-deck-audit-2-escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110-corecharge-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-weapon-deck-audit-2-escort-squad-20261110-wingmastery-20261110-escort-art-20261110-data-economy-20261111';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1-tactical-slot-20261110';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-opening-evasion-20261110';
@@ -83,7 +85,7 @@ import {DOCTRINES,doctrineRank,doctrineCost,doctrineBuyReason,normalizedDoctrine
  doctrineDashCooldown,transferCommandMark} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 import {missionImageReady,paintMissionCell,paintMissionMorph,paintMissionImpact} from './mission-objective-art.js?v=mission-pack-1';
 import {ION_FIELD,ionPhase,inIonField,ionApproach,drawIonField} from './ion-field.js?v=regions-1';
-import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1-pilot-depth-1-pilot-value-2-hud-merge-20261110-live-hud-qa-1-trial-station-defense-20261110-escort-squad-20261110-wingmastery-20261110-station-contour-map-20261110-escort-art-20261110';
+import {renderBasePanel,baseOffer,transitCost,eligibleContractProgress,contractReadyAtStation,stationModule,BASE_TABS} from './base-panel.js?v=first-contract-reward-1-regions-1-network-defense-4-station-flow-1-defense-rules-1-frontier-3-station-layout-2-station-audit-2-rpg-precision-1-logistics-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-station-clarity-1-expedition-1-station-menu-fold-1-campaign-1-repair-qa-1-mesh-log-1-station-clear-2-tactical-field-2-unified-controls-1-backbone-2-direct-fit-2-orbital-terminal-1-xp-feedback-pass1-2-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-territory-war-1-map-art-1-automatic-contours-1-auto-reward-1-reward-feedback-1-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-1-station-ops-2-ops-audit-2-station-menu-v2-1-field-ops-1-station-polish-1-audit-1-field-experience-1-portrait-1-menu-prof-1-mission-depth-1-menu-simplify-1-trial-layout-1-menu-consistency-6-mission-integrity-2-mission-choices-1-menu-sketch-1-semantic-1-manual-weapon-1-manual-qa-2-enemy-growth-1-active-patrol-1-loadout-clarity-1-menu-ergonomics-1-sector-density-2-combat-balance-1-menu-audit-fix-1-territory-logistics-1-overview-first-1-menu-depth-2-flux-siphon-roads-1-station-trust-1-geo-cue-1-pilot-depth-1-pilot-value-2-hud-merge-20261110-live-hud-qa-1-trial-station-defense-20261110-escort-squad-20261110-wingmastery-20261110-station-contour-map-20261110-escort-art-20261110-data-economy-20261111';
 import {awardStationReputation,stationReputation,stationReputationGoal,stationReputationReady} from './station-reputation.js';
 import {CORRIDOR_OPERATION,isCorridorDock,createCorridorOperation,corridorPosition,corridorAmbush,corridorScanBonus,
  PROBE_OPERATION,isProbeLab,createProbeOperation,operationDestination,isOperationWaypoint,probeDataReady,chooseOperationLead} from './operations.js?v=station-operations-2-ops-audit-2';
@@ -110,7 +112,7 @@ import {createMouseArsenal,canAimMouseWeapon,fireMouseWeapon,updateMouseArsenal,
 import {FIELD_WEAPONS,fieldWeapon,createFieldLoan,fieldLoanOffer,refillQuote,missionAssignment,bindFieldLoan,finishFieldAssignment,planResonance,resonanceDamage,updateFieldEffects,drawFieldEffects} from './field-weapons.js?v=living-world-2-weapon-feel-1-expedition-1-campaign-1-frontier-siege-1-hud-merge-20261110';
 import {TACTICAL_DEVICES,createTactical,applyTacticalChoice,activateTactical,updateTactical,drawTactical,tacticalAim,tacticalSpec} from './tactical-fields.js?v=tactical-field-2-hud-merge-20261110';
 import {drawTacticalVfx} from './tactical-vfx.js?v=tactical-vfx-1-hud-merge-20261110';
-import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109-territory-logistics-1-flux-siphon-roads-1-station-trust-1-rescue-depth-1-convoy-variety-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-swarm-presence-20261110-trial-station-defense-20261110-wingmastery-20261110';
+import {RunCheckpointStore,captureCheckpoint,restoreCheckpoint} from './run-checkpoint.js?v=first-contract-reward-1-radio-checkpoint-1-regions-1-network-defense-3-living-world-1-living-world-3-opening-arc-1-opening-balance-1-opening-audit-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-opening-touch-1-repair-qa-1-tactical-field-2-backbone-2-contour-dynamics-2-enemy-economy-1-enemy-domains-1-early-xp-1-supply-stronghold-1-strategic-xp-pass2-1-map-ux-1-flux-reserve-1-flux-offense-1-territory-war-1-automatic-contours-1-contour-trials-1-first-loops-1-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mouse-arms-1-mission-choices-1-flux-build-1-support-three-2-growth-1-living-world-population-1-sector-density-2-pressure-response-1-combat-balance-1-turret-audit-1-frontier-siege-1-combat-hunt-20261109-territory-logistics-1-flux-siphon-roads-1-station-trust-1-rescue-depth-1-convoy-variety-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-swarm-presence-20261110-trial-station-defense-20261110-wingmastery-20261110-data-economy-20261111';
 import {startSortie,finishSortie,appendSortieReport} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1-sector-density-2';
 import {recordSortieIncome,recordSortieDamage,recordSortieRepair,recordSortieDroneLoss,
  creditContractReward,recordEconomyExpense,emptyEconomyExpenses} from './sortie-ledger.js?v=economy-ledger-1';
@@ -287,7 +289,7 @@ export class ArcadeGame {
   // Includes smaller asteroids omitted from projectile-collision rockGrid.
   this.avoidanceRockGrid=new SpatialGrid(200);
   this.player={x:0,y:0,vx:0,vy:0,r:19,hp:STARTER_COMBAT.hull,maxHp:STARTER_COMBAT.hull,shield:0,
-    xp:0,level:1,points:0,xpCurveVersion:XP_CURVE_VERSION,firstRichRockStudied:false,
+    xp:0,level:1,points:0,masteryPoints:0,xpCurveVersion:XP_CURVE_VERSION,firstRichRockStudied:false,
     strategicXp:createStrategicExperience(),
     ore:0,data:0,invul:0,angle:0,
      burstRemaining:0,burstCooldown:0,burstX:0,burstY:-1};
@@ -981,6 +983,9 @@ export class ArcadeGame {
    if(act==='devTactic'&&(Object.hasOwn(TACTICAL_DEVICES,b.dataset.id)||b.dataset.id==='abilities')){
     this.developmentTactic=b.dataset.id;this.developmentFocus='';this.renderDock();return;
    }
+   if(act==='devMasteryTab'&&['automatic','research'].includes(b.dataset.id)){
+    this.developmentMasteryTab=b.dataset.id;this.developmentFocus='';this.renderDock();return;
+   }
    if(act==='fitWeapon'){this.focusFittingWeapon(b.dataset.id,b.dataset.slot);return;}
    if(act==='openEquipmentTactic'&&this.docked?.active&&Object.hasOwn(TACTICAL_DEVICES,b.dataset.id)){
     this.stationMenuContext=this.baseTab==='development'?{origin:'development',
@@ -1275,6 +1280,8 @@ export class ArcadeGame {
     return;
    }
     if(act==='abandonOperation')this.abandonOperation();
+   if(act==='dataResearch')this.buyResearch(b.dataset.id);
+   if(act==='dataProtocol')this.buyResearch('protocol');
    if(act==='skill')this.buySkill(b.dataset.id);
    if(act==='doctrine')this.buyDoctrine(b.dataset.id);
     if(act==='waypoint')this.selectWaypoint(b.dataset);
@@ -1606,12 +1613,18 @@ export class ArcadeGame {
  notice(text,seconds=3){this.message.textContent=text;this.messageUntil=this.time+seconds;}
  announceMastery(award,includeInReward=false){
   if(!award)return '';
+  if(award.pointMilestones){
+   this.player.points+=award.pointMilestones;
+   this.player.masteryPoints=(this.player.masteryPoints||0)+award.pointMilestones;
+   this.syncEvolutionPrompt?.();
+  }
   if(award.perkUnlocked){
    this.heritage?.play?.('levelUp',.45);
    this.heritage?.vfx?.nova?.(this.player.x,this.player.y,90,'gold');
   }
   const label=(award.perkUnlocked?'НОВОЕ УМЕНИЕ · ':'МАСТЕРСТВО · ')+award.name+
-   ' · ступень '+award.rank+(award.perkUnlocked?' · '+MASTERIES[award.id].perk:'');
+   ' · ступень '+award.rank+(award.perkUnlocked?' · '+MASTERIES[award.id].perk+
+   ' · +'+award.pointMilestones+(award.pointMilestones===1?' очко':' очка')+' развития':'');
   if(!includeInReward)this.notice(label,award.perkUnlocked?5:3.5);
   return label;
  }
@@ -2424,7 +2437,8 @@ export class ArcadeGame {
   const focusIdentity=this.overlay.querySelector('.skill-dialog')?captureMenuControl(this.overlay):null;
   const previousScroll=this.overlay.querySelector('.skill-dialog')?.scrollTop||0;
   this.overlay.innerHTML=renderPilotMenu({player:this.player,ranks:this.skillRanks,doctrine:this.doctrine,
-   doctrineRanks:this.doctrineRanks,
+   doctrineRanks:this.doctrineRanks,combatMastery:this.combatMastery,
+   time:this.time,
    skills:SKILLS,doctrines:DOCTRINES,branch:this.skillBranch||'Корабль',nextEffect:nextSkillEffect,
    nextXp:expForNext(this.player.level),atStation:!!this.docked&&this.stationExitArmed,
    backLabel:this.menuBackLabel()});
@@ -2505,6 +2519,18 @@ export class ArcadeGame {
   this.heritage.play('doctrine');
   if(this.hangarSession)this.hangarSession.message='Изучена доктрина: '+DOCTRINES.find(d=>d.id===id).title+' · '+(rank+1)+'/3';
   if(this.overlay.dataset.mode==='base')this.renderDock();else this.renderSkills();
+  return true;
+ }
+ buyResearch(id){
+  if(this.dead)return false;
+  const result=id==='protocol'?buyResearchProtocol(this.combatMastery,this.player,this.time):
+   purchaseDataResearch(this.combatMastery,this.player,id);
+  if(!result.ok){this.heritage.ui('deny');this.notice(result.reason,2.6);return false;}
+  this.heritage.play('upgrade',.22);
+  this.notice(id==='protocol'?'БОЕВОЙ ПРОТОКОЛ · 90 секунд усиленного оружия и скорости · −'+result.cost+' данных.':
+   'АНАЛИЗ ДАННЫХ · '+result.rank+'/4 · −'+result.cost+' данных. Улучшение действует постоянно.',3.5);
+  if(this.overlay.dataset.mode==='base')this.renderDock();
+  else if(this.overlay.dataset.mode==='skills')this.renderSkills();
   return true;
  }
  buySkill(id){
@@ -3524,7 +3550,7 @@ export class ArcadeGame {
  }
  baseState(){
   const topology=this.world.networkTopology();
-  return {loadout:this.shipLoadout,tactical:this.tactical,controls:this.controls,hangarSession:this.hangarSession,skillRanks:this.skillRanks,points:this.player.points,hangarUpgrades:this.hangarUpgrades(),ore:this.player.ore,data:this.player.data,xp:this.player.xp,level:this.player.level,
+  return {loadout:this.shipLoadout,tactical:this.tactical,controls:this.controls,hangarSession:this.hangarSession,skillRanks:this.skillRanks,points:this.player.points,masteryPoints:this.player.masteryPoints,developmentMasteryTab:this.developmentMasteryTab||'automatic',hangarUpgrades:this.hangarUpgrades(),ore:this.player.ore,data:this.player.data,xp:this.player.xp,level:this.player.level,
    firstHardwareReward:this.firstHardwareReward,openingArc:this.openingArc,enemies:this.enemies,
    nextXp:expForNext(this.player.level),world:this.world,hp:this.player.hp,maxHp:this.player.maxHp,time:this.time,
    civilianBases:[...this.world.stations.values()].filter(b=>b.active&&!b.captured).length,
@@ -4150,6 +4176,7 @@ export class ArcadeGame {
    if(!c||c.baseId!==b.id||!c.stages||c.stageIndex<1||
     c.progress>=c.goal||b.enemy||b.ruined||b.hp<=0)return;
    const ore=Math.round(c.ore*.45),data=Math.round(c.data*.45);
+   b.contractChoiceRuns??=(b.contractClaimed&&b.contractRuns)?{[b.completedContract||'standard']:b.contractRuns}:{};
    b.contractRuns=(b.contractRuns||0)+1;
    b.contractCooldownUntil=this.time+(b.active?150:0);
    this.contract=null;finishFieldAssignment(this.fieldLoan,'contract',c);
@@ -4162,8 +4189,12 @@ export class ArcadeGame {
   }else if(act==='claimContract'){
    const c=this.contract;
    if(b.enemy||b.ruined||b.hp<=0||!c||c.baseId!==b.id||c.progress<c.goal)return;
+   // Older checkpoints remember only the last completed kind of order.
+   const historicalChoice=b.completedContract||'standard';
+   b.contractChoiceRuns??=(b.contractClaimed&&b.contractRuns)?{[historicalChoice]:b.contractRuns}:{};
    b.contractClaimed=true;b.completedContract=c.choiceId;
    b.contractRuns=(b.contractRuns||0)+1;
+   b.contractChoiceRuns[c.choiceId]=(b.contractChoiceRuns[c.choiceId]||0)+1;
    const earnedTrust=awardStationReputation(b,c.choiceId);
    // The station menu pauses simulation time. Unpowered stations must allow
    // another assignment immediately; otherwise their short wait never ends
@@ -4811,7 +4842,8 @@ export class ArcadeGame {
   }
   const hpBefore=e.hp;
   damage=fieldLootDamage(this,damage,source);
-  if(aggressor===this.player&&damage>0)damage*=1+masteryBonus(this.combatMastery,'ace');
+  if(aggressor===this.player&&damage>0)damage*=1+masteryBonus(this.combatMastery,'ace')+
+   researchBonus(this.combatMastery,'targeting')+researchProtocolBonus(this.combatMastery,this.time,'damage');
   damage=stormWeaponDamage(e,damage,source,this.time);
   // A dock checkpoint may be captured before the next death-processing frame.
   // Health must already satisfy the saved enemy state contract at that point.
@@ -5356,7 +5388,7 @@ export class ArcadeGame {
   base.fieldChargeIssued??={};base.fieldChargeIssued[id]=true;return true;
  }
  awardExperience(amount){
-  const gained=grantExperience(this.player,amount);
+  const gained=grantExperience(this.player,researchedExperience(this.combatMastery,amount));
   if(gained){
    this.heritage.play('levelUp',.4);
    this.evolutionReceipt=null;
@@ -5493,7 +5525,9 @@ export class ArcadeGame {
   const hauling=openingArcActive(this.openingArc)&&this.openingArc.kind==='rescue'&&
    this.openingArc.rescueStage==='return';
   const speed=(STARTER_COMBAT.speed+this.skillRanks.engine*35)*
-   (1+masteryBonus(this.combatMastery,'evasive'))*(this.mining.active?.78:1)*
+   (1+masteryBonus(this.combatMastery,'evasive'))*
+   (1+researchBonus(this.combatMastery,'thrusters')+researchProtocolBonus(this.combatMastery,this.time,'speed'))*
+   (this.mining.active?.78:1)*
    (hauling?.76:1)*
    (this.cruising?EXPEDITION_CRUISE.multiplier:1)*doctrineEngineSurge(this);
   const boosting=p.burstRemaining>0;
@@ -5915,11 +5949,12 @@ export class ArcadeGame {
      const award=masteryProgress(this.combatMastery,'wing');
      if(award)this.announceMastery(award);
     }
-    if(directXp)this.awardExperience(combatXp+
-     (e._masteryDirectKill?Math.round(combatXp*.04*masteryPerkTier(this.combatMastery,'ace')):0));
+    if(directXp)this.awardExperience(masteryKillExperience(this.combatMastery,combatXp,e._masteryDirectKill));
     rewardEyeKill(this,e,directXp);
-    if(!e.microSwarm)this.addDrop('data',e.x,e.y,combatXp,
-     {source:'combat',life:50,xpGranted:directXp});
+    // Swarm kills pay some collectible data without flooding the battlefield
+    // with a pickup for every tiny drone. Personal combat XP still pays once.
+    if(!e.microSwarm||e.serial%3===0)this.addDrop('data',e.x,e.y,
+     e.microSwarm?2:combatXp,{source:'combat',life:50,xpGranted:directXp});
     const salvage=enemySalvage(e);
     // The dock repairs the ship for free. Standing inside its healing field
     // should never become a safe, automatic source of alloy.

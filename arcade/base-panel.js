@@ -110,15 +110,23 @@ const EXPEDITION_CONTRACTS=Object.freeze({
   desc:'Перехватите три боевых корабля, затем вернитесь к авианосцу и защитите его от трёх нападений.',
   stages:[{kind:'intercept',goal:3},{kind:'defend',goal:3}]}
 });
+// Returning to an unfamiliar assignment pays its full value. Only repeatedly
+// choosing the *same* order reduces its reward, with a modest 15% floor.
+export const stationContractRuns=base=>base?.contractChoiceRuns||
+ (base?.contractClaimed&&base?.contractRuns?{[base.completedContract||'standard']:base.contractRuns}:{});
 export const contractChoices=(type,runs=0)=>[
  {id:'standard',tag:'Основное поручение',...contractFor(type)},
  {id:'alternate',tag:'Альтернативное поручение',...(ALT_CONTRACTS[type]||ALT_CONTRACTS.dock)},
  {id:'expedition',tag:'Многоэтапное поручение',kind:(EXPEDITION_CONTRACTS[type]||EXPEDITION_CONTRACTS.dock).stages[0].kind,
   goal:(EXPEDITION_CONTRACTS[type]||EXPEDITION_CONTRACTS.dock).stages[0].goal,
   ...(EXPEDITION_CONTRACTS[type]||EXPEDITION_CONTRACTS.dock)}
-].map(choice=>runs>0?{...choice,
- ore:Math.max(8,Math.round(choice.ore*.65)),
- data:Math.max(6,Math.round(choice.data*.65))}:choice);
+].map(choice=>{
+ const repeated=typeof runs==='number'?runs:Math.max(0,runs?.[choice.id]||0);
+ if(!repeated)return choice;
+ const factor=repeated===1?.92:repeated===2?.88:.85;
+ return {...choice,ore:Math.max(8,Math.round(choice.ore*factor)),
+  data:Math.max(6,Math.round(choice.data*factor))};
+});
 // A contract counts a real field event, not any action with the same name.
 export function eligibleContractProgress(contract,kind,subject=null,station=null,pilotParticipated=false,pilotPosition=null){
  if(!contract||contract.progress>=contract.goal)return false;
@@ -142,7 +150,7 @@ export function eligibleContractProgress(contract,kind,subject=null,station=null
  return false;
 }
 export const contractOffer=(base,state)=>{
- const choices=contractChoices(base.type,base.contractRuns||0),current=state.contract;
+ const choices=contractChoices(base.type,stationContractRuns(base)),current=state.contract;
  const chosen=choices.find(c=>c.id===(current?.baseId===base.id?current.choiceId:base.completedContract))||choices[0];
  if(current&&current.baseId!==base.id)return {...choices[0],status:'other',progress:0};
  if(current)return {...chosen,status:current.progress>=current.goal?'ready':'active',
@@ -188,7 +196,7 @@ export function baseOffer(base,state){
  const droneDamage=Math.max(0,state.droneDamage||0);
  const droneRepairCost=droneDamage>0?Math.max(8,Math.ceil(droneDamage*.32)):0;
  const chargeCost=strikeCost(state.network.strikePower||0),contract=contractOffer(base,state);
- const contractOptions=contractChoices(base.type,base.contractRuns||0);
+ const contractOptions=contractChoices(base.type,stationContractRuns(base));
  const localService=LOCAL_SERVICES[base.type]||null;
  const moduleOptions=(STATION_MODULES[base.type]||[]).map(item=>({...item,
   reason:!base.active?'Сначала включите станцию':base.module?'Специализация уже выбрана':shortfall(item.cost,ore)}));
@@ -858,7 +866,8 @@ export function renderBasePanel(base,state){
   ' осталось '+Math.max(0,Math.ceil(state.nextXp-state.xp))+
   '. Данные и опыт учитываются отдельно: за участие в бою опыт начисляется сразу, '+
   'за поручения — при сдаче, за первое исследование богатого астероида — при добыче. '+
-  'Подбор боевых данных не дублирует уже начисленный опыт. Новый уровень даёт очко развития.</p>':'';
+  'Подбор боевых данных не дублирует уже начисленный опыт. Новый уровень даёт очко развития. '+
+  'Собранные данные можно потратить в разделе «Мастерство → Анализ данных» на постоянные исследования и повторяемый боевой протокол.</p>':'';
  const shortage=o.relayCost>o.ore?o.relayCost-o.ore:0;
  const reserveRoute=state.contract?
   (state.contract.progress>=state.contract.goal?

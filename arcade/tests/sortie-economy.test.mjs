@@ -190,8 +190,8 @@ test('combat gives bounded alloy salvage and data reflects greater enemy durabil
  assert.equal(enemySalvage({...scout,serial:5}),0);
  assert.equal(enemySalvage({type:'gunship',serial:11}),2);
  assert.equal(enemyDataReward(scout),7);
- assert.equal(enemyDataReward({...scout,maxHp:112}),12);
- assert.equal(enemyDataReward({...scout,maxHp:1e7}),13);
+ assert.equal(enemyDataReward({...scout,maxHp:112}),18);
+ assert.equal(enemyDataReward({...scout,maxHp:1e7}),25);
  // Combat cannot outperform one rich rock merely by destroying four scouts.
  assert.equal([1,2,3,4].reduce((n,serial)=>n+enemySalvage({...scout,serial}),0),1);
 });

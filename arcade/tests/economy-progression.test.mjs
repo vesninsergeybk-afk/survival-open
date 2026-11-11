@@ -138,6 +138,11 @@ test('replacement contracts and network activation cannot produce negative or in
  const first=contractChoices('dock',0),repeat=contractChoices('dock',1);
  assert.ok(repeat.every((c,i)=>c.ore>0&&c.ore<first[i].ore));
  assert.ok(repeat.every(c=>c.data>=6));
+ const varied=contractChoices('dock',{standard:1});
+ assert.ok(varied[0].data<first[0].data,'repeating the same assignment is slightly cheaper');
+ assert.equal(varied[1].data,first[1].data,'an unfamiliar alternative stays fully paid');
+ assert.equal(varied[2].data,first[2].data,'a fresh expedition stays fully paid');
+ assert.ok(varied[0].data>=Math.round(first[0].data*.85),'repeat penalty is bounded');
  assert.deepEqual([1,2,3,4,5].map(activationCost),[24,34,44,54,64]);
  assert.equal(activationCost(100),84);
 });
@@ -148,5 +153,6 @@ test('salvage is intentionally limited compared with focused asteroid extraction
  assert.ok(scoutDrops.reduce((a,b)=>a+b,0)<rich);
  const base=enemyDataReward({type:'scout',maxHp:28});
  const late=enemyDataReward({type:'scout',maxHp:98});
- assert.ok(late>base&&late<=base*2,'tougher enemies pay more XP without runaway scaling');
+ assert.ok(late>base&&late<=base*3.5,'tougher enemies pay proportionate XP with a bound');
+ assert.ok(late/98>(base/38)*.7,'harder enemies no longer lose most of their XP per HP');
 });

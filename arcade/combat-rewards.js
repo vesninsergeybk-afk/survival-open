@@ -16,11 +16,11 @@ export function enemySalvage(enemy){
  }
 }
 
-// Armour grows with world time. Reward some of that extra work while keeping
-// XP growth below the health multiplier and preserving the early unlock rhythm.
+// Armour grows with world time and strategic threat. XP must follow the
+// additional damage required, otherwise late victories pay less for more work.
 export function enemyDataReward(enemy){
- if(enemy?.microSwarm)return 1;
+ if(enemy?.microSwarm)return 2;
  const spec=ENEMY_TYPES[enemy?.type];if(!spec)return 0;
  const health=Math.max(spec.hp,enemy.maxHp||spec.hp);
- return Math.round(spec.score*Math.min(1.8,Math.sqrt(health/spec.hp)));
+ return Math.round(spec.score*Math.min(3.5,Math.pow(health/spec.hp,.85)));
 }

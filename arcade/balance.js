@@ -70,12 +70,17 @@ export function rebaseSavedHull(player,hullRanks=0){
  player.maxHp=nextMax;
  return true;
 }
-// Ease the opening decisions; from level 8 the existing curve is unchanged.
-const EARLY_XP_THRESHOLDS = Object.freeze([42, 68, 105, 155, 230, 330, 475]);
+// Version 2 thresholds are needed when restoring older station checkpoints.
+const PREVIOUS_XP_THRESHOLDS = Object.freeze([42, 68, 105, 155, 230, 330, 475]);
 export const legacyExpForNext = level =>
   Math.round(75 * Math.pow(1.36, Math.max(0, level - 1)));
+export const previousExpForNext = level =>
+  PREVIOUS_XP_THRESHOLDS[level - 1] ?? legacyExpForNext(level);
+// The new curve stays demanding over a long run without making each point
+// exponentially harder to earn than the player's increasing combat power.
+const EARLY_XP_THRESHOLDS = Object.freeze([42, 68, 105, 155, 205, 265, 345]);
 export const expForNext = level =>
-  EARLY_XP_THRESHOLDS[level - 1] ?? legacyExpForNext(level);
+  EARLY_XP_THRESHOLDS[level - 1] ?? Math.round(430 * Math.pow(1.135, Math.max(0, level - 8)));
 export const baseNames = Object.freeze({
   dock: 'Ремонтный док',
   arsenal: 'Военный арсенал',
