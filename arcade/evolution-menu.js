@@ -1,4 +1,4 @@
-import {FIELD_EVOLUTION_SKILLS,parasiteTargetMode} from './field-evolution.js?v=parasite-clarity-1';
+import {FIELD_EVOLUTION_SKILLS,parasiteTargetMode} from './field-evolution.js?v=parasite-clarity-1-xp-audit-20261111';
 import {escapeMenu as esc,screenHead,menuFooter,menuBackButton} from './menu-screens.js?v=menu-audit-1';
 
 export function installedEvolution(ranks={},skills=FIELD_EVOLUTION_SKILLS){

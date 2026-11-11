@@ -156,6 +156,14 @@ export function enemyFieldReward(game,e,participated){
  return {core,captured,wreck};
 }
 
+// An enemy can be visited by both the territory-trial and ordinary death
+// paths on the same frame. Its mastery perks must pay at most once.
+export function rewardFieldEvolutionOnce(game,e,participated){
+ if(e.fieldRewarded)return {core:false,captured:false,wreck:false};
+ e.fieldRewarded=true;
+ return enemyFieldReward(game,e,participated);
+}
+
 export function collectParasiteCore(game){
  const s=game.fieldEvolution;if(!s||!game.skillRanks.parasite||s.charge>=2)return false;
  s.charge++;

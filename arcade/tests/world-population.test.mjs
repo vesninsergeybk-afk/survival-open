@@ -150,6 +150,27 @@ test('destroyed generated convoy drops its own manifest and removes the real fac
  assert.ok(game.worldFeedback.history.some(e=>e.effect.includes('трёх кораблей')));
  assert.ok(messages.some(m=>m.includes('Фабрика недополучила')));
 });
+
+test('personally intercepted cargo grants XP at destruction while its blue core only carries data',()=>{
+ for(const [pilotShot,delay,earned] of [[true,0,true],[true,21,false],[false,0,false]]){
+  const world=new World(20261110);advancePopulation(world,10);
+  const cargo=world.population.convoys[0];
+  const value=populationConvoyReward(cargo),xp=[],drops=[];
+  const game={world,time:10,player:{x:cargo.x,y:cargo.y},
+   enemyComms:{reportIncident:()=>0},
+   heritage:{vfx:{hullImpact(){},shipExplosion(){}},play(){}},
+   addDrop(type,x,y,amount,options){drops.push({type,amount,options});},
+   awardExperience(amount){xp.push(amount);},notice(){}};
+  if(pilotShot)hitRegionalCargo(game,cargo,1,null,'beam');
+  game.time+=delay;
+  hitRegionalCargo(game,cargo,cargo.hp,null,'other');
+  assert.deepEqual(xp,earned?[value.data]:[],`personal=${pilotShot} delay=${delay}`);
+  const core=drops.find(d=>d.type==='data');
+  assert.equal(core.amount,value.data);
+  assert.equal(core.options.source,'combat');
+  assert.equal(core.options.xpGranted,true,'pickup cannot issue the same XP again');
+ }
+});
 test('two physical miners power each mine, can be sabotaged and rebuild only from paid stock',()=>{
  const world=new World(),c=world.population.colonies[0];
  const factory=world.stations.get(c.id+':factory');

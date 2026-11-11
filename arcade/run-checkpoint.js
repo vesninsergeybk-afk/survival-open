@@ -1,4 +1,4 @@
-import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1-pilot-value-2-data-economy-20261111';
+import {migrateLegacyPlayerExperience} from './experience.js?v=early-experience-1-pilot-value-2-data-economy-20261111-xp-audit-20261111';
 import {normalizedDoctrineRanks,DOCTRINES} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
 import {rebaseSavedHull} from './balance.js';
 import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';
@@ -7,9 +7,9 @@ import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-
 import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-menu-focus-1-pressure-response-1';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2-campaign-1';
 import {createTactical,validTactical} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
-import {validFieldEvolution} from './field-evolution.js?v=parasite-clarity-1';
+import {validFieldEvolution} from './field-evolution.js?v=parasite-clarity-1-xp-audit-20261111';
 import {validFieldLoot,createFieldLoot} from './field-loot.js?v=eye-loot-1';
-import {validCombatMastery,createCombatMastery,migrateCombatMastery,creditLegacyMasteryPoints} from './combat-mastery.js?v=data-economy-20261111';
+import {validCombatMastery,createCombatMastery,migrateCombatMastery,creditLegacyMasteryPoints} from './combat-mastery.js?v=data-economy-20261111-xp-audit-20261111';
 import {validMeteorFront,createMeteorFront} from './meteor-front.js';
 import {validConvoyRelic,createConvoyRelic} from './convoy-relic.js';
 import {validCombatTempo,createCombatTempo} from './combat-tempo.js?v=tempo-1';

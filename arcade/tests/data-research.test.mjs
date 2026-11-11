@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {DATA_RESEARCH,DATA_PROTOCOL,createDataResearch,researchOffer,buyDataResearch,
  researchedExperience,researchBonus,validDataResearch,buyResearchProtocol,
  researchProtocolBonus,researchProtocolOffer} from '../data-research.js';
-import {createCombatMastery,masteryProgress,masteryGoal,masteryKillExperience,
+import {createCombatMastery,masteryProgress,masteryMiss,masteryGoal,masteryKillExperience,
  creditLegacyMasteryPoints} from '../combat-mastery.js';
 import {renderPilotMenu} from '../pilot-menu.js';
 import {progressionModel,renderProgressionScreen} from '../progression-screen.js';
@@ -76,6 +76,33 @@ test('learning research accelerates earned mastery without free ranks or float d
  assert.equal(total(trained),24);
  assert.equal(researchBonus(trained,'learning'),.60);
  assert.ok(validDataResearch(trained.research));
+});
+
+test('learning research displays fractional mastery progress instead of hiding its early benefit',()=>{
+ const state=createCombatMastery();
+ state.research.ranks.learning=1;
+ masteryProgress(state,'ace',1);
+ const model=progressionModel({developmentDomain:'mastery',combatMastery:state});
+ const ace=model.nodes.find(n=>n.id==='mastery-ace');
+ assert.equal(ace.progress,1);
+ assert.ok(Math.abs(ace.fraction-.15)<1e-8);
+ const screen=renderProgressionScreen({developmentDomain:'mastery',developmentFocus:'mastery-ace',
+  combatMastery:state,level:5,points:1,ore:25});
+ assert.match(screen,/1,1 из 3 до следующей ступени/);
+ assert.match(screen,/Ступень 0 · 1,1\/3/);
+});
+
+test('missed comet shots also clear fractional learning progress from the broken streak',()=>{
+ const state=createCombatMastery();
+ state.research.ranks.learning=3;
+ masteryProgress(state,'comet',1);
+ assert.equal(state.tracks.comet.progress,1);
+ assert.ok(state.research.masteryRemainder.comet>.4);
+ masteryMiss(state,'comet');
+ assert.equal(state.tracks.comet.progress,0);
+ assert.equal(state.research.masteryRemainder.comet,0);
+ masteryProgress(state,'comet',1);
+ assert.equal(state.tracks.comet.progress,1,'a new streak starts without the old fractional credit');
 });
 
 test('ace XP bonuses no longer round down to zero on every scout',()=>{

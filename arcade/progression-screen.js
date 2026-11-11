@@ -1,10 +1,10 @@
 import {MODULES,FRAME_STEPS,SHIP_UPGRADES,createLoadout,moduleStats} from './ship-loadout.js?v=menu-ergonomics-1-tactical-slot-20261110';
 import {WEAPON_SPECIALIZATIONS,quoteSpecialization,specializationRequirements} from './weapon-specializations.js';
 import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalQuote} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
-import {developmentPointLedger} from './experience.js?v=data-economy-20261111';
+import {developmentPointLedger} from './experience.js?v=data-economy-20261111-xp-audit-20261111';
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=tactical-slot-20261110';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
-import {MASTERIES,masteryGoal,masteryBonus,masteryPerkTier,masteryNextMilestone} from './combat-mastery.js?v=data-economy-20261111';
+import {MASTERIES,masteryGoal,masteryBonus,masteryPerkTier,masteryNextMilestone} from './combat-mastery.js?v=data-economy-20261111-xp-audit-20261111';
 import {DATA_RESEARCH,DATA_PROTOCOL,researchRank,researchOffer,researchProtocolOffer} from './data-research.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -231,6 +231,7 @@ function masteryNodes(state){
  return Object.entries(MASTERIES).map(([id,spec])=>{
   const rank=state.combatMastery?.tracks?.[id]?.rank||0;
   const progress=state.combatMastery?.tracks?.[id]?.progress||0;
+  const fraction=state.combatMastery?.research?.masteryRemainder?.[id]||0;
   const goal=masteryGoal(id,rank),bonus=masteryBonus(state.combatMastery,id)*100;
   const tier=masteryPerkTier(state.combatMastery,id),next=masteryNextMilestone(state.combatMastery,id);
   return {id:'mastery-'+id,kind:'achievement',title:spec.name,
@@ -240,7 +241,7 @@ function masteryNodes(state){
     (id==='survivor'?' защиты':'')+'. '+spec.perk+': '+tier+'/4'+
     (next?' · следующая особая ступень — '+next+'-й ранг.':' · все особые ступени открыты.') ,
    activation:'События засчитываются автоматически. На рангах 3, 8, 16 и 32 открываются новые свойства и начисляется по одному очку развития. Дальше растёт постоянный бонус.',
-   action:'',actionId:id,actionLabel:'',canAct:false,cost:'Действиями в бою',progress,goal};
+   action:'',actionId:id,actionLabel:'',canAct:false,cost:'Действиями в бою',progress,fraction,goal};
  });
 }
 
@@ -361,7 +362,9 @@ export function progressionModel(state){
 function nodeHtml(node,selected){
  const labels={ready:'Доступно',mastered:'Изучено',waiting:'Не выполнены условия',locked:'Закрыто',
   exclusive:'Другой путь',info:'Оснащение'};
- const progress=node.kind==='achievement'?'Ступень '+node.rank+' · '+node.progress+'/'+node.goal:
+ const earned=(node.progress||0)+(node.fraction||0);
+ const progressLabel=node.fraction>0?earned.toFixed(1).replace('.',','):String(node.progress);
+ const progress=node.kind==='achievement'?'Ступень '+node.rank+' · '+progressLabel+'/'+node.goal:
   node.kind==='protocol'?'Повторяемый · 90 секунд':
   node.shared?'Общая технология · '+node.rank+'/'+node.max:
   node.kind==='navigation'?'Раздел станции':node.kind==='equipment'?(node.equipmentStatus||(node.rank?'Получено':'Не получено')):
@@ -372,7 +375,7 @@ function nodeHtml(node,selected){
   '<span class="prog-node-art"><img src="'+art('frames','node_'+(selected?.id===node.id?'selected':node.status==='mastered'?'mastered':node.status==='ready'||node.status==='info'?'ready':'locked'))+'" alt="" class="prog-node-frame">'+
   '<img src="'+esc(node.icon)+'" alt="" class="prog-node-glyph">'+branchMark(node.mark)+'</span>'+
   '<strong>'+esc(node.title)+'</strong><small>'+esc(progress)+'</small>'+
-  (node.kind==='achievement'?'<span class="mastery-progress" aria-hidden="true"><i style="width:'+Math.min(100,node.progress/node.goal*100)+'%"></i></span>':'')+'</button>';
+  (node.kind==='achievement'?'<span class="mastery-progress" aria-hidden="true"><i style="width:'+Math.min(100,earned/node.goal*100)+'%"></i></span>':'')+'</button>';
 }
 
 function treeHtml(nodes,selected){
@@ -407,7 +410,7 @@ function detailHtml(node,domain,weapon,state){
   '<span class="prog-detail-illustration"><img src="'+esc(node.icon)+'" alt="" class="prog-detail-icon">'+branchMark(node.mark)+'</span><div class="prog-detail-copy"><span class="prog-detail-status" data-status="'+esc(node.status)+'">'+status+'</span><h3>'+esc(node.title)+'</h3>'+
   '<p>'+esc(node.description)+'</p>'+(node.scope?'<p class="prog-shared-scope">'+esc(node.scope)+'</p>':'')+
   (node.masteryAt?'<p class="prog-mastery-hint">Два ранга: выбор ветки с уровня '+node.level+', мастерство с уровня '+node.masteryAt+'.</p>':'')+'</div></div><div class="prog-detail-facts">'+
-  '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p>'+(node.kind==='achievement'?'<div class="mastery-detail-progress"><i style="width:'+Math.min(100,node.progress/node.goal*100)+'%"></i></div><p>'+node.progress+' из '+node.goal+' до следующей ступени</p>':'')+'</div><div><b>Как применять</b><p>'+esc(activation)+'</p></div></div>'+
+  '<div><b>Что изменится</b><p>'+esc(node.effect)+'</p>'+(node.kind==='achievement'?'<div class="mastery-detail-progress"><i style="width:'+Math.min(100,((node.progress||0)+(node.fraction||0))/node.goal*100)+'%"></i></div><p>'+((node.fraction||0)>0?((node.progress||0)+node.fraction).toFixed(1).replace('.',','):node.progress)+' из '+node.goal+' до следующей ступени</p>':'')+'</div><div><b>Как применять</b><p>'+esc(activation)+'</p></div></div>'+
   '<div class="prog-detail-actions"><span class="prog-cost">Стоимость: '+esc(node.cost)+'</span>'+cta+
   (domain==='ship'?'<button type="button" class="prog-secondary" data-act="baseTab" data-role="hangar">Схема корабля</button>':'')+'</div>'+
   (node.reason?'<p class="prog-detail-reason">'+esc(node.reason)+'</p>':'')+'</aside>';

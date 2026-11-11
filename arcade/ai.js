@@ -1,6 +1,6 @@
 import {theaterDestination} from './enemy-strategy.js?v=theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-backbone-2-mesh-strategy-v2-1-ai-commander-20261110';
 import {commandAllyBonus,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
-import {updateParasitizedEnemy} from './field-evolution.js?v=parasite-clarity-1';
+import {updateParasitizedEnemy} from './field-evolution.js?v=parasite-clarity-1-xp-audit-20261111';
 import {stormSeek} from './regional-storms.js?v=regions-1';
 import {RULES, dist, clamp, length, outsideCamera} from './balance.js?v=arcade-network-20-pressure-response-1-combat-balance-1-opening-evasion-20261110';
 import {updateSignalIntent,canAutoTarget} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1-combat-balance-1';
@@ -21,7 +21,7 @@ import {updateLastStand} from './enemy-last-stand.js?v=redteam-20261109-1';
 import {advanceEnemyCloseAttack,cancelCloseAttack} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
 import {activeStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
 import {ESCORTS,escortFocusBonus} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
-import {masteryBonus} from './combat-mastery.js';
+import {masteryBonus} from './combat-mastery.js?v=xp-audit-20261111';
 import {rescueArmedDrone,rescueGuardDestination,rescuePursuitDestination}
  from './rescue-formation.js';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};

@@ -1,5 +1,5 @@
 import {RULES,spawnOutside} from './balance.js?v=arcade-balanced-bases-30';
-import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110-trial-station-defense-20261110-escort-squad-20261110-wingmastery-20261110';
+import {ENEMY_TYPES} from './ai.js?v=enemy-learning-1-enemy-comms-1-regions-1-enemy-world-response-1-network-defense-4-enemy-audit-5-enemy-gunnery-1-opening-arc-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-territory-war-1-contour-counterattack-1-first-loops-1-station-ops-2-flux-build-1-support-three-1-triangle-defense-1-growth-1-pressure-response-1-combat-balance-1-territory-logistics-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-flux-siphon-roads-1-ai-commander-20261110-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-close-threat-20261110-trial-station-defense-20261110-escort-squad-20261110-wingmastery-20261110-xp-audit-20261111';
 import {regionAt,centralOutline,centralBoundary,REGION_LIMIT} from './regions.js?v=regions-audit-1-living-world-population-1-sector-density-2';
 import {SUPPLY,supplyRoute,advanceRegionalSupply,interceptSupply,supplyEvent,cargoLastContact} from './regional-supply.js?v=enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {CENTRAL_INDUSTRY,CENTRAL_ROUTE,centralRoute,centralWorkerPosition,centralEvent} from './central-industry.js?v=home-conflict-1-enemy-balance-2-supply-renewal-1-territory-war-1';
@@ -452,6 +452,11 @@ export function spawnRegionalRaid(game,director){
 }
 export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  if(cargo.hp<=0||!Number.isFinite(damage)||damage<=0)return;
+ // Like regular combat, destroying a valuable cargo ship grants direct XP
+ // only when the pilot contributed a recent hit. Its blue drop is data alone.
+ const pilotShot=source===game.player||typeof source==='string'&&
+  ['beam','rocket','rail','flak','howitzer','comet','mine','ion','tactical','trophy'].includes(source);
+ if(pilotShot)cargo.lastPlayerHitAt=game.time;
  if(cargo.populationCargo&&!Number.isFinite(cargo.firstHitAt)){
   cargo.firstHitAt=game.time;
   if(cargo.cargoRole==='courier')game.notice(
@@ -484,8 +489,10 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
  const frontier=cargo.frontierCargo?FRONTIERS[cargo.frontierNetwork]:null;
  if(cargo.populationCargo){
   const value=populationConvoyReward(cargo);
+  if(Number.isFinite(cargo.lastPlayerHitAt)&&game.time>=cargo.lastPlayerHitAt&&
+   game.time-cargo.lastPlayerHitAt<=20)game.awardExperience?.(value.data);
   game.addDrop('ore',cargo.x,cargo.y,value.ore,{source:'salvage',life:60});
-  game.addDrop('data',cargo.x+14,cargo.y,value.data,{source:'combat',life:60});
+  game.addDrop('data',cargo.x+14,cargo.y,value.data,{source:'combat',life:60,xpGranted:true});
   recordWorldFeedback(game,{key:'cargo-loss:'+cargo.id,kind:'loss',
    label:'ПОСТАВКА КОЛОНИИ СОРВАНА',cause:'Вы уничтожили '+populationConvoyTitle(cargo).toLowerCase(),
    effect:'Фабрика недополучила 9 единиц сырья — столько стоит постройка трёх кораблей',
@@ -496,7 +503,10 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
   return;
  }
  game.addDrop('ore',cargo.x,cargo.y,cargo.frontierRepair?4:frontier?.rewardOre??(cargo.centralCargo?CENTRAL_INDUSTRY.oreReward:SUPPLY.oreReward),{source:'salvage',life:60});
- game.addDrop('data',cargo.x+14,cargo.y,cargo.frontierRepair?5:frontier?.rewardData??(cargo.centralCargo?CENTRAL_INDUSTRY.dataReward:SUPPLY.dataReward),{source:'combat',life:60});
+ const dataReward=cargo.frontierRepair?5:frontier?.rewardData??(cargo.centralCargo?CENTRAL_INDUSTRY.dataReward:SUPPLY.dataReward);
+ if(Number.isFinite(cargo.lastPlayerHitAt)&&game.time>=cargo.lastPlayerHitAt&&
+  game.time-cargo.lastPlayerHitAt<=20)game.awardExperience?.(dataReward);
+ game.addDrop('data',cargo.x+14,cargo.y,dataReward,{source:'combat',life:60,xpGranted:true});
  recordWorldFeedback(game,{key:'cargo-loss:'+cargo.id,kind:'loss',
   label:cargo.frontierRepair?'РЕМОНТНЫЙ РЕЙС СОРВАН':'СНАБЖЕНИЕ ПЕРЕХВАЧЕНО',
   cause:cargo.frontierRepair?'Вы уничтожили ремонтный корабль':

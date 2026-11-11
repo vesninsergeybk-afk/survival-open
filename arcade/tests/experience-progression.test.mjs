@@ -36,8 +36,8 @@ test('combat XP arrives on destruction; looted data cannot award it twice',()=>{
  grantExperience(p,xp);
  const drop={type:'data',source:'combat',value:xp,xpGranted:true};
  assert.equal(experienceFromPickup(drop),0);
- assert.equal(experienceFromPickup({type:'data',source:'combat',value:xp}),xp,
-  'older or unattended combat drops keep their pickup XP');
+ assert.equal(experienceFromPickup({type:'data',source:'combat',value:xp}),0,
+  'even an unmarked combat drop cannot turn automated station kills into XP');
  grantExperience(p,experienceFromPickup(drop));
  assert.equal(p.xp,xp);
  assert.equal(experienceFromPickup({type:'data',source:'operation',value:27}),27);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {FIELD_EVOLUTION_SKILLS,createFieldEvolution,chooseEvolutionOffers,
- offerLevelCrystals,enemyFieldReward,collectParasiteCore,absorbParasiteImpact,
+ offerLevelCrystals,enemyFieldReward,rewardFieldEvolutionOnce,collectParasiteCore,absorbParasiteImpact,
  markDashPass,fieldWeaponImpact,updateFieldEvolution,updateParasitizedEnemy,
  validFieldEvolution,parasiteTargetMode,setParasiteTargetMode} from '../field-evolution.js';
 import {renderEvolutionMenu} from '../evolution-menu.js';
@@ -43,6 +43,16 @@ test('combat-only energy progression drops one physical core per third qualifyin
  assert.equal(g.fieldEvolution.kills,5);
  enemyFieldReward(g,enemy(6),true);
  assert.equal(g.drops.length,2);
+});
+
+test('trial and ordinary death processing cannot award parasite mastery twice for one enemy',()=>{
+ const g=makeGame();g.skillRanks.parasite=1;
+ const victim=enemy(28);
+ assert.equal(rewardFieldEvolutionOnce(g,victim,true).core,false);
+ assert.equal(g.fieldEvolution.kills,1);
+ assert.deepEqual(rewardFieldEvolutionOnce(g,victim,true),{core:false,captured:false,wreck:false});
+ assert.equal(g.fieldEvolution.kills,1);
+ assert.equal(victim.fieldRewarded,true);
 });
 
 test('energy cores have a two-charge cap and do not change experience or resources',()=>{

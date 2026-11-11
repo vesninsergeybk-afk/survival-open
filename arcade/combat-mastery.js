@@ -25,13 +25,28 @@ export const MASTERIES=Object.freeze({
   effect:'Опыт за полностью выполненные задания',perk:'Ещё +4% опыта за каждую особую ступень'}
 });
 export const MASTERY_MILESTONES=Object.freeze([3,8,16,32]);
-export const createCombatMastery=()=>({version:2,tracks:Object.fromEntries(
+// Events are not equally frequent: a hit with a manual weapon, a near miss,
+// mining a rich rock, and completing an operation take very different effort.
+// Calibrated goals give every branch reachable milestones without turning
+// ordinary combat into the fastest path to every upgrade.
+const MASTERY_PACE=Object.freeze({
+ ace:[3,.95,.026],comet:[2,.63,.016],wing:[2,.42,.011],
+ evasive:[2,.30,.011],survivor:[2,.38,.012],
+ mining:[1,.20,.006],operations:[1,.02,.001]
+});
+export const createCombatMastery=()=>({version:3,tracks:Object.fromEntries(
  Object.keys(MASTERIES).map(id=>[id,{rank:0,progress:0}])),lastImpactAt:-1000,
  research:createDataResearch()});
-export function masteryGoal(id,rank){
+// Version 2 used the same quadratic growth for all mastery activities.
+function previousMasteryGoal(id,rank){
  const spec=MASTERIES[id];if(!spec)return 0;
  const n=Math.max(0,rank);
  return Math.max(1,Math.min(100000,Math.ceil(spec.first*(1+.82*n+.105*n*n))));
+}
+export function masteryGoal(id,rank){
+ const pace=MASTERY_PACE[id];if(!pace)return 0;
+ const n=Math.max(0,rank);
+ return Math.max(1,Math.min(100000,Math.ceil(pace[0]+pace[1]*n+pace[2]*n*n)));
 }
 export const masteryBonus=(state,id)=>{
  const spec=MASTERIES[id],rank=state?.tracks?.[id]?.rank||0;
@@ -90,10 +105,14 @@ export function masteryKillExperience(state,base,personal=false){
 }
 export function masteryMiss(state,id){
  if(state?.tracks?.[id])state.tracks[id].progress=0;
+ // Learning-research fractions belong to the same hit streak: a miss must
+ // discard them as well, or the next streak starts with hidden progress.
+ if(state?.research?.masteryRemainder&&Object.hasOwn(state.research.masteryRemainder,id))
+  state.research.masteryRemainder[id]=0;
 }
 export function validCombatMastery(state){
  if(state===undefined)return true;
- if(!state||![1,2].includes(state.version)||!state.tracks||
+ if(!state||![1,2,3].includes(state.version)||!state.tracks||
   !Number.isFinite(state.lastImpactAt)||state.lastImpactAt< -1000||state.lastImpactAt>1e9||
   !validDataResearch(state.research))return false;
  const ids=state.version===1?['ace','comet','wing','evasive','survivor']:Object.keys(MASTERIES);
@@ -103,18 +122,21 @@ export function validCombatMastery(state){
    Math.pow(MASTERIES[id].growth,Math.min(32,Math.max(0,t?.rank||0)))));
   return t&&Number.isInteger(t.rank)&&t.rank>=0&&t.rank<=10000&&
    Number.isInteger(t.progress)&&t.progress>=0&&
-   t.progress<(state.version===1?legacyGoal:masteryGoal(id,t.rank));
+   t.progress<(state.version===1?legacyGoal:
+    state.version===2?previousMasteryGoal(id,t.rank):masteryGoal(id,t.rank));
  });
 }
 export function migrateCombatMastery(state){
  if(!state)return createCombatMastery();
- if(state.version===2){state.research??=createDataResearch();return state;}
+ if(state.version===3){state.research??=createDataResearch();return state;}
  if(!validCombatMastery(state))return createCombatMastery();
  const next=createCombatMastery();next.lastImpactAt=state.lastImpactAt;
+ if(state.version===2)next.research=state.research||createDataResearch();
  for(const id of Object.keys(state.tracks)){
   const old=state.tracks[id];
-  const legacyGoal=Math.min(100000,Math.ceil(MASTERIES[id].first*
-   Math.pow(MASTERIES[id].growth,Math.min(32,old.rank))));
+  const legacyGoal=state.version===2?previousMasteryGoal(id,old.rank):
+   Math.min(100000,Math.ceil(MASTERIES[id].first*
+    Math.pow(MASTERIES[id].growth,Math.min(32,old.rank))));
   next.tracks[id]={rank:old.rank,progress:Math.min(masteryGoal(id,old.rank)-1,
    Math.floor(old.progress/legacyGoal*masteryGoal(id,old.rank)))};
  }

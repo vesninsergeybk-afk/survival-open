@@ -2,7 +2,7 @@ import {SHIP_UPGRADES} from './ship-loadout.js?v=first-contract-reward-1-campaig
 import {escapeMenu as esc,menuInfo,menuSymbol,screenHead,menuFooter,menuBackButton} from './menu-screens.js?v=all-menus-1-menu-audit-1';
 import {doctrineRank,doctrineCost,doctrineBuyReason,doctrineNextEffect,
  normalizedDoctrineRanks,doctrineSpent,doctrinePointsWord} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2';
-import {DATA_RESEARCH,DATA_PROTOCOL,researchRank,researchOffer,
+import {DATA_RESEARCH,DATA_RESEARCH_COSTS,DATA_PROTOCOL,researchRank,researchOffer,
  researchProtocolOffer} from './data-research.js';
 export function renderPilotContent({player:p,ranks,doctrine,doctrineRanks,combatMastery,time=0,skills,doctrines,branch='Корабль',nextEffect}){
  const branches=[['Корабль','Пилотирование'],['Технологии','Технологии'],
@@ -11,7 +11,8 @@ export function renderPilotContent({player:p,ranks,doctrine,doctrineRanks,combat
  const pilotState={doctrine,doctrineRanks,level:p.level,points:p.points};
  const spent=doctrineSpent(normalizedDoctrineRanks(pilotState));
  const protocol=researchProtocolOffer(combatMastery,p.data,time);
- const researchPanel='<details class="pilot-doctrines pilot-data-research" data-hangar-section="data-research" open><summary>Анализ данных · '+p.data+' доступно</summary>'+
+ const researchOpen=p.points===0&&p.data>=DATA_RESEARCH_COSTS[0];
+ const researchPanel='<details class="pilot-doctrines pilot-data-research" data-hangar-section="data-research"'+(researchOpen?' open':'')+'><summary>Анализ данных · '+p.data+' доступно</summary>'+
   '<p class="screen-note">Голубые ядра дают данные. Постоянные исследования действуют весь вылет; боевой протокол можно включать повторно. Очки развития при этом сохраняются.</p><div class="pilot-doctrine-grid">'+
   Object.entries(DATA_RESEARCH).map(([id,spec])=>{
    const rank=researchRank(combatMastery,id),offer=researchOffer(combatMastery,p.data,id);

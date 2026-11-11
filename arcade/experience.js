@@ -22,7 +22,10 @@ export function developmentPointLedger(state={}){
 }
 
 export function experienceFromPickup(item){
- return item?.type === 'data' && item.xpGranted !== true && Number.isFinite(item.value)
+ // A combat core is spendable research data only. Combat XP, if deserved,
+ // was awarded when the enemy died; station-only kills never grant pilot XP.
+ return item?.type === 'data' && item.source !== 'combat' &&
+  item.xpGranted !== true && Number.isFinite(item.value)
   ? Math.max(0,item.value) : 0;
 }
 

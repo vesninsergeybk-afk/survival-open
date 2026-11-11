@@ -3,7 +3,7 @@
 import {combatTargets,targetDistance,targetRadius,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1-frontier-siege-1';
 import {moduleStats} from './ship-loadout.js';
 import {landingRock,planMineSites,resolveMineLanding,blastCoverFactor,railCoverPreview} from './aimed-terrain.js?v=manual-audit-20261110';
-import {masteryBonus,masteryProgress,masteryMiss,masteryPerkTier} from './combat-mastery.js';
+import {masteryBonus,masteryProgress,masteryMiss,masteryPerkTier} from './combat-mastery.js?v=xp-audit-20261111';
 
 const TAU=Math.PI*2;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));

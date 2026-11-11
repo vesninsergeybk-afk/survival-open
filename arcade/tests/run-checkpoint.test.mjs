@@ -57,12 +57,14 @@ test('earned mastery and a remaining convoy trophy timer survive a real checkpoi
  const g=scene();g.time=100;
  g.combatMastery=createCombatMastery();g.convoyRelic=createConvoyRelic();
  masteryProgress(g.combatMastery,'wing',6);
+ const earnedWingRank=g.combatMastery.tracks.wing.rank;
+ assert.ok(earnedWingRank>=1);
  g.convoyRelic.active={id:'storm',until:190,nextFireAt:101};
  g.convoyRelic.lastGrantedAt=100;
  const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
  assert.equal(validateCheckpoint(snapshot),true);
  const restored=scene();restoreCheckpoint(restored,snapshot);
- assert.equal(restored.combatMastery.tracks.wing.rank,1);
+ assert.equal(restored.combatMastery.tracks.wing.rank,earnedWingRank);
  assert.equal(restored.convoyRelic.active.until,190);
 });
 

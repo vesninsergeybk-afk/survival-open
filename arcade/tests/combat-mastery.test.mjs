@@ -12,7 +12,8 @@ test('all seven masteries grow through counted events and keep a bounded permane
  for(const id of Object.keys(MASTERIES)){
   assert.equal(masteryProgress(state,id,masteryGoal(id,0)).rank,1);
   assert.equal(state.tracks[id].progress,0);
-  assert.ok(masteryGoal(id,4)>masteryGoal(id,1));
+  assert.ok(masteryGoal(id,4)>=masteryGoal(id,1),
+   'rare actions may share a short early goal, but must never become harder to earn backwards');
   assert.ok(masteryBonus(state,id)>0);
   assert.ok(masteryBonus(state,id)<MASTERIES[id].cap);
  }
@@ -72,11 +73,42 @@ test('legacy five-track checkpoints retain earned rank and proportional progress
  legacy.tracks.comet={rank:9,progress:200};
  assert.equal(validCombatMastery(legacy),true);
  const migrated=migrateCombatMastery(legacy);
- assert.equal(migrated.version,2);
+ assert.equal(migrated.version,3);
  assert.equal(migrated.tracks.comet.rank,9);
  assert.ok(migrated.tracks.comet.progress<masteryGoal('comet',9));
  assert.equal(migrated.tracks.mining.rank,0);
  assert.equal(validCombatMastery(migrated),true);
+});
+
+test('the four automatic milestones reflect how often each action can realistically occur',()=>{
+ const expected={
+  ace:[13,58,203,853],comet:[9,40,134,557],wing:[8,32,103,402],
+  evasive:[8,29,89,342],survivor:[8,32,99,394],
+  mining:[5,18,54,207],operations:[5,15,31,71]
+ };
+ for(const [id,totals] of Object.entries(expected)){
+  const actual=[3,8,16,32].map(rank=>Array.from({length:rank},(_,i)=>masteryGoal(id,i))
+   .reduce((sum,goal)=>sum+goal,0));
+  assert.deepEqual(actual,totals,`${id} mastery events per milestone`);
+  assert.ok(actual.every((count,index)=>index===0||count>actual[index-1]));
+ }
+});
+
+test('version-two mastery ranks and earned fractions survive the revised pacing curve',()=>{
+ const old=createCombatMastery();old.version=2;
+ old.tracks.operations={rank:14,progress:52};
+ old.tracks.ace={rank:8,progress:10};
+ old.research.ranks.learning=3;
+ old.research.masteryRemainder.operations=.65;
+ assert.equal(validCombatMastery(old),true);
+ const updated=migrateCombatMastery(old);
+ assert.equal(updated.version,3);
+ assert.equal(updated.tracks.operations.rank,14);
+ assert.equal(updated.tracks.ace.rank,8);
+ assert.equal(updated.research.ranks.learning,3);
+ assert.equal(updated.research.masteryRemainder.operations,.65);
+ assert.equal(validCombatMastery(updated),true);
+ assert.equal(migrateCombatMastery(updated),updated,'a second load must not apply another migration');
 });
 
 test('buying wing armor upgrades both existing and future escorts without charging alloy',()=>{
