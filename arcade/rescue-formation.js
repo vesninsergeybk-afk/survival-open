@@ -3,7 +3,8 @@
 // itself must keep concentrating on taking the capsule.
 export const rescueArmedDrone=enemy=>{
  const role=enemy?.openingRescueRole;
- return role==='guard'||role==='escort'||role==='pursuer';
+ return role==='guard'||role==='escort'||role==='pursuer'||
+  enemy?.scenario==='opening-escort';
 };
 
 const direction=(dx,dy)=>{
@@ -23,8 +24,19 @@ export function rescueGuardDestination(enemy,time=0){
    x:enemy.protect.x+(side<0?-165:135),
    y:enemy.protect.y+(side<0?85:-100)}:null);
   if(!post)return null;
-  return {x:post.x+Math.sin(time*.34+enemy.serial)*12,
-   y:post.y+Math.cos(time*.28+enemy.serial)*9};
+  // An anchored patrol travels slowly between two nearby points. Its flight
+  // controller brakes on arrival; full-speed zigzags would look like jitter.
+  return {x:post.x+Math.sin(time*.31+enemy.serial)*19,
+   y:post.y+Math.cos(time*.31+enemy.serial)*13};
+ }
+ if(enemy?.scenario==='opening-escort'&&enemy.protect?.hp>0){
+  const leader=enemy.protect;
+  const motion=Math.hypot(leader.vx||0,leader.vy||0);
+  const directionVector=motion>8?
+   direction(leader.vx,leader.vy):{x:0,y:-1};
+  const side=enemy.openingEscortSlot===-1?-1:1;
+  return {x:leader.x-directionVector.x*48-directionVector.y*side*88,
+   y:leader.y-directionVector.y*48+directionVector.x*side*88};
  }
  if(enemy?.openingRescueRole==='escort'&&enemy.protect?.hp>0){
   const tug=enemy.protect;
@@ -37,6 +49,28 @@ export function rescueGuardDestination(enemy,time=0){
    y:tug.y-vector.y*75+vector.x*side*62};
  }
  return null;
+}
+
+/** Mission guards can move out to meet an intruder without abandoning their
+ * capsule or the commander's flank. The objective remains their home. */
+export function rescueBoundedIntercept(enemy,goal,time=0){
+ if(!rescueArmedDrone(enemy)||!enemy?.protect?.hp)return null;
+ const post=rescueGuardDestination(enemy,time)||enemy.protect;
+ if(!Number.isFinite(post.x)||!Number.isFinite(post.y))return null;
+ const reach=enemy.openingRescueRole==='guard'?155:190;
+ const dx=goal.x-post.x,dy=goal.y-post.y,d=Math.hypot(dx,dy);
+ return d>reach?{x:post.x+dx/d*reach,y:post.y+dy/d*reach}:
+  {x:goal.x,y:goal.y};
+}
+
+/** Flight speed is proportional to remaining distance near a formation post,
+ * so a fixed sentry does not oscillate across its assigned coordinates. */
+export function rescueArrivalSpeed(enemy,goal,speed,time=0){
+ if(!rescueArmedDrone(enemy)||!Number.isFinite(speed))return speed;
+ const hasPost=!!rescueGuardDestination(enemy,time);
+ if(!hasPost)return speed;
+ const remaining=Math.hypot(goal.x-enemy.x,goal.y-enemy.y);
+ return Math.min(speed,remaining*2.6);
 }
 
 /** Pursuers know the capsule's route, but receive no magical target lock on

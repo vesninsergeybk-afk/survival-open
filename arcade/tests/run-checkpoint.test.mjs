@@ -635,6 +635,23 @@ test('the optional opening crisis and its objective survive a station checkpoint
  const old=unpackRun(packRun(loaded));delete old.state.openingArc.commanderDefeated;
  assert.ok(validateCheckpoint(old),'checkpoints predating the kill flag remain readable');
 });
+test('legacy interception saves reconnect their escorts and enable stable formation flight',()=>{
+ const g=scene();g.openingArc=createOpeningArc(g.world.home);
+ beginOpeningArc(g.openingArc,'intercept',42);
+ g.openingArc.commanderSerial=88;
+ const leader={serial:88,group:4,type:'fighter',openingCommander:true,
+  x:g.player.x+160,y:g.player.y+40,vx:30,vy:0,hp:110,maxHp:110,r:18};
+ const escort={serial:89,group:4,type:'scout',scenario:'opening-escort',
+  x:leader.x+55,y:leader.y-65,vx:0,vy:0,hp:38,maxHp:38,r:14,
+  protect:leader};
+ g.enemies=[leader,escort];
+ const saved=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(saved),true);
+ const fresh=scene();restoreCheckpoint(fresh,saved);
+ assert.equal(fresh.enemies[1].protect,fresh.enemies[0]);
+ assert.equal(fresh.enemies[1].missionStructure,true);
+ assert.equal(fresh.enemies[1].openingEscortSlot,-1);
+});
 test('restoring an active capsule rescue reconnects the escort to its living tug',()=>{
  const g=scene();g.openingArc=createOpeningArc(g.world.home);
  beginOpeningArc(g.openingArc,'rescue',30);

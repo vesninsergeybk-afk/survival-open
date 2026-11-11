@@ -375,6 +375,19 @@ export function restoreCheckpoint(game,data){
   for(const escort of game.enemies)if(escort.openingRescueRole==='escort')
    escort.protect=tug||null;
  }
+ if(game.openingArc?.kind==='intercept'){
+  // An older checkpoint may contain a detached JSON clone of the commander.
+  // Reconnect the two living wingmen, and upgrade their old free-scout orders
+  // to the same bounded military formation used by new encounters.
+  const commander=game.enemies.find(e=>e.serial===game.openingArc.commanderSerial&&e.hp>0);
+  for(const escort of game.enemies)if(escort.scenario==='opening-escort'){
+   escort.protect=game.openingArc.status==='active'?commander||null:null;
+   if(escort.protect){
+    escort.missionStructure=true;
+    escort.openingEscortSlot??=escort.y<commander.y?-1:1;
+   }
+  }
+ }
  game.openingRepairing=false;
  game.sortieReports=data.state.sortieReports||[];
  game.sortieStart=null;

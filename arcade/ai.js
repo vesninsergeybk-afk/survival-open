@@ -22,8 +22,9 @@ import {advanceEnemyCloseAttack,cancelCloseAttack} from './enemy-close-attacks.j
 import {activeStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
 import {ESCORTS,escortFocusBonus} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
 import {masteryBonus} from './combat-mastery.js?v=xp-audit-20261111';
-import {rescueArmedDrone,rescueGuardDestination,rescuePursuitDestination}
- from './rescue-formation.js';
+import {rescueArmedDrone,rescueGuardDestination,rescuePursuitDestination,
+ rescueBoundedIntercept,rescueArrivalSpeed}
+ from './rescue-formation.js?v=opening-craft-20261111';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -664,7 +665,7 @@ export function updateEnemy(e,game,dt){
   // repair and scripted combat objectives remain in charge of their ships.
   // No location for the player is inferred here from the world economy.
   const strategic=game.enemyComms?.strategicDirectiveFor?.(e,game.time);
-  if(targetingPlayer&&!decoy&&strategic&&
+  if(targetingPlayer&&!e.missionStructure&&!decoy&&strategic&&
      ['hunt','flank','standoff'].includes(e.state)){
     const dest=theaterDestination(e,strategic);
     if(dest){
@@ -690,6 +691,15 @@ export function updateEnemy(e,game,dt){
     goalX=trialDive.x;goalY=trialDive.y;speed=trialDive.speed;
     e._commsIntent=null;e._theaterIntent=null;
   }
+  // These fighters are protecting a specific objective. An intruder may draw
+  // them off their posts briefly, but cannot make them abandon the capsule or
+  // the commander's wing and then fly back and forth across the whole screen.
+  if(e.state==='intercept'&&e.protect?.hp>0){
+    const bounded=rescueBoundedIntercept(e,{x:goalX,y:goalY},game.time);
+    if(bounded){goalX=bounded.x;goalY=bounded.y;}
+  }
+  if((e.state==='guard'||e.state==='intercept')&&e.protect?.hp>0)
+    speed=rescueArrivalSpeed(e,{x:goalX,y:goalY},speed,game.time);
   const avoid=game.avoidance(e.x,e.y,e.type==='healer'?70:38);
   const detour=enemyRockDetour(e,game,goalX,goalY);
   let extraX=(avoid.x*1.3+detour.x)*speed,

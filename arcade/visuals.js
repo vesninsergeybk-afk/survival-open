@@ -7,6 +7,7 @@ import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-de
  */
 import {drawEvolvedHero, heroMotionPose} from '../src/hero-evolution.js?v=hangar-2';
 import {drawAnimatedEnemyShip} from '../src/disruptor-ship-sprites.js';
+import {drawOpeningHostile} from './opening-hostile-art.js?v=opening-craft-20261111';
 import {drawIrisDrone,irisEnabledByQuery} from './iris-drone-renderer.js?v=iris-pack-1-counterattack-1-mission-pack-1';
 import {drawStationPart, STATION_PARTS} from '../src/station-art.js?v=base-86';
 import {drawTurretMount,drawTurretHead} from '../src/turret-visuals.js?v=turret-visuals-1';
@@ -422,7 +423,8 @@ export class ArcadeVisuals {
   e.visualAngle=e.angle||0;
   e.size=e.type==='gunship'?23:e.type==='berserker'?18:15;
   const capital=e.type==='gunship'&&e.serial%2===0&&this.drawCapital(ctx,e,time);
-  const drawn=capital||(this.irisDroneEnabled&&
+  const drawn=capital||drawOpeningHostile(ctx,e,time,this.reducedMotion)||
+   (this.irisDroneEnabled&&
     drawIrisDrone(ctx,e,time,this.reducedMotion))||drawAnimatedEnemyShip(ctx,e);
   if(!drawn||e.converted)return drawn;
   // A minimal faction bracket and archetype signal: quick recognition in a

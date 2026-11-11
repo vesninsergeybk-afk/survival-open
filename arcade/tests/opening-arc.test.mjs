@@ -86,6 +86,9 @@ test('real ship selection spawns one marked pilot and two escorts, with one prio
  assert.equal(g.enemies.filter(e=>e.openingCommander).length,1);
  assert.equal(g.enemies[0].hp>=100,true);
  assert.ok(g.enemies.slice(1).every(e=>e.protect===g.enemies[0]));
+ assert.ok(g.enemies.slice(1).every(e=>e.missionStructure&&
+  e.scenario==='opening-escort'));
+ assert.deepEqual(g.enemies.slice(1).map(e=>e.openingEscortSlot),[-1,1]);
  assert.equal(g.waypoint.id,'opening-intercept');
  assert.deepEqual(a.returnWaypoint,{id:'0:0',x:360,y:-85,label:'Док'});
  assert.equal(events.length,1);
