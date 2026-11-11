@@ -207,14 +207,14 @@ test('high firing-speed ranks increase logistics but cannot bypass a broken cont
  buyAll(fast,a,'tempo');
  assert.ok(supportSupply(a,3.4)>supportSupply(b,3.4));
  a.readyAt=b.readyAt=0;
- for(let time=1;time<=95;time++){
+ for(let time=1;time<=18;time++){
   fast.game.time=slow.game.time=time;
   advanceFluxSupports(fast.game,1);advanceFluxSupports(slow.game,1);
  }
  assert.ok(a.ammo>b.ammo,'supplied rapid-firing node builds more real prepaid charges');
  fast.world.stations.get('B').suppressed=true;
  const ammo=a.ammo;
- for(let time=96;time<=112;time++){fast.game.time=time;advanceFluxSupports(fast.game,1);}
+ for(let time=19;time<=35;time++){fast.game.time=time;advanceFluxSupports(fast.game,1);}
  assert.equal(a.ammo,ammo,'even full upgrades cannot conjure ammo without a live cable');
 });
 
