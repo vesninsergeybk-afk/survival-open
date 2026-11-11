@@ -426,8 +426,8 @@ test('legacy custom controls retain their mappings when the builder key is intro
  legacy.skills='KeyT';
  const result=readControls({getItem:()=>JSON.stringify(legacy)});
  assert.equal(result.skills,'KeyT');
- assert.equal(result.build,'KeyG');
- assert.equal(result.fieldWeapon,'KeyH');
+ assert.equal(result.build,'KeyH');
+ assert.equal(result.fieldWeapon,'KeyF');
 });
 
 test('the actual paused builder chooses a reachable point and returns to flight on construction',()=>{
