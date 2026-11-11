@@ -22,6 +22,7 @@ import {strategicCapture} from './regional-supply.js?v=living-world-3-radio-shad
 import {disableCentralWorker} from './central-industry.js?v=living-world-1-home-conflict-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {damageFrontierAsset} from './frontier-industry.js?v=living-world-3-radio-shadow-1-expedition-1-repair-qa-1-supply-stronghold-1-territory-war-1';
 import {grantExperience,experienceFromPickup,firstRichAsteroidExperience,qualifiesForDirectCombatXp,XP_CURVE_VERSION} from './experience.js?v=early-experience-1-xp-feedback-pass1-1-clarity-pass-1-pilot-depth-1-pilot-value-2-data-economy-20261111-xp-audit-20261111';
+import {registerImpact,shieldGrazeInGrace} from './impact-pressure.js?v=impact-pressure-20261111';
 import {createStrategicExperience,claimStationActivation,claimStationCapture,claimExploration,
  claimContourExpansion,claimFirstFluxDelivery,claimGeologicalSurvey,claimStrategicSabotage} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
@@ -65,7 +66,7 @@ import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=opening-attack-202611
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
-import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110-corecharge-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-weapon-deck-audit-2-escort-squad-20261110-wingmastery-20261110-escort-art-20261110-data-economy-20261111-manual-hardpoints-20261111';
+import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-balance-1-opening-audit-1-home-conflict-1-opening-audit-2-campaign-1-opening-touch-1-repair-qa-1-economy-hud-1-xp-feedback-pass1-1-territory-war-1-clarity-pass-1-first-loops-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-radar-clarity-1-enemy-growth-1-flux-build-1-triangle-defense-1-pressure-response-1-shield-crowd-20261110-corecharge-20261110-pilot-depth-1-pilot-value-2-hud-merge-20261110-weapon-deck-audit-2-escort-squad-20261110-wingmastery-20261110-escort-art-20261110-data-economy-20261111-manual-hardpoints-20261111-impact-pressure-20261111';
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1-tactical-slot-20261110';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-opening-evasion-20261110';
@@ -4689,7 +4690,14 @@ export class ArcadeGame {
   const p=this.player;
   if(p.invul>0){
    // The projectile was stopped by the brief post-hit grace period. Show a
-   // restrained contact cue, but do not restart immunity or register damage.
+   // restrained contact cue. The hull stays safe; repeated contacts can
+   // still wear down an energized shield, at a strictly throttled rate.
+   const graze=shieldGrazeInGrace(this,damage,this.time);
+   if(graze>0){
+    this.lastDamageAt=this.time;
+    recordCombatContact(this);
+    recordSortieDamage(this,0,graze);
+   }
    if(damage>0&&this.time>=(this._playerDeflectNextAt??-Infinity)){
     this._playerDeflectNextAt=this.time+.16;
     const contact=source?contactOnCircle(p.x,p.y,p.r,source.x,source.y):null;
@@ -4706,6 +4714,9 @@ export class ArcadeGame {
   damage*=counterguardMultiplier(this);
   damage=absorbParasiteImpact(this,damage);
   if(damage<=0){p.invul=.28;this.lastDamageAt=this.time;return;}
+  // Repeated hits overload the shield's reserves. A depleted shield cannot
+  // amplify direct hull damage: the pilot is vulnerable enough at that point.
+  const impactMultiplier=registerImpact(this,this.time);
   if(this.actionHeld?.kind==='ruin-claim'){
    this.endInteraction();
    this.notice('ЗАХВАТ ПРЕРВАН ОГНЁМ. Сначала подавите охрану или подведите свои турели.',3);
@@ -4714,7 +4725,9 @@ export class ArcadeGame {
   // the hull. When the shield is nearly drained, its remaining charge is spent
   // and the unabsorbed part passes through without duplicating damage.
   const {absorbed,hullDamage:remaining}=splitPlayerDamage(damage,p.shield);
-  p.shield-=absorbed;
+  // The overload consumes reserve energy only, never additional hull HP.
+  const overload=Math.min(Math.max(0,p.shield-absorbed),damage*(impactMultiplier-1));
+  p.shield-=absorbed+overload;
   const previousHp=p.hp;
   p.hp-=remaining;p.invul=.55+this.skillRanks.dodge*.12;this.lastDamageAt=this.time;
   masteryMiss(this.combatMastery,'ace');

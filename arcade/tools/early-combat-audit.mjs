@@ -40,8 +40,14 @@ function earlyFlightFixture(homeInactive=true){
  return g;
 }
 export function runEarlyCombatScenario({seed=111,mode='idle',seconds=120,hz=60,
- noiseAt=null,homeInactive=true}={}){
+ noiseAt=null,homeInactive=true,build='starter'}={}){
  const g=earlyFlightFixture(homeInactive);
+ if(build==='reinforced'){
+  // Reproduce a strong pre-contour ship, using the same combat and AI loop.
+  g.shipLoadout.slots[1]='plasma';g.shipLoadout.owned.plasma=2;g.syncShipLoadout();
+  Object.assign(g.skillRanks,{beam:3,shield:3,hull:1});
+  Object.assign(g.player,{hp:112,maxHp:112,shield:88,level:8});
+ }
  const originalRandom=Math.random;
  let randomSeed=seed>>>0;
  let maxEnemies=0,maxNearby=0,hits=0,noiseShips=0,firstChoiceHull=null;

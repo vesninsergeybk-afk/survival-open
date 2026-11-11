@@ -118,7 +118,15 @@ export class CockpitDisplay {
   display(n.xpValue,count(p.xp)+' / '+count(nextXp));
   display(n.level,p.level);
   display(n.points,' · '+p.points+' очк.');
-  display(n.shield,p.shield>0?Math.ceil(p.shield):'—');
+  const impactPressure=game.impactPressure?.lastHitAt!==undefined&&
+   game.time-game.impactPressure.lastHitAt<=5?
+   Math.max(0,game.impactPressure.stacks||0):0;
+  const overloaded=impactPressure>=2;
+  display(n.shield,p.shield>0?Math.ceil(p.shield)+(overloaded?' ⚡':''):'—');
+  for(const meter of [n.hpmeter,n.shieldmeter]){
+   meter.classList.toggle('combat-pressure',overloaded);
+   meter.title=overloaded?'Серия попаданий перегружает защиту. Уходите из-под огня, чтобы сбросить нагрузку.':'';
+  }
   const shieldCap=Math.max(30,16+(game.skillRanks?.shield||0)*24,p.shield);
   const shieldFill=clamp01(p.shield/shieldCap);
   n.shieldmeter.style.setProperty('--meter-fill',(shieldFill*100)+'%');
