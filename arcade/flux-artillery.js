@@ -147,7 +147,8 @@ export function artilleryOffer(world,player,point,preload=0){
   return {ok:false,reason:'Достигнут технический предел сооружений'};
  if([...live,...(state.fluxDepots||[]).filter(t=>t.hp>0),
   ...(state.fluxSiphonHives||[]).filter(t=>t.hp>0)]
-  .some(t=>distance(t,point)<FLUX_ARTILLERY.clearance))
+  .some(t=>distance(t,point)<FLUX_ARTILLERY.clearance)||
+  (state.defenseCapacitors||[]).some(c=>distance(c,point)<75))
   return {ok:false,reason:'Слишком близко к другому сооружению'};
  if([...world.stations.values()].some(s=>distance(s,point)<FLUX_ARTILLERY.stationClearance))
   return {ok:false,reason:'Слишком близко к станции'};
@@ -161,7 +162,7 @@ export function artilleryOffer(world,player,point,preload=0){
   return {ok:false,reason:'Укажите допустимое количество стартовых снарядов'};
  const totalFlux=FLUX_ARTILLERY.fluxCost; // Basic ammunition is produced by the powered line.
  if(state.flux+1e-8<totalFlux)
-  return {ok:false,reason:'Недостаточно флюкса: нужно '+totalFlux.toFixed(2)+' ед. с зарядкой'};
+  return {ok:false,reason:'Недостаточно флюкса на строительство: нужно '+totalFlux.toFixed(2)+' ед.'};
  return {ok:true,connection};
 }
 export function deployArtillery(world,player,point,time,preload=0){
