@@ -97,6 +97,17 @@ for (const [key, sound] of Object.entries(SOUND_CATALOG)) {
   }
 }
 
+// Music filenames are assembled dynamically in src/audio.js; validate each
+// recording in the Pages artifact, not merely in the source checkout.
+const {MUSIC_TRACKS} = await import('../arcade/music-playlist.js');
+for(const [id,track] of Object.entries(MUSIC_TRACKS)){
+  const path=resolve(site,'assets/audio/music',track.file);
+  if(!existsSync(path)){problems.push('Missing soundtrack: '+id+' ('+track.file+')');continue;}
+  if(statSync(path).size<=100000)problems.push('Truncated soundtrack: '+id);
+  else if(readFileSync(path).subarray(0,4).toString('ascii')!=='OggS')
+    problems.push('Not an Ogg soundtrack: '+id);
+}
+
 if (problems.length) {
   console.error('GitHub Pages dependency verification failed (' + problems.length + '):');
   for (const problem of problems) console.error(' - ' + problem);

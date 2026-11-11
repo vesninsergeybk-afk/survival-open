@@ -1,7 +1,7 @@
 /**
  * Licensed music catalog and persistent rotation for «Выживший».
- * Only compositions present in assets/audio/music/ are playable.
- * CC BY 4.0 attribution: assets/audio/music/CREDITS.md and game Credits panel.
+ * New CC music is fetched and verified into assets/audio/music/ before CI tests.
+ * CC BY 4.0 and CC0 credits: assets/audio/music/CREDITS.md and game Credits panel.
  */
 export const MUSIC_TRACKS = Object.freeze({
   starfire: Object.freeze({title:"Starfire",file:"starfire.ogg",level:0.75,source:"https://www.scottbuckley.com.au/library/starfire/"}),
@@ -15,15 +15,29 @@ export const MUSIC_TRACKS = Object.freeze({
   convergence: Object.freeze({title:"Convergence",file:"convergence.ogg",level:0.7,source:"https://www.scottbuckley.com.au/library/convergence/"}),
   simulacra: Object.freeze({title:"Simulacra",file:"simulacra.ogg",level:0.59,source:"https://www.scottbuckley.com.au/library/simulacra/"}),
   red: Object.freeze({title:"Red",file:"red.ogg",level:0.55,source:"https://www.scottbuckley.com.au/library/red/"}),
-  ambush: Object.freeze({title:"Ambush",file:"ambush.ogg",level:0.63,source:"https://www.scottbuckley.com.au/library/ambush/"})
+  ambush: Object.freeze({title:"Ambush",file:"ambush.ogg",level:0.63,source:"https://www.scottbuckley.com.au/library/ambush/"}),
+  adrift_among_infinite_stars: Object.freeze({title:"Adrift Among Infinite Stars",file:"adrift-among-infinite-stars.ogg",level:0.71,source:"https://scottbuckley.com.au/library/adrift-among-infinite-stars/"}),
+  permafrost: Object.freeze({title:"Permafrost",file:"permafrost.ogg",level:0.71,source:"https://scottbuckley.com.au/library/permafrost/"}),
+  penumbra: Object.freeze({title:"Penumbra",file:"penumbra.ogg",level:0.7,source:"https://scottbuckley.com.au/library/penumbra/"}),
+  echoes: Object.freeze({title:"Echoes",file:"echoes.ogg",level:0.67,source:"https://scottbuckley.com.au/library/echoes/"}),
+  memories_of_stone: Object.freeze({title:"Memories of Stone",file:"memories-of-stone.ogg",level:0.73,source:"https://scottbuckley.com.au/library/memories-of-stone/"}),
+  unraveling: Object.freeze({title:"Unraveling",file:"unraveling.ogg",level:0.71,source:"https://scottbuckley.com.au/library/unraveling/"}),
+  aurora: Object.freeze({title:"Aurora",file:"aurora.ogg",level:0.69,source:"https://scottbuckley.com.au/library/aurora/"}),
+  singularity_calm: Object.freeze({title:"Singularity (calm)",file:"singularity-calm.ogg",level:0.64,source:"https://opengameart.org/content/singularity-0"}),
+  singularity_action: Object.freeze({title:"Singularity (action)",file:"singularity-action.ogg",level:0.57,source:"https://opengameart.org/content/singularity-0"}),
+  silver_bullet: Object.freeze({title:"Silver Bullet",file:"silver-bullet.ogg",level:0.48,source:"https://opengameart.org/content/silver-bullet"}),
+  unholy_surge: Object.freeze({title:"Unholy Surge",file:"unholy-surge.ogg",level:0.46,source:"https://opengameart.org/content/unholy-surge"}),
+  space_boss_battle: Object.freeze({title:"Space Boss Battle",file:"space-boss-battle.ogg",level:0.52,source:"https://opengameart.org/content/space-boss-battle"}),
+  boss_battle_9_metal: Object.freeze({title:"Boss Battle #9 (Metal loop)",file:"boss-battle-9-metal-loop.ogg",level:0.49,source:"https://opengameart.org/content/boss-battle-9-metal"})
 });
 
 export const MUSIC_POOLS = Object.freeze({
-  opening: Object.freeze(['starfire','aphelion','shadows_and_dust']),
-  exploration: Object.freeze(['starfire','aphelion','shadows_and_dust','decoherence','meanwhile']),
-  tension: Object.freeze(['nightfall','convergence','decoherence','meanwhile']),
-  combat: Object.freeze(['pursuit','simulacra','red','ambush','starfire']),
-  boss: Object.freeze(['eyes_in_the_void','ambush','convergence','red'])
+  opening: Object.freeze(['starfire','aphelion','shadows_and_dust','adrift_among_infinite_stars']),
+  exploration: Object.freeze(['starfire','aphelion','shadows_and_dust','decoherence','meanwhile',
+    'adrift_among_infinite_stars','permafrost','penumbra','echoes','memories_of_stone','unraveling','aurora','singularity_calm']),
+  tension: Object.freeze(['nightfall','convergence','decoherence','meanwhile','singularity_action','unraveling']),
+  combat: Object.freeze(['pursuit','simulacra','red','ambush','starfire','singularity_action','silver_bullet','unholy_surge']),
+  boss: Object.freeze(['eyes_in_the_void','ambush','convergence','red','space_boss_battle','boss_battle_9_metal','unholy_surge'])
 });
 
 const STORAGE_KEY = 'survivor_arcade_music_rotation_v1';

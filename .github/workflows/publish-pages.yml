@@ -13,6 +13,8 @@ on:
       - "src/**"
       - "audio-lab/**"
       - "tools/prepare-cc0-sfx.mjs"
+      - "tools/prepare-licensed-music.mjs"
+      - "tools/licensed-music-manifest.json"
       - "assets/**"
       - "visual-lab/**"
       - "asset-gallery.html"
@@ -36,6 +38,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+
+      - name: Cache additional licensed music
+        uses: actions/cache@v4
+        with:
+          path: assets/audio/music/*.ogg
+          key: licensed-music-${{ hashFiles('tools/licensed-music-manifest.json') }}
+
+      - name: Download and prepare CC-licensed soundtrack
+        run: node tools/prepare-licensed-music.mjs
 
       - name: Validate arcade before publication
         run: node --test arcade/tests/*.test.mjs

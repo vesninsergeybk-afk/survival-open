@@ -1,7 +1,7 @@
 import { AudioLabEngine } from '../audio-lab/audio-mixer.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-artillery-finish-1-support-three-1';
 import { SOUND_CATALOG } from '../audio-lab/sound-map.js?v=foley-autofire-03-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-manual-qa-1-artillery-finish-1-support-three-1';
 import { baseSoundPlan } from './base-audio-events.js?v=audio-91';
-import { MUSIC_TRACKS, MUSIC_POOLS, MusicRotation } from '../arcade/music-playlist.js?v=cinematic-rotation-01-frontier-siege-1';
+import { MUSIC_TRACKS, MUSIC_POOLS, MusicRotation } from '../arcade/music-playlist.js?v=licensed-expansion-20261111-1';
 
 /**
  * @module audio
@@ -343,9 +343,22 @@ export class AudioEngine {
                 console.warn('[audio] Music playback blocked:', err));
             return;
         }
+        // Avoid a second reset when an alert escalates into a full battle:
+        // the action arrangement should finish its phrase before rotating.
+        if (!forceNext && prev?.id === 'singularity_action' &&
+            ['tension','combat','boss'].includes(state)) {
+            prev.category = state;
+            return;
+        }
         const resumed = !forceNext && this._resumeMusic?.category === state ?
             this._resumeMusic : null;
-        const id = resumed?.id || this._chooseMusic(state, prev?.id);
+        // The two Singularity versions share one arrangement and timeline.
+        // Keep the musical phrase when transitioning between calm exploration and combat.
+        const pairedId = !forceNext && prev?.id === 'singularity_calm' &&
+            ['tension','combat','boss'].includes(state) ? 'singularity_action' :
+            !forceNext && prev?.id === 'singularity_action' && state === 'exploration' ?
+            'singularity_calm' : null;
+        const id = pairedId || resumed?.id || this._chooseMusic(state, prev?.id);
         if (!id) return;
         const next = this._musicSlot(id);
         if (!next) return;
@@ -354,7 +367,18 @@ export class AudioEngine {
         next.category = state;
         if (prev === next) return;
         const now = this.ctx.currentTime;
-        if (!resumed) {
+        if (pairedId) {
+            const syncTime = Math.max(0,Number(prev?.element.currentTime)||0);
+            const seek = () => {
+                const duration = Number(next.element.duration);
+                const target = Number.isFinite(duration) && duration > 1 ?
+                    Math.min(syncTime,duration - 0.25) : syncTime;
+                try { next.element.currentTime = target; } catch { /* Try again on metadata. */ }
+            };
+            seek();
+            if (next.element.readyState < 1)
+                next.element.addEventListener('loadedmetadata',seek,{once:true});
+        } else if (!resumed) {
             try { next.element.currentTime = 0; } catch { /* Metadata still loading */ }
         }
         // A third fast threat transition must not leave three scores playing.
