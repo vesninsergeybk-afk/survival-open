@@ -133,31 +133,31 @@ export function validTurretProtection(t){
    t.nextInterceptAt>=0&&t.nextInterceptAt<1e9);
 }
 export const artilleryBarrels=t=>[1,2,3,4,6,10][turretBranchRank(t,'salvo')]||1;
-export const artilleryCooldown=t=>[8,6.8,5.7,4.7,4][turretBranchRank(t,'tempo')]||8;
-export const ARTILLERY_BASE_FLUX_PER_MINUTE=15;
+export const artilleryCooldown=t=>[6,5.4,4.9,4.4,4][turretBranchRank(t,'tempo')]||8;
+export const ARTILLERY_BASE_FLUX_PER_MINUTE=20;
 export const artillerySupply=t=>ARTILLERY_BASE_FLUX_PER_MINUTE*(1+.35*turretBranchRank(t,'tempo'))*
  [1,1.5,2.4,4,7][turretBranchRank(t,'power')]*(1+.38*turretBranchRank(t,'seeker'));
 export const artilleryBlast=t=>[110,126,145,165,185][turretBranchRank(t,'radius')]||110;
-export const artilleryRange=t=>[740,850,980,1160][turretBranchRank(t,'reach')]||740;
+export const artilleryRange=t=>[940,1100,1270,1450][turretBranchRank(t,'reach')]||740;
 export const artilleryShotUnits=t=>([1,2,4,8,20][turretBranchRank(t,'power')]||1)+
  [0,1,2,4][turretBranchRank(t,'seeker')];
-export const artilleryShellDamage=t=>([18,36,82,185,480][turretBranchRank(t,'power')]||18)*
+export const artilleryShellDamage=t=>([26,44,92,190,480][turretBranchRank(t,'power')]||18)*
  (1+.2*turretBranchRank(t,'seeker'));
 export const artilleryShotFlux=t=>artilleryShotUnits(t)*.25;
 export const artilleryMagazine=t=>Math.max(15,Math.max(3,artilleryBarrels(t))*artilleryShotUnits(t));
 export const artillerySalvoSize=t=>Math.max(3,artilleryBarrels(t));
 export const artilleryReadyShells=t=>Math.floor(Math.max(0,t?.ammo||0)/artilleryShotUnits(t));
 export const arcChainCount=t=>[3,4,5,7][turretBranchRank(t,'chain')]||3;
-export const arcRange=t=>[440,520,610,720][turretBranchRank(t,'reach')]||440;
-export const arcCooldown=t=>[3.5,3,2.55,2.15][turretBranchRank(t,'tempo')]||3.5;
+export const arcRange=t=>[600,720,840,970][turretBranchRank(t,'reach')]||440;
+export const arcCooldown=t=>[2.45,2.25,2.1,1.9][turretBranchRank(t,'tempo')]||3.5;
 export const supportSupply=(t,base)=>base*(1+.23*turretBranchRank(t,'tempo'));
 export const arcSlowSeconds=t=>[2.5,3.2,4,5.2][turretBranchRank(t,'hold')]||2.5;
 export const laserEmitters=t=>Math.max(t?.level>=2?2:1,[1,2,3,4,6][turretBranchRank(t,'emitters')]||1);
-export const laserCooldown=t=>[2.2,1.9,1.65,1.4][turretBranchRank(t,'tempo')]||2.2;
+export const laserCooldown=t=>[1.7,1.55,1.45,1.3][turretBranchRank(t,'tempo')]||2.2;
 export const laserBurst=t=>[8,10,13,16][turretBranchRank(t,'tempo')]||8;
-export const laserRange=t=>[440,490,550,620][turretBranchRank(t,'reach')]||440;
+export const laserRange=t=>[600,700,810,930][turretBranchRank(t,'reach')]||440;
 export const hiveLimit=t=>[12,14,16,18,19,20][turretBranchRank(t,'squad')]||12;
-export const hiveRange=t=>260+(t?.level-1||0)*85+[0,75,145,220][turretBranchRank(t,'reach')];
+export const hiveRange=t=>410+(t?.level-1||0)*85+[0,75,145,220][turretBranchRank(t,'reach')];
 export const hiveArmor=t=>[12,16,22,30][turretBranchRank(t,'hull')]||12;
 export function turretCombatRadii(t){
  switch(turretGrowthType(t)){
