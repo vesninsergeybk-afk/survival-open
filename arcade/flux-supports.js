@@ -12,13 +12,13 @@ import {hasPoweredContour} from './contour-trials.js';
 // drone; the other two consume prepaid charges instead of free damage ticks.
 export const SUPPORT_TYPES=Object.freeze({
  arc:Object.freeze({name:'Разрядник',oreCost:24,fluxCost:1.4,maxHp:95,r:35,
-  buildSeconds:3.2,range:440,magazine:12,chargeCost:.22,fluxPerMinute:3.4,
-  cooldown:3.5,damage:4.5,capacity:1,color:'#a28bff'}),
+  buildSeconds:3.2,range:600,magazine:12,chargeCost:.22,fluxPerMinute:10,
+  cooldown:2.45,damage:7,capacity:1,color:'#a28bff'}),
  laser:Object.freeze({name:'Лазерное гнездо',oreCost:26,fluxCost:1.8,maxHp:100,r:36,
-  buildSeconds:3.4,range:440,magazine:10,chargeCost:.20,fluxPerMinute:9.6,
-  cooldown:2.2,damage:3.6,capacity:1,color:'#ff9762'}),
+  buildSeconds:3.4,range:600,magazine:10,chargeCost:.20,fluxPerMinute:13,
+  cooldown:1.7,damage:5,capacity:1,color:'#ff9762'}),
  hive:Object.freeze({name:'Дроновая матка',oreCost:32,fluxCost:4,maxHp:125,r:43,
-  buildSeconds:4.3,range:320,magazine:0,chargeCost:.55,fluxPerMinute:9.5,
+  buildSeconds:4.3,range:410,magazine:0,chargeCost:.55,fluxPerMinute:9.5,
   cooldown:2.1,damage:1.3,capacity:12,color:'#70e7be'})
 });
 export const SUPPORT_MAX=60, SUPPORT_PACKET_MAX=256;
