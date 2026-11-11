@@ -9,12 +9,26 @@ const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const isFinitePoint=p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y);
 const stateOf=world=>world?.contours;
+// On shared borders the containing triangle wins over a merely closer centre.
+function inPolygon(point,polygon){
+ if(!Array.isArray(polygon)||polygon.length<3)return false;
+ let inside=false;
+ for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){
+  const a=polygon[i],b=polygon[j];
+  if((a.y>point.y)!==(b.y>point.y)&&
+   point.x<(b.x-a.x)*(point.y-a.y)/(b.y-a.y)+a.x)inside=!inside;
+ }
+ return inside;
+}
+const fieldFor=(point,fields)=>
+ fields.find(field=>inPolygon(point,field.polygon))||
+ [...fields].sort((a,b)=>distance(a.center,point)-distance(b.center,point))[0];
 const pendingFor=(state,id)=>(state.defenseCapacitorPackets||[])
  .filter(p=>p.fieldId===id).reduce((n,p)=>n+p.amount,0);
 
 export function defenseCapacitorLocation(world,point,fields=[]){
  if(!isFinitePoint(point)||!fields.length)return null;
- const field=[...fields].sort((a,b)=>distance(a.center,point)-distance(b.center,point))[0];
+ const field=fieldFor(point,fields);
  if(!field||typeof field.id!=='string'||!isFinitePoint(field.center))return null;
  if((world?.contours?.defenseCapacitors||[]).some(cell=>cell.fieldId===field.id))
   return null;
@@ -35,7 +49,7 @@ export function defenseCapacitorLocation(world,point,fields=[]){
 export function ensureDefenseCapacitor(world,point,time,fields=[]){
  const state=stateOf(world);if(!state)return null;
  state.defenseCapacitors??=[];state.defenseCapacitorPackets??=[];
- const field=[...fields].sort((a,b)=>distance(a.center,point)-distance(b.center,point))[0];
+ const field=fieldFor(point,fields);
  if(!field)return null;
  const existing=state.defenseCapacitors.find(c=>c.fieldId===field.id);
  if(existing)return existing;
