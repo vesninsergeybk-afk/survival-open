@@ -60,7 +60,7 @@ export function readControls(storage){
     for(const action of ['build','fieldWeapon']){
      if(!missing.includes(action))continue;
      const preferred=action==='build'?['KeyT','KeyH','KeyV','KeyY','KeyG']:
-      ['KeyF','KeyV','KeyY','KeyH','KeyT'];
+      ['KeyF','KeyH','KeyV','KeyY','KeyT'];
      const free=preferred.find(k=>!used.has(k));
      if(!free)break;
      migrated[action]=free;used.add(free);
