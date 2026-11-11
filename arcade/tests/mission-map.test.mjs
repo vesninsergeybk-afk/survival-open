@@ -44,6 +44,8 @@ test('meteor front and its surviving mineral deposits have different map markers
  game.meteorFront={active:{angle:0,x:300,y:0,serial:1,seed:4}};
  const html=renderWorldMap(game);
  assert.match(html,/Оранжевый коридор — метеоритный фронт/);
+ assert.equal((html.match(/data-meteor-index="\d+"/g)||[]).length,15,
+  'the map must show each real impact point, not only a guessed straight line');
  assert.match(html,/Руда после метеоритного фронта/);
  assert.match(html,/Янтарные ромбы — богатая руда/);
  game.world.rocks.get('0:0')[0].alive=false;

@@ -21,7 +21,7 @@ export const MASTERIES=Object.freeze({
   effect:'Скорость расщепления породы',perk:'Повышенная эффективность экстрактора'},
  operations:{name:'Полевой опыт',group:'Операции',first:2,cap:.06,
   task:'Завершайте поручения и особые операции с полной наградой.',
-  effect:'Получаемый опыт за задания',perk:'Дополнительные данные за выполненные задания'}
+  effect:'Опыт за полностью выполненные задания',perk:'Ещё +4% опыта за каждую особую ступень'}
 });
 export const MASTERY_MILESTONES=Object.freeze([3,8,16,32]);
 export const createCombatMastery=()=>({version:2,tracks:Object.fromEntries(
@@ -42,6 +42,11 @@ export function masteryPerkTier(state,id){
 export function masteryNextMilestone(state,id){
  const rank=state?.tracks?.[id]?.rank||0;
  return MASTERY_MILESTONES.find(goal=>goal>rank)||null;
+}
+export function masteryOperationReward(state,data){
+ if(!Number.isFinite(data)||data<0)return 0;
+ return Math.round(data*(1+masteryBonus(state,'operations')+
+  .04*masteryPerkTier(state,'operations')));
 }
 export function masteryProgress(state,id,amount=1){
  if(!state||!MASTERIES[id]||!Number.isInteger(amount)||amount<0||amount>10000)return null;

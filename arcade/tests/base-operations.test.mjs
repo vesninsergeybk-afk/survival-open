@@ -6,6 +6,7 @@ import {baseOffer,renderBasePanel,contractChoices,contractOffer,eligibleContract
 import {baseNames} from '../balance.js';
 import {World} from '../world.js';
 import {createLoadout} from '../ship-loadout.js';
+import {createCombatMastery,masteryGoal} from '../combat-mastery.js';
 
 const state=(extra={})=>({
  ore:80,hp:110,maxHp:110,shield:0,activeBases:1,connectedBases:1,connected:true,
@@ -99,6 +100,22 @@ test('expedition progresses through two distinct objectives and can be delivered
  assert.equal(game.player.ore,80+Math.round(reward.ore*.45));
  assert.equal(game.player.data,Math.round(reward.data*.45));
  assert.equal(dock.contractClaimed,undefined,'partial results do not unlock full station trust');
+});
+
+test('a mastery milestone survives the contract reward message instead of being overwritten',()=>{
+ const dock=station(),game=fakeGame(dock),messages=[];
+ game.combatMastery=createCombatMastery();
+ game.combatMastery.tracks.operations={rank:2,progress:masteryGoal('operations',2)-1};
+ game.player.level=1;game.player.x=0;game.player.y=0;
+ game.announceMastery=Actions.prototype.announceMastery;
+ game.rewardNotice=message=>messages.push(message);
+ Actions.prototype.baseAction.call(game,'acceptContract','alternate');
+ game.contract.progress=1;
+ Actions.prototype.baseAction.call(game,'claimContract','');
+ assert.equal(game.combatMastery.tracks.operations.rank,3);
+ assert.equal(messages.length,1);
+ assert.match(messages[0],/НОВОЕ УМЕНИЕ · Полевой опыт · ступень 3/);
+ assert.match(messages[0],/Ещё \+4% опыта/);
 });
 
 test('station module purchase is affordable, local, and irreversible',()=>{

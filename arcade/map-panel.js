@@ -38,7 +38,7 @@ import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
 import {atlasStars} from './contour-cartography.js?v=living-atlas-3-map-ux-1-map-art-1-flight-zoom-audit-1';
-import {METEOR_FRONT,frontStrikePoint} from './meteor-front.js';
+import {METEOR_FRONT,frontStrikePoint,frontCorridor} from './meteor-front.js';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -310,12 +310,19 @@ export function renderWorldMap(game){
  const pilot=point(p.x,p.y,center,scale);
  const meteor=game.meteorFront?.active;
  const meteorPath=meteor?(()=>{
-  const first=frontStrikePoint(meteor,0),last=frontStrikePoint(meteor,METEOR_FRONT.strikes-1);
-  const a=point(first.x,first.y,center,scale),b=point(last.x,last.y,center,scale);
+  const corridor=frontCorridor(meteor);
+  const a=point(corridor.start.x,corridor.start.y,center,scale);
+  const b=point(corridor.end.x,corridor.end.y,center,scale);
+  const impacts=Array.from({length:METEOR_FRONT.strikes},(_,i)=>{
+   const spot=frontStrikePoint(meteor,i),q=point(spot.x,spot.y,center,scale);
+   const r=Math.max(3,METEOR_FRONT.radius*scale);
+   return '<circle data-meteor-index="'+i+'" cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+    '" r="'+r.toFixed(1)+'" fill="#ffb46f38" stroke="#ffcb87" stroke-width="1"/>';
+  }).join('');
   return '<path d="M '+a.x.toFixed(1)+' '+a.y.toFixed(1)+' L '+b.x.toFixed(1)+' '+b.y.toFixed(1)+
-   '" stroke="#ffb46f" stroke-width="'+Math.max(4,540*scale).toFixed(1)+'" opacity=".32" stroke-dasharray="10 8"/>'+
+   '" stroke="#ffb46f" stroke-width="'+Math.max(6,corridor.halfWidth*2*scale).toFixed(1)+'" opacity=".19"/>'+
    '<path d="M '+a.x.toFixed(1)+' '+a.y.toFixed(1)+' L '+b.x.toFixed(1)+' '+b.y.toFixed(1)+
-   '" stroke="#ffe4a6" stroke-width="2" stroke-dasharray="8 5"/>';
+   '" stroke="#ffe4a6" stroke-width="2" stroke-dasharray="8 5"/>'+impacts;
  })():'';
  const meteorDeposits=world.rocks instanceof Map?[...world.rocks.values()].flat()
   .filter(r=>r.originKind==='event'&&r.id?.includes('meteor-front-')&&r.alive)

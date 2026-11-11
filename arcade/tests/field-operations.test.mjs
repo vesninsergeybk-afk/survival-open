@@ -5,6 +5,7 @@ import {World} from '../world.js';
 import {ENEMY_TYPES,updateEnemy} from '../ai.js';
 import {renderBasePanel} from '../base-panel.js';
 import {RuntimeHarness} from './runtime-game.mjs';
+import {createCombatMastery,masteryGoal,masteryOperationReward} from '../combat-mastery.js';
 import {packRun,unpackRun} from '../run-checkpoint.js';
 import {createFieldOperation,fieldOperationIds,fieldOperationOffer,fieldOperationMining,
  advanceFieldOperation,validFieldOperation,fieldOperationCue,fieldOperationInteraction,fieldThreatTier,
@@ -694,6 +695,24 @@ test('claiming a field operation pays once, reduces repeats, and keeps station i
  assert.equal(RuntimeHarness.prototype.finishFieldOperation.call(game),false);
  assert.equal(game.player.ore,26);
  assert.equal(fieldOperationOffer(lab,null,game.time,op.id).status,'cooldown');
+});
+
+test('a full field operation grants the displayed mastery bonus and preserves its rank notice',()=>{
+ const base={...lab,fieldOperationRuns:{},fieldOperationFullRuns:{},fieldOperationCooldowns:{}};
+ const op=createFieldOperation('deep-resonance',base,world),game=fakeGame(op),messages=[];
+ op.phase='return';op.progress=2;
+ game.time=55;game.docked=base;game.player={x:base.x,y:base.y,ore:0,data:0,level:1};
+ game.combatMastery=createCombatMastery();
+ game.combatMastery.tracks.operations={rank:3,progress:masteryGoal('operations',3)-1};
+ game.announceMastery=RuntimeHarness.prototype.announceMastery;
+ game.cockpit={resourceGain(){}};game.heritage.station=()=>{};
+ game.collect=function(item){this.player.data+=item.value;};
+ game.rewardNotice=message=>messages.push(message);game.fieldLoan=null;
+ const expected=masteryOperationReward(game.combatMastery,25);
+ assert.equal(RuntimeHarness.prototype.finishFieldOperation.call(game),true);
+ assert.equal(game.player.data,expected);
+ assert.match(messages[0],new RegExp('\\+'+expected+' опыта'));
+ assert.match(messages[0],/МАСТЕРСТВО · Полевой опыт · ступень 4/);
 });
 
 test('developed pilot payout exactly matches the station reward preview',()=>{

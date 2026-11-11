@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World} from '../world.js';
-import {createMeteorFront,frontPhase,frontStrikePoint,updateMeteorFront,validMeteorFront,METEOR_FRONT} from '../meteor-front.js';
+import {createMeteorFront,frontPhase,frontStrikePoint,frontCorridor,updateMeteorFront,validMeteorFront,METEOR_FRONT} from '../meteor-front.js';
 
 const scene=()=>({
  seed:20261102,world:new World(20261102),player:{x:1950,y:2350},time:0,
@@ -53,4 +53,21 @@ test('meteor front holds off near the starting base and validates restored state
  saved.active.strikes=METEOR_FRONT.strikes+1;
  assert.equal(validMeteorFront(saved,game.time),false);
  assert.equal(validMeteorFront(undefined,game.time),true,'old checkpoints are valid');
+});
+
+test('the displayed meteor corridor contains every physical impact including its full radius',()=>{
+ for(let serial=1;serial<=100;serial++){
+  const active={serial,seed:20261102,angle:serial*.31,x:1900,y:2400};
+  const corridor=frontCorridor(active),ux=Math.cos(active.angle),uy=Math.sin(active.angle);
+  for(let index=0;index<METEOR_FRONT.strikes;index++){
+   const point=frontStrikePoint(active,index);
+   const along=(point.x-active.x)*ux+(point.y-active.y)*uy;
+   const sideways=Math.abs((point.y-active.y)*ux-(point.x-active.x)*uy);
+   const begin=(corridor.start.x-active.x)*ux+(corridor.start.y-active.y)*uy;
+   const end=(corridor.end.x-active.x)*ux+(corridor.end.y-active.y)*uy;
+   assert.ok(along-METEOR_FRONT.radius>=begin-1e-6);
+   assert.ok(along+METEOR_FRONT.radius<=end+1e-6);
+   assert.ok(sideways+METEOR_FRONT.radius<=corridor.halfWidth+1e-6);
+  }
+ }
 });

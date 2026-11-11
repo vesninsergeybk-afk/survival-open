@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MASTERIES,createCombatMastery,masteryGoal,masteryBonus,
  masteryProgress,masteryMiss,validCombatMastery,masteryPerkTier,
- masteryNextMilestone,migrateCombatMastery} from '../combat-mastery.js';
+ masteryNextMilestone,migrateCombatMastery,masteryOperationReward} from '../combat-mastery.js';
 import {progressionModel,renderProgressionScreen} from '../progression-screen.js';
 import {game} from './weapons-scene.mjs';
 
@@ -51,6 +51,19 @@ test('earned milestones unlock functional perks, while the bonus remains bounded
  }
  assert.ok(masteryBonus(state,'comet')<masteryBonus({...state,tracks:{...state.tracks,
   comet:{rank:12,progress:0}}},'comet'));
+});
+
+test('operation rewards include both the rank bonus and each unlocked special tier',()=>{
+ const state=createCombatMastery();
+ assert.equal(masteryOperationReward(state,1000),1000);
+ masteryProgress(state,'operations',masteryGoal('operations',0));
+ assert.equal(state.tracks.operations.rank,1);
+ assert.equal(masteryOperationReward(state,1000),
+  Math.round(1000*(1+masteryBonus(state,'operations'))));
+ for(let rank=1;rank<3;rank++)masteryProgress(state,'operations',masteryGoal('operations',rank));
+ assert.equal(masteryPerkTier(state,'operations'),1);
+ assert.equal(masteryOperationReward(state,1000),
+  Math.round(1000*(1+masteryBonus(state,'operations')+.04)));
 });
 
 test('legacy five-track checkpoints retain earned rank and proportional progress',()=>{

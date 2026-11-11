@@ -5,7 +5,8 @@
 import {hash,RULES} from './balance.js';
 
 export const METEOR_FRONT=Object.freeze({firstAt:190,revisit:390,warning:12,
- duration:31,strikes:15,strikeGap:2,radius:74,depositCount:4});
+ duration:31,strikes:15,strikeGap:2,radius:74,depositCount:4,
+ lead:-1110,step:155,spread:610});
 const TAU=Math.PI*2;
 export const createMeteorFront=()=>({version:1,nextAt:METEOR_FRONT.firstAt,
  serial:0,active:null});
@@ -14,9 +15,20 @@ export const frontPhase=(state,time)=>!state?.active?null:
  time<state.active.at+METEOR_FRONT.warning+METEOR_FRONT.duration?'passing':'aftermath';
 export function frontStrikePoint(active,index){
  const angle=active.angle,dx=Math.cos(angle),dy=Math.sin(angle);
- const side=(hash(index+11,active.serial,active.seed)-.5)*610;
- const along=-1110+index*155;
+ const side=(hash(index+11,active.serial,active.seed)-.5)*METEOR_FRONT.spread;
+ const along=METEOR_FRONT.lead+index*METEOR_FRONT.step;
  return {x:active.x+dx*along-dy*side,y:active.y+dy*along+dx*side};
+}
+// A guaranteed enclosure of every impact circle. Use the same geometry for
+// the flight display and the strategic map, even though individual hits wander
+// sideways within the front.
+export function frontCorridor(active){
+ const dx=Math.cos(active.angle),dy=Math.sin(active.angle);
+ const start=METEOR_FRONT.lead-METEOR_FRONT.radius;
+ const end=METEOR_FRONT.lead+(METEOR_FRONT.strikes-1)*METEOR_FRONT.step+METEOR_FRONT.radius;
+ return {start:{x:active.x+dx*start,y:active.y+dy*start},
+  end:{x:active.x+dx*end,y:active.y+dy*end},
+  halfWidth:METEOR_FRONT.spread/2+METEOR_FRONT.radius};
 }
 export function frontDistance(active,x,y){
  const nx=-Math.sin(active.angle),ny=Math.cos(active.angle);
@@ -91,17 +103,19 @@ export function updateMeteorFront(game){
 export function drawMeteorFront(game,c,cam){
  const a=game.meteorFront?.active;if(!a)return;
  const elapsed=game.time-a.at,remaining=Math.max(0,METEOR_FRONT.warning-elapsed);
- const dx=Math.cos(a.angle),dy=Math.sin(a.angle),nx=-dy,ny=dx;
+ const corridor=frontCorridor(a);
+ const start=METEOR_FRONT.lead-METEOR_FRONT.radius;
+ const length=(METEOR_FRONT.strikes-1)*METEOR_FRONT.step+METEOR_FRONT.radius*2;
  // Bounds test avoids wide gradients when the front is in a remote sector.
  if(Math.abs(a.x-(cam.x+cam.w/2))>cam.w/2+1800||
   Math.abs(a.y-(cam.y+cam.h/2))>cam.h/2+1800)return;
  c.save();c.translate(a.x,a.y);c.rotate(a.angle);
  c.strokeStyle=remaining?'#ffca8ab5':'#ff8d62c8';c.fillStyle='#ff996a16';
  c.lineWidth=remaining?3:5;c.setLineDash(remaining?[18,10]:[9,6]);
- c.fillRect(-1200,-380,2400,760);
- c.strokeRect(-1200,-380,2400,760);c.setLineDash([]);
+ c.fillRect(start,-corridor.halfWidth,length,corridor.halfWidth*2);
+ c.strokeRect(start,-corridor.halfWidth,length,corridor.halfWidth*2);c.setLineDash([]);
  if(elapsed>=METEOR_FRONT.warning){
-  const head=-1110+Math.min(METEOR_FRONT.strikes,a.strikes)*155;
+  const head=METEOR_FRONT.lead+Math.min(METEOR_FRONT.strikes,a.strikes)*METEOR_FRONT.step;
   c.fillStyle='#ffd7a3a8';
   for(let i=0;i<7;i++){
    const x=head-i*75,y=Math.sin(game.time*.9+i)*180;

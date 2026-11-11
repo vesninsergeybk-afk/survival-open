@@ -27,7 +27,7 @@ import {createStrategicExperience,claimStationActivation,claimStationCapture,cla
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
 import {createFieldLoot,rewardEyeKill,collectFieldLoot,updateFieldLoot,
  fieldLootDamage,fieldLootArmor,chainFieldLoot,drawFieldLootAura,BOOSTS} from './field-loot.js?v=eye-loot-1';
-import {MASTERIES,createCombatMastery,masteryProgress,masteryMiss,masteryBonus,masteryPerkTier} from './combat-mastery.js';
+import {MASTERIES,createCombatMastery,masteryProgress,masteryMiss,masteryBonus,masteryPerkTier,masteryOperationReward} from './combat-mastery.js';
 import {createConvoyRelic,updateConvoyRelic,drawConvoyRelic} from './convoy-relic.js';
 import {createCombatTempo,recordCombatContact,ambientTempoPlan} from './combat-tempo.js?v=tempo-1-balance-audit-1-opening-evasion-20261110';
 import {fortificationShield} from './enemy-fortifications.js?v=industrial-forts-1';
@@ -1604,14 +1604,16 @@ export class ArcadeGame {
    }
  }
  notice(text,seconds=3){this.message.textContent=text;this.messageUntil=this.time+seconds;}
- announceMastery(award){
-  if(!award)return;
+ announceMastery(award,includeInReward=false){
+  if(!award)return '';
   if(award.perkUnlocked){
    this.heritage?.play?.('levelUp',.45);
    this.heritage?.vfx?.nova?.(this.player.x,this.player.y,90,'gold');
   }
-  this.notice((award.perkUnlocked?'НОВОЕ УМЕНИЕ · ':'МАСТЕРСТВО · ')+award.name+
-   ' · ступень '+award.rank+(award.perkUnlocked?' · '+MASTERIES[award.id].perk:''),award.perkUnlocked?5:3.5);
+  const label=(award.perkUnlocked?'НОВОЕ УМЕНИЕ · ':'МАСТЕРСТВО · ')+award.name+
+   ' · ступень '+award.rank+(award.perkUnlocked?' · '+MASTERIES[award.id].perk:'');
+  if(!includeInReward)this.notice(label,award.perkUnlocked?5:3.5);
+  return label;
  }
  rewardNotice(text,previousLevel,seconds=5){
   // The level-up notification is otherwise overwritten by the operation's
@@ -2623,8 +2625,10 @@ export class ArcadeGame {
   this.player.ore+=ore;recordSortieIncome(this,'ore','operation',ore);
   this.cockpit.resourceGain(ore,this.time);
   const previousLevel=this.player.level;
-  this.collect({type:'data',value:Math.round(data*(1+.04*masteryPerkTier(this.combatMastery,'operations'))),source:'operation'});
-  if(!limited){const award=masteryProgress(this.combatMastery,'operations');if(award)this.announceMastery(award);}
+  const earnedData=limited?data:masteryOperationReward(this.combatMastery,data);
+  this.collect({type:'data',value:earnedData,source:'operation'});
+  const award=!limited?masteryProgress(this.combatMastery,'operations'):null;
+  const masteryCue=award?this.announceMastery(award,true):'';
   if(!limited){
    if(op.id==='deep-resonance')this.geoScanUntil=Math.max(this.geoScanUntil||0,this.time+75);
    if(op.id==='reverse-hunt')this.geoScanUntil=Math.max(this.geoScanUntil||0,this.time+105);
@@ -2638,13 +2642,14 @@ export class ArcadeGame {
   }
   this.heritage.station('claimContract',base.type);
   this.rewardNotice((limited?'ЧАСТИЧНЫЙ УСПЕХ':'ОПЕРАЦИЯ ЗАВЕРШЕНА')+' · «'+op.name+'». +'+ore+
-   ' сплава, +'+data+' опыта.'+(op.id==='deep-resonance'&&!limited?' Геологический сканер активен 75 с.':
+   ' сплава, +'+earnedData+' опыта.'+(op.id==='deep-resonance'&&!limited?' Геологический сканер активен 75 с.':
    op.id==='reverse-hunt'&&!limited?' Спектральный поиск действует 105 с.':
    op.id==='line-break'&&!limited?' Разведка восстановлена на 90 с.':
    op.id==='false-call'&&!limited?' Вражеский вызов сорван.':
    op.id==='two-fronts'&&!limited?' Участок защищён, патрули временно отступили.':
    op.id==='sleeping-reactor'&&!limited?' Аварийный конденсатор дал +20 щита (до 30).':
-   op.id==='broken-convoy'&&!limited?' Доставленные запасы дают один ударный вылет (максимум два).':''),previousLevel,5.5);
+   op.id==='broken-convoy'&&!limited?' Доставленные запасы дают один ударный вылет (максимум два).':'')+
+   (masteryCue?' '+masteryCue+'.':''),previousLevel,5.5);
   return true;
  }
 
@@ -4166,21 +4171,24 @@ export class ArcadeGame {
    finishFieldAssignment(this.fieldLoan,'contract',c);
    p.ore+=c.ore;this.cockpit.resourceGain(c.ore,this.time);
    const previousLevel=p.level;
-   this.collect({type:'data',value:Math.round(c.data*(1+.04*masteryPerkTier(this.combatMastery,'operations')))});
-   {const award=masteryProgress(this.combatMastery,'operations');if(award)this.announceMastery(award);}
+   const earnedData=masteryOperationReward(this.combatMastery,c.data);
+   this.collect({type:'data',value:earnedData});
+   const award=masteryProgress(this.combatMastery,'operations');
+   const masteryCue=award?this.announceMastery(award,true):'';
    const levelsGained=p.level-previousLevel;
    this.sortieReports=creditContractReward(this.sortieReports||[],c,b);
-   this.lastContractReceipt={ore:c.ore,data:c.data,levelsGained,
+   this.lastContractReceipt={ore:c.ore,data:earnedData,levelsGained,
     credited:this.sortieReports.some(r=>r.id===c.completedSortieId&&r.details?.oreContracts>=c.ore)||
      (c.completedSortieId==null&&this.sortieReports.some(r=>r.baseId===b.id))};
    if(this.waypoint?.id===b.id&&this.waypoint.label?.startsWith('Награда:'))this.waypoint=null;
    if(this.firstHardwareReward==null)this.firstHardwareReward='pending';
    this.baseTab='summary';
-   this.rewardNotice('Поручение выполнено: +'+c.ore+' сплава · +'+c.data+
-    ' данных · +'+c.data+' опыта.'+
+   this.rewardNotice('Поручение выполнено: +'+c.ore+' сплава · +'+earnedData+
+    ' данных · +'+earnedData+' опыта.'+
     (earnedTrust?' Доверие станции: '+stationReputation(b)+'/'+stationReputationGoal(b)+'.':'')+
     (!b.active&&stationReputationReady(b)?' Станция готова к подключению!':'')+
-    (b.active&&this.firstHardwareReward==='pending'?' Выберите бесплатное оружие!':''),previousLevel,5);
+    (b.active&&this.firstHardwareReward==='pending'?' Выберите бесплатное оружие!':'')+
+    (masteryCue?' '+masteryCue+'.':''),previousLevel,5);
    this.heritage.station(act,b.type);
    this.pausedRenderPending=true;this.renderDock();return;
   }else if(act==='claimFirstModule'){
