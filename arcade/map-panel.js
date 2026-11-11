@@ -23,7 +23,7 @@ import {CORRIDOR_OPERATION,corridorPosition,corridorAmbush,corridorScanBonus,pro
  isCorridorDock,isProbeLab,PROBE_OPERATION} from './operations.js?v=station-operations-2-ops-audit-2';
 import {isFieldOperation,fieldOperationCue} from './field-operations.js?v=field-operations-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-pilot-value-2';
 import {baseNames} from './balance.js?v=arcade-base-ops-38';
-import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,abandonOperationLabel} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1-pilot-value-2';
+import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,abandonOperationLabel,missionHomeStations} from './mission-feedback.js?v=mission-home-20261111';
 import {RELAY_DEFENSE,isRelayArsenal,relayPosition,relayDefenseCue} from './relay-defense.js?v=station-operations-2-ops-audit-2-mission-choices-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,carrierRoute,carrierDistanceRemaining,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {enemyIntentMapPaths} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
@@ -38,6 +38,7 @@ import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
 import {atlasStars} from './contour-cartography.js?v=living-atlas-3-map-ux-1-map-art-1-flight-zoom-audit-1';
+import {METEOR_FRONT,frontStrikePoint} from './meteor-front.js';
 // Tactical navigation: exact locations belong only to revealed contacts.
 // A radio signal is deliberately offset from its true location.
 const enc=value=>String(value).replace(/[&<>"']/g,char=>
@@ -163,6 +164,7 @@ export function renderWorldMap(game){
     '" r="10" fill="#57f8ca21" stroke="#6af9d7" stroke-width="1.5" stroke-dasharray="3 3"/>'+
     '<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="3" fill="#c5fff2"/></g>':'';
   }).join('');
+ const missionHomes=missionHomeStations(game);
  const readyStation=(game.operation?.id==='silent-corridor'||game.operation?.id===CARRIER_INTERCEPTION.id)&&game.operation.phase==='return'?
    world.stations.get(game.operation.baseId):contractReturnStation(game.contract,world);
  const defenseZone=contractDefenseZone(game.contract,world);
@@ -184,16 +186,21 @@ export function renderWorldMap(game){
    (linkedDefense?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
     '" r="'+(STATION_DEFENSE.stasisRadius*scale).toFixed(1)+'" fill="none" stroke="#b790f0" stroke-width="1"/>':''):'';
   const returnCue=readyStation?.id===b.id;
+  const homeCue=missionHomes.some(entry=>entry.station.id===b.id);
   const selected=navigator?.id===b.id;
   return '<g>'+pvoRing+(selected?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
    '" r="22" fill="#ffd58a18" stroke="#ffe2a0" stroke-width="2" stroke-dasharray="4 3"/>':'')+
+   (homeCue?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
+    '" r="24" fill="#f6bd6922" stroke="#ffcf86" stroke-width="2.2" stroke-dasharray="3 4"/>'+
+    '<text x="'+q.x.toFixed(1)+'" y="'+(q.y-29).toFixed(1)+
+    '" text-anchor="middle" fill="#ffdfa1" font-size="10" font-weight="700">СДАЧА · '+enc(b.id)+'</text>':'')+
    (returnCue?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+
    '" r="17" fill="#ffd27e1a" stroke="#ffd27e" stroke-width="2.5"/>'+
    '<text x="'+q.x.toFixed(1)+'" y="'+(q.y-20).toFixed(1)+
    '" text-anchor="middle" fill="#ffe2a0" font-size="17" font-weight="700">!</text>':'')+
    (b.relayBoost?'<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="16" fill="none" stroke="#6fffee" stroke-width="1.5"/>':'')+
    '<g transform="translate('+q.x.toFixed(1)+' '+q.y.toFixed(1)+')">'+stationGlyph(b.type,{color,active:b.active&&!b.enemy,hostile:b.enemy})+'</g>'+
-   '<text class="local-station-label" data-mobile-label="'+(selected||returnCue||b.id===nearestFriendly?.id)+'" x="'+(q.x+17).toFixed(1)+'" y="'+(q.y-12).toFixed(1)+
+   '<text class="local-station-label" data-mobile-label="'+(selected||returnCue||homeCue||b.id===nearestFriendly?.id)+'" x="'+(q.x+17).toFixed(1)+'" y="'+(q.y-12).toFixed(1)+
    '" fill="#e3f4f4" font-size="11">'+enc(baseNames[b.type]||'Станция')+'</text></g>';
  }).join('');
  const echoes=signals.map(s=>{
@@ -301,6 +308,21 @@ export function renderWorldMap(game){
  }).join('');
  const goal=navigator?point(navigator.x,navigator.y,center,scale):null;
  const pilot=point(p.x,p.y,center,scale);
+ const meteor=game.meteorFront?.active;
+ const meteorPath=meteor?(()=>{
+  const first=frontStrikePoint(meteor,0),last=frontStrikePoint(meteor,METEOR_FRONT.strikes-1);
+  const a=point(first.x,first.y,center,scale),b=point(last.x,last.y,center,scale);
+  return '<path d="M '+a.x.toFixed(1)+' '+a.y.toFixed(1)+' L '+b.x.toFixed(1)+' '+b.y.toFixed(1)+
+   '" stroke="#ffb46f" stroke-width="'+Math.max(4,540*scale).toFixed(1)+'" opacity=".32" stroke-dasharray="10 8"/>'+
+   '<path d="M '+a.x.toFixed(1)+' '+a.y.toFixed(1)+' L '+b.x.toFixed(1)+' '+b.y.toFixed(1)+
+   '" stroke="#ffe4a6" stroke-width="2" stroke-dasharray="8 5"/>';
+ })():'';
+ const meteorDeposits=world.rocks instanceof Map?[...world.rocks.values()].flat()
+  .filter(r=>r.originKind==='event'&&r.id?.includes('meteor-front-')&&r.alive)
+  .map(r=>({r,q:point(r.x,r.y,center,scale)})).filter(({q})=>visible(q))
+  .slice(0,80).map(({q})=>'<g aria-label="Руда после метеоритного фронта">'+
+   '<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="8" fill="#d07b4228" stroke="#ffbb73" stroke-width="1.4"/>'+
+   '<path d="M '+q.x.toFixed(1)+' '+(q.y-5).toFixed(1)+' l 4 5 -4 5 -4 -5 Z" fill="#ffd99f"/></g>').join(''):'';
  const route=goal&&visible(goal)?
   '<path d="M '+pilot.x.toFixed(1)+' '+pilot.y.toFixed(1)+' L '+goal.x.toFixed(1)+' '+goal.y.toFixed(1)+
    '" stroke="#f4e6a0" stroke-width="2.4" stroke-dasharray="8 6"/>'+dot(goal.x,goal.y,'#fff0b8',4):'';
@@ -355,7 +377,8 @@ export function renderWorldMap(game){
    '" data-label="'+enc(label)+'"'+(isSignal?' data-signal="1"':'')+
    '>'+ (same?'✓ Маршрут выбран':value)+'</button></article>';
  };
- const discovered=[...known].sort((a,b)=>Number(readyStation?.id===b.id)-Number(readyStation?.id===a.id)||
+ const discovered=[...known].sort((a,b)=>Number(missionHomes.some(h=>h.station.id===b.id))-Number(missionHomes.some(h=>h.station.id===a.id))||
+  Number(readyStation?.id===b.id)-Number(readyStation?.id===a.id)||
   Number(navigator?.id===b.id)-Number(navigator?.id===a.id)||distance(a,p)-distance(b,p))
   .map(b=>row(b,false)).join('');
  const unidentified=signals.map(b=>row(b,true)).join('');
@@ -411,6 +434,9 @@ export function renderWorldMap(game){
    isFieldOperation(operation)?fieldOperationCue(operation,game):
    'Отключите глушитель и вернитесь с телеметрией.')+'</span></div>'+
   '<button type="button" data-act="operationWaypoint">'+(operation.phase==='return'?'Проложить путь обратно':'Проложить курс к цели')+'</button></div>':'';
+ const returnHomes=missionHomes.length?'<div class="map-operation-cue map-return-homes" role="status"><div><small>КУДА ВЕРНУТЬСЯ С ЗАДАНИЕМ</small><strong>Станция сдачи отмечена янтарным кольцом</strong><span>'+
+  missionHomes.map(({kind,station,ready})=>enc(kind+' · '+(baseNames[station.type]||'Станция')+' ['+station.id+'] · '+Math.round(distance(station,p))+' м'+(ready?' · награда готова':''))).join(' / ')+
+  '</span></div>'+missionHomes.map(({kind,station})=>'<button type="button" data-act="missionHomeWaypoint" data-id="'+enc(station.id)+'">Курс: '+enc(kind.toLowerCase())+' → '+enc(baseNames[station.type]||'Станция')+' ['+enc(station.id)+']</button>').join('')+'</div>':'';
  return interactionCopy('<div class="dialog map-dialog map-mode-'+view+'" role="dialog" aria-modal="true" aria-labelledby="map-menu-title"><header class="map-heading"><div>'+
   '<span class="map-kicker">НАВИГАЦИОННЫЙ КОМПЛЕКС</span><h2 id="map-menu-title">Карта сектора</h2>'+
   menuInfo('Как пользоваться картой','Выберите станцию или сигнал и постройте маршрут. Связь действует на 1450 м; каждая усиленная антенна добавляет 500 м. Неизвестные сигналы указаны приблизительно.')+
@@ -419,12 +445,12 @@ export function renderWorldMap(game){
   '<nav class="map-view-switch" aria-label="Режим карты"><button type="button" data-act="mapView" data-id="map" aria-pressed="'+(view==='map')+'">'+menuIcon('map')+'Рядом</button>'+
   '<button type="button" data-act="mapView" data-id="territory" aria-pressed="false">'+menuIcon('network')+'Территории</button>'+
   '<button type="button" data-act="mapView" data-id="targets" aria-pressed="'+(view==='targets')+'">'+menuIcon('navigation')+'Цели</button></nav>'+
-  activeMission+(unresolvedContourTrials(world).length?renderTerritoryProgress(world,p,{map:true}):'')+
+  activeMission+returnHomes+(unresolvedContourTrials(world).length?renderTerritoryProgress(world,p,{map:true}):'')+
   (discoveryLead||intelLead?'<details class="map-discovery-lead"><summary>Что можно открыть на станциях</summary>'+discoveryLead+intelLead+'</details>':'')+
   '<section class="map-shell"><div class="map-canvas"><div class="map-plot"><svg class="local-chart" data-map-world="true" viewBox="0 0 680 480" role="img" aria-label="Известные станции, сигналы и маршруты сети">'+
   chartBackdrop(world.seed,center,scale)+atlasStars(world.seed,center,scale,false)+
   '<circle cx="'+pilot.x.toFixed(1)+'" cy="'+pilot.y.toFixed(1)+'" r="'+(scanRadius*scale).toFixed(1)+'" fill="#367f9c15" stroke="#68c8df33" stroke-dasharray="4 7"/>'+
-  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+hostileFronts+defenseRing+securedRoutes+carrierPath+ambushMark+route+echoes+intelMarks+marks+operationMark+fieldMarks+enemyOrders+theaterOrders+parasiteEchoes+
+  grid.join('')+regionalMapOverlay(game,r=>point(r.x,r.y,center,scale),visible)+trunkLines+activeLinks+hostileFronts+defenseRing+securedRoutes+carrierPath+ambushMark+meteorPath+meteorDeposits+route+echoes+intelMarks+marks+operationMark+fieldMarks+enemyOrders+theaterOrders+parasiteEchoes+
   pendingTrialMapArtwork(world,center,scale,(entry,c,s)=>point(entry.x,entry.y,c,s))+
   pilotGlyph(pilot.x,pilot.y)+chartFrame(center,scale,{local:true})+
   '<text x="'+(pilot.x+11).toFixed(1)+'" y="'+(pilot.y+26).toFixed(1)+'" fill="#dcffff" font-size="12">ВЫ</text></svg>'+
@@ -432,6 +458,8 @@ export function renderWorldMap(game){
   '<div class="map-legend"><span><i class="local-key pilot"></i>Вы</span><span><i class="local-key active"></i>Включена</span><span><i class="local-key inactive"></i>Выключена</span>'+
   '<span><i class="local-key hostile"></i>Противник</span><span><i class="local-key maneuver"></i>Манёвр</span><span><i class="local-key signal">?</i>Сигнал</span><span><i class="local-key operation"></i>Операция</span>'+
   (parasiteEchoes?'<span>◌ бирюзовые метки — живые сигналы паразита-передатчика</span>':'')+
+  (meteor?'<span>Оранжевый коридор — метеоритный фронт; ПВО может перехватывать отдельные удары</span>':'')+
+  (meteorDeposits?'<span>Янтарные ромбы — богатая руда, оставшаяся после метеоритного фронта</span>':'')+
   (intel.unlocked?'<span>Бирюзовый круг — промышленный сигнал · янтарный квадрат — радиометка груза</span>':'')+
   (known.some(b=>b.active&&!b.enemy)?'<span>бирюзовый круг — ПВО корабля · фиолетовый — радиус станции для стазиса (нужны 2 врага рядом с вами)</span>':'')+'</div>'+
   '</div>'+

@@ -1,7 +1,7 @@
 /* Survivor cockpit HUD: presentation only. World state and combat stay in game.js.
    The local radar is deliberately bounded to 1.1km and redraws <=5 times/sec. */
 import {miningSignal} from './mining.js?v=arcade-extraction-risk-34-pressure-response-1';
-import {missionHudText} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1-pilot-value-2';
+import {missionHudText,missionHomeText} from './mission-feedback.js?v=mission-home-20261111';
 import {openingArcActive,openingArcObjective,runClock} from './opening-arc.js?v=opening-arc-5';
 import {homeConflictCue} from './home-conflict.js?v=home-conflict-1-campaign-1-enemy-balance-2';
 import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
@@ -81,7 +81,8 @@ export class CockpitDisplay {
    rewardXp:el('rewardXp'),rewardLevel:el('rewardLevel'),
    miningStatus:el('miningStatus'),miningPercent:el('miningPercent'),
    miningLabel:el('miningLabel'),
-   contractObjective:el('contractObjective'),interactionCue:el('interactionCue'),territoryStatus:el('territoryStatus'),
+   contractObjective:el('contractObjective'),missionHome:el('missionHome'),interactionCue:el('interactionCue'),territoryStatus:el('territoryStatus'),
+   meteorAlert:el('meteorAlert'),
    weaponDeckAuto:el('weaponDeckAuto'),weaponDeckDirect:el('weaponDeckDirect'),
    weaponDeckCount:el('weaponDeckCount'),
    weaponDeckSpaceQuick:el('weaponDeckSpaceQuick'),weaponDeckSpaceKey:el('weaponDeckSpaceKey'),
@@ -226,6 +227,21 @@ export class CockpitDisplay {
    this.root.classList.toggle('has-objective',!!objective);
    tracker.classList.toggle('ready',!attack&&!urgent&&!op&&!!c&&c.progress>=c.goal);
    display(tracker,objective);
+  }
+  if(n.missionHome){
+   const text=missionHomeText(game);
+   n.missionHome.hidden=!text||game.dead;
+   if(text)display(n.missionHome,text);
+  }
+  if(n.meteorAlert){
+   const meteor=game.meteorFront?.active;
+   n.meteorAlert.hidden=!meteor||game.dead;
+   if(meteor){
+    const warning=Math.max(0,Math.ceil(12-(game.time-meteor.at)));
+    n.meteorAlert.classList.toggle('passing',warning===0);
+    display(n.meteorAlert,warning?'⚠ МЕТЕОРИТНЫЙ ФРОНТ · до ударов '+warning+' с · маршрут на карте':
+     '☄ МЕТЕОРИТНЫЙ ФРОНТ · опасный коридор · уклоняйтесь или используйте ПВО станции');
+   }
   }
   const extracting=!!game.mining?.active,repairing=!!game.probeRepairing;
   const noise=miningSignal(game.miningNoise||0);

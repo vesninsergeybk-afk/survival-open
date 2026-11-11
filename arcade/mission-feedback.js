@@ -12,6 +12,28 @@ export function contractReturnStation(contract, world) {
   return station && !station.enemy && !station.ruined ? station : null;
 }
 
+// The origin remains known from acceptance through completion. A pilot can
+// take an operation and an ordinary contract at once; both homes must remain
+// visible even if they were issued by two stations of the same type.
+export function missionHomeStations(game){
+ const world=game?.world,missions=[['Операция',game?.operation],['Заказ',game?.contract]];
+ return missions.flatMap(([kind,mission])=>{
+  const station=mission?.baseId&&world?.stations?.get?.(mission.baseId);
+  return station&&!station.enemy&&!station.ruined?
+   [{kind,station,ready:mission.phase==='return'||
+     Number.isFinite(mission.goal)&&mission.goal>0&&mission.progress>=mission.goal}]:[];
+ });
+}
+
+export function missionHomeText(game){
+ const pilot=game?.player;
+ return missionHomeStations(game).map(({kind,station,ready})=>{
+  const type=({dock:'Док',arsenal:'Арсенал',carrier:'Авианосец',lab:'Лаборатория'})[station.type]||'Станция';
+  const distance=pilot?Math.round(Math.hypot(station.x-pilot.x,station.y-pilot.y)):0;
+  return (ready?'✓ ':'⌖ ')+kind+': сдача — '+type+' ['+station.id+'] · '+distance+' м';
+ }).join('  ·  ');
+}
+
 export function automaticRange(game){
  const slots=game.shipLoadout?.slots||['plasma'];
  return Math.max(0,...slots.filter(id=>MODULES[id]?.kind==='auto').map(id=>
@@ -117,15 +139,16 @@ export function missionHudText(game) {
  }
  const station=game.world?.stations?.get?.(c.baseId);
  const d=station?Math.round(Math.hypot(station.x-p.x,station.y-p.y)):0;
+ const stage=c.stages?' · ЭТАП '+((c.stageIndex||0)+1)+'/'+c.stages.length:'';
  if(c.progress>=c.goal)
   return '✓ '+c.name+' · ВЕРНИТЕСЬ НА БАЗУ · '+d+' М';
  const zone=contractDefenseZone(c,game.world);
  if(zone){
   const radiusDistance=Math.hypot(zone.station.x-p.x,zone.station.y-p.y)-zone.radius;
-  return c.name+' · '+c.progress+'/'+c.goal+' · '+
+  return c.name+stage+' · '+c.progress+'/'+c.goal+' · '+
    (radiusDistance<=0?'В ЗОНЕ ЗАЩИТЫ':'ДО ЗОНЫ '+Math.ceil(radiusDistance)+' М');
  }
- return c.name+' · '+c.progress+'/'+c.goal+' · ПОЛЕВОЙ ЗАКАЗ';
+ return c.name+stage+' · '+c.progress+'/'+c.goal+' · ПОЛЕВОЙ ЗАКАЗ';
 }
 
 export function abandonOperationLabel(op){

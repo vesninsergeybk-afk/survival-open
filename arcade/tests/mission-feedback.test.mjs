@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {contractReturnStation,contractDefenseZone,corridorCue,missionHudText} from '../mission-feedback.js';
+import {contractReturnStation,contractDefenseZone,corridorCue,missionHudText,missionHomeStations,missionHomeText} from '../mission-feedback.js';
 
 const world=()=>({stations:new Map([
-  ['dock',{id:'dock',x:120,y:20,active:true,enemy:false}],
-  ['lab',{id:'lab',x:900,y:30,active:true,enemy:false}]
+  ['dock',{id:'dock',type:'dock',x:120,y:20,active:true,enemy:false}],
+  ['lab',{id:'lab',type:'lab',x:900,y:30,active:true,enemy:false}]
 ])});
 const op=()=>({id:'silent-corridor',hp:150,pulseRange:315,pulsePeriod:4.2,
   focusRange:255,pulseCharge:0,pulseFlashUntil:0,overheatedUntil:0});
@@ -25,6 +25,19 @@ test('reward marker points only to the issuing station when the award is ready',
   'the player can return a completed order to a neutral, not yet powered station');
  scene.stations.get('lab').ruined=true;
  assert.equal(contractReturnStation(contract,scene),null);
+});
+
+test('mission homes remain explicit before completion and distinguish two issuing stations',()=>{
+ const state={world:world(),player:{x:0,y:0},contract:{baseId:'lab',goal:5,progress:1},
+  operation:{id:'last-signal',baseId:'dock',phase:'repair'}};
+ const homes=missionHomeStations(state);
+ assert.deepEqual(homes.map(h=>h.station.id),['dock','lab']);
+ assert.match(missionHomeText(state),/Операция: сдача — Док \[dock\]/);
+ assert.match(missionHomeText(state),/Заказ: сдача — Лаборатория \[lab\]/);
+ state.contract.progress=5;
+ assert.ok(missionHomeText(state).includes('✓ Заказ'));
+ state.world.stations.get('lab').ruined=true;
+ assert.deepEqual(missionHomeStations(state).map(h=>h.station.id),['dock']);
 });
 
 test('special operations do not become unclaimed ordinary contracts',()=>{

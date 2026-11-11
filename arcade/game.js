@@ -14,6 +14,7 @@ import {SALVAGE,ruinEnemyIndustry,salvageQuote,claimRuinedIndustry} from './enem
 import {POPULATION,damagePopulationShield,populationAlarm,populationColony,
  damagePopulationWorker} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
 import {updateSpaceAnomalies,drawSpaceAnomalies} from './space-anomalies.js?v=sector-density-2-frontier-siege-1';
+import {createMeteorFront,updateMeteorFront,drawMeteorFront} from './meteor-front.js';
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1-living-world-population-1-sector-density-2';
 import {focusContourRegion} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expedition-1';
@@ -26,7 +27,7 @@ import {createStrategicExperience,claimStationActivation,claimStationCapture,cla
 import {makeRoomForDrop} from './drop-capacity.js?v=xp-feedback-pass1-1';
 import {createFieldLoot,rewardEyeKill,collectFieldLoot,updateFieldLoot,
  fieldLootDamage,fieldLootArmor,chainFieldLoot,drawFieldLootAura,BOOSTS} from './field-loot.js?v=eye-loot-1';
-import {createCombatMastery,masteryProgress,masteryMiss,masteryBonus} from './combat-mastery.js';
+import {MASTERIES,createCombatMastery,masteryProgress,masteryMiss,masteryBonus,masteryPerkTier} from './combat-mastery.js';
 import {createConvoyRelic,updateConvoyRelic,drawConvoyRelic} from './convoy-relic.js';
 import {createCombatTempo,recordCombatContact,ambientTempoPlan} from './combat-tempo.js?v=tempo-1-balance-audit-1-opening-evasion-20261110';
 import {fortificationShield} from './enemy-fortifications.js?v=industrial-forts-1';
@@ -91,7 +92,7 @@ import {FIELD_OPERATIONS,isFieldOperation,fieldOperationIds,fieldRewardFactor,cr
 import {renderWorldMap} from './map-panel.js?v=menu-exit-1-enemy-intents-2-regions-1-enemy-world-response-2-network-defense-4-living-world-3-frontier-3-rpg-precision-1-logistics-audit-1-rpg-audit-1-lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-mesh-log-1-backbone-2-living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-enemy-economy-1-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-supply-stronghold-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-territory-fixes-1-automatic-contours-1-contour-trials-1-counterattack-1-clarity-pass-1-first-loops-1-menu-audit-1-station-ops-2-ops-audit-2-field-ops-1-station-polish-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-variety-1-swarm-map-label-1-mission-choices-1-control-audit-1-enemy-growth-1-flux-build-1-triangle-defense-1-flight-zoom-audit-1-living-world-population-1-sector-density-2-frontier-siege-1-station-trust-1-enemy-operations-20261110-core-guide-20261110-pilot-value-2-hud-merge-20261110';
 import {mapViewport,mapViewSpec,zoomMap,panMap,pointerOnMap,worldAtMapPoint,insideMap} from './map-navigation.js?v=map-ux-1';
 import {clampCameraZoom,flightCamera,flightZoomKey,stepCameraZoom,wheelCameraZoom,pointerInFlightWorld,manualWheelDirection,worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
-import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange} from './mission-feedback.js?v=weapons-cycle-2-campaign-1-station-ops-2-ops-audit-2-field-ops-1-audit-1-field-experience-1-mission-depth-1-mission-integrity-2-mission-choices-1-combat-balance-1-station-trust-1-pilot-value-2';
+import {contractReturnStation,contractDefenseZone,corridorCue,automaticRange,missionHomeStations} from './mission-feedback.js?v=mission-home-20261111';
 import {RELAY_DEFENSE,isRelayArsenal,createRelayDefense,relayDefenseCue,relayWavePlan,
  relayAttacker,relayPrepInteraction,relayIncomingTargets} from './relay-defense.js?v=station-operations-2-ops-audit-2-mission-choices-1';
 import {CARRIER_INTERCEPTION,isCarrierBase,createCarrierInterception,carrierInFlight,carrierDistanceRemaining,moveCarrierCargo,carrierPatrolModifier,carrierRoute,advanceCarrierSystems,hitCarrierCargo,carrierPulseState,carrierTacticalCue} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
@@ -338,6 +339,7 @@ export class ArcadeGame {
   this.lastContractReceipt=null;
   this.economyExpenses=emptyEconomyExpenses();
   this.combatMastery=createCombatMastery();this.convoyRelic=createConvoyRelic();
+  this.meteorFront=createMeteorFront();
    this.geoScanUntil=0;this.overchargeUntil=0;
    this.fieldLoan=null;this.fieldTrialTaken=false;this.fieldReturnAt=-Infinity;this.fieldEffects=[];
    this.tactical=createTactical();this.tacticalPointer=null;
@@ -1245,6 +1247,15 @@ export class ArcadeGame {
     this.setNavigationCourse(waypoint,'Курс проложен: '+waypoint.label);
     return;
    }
+   if(act==='missionHomeWaypoint'&&this.overlay.dataset.mode==='map'){
+    const home=missionHomeStations(this).find(entry=>entry.station.id===b.dataset.id);
+    if(!home)return;
+    const station=home.station;
+    this.setNavigationCourse({id:station.id,x:station.x,y:station.y,
+     label:'Сдать '+home.kind.toLowerCase()+': '+(baseNames[station.type]||'Станция')+' ['+station.id+']'},
+    'Курс к станции сдачи '+home.kind.toLowerCase()+' ['+station.id+']');
+    return;
+   }
    if(act==='toggleMeteorDefense'&&this.docked?.active){
     const base=this.docked;
     const linked=defenseLinked(base,this.world.networkTopology());
@@ -1271,7 +1282,7 @@ export class ArcadeGame {
     if(['loanField','returnField','fieldCharge','loanIon','returnIon'].includes(act)){
      this.baseAction(act,b.dataset.role||'');return;
     }
-   if(act==='acceptOperation'||act==='acceptFieldOperation'||act==='claimFieldOperation'||act==='claimProbeData'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimContract'||act==='claimFirstModule'||act==='installModule'||act==='antenna')
+   if(act==='acceptOperation'||act==='acceptFieldOperation'||act==='claimFieldOperation'||act==='claimProbeData'||act==='activate'||act==='upgrade'||act==='hire'||act==='repair'||act==='repairDrones'||act==='supply'||act==='service'||act==='respec'||act==='transfer'||act==='acceptContract'||act==='claimPartialContract'||act==='claimContract'||act==='claimFirstModule'||act==='installModule'||act==='antenna')
     this.baseAction(act,b.dataset.role||'');
    if(act==='restart'){this.runStore?.end();location.reload();}
   });
@@ -1593,6 +1604,15 @@ export class ArcadeGame {
    }
  }
  notice(text,seconds=3){this.message.textContent=text;this.messageUntil=this.time+seconds;}
+ announceMastery(award){
+  if(!award)return;
+  if(award.perkUnlocked){
+   this.heritage?.play?.('levelUp',.45);
+   this.heritage?.vfx?.nova?.(this.player.x,this.player.y,90,'gold');
+  }
+  this.notice((award.perkUnlocked?'НОВОЕ УМЕНИЕ · ':'МАСТЕРСТВО · ')+award.name+
+   ' · ступень '+award.rank+(award.perkUnlocked?' · '+MASTERIES[award.id].perk:''),award.perkUnlocked?5:3.5);
+ }
  rewardNotice(text,previousLevel,seconds=5){
   // The level-up notification is otherwise overwritten by the operation's
   // completion message in the same frame. Keep both results in one notice.
@@ -1624,7 +1644,8 @@ export class ArcadeGame {
    p.burstX=dx/m;p.burstY=dy/m;
    const stats=burstStats(this.skillRanks.engine);
    p.burstRemaining=stats.duration;
-   p.burstCooldown=stats.cooldown*doctrineDashCooldown(this);
+   p.burstCooldown=stats.cooldown*doctrineDashCooldown(this)*
+    (1-.045*masteryPerkTier(this.combatMastery,'evasive'));
    if(doctrineRank(this,'assault')>=2)this.assaultBurstUntil=this.time+2.5;
    this.heritage.vfx.engineTrail(p.x,p.y,p.angle,'fighter',true,.12);
    this.heritage.play('boost',.6,{x:p.x,y:p.y});
@@ -2534,6 +2555,15 @@ export class ArcadeGame {
   if(!eligibleContractProgress(c,kind,subject,station,pilotParticipated,this.player))return;
   c.progress++;
   if(c.progress===c.goal){
+   if(c.stages&&c.stageIndex<c.stages.length-1){
+    c.stageIndex++;
+    const stage=c.stages[c.stageIndex];c.kind=stage.kind;c.goal=stage.goal;c.progress=0;
+    this.notice('ЭТАП '+(c.stageIndex+1)+'/'+c.stages.length+' · '+c.name+
+     ' · '+({rich:'добудьте богатую руду',kill:'сбейте патрульные корабли',
+      defend:'защитите исходную станцию',intercept:'перехватите боевые корабли'})[stage.kind]+
+     '. Место сдачи отмечено на карте.',5.5);
+    return;
+   }
    c.completedSortieId=this.sortieStart?.id??null;
    if(station&&Number.isFinite(station.x)&&Number.isFinite(station.y)&&
     !this.waypoint&&!this.manualWaypoint)
@@ -2593,7 +2623,8 @@ export class ArcadeGame {
   this.player.ore+=ore;recordSortieIncome(this,'ore','operation',ore);
   this.cockpit.resourceGain(ore,this.time);
   const previousLevel=this.player.level;
-  this.collect({type:'data',value:data,source:'operation'});
+  this.collect({type:'data',value:Math.round(data*(1+.04*masteryPerkTier(this.combatMastery,'operations'))),source:'operation'});
+  if(!limited){const award=masteryProgress(this.combatMastery,'operations');if(award)this.announceMastery(award);}
   if(!limited){
    if(op.id==='deep-resonance')this.geoScanUntil=Math.max(this.geoScanUntil||0,this.time+75);
    if(op.id==='reverse-hunt')this.geoScanUntil=Math.max(this.geoScanUntil||0,this.time+105);
@@ -4098,11 +4129,28 @@ export class ArcadeGame {
    const c=o.contractOptions.find(item=>item.id===role)||(!role?o.contractOptions[0]:null);
    if(!c)return;
    this.contract={baseId:b.id,kind:c.kind,goal:c.goal,progress:0,choiceId:c.id,
-    name:c.name,ore:c.ore,data:c.data};
+    name:c.name,ore:c.ore,data:c.data,
+    ...(c.stages?{stages:c.stages.map(s=>({...s})),stageIndex:0}:{})};
     bindFieldLoan(this.fieldLoan,missionAssignment(this.operation,this.contract));
-   this.notice('Задание принято: '+c.name+' · '+c.goal+' целей'+
-    (b.type==='dock'&&c.id==='standard'?' · сначала отойдите от дока на 450 м':''),3.2);
+   this.notice('Задание принято: '+c.name+
+    (c.stages?' · этап 1 из '+c.stages.length:'')+
+    '. Сдать: '+(baseNames[b.type]||'Станция')+' ['+b.id+'].'+
+    (b.type==='dock'&&c.id==='standard'?' Сначала отойдите от дока на 450 м.':''),5);
    this.heritage.station(act,b.type);
+   this.pausedRenderPending=true;this.renderDock();return;
+  }else if(act==='claimPartialContract'){
+   const c=this.contract;
+   if(!c||c.baseId!==b.id||!c.stages||c.stageIndex<1||
+    c.progress>=c.goal||b.enemy||b.ruined||b.hp<=0)return;
+   const ore=Math.round(c.ore*.45),data=Math.round(c.data*.45);
+   b.contractRuns=(b.contractRuns||0)+1;
+   b.contractCooldownUntil=this.time+(b.active?150:0);
+   this.contract=null;finishFieldAssignment(this.fieldLoan,'contract',c);
+   p.ore+=ore;this.cockpit.resourceGain(ore,this.time);
+   const previousLevel=p.level;
+   this.collect({type:'data',value:data});
+   this.rewardNotice('ПРОМЕЖУТОЧНЫЙ РЕЗУЛЬТАТ · +'+ore+' сплава, +'+data+
+    ' опыта. Доверие станции вырастет только после полного задания.',previousLevel,4.5);
    this.pausedRenderPending=true;this.renderDock();return;
   }else if(act==='claimContract'){
    const c=this.contract;
@@ -4118,7 +4166,8 @@ export class ArcadeGame {
    finishFieldAssignment(this.fieldLoan,'contract',c);
    p.ore+=c.ore;this.cockpit.resourceGain(c.ore,this.time);
    const previousLevel=p.level;
-   this.collect({type:'data',value:c.data});
+   this.collect({type:'data',value:Math.round(c.data*(1+.04*masteryPerkTier(this.combatMastery,'operations')))});
+   {const award=masteryProgress(this.combatMastery,'operations');if(award)this.announceMastery(award);}
    const levelsGained=p.level-previousLevel;
    this.sortieReports=creditContractReward(this.sortieReports||[],c,b);
    this.lastContractReceipt={ore:c.ore,data:c.data,levelsGained,
@@ -4575,7 +4624,7 @@ export class ArcadeGame {
    this.time-this.combatMastery.lastImpactAt>=3){
    this.combatMastery.lastImpactAt=this.time;
    const award=masteryProgress(this.combatMastery,'survivor');
-   if(award)this.notice('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);
+   if(award)this.announceMastery(award);
   }
   recordCombatContact(this);
   recordSortieDamage(this,Math.min(previousHp,remaining),absorbed);
@@ -5224,7 +5273,9 @@ export class ArcadeGame {
    if(rock.hp<=0){rock.alive=false;this.heritage.vfx.nova(rock.x,rock.y,rock.r,'cyan');}
    return;
   }
-  const destroyed=impactRock(rock,damage,sourceX,sourceY,kind);
+  const effectiveDamage=kind==='extract'?damage*(1+masteryBonus(this.combatMastery,'mining')+
+   .04*masteryPerkTier(this.combatMastery,'mining')):damage;
+  const destroyed=impactRock(rock,effectiveDamage,sourceX,sourceY,kind);
   // Emit noise as the ore fractures so the player can judge danger in time.
   if(kind==='extract'&&damage>0){
    const emitted=extractionNoiseDelta(rock,this.skillRanks.mining||0,this.nearQuietLab)*prospectNoiseMultiplier(this);
@@ -5245,6 +5296,7 @@ export class ArcadeGame {
   this.handleFieldMining?.(rock,kind);
   if(kind==='extract'){
    this.advanceContract('mine',rock);
+   if(rock.rich){const award=masteryProgress(this.combatMastery,'mining');if(award)this.announceMastery(award);}
    if(prospectMineCompleted(this)){
     this.heritage.vfx.nova(rock.x,rock.y,46,'green');
     if(doctrineRank(this,'prospect')>=3)this.notice('ГЕОЗАРЯД · 6 усиленных попаданий плазмой · запас 90 с',2.8);
@@ -5476,16 +5528,17 @@ export class ArcadeGame {
   }
   if(boosting)markDashPass(this,previousX,previousY);
   updateSpaceAnomalies(this,dt);
+  updateMeteorFront(this);
   // Cull decorative effects at creation, not only when painting the frame.
   this.heritage.vfx.setViewport(this.camera());
   if(length(p.vx,p.vy)>9)p.angle=Math.atan2(p.vy,p.vx)+Math.PI/2;
   if(Math.hypot(p.vx,p.vy)>150)
    this.heritage.vfx.engineTrail(p.x,p.y,p.angle,'fighter',boosting,dt);
   p.invul=Math.max(0,p.invul-dt);
-  if(this.skillRanks.shield && this.time-this.lastDamageAt>3 &&
+  if(this.skillRanks.shield && this.time-this.lastDamageAt>3-.22*masteryPerkTier(this.combatMastery,'survivor') &&
    p.shield<16+this.skillRanks.shield*24)
    p.shield=Math.min(16+this.skillRanks.shield*24,
-    p.shield+dt*(1.8+this.skillRanks.shield*1.2));
+    p.shield+dt*(1.8+this.skillRanks.shield*1.2)*(1+.12*masteryPerkTier(this.combatMastery,'survivor')));
   if(length(p.x-this.lastX,p.y-this.lastY)>120){
    this.lastX=p.x;this.lastY=p.y;this.stationary=0;
   }else this.stationary+=dt;
@@ -5738,6 +5791,10 @@ export class ArcadeGame {
   for(const a of this.allies){
    a.hit=Math.max(0,(a.hit||0)-dt);
    updateAlly(a,this,dt);
+   if(a.hp>0&&a.hp<a.maxHp&&dist(a,this.player)<370){
+    const tier=masteryPerkTier(this.combatMastery,'wing');
+    if(tier)a.hp=Math.min(a.maxHp,a.hp+dt*.24*tier);
+   }
   }
   this.updateMissiles(dt);
   updateFlakPellets(this,dt);
@@ -5790,7 +5847,7 @@ export class ArcadeGame {
      (s.x-p.x)*s.vx+(s.y-p.y)*s.vy>0){
      s._masteryNear=true;
      const award=masteryProgress(this.combatMastery,'evasive');
-     if(award)this.notice('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);
+     if(award)this.announceMastery(award);
     }
    }
   }
@@ -5842,13 +5899,14 @@ export class ArcadeGame {
     const directXp=qualifiesForDirectCombatXp(e,this.time);
     if(!e.microSwarm&&directXp&&e._masteryDirectKill){
      const award=masteryProgress(this.combatMastery,'ace');
-     if(award)this.notice('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);
+     if(award)this.announceMastery(award);
     }
     if(!e.microSwarm&&e._masteryWingKill){
      const award=masteryProgress(this.combatMastery,'wing');
-     if(award)this.notice('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);
+     if(award)this.announceMastery(award);
     }
-    if(directXp)this.awardExperience(combatXp);
+    if(directXp)this.awardExperience(combatXp+
+     (e._masteryDirectKill?Math.round(combatXp*.04*masteryPerkTier(this.combatMastery,'ace')):0));
     rewardEyeKill(this,e,directXp);
     if(!e.microSwarm)this.addDrop('data',e.x,e.y,combatXp,
      {source:'combat',life:50,xpGranted:directXp});
@@ -6349,6 +6407,7 @@ export class ArcadeGame {
   c.save();c.translate(this.vw/2,this.vh/2);c.scale(this.cameraZoom,this.cameraZoom);
   c.translate(-p.x,-p.y);
   drawSpaceAnomalies(this,c,cam);
+  drawMeteorFront(this,c,cam);
   drawRegionalWorld(this,c,cam);
   drawHowitzerAim(c,this.heavyCharge);
   const grid=260;

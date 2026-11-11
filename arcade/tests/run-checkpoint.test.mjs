@@ -24,6 +24,7 @@ import {createFieldLoot} from '../field-loot.js';
 import {createCombatTempo} from '../combat-tempo.js';
 import {createCombatMastery,masteryProgress} from '../combat-mastery.js';
 import {createConvoyRelic} from '../convoy-relic.js';
+import {createMeteorFront} from '../meteor-front.js';
 import {createEscort} from '../escort-squad.js';
 import {advanceEnemyFortifications} from '../enemy-fortifications.js';
 import {createStrategicExperience,claimStationActivation,claimStationCapture,
@@ -62,6 +63,24 @@ test('earned mastery and a remaining convoy trophy timer survive a real checkpoi
  const restored=scene();restoreCheckpoint(restored,snapshot);
  assert.equal(restored.combatMastery.tracks.wing.rank,1);
  assert.equal(restored.convoyRelic.active.until,190);
+});
+
+test('a passing meteor front and its finite ore vein survive a station checkpoint',()=>{
+ const g=scene();g.meteorFront=createMeteorFront();
+ g.meteorFront.serial=1;g.meteorFront.active={serial:1,seed:g.seed,
+  x:2100,y:1500,at:219,angle:1.1,strikes:4,depositsMade:false};
+ const vein={id:'4:4/meteor-front-1-0',originKind:'event',x:2000,y:2050,
+  originX:2000,originY:2050,r:31,rich:true,hp:55,maxHp:55,alive:true};
+ g.world.rockCell(4,4).push(vein);
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+ assert.equal(validateCheckpoint(snapshot),true);
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ assert.equal(restored.meteorFront.active.strikes,4);
+ assert.equal(restored.meteorFront.active.x,2100);
+ assert.ok(restored.world.rockCell(4,4).some(r=>r.id===vein.id&&r.rich));
+ const forged=unpackRun(packRun(snapshot));
+ forged.state.meteorFront.active.strikes=99;
+ assert.equal(validateCheckpoint(forged),false);
 });
 
 test('specialized howitzer and several pilot doctrines survive checkpoint serialization',()=>{

@@ -9,7 +9,8 @@ import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world
 import {createTactical,validTactical} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {validFieldEvolution} from './field-evolution.js?v=parasite-clarity-1';
 import {validFieldLoot,createFieldLoot} from './field-loot.js?v=eye-loot-1';
-import {validCombatMastery,createCombatMastery} from './combat-mastery.js';
+import {validCombatMastery,createCombatMastery,migrateCombatMastery} from './combat-mastery.js';
+import {validMeteorFront,createMeteorFront} from './meteor-front.js';
 import {validConvoyRelic,createConvoyRelic} from './convoy-relic.js';
 import {validCombatTempo,createCombatTempo} from './combat-tempo.js?v=tempo-1';
 import {validFortification} from './enemy-fortifications.js?v=industrial-forts-1';
@@ -44,7 +45,7 @@ const FIELDS=('player skillRanks shipLoadout firstHardwareReward weaponThermal m
  'contract operation geoScanUntil overchargeUntil fieldLoan fieldTrialTaken fieldReturnAt ionMasteryAwarded '+
  'holdFire beamClock rocketClock zoneClock stationary lastX lastY hacks activeBases enemySerial '+
  'allySerial groupSerial heavyPortalShown lastEncounter lastEncounterLabelAt nextMoteEncounterAt amberBeltSeen ionFieldSeen '+
- 'waypoint manualWaypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc fieldEvolution fieldLoot combatTempo combatMastery convoyRelic').split(' ');
+ 'waypoint manualWaypoint lastIonAudioCycle fieldEffects tactical sortieReports economyExpenses openingArc fieldEvolution fieldLoot combatTempo combatMastery convoyRelic meteorFront').split(' ');
 const finite=(v,min=-1e9,max=1e9)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const object=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const validFieldCounters=counts=>counts===undefined||object(counts)&&
@@ -175,7 +176,8 @@ export function validateCheckpoint(data){
  if(s.tactical!==undefined&&!validTactical(s.tactical,s.time))return false;
  if(s.fieldEvolution!==undefined&&!validFieldEvolution(s.fieldEvolution,s.time))return false;
  if(!validFieldLoot(s.fieldLoot,s.time)||!validCombatTempo(s.combatTempo,s.time)||
-  !validCombatMastery(s.combatMastery)||!validConvoyRelic(s.convoyRelic,s.time))return false;
+  !validCombatMastery(s.combatMastery)||!validConvoyRelic(s.convoyRelic,s.time)||
+  !validMeteorFront(s.meteorFront,s.time))return false;
  if(s.firstHardwareReward!==undefined&&s.firstHardwareReward!==null&&
   !['pending','rail','flak','plasma'].includes(s.firstHardwareReward))return false;
  if(['rail','flak','plasma'].includes(s.firstHardwareReward)&&
@@ -325,6 +327,8 @@ export function restoreCheckpoint(game,data){
  }
  game.world=world;game.seed=data.seed;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
+ game.combatMastery=migrateCombatMastery(game.combatMastery);
+ game.meteorFront=game.meteorFront||createMeteorFront();
  game.doctrineRanks=normalizedDoctrineRanks(data.state);game.doctrine=null;
  // Temporary combat windows belong to the previous flight, not the save.
  game.commandMark=null;game.assaultBurstUntil=0;

@@ -312,6 +312,9 @@ canvas#game.rail-manual{cursor:crosshair}
 .base-contract button{flex:0 0 190px;font-size:12px;padding:10px!important;margin:0!important}
 .base-contract.ready{border-color:#ffd28d;background:linear-gradient(110deg,#254d4d,#493f31)}
 .base-contract.ready button{background:#4b6754;border-color:#adf4ba}
+.base-contract-stage-choice{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.base-contract-stage-choice small{flex:1 1 160px;color:#ffd7a3}
+.base-contract-stage-choice button{flex:1 1 180px!important;width:auto!important}
 .base-contract.active{border-color:#62adc39a}
 .base-contract.claimed,.base-contract.cooldown,.base-contract.other{border-color:#75839370;background:#162b3c}
 .base-operations .base-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -330,6 +333,18 @@ canvas#game.rail-manual{cursor:crosshair}
  letter-spacing:.025em;box-shadow:0 5px 20px #001b276b}
 .contract-objective.ready{border-color:#f5c983;color:#ffe2a7}
 .contract-objective[hidden]{display:none}
+.mission-home{position:absolute;left:50%;bottom:calc(100% + 34px);
+ transform:translateX(-50%);z-index:5;padding:4px 9px;border-radius:9px;
+ border:1px solid #f2c87991;background:#152936f2;color:#ffdf9e;
+ font-size:10px;font-weight:650;line-height:1.35;text-align:center;
+ width:max-content;max-width:min(95vw,530px);box-shadow:0 3px 12px #0007}
+.mission-home[hidden]{display:none}
+.meteor-alert{position:fixed;top:clamp(8px,2vh,22px);left:50%;transform:translateX(-50%);
+ z-index:15;max-width:95vw;padding:8px 14px;text-align:center;border-radius:10px;
+ background:#48251eee;border:1px solid #ffb26a;color:#fff0d5;font-size:12px;
+ font-weight:700;letter-spacing:.03em;box-shadow:0 4px 22px #0008;pointer-events:none}
+.meteor-alert[hidden]{display:none}
+.meteor-alert.passing{background:#56201be8;border-color:#ff766f}
 @media(max-width:660px){
  .base-operations .base-grid{grid-template-columns:1fr}
  .base-operations .base-card{min-height:0}
@@ -568,6 +583,8 @@ canvas#game.rail-manual{cursor:crosshair}
 /* Mission marker stays above the cockpit, never on its scanner or status. */
 #hud.cockpit-hud .contract-objective{position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);margin:0;z-index:4;width:max-content;max-width:min(90vw,450px);line-height:1.4}
 #hud.cockpit-hud:has(.contract-objective:not([hidden])) #message{bottom:calc(100% + 57px)}
+#hud.cockpit-hud .mission-home{bottom:calc(100% + 36px)}
+#hud.cockpit-hud:has(.mission-home:not([hidden])) #message{bottom:calc(100% + 83px)}
 
 
 /* Station decisions v2: real route context, readable risk/reward, one scroll owner. */

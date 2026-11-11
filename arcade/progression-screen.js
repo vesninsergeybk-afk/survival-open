@@ -4,7 +4,7 @@ import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalQuote} from '.
 import {developmentPointLedger} from './experience.js';
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=tactical-slot-20261110';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
-import {MASTERIES,masteryGoal,masteryBonus} from './combat-mastery.js';
+import {MASTERIES,masteryGoal,masteryBonus,masteryPerkTier,masteryNextMilestone} from './combat-mastery.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const art=(group,id)=>'./assets/progression/'+group+'/'+id+'.webp';
@@ -231,12 +231,14 @@ function masteryNodes(state){
   const rank=state.combatMastery?.tracks?.[id]?.rank||0;
   const progress=state.combatMastery?.tracks?.[id]?.progress||0;
   const goal=masteryGoal(id,rank),bonus=masteryBonus(state.combatMastery,id)*100;
+  const tier=masteryPerkTier(state.combatMastery,id),next=masteryNextMilestone(state.combatMastery,id);
   return {id:'mastery-'+id,kind:'achievement',title:spec.name,
    icon:'./studio/hud-kit/mastery-'+id+'.svg',
    level:1,rank,max:Infinity,status:'info',description:spec.task,
    effect:spec.effect+': +'+bonus.toFixed(1).replace('.',',')+'%'+
-    (id==='survivor'?' защиты':'')+'. Следующая ступень даст небольшой дополнительный бонус.',
-   activation:'Засчитывается автоматически во время вылета. Прогресс и полученные ступени сохраняются на станции.',
+    (id==='survivor'?' защиты':'')+'. '+spec.perk+': '+tier+'/4'+
+    (next?' · следующая особая ступень — '+next+'-й ранг.':' · все особые ступени открыты.') ,
+   activation:'События засчитываются автоматически. На рангах 3, 8, 16 и 32 открываются новые свойства. Дальше растёт постоянный бонус.',
    action:'',actionId:id,actionLabel:'',canAct:false,cost:'Действиями в бою',progress,goal};
  });
 }

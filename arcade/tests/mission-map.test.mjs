@@ -22,6 +22,8 @@ test('a completed contract marks exactly the issuing station, preserving a manua
  let html=renderWorldMap(game);
  assert.doesNotMatch(html,/Построить маршрут к награде/);
  assert.doesNotMatch(html,/stroke="#ffd27e"/);
+ assert.match(html,/СДАЧА · lab1/);
+ assert.match(html,/data-act="missionHomeWaypoint" data-id="lab1"/);
  game.contract.progress=3;
  html=renderWorldMap(game);
  assert.match(html,/Построить маршрут к награде/);
@@ -32,6 +34,20 @@ test('a completed contract marks exactly the issuing station, preserving a manua
  game.contract=null;
  html=renderWorldMap(game);
  assert.doesNotMatch(html,/stroke="#ffd27e"/);
+});
+
+test('meteor front and its surviving mineral deposits have different map markers',()=>{
+ const game=scenario();
+ game.world={...world,rocks:new Map([['0:0',[{
+  id:'0:0/meteor-front-1-0',originKind:'event',alive:true,x:320,y:130
+ }]]])};
+ game.meteorFront={active:{angle:0,x:300,y:0,serial:1,seed:4}};
+ const html=renderWorldMap(game);
+ assert.match(html,/Оранжевый коридор — метеоритный фронт/);
+ assert.match(html,/Руда после метеоритного фронта/);
+ assert.match(html,/Янтарные ромбы — богатая руда/);
+ game.world.rocks.get('0:0')[0].alive=false;
+ assert.doesNotMatch(renderWorldMap(game),/Руда после метеоритного фронта/);
 });
 
 test('an authored operation does not show an ordinary contract return marker',()=>{

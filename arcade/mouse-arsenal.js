@@ -3,7 +3,7 @@
 import {combatTargets,targetDistance,targetRadius,damageTarget} from './combat-targets.js?v=mouse-arms-1-triangle-defense-1-frontier-siege-1';
 import {moduleStats} from './ship-loadout.js';
 import {landingRock,planMineSites,resolveMineLanding,blastCoverFactor,railCoverPreview} from './aimed-terrain.js?v=manual-audit-20261110';
-import {masteryBonus,masteryProgress,masteryMiss} from './combat-mastery.js';
+import {masteryBonus,masteryProgress,masteryMiss,masteryPerkTier} from './combat-mastery.js';
 
 const TAU=Math.PI*2;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -82,6 +82,7 @@ const eligibleParasite=t=>!t.microSwarm&&['scout','fighter','flanker','healer','
 const canSlow=item=>!structural(item)&&!item.target.converted&&!item.target.boss&&
  !item.target.missionStructure&&!item.target.centralWorker&&!item.target.frontierWorker;
 function detonate(game,arsenal,point,radius,damage,kind){
+ if(kind==='comet')radius*=1+.045*masteryPerkTier(game.combatMastery,'comet');
  const ranks=game.skillRanks||{},core=kind==='comet'?(ranks.cometCore||0):0,
   cryo=kind==='comet'?(ranks.cometCryo||0):0,
   pierce=kind==='mine'?(ranks.minePierce||0):0,
@@ -133,7 +134,8 @@ function detonate(game,arsenal,point,radius,damage,kind){
  if(kind==='comet'&&game.combatMastery){
   if(combatHits>0){
    const award=masteryProgress(game.combatMastery,'comet');
-   if(award)game.notice?.('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);
+   if(award){if(game.announceMastery)game.announceMastery(award);
+    else game.notice?.('МАСТЕРСТВО · '+award.name+' · ступень '+award.rank,4);}
   }else masteryMiss(game.combatMastery,'comet');
  }
  game.heritage?.vfx?.nova?.(point.x,point.y,Math.min(95,radius*.7),kind==='comet'?'cyan':'violet');

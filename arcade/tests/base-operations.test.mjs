@@ -27,14 +27,16 @@ const fakeGame=(base)=>({
  baseState(){return state({ore:this.player.ore,contract:this.contract});}
 });
 
-test('each station offers exactly two mutually exclusive tasks',()=>{
+test('each station offers two short orders and one two-stage expedition',()=>{
  for(const type of ['dock','lab','arsenal','carrier']){
   const options=contractChoices(type);
-  assert.equal(options.length,2);
+  assert.equal(options.length,3);
   assert.notEqual(options[0].kind+options[0].goal,options[1].kind+options[1].goal);
+  assert.equal(options[2].stages.length,2);
   const html=renderBasePanel(station(type),state({baseTab:'operations'}));
   assert.match(html,/data-act="acceptContract" data-role="standard"/);
   assert.match(html,/data-act="acceptContract" data-role="alternate"/);
+  assert.match(html,/data-act="acceptContract" data-role="expedition"/);
  }
 });
 test('first contract advertises free hardware, then offers one clear choice location',()=>{
@@ -75,6 +77,28 @@ test('alternate task pays its own reward and remains selected after claiming',()
  const menu=renderBasePanel(dock,{...game.baseState(),baseTab:'operations'});
  assert.match(menu,/class="base-contract-wait">Новый заказ через/);
  assert.doesNotMatch(menu,/data-act="acceptContract" disabled>Ожидание/);
+});
+
+test('expedition progresses through two distinct objectives and can be delivered early',()=>{
+ const dock=station(),game=fakeGame(dock);
+ game.world={stations:new Map([[dock.id,dock]])};
+ Actions.prototype.baseAction.call(game,'acceptContract','expedition');
+ assert.equal(game.contract.stages.length,2);
+ assert.equal(game.contract.kind,'rich');
+ assert.equal(game.contract.stageIndex,0);
+ Actions.prototype.advanceContract.call(game,'mine',{rich:true});
+ assert.equal(game.contract.stageIndex,1);
+ assert.equal(game.contract.kind,'kill');
+ assert.equal(game.contract.progress,0);
+ assert.equal(eligibleContractProgress(game.contract,'mine',{rich:true}),false);
+ const menu=renderBasePanel(dock,{...game.baseState(),baseTab:'operations'});
+ assert.match(menu,/data-act="claimPartialContract"/);
+ const reward={ore:game.contract.ore,data:game.contract.data};
+ Actions.prototype.baseAction.call(game,'claimPartialContract','');
+ assert.equal(game.contract,null);
+ assert.equal(game.player.ore,80+Math.round(reward.ore*.45));
+ assert.equal(game.player.data,Math.round(reward.data*.45));
+ assert.equal(dock.contractClaimed,undefined,'partial results do not unlock full station trust');
 });
 
 test('station module purchase is affordable, local, and irreversible',()=>{

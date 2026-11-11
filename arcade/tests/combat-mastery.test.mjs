@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MASTERIES,createCombatMastery,masteryGoal,masteryBonus,
- masteryProgress,masteryMiss,validCombatMastery} from '../combat-mastery.js';
+ masteryProgress,masteryMiss,validCombatMastery,masteryPerkTier,
+ masteryNextMilestone,migrateCombatMastery} from '../combat-mastery.js';
 import {progressionModel,renderProgressionScreen} from '../progression-screen.js';
 import {game} from './weapons-scene.mjs';
 
-test('all five masteries grow through real counted events, persist and taper without a terminal rank',()=>{
+test('all seven masteries grow through counted events and keep a bounded permanent bonus',()=>{
  const state=createCombatMastery();
  assert.equal(validCombatMastery(state),true);
  for(const id of Object.keys(MASTERIES)){
@@ -31,12 +32,38 @@ test('drone and mastery directions are visible in the same development atlas',()
  assert.ok(drones.nodes.find(n=>n.actionId==='wingArmor').canAct);
  assert.match(renderProgressionScreen({...base,developmentDomain:'drones'}),/data-id="drones"/);
  const mastery=progressionModel({...base,developmentDomain:'mastery'});
- assert.equal(mastery.nodes.length,5);
+ assert.equal(mastery.nodes.length,7);
  assert.ok(mastery.nodes.every(n=>n.kind==='achievement'&&!n.canAct));
  const html=renderProgressionScreen({...base,developmentDomain:'mastery'});
  assert.match(html,/mastery-progress/);
  assert.match(html,/до следующей ступени/);
  assert.doesNotMatch(html,/data-act=""/);
+});
+
+test('earned milestones unlock functional perks, while the bonus remains bounded over a long run',()=>{
+ const state=createCombatMastery();
+ for(const id of Object.keys(MASTERIES)){
+  for(let i=0;i<3;i++)masteryProgress(state,id,masteryGoal(id,i));
+  assert.equal(masteryPerkTier(state,id),1);
+  assert.equal(masteryNextMilestone(state,id),8);
+  assert.ok(masteryBonus(state,id)<MASTERIES[id].cap);
+  assert.ok(masteryGoal(id,20)<100000,'rank twenty must remain realistically attainable');
+ }
+ assert.ok(masteryBonus(state,'comet')<masteryBonus({...state,tracks:{...state.tracks,
+  comet:{rank:12,progress:0}}},'comet'));
+});
+
+test('legacy five-track checkpoints retain earned rank and proportional progress',()=>{
+ const legacy=createCombatMastery();legacy.version=1;
+ delete legacy.tracks.mining;delete legacy.tracks.operations;
+ legacy.tracks.comet={rank:9,progress:200};
+ assert.equal(validCombatMastery(legacy),true);
+ const migrated=migrateCombatMastery(legacy);
+ assert.equal(migrated.version,2);
+ assert.equal(migrated.tracks.comet.rank,9);
+ assert.ok(migrated.tracks.comet.progress<masteryGoal('comet',9));
+ assert.equal(migrated.tracks.mining.rank,0);
+ assert.equal(validCombatMastery(migrated),true);
 });
 
 test('buying wing armor upgrades both existing and future escorts without charging alloy',()=>{

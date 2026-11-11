@@ -93,9 +93,29 @@ const ALT_CONTRACTS=Object.freeze({
  arsenal:{kind:'intercept',goal:3,ore:18,data:35,name:'Охота на перехватчики',desc:'Участвуйте в уничтожении 3 боевых кораблей, кроме разведчиков. Меньше сплава, больше опыта.'},
  carrier:{kind:'defend',goal:5,ore:28,data:45,name:'Оборона авианосца',desc:'Участвуйте в уничтожении 5 врагов в радиусе 650 м от авианосца. Меньше сплава, больше опыта.'}
 });
+// Third choice: a two-leg sortie with a genuine change of objective in flight.
+// Each stage uses the same validated combat/mining/defense events as ordinary
+// orders. A completed first stage is saved, but never paid twice.
+const EXPEDITION_CONTRACTS=Object.freeze({
+ dock:{name:'Разведка с боем',ore:38,data:37,
+  desc:'Сначала разберите богатый астероид. Затем уничтожьте три патрульных корабля вдали от дока. Вернитесь на исходную станцию.',
+  stages:[{kind:'rich',goal:1},{kind:'kill',goal:3}]},
+ lab:{name:'Защищённые образцы',ore:42,data:41,
+  desc:'Сначала уничтожьте три корабля противника. Затем добудьте богатую руду для анализа и вернитесь в лабораторию.',
+  stages:[{kind:'kill',goal:3},{kind:'rich',goal:1}]},
+ arsenal:{name:'Глубокая оборона',ore:52,data:47,
+  desc:'Сначала остановите три корабля у арсенала. Затем перехватите три боевые цели вне охранного периметра.',
+  stages:[{kind:'defend',goal:3},{kind:'intercept',goal:3}]},
+ carrier:{name:'Контрудар авиагруппы',ore:58,data:51,
+  desc:'Перехватите три боевых корабля, затем вернитесь к авианосцу и защитите его от трёх нападений.',
+  stages:[{kind:'intercept',goal:3},{kind:'defend',goal:3}]}
+});
 export const contractChoices=(type,runs=0)=>[
  {id:'standard',tag:'Основное поручение',...contractFor(type)},
- {id:'alternate',tag:'Альтернативное поручение',...(ALT_CONTRACTS[type]||ALT_CONTRACTS.dock)}
+ {id:'alternate',tag:'Альтернативное поручение',...(ALT_CONTRACTS[type]||ALT_CONTRACTS.dock)},
+ {id:'expedition',tag:'Многоэтапное поручение',kind:(EXPEDITION_CONTRACTS[type]||EXPEDITION_CONTRACTS.dock).stages[0].kind,
+  goal:(EXPEDITION_CONTRACTS[type]||EXPEDITION_CONTRACTS.dock).stages[0].goal,
+  ...(EXPEDITION_CONTRACTS[type]||EXPEDITION_CONTRACTS.dock)}
 ].map(choice=>runs>0?{...choice,
  ore:Math.max(8,Math.round(choice.ore*.65)),
  data:Math.max(6,Math.round(choice.data*.65))}:choice);
@@ -126,7 +146,11 @@ export const contractOffer=(base,state)=>{
  const chosen=choices.find(c=>c.id===(current?.baseId===base.id?current.choiceId:base.completedContract))||choices[0];
  if(current&&current.baseId!==base.id)return {...choices[0],status:'other',progress:0};
  if(current)return {...chosen,status:current.progress>=current.goal?'ready':'active',
-  progress:Math.min(current.progress,current.goal)};
+  progress:Math.min(current.progress,current.goal),goal:current.goal,
+  stageIndex:current.stageIndex||0,stages:current.stages||chosen.stages,
+  desc:current.stages?('Этап '+((current.stageIndex||0)+1)+' из '+current.stages.length+
+   ': '+({rich:'добудьте богатую руду',kill:'уничтожьте врагов',defend:'защитите станцию',
+    intercept:'перехватите боевые корабли'})[current.kind]+'. После последнего этапа вернитесь сюда за наградой.'):chosen.desc};
  const remaining=Math.ceil((base.contractCooldownUntil||0)-(state.time||0));
  if(remaining>0)return {...chosen,status:'cooldown',remaining,progress:0};
  return {...choices[0],status:!base.enemy&&!base.ruined&&!(base.hp<=0)?'available':'locked',progress:0};
@@ -272,7 +296,10 @@ const contractPanel=(o,state,compact=false)=>{
  const contractActions=c.status==='active'?
   '<div class="base-contract-actions"><div class="base-contract-progress" role="status">'+
   '<strong>В работе · '+c.progress+' из '+c.goal+'</strong>'+
+  (c.stages?'<small>Этап '+(c.stageIndex+1)+' из '+c.stages.length+'</small>':'')+
   '<progress value="'+c.progress+'" max="'+c.goal+'" aria-label="Выполнение полевого заказа"></progress></div>'+
+  (c.stages&&c.stageIndex>0?'<div class="base-contract-stage-choice"><small>Первый этап пройден. Можно продолжить ради полной награды или сдать промежуточный результат за 45% награды без роста доверия.</small>'+
+   action('claimPartialContract','Сдать промежуточный результат')+'</div>':'')+
   '<details class="base-contract-abandon"><summary>Отказаться от заказа</summary><p>Текущий прогресс будет потерян. Награду за этот заказ Вы не получите.</p>'+
   action('abandonContract','Подтвердить отказ')+'</details></div>':
   c.status==='cooldown'?'<span class="base-contract-wait">Новый заказ через '+c.remaining+' с</span>':

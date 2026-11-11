@@ -6,6 +6,7 @@ import {contactOnCircle} from '../impact-geometry.js';
 import {firstRichAsteroidExperience} from '../experience.js';
 import {claimGeologicalSurvey,createStrategicExperience,STRATEGIC_XP} from '../strategic-experience.js';
 import {prospectNoiseMultiplier,prospectMineCompleted,doctrineRank} from '../pilot-doctrines.js';
+import {masteryBonus,masteryPerkTier,masteryProgress} from '../combat-mastery.js';
 
 const gameSource=readFileSync(new URL('../game.js',import.meta.url),'utf8');
 const start=gameSource.indexOf(' damageRock(');
@@ -14,9 +15,11 @@ assert.ok(start>0&&end>start,'asteroid damage method must remain available');
 const Harness=new Function('impactRock','rockYield','MINING_NOISE','extractionNoiseDelta',
  'contactOnCircle','firstRichAsteroidExperience','claimGeologicalSurvey',
  'prospectNoiseMultiplier','prospectMineCompleted','doctrineRank',
+ 'masteryBonus','masteryPerkTier','masteryProgress',
  'return class CoverHarness {'+gameSource.slice(start,end)+'}')(
  impactRock,rockYield,MINING_NOISE,extractionNoiseDelta,contactOnCircle,firstRichAsteroidExperience,
- claimGeologicalSurvey,prospectNoiseMultiplier,prospectMineCompleted,doctrineRank);
+ claimGeologicalSurvey,prospectNoiseMultiplier,prospectMineCompleted,doctrineRank,
+ masteryBonus,masteryPerkTier,masteryProgress);
 
 test('repeated enemy impacts destroy finite asteroid cover without giving free ore',()=>{
  const broken=[],drops=[],sounds=[];
