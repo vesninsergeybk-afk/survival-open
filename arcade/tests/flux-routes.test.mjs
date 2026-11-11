@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createContours,connectContour,advanceContours,contourFields} from '../territory-system.js';
 import {stationFluxCapacity,FLUX_LOCAL_SHARE,validFluxEconomy,fieldDepths} from '../territory-economy.js';
 import {deployDepot,advanceFluxDepots,depotCapacity} from '../flux-depots.js';
+import {ensureDefenseCapacitor,validDefenseCapacitors} from '../defense-capacitors.js';
 import {buildHive,upgradeHive,roadCrew,buildRoad,roadOffer,advanceFluxRoads,
  validFluxRoutes,hiveWorkers,hiveCargo} from '../flux-routes.js';
 
@@ -33,6 +34,38 @@ test('flux collection is conserved between treasury and station reservoirs',()=>
  for(const station of world.stations.values())
   assert.ok(station.fluxStored<=stationFluxCapacity(station));
  assert.ok(validFluxEconomy(world.contours,[...world.stations]));
+});
+
+test('ten visible harvesters circulate per face without multiplying flux income',()=>{
+ const {world}=worldFixture();world.contours.flux=0;
+ advanceContours(world,1,1);
+ const fields=contourFields(world);
+ for(const field of fields){
+  const workers=world.contours.harvesters.filter(h=>h.fieldId===field.id);
+  assert.equal(workers.length,10,'each field should show ten independent siphons');
+  assert.ok(new Set(workers.map(h=>h.workerIndex)).size===10);
+  assert.ok(workers.some(h=>h.phase==='out')&&workers.some(h=>h.phase==='back'));
+ }
+ for(let time=2;time<=181;time++)advanceContours(world,time,1);
+ const actual=world.contours.delivered,
+  projected=9.6; // two face square, area=1.44m², no extraction upgrade
+ assert.ok(actual>projected*.65&&actual<projected*1.35,
+  'ten animated vehicles must not produce tenfold flux: '+actual);
+ assert.ok(world.contours.harvesters.length<=20);
+});
+
+test('a real siphon delivery can be reserved for the first triangle capacitor',()=>{
+ const {world}=worldFixture(),fields=contourFields(world);
+ const cell=ensureDefenseCapacitor(world,fields[0].center,0,fields);
+ world.contours.flux=0;
+ for(let time=1;time<=90;time++)advanceContours(world,time,1);
+ const special=cell.charge+world.contours.defenseCapacitorPackets
+  .filter(p=>p.fieldId===cell.fieldId).reduce((n,p)=>n+p.amount,0);
+ const local=[...world.stations.values()].reduce((n,s)=>n+(s.fluxStored||0),0);
+ assert.ok(special>0,'arriving siphons must gradually fill the special battery');
+ assert.ok(validDefenseCapacitors(world.contours));
+ assert.ok(Math.abs(world.contours.flux+local+special+2*.24*90/60-
+  world.contours.delivered)<.001,'no flux may be created by special batteries');
 });
 
 test('a warehouse gains capacity with depth and cannot accept more than its tank',()=>{
