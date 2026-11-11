@@ -45,7 +45,11 @@ export function ensureDefenseCapacitor(world,point,time,fields=[]){
   lastSpecialAt:-1};
  state.defenseCapacitors.push(cell);return cell;
 }
+const capacitorSyncCache=new WeakMap();
 export function ensureLegacyDefenseCapacitors(world,time,fields=[]){
+ const state=stateOf(world);if(!state)return;
+ if(time-(capacitorSyncCache.get(state)??-1e9)<3)return;
+ capacitorSyncCache.set(state,time);
  const structures=[...(world?.contours?.artillery||[]),...(world?.contours?.supportTurrets||[])];
  for(const t of structures){
   if(t.hp>0&&isFinitePoint(t)&&fields.length)ensureDefenseCapacitor(world,t,time,fields);
@@ -87,7 +91,7 @@ export function spendDefenseCharge(world,turret,amount,time){
  const cell=cells.find(c=>c.fieldId===turret?.defenseCellFieldId)||
   [...cells].sort((a,b)=>distance(a,turret)-distance(b,turret))[0];
  if(!cell||cell.readyAt>time||cell.charge+1e-8<amount||
-  time-(cell.lastSpecialAt??-1)<DEFENSE_CAPACITOR.specialGap)return false;
+  cell.lastSpecialAt>=0&&time-cell.lastSpecialAt<DEFENSE_CAPACITOR.specialGap)return false;
  cell.charge=Math.max(0,cell.charge-amount);cell.lastSpecialAt=time;return true;
 }
 export function specialThreat(game,turret,point,radius=160){
@@ -122,7 +126,7 @@ export function drawDefenseCapacitors(ctx,game,cam,preview=null){
  if(!state)return;
  const draw=(c,ghost=false)=>{
   if(c.x<cam.x-70||c.x>cam.x+cam.w+70||c.y<cam.y-70||c.y>cam.y+cam.h+70)return;
-  ctx.save();ctx.translate(c.x,c.y);ctx.globalAlpha=ghost?.6:1;
+  ctx.save();ctx.translate(c.x,c.y);ctx.globalAlpha=ghost?0.6:1;
   ctx.strokeStyle=ghost?'#b7f0ef':'#9bdcff';ctx.lineWidth=2.5;
   ctx.fillStyle=ghost?'rgba(38,80,95,.38)':'#102d43';
   ctx.beginPath();for(let i=0;i<6;i++){
@@ -156,6 +160,11 @@ export function drawDefenseCapacitors(ctx,game,cam,preview=null){
  }
  if(preview?.point&&preview?.fields){
   const location=defenseCapacitorLocation(game.world,preview.point,preview.fields);
-  if(location)draw({...location,charge:0},true);
+  if(location){
+   ctx.save();ctx.strokeStyle='rgba(255,196,109,.48)';ctx.lineWidth=2;
+   ctx.setLineDash([7,10]);ctx.beginPath();ctx.moveTo(location.sourceX,location.sourceY);
+   ctx.lineTo(location.x,location.y);ctx.stroke();ctx.restore();
+   draw({...location,charge:0},true);
+  }
  }
 }
