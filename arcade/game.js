@@ -52,7 +52,8 @@ import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=e
 import {drawEnemyCloseWarnings} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
 import {BASE_TURRET_GUN,advanceBaseTurretGun,drawBaseTurretWarnings} from './base-turret-gunnery.js';
 import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1-territory-logistics-1-flux-siphon-roads-1-turret-defense-20261110-trial-station-defense-20261110-escort-squad-20261110';
-import {advanceTurretDefenses,drawTurretDefenses,turretShieldCapacity} from './turret-defense.js?v=turret-defense-20261110-trial-station-defense-20261110';
+import {advanceTurretDefenses,drawTurretDefenses,turretShieldCapacity,damageFriendlyTurret,friendlyTurrets} from './turret-defense.js?v=turret-defense-20261110-trial-station-defense-20261110';
+import {createAreaDenial,trackAreaDenial,mineDamageAgainstTurret,AREA_DENIAL} from './area-denial.js?v=displacement-mine-20261111';
 import {commissionStationGarrison,advanceStationGarrisons,drawStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
 import {escortHireOffer,escortTrainingOffer,createEscort,escortMaxHp,
  escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
@@ -360,7 +361,7 @@ export class ArcadeGame {
   this.mining={active:false,target:null,fxClock:0};
   this.actionHeld=null;this.interactionFocus=null;this.holdFire=false;this.localStations=[];
   this.beamClock=.25;this.rocketClock=4;this.zoneClock=80;
-  this.stationary=0;this.lastX=0;this.lastY=0;this.hacks=[];this.activeBases=0;
+  this.areaDenial=createAreaDenial();this.hacks=[];this.activeBases=0;
   this.enemySerial=0;this.allySerial=0;this.groupSerial=0;this.heavyPortalShown=false;
   this.lastEncounter='';this.lastEncounterLabelAt=-30;this.nextMoteEncounterAt=MOTE_ENCOUNTER.firstAt;this.paused=false;
   this.pausedRenderPending=false;
@@ -4686,9 +4687,9 @@ export class ArcadeGame {
   this.heritage.play('hack');
   this.notice('Перепрограммировано кораблей: '+count,3.5);
  }
- hurt(damage,source=null){
+ hurt(damage,source=null,options={}){
   const p=this.player;
-  if(p.invul>0){
+  if(p.invul>0&&!options.ignoreHitGrace){
    // The projectile was stopped by the brief post-hit grace period. Show a
    // restrained contact cue. The hull stays safe; repeated contacts can
    // still wear down an energized shield, at a strictly throttled rate.
@@ -4724,7 +4725,7 @@ export class ArcadeGame {
   // An energised shield stops 85% of the impact at most; the remainder reaches
   // the hull. When the shield is nearly drained, its remaining charge is spent
   // and the unabsorbed part passes through without duplicating damage.
-  const {absorbed,hullDamage:remaining}=splitPlayerDamage(damage,p.shield);
+  const {absorbed,hullDamage:remaining}=splitPlayerDamage(damage,p.shield,options.hullTransfer);
   // The overload consumes reserve energy only, never additional hull HP.
   const overload=Math.min(Math.max(0,p.shield-absorbed),damage*(impactMultiplier-1));
   p.shield-=absorbed+overload;
@@ -5663,16 +5664,15 @@ export class ArcadeGame {
    p.shield<16+this.skillRanks.shield*24)
    p.shield=Math.min(16+this.skillRanks.shield*24,
     p.shield+dt*(1.8+this.skillRanks.shield*1.2)*(1+.12*masteryPerkTier(this.combatMastery,'survivor')));
-  if(length(p.x-this.lastX,p.y-this.lastY)>120){
-   this.lastX=p.x;this.lastY=p.y;this.stationary=0;
-  }else this.stationary+=dt;
-  if(!this.contourTrial&&this.time>55&&this.stationary>8){
-   this.stationary=0;this.zones.push({x:p.x+35,y:p.y-25,r:85,fuse:1.8,fuseStart:1.8,ttl:.3});
-   this.heritage.play('orbitalWarning',1.3,{x:p.x+35,y:p.y-25});
-   this.notice('Орбитальная наводка — уходите из круга!',2);
+  const mine=trackAreaDenial(this);
+  if(mine){
+   this.zones.push(mine);
+   this.heritage.play('orbitalWarning',1.3,mine);
+   this.notice('МИНА! Уйдите за границу отмеченного круга до взрыва.',2.5);
   }
   if(!this.contourTrial)this.zoneClock-=dt;
-  if(!this.contourTrial&&this.zoneClock<=0){
+  if(!this.contourTrial&&this.zoneClock<=0&&
+   !this.zones.some(z=>z.fuse>0&&dist(z,p)<z.r+180)){
    this.zoneClock=Math.max(12,28-this.time/110);
    const a=Math.random()*TAU;
    const zone={x:p.x+Math.cos(a)*135,y:p.y+Math.sin(a)*110,
@@ -6099,9 +6099,19 @@ export class ArcadeGame {
    z.ttl-=dt;
    if(!z.done){
     z.done=true;z.ttl=.62;
-    this.heritage.vfx.meteorStrike(z.x,z.y,z.r,z.r>80);
+    if(z.kind==='displacement-mine')this.heritage.vfx.nova(z.x,z.y,z.r,'orange');
+    else this.heritage.vfx.meteorStrike(z.x,z.y,z.r,z.r>80);
     this.heritage.play('largeExplosion',.28,{x:z.x,y:z.y});
-    if(dist(z,p)<z.r+p.r)this.hurt(27,{x:z.x,y:z.y});
+    if(dist(z,p)<z.r+p.r){
+     if(z.kind==='displacement-mine')this.hurt(z.damage,z,{
+      ignoreHitGrace:true,hullTransfer:AREA_DENIAL.hullTransfer});
+     else this.hurt(27,z);
+    }
+    if(z.kind==='displacement-mine')for(const turret of friendlyTurrets(this.world)){
+     if(turret.hp<=0||this.time<turret.readyAt||dist(z,turret)>=z.r+turret.r)continue;
+     damageFriendlyTurret(this,turret,{
+      kind:'area-blast',damage:mineDamageAgainstTurret(z),x:z.x,y:z.y});
+    }
     for(const e of this.grid.query(z.x,z.y,z.r+30))
      if(e.hp>0&&dist(z,e)<z.r+e.r)this.damageEnemy(e,32);
     for(const a of this.allies)if(a.hp>0&&dist(z,a)<z.r+a.r)this.hitAlly(a,31);

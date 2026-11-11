@@ -7,8 +7,9 @@ import {TURRET_SCREEN} from './turret-growth.js?v=trial-station-defense-20261110
 export const TURRET_DEFENSE=Object.freeze({
  shieldFraction:TURRET_SCREEN.base,armor:.34,
  rankShield:TURRET_SCREEN.perFortify,rankArmor:.05,
- shieldDelay:7,repairDelay:10,shieldRate:5.5,repairRate:2.3,
+ shieldDelay:5,repairDelay:9,shieldRate:7,repairRate:2.3,
  shieldFluxPerHp:.009,repairFluxPerHp:.022,interceptCooldown:8,
+ emergencyScreenFraction:.55,emergencyScreenCost:.65,emergencyScreenCooldown:24,
  alertInterval:9
 });
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -79,15 +80,27 @@ export function damageFriendlyTurret(game,t,shot){
  t.shield=clamp(t.shield,0,capacity);
  // A reinforced artillery mount can destroy one incoming shell on a real
  // cooldown. It is visible and costs power, so it cannot cancel a whole wave.
- if(t.kind==='flux-artillery'&&rank>=1&&!siege&&t._defensePowered&&
+ if(t.kind==='flux-artillery'&&rank>=1&&!siege&&
+    shot?.kind!=='area-blast'&&t._defensePowered&&
     now>=(t.nextInterceptAt||0)&&
     spendFlux(game.world,t,now,.045)){
   t.nextInterceptAt=now+TURRET_DEFENSE.interceptCooldown;
   game.heritage?.vfx?.nova?.(shot.x,shot.y,25,'cyan');
   return {destroyed:false,hull:0,shield:0,intercepted:true};
  }
- const shieldFactor=siege?1.55:1,
-  spent=Math.min(t.shield,raw*shieldFactor),
+ const shieldFactor=siege?1.55:1;
+ // The reserve capacitor gives an emplacement time to survive a concentrated
+ // volley. It is finite, costs flux, and cannot stop specialised siege fire.
+ const emergency=t._defensePowered&&!siege&&capacity>0&&
+   t.shield<raw*shieldFactor&&now>=(t.nextEmergencyScreenAt||0)&&
+   spendFlux(game.world,t,now,TURRET_DEFENSE.emergencyScreenCost);
+ if(emergency){
+  t.shield=Math.min(capacity,t.shield+capacity*TURRET_DEFENSE.emergencyScreenFraction);
+  t.nextEmergencyScreenAt=now+TURRET_DEFENSE.emergencyScreenCooldown;
+  t.emergencyScreenUntil=now+1.5;
+  game.heritage?.vfx?.nova?.(t.x,t.y,(t.r||38)+22,'cyan');
+ }
+ const spent=Math.min(t.shield,raw*shieldFactor),
   remainder=Math.max(0,raw-spent/shieldFactor),
   hull=remainder*(siege?1:1-TURRET_DEFENSE.armor-TURRET_DEFENSE.rankArmor*rank);
  t.shield-=spent;t.hp=Math.max(0,t.hp-hull);
@@ -95,7 +108,8 @@ export function damageFriendlyTurret(game,t,shot){
   game._turretAlertAt=now+TURRET_DEFENSE.alertInterval;
   t._turretAlertAt=now+15;
   game.notice?.('ПОД ОБСТРЕЛОМ · '+turretStructureName(t)+
-   (t.shield<=0?' · ЩИТ ПРОБИТ!':' · защитный экран держится'),4);
+   (emergency?' · включён резервный экран':
+    t.shield<=0?' · ЩИТ ПРОБИТ!':' · защитный экран держится'),4);
  }
  return {destroyed:t.hp<=0,hull,shield:spent,intercepted:false};
 }
@@ -107,6 +121,13 @@ export function drawTurretDefenses(ctx,game,cam){
   const cap=turretShieldCapacity(t),fraction=cap>0?clamp((t.shield||0)/cap,0,1):0;
   ctx.save();
   if(fraction>.01){
+   const surge=now<(t.emergencyScreenUntil||0);
+   ctx.fillStyle=surge?'rgba(105,238,255,.14)':'rgba(99,220,255,.045)';
+   ctx.beginPath();ctx.arc(t.x,t.y,(t.r||38)+9,0,Math.PI*2);ctx.fill();
+   if(surge){
+    ctx.strokeStyle='rgba(179,255,255,.93)';ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(t.x,t.y,(t.r||38)+13,0,Math.PI*2);ctx.stroke();
+   }
    ctx.strokeStyle='rgba(99,220,255,.74)';ctx.lineWidth=2.3;
    ctx.beginPath();ctx.arc(t.x,t.y,(t.r||38)+9,-Math.PI/2,
     -Math.PI/2+Math.PI*2*fraction);ctx.stroke();

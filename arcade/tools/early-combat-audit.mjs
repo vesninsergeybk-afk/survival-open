@@ -50,7 +50,7 @@ export function runEarlyCombatScenario({seed=111,mode='idle',seconds=120,hz=60,
  }
  const originalRandom=Math.random;
  let randomSeed=seed>>>0;
- let maxEnemies=0,maxNearby=0,hits=0,noiseShips=0,firstChoiceHull=null;
+ let maxEnemies=0,maxNearby=0,hits=0,noiseShips=0,firstChoiceHull=null,mineAlerts=0;
  const samples=[],step=1/hz;
  try{
   Math.random=()=>((randomSeed=Math.imul(randomSeed,1664525)+1013904223>>>0)/4294967296);
@@ -64,7 +64,9 @@ export function runEarlyCombatScenario({seed=111,mode='idle',seconds=120,hz=60,
     g.touch.x=[1,0,-1,0][leg];g.touch.y=[0,1,0,-1][leg];
    }
    const previousHp=g.player.hp;
+   const previousMineAt=g.areaDenial?.nextChargeAt||0;
    g.update(step);
+   if((g.areaDenial?.nextChargeAt||0)>previousMineAt)mineAlerts++;
    if(g.time-step<OPENING_ARC.offerAt&&g.time>=OPENING_ARC.offerAt)
     firstChoiceHull=+g.player.hp.toFixed(1);
    if(g.player.hp<previousHp)hits++;
@@ -81,11 +83,14 @@ export function runEarlyCombatScenario({seed=111,mode='idle',seconds=120,hz=60,
    maxNearby=Math.max(maxNearby,nearby);
    if(frame%Math.max(1,Math.round(30*hz))===0||g.dead)
     samples.push({time:+g.time.toFixed(1),hull:+g.player.hp.toFixed(1),
+     shield:+g.player.shield.toFixed(1),mines:mineAlerts,
+     contactAgo:+(g.time-(g.combatTempo?.lastContactAt??-1000)).toFixed(1),
+     targetingSamples:g.areaDenial?.samples?.length||0,trial:!!g.contourTrial,
      level:g.player.level,alive:alive.length,nearby,spawnClock:+(g.spawnClock||0).toFixed(1)});
   }
   return {seed,mode,seconds:+g.time.toFixed(1),dead:g.dead,
    hull:+g.player.hp.toFixed(1),level:g.player.level,hits,firstChoiceHull,
-   maxEnemies,maxNearby,noiseShips,samples};
+   maxEnemies,maxNearby,noiseShips,mineAlerts,samples};
  }finally{Math.random=originalRandom;}
 }
 export function runEarlyCombatMatrix({

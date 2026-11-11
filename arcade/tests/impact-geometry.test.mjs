@@ -88,7 +88,7 @@ test('rock hit graphics use the segment contact but preserve its damage path',()
 });
 
 test('shield ring stays centered while damage contact faces the real source',()=>{
- const C=method("hurt(damage,source=null){","die()");
+ const C=method("hurt(damage,source=null,options={}){","die()");
  const recorded=[];
  const game={time:1,nearDockField:false,nearArsenalDefense:false,
   player:{x:100,y:100,r:19,hp:110,maxHp:110,shield:25,invul:0,vx:0,vy:0,angle:0},

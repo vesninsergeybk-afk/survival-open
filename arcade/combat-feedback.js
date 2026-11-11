@@ -11,10 +11,11 @@ export function drawOrbitalWarning(ctx,zone,time=0,reducedMotion=false){
  const total=Math.max(.01,zone.fuseStart||zone.fuse||.01);
  const remaining=clamp((zone.fuse||0)/total,0,1);
  const imminent=remaining<.28;
+ const mine=zone.kind==='displacement-mine';
  ctx.save();
- ctx.fillStyle=imminent?'#ff657028':'#e1435316';
+ ctx.fillStyle=imminent?'#ff657028':mine?'#ff7b391b':'#e1435316';
  ctx.beginPath();ctx.arc(zone.x,zone.y,radius,0,TAU);ctx.fill();
- ctx.strokeStyle=imminent?'#ffab7b':'#ff687e';
+ ctx.strokeStyle=imminent?'#ffab7b':mine?'#ff9d58':'#ff687e';
  ctx.lineWidth=2.5;
  ctx.beginPath();ctx.arc(zone.x,zone.y,radius,0,TAU);ctx.stroke();
  // Exact countdown segment, anchored to the same radius as the hit zone.
@@ -33,9 +34,20 @@ export function drawOrbitalWarning(ctx,zone,time=0,reducedMotion=false){
   ctx.lineTo(zone.x+Math.cos(a)*(inner+cross),zone.y+Math.sin(a)*(inner+cross));
   ctx.stroke();
  }
+ if(mine){
+  // A visible device at the centre distinguishes the grenade from a generic
+  // orbital reticle, even at reduced motion or with colour perception limits.
+  const pin=13+(reducedMotion?0:Math.sin(time*10)*1.5);
+  ctx.fillStyle='#ffba72';ctx.strokeStyle='#fff5d5';ctx.lineWidth=1.7;
+  ctx.beginPath();ctx.moveTo(zone.x,zone.y-pin);
+  ctx.lineTo(zone.x+pin*.68,zone.y);ctx.lineTo(zone.x,zone.y+pin);
+  ctx.lineTo(zone.x-pin*.68,zone.y);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='#682c26';ctx.beginPath();ctx.arc(zone.x,zone.y,4.5,0,TAU);ctx.fill();
+ }
  ctx.fillStyle=imminent?'#fff0bd':'#ffd0ca';
  ctx.font='bold 12px system-ui';ctx.textAlign='center';
- ctx.fillText(Math.max(0,zone.fuse).toFixed(1)+' с',zone.x,zone.y-radius-12);
+ ctx.fillText((mine?'МИНА · ':'')+Math.max(0,zone.fuse).toFixed(1)+' с',
+  zone.x,zone.y-radius-12);
  ctx.restore();
 }
 

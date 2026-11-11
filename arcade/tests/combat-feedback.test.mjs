@@ -22,6 +22,15 @@ test('orbital marker matches physical strike radius and true remaining time',()=
  assert.equal(zone.fuse,1.2,'render never alters game fuse');
 });
 
+test('a thrown charge has a distinct device icon and an explicit escape timer',()=>{
+ const ctx=context();
+ drawOrbitalWarning(ctx,{kind:'displacement-mine',x:12,y:15,r:215,
+  fuse:2.05,fuseStart:2.05},3,true);
+ assert.ok(ctx.calls.some(c=>c[0]==='fillText'&&c[1]==='МИНА · 2.0 с'));
+ assert.ok(ctx.calls.some(c=>c[0]==='closePath'),
+  'the charge icon must remain visible without colour or animation');
+});
+
 test('low-fps beams use a single stroke; high-fps beams add two layers',()=>{
  const flash={x:0,y:0,x2:80,y2:5,ttl:.08,color:'#87eeff'};
  const slow=context(),fast=context();
