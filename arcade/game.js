@@ -6107,8 +6107,8 @@ export class ArcadeGame {
     const mineDamage=mineVolleyDamage(p,blasts,p.r,z.damage);
     if(mineDamage>0)this.hurt(mineDamage,z,{
      ignoreHitGrace:true,hullTransfer:AREA_DENIAL.hullTransfer});
-    for(const e of this.grid.query(z.x,z.y,z.r+40))
-     if(e.hp>0&&insideMineBlasts(e,blasts,e.r))this.damageEnemy(e,32);
+    // Hostile mines recognise their own faction: enemy craft cannot destroy
+    // their allies by planting explosives close to the player's position.
     for(const a of this.allies)
      if(a.hp>0&&insideMineBlasts(a,blasts,a.r))this.hitAlly(a,31);
     // Enemy anti-ship mines deliberately cannot damage static emplacements.
