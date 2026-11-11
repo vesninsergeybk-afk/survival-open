@@ -955,7 +955,7 @@ export function renderBasePanel(base,state){
  // already has enough alloy to choose a specialist.
  const quickHire=Object.entries(ESCORTS).map(([role,spec])=>{
   const quote=escortHireOffer(base,state,role);
-  return action('hire','Нанять «'+spec.name+'» · '+spec.cost+' сплава',quote.reason,role,spec.desc);
+  return action('hire','Нанять «'+(role==='scout'?'Стража':spec.name)+'» · '+spec.cost+' сплава',quote.reason,role);
  }).join('');
  const sectorPreview='<aside class="base-overview-sector" aria-label="Известные узлы сектора">'+
   '<span class="base-kicker">ОБСТАНОВКА</span><h3>Известный сектор</h3>'+basePreview(base,state)+'</aside>';
@@ -985,6 +985,7 @@ export function renderBasePanel(base,state){
   '<p>В строю <b>'+state.allies+' / '+o.cap+'</b>'+(state.droneDamage>0?' · есть повреждения':'')+'</p></div>'+
   '<button type="button" class="menu-info" data-help-only data-help="Все пять моделей продаются на каждой действующей станции. Затем сравните их характеристики во вкладке «Дроны»." aria-label="О найме боевых дронов">i</button>'+
   '<div class="base-quick-buttons">'+quickHire+
+  (o.reasons.hire?'<small class="base-action-reason">'+o.reasons.hire+'</small>':'')+
   (state.droneDamage>0?action('repairDrones','Починить дронов · '+o.droneRepairCost+' сплава',o.reasons.drones)+
    (o.reasons.drones?'<small class="base-action-reason">'+o.reasons.drones+'</small>':''):'')+
   '</div><small>Нанимайте разведчиков, истребителей, штурмовиков, ракетчиков и ремонтников по единым ценам. Места в звене открываются с подключением станций.</small>'+
