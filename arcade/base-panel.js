@@ -951,7 +951,12 @@ export function renderBasePanel(base,state){
  const quickRepair=o.repairAmount>0?
   action('repair','Починить · '+o.repairCost+' сплава · +'+Math.ceil(o.repairAmount)+' прочности',o.reasons.repair):
   '<span class="base-ready">Корпус исправен</span>';
- const quickHire=action('hire','Нанять «Стража» · '+o.hireCost+' сплава',o.reasons.hire,o.drone.role);
+ // The overview must not present only the cheapest scout when the player
+ // already has enough alloy to choose a specialist.
+ const quickHire=Object.entries(ESCORTS).map(([role,spec])=>{
+  const quote=escortHireOffer(base,state,role);
+  return action('hire','Нанять «'+(role==='scout'?'Стража':spec.name)+'» · '+spec.cost+' сплава',quote.reason,role);
+ }).join('');
  const sectorPreview='<aside class="base-overview-sector" aria-label="Известные узлы сектора">'+
   '<span class="base-kicker">ОБСТАНОВКА</span><h3>Известный сектор</h3>'+basePreview(base,state)+'</aside>';
  const receipt=state.lastContractReceipt;
@@ -978,7 +983,7 @@ export function renderBasePanel(base,state){
   '<section class="base-quick-service base-quick-drones"><span class="base-kicker">ПОДДЕРЖКА</span><h3>Боевые дроны</h3>'+
   '<div class="base-drone-status"><img src="./assets/progression/weapons/allied_drone.webp" alt="" loading="lazy" width="88" height="88">'+
   '<p>В строю <b>'+state.allies+' / '+o.cap+'</b>'+(state.droneDamage>0?' · есть повреждения':'')+'</p></div>'+
-  '<button type="button" class="menu-info" data-help-only data-help="'+o.drone.desc+'" aria-label="О боевом дроне">i</button>'+
+  '<button type="button" class="menu-info" data-help-only data-help="Все пять моделей продаются на каждой действующей станции. Затем сравните их характеристики во вкладке «Дроны»." aria-label="О найме боевых дронов">i</button>'+
   '<div class="base-quick-buttons">'+quickHire+
   (o.reasons.hire?'<small class="base-action-reason">'+o.reasons.hire+'</small>':'')+
   (state.droneDamage>0?action('repairDrones','Починить дронов · '+o.droneRepairCost+' сплава',o.reasons.drones)+

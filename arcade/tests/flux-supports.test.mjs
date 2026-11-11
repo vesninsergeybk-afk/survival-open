@@ -163,8 +163,8 @@ test('nearby laser receives a genuinely usable first volley within the first ten
  const t=deploySupport(world,player,point,0,'laser').turret;
  tick(game,.25,10,.25);
  assert.ok(t.ammo>=1,'a rapid-fire defense should not idle for most of a skirmish');
- assert.ok(world.contours.flux<200-SUPPORT_TYPES.laser.fluxCost,
-  'the first charge must actually deduct operating flux');
+ assert.equal(world.contours.flux,200-SUPPORT_TYPES.laser.fluxCost,
+  'basic laser volleys must not spend the strategic treasury');
  assert.equal(validFluxSupports(world.contours),true);
 });
 
@@ -178,13 +178,13 @@ test('selected support turrets draw their actual range, including an upgraded dr
   set:(obj,key,value)=>(obj[key]=value,true)});
  game.artilleryMenuTarget=hive;
  drawFluxSupports(ctx,game,{x:0,y:0,w:1600,h:1100});
- assert.ok(radii.includes(260));
+ assert.ok(radii.includes(410));
  hive.branches={reach:1};radii.length=0;
  drawFluxSupports(ctx,game,{x:0,y:0,w:1600,h:1100});
- assert.ok(radii.includes(335));
+ assert.ok(radii.includes(485));
 });
 
-test('mothership immediately launches twelve fragile drones and replaces losses with paid flux',()=>{
+test('mothership launches twelve fragile drones and replaces losses from network power',()=>{
  const {world,player,point,game}=fixture();
  const hive=deploySupport(world,player,point,0,'hive').turret;
  game.time=5;advanceFluxSupports(game,1);
@@ -198,7 +198,7 @@ test('mothership immediately launches twelve fragile drones and replaces losses 
  assert.equal(validFluxSupports(world.contours),true);
  tick(game,6,145);
  assert.equal(hive.drones.filter(d=>d.hp>0).length,12,'destroyed microdrone replaced');
- assert.ok(world.contours.flux<initialFlux-.5,'a replacement costs real flux');
+ assert.equal(world.contours.flux,initialFlux,'normal drone replacement costs network energy, not harvested flux');
  const level=upgradeSupport(world,player,hive,game.time);
  assert.equal(level.level,2);
  assert.equal(upgradeSupport(world,player,hive,game.time).level,3);

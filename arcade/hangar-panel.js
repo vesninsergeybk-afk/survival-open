@@ -20,7 +20,7 @@ const info=(name,description)=>'<button type="button" class="menu-info" data-hel
 const weaponDescription=(item,controls)=>(item.kind==='manual'?
  'Полевое оружие · '+readableKey(controls.fieldWeapon)+'. '+item.desc:item.desc)
  .replace('R по умолчанию',readableKey(controls.railMode))
- .replace('F по умолчанию',readableKey(controls.howitzer));
+ .replace('G по умолчанию',readableKey(controls.howitzer));
 const moduleRequirement=(id,context)=>moduleLock(id,context);
 const rankTrack=(rank,max)=>'<span class="dev-rank-track" aria-label="Изучено '+rank+' из '+max+'">'+
  Array.from({length:max},(_,i)=>'<i'+(i<rank?' class="filled"':'')+'></i>').join('')+'</span>';
@@ -153,7 +153,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   manualCount=current.manualSlots.filter(Boolean).length;
  const assembly='<section class="hg-ship"><div class="hg-section-head"><div><span class="hg-eyebrow">СХЕМА ОСНАЩЕНИЯ</span><h3>Ваш корабль</h3></div><span class="hg-stage">Авто: '+automaticCount+'/'+frame.nodes+' · Ручные: '+manualCount+'/2'+(frame.heavy?' · H':'')+'</span></div>'+
   (session.chooseReplacement?'<div class="hg-replacement-prompt" role="status"><strong>Нет свободных узлов для '+esc(MODULES[session.requestedWeapon]?.name||'этого оружия')+'</strong><p>Нажмите на занятый узел корабля, чтобы выбрать замену. До подтверждения ничего не изменится и сплав не потратится.</p></div>':'')+
-  shipScene(context,session)+'<p class="hg-scene-caption">Нажмите на узел, чтобы выбрать для него оружие. Узлы 1–5 — автоматические, M1 и M2 — ручное полевое оружие (G), H — тяжёлое. Устройство на пробел выбирается отдельно во вкладке «Устройства».</p>'+
+  shipScene(context,session)+'<p class="hg-scene-caption">Нажмите на узел, чтобы выбрать для него оружие. Узлы 1–5 — автоматические, M1 и M2 — ручное полевое оружие ('+esc(readableKey((context.controls||DEFAULT_CONTROLS).fieldWeapon))+'), H — тяжёлое. Устройство на пробел выбирается отдельно во вкладке «Устройства».</p>'+
   (!open?'<div class="hg-locked-node"><p>Узел '+labelFor(slot)+' ещё закрыт.</p><button type="button" data-act="openDevelopment" data-id="ship">Условия открытия узла</button></div>':'')+
   '<div class="hg-slot-strip" aria-label="Состав предварительной сборки">'+
   [...draft.slots,...draft.manualSlots].map((item,i)=>

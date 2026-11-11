@@ -1,4 +1,6 @@
 import {contourFields} from './territory-system.js';
+import {ensureDefenseCapacitor,spendDefenseCharge,specialThreat,DEFENSE_CAPACITOR}
+ from './defense-capacitors.js';
 import {frontierBuoysNear,damageFrontierBuoy} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {productiveContourFields,hasPoweredContour} from './contour-trials.js';
 import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
@@ -12,8 +14,8 @@ import {artilleryBarrels,artilleryCooldown,artilleryBlast,artilleryRange,artille
 export const FLUX_ARTILLERY=Object.freeze({
  name:'Громовая батарея',
  buildRadius:560,clearance:125,stationClearance:105,oreCost:20,fluxCost:1,
- maxHp:110,magazine:15,chargeCost:.25,damage:18,blastRadius:110,
- range:740,aimSeconds:.42,cooldown:8,buildSeconds:3,
+ maxHp:110,magazine:15,chargeCost:.25,damage:26,blastRadius:110,
+ range:940,aimSeconds:.35,cooldown:6,buildSeconds:3,
  cableScale:700,baseFluxPerMinute:ARTILLERY_BASE_FLUX_PER_MINUTE,packetSpeed:520,maxTurrets:72,maxPackets:256,
  maxShells:96,shellSpeed:830,impactLifetime:.9,wreckLifetime:5,
  collisionRadius:38,turnSpeed:2.9,muzzleOffset:60,
@@ -128,8 +130,7 @@ const artilleryState=world=>{
  state.artillerySerial??=0;
  return state;
 };
-export const maxArtilleryPreload=world=>Math.max(0,Math.min(1000000,
- Math.floor(((world?.contours?.flux||0)-FLUX_ARTILLERY.fluxCost+1e-8)/FLUX_ARTILLERY.chargeCost)));
+export const maxArtilleryPreload=world=>world?.contours?.trials?.completed?FLUX_ARTILLERY.magazine:0;
 export function artilleryOffer(world,player,point,preload=0){
  const state=world?.contours;
  if(!state||!Number.isFinite(point?.x)||!Number.isFinite(point?.y))
@@ -146,7 +147,8 @@ export function artilleryOffer(world,player,point,preload=0){
   return {ok:false,reason:'Достигнут технический предел сооружений'};
  if([...live,...(state.fluxDepots||[]).filter(t=>t.hp>0),
   ...(state.fluxSiphonHives||[]).filter(t=>t.hp>0)]
-  .some(t=>distance(t,point)<FLUX_ARTILLERY.clearance))
+  .some(t=>distance(t,point)<FLUX_ARTILLERY.clearance)||
+  (state.defenseCapacitors||[]).some(c=>distance(c,point)<75))
   return {ok:false,reason:'Слишком близко к другому сооружению'};
  if([...world.stations.values()].some(s=>distance(s,point)<FLUX_ARTILLERY.stationClearance))
   return {ok:false,reason:'Слишком близко к станции'};
@@ -156,11 +158,11 @@ export function artilleryOffer(world,player,point,preload=0){
   return {ok:false,reason:'Грань занята · улучшите вместимость опорных линий за флюкс'};
  if((player.ore||0)<FLUX_ARTILLERY.oreCost)
   return {ok:false,reason:'Недостаточно сплава: нужно '+FLUX_ARTILLERY.oreCost};
- if(!Number.isSafeInteger(preload)||preload<0||preload>1000000)
+ if(!Number.isSafeInteger(preload)||preload<0||preload>FLUX_ARTILLERY.magazine)
   return {ok:false,reason:'Укажите допустимое количество стартовых снарядов'};
- const totalFlux=FLUX_ARTILLERY.fluxCost+preload*FLUX_ARTILLERY.chargeCost;
+ const totalFlux=FLUX_ARTILLERY.fluxCost; // Basic ammunition is produced by the powered line.
  if(state.flux+1e-8<totalFlux)
-  return {ok:false,reason:'Недостаточно флюкса: нужно '+totalFlux.toFixed(2)+' ед. с зарядкой'};
+  return {ok:false,reason:'Недостаточно флюкса на строительство: нужно '+totalFlux.toFixed(2)+' ед.'};
  return {ok:true,connection};
 }
 export function deployArtillery(world,player,point,time,preload=0){
@@ -171,7 +173,7 @@ export function deployArtillery(world,player,point,time,preload=0){
  // legal replacement or exceed the bounded checkpoint array.
  if(state.artillery.length>=FLUX_ARTILLERY.maxTurrets)
   state.artillery=state.artillery.filter(t=>t.hp>0);
- state.flux=Math.max(0,state.flux-FLUX_ARTILLERY.fluxCost-preload*FLUX_ARTILLERY.chargeCost);
+ state.flux=Math.max(0,state.flux-FLUX_ARTILLERY.fluxCost);
  player.ore-=FLUX_ARTILLERY.oreCost;
  const turret={id:++state.artillerySerial,kind:'flux-artillery',x:point.x,y:point.y,
   r:FLUX_ARTILLERY.collisionRadius,hp:FLUX_ARTILLERY.maxHp,maxHp:FLUX_ARTILLERY.maxHp,
@@ -182,6 +184,9 @@ export function deployArtillery(world,player,point,time,preload=0){
   lastDestroyedAt:-1,gunAngle:-Math.PI/2,branches:{},
   salvoLeft:0,salvoFired:0,salvoNextAt:0,barrelLastShots:[]};
  turret.level=1;
+ const cell=ensureDefenseCapacitor(world,point,time,
+  productiveContourFields(world,contourFields(world)));
+ if(cell)turret.defenseCellFieldId=cell.fieldId;
  state.artillery.push(turret);
  return {ok:true,turret,connection:offer.connection,preload};
 }
@@ -349,6 +354,10 @@ function fireBarrel(game,state,turret,time){
   turret.salvoLeft=0;return false;
  }
  const shotIndex=turret.salvoFired||0;
+ if(shotIndex===0)turret.specialSalvo=
+  specialThreat(game,turret,{x:turret.aimX,y:turret.aimY},artilleryBlast(turret)+85)&&
+  spendDefenseCharge(game.world,turret,DEFENSE_CAPACITOR.artilleryCost,time);
+ const powered=!!turret.specialSalvo;
  const barrel=shotIndex%artilleryBarrels(turret),angle=turret.gunAngle;
  const mount=barrelMount(turret,barrel);
  const nx=-Math.sin(angle),ny=Math.cos(angle);
@@ -361,9 +370,10 @@ function fireBarrel(game,state,turret,time){
  const travel=distance({x:startX,y:startY},{x:targetX,y:targetY});
  state.artilleryShells.push({turretId:turret.id,startX,startY,targetX,targetY,
   launchedAt:time,arriveAt:time+.25+travel/FLUX_ARTILLERY.shellSpeed,
-  blastRadius:artilleryBlast(turret),damage:artilleryShellDamage(turret),
+  blastRadius:artilleryBlast(turret)*(powered?1.25:1),
+  damage:artilleryShellDamage(turret)*(powered?1.7:1),
   powerRank:turretBranchRank(turret,'power'),
-  anomaly:turretBranchRank(turret,'anomaly'),
+  anomaly:Math.max(turretBranchRank(turret,'anomaly'),powered?1:0),
   ...(guidance&&Number.isSafeInteger(turret.lockedSerial)?{
    guidanceRank:guidance,trackSerial:turret.lockedSerial,
    lockX:targetX,lockY:targetY}:{}),
@@ -371,6 +381,7 @@ function fireBarrel(game,state,turret,time){
  turret.ammo-=units;turret.lastShotAt=time;
  turret.barrelLastShots??=[];turret.barrelLastShots[barrel]=time;
  turret.salvoFired=shotIndex+1;turret.salvoLeft--;
+ if(turret.salvoLeft===0)turret.specialSalvo=false;
  turret.salvoNextAt=time+.095;
  game.heritage?.play?.('artilleryLaunch',.18,turret);
  return true;
@@ -467,28 +478,19 @@ export function advanceFluxArtillery(game,dt){
    }
   }
   if(link){
-   const congestion=sideCounts.get(link.edgeId)||1;
-   // The farther the platform is from the powered side, the less energy it
-   // receives per second. The offset avoids a singularity on the edge.
-   const depot=nearestSupplyDepot(game.world,turret,time);
-   const cableRate=depot?Math.pow(1+distance(depot,turret)/FLUX_ARTILLERY.cableScale,-2):
-    Math.pow(1+link.cable/FLUX_ARTILLERY.cableScale,-2);
-   const rate=artillerySupply(turret)/60*cableRate/congestion*(depot?1.7:1);
+   // The live network powers ordinary rounds. Distance and neighboring guns
+   // never silently tax the strategic flux treasury or starve basic fire.
+   const rate=artillerySupply(turret)/60;
    turret.chargeCredit=Math.min(1,turret.chargeCredit+rate*dt);
    const pending=state.artilleryPackets.filter(p=>p.turretId===turret.id)
     .reduce((sum,p)=>sum+p.charges,0);
    const needed=Math.max(0,artilleryMagazine(turret)-turret.ammo-pending-(turret.stockpile||0));
-   const affordable=Math.floor(((depot?depot.stored:state.flux)+1e-8)/FLUX_ARTILLERY.chargeCost);
    const earned=Math.floor((turret.chargeCredit+1e-8)/FLUX_ARTILLERY.chargeCost);
-   const charges=Math.min(4,needed,affordable,earned);
+   const charges=Math.min(4,needed,earned);
    if(charges>0&&state.artilleryPackets.length<FLUX_ARTILLERY.maxPackets){
-    const amount=charges*FLUX_ARTILLERY.chargeCost;
-    if(depot)takeDepotFlux(depot,amount);
-    else state.flux=Math.max(0,state.flux-amount);
+    const amount=charges*FLUX_ARTILLERY.chargeCost; // network energy, not harvested flux
     turret.chargeCredit=Math.max(0,turret.chargeCredit-amount);
-    const path=depot?[{x:depot.x,y:depot.y},
-     {x:(depot.x+turret.x)/2,y:(depot.y+turret.y)/2},
-     {x:turret.x,y:turret.y}]:link.route;
+    const path=link.route;
     const travel=distance(path[0],path[1])+distance(path[1],path[2]);
     state.artilleryPackets.push({turretId:turret.id,edgeId:link.edgeId,
      amount,charges,launchedAt:time,arriveAt:time+.5+travel/FLUX_ARTILLERY.packetSpeed,path});
@@ -511,7 +513,7 @@ export function advanceFluxArtillery(game,dt){
    if(FLUX_ARTILLERY.maxShells-state.artilleryShells.length<artillerySalvoSize(turret))continue;
    turret.nextShotAt=time+artilleryCooldown(turret);
    turret.salvoLeft=artillerySalvoSize(turret);
-   turret.salvoFired=0;turret.salvoNextAt=time;turret.barrelLastShots=[];
+   turret.salvoFired=0;turret.specialSalvo=false;turret.salvoNextAt=time;turret.barrelLastShots=[];
    fireBarrel(game,state,turret,time);
    continue;
   }

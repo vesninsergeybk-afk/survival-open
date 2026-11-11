@@ -57,7 +57,7 @@ test('all four structures have real, separately purchasable paths including rang
  }
 });
 
-test('heavy rounds consume prepaid quarter-flux units and reach five flux per shell',()=>{
+test('heavy rounds require twenty network energy units and do not consume harvested flux',()=>{
  const pack=fixture(),{world,player,game,point}=pack;
  const t=deployArtillery(world,player,point,0).turret;
  buyAll(pack,t,'power');
@@ -81,8 +81,8 @@ test('heavy rounds consume prepaid quarter-flux units and reach five flux per sh
  const shell=world.contours.artilleryShells[0];
  assert.equal(shell.damage,480);
  for(let i=0;i<8&&t.salvoLeft>0;i++){game.time+=.05;advanceFluxArtillery(game,.05);}
- assert.equal(t.salvoLeft,0);assert.equal(t.ammo,0);
- assert.equal(world.contours.flux,0,'firing spends the already delivered charge, never charges global flux twice');
+ assert.equal(t.salvoLeft,0);assert.ok(t.ammo>=0&&t.ammo<20,'network may refill while heavy salvo fires');
+ assert.equal(world.contours.flux,0,'ordinary heavy shells must not spend collected strategic flux');
  assert.equal(validFluxArtillery(world.contours),true);
  shell.damage=Infinity;assert.equal(validFluxArtillery(world.contours),false);
 });
@@ -90,21 +90,21 @@ test('heavy rounds consume prepaid quarter-flux units and reach five flux per sh
 test('buying range upgrades truly expands targeting of artillery and chain nodes',()=>{
  const pack=fixture(),{world,player,point,game}=pack;
  const battery=deployArtillery(world,player,point,0).turret;
- const farEnemy={x:point.x+800,y:point.y,hp:100,maxHp:100,r:12};
+ const farEnemy={x:point.x+1000,y:point.y,hp:100,maxHp:100,r:12};
  game.enemies=[farEnemy];
- assert.equal(artilleryRange(battery),740);
+ assert.equal(artilleryRange(battery),940);
  assert.equal(chooseArtilleryAim(game,battery),null);
  assert.equal(buyTurretBranch(world,player,battery,'reach',5).ok,true);
- assert.equal(artilleryRange(battery),850);
+ assert.equal(artilleryRange(battery),1100);
  assert.ok(chooseArtilleryAim(game,battery),'far enemy is now targetable');
  const arc=deploySupport(world,player,{x:960,y:300},0,'arc').turret;
  arc.readyAt=0;arc.ammo=1;arc.gunAngle=0;
- assert.equal(arcRange(arc),440);
- const arcEnemy={x:arc.x+480,y:arc.y,hp:100,maxHp:100,r:12};
+ assert.equal(arcRange(arc),600);
+ const arcEnemy={x:arc.x+660,y:arc.y,hp:100,maxHp:100,r:12};
  game.enemies=[arcEnemy];game.time=.1;advanceFluxSupports(game,.1);
  assert.equal(game.hits.length,0);
  assert.equal(buyTurretBranch(world,player,arc,'reach',5).ok,true);
- assert.equal(arcRange(arc),520);
+ assert.equal(arcRange(arc),720);
  game.time=.2;advanceFluxSupports(game,.1);
  assert.equal(game.hits.length,1);
 });
@@ -207,14 +207,14 @@ test('high firing-speed ranks increase logistics but cannot bypass a broken cont
  buyAll(fast,a,'tempo');
  assert.ok(supportSupply(a,3.4)>supportSupply(b,3.4));
  a.readyAt=b.readyAt=0;
- for(let time=1;time<=95;time++){
+ for(let time=1;time<=18;time++){
   fast.game.time=slow.game.time=time;
   advanceFluxSupports(fast.game,1);advanceFluxSupports(slow.game,1);
  }
  assert.ok(a.ammo>b.ammo,'supplied rapid-firing node builds more real prepaid charges');
  fast.world.stations.get('B').suppressed=true;
  const ammo=a.ammo;
- for(let time=96;time<=112;time++){fast.game.time=time;advanceFluxSupports(fast.game,1);}
+ for(let time=19;time<=35;time++){fast.game.time=time;advanceFluxSupports(fast.game,1);}
  assert.equal(a.ammo,ammo,'even full upgrades cannot conjure ammo without a live cable');
 });
 
@@ -237,7 +237,7 @@ test('mothership grows a twenty-drone, armored, long-range squad supplied with f
  const t=deploySupport(world,player,point,0,'hive').turret;
  for(const key of ['squad','reach','hull','anomaly'])buyAll(pack,t,key);
  assert.equal(hiveLimit(t),20);assert.equal(hiveArmor(t),30);
- assert.equal(hiveRange(t),480);
+ assert.equal(hiveRange(t),630);
  t.readyAt=0;
  for(let time=1;time<=600;time++){
   game.time=time;advanceFluxSupports(game,1);

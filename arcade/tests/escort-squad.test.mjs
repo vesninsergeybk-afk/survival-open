@@ -36,6 +36,14 @@ test('drones tab shows roster, five models and durable squad research',()=>{
  assert.equal(escortTrainingOffer(station('dock'),options({network:{engine:6}}),'engine').ok,false);
 });
 
+test('station overview offers all five escorts, not a scout-only purchase',()=>{
+ const g=testGame();g.baseTab='summary';g.player.ore=41;
+ const html=renderBasePanel(g.docked,g.baseState());
+ for(const role of Object.keys(ESCORTS))assert.match(html,
+  new RegExp('data-act="hire"[^>]*data-role="'+role+'"'));
+ assert.match(html,/«Таран» · 36 сплава/);
+ assert.match(html,/Нанять «Оса» · 46 сплава/);
+});
 function battle(role,target={x:30,y:0,r:14,hp:300,type:'fighter',converted:false}){
  const drone=createEscort(role,1,0,40,1);
  drone.think=0;drone.fire=0;
@@ -66,6 +74,14 @@ test('brawler makes a distinct short-range strike but will not hit beyond reach'
  assert.equal(far.hits.length,0,'contact strike cannot hit a distant target');
 });
 
+test('rammer can close on a ranged attacker without the player approaching first',()=>{
+ const {g,drone,hits}=battle('brawler',{x:445,y:0,r:14,hp:300,type:'fighter'});
+ for(let i=0;i<360&&!hits.length;i++){
+  g.time+=1/60;updateAlly(drone,g,1/60);
+ }
+ assert.ok(hits.length>0,'rammer must physically reach and strike a 445-unit ranged enemy');
+ assert.ok(Math.hypot(drone.x,drone.y)>235,'rammer pursues beyond ordinary escort formation');
+});
 test('guard slows charging enemies while blade deals additional kinetic damage to capitals',()=>{
  const guard=battle('scout',{x:70,y:0,r:14,hp:300,type:'berserker',converted:false});
  updateAlly(guard.drone,guard.g,.08);
