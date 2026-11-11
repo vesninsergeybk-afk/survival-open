@@ -1841,14 +1841,16 @@ export class ArcadeGame {
     (this.isTouchLayout?'«Действие»':this.controlLabel('interact'))+
     ' рядом с ней: работа сохраняется после пауз. Перехватите вражеский буксир, затем доставьте капсулу в док.',7);
  }
- spawnOpeningRescueEnemy(type,x,y,role,protect=null){
+ spawnOpeningRescueEnemy(type,x,y,role,protect=null,slot=0){
   const spec=ENEMY_TYPES[type],serial=++this.enemySerial;
   const enemy={serial,group:this.groupSerial,type,x,y,vx:0,vy:0,
    r:role==='tug'?25:type==='fighter'?18:14,hp:role==='tug'?95:spec.hp,
    maxHp:role==='tug'?95:spec.hp,damage:spec.dmg,think:.2,fire:1.2,
    state:protect?'guard':'hunt',commitUntil:0,target:this.player,
    angle:0,hit:0,expAwarded:false,scenario:'opening-rescue-'+role,
-   openingRescueRole:role,missionStructure:true,entryPortalPending:false,
+   openingRescueRole:role,rescueSlot:slot,
+   ...(role==='guard'?{guardPost:{x,y}}:{}),
+   missionStructure:true,entryPortalPending:false,
    protect};
   this.enemies.push(enemy);
   return enemy;
@@ -1860,8 +1862,8 @@ export class ArcadeGame {
   arc.rescueGuardsSpawned=true;
   ++this.groupSerial;
   const defend={x:arc.rescueX,y:arc.rescueY,hp:100,r:32};
-  this.spawnOpeningRescueEnemy('scout',arc.rescueX-165,arc.rescueY+85,'guard',defend);
-  this.spawnOpeningRescueEnemy('fighter',arc.rescueX+135,arc.rescueY-100,'guard',defend);
+  this.spawnOpeningRescueEnemy('scout',arc.rescueX-165,arc.rescueY+85,'guard',defend,0);
+  this.spawnOpeningRescueEnemy('fighter',arc.rescueX+135,arc.rescueY-100,'guard',defend,1);
  }
  spawnOpeningRescueTug(){
   const arc=this.openingArc;
@@ -1872,7 +1874,7 @@ export class ArcadeGame {
   const tug=this.spawnOpeningRescueEnemy('fighter',arc.rescueX-580,arc.rescueY+440,'tug');
   tug.missionFlight={x:arc.rescueX,y:arc.rescueY,speed:94};
   arc.rescueTugSerial=tug.serial;
-  const escort=this.spawnOpeningRescueEnemy('scout',tug.x+85,tug.y-35,'escort',tug);
+  const escort=this.spawnOpeningRescueEnemy('scout',tug.x+85,tug.y-35,'escort',tug,1);
   escort.protect=tug;
   this.heritage?.play?.('orbitalWarning',.5,{x:arc.rescueX,y:arc.rescueY});
   this.notice('ВРАЖЕСКИЙ БУКСИР ИДЁТ К КАПСУЛЕ! Уничтожьте его, пока он не завершил захват.',5);
@@ -1884,8 +1886,8 @@ export class ArcadeGame {
   ++this.groupSerial;
   const toDock=Math.atan2(this.world.home.y-arc.rescueY,this.world.home.x-arc.rescueX);
   const x=arc.rescueX+Math.cos(toDock)*390,y=arc.rescueY+Math.sin(toDock)*390;
-  this.spawnOpeningRescueEnemy('scout',x+50,y+90,'pursuer');
-  this.spawnOpeningRescueEnemy('fighter',x-65,y-85,'pursuer');
+  this.spawnOpeningRescueEnemy('scout',x+50,y+90,'pursuer',null,0);
+  this.spawnOpeningRescueEnemy('fighter',x-65,y-85,'pursuer',null,1);
   this.notice('Капсула закреплена! Уводите её в док. Враг перекрывает обратный маршрут.',5);
  }
  showOpeningReward(){
@@ -6652,8 +6654,15 @@ export class ArcadeGame {
    }
    const spriteKey=e.type;
    drawContourIrisCharge(c,e,this.time,this.visuals.reducedMotion);
-   if(!(e.openingRescueRole==='tug'&&
-        paintMissionCell(c,this.images?.fieldProps,3,e.x,e.y,91,70))&&
+   let rescueTugPainted=false;
+   if(e.openingRescueRole==='tug'){
+    c.save();c.translate(e.x,e.y);
+    // The painted tug faces right; the flight angle in AI faces upward.
+    c.rotate((e.angle||0)-Math.PI/2);
+    rescueTugPainted=paintMissionCell(c,this.images?.fieldProps,3,0,0,91,70);
+    c.restore();
+   }
+   if(!rescueTugPainted&&
       !this.visuals.drawEnemy(c,e,this.time)&&
       !this.drawSprite(this.images[spriteKey],e.x,e.y,e.r*3,e.r*3,e.angle)){
     c.fillStyle=e.converted?'#6fe7ba':'#f07887';c.beginPath();c.arc(e.x,e.y,e.r,0,TAU);c.fill();

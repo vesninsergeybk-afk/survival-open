@@ -27,7 +27,10 @@ export const isAnimatedShipAtlasReady=()=>atlas!==null;
 
 /** Returns true if an animated sprite replaced the fallback artwork. */
 export function drawAnimatedEnemyShip(ctx,enemy){
-    if(!atlas||enemy.boss||enemy.missionStructure)return false;
+    // Rescue guards are real armed fighters; only the tug itself uses the
+    // mission-objective painting instead of the regular animated fleet.
+    if(!atlas||enemy.boss||(enemy.missionStructure&&
+       !['guard','escort','pursuer'].includes(enemy.openingRescueRole)))return false;
     const choices=ROWS[enemy.id||enemy.type?.id];
     if(!choices)return false;
     if(!Number.isInteger(enemy._disruptorRow)){

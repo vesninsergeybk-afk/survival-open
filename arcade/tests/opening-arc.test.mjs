@@ -117,6 +117,8 @@ test('rescue selection creates site defenders and a timed enemy recovery plan',(
  assert.equal(a.rescueGuardsSpawned,true);
  assert.equal(g.enemies.length,2);
  assert.ok(g.enemies.every(e=>e.openingRescueRole==='guard'&&e.protect?.hp===100));
+ assert.ok(g.enemies.every(e=>e.guardPost?.x===e.x&&e.guardPost?.y===e.y));
+ assert.deepEqual(g.enemies.map(e=>e.rescueSlot),[0,1]);
  assert.equal(a.rescueTugAt,16+OPENING_ARC.rescueTugDelay);
  assert.equal(g.waypoint.id,'opening-rescue');
  assert.match(notes[0],/буксир/);
@@ -150,6 +152,7 @@ test('rescue tug travels towards the capsule, and live enemies are released afte
  const escort=g.enemies.find(e=>e.openingRescueRole==='escort');
  assert.ok(tug?.missionFlight,'enemy recovery is a real travelling craft');
  assert.equal(escort?.protect,tug);
+ assert.equal(escort?.rescueSlot,1);
  assert.equal(g.enemies.length,4,'two site guards and a tug with escort');
  a.repair=OPENING_ARC.repairSeconds;a.rescueStage='return';
  a.rescueCargoX=home.x;a.rescueCargoY=home.y;

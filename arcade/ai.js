@@ -22,6 +22,8 @@ import {advanceEnemyCloseAttack,cancelCloseAttack} from './enemy-close-attacks.j
 import {activeStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
 import {ESCORTS,escortFocusBonus} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
 import {masteryBonus} from './combat-mastery.js';
+import {rescueArmedDrone,rescueGuardDestination,rescuePursuitDestination}
+ from './rescue-formation.js';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -95,7 +97,8 @@ export const IRIS_COMBAT=Object.freeze({
   projectileSpeed:385,closeSpeed:490,closeRange:205,damage:10
 });
 export function scoutAttack(e,game,target,scanning=false){
-  if(e.type!=='scout'||e.converted||e.boss||e.missionStructure||
+  if(e.type!=='scout'||e.converted||e.boss||
+     (e.missionStructure&&!rescueArmedDrone(e))||
      e.interceptCargo||!game.enemyShot)return false;
   if(!irisPackMayFire(e,game)){
     e._irisChargeStarted=null;return false;
@@ -456,7 +459,9 @@ export function updateEnemy(e,game,dt){
   if(advanceEnemyCloseAttack(e,game,dt,selected))return;
   const targetingPlayer=selected===game.player;
   const decoy=targetingPlayer?tacticalDecoy(game,e):null;
-  const p=decoy|| (targetingPlayer?enemyPursuitTarget(e,game):selected);
+  const p=decoy|| (targetingPlayer?
+   rescuePursuitDestination(e,game.openingArc,game.world?.home,game.time)||
+   enemyPursuitTarget(e,game):selected);
   if(decoy){
     e._tacticalDecoyUntil=Math.min(decoy.until,game.time+.35);
     e._commsIntent=null;e._theaterIntent=null;
@@ -483,12 +488,17 @@ export function updateEnemy(e,game,dt){
     goalX=e.x-v.x*correction*125-v.y*lateral*direction;
     goalY=e.y-v.y*correction*125+v.x*lateral*direction;
   }else if(e.state==='guard'&&e.protect?.hp>0){
-    // If no one has seen the player, this is just a fixed guard formation.
-    // The remembered threat point, if any, determines the facing.
-    const v=norm(p.x-e.protect.x,p.y-e.protect.y);
-    const side=(e.serial%2===0?1:-1)*48;
-    goalX=e.protect.x+v.x*103-v.y*side;
-    goalY=e.protect.y+v.y*103+v.x*side;
+    const post=rescueGuardDestination(e,game.time);
+    if(post){
+      goalX=post.x;goalY=post.y;
+      speed=Math.min(speed,e.openingRescueRole==='guard'?85:128);
+    }else{
+      // Other guards orient their screen toward the last witnessed threat.
+      const v=norm(p.x-e.protect.x,p.y-e.protect.y);
+      const side=(e.serial%2===0?1:-1)*48;
+      goalX=e.protect.x+v.x*103-v.y*side;
+      goalY=e.protect.y+v.y*103+v.x*side;
+    }
   }else if(e.state==='intercept'){
     goalX=p.x;goalY=p.y;
   }else if(e.state==='repair'){

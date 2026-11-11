@@ -3,6 +3,7 @@
  * point, then fires one dodgeable bolt. Radio orders alter positioning, not
  * damage, accuracy or the projectile budget. */
 import {sweptRamHit} from './enemy-last-stand.js?v=redteam-20261109-1';
+import {rescueArmedDrone} from './rescue-formation.js';
 export const ENEMY_GUNNERY=Object.freeze({
   fighter:Object.freeze({range:405,charge:.62,reload:2.7,speed:350,damage:12,
     upgradeAt:135,upgraded:Object.freeze({range:405,charge:.7,reload:3.1,
@@ -163,7 +164,8 @@ export function updateEnemyGunnery(e,game,target){
   const directContact=target?.hp>0&&
     (attackingPlayer?!!e._enemyLearningSaw:
       typeof game.enemyCanSee==='function'&&game.enemyCanSee(e,target));
-  if(e.hp<=0||e.converted||e._lastStand||e.boss||(e.missionStructure&&!e.openingCommander)||
+  if(e.hp<=0||e.converted||e._lastStand||e.boss||
+     (e.missionStructure&&!e.openingCommander&&!rescueArmedDrone(e))||
      e.relayAssault||e.interceptCargo||
      typeof game.enemyShot!=='function'||
      e.signalIntel&&e.signalIntel.mode!=='engaged'||
@@ -350,7 +352,9 @@ export function drawEnemyDefenseGoals(ctx,game,cam,fps=60){
        e.x<cam.x-30||e.x>cam.x+cam.w+30||
        e.y<cam.y-30||e.y>cam.y+cam.h+30||
        !game.playerCanInspectEnemyIntent(e))continue;
-    const label=asset.type==='healer'?'ПРИКРЫВАЕТ РЕМОНТНИКА':
+    const label=e.openingRescueRole==='guard'?'ОХРАНЯЕТ КАПСУЛУ':
+      e.openingRescueRole==='escort'?'ПРИКРЫВАЕТ БУКСИР':
+      asset.type==='healer'?'ПРИКРЫВАЕТ РЕМОНТНИКА':
       e.scenario==='mine-guard'?'ОХРАНЯЕТ КОМПЛЕКС':
       e.scenario==='opening-escort'?'ПРИКРЫВАЕТ НАВОДЧИКА':
       'СОПРОВОЖДАЕТ ГРУЗ';

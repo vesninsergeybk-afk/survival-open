@@ -180,7 +180,9 @@ function drawPredatorScan(ctx,art,core,amount,time,serial,reducedMotion){
 /** Returns false if the atlas is unavailable; gameplay stays untouched. */
 export function drawIrisDrone(ctx,enemy,time=0,reducedMotion=false){
   if(!enemy||enemy.type!=='scout'||enemy.boss||
-      enemy.missionStructure||enemy.interceptCargo)return false;
+      (enemy.missionStructure&&
+       !['guard','escort','pursuer'].includes(enemy.openingRescueRole))||
+      enemy.interceptCargo)return false;
   if(!loadingStarted)loadIrisAssets();
   if(!body)return false;
   const now=Number.isFinite(time)?time:0;
