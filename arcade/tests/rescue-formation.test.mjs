@@ -150,3 +150,22 @@ test('a quiet sentry settles into a slow local patrol instead of oscillating at 
  assert.ok(topSpeed<35,`a settled guard should cruise quietly, got ${topSpeed}`);
  assert.ok(Math.hypot(guard.x-guard.guardPost.x,guard.y-guard.guardPost.y)<27);
 });
+
+test('scripted escort scouts ignore legacy IRIS boost and sideways jinks',()=>{
+ const flagship={x:400,y:500,vx:45,vy:0,hp:120};
+ const scout={serial:7,type:'scout',x:315,y:490,vx:0,vy:0,
+  r:14,hp:34,maxHp:34,damage:9,think:5,fire:5,
+  state:'guard',commitUntil:99,missionStructure:true,
+  scenario:'opening-escort',openingEscortSlot:-1,protect:flagship};
+ const plain={...scout,_irisBurstStarted:-Infinity};
+ const legacy={...scout,_irisBurstStarted:9.7,_irisScanSide:1};
+ const player={x:1800,y:800,vx:0,vy:0,hp:100,r:19,invul:99};
+ const scene=e=>({time:10,player,enemies:[e],allies:[],missiles:[],shots:[],
+  avoidance:()=>({x:0,y:0}),enemyCanSee:()=>false,
+  grid:{query:()=>[e]},heritage:{play(){},vfx:{shipExplosion(){}}},
+  enemyShot:()=>true,hurt(){}});
+ updateEnemy(plain,scene(plain),.05);
+ updateEnemy(legacy,scene(legacy),.05);
+ assert.ok(Math.hypot(plain.vx-legacy.vx,plain.vy-legacy.vy)<1e-8,
+  'a mission scout must not inherit IRIS post-scan boost or lateral thrust');
+});

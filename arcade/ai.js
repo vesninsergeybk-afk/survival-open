@@ -381,9 +381,9 @@ export function updateEnemy(e,game,dt){
   const localContact=e._enemyLearningSaw||
     (e.type==='scout'&&e._irisHasSight&&
      game.time-(e._irisLastSeenAt??-Infinity)<.58);
-  const irisTactic=e.type==='scout'&&localContact?
+  const irisTactic=e.type==='scout'&&!e.missionStructure&&localContact?
     updateIrisSwarm(e,game,game.player):null;
-  const packTactic=e.type==='scout'&&localContact?
+  const packTactic=e.type==='scout'&&!e.missionStructure&&localContact?
     irisPackDirective(e,game):null;
   if(updateIrisPerception(e,game,dt)){
     e._gunAiming=null;e._gunBurst=null;
@@ -395,8 +395,9 @@ export function updateEnemy(e,game,dt){
     e._gunAiming=null;e._gunBurst=null;
     const avoid=game.avoidance(e.x,e.y,38);
     const speed=ENEMY_TYPES[e.type].speed*signalOrder.speed*
-      (e.type==='scout'?irisBurstThrust(e,game.time):1);
-    const burst=e.type==='scout'?irisBurstJink(e,game.time):0;
+      (e.type==='scout'&&!e.missionStructure?irisBurstThrust(e,game.time):1);
+    const burst=e.type==='scout'&&!e.missionStructure?
+      irisBurstJink(e,game.time):0;
     const heading=norm(signalOrder.x-e.x,signalOrder.y-e.y);
     const detour=enemyRockDetour(e,game,signalOrder.x,signalOrder.y);
     steer(e,signalOrder.x,signalOrder.y,speed,dt,
@@ -469,7 +470,7 @@ export function updateEnemy(e,game,dt){
   }
   let goalX=p.x,goalY=p.y;
   let speed=ENEMY_TYPES[e.type].speed*(1+Math.min(.42,game.time/1300))*
-    (e.type==='scout'?irisBurstThrust(e,game.time):1);
+    (e.type==='scout'&&!e.missionStructure?irisBurstThrust(e,game.time):1);
   if(e.state==='flank'){
     const a=game.time*.24+(e.group||0)*1.45+(e.serial%3)*.6;
     const radius=learningStyle==='wide'?176:118;
@@ -686,7 +687,8 @@ export function updateEnemy(e,game,dt){
   }
   // Counterattack scouts briefly abandon their normal pack orbit for a
   // visibly warned dive. The ordinary physics solver and hitboxes remain.
-  const trialDive=e.type==='scout'?contourIrisDirective(e,game):null;
+  const trialDive=e.type==='scout'&&!e.missionStructure?
+    contourIrisDirective(e,game):null;
   if(trialDive){
     goalX=trialDive.x;goalY=trialDive.y;speed=trialDive.speed;
     e._commsIntent=null;e._theaterIntent=null;
@@ -721,7 +723,8 @@ export function updateEnemy(e,game,dt){
     extraY+=heading.x*side*speed*.34;
   }
   if(e.type==='scout'){
-    const burst=trialDive?0:irisBurstJink(e,game.time),heading=norm(goalX-e.x,goalY-e.y);
+    const burst=trialDive||e.missionStructure?0:irisBurstJink(e,game.time),
+      heading=norm(goalX-e.x,goalY-e.y);
     extraX-=heading.y*speed*burst;
     extraY+=heading.x*speed*burst;
     if(packTactic&&!trialDive){
