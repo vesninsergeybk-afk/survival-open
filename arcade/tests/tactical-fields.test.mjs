@@ -28,7 +28,7 @@ const station={baseActive:true,activeBases:4,level:8,ore:150,points:3};
 test('starter has one reliable Space device and no consumable shots',()=>{
  const g=damagingGame(),first=activateTactical(g);
  assert.equal(first.ok,true);assert.equal(first.kind,'pulse');
- assert.equal(g.enemies[0].hp,37,'the initial blast has visible, real damage');
+ assert.equal(g.enemies[0].hp,33,'the initial blast has visible, real damage');
  assert.equal(g.enemies[0].tacticalSlowFactor,.43);
  assert.equal(g.strikes[0].source,'tactical');
  assert.equal(g.tactical.readyAt,34);
@@ -40,10 +40,17 @@ test('pulse helps against nearby attackers without freezing the whole world',()=
  const near=enemy(100),far=enemy(500),boss=enemy(60,0,{boss:true});
  const g=damagingGame([near,far,boss]);activateTactical(g);updateTactical(g);
  assert.equal(near._tacticalSpeed,.43);assert.equal(far._tacticalSpeed,1);
- assert.equal(near.hp,37);assert.equal(far.hp,50);
+ assert.equal(near.hp,33);assert.equal(far.hp,50);
  assert.equal(boss._tacticalSpeed,1);
  assert.equal(boss.hp,50,'boss immunity is deliberate, not accidental splash');
  g.time+=3.21;updateTactical(g);assert.equal(near._tacticalSpeed,1);
+});
+test('Space pulse destroys only nearby incoming hostile shots and reports the intercept',()=>{
+ const g=damagingGame([enemy(800)]);
+ g.shots=[{x:90,y:0,r:5,alive:true},{x:480,y:0,r:5,alive:true}];
+ const out=activateTactical(g);
+ assert.equal(out.affected,0);assert.equal(out.intercepted,1);
+ assert.equal(g.shots[0].alive,false);assert.equal(g.shots[1].alive,true);
 });
 test('all four devices unlock by station progress and have one shared slot',()=>{
  let state=createTactical();
