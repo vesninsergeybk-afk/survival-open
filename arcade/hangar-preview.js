@@ -1,13 +1,13 @@
 import {menuHints} from './menu-hints.js?v=direct-fit-2-menu-focus-1';
-import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-direct-fit-2-menu-flow-2-menu-focus-1-tactical-slot-20261110';
+import {createLoadout,HangarSession,PREVIEW_BLUEPRINT_KEY} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-direct-fit-2-menu-flow-2-menu-focus-1-tactical-slot-20261110-manual-hardpoints-20261111';
 import {captureHangarView,restoreHangarView} from './hangar-view.js?v=hangar-2-menu-rebuild-1-menu-audit-1-semantic-1-devscroll-1';
-import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1-tactical-field-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-menu-audit-1-semantic-1-tactical-slot-20261110-space-impact-20261110';
+import {renderShipHangar} from './hangar-panel.js?v=menu-exit-1-campaign-1-tactical-field-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-menu-audit-1-semantic-1-tactical-slot-20261110-space-impact-20261110-manual-hardpoints-20261111';
 import {createTactical,applyTacticalChoice} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 
 let context,session;
 function setup(advanced){
  const loadout=createLoadout();
- if(advanced){loadout.frame=4;loadout.slots=['plasma','rail','flak','rocket','ion','howitzer'];
+ if(advanced){loadout.frame=4;loadout.slots=['plasma','rail','flak','rocket',null,'howitzer'];loadout.manualSlots=['ion',null];
   loadout.owned={plasma:2,rail:1,flak:1,rocket:1,howitzer:1};}
  context={loadout,baseActive:true,level:advanced?14:1,ore:advanced?400:60,
   hangarView:'weapons',tactical:createTactical(),
@@ -47,7 +47,7 @@ document.addEventListener('click',e=>{
   render();return;
  }
  const result=session.dispatch(b.dataset,{...context,ranks:context.skillRanks});
- if(b.dataset.act==='hgSlot'&&session.draft.slots[session.slot])session.catalog=false;
+ if(b.dataset.act==='hgSlot'&&(session.slot>=6?session.draft.manualSlots[session.slot-6]:session.draft.slots[session.slot]))session.catalog=false;
  if(result?.ok){context.loadout=result.loadout;context.ore=result.ore;
   if(result.type==='specialization')context.points=result.points;}
  render();

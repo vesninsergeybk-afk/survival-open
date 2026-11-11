@@ -1,4 +1,4 @@
-import {cloneLoadout,slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-menu-focus-1';
+import {cloneLoadout,slotOpen} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-menu-focus-1-manual-hardpoints-20261111';
 
 // The first ordinary contract lets a new pilot choose a fighting style.
 // This is a one-time run reward, not another currency or a purchase discount.

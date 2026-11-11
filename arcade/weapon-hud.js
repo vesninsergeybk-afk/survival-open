@@ -1,6 +1,6 @@
 // Read-only weapon telemetry. The combat simulation owns all timers and stats;
 // the cockpit never invents ammunition, cooldowns or a weapon's availability.
-import {MODULES,moduleStats} from './ship-loadout.js';
+import {MODULES,moduleStats,fittedModules} from './ship-loadout.js?v=manual-hardpoints-20261111';
 import {FIELD_WEAPONS} from './field-weapons.js';
 import {cometSpec,minesSpec} from './mouse-arsenal.js';
 import {TACTICAL_DEVICES,tacticalSpec} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
@@ -115,7 +115,7 @@ export function weaponDeckState(game){
  const autoCount=rows.filter(item=>item.kind==='auto').reduce((sum,item)=>
   sum+Number(profile[item.id]||0),0);
  const installedCount=Array.isArray(game.shipLoadout?.slots)?
-  game.shipLoadout.slots.filter(Boolean).length:autoCount+
+  fittedModules(game.shipLoadout).filter(Boolean).length:autoCount+
   Number(!!profile.ion)+Number(!!profile.resonator)+Number(!!profile.howitzer);
  const quick={tactical:rows.find(item=>item.id==='tactical'),
   field:rows.find(item=>item.id==='field')||null};

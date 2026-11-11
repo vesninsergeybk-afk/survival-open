@@ -1,4 +1,4 @@
-import {MODULES,FRAME_STEPS,SHIP_UPGRADES,createLoadout,moduleStats} from './ship-loadout.js?v=menu-ergonomics-1-tactical-slot-20261110';
+import {MODULES,FRAME_STEPS,SHIP_UPGRADES,createLoadout,moduleStats,slotLabel,fittedModules} from './ship-loadout.js?v=menu-ergonomics-1-tactical-slot-20261110-manual-hardpoints-20261111';
 import {WEAPON_SPECIALIZATIONS,quoteSpecialization,specializationRequirements} from './weapon-specializations.js';
 import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalQuote} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {developmentPointLedger} from './experience.js?v=data-economy-20261111-xp-audit-20261111';
@@ -156,7 +156,7 @@ function weaponNodes(state){
    control:state.isTouchLayout?(comet?'касание поля боя':'кнопка «Мины · выбор»'):
     'ПКМ (выбор оружия — колесом)'};
  }
- const family=MODULES[id]||MODULES.plasma,installedCount=loadout.slots.filter(slot=>slot===family.id).length;
+ const family=MODULES[id]||MODULES.plasma,installedCount=fittedModules(loadout).filter(slot=>slot===family.id).length;
  const installed=installedCount>0;
  const relevant={plasma:['beam','range','double'],rail:['beam'],flak:['beam'],rocket:['beam','rocket'],
   ion:['beam'],resonator:[],howitzer:[]}[family.id]||[];
@@ -455,7 +455,7 @@ export function renderProgressionScreen(state){
   domains.map(d=>'<button type="button" class="prog-domain domain-'+d.id+'" data-act="devDomain" data-id="'+d.id+'" aria-pressed="'+(domain===d.id)+'"'+
    ' title="'+esc(d.subtitle)+'"><img src="'+(d.icon||art('domains',d.id==='network'?'stations':d.id))+'" alt=""><strong>'+d.title+'</strong></button>').join('')+
   '</div></aside>';
- const mountedSlots=weapon&&!weapon.manual?(state.loadout?.slots||[]).flatMap((id,index)=>id===weapon.family.id?[index===5?'H':index+1]:[]):[];
+ const mountedSlots=weapon&&!weapon.manual?fittedModules(state.loadout).flatMap((id,index)=>id===weapon.family.id?[slotLabel(index)]:[]):[];
  const weaponHead=weapon?'<div class="prog-weapon-summary" data-installed="'+(weapon.manual?'manual':weapon.installed)+'">'+
   '<img src="'+art('weapons',weapon.family.id)+'" alt=""><div class="prog-weapon-heading">'+
   '<small>ВЫБРАНО ДЛЯ ПРОСМОТРА</small><strong>'+esc(weapon.family.name)+'</strong><span class="prog-weapon-state">'+

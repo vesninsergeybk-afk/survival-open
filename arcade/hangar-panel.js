@@ -6,13 +6,14 @@ import {TACTICAL_DEVICES,TACTICAL_BRANCHES,createTactical,tacticalSpec,tacticalQ
 import {DEFAULT_CONTROLS,readableKey} from './control-layout.js?v=unified-controls-1-first-loops-1-tactical-slot-20261110';
 import {menuIcon} from './menu-icons.js?v=menu-focus-1-station-terminal-art-1';
 import {MODULES,FRAME_STEPS,BLUEPRINT_NAMES,SHIP_ART,HangarSession,createLoadout,
- frameSpec,slotOpen,equipModule,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-flow-2-menu-focus-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-tactical-slot-20261110-unlimited-hud-20261110';
+ frameSpec,slotOpen,slotLabel,slotKind,slotModule,fittedModules,MANUAL_SLOT_COUNT,MANUAL_SLOT_START,
+ equipModule,moduleStats,moduleLock,moduleStock,quoteLoadout,quoteBlueprint,loadoutProfile,shipArtStage} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-weapon-mechanics-2-unified-controls-1-direct-fit-1-menu-flow-2-menu-focus-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-tactical-slot-20261110-unlimited-hud-20261110-manual-hardpoints-20261111';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>typeof n==='number'?Number(n.toFixed(2)).toLocaleString('ru-RU'):n;
 const button=(act,label,id='',disabled=false,cls='')=>'<button type="button" class="'+cls+'" data-act="'+act+'" data-id="'+id+'"'+(disabled?' disabled':'')+'>'+label+'</button>';
-const labelFor=i=>i===5?'H':String(i+1);
+const labelFor=slotLabel;
 // The blueprint needs inline path geometry for its own SVG transforms.
 const icon=(id,blueprint=false)=>menuIcon(id,blueprint?'hg-module-icon-inline':'hg-module-icon');
 const info=(name,description)=>'<button type="button" class="menu-info" data-help-only data-help="'+esc(description)+'" aria-label="Подробнее: '+esc(name)+'">i</button>';
@@ -47,7 +48,7 @@ function tacticalPanel(context,session,forInstallation=false){
   id=Object.hasOwn(TACTICAL_DEVICES,session.focusTactic)?session.focusTactic:state.equipped,
   device=TACTICAL_DEVICES[id],owned=state.owned.includes(id),equipped=state.equipped===id,
   spec=tacticalSpec({...state,equipped:id}),loan=context.fieldLoan,
-  fieldMounted=loan&&context.loadout.slots.includes(loan.moduleId||'ion');
+  fieldMounted=loan&&fittedModules(context.loadout).includes(loan.moduleId||'ion');
  const fieldKey=esc(readableKey((context.controls||DEFAULT_CONTROLS).field));
  const unlockHelp='<p class="hg-tactical-unlock-help">Условия «2, 3, 4 станции» означают <b>общее количество включённых дружественных станций</b>, а не уровни одной станции. Сейчас включено: <b>'+(context.activeBases||0)+'</b>. Новое устройство покупается за сплав; развитие его ветки стоит 1 очко пилота.</p>';
  const quote=tacticalQuote(state,owned?'equip':'unlock',id,context),chosen=state.branches[id];
@@ -102,11 +103,12 @@ function tacticalPanel(context,session,forInstallation=false){
 }
 function shipScene(context,session){
  const loadout=context.loadout,draft=session.draft,stage=shipArtStage(context.level),art=SHIP_ART[stage];
- const badges=[[14,31],[86,31],[50,9],[14,75],[86,75],[50,91]];
+ const badges=[[14,31],[86,31],[50,9],[14,75],[86,75],[50,91],[11,52],[89,52]];
  let lines='',guns='',nodes='';
- for(let i=0;i<6;i++){
-  const open=slotOpen(loadout,i),id=draft.slots[i],selected=!session.chooseReplacement&&session.slot===i;
-  const [x,y]=art[i+2],[bx,by]=badges[i];
+ for(let i=0;i<6+MANUAL_SLOT_COUNT;i++){
+  const open=slotOpen(loadout,i),id=slotModule(draft,i),selected=!session.chooseReplacement&&session.slot===i;
+  const [x,y]=i>=MANUAL_SLOT_START?[i===6?art[0]-.18:art[0]+.18,.52]:art[i+2],
+   [bx,by]=badges[i];
   const color=open?(id?MODULES[id].color:'#7fadb8'):'#596b81';
   lines+='<path d="M'+bx+' '+by+' L'+(bx<50?bx+12:bx>50?bx-12:bx)+' '+by+' L'+(x*100)+' '+(y*100)+'" stroke="'+color+'" opacity="'+(selected?1:.45)+'"/>';
   guns+='<circle cx="'+x*100+'" cy="'+y*100+'" r="'+(selected?1.5:1)+'" fill="'+color+'"/>';
@@ -114,7 +116,7 @@ function shipScene(context,session){
    guns+='<g transform="translate('+(x*100-2)+' '+(y*100-3)+') scale(.125)" stroke="'+color+'" stroke-width="2.2" fill="#122639">'+
     icon(id,true).replace(/<svg[^>]*>|<\/svg>/g,'')+'</g>';
   }
-  nodes+='<button type="button" data-act="hgSlot" data-id="'+i+'" class="hg-node'+(selected?' selected':'')+(open?'':' locked')+
+  nodes+='<button type="button" data-act="hgSlot" data-id="'+i+'" class="hg-node'+(i>=MANUAL_SLOT_START?' hg-manual-node':'')+(selected?' selected':'')+(open?'':' locked')+
    '" style="left:'+bx+'%;top:'+by+'%;--module-color:'+color+'" aria-label="Узел '+labelFor(i)+': '+
    esc(open?(id?MODULES[id].name:'пусто'):'закрыт')+'" aria-pressed="'+selected+'"><b>'+labelFor(i)+'</b><span>'+
    (open?(id?MODULES[id].short:'Пусто'):'Закрыт')+'</span></button>';
@@ -134,7 +136,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   loadout:state.loadout||createLoadout(),ranks:state.skillRanks||state.ranks||{}};
  session=session||new HangarSession();if(!session.draft)session.begin(context.loadout);
  const current=context.loadout,draft=session.draft,frame=frameSpec(current),slot=session.slot,
-  open=slotOpen(current,slot),old=draft.slots[slot],quote=quoteLoadout(current,draft,context);
+  open=slotOpen(current,slot),old=slotModule(draft,slot),quote=quoteLoadout(current,draft,context);
  const dirty=session.dirty(current),next=FRAME_STEPS[current.frame+1],blueprintQuote=quoteBlueprint(current,draft,context);
  const report=loadoutAnalysis(draft,context.ranks),before=loadoutAnalysis(current,context.ranks),rate=report.heatRate;
  const combatCue=state.operation?.id==='silent-corridor'?'Глухой коридор: передатчик охраняют, возможны ЭМ-импульсы. После уничтожения возвращайтесь с данными.':
@@ -147,17 +149,20 @@ export function renderShipHangar(state,session=state.hangarSession){
   '<thead><tr><th scope="col">Дистанция</th><th scope="col">Сейчас</th><th scope="col">'+(dirty?'После применения':'Эта сборка')+'</th></tr></thead><tbody>'+
   report.ranges.map((d,i)=>'<tr><th scope="row">'+d+' м</th><td>'+fmt(before.dps[i])+'</td><td>'+fmt(report.dps[i])+'</td></tr>').join('')+
   '</tbody></table><ul>'+report.notes.map(note=>'<li>'+esc(note)+'</li>').join('')+'</ul></details>';
- const assembly='<section class="hg-ship"><div class="hg-section-head"><div><span class="hg-eyebrow">СХЕМА ОСНАЩЕНИЯ</span><h3>Ваш корабль</h3></div><span class="hg-stage">Узлы: '+current.slots.filter((id,i)=>id&&slotOpen(current,i)).length+' / '+(frame.nodes+(frame.heavy?1:0))+' занято</span></div>'+
+ const automaticCount=current.slots.slice(0,5).filter((id,i)=>id&&slotOpen(current,i)).length,
+  manualCount=current.manualSlots.filter(Boolean).length;
+ const assembly='<section class="hg-ship"><div class="hg-section-head"><div><span class="hg-eyebrow">СХЕМА ОСНАЩЕНИЯ</span><h3>Ваш корабль</h3></div><span class="hg-stage">Авто: '+automaticCount+'/'+frame.nodes+' · Ручные: '+manualCount+'/2'+(frame.heavy?' · H':'')+'</span></div>'+
   (session.chooseReplacement?'<div class="hg-replacement-prompt" role="status"><strong>Нет свободных узлов для '+esc(MODULES[session.requestedWeapon]?.name||'этого оружия')+'</strong><p>Нажмите на занятый узел корабля, чтобы выбрать замену. До подтверждения ничего не изменится и сплав не потратится.</p></div>':'')+
-  shipScene(context,session)+'<p class="hg-scene-caption">Нажмите на узел, чтобы выбрать для него оружие. Нос корабля направлен вверх.</p>'+
+  shipScene(context,session)+'<p class="hg-scene-caption">Нажмите на узел, чтобы выбрать для него оружие. Узлы 1–5 — автоматические, M1 и M2 — ручное полевое оружие (G), H — тяжёлое. Устройство на пробел выбирается отдельно во вкладке «Устройства».</p>'+
   (!open?'<div class="hg-locked-node"><p>Узел '+labelFor(slot)+' ещё закрыт.</p><button type="button" data-act="openDevelopment" data-id="ship">Условия открытия узла</button></div>':'')+
-  '<div class="hg-slot-strip" aria-label="Состав предварительной сборки">'+draft.slots.map((item,i)=>
-   '<span class="'+(slotOpen(current,i)?item?'filled':'empty':'locked')+'"><b>'+labelFor(i)+'</b> '+
+  '<div class="hg-slot-strip" aria-label="Состав предварительной сборки">'+
+  [...draft.slots,...draft.manualSlots].map((item,i)=>
+   '<span class="'+(i>=MANUAL_SLOT_START?'manual ':'')+(slotOpen(current,i)?item?'filled':'empty':'locked')+'"><b>'+labelFor(i)+'</b> '+
     (slotOpen(current,i)?(item?MODULES[item].short:'пусто'):'закрыт')+'</span>').join('')+'</div>'+
   '<details class="hg-thermal-plan hg-thermal-details"><summary>Охлаждение · '+(rate>14?'возможен перегрев':'в норме')+'</summary><strong>Общее охлаждение · 14 ед/с</strong><span>Автооружие: до '+fmt(rate)+' ед/с при непрерывном огне</span>'+
   '<small>'+(rate>14?'При долгой стрельбе эта сборка перегреется. На 100% огонь блокируется до остывания к 35%.':
    'Охлаждение справляется с непрерывным автоогнём этой сборки.')+' '+esc(readableKey(context.controls.cease))+' отключает автоогонь и ускоряет охлаждение до 25 ед/с.</small></details></section>';
- const available=Object.values(MODULES).filter(item=>(slot===5?item.kind==='heavy':item.kind!=='heavy')&&
+ const available=Object.values(MODULES).filter(item=>slotKind(slot)===item.kind&&
   (session.filter==='all'||item.kind===session.filter));
  const canBorrow=item=>item.kind==='manual'&&!context.fieldLoan&&!!fieldLoanOffer(context.station,context,item.id);
  const accessible=available.filter(item=>!moduleRequirement(item.id,context)||canBorrow(item));
@@ -168,7 +173,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   // Quote the full price even if the player's current balance is too low.
   const budget={...context,ore:Number.MAX_SAFE_INTEGER};
   const priced=borrowing?borrowAndFit(context.station,current,slot,item.id,budget):equipModule(current,slot,item.id,budget);
-  const cost=priced.ok?(priced.cost||0)+(priced.loanCost||0):(item.cost||rental?.cost||0),equipped=current.slots[slot]===item.id;
+  const cost=priced.ok?(priced.cost||0)+(priced.loanCost||0):(item.cost||rental?.cost||0),equipped=slotModule(current,slot)===item.id;
   const reason=dirty?'Сначала примените или отмените загруженную схему':
    moduleRequirement(item.id,context)&&!borrowing?moduleRequirement(item.id,context):fit.ok?'':fit.reason;
   const stats=moduleStats(item.id,context.ranks,specializationState(current,item.id));
@@ -193,7 +198,7 @@ export function renderShipHangar(state,session=state.hangarSession){
    '<span><strong>'+item.short+'</strong><small>'+item.role+'</small><em>'+esc(offer.price)+'</em>'+
    (moduleRequirement(item.id,context)&&!offer.borrowing?'<small>'+esc(moduleRequirement(item.id,context))+'</small>':'')+'</span></button></div>';
  };
- const noFreeStock=!old&&slot!==5&&accessible.length>0&&
+ const noFreeStock=!old&&slot<MANUAL_SLOT_START&&accessible.length>0&&
   accessible.every(item=>moduleStock(current,draft,context,item.id).free===0);
  const stockGuide=noFreeStock?'<p class="hg-note hg-stock-guidance">'+
   (context.firstHardwareReward==='pending'?'Бесплатное оружие уже заработано. Вернитесь в «Задания», выберите награду и затем установите её здесь.':
@@ -203,7 +208,7 @@ export function renderShipHangar(state,session=state.hangarSession){
  const catalog='<aside class="hg-arsenal"><div class="hg-section-head"><div><span class="hg-eyebrow">МОДУЛЬНЫЙ АРСЕНАЛ</span><h3>Вооружение для узла '+labelFor(slot)+'</h3></div>'+button('hgShip','← К схеме','','','hg-back-ship')+'</div>'+
   (old?'<div class="hg-slot-current">В узле: '+MODULES[old].name+' · '+button('hgUnequip','Снять')+'</div>':'')+
   '<div class="hg-filters" role="group" aria-label="Фильтр оружия">'+
-  [['all','Все'],['auto','Авто'],['manual','Ручное']].filter(([key])=>slot!==5||key==='all').map(([key,name])=>
+  [['all','Все'],['auto','Авто'],['manual','Ручное']].filter(([key])=>key==='all'||key===slotKind(slot)).map(([key,name])=>
    button('hgFilter',name,key,false,session.filter===key?'selected':'')).join('')+'</div>'+
   (stockGuide?'<div class="hg-stock-help"><strong>Где взять оружие?</strong>'+stockGuide+'</div>':'')+
   '<div class="hg-catalog-list">'+accessible.map(weaponChoice).join('')+
@@ -232,7 +237,7 @@ export function renderShipHangar(state,session=state.hangarSession){
   '</div></section>';
  const focusedId=Object.hasOwn(MODULES,session.focusWeapon)?session.focusWeapon:'plasma';
  const focused=MODULES[focusedId],focusedStats=moduleStats(focusedId,context.ranks,specializationState(current,focusedId));
- const installed=current.slots.includes(focusedId);
+ const installed=fittedModules(current).includes(focusedId);
  const focusedOffer=weaponOffer(focused);
  const fitting='<section class="hg-fit-action" aria-label="Установка выбранного оружия">'+
   '<strong>Узел '+labelFor(slot)+' · '+(old?esc(MODULES[old].short):'свободен')+'</strong>'+
@@ -260,13 +265,13 @@ export function renderShipHangar(state,session=state.hangarSession){
   '<section class="dev-weapon-unlock" aria-label="Открытие ракет"><div class="dev-tree-caption"><h4>Открытие нового оружия</h4><span>Сначала технология, затем установка</span></div>'+
   '<p class="hg-note">Первый ранг «Авторакет» даст ракетный модуль. После изучения установите его в «Оснащении»; только тогда откроется его дальнейшее развитие.</p>'+upgradeCard(rocketEntry)+'</section>':'';
  const weaponPick=item=>{
-   const isInstalled=current.slots.includes(item.id);
+   const isInstalled=fittedModules(current).includes(item.id);
    return '<button type="button" data-act="hgFocusWeapon" data-id="'+item.id+'" aria-pressed="'+(focusedId===item.id)+'" class="hg-focus-pick'+
     (focusedId===item.id?' selected':'')+(isInstalled?' installed':' absent')+'" aria-label="'+esc(item.name)+(isInstalled?', установлено':', не установлено')+'">'+icon(item.id)+
     '<span>'+esc(item.short)+'<small>'+(isInstalled?'✓ На корабле':'Не установлено')+'</small></span></button>';
  };
- const mountedModules=Object.values(MODULES).filter(item=>current.slots.includes(item.id));
- const absentModules=Object.values(MODULES).filter(item=>!current.slots.includes(item.id));
+ const mountedModules=Object.values(MODULES).filter(item=>fittedModules(current).includes(item.id));
+ const absentModules=Object.values(MODULES).filter(item=>!fittedModules(current).includes(item.id));
  const weaponPicker='<div class="dev-arsenal-head"><strong>Ваше вооружение</strong><span>Видов: '+mountedModules.length+'</span></div>'+
   '<div class="hg-weapon-picks dev-weapon-picks" role="group" aria-label="Установленное оружие">'+mountedModules.map(weaponPick).join('')+'</div>'+
   (absentModules.length?'<details class="dev-other-weapons"'+(!installed?' open':'')+'><summary>Не установлено · '+absentModules.length+' <span>посмотреть и установить</span></summary>'+
@@ -302,9 +307,9 @@ export function renderShipHangar(state,session=state.hangarSession){
  const blueprints='<details class="hg-presets" data-hangar-section="blueprints"><summary>Схемы оснащения · сохранено '+savedBlueprints+' из 3</summary><p class="hg-note">Есть три ячейки для сохранения сборок на этом устройстве. Сплав потребуется только для изготовления при применении. При новом прохождении оружие и узлы нужно открыть заново.</p><div>'+BLUEPRINT_NAMES.map((name,i)=>
   '<article><b>'+name+'</b><small>'+(session.blueprints[i]?'Сохранена':'Пустая ячейка')+'</small>'+button('hgLoad','Загрузить',String(i),!session.blueprints[i])+button('hgSave','Записать',String(i),!blueprintQuote.ok)+'</article>').join('')+'</div></details>';
  const compareNow=report.ranges.map((range,i)=>'<span><small>'+range+' м</small><b>'+fmt(report.dps[i])+'</b></span>').join('');
- const draftCount=draft.slots.filter((item,i)=>item&&slotOpen(current,i)).length;
+ const draftCount=fittedModules(draft).filter((item,i)=>item&&slotOpen(current,i)).length;
  const editing=!!session.catalog&&open;
- const fittingStrip='<div class="hg-fitting-strip" role="group" aria-label="Узлы корабля">'+draft.slots.map((item,i)=>
+ const fittingStrip='<div class="hg-fitting-strip" role="group" aria-label="Узлы корабля">'+fittedModules(draft).map((item,i)=>
   '<button type="button" data-act="hgSlot" data-id="'+i+'" aria-pressed="'+(slot===i)+'" class="'+
   (slotOpen(current,i)?item?'filled':'empty':'locked')+'"><b>'+labelFor(i)+'</b><span>'+
   esc(slotOpen(current,i)?item?MODULES[item].short:'Свободен':'Закрыт')+'</span></button>').join('')+'</div>';

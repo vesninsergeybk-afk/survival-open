@@ -1,7 +1,7 @@
 import {RULES,beamDamage} from './balance.js?v=arcade-balanced-bases-30-combat-balance-1-opening-evasion-20261110';
 import {weaponDamageFactor,penetrationFactor,plasmaDamageFactor,rocketFlight,
  rocketPayload,seekerRetargetRange,disruptHeavyAim,howitzerProfile} from './weapon-specializations.js?v=howitzer-branches-1';
-import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2-unified-controls-1-menu-focus-1-combat-balance-1-opening-evasion-20261110';
+import {MODULES,moduleStats,mountPosition,localMountPosition,heatWeapons,plasmaSplitWeights} from './ship-loadout.js?v=weapons-cycle-2-campaign-1-weapon-mechanics-2-unified-controls-1-menu-focus-1-combat-balance-1-opening-evasion-20261110-manual-hardpoints-20261111';
 import {firstRockImpact} from './terrain.js?v=arcade-belt-26';
 import {contactOnCircle,contactAtPoint} from './impact-geometry.js?v=arcade-impact-51';
 import {combatTargets,targetAlive,selectTargets,targetDistance,targetRadius,lineContact,clearLine,damageTarget} from './combat-targets.js?v=mouse-area-1-triangle-defense-1-frontier-siege-1';

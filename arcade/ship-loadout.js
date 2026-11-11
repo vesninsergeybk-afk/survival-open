@@ -21,7 +21,7 @@ export const MODULES=Object.freeze({
  rocket:{id:'rocket',name:'Самонаводящиеся ракеты',short:'Ракеты',kind:'auto',role:'Дальний бой',level:5,cost:48,heat:16,color:'#ffad85',
   desc:'Ракеты преследуют выбранный корабль. Требуется технология «Авторакеты». Её первый ранг даёт один ракетный модуль.'},
  ion:{id:'ion',name:'Ионный проводник',short:'Ион',kind:'manual',role:'Цепной разряд',level:1,cost:null,heat:0,color:'#a4f4ff',
-  desc:'Разряд по меткам плазменного луча. Калибровка орудий усиливает цепь. Прокатный модуль с неограниченными выстрелами и перезарядкой 4,5 с; возврат после задания. Занимает обычный узел.'},
+  desc:'Разряд по меткам плазменного луча. Калибровка орудий усиливает цепь. Прокатный модуль с неограниченными выстрелами и перезарядкой 4,5 с; возврат после задания. Занимает ручной узел.'},
  resonator:{id:'resonator',name:'Резонатор',short:'Резонанс',kind:'manual',role:'Связь целей',level:1,cost:null,heat:0,color:'#d5a1f0',
    desc:'Связывает до трёх целей на 4 с. Между ними передаётся 35% нанесённого урона, если расстояние не больше 260 м и нет каменного экрана. Нужны минимум две цели. Выстрелы не ограничены, перезарядка 6 с, возврат после задания.'},
  howitzer:{id:'howitzer',name:'Осадная гаубица',short:'Гаубица',kind:'heavy',role:'Крупные цели',level:14,cost:160,heat:70,color:'#e1b2ff',
@@ -30,14 +30,38 @@ export const MODULES=Object.freeze({
 export const BLUEPRINT_KEY='survivor.hangar.blueprints.v1';
 export const PREVIEW_BLUEPRINT_KEY='survivor.hangar.preview.blueprints.v1';
 export const BLUEPRINT_NAMES=['Штурм','Дистанция','Резерв'];
-export const createLoadout=()=>({version:1,frame:0,slots:['plasma',null,null,null,null,null],owned:{plasma:1},specializations:{}});
-export const cloneLoadout=value=>({...value,slots:[...value.slots],owned:{...value.owned},specializations:{...value.specializations}});
+export const MANUAL_SLOT_START=6;
+export const MANUAL_SLOT_COUNT=2;
+export const slotLabel=index=>index===5?'H':index>=MANUAL_SLOT_START?'M'+(index-MANUAL_SLOT_START+1):String(index+1);
+export const slotModule=(loadout,index)=>index>=MANUAL_SLOT_START?
+ loadout?.manualSlots?.[index-MANUAL_SLOT_START]??null:loadout?.slots?.[index]??null;
+export const fittedModules=loadout=>[...(loadout?.slots||[]),...(loadout?.manualSlots||[])];
+export const slotKind=index=>index===5?'heavy':index>=MANUAL_SLOT_START?'manual':'auto';
+export const createLoadout=()=>({version:2,frame:0,slots:['plasma',null,null,null,null,null],
+ manualSlots:[null,null],owned:{plasma:1},specializations:{}});
+// Former saves and blueprints placed field rentals into an automatic socket.
+// Relocate them without charging for the module or removing an automatic gun.
+export function migrateLoadout(value){
+ if(!value||!Array.isArray(value.slots)||value.slots.length!==6)return value;
+ const slots=[...value.slots],manualSlots=Array.isArray(value.manualSlots)&&value.manualSlots.length===2?
+  [...value.manualSlots]:[null,null];
+ for(let i=0;i<5;i++)if(MODULES[slots[i]]?.kind==='manual'){
+  const free=manualSlots.indexOf(null);
+  if(free>=0)manualSlots[free]=slots[i];
+  slots[i]=null;
+ }
+ return {...value,version:2,slots,manualSlots};
+}
+export const cloneLoadout=value=>{const normalized=migrateLoadout(value);
+ return {...normalized,slots:[...normalized.slots],manualSlots:[...normalized.manualSlots],
+  owned:{...normalized.owned},specializations:{...normalized.specializations}};};
 export const frameSpec=loadout=>FRAME_STEPS[loadout?.frame]||FRAME_STEPS[0];
 export const slotOpen=(loadout,index)=>Number.isInteger(index)&&index>=0&&
- (index<frameSpec(loadout).nodes||(index===5&&frameSpec(loadout).heavy));
+ (index<frameSpec(loadout).nodes||(index===5&&frameSpec(loadout).heavy)||
+  (index>=MANUAL_SLOT_START&&index<MANUAL_SLOT_START+MANUAL_SLOT_COUNT));
 const countSlots=slots=>slots.reduce((out,id)=>{if(id)out[id]=(out[id]||0)+1;return out;},{});
 export function loadoutProfile(loadout){
- const counts=countSlots(loadout.slots);
+ const counts=countSlots(fittedModules(loadout));
  return {plasma:counts.plasma||0,rail:counts.rail||0,flak:counts.flak||0,
   rocket:counts.rocket||0,ion:!!counts.ion,resonator:!!counts.resonator,howitzer:!!counts.howitzer,
   automatic:(counts.plasma||0)+(counts.rail||0)+(counts.flak||0)+(counts.rocket||0)};
@@ -79,20 +103,21 @@ export function moduleLock(id,context){
 export function quoteLoadout(current,draft,context){
  const fail=reason=>({ok:false,reason,cost:0,missing:{}});
  if(!context.baseActive)return fail('Сначала включите станцию');
- if(!draft||draft.frame!==current.frame||!Array.isArray(draft.slots)||draft.slots.length!==6)
+ if(!draft||draft.frame!==current.frame||!Array.isArray(draft.slots)||draft.slots.length!==6||
+  !Array.isArray(draft.manualSlots)||draft.manualSlots.length!==MANUAL_SLOT_COUNT)
   return fail('Схема корпуса изменилась. Откройте ангар заново');
- for(let i=0;i<6;i++){
-  const id=draft.slots[i];if(id===null)continue;
+ for(let i=0;i<6+MANUAL_SLOT_COUNT;i++){
+  const id=slotModule(draft,i);if(id===null)continue;
   if(!Object.hasOwn(MODULES,id))return fail('В схеме есть неизвестное оружие');
-  if(!slotOpen(current,i))return fail('Узел '+(i===5?'H':i+1)+' ещё не открыт');
-  if((i===5)!==(MODULES[id].kind==='heavy'))return fail('Гаубицу можно установить только в узел H');
+  if(!slotOpen(current,i))return fail('Узел '+slotLabel(i)+' ещё не открыт');
+  if(slotKind(i)!==MODULES[id].kind)return fail('Оружие не подходит для узла '+slotLabel(i));
   const lock=moduleLock(id,context);if(lock)return fail(lock);
  }
  const profile=loadoutProfile(draft);
  if(!profile.automatic)return fail('Оставьте хотя бы одно автоматическое орудие');
  if(profile.ion&&!profile.plasma)return fail('Ионному проводнику нужен луч для ионных меток');
- if(profile.ion&&profile.resonator)return fail('Выберите один прокатный полевой модуль; узел H использует отдельную клавишу');
- const counts=countSlots(draft.slots),missing={};let cost=0;
+ if(profile.ion&&profile.resonator)return fail('Одновременно можно взять только один прокатный полевой модуль');
+ const counts=countSlots(fittedModules(draft)),missing={};let cost=0;
  for(const [id,number] of Object.entries(counts)){
   const manual=MODULES[id].kind==='manual';
   const owned=manual?(matchingFieldLoan(context,id)?1:0):(current.owned[id]||0);
@@ -106,7 +131,7 @@ export function quoteLoadout(current,draft,context){
 export function applyLoadout(current,draft,context){
  const quote=quoteLoadout(current,draft,context);
  if(!quote.ok)return quote;
- const loadout=cloneLoadout(current);loadout.slots=[...draft.slots];
+ const loadout=cloneLoadout(current);loadout.slots=[...draft.slots];loadout.manualSlots=[...draft.manualSlots];
  for(const [id,n] of Object.entries(quote.missing))loadout.owned[id]=(loadout.owned[id]||0)+n;
  return {...quote,loadout,ore:context.ore-quote.cost};
 }
@@ -114,7 +139,9 @@ export function applyLoadout(current,draft,context){
 export function equipModule(current,slot,id,context){
  if(!Number.isInteger(slot)||!slotOpen(current,slot))return {ok:false,reason:'Узел ещё закрыт'};
  if(id!==null&&!Object.hasOwn(MODULES,id))return {ok:false,reason:'Неизвестный модуль'};
- const draft=cloneLoadout(current);draft.slots[slot]=id;
+ const draft=cloneLoadout(current);
+ if(slot>=MANUAL_SLOT_START)draft.manualSlots[slot-MANUAL_SLOT_START]=id;
+ else draft.slots[slot]=id;
  return applyLoadout(current,draft,context);
 }
 // Recording a design does not manufacture it, so its budget is not a gate.
@@ -122,17 +149,19 @@ export const quoteBlueprint=(current,draft,context)=>
  quoteLoadout(current,draft,{...context,ore:Number.MAX_SAFE_INTEGER});
 export function moduleStock(current,draft,context,id){
  const owned=MODULES[id]?.kind==='manual'?(matchingFieldLoan(context,id)?1:0):(current.owned[id]||0);
- const installed=current.slots.filter(value=>value===id).length;
- const planned=draft.slots.filter(value=>value===id).length;
+ const installed=fittedModules(current).filter(value=>value===id).length;
+ const planned=fittedModules(draft).filter(value=>value===id).length;
  return {owned,installed,free:Math.max(0,owned-installed),needed:Math.max(0,planned-owned)};
 }
 // A received module may be suggested, but only Apply changes the live ship.
 export function stageOwnedModule(current,session,id,context){
  if(session.dirty(current))return false;
- const slot=current.slots.findIndex((value,index)=>!value&&slotOpen(current,index)&&
-  ((index===5)===(MODULES[id]?.kind==='heavy')));
- if(slot<0)return false;
- const draft=cloneLoadout(current);draft.slots[slot]=id;
+ const slot=Array.from({length:6+MANUAL_SLOT_COUNT},(_,index)=>index).find(index=>
+  !slotModule(current,index)&&slotOpen(current,index)&&slotKind(index)===MODULES[id]?.kind);
+ if(slot===undefined)return false;
+ const draft=cloneLoadout(current);
+ if(slot>=MANUAL_SLOT_START)draft.manualSlots[slot-MANUAL_SLOT_START]=id;
+ else draft.slots[slot]=id;
  const quote=quoteLoadout(current,draft,context);
  if(!quote.ok||quote.cost)return false;
  session.draft=draft;session.slot=slot;session.selected=id;
@@ -161,14 +190,19 @@ export function heatWeapons(thermal,amount){
 
 function validBlueprint(value){
  return value&&Array.isArray(value.slots)&&value.slots.length===6&&
-  value.slots.every(id=>id===null||Object.hasOwn(MODULES,id));
+  value.slots.every(id=>id===null||Object.hasOwn(MODULES,id))&&
+  (value.manualSlots===undefined||Array.isArray(value.manualSlots)&&value.manualSlots.length===2&&
+   value.manualSlots.every(id=>id===null||MODULES[id]?.kind==='manual'));
 }
 export class HangarSession {
  constructor(storage=null,storageKey=BLUEPRINT_KEY){
   this.storage=storage;this.storageKey=storageKey;this.blueprints=[null,null,null];
   try{const saved=JSON.parse(storage?.getItem(storageKey)||'null');
    if(saved?.version===1&&Array.isArray(saved.items))
-    this.blueprints=this.blueprints.map((_,i)=>validBlueprint(saved.items[i])?{slots:[...saved.items[i].slots]}:null);
+    this.blueprints=this.blueprints.map((_,i)=>validBlueprint(saved.items[i])?(()=>{
+     const migrated=migrateLoadout(saved.items[i]);
+     return {slots:[...migrated.slots],manualSlots:[...migrated.manualSlots]};
+    })():null);
   }catch{/* Storage is optional, including blocked or damaged storage. */}
   this.slot=0;this.filter='all';this.catalog=false;this.inspect=false;this.selected='plasma';
   this.chooseReplacement=false;this.requestedWeapon=null;
@@ -176,16 +210,18 @@ export class HangarSession {
  }
  begin(loadout){this.draft=cloneLoadout(loadout);this.catalog=false;this.inspect=false;this.message='';
   this.chooseReplacement=false;this.requestedWeapon=null;}
- dirty(loadout){return this.draft?.slots.some((id,i)=>id!==loadout.slots[i]);}
+ dirty(loadout){return this.draft?.slots.some((id,i)=>id!==loadout.slots[i])||
+  this.draft?.manualSlots.some((id,i)=>id!==loadout.manualSlots?.[i]);}
  dispatch(data,context){
   const current=context.loadout;if(!this.draft)this.begin(current);
   this.message='';
   const act=data.act;
   if(act==='hgSlot'){
-   const slot=Number(data.id);if(!Number.isInteger(slot)||slot<0||slot>5)return;
-   if((this.slot===5)!==(slot===5))this.filter='all';
+   const slot=Number(data.id);if(!Number.isInteger(slot)||slot<0||slot>=6+MANUAL_SLOT_COUNT)return;
+   if(slotKind(this.slot)!==slotKind(slot))this.filter='all';
    this.slot=slot;this.catalog=true;this.inspect=!slotOpen(current,slot);
-   this.selected=this.chooseReplacement&&this.requestedWeapon||this.draft.slots[slot]||(slot===5?'howitzer':'plasma');
+   this.selected=this.chooseReplacement&&this.requestedWeapon||slotModule(this.draft,slot)||
+    (slot===5?'howitzer':slot>=MANUAL_SLOT_START?'ion':'plasma');
    this.focusWeapon=this.selected;
    this.chooseReplacement=false;this.requestedWeapon=null;
   }
@@ -199,7 +235,7 @@ export class HangarSession {
   if(act==='hgCatalog'){this.catalog=true;this.inspect=false;}
   if(act==='hgFilter'&&['all','auto','manual','heavy'].includes(data.id)){
    this.filter=data.id;
-   const matches=item=>!!item&&(this.slot===5?item.kind==='heavy':item.kind!=='heavy')&&
+   const matches=item=>!!item&&slotKind(this.slot)===item.kind&&
     (this.filter==='all'||item.kind===this.filter);
    if(!matches(MODULES[this.focusWeapon])){
     this.focusWeapon=Object.values(MODULES).find(matches)?.id||this.focusWeapon;
@@ -223,12 +259,16 @@ export class HangarSession {
   if(act==='hgInstall'){
    const id=this.selected,lock=moduleLock(id,context);
    if(!slotOpen(current,this.slot)||lock){this.message=lock||'Этот узел ещё закрыт';return;}
-   if((this.slot===5)!==(MODULES[id].kind==='heavy')){this.message='Для гаубицы нужен узел H';return;}
-   this.draft.slots[this.slot]=id;this.catalog=false;
+   if(slotKind(this.slot)!==MODULES[id].kind){this.message='Оружие не подходит для выбранного узла';return;}
+   if(this.slot>=MANUAL_SLOT_START)this.draft.manualSlots[this.slot-MANUAL_SLOT_START]=id;
+   else this.draft.slots[this.slot]=id;
+   this.catalog=false;
    this.message='Предварительная сборка изменена. Нажмите «Применить»';
   }
   if(act==='hgRemove'&&slotOpen(current,this.slot)){
-   this.draft.slots[this.slot]=null;this.message='Модуль вернётся на склад после применения';this.catalog=false;
+   if(this.slot>=MANUAL_SLOT_START)this.draft.manualSlots[this.slot-MANUAL_SLOT_START]=null;
+   else this.draft.slots[this.slot]=null;
+   this.message='Модуль вернётся на склад после применения';this.catalog=false;
   }
   if(act==='hgReset')this.begin(current);
   if(act==='hgSpec'){
@@ -254,7 +294,7 @@ export class HangarSession {
   if(act==='hgSave'){
    const index=Number(data.id);if(!Number.isInteger(index)||index<0||index>2)return;
    if(!quoteBlueprint(current,this.draft,context).ok){this.message='Исправьте состав вооружения перед сохранением';return;}
-   this.blueprints[index]={slots:[...this.draft.slots]};
+   this.blueprints[index]={slots:[...this.draft.slots],manualSlots:[...this.draft.manualSlots]};
    try{if(!this.storage)throw Error('unavailable');
     this.storage.setItem(this.storageKey,JSON.stringify({version:1,items:this.blueprints}));
     this.message='Схема «'+BLUEPRINT_NAMES[index]+'» сохранена на этом устройстве';
@@ -263,7 +303,7 @@ export class HangarSession {
   if(act==='hgLoad'){
    const index=Number(data.id);if(!Number.isInteger(index)||index<0||index>2)return;
    const saved=this.blueprints[index];if(!saved)return;
-   this.draft={...cloneLoadout(current),slots:[...saved.slots]};this.catalog=false;
+   this.draft={...cloneLoadout(current),slots:[...saved.slots],manualSlots:[...saved.manualSlots]};this.catalog=false;
    this.message='Схема «'+BLUEPRINT_NAMES[index]+'» загружена для просмотра. Нажмите «Применить»';
   }
  }

@@ -4,7 +4,7 @@ import {rebaseSavedHull} from './balance.js';
 import {inheritStrategicExperience,validStrategicExperience} from './strategic-experience.js?v=strategic-xp-pass2-1-sector-density-2';
 import {createRegionalSupply,regionalSupplyValid} from './regional-supply.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-economy-1-enemy-balance-2-supply-stronghold-1-territory-war-1';
 import {World} from './world.js?v=living-world-3-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-enemy-domains-1-supply-stronghold-1-territory-war-1-living-world-population-1-sector-density-2-pressure-response-1-frontier-siege-1-rescue-depth-1-convoy-variety-20261110';
-import {quoteLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-menu-focus-1-pressure-response-1';
+import {quoteLoadout,migrateLoadout,FRAME_STEPS} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-menu-focus-1-pressure-response-1-manual-hardpoints-20261111';
 import {FIELD_WEAPONS,missionAssignment} from './field-weapons.js?v=living-world-2-campaign-1';
 import {createTactical,validTactical} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
 import {validFieldEvolution} from './field-evolution.js?v=parasite-clarity-1-xp-audit-20261111';
@@ -136,8 +136,11 @@ export function captureCheckpoint(game,base){
   stations:[...game.world.stations],rocks,discovered:[...game.world.discovered]}};
 }
 export function migrateCheckpoint(data){
- if(data?.version!==1)return data;
+ if(![1,2].includes(data?.version)||!object(data.state))return data;
+ if(data.version===2)return {...data,state:{...data.state,
+  shipLoadout:migrateLoadout(data.state.shipLoadout)}};
  const old=data.state,s={...old};
+ s.shipLoadout=migrateLoadout(old.shipLoadout);
  s.fieldLoan=old.fieldLoan||old.ionLoan||null;
  if(s.fieldLoan){
   s.fieldLoan={...s.fieldLoan,moduleId:s.fieldLoan.moduleId||'ion'};

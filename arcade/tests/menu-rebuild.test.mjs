@@ -90,7 +90,8 @@ test('fitting and development show separate actions and only one no-spend explan
  assert.match(fitting,/data-act="openDevelopment" data-id="weapons" data-focus="plasma"/);
  const growth=renderShipHangar({...state,developmentMode:true,developmentCategory:'weapons'},session);
  assert.match(growth,/data-act="hgSpec"/);assert.doesNotMatch(growth,/data-act="hgEquip"|К списку оружия/);
- assert.doesNotMatch(fitting,/Корпус 1 \/ 10/);session.catalog=false;assert.match(renderShipHangar(state,session),/Узлы:/);
+ assert.doesNotMatch(fitting,/Корпус 1 \/ 10/);session.catalog=false;
+ assert.match(renderShipHangar(state,session),/Авто:.*Ручные:/);
 });
 
 test('the ship has two equipment choices without duplicate development pages',()=>{

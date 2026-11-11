@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createLoadout,cloneLoadout,FRAME_STEPS,SHIP_ART,MODULES,slotOpen,quoteLoadout,
+import {createLoadout,cloneLoadout,migrateLoadout,FRAME_STEPS,SHIP_ART,MODULES,slotOpen,quoteLoadout,
  applyLoadout,upgradeFrame,loadoutProfile,moduleStats,createThermal,coolWeapons,
  heatWeapons,HangarSession,BLUEPRINT_KEY,PREVIEW_BLUEPRINT_KEY,mountPosition} from '../ship-loadout.js';
 import {renderShipHangar} from '../hangar-panel.js';
@@ -21,10 +21,12 @@ const combat=(enemies=[])=>({player:{x:0,y:0,level:7,angle:0},skillRanks:{},
  damageRock(){},flash(...args){this.flashes.push(args);},
  heritage:{vfx:{muzzle(){},nova(){}},play(){}}});
 
-test('frame progression opens exactly 2, 3, 4, 5 and then a separate H node',()=>{
+test('frame progression opens automatic nodes separately from two permanent manual sockets and H',()=>{
  assert.deepEqual(FRAME_STEPS.map(x=>x.nodes),[2,3,4,5,5]);
  const loadout=createLoadout();
  assert.equal(slotOpen(loadout,0),true);assert.equal(slotOpen(loadout,2),false);
+ assert.equal(slotOpen(loadout,6),true);assert.equal(slotOpen(loadout,7),true);
+ assert.equal(slotOpen(loadout,8),false);
  assert.equal(slotOpen({...loadout,frame:3},5),false);assert.equal(slotOpen(full(),5),true);
  assert.equal(upgradeFrame(loadout,context({level:3})).ok,false);
  assert.equal(upgradeFrame(loadout,context({ore:47})).ok,false);
@@ -72,11 +74,41 @@ test('technology, level and finite trial restrictions are enforced at confirmati
  const current=full(),draft=cloneLoadout(current);draft.slots[1]='rocket';
  assert.equal(quoteLoadout(current,draft,context({ranks:{}})).ok,false);
  draft.slots[1]='rail';assert.equal(quoteLoadout(current,draft,context({level:2})).ok,false);
- draft.slots[1]='ion';assert.equal(quoteLoadout(current,draft,context()).ok,false);
+ draft.slots[1]='ion';assert.equal(quoteLoadout(current,draft,context()).ok,false,'manual weapon cannot occupy automatic socket');
+ draft.slots[1]=null;draft.manualSlots[0]='ion';assert.equal(quoteLoadout(current,draft,context()).ok,false);
  const loan=context({fieldLoan:{charges:3}});assert.equal(quoteLoadout(current,draft,loan).ok,true);
- draft.slots[2]='ion';assert.equal(quoteLoadout(current,draft,loan).ok,false);
- draft.slots[2]=null;draft.slots[0]='rail';
+ draft.manualSlots[1]='ion';assert.equal(quoteLoadout(current,draft,loan).ok,false);
+ draft.manualSlots[1]=null;draft.slots[0]='rail';
  assert.equal(quoteLoadout(current,draft,loan).ok,false,'ion needs plasma marks');
+});
+test('manual sockets do not consume automatic mounts or allow automatic guns into M1/M2',()=>{
+ const current=createLoadout(),loan=context({fieldLoan:{moduleId:'resonator'}});
+ const manual=cloneLoadout(current);manual.manualSlots[0]='resonator';
+ assert.equal(quoteLoadout(current,manual,loan).ok,true);
+ const installed=applyLoadout(current,manual,loan).loadout;
+ assert.deepEqual(installed.slots,current.slots);
+ assert.equal(installed.manualSlots[0],'resonator');
+ assert.equal(loadoutProfile(installed).resonator,true);
+ const second=cloneLoadout(installed);second.slots[1]='rail';
+ assert.equal(applyLoadout(installed,second,context({...loan,ore:36})).ok,true);
+ const invalid=cloneLoadout(installed);invalid.manualSlots[1]='plasma';
+ assert.equal(quoteLoadout(installed,invalid,loan).ok,false);
+ const another=cloneLoadout(current);another.manualSlots[1]='resonator';
+ assert.equal(quoteLoadout(current,another,loan).ok,true,'M2 is also a real usable socket');
+ const session=new HangarSession();session.begin(installed);
+ const html=renderShipHangar({...loan,loadout:installed,level:1},session);
+ assert.match(html,/data-act="hgSlot" data-id="6"/);
+ assert.match(html,/data-act="hgSlot" data-id="7"/);
+ assert.match(html,/Ручные: 1\/2/);
+ assert.match(html,/data-id="6"[^>]*aria-label="Узел M1: Резонатор/);
+});
+test('old ship layouts move a rented manual module without losing other guns',()=>{
+ const previous={...createLoadout(),version:1,slots:['plasma','resonator','rail',null,null,null]};
+ delete previous.manualSlots;
+ const migrated=migrateLoadout(previous);
+ assert.deepEqual(migrated.slots,['plasma',null,'rail',null,null,null]);
+ assert.deepEqual(migrated.manualSlots,['resonator',null]);
+ assert.deepEqual(previous.slots,['plasma','resonator','rail',null,null,null]);
 });
 test('draft edits remain separate, reset is free, and application spends resources once',()=>{
  const loadout=createLoadout(),session=new HangarSession();session.begin(loadout);
@@ -95,7 +127,7 @@ test('blueprints persist only module choices and cannot grant unavailable hardwa
  const loadout=full(),session=new HangarSession(storage);session.begin(loadout);
  session.draft.slots[5]='howitzer';session.dispatch({act:'hgSave',id:'0'},context({loadout}));
  const saved=JSON.parse(memory.get(BLUEPRINT_KEY));
- assert.deepEqual(Object.keys(saved.items[0]),['slots']);
+ assert.deepEqual(Object.keys(saved.items[0]),['slots','manualSlots']);
  const next=new HangarSession(storage),starter=createLoadout();next.begin(starter);
  next.dispatch({act:'hgLoad',id:'0'},context({loadout:starter,level:1,ore:0}));
  assert.equal(quoteLoadout(starter,next.draft,context({level:1,ore:0})).ok,false);

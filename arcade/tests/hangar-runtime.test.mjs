@@ -58,7 +58,8 @@ test('taking an ion loan on a rail-only ship does not install an unusable manual
 test('a loan immediately fills a free node without spending extra resources',()=>{
  const g=game();g.baseAction('loanIon','');
  assert.equal(g.weaponProfile.ion,true,'a free node is fitted without another confirmation');
- assert.equal(g.hangarSession.draft.slots[1],'ion');
+ assert.equal(g.hangarSession.draft.manualSlots[0],'ion');
+ assert.equal(g.shipLoadout.slots[1],null,'the second automatic socket remains available');
  g.hangarAction({act:'hgApply'});assert.equal(g.weaponProfile.ion,true);
  assert.equal(g.player.ore,400,'the first trial remains free');
 });
@@ -89,7 +90,7 @@ test('returning an ion loan preserves unrelated unfinished edits in the hangar',
  g.baseAction('returnIon','');
  assert.equal(g.weaponProfile.ion,false);
  assert.equal(g.hangarSession.draft.slots[0],'rail','unapplied plan is still available');
- assert.equal(g.hangarSession.draft.slots[1],null);
+ assert.equal(g.hangarSession.draft.manualSlots[0],null);
  assert.equal(g.shipLoadout.slots[0],'plasma','live loadout is unchanged');
 });
 test('an invalid draft cannot spend alloy or replace live weapons through the actual game adapter',()=>{

@@ -8,7 +8,7 @@ import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1-data-economy-20261111';
 import {normalizedDoctrineRanks,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2-hud-merge-20261110';
-import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110-weapon-deck-audit-2-hud-merge-20261110';
+import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110-weapon-deck-audit-2-hud-merge-20261110-manual-hardpoints-20261111';
 import {ESCORTS,escortCapacity} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
 const el = id => document.getElementById(id);
 const mountCountLabel=count=>{

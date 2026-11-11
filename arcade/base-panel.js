@@ -1,5 +1,5 @@
-import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2-semantic-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-hud-merge-20261110';
-import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-value-2-hud-merge-20261110-wingmastery-20261110';
+import {renderShipHangar} from './hangar-panel.js?v=first-contract-reward-1-station-layout-2-station-clarity-1-campaign-1-weapon-mechanics-2-tactical-field-2-unified-controls-1-direct-fit-2-orbital-terminal-1-menu-flow-2-menu-focus-1-station-terminal-art-1-menu-reaudit-1-menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-menu-audit-1-portrait-1-menu-simplify-1-menu-consistency-2-semantic-1-menu-ergonomics-1-combat-balance-1-menu-depth-2-hud-merge-20261110-manual-hardpoints-20261111';
+import {renderDevelopmentPanel} from './development-panel.js?v=menu-rebuild-1-development-tree-1-devux-3-clarity-pass-1-first-loops-1-menu-audit-1-progression-art-6-sketch-portrait-1-menu-consistency-6-semantic-1-manual-weapon-1-manual-qa-2-loadout-clarity-1-menu-ergonomics-1-menu-audit-fix-1-menu-depth-2-pilot-value-2-hud-merge-20261110-wingmastery-20261110-manual-hardpoints-20261111';
 import {normalizedDoctrineRanks,doctrineSpent} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2-hud-merge-20261110';
 import {readableKey,DEFAULT_CONTROLS,interactionCopy} from './control-layout.js?v=unified-controls-1-first-loops-1-hud-merge-20261110';
 import {renderTerritoryProgress} from './territory-benefits.js?v=first-loops-1-triangle-defense-1-corecharge-20261110-hud-merge-20261110';
@@ -18,7 +18,7 @@ import {FIELD_WEAPONS,fieldWeapon,fieldLoanOffer} from './field-weapons.js?v=wea
 import {nextEconomyChoices} from './sortie-economy.js?v=economy-integrity-1-econ-audit-2-campaign-1-sector-density-2';
 import {FIRST_CONTRACT_MODULES} from './first-contract-reward.js?v=first-contract-reward-1-campaign-1';
 import {arsenalDiscoveryPromise,labDiscoveryPromise} from './station-progression.js?v=lab-logistics-qa-1-radio-shadow-1-home-conflict-1-expedition-1-campaign-1-repair-qa-1-unified-controls-1';
-import {slotOpen,MODULES} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1-direct-fit-2-menu-focus-1-menu-ergonomics-1-menu-depth-2-tactical-slot-20261110-unlimited-hud-20261110';
+import {slotOpen,slotLabel,fittedModules,MODULES} from './ship-loadout.js?v=first-contract-reward-1-campaign-1-unified-controls-1-direct-fit-2-menu-focus-1-menu-ergonomics-1-menu-depth-2-tactical-slot-20261110-unlimited-hud-20261110-manual-hardpoints-20261111';
 import {heroMenuPortrait} from './hero-menu-portrait.js';
 import {renderHomeConflict} from './home-conflict.js?v=home-conflict-1-campaign-1-repair-qa-1-enemy-balance-2';
 import {renderCampaignProgress} from './regional-campaign.js?v=campaign-1-repair-qa-1-territory-war-1-enemy-growth-1';
@@ -945,9 +945,9 @@ export function renderBasePanel(base,state){
  // The same level-driven sprite is used by the actual hangar, so the overview
  // never advertises an imaginary ship or an outdated hull configuration.
  const heroArt=heroMenuPortrait(state.level,state.hp,state.maxHp);
- const currentWeapons=(state.loadout?.slots||[]).map((id,i)=>id&&slotOpen(state.loadout,i)?
-  '<button type="button" class="base-mounted-weapon" data-act="fitWeapon" data-id="'+id+'" data-slot="'+i+'" aria-label="Узел '+(i===5?'H':i+1)+': '+(MODULES[id]?.name||id)+'. Открыть оснащение">'+
-  '<b>'+(i===5?'H':i+1)+'</b> '+(MODULES[id]?.short||id)+'</button>':'').filter(Boolean);
+ const currentWeapons=fittedModules(state.loadout).map((id,i)=>id&&slotOpen(state.loadout,i)?
+  '<button type="button" class="base-mounted-weapon" data-act="fitWeapon" data-id="'+id+'" data-slot="'+i+'" aria-label="Узел '+slotLabel(i)+': '+(MODULES[id]?.name||id)+'. Открыть оснащение">'+
+  '<b>'+slotLabel(i)+'</b> '+(MODULES[id]?.short||id)+'</button>':'').filter(Boolean);
  const quickRepair=o.repairAmount>0?
   action('repair','Починить · '+o.repairCost+' сплава · +'+Math.ceil(o.repairAmount)+' прочности',o.reasons.repair):
   '<span class="base-ready">Корпус исправен</span>';
@@ -1064,7 +1064,7 @@ export function renderBasePanel(base,state){
  const fieldIllustration=id=>'<span class="base-field-illustration"><img src="./assets/station-menu/field-'+id+'.webp" alt="" width="64" height="64" loading="lazy"></span>';
  const fieldPanel=loan?card('base-service base-local base-field-service','ПОЛЕВОЙ МОДУЛЬ',
   spec.name+' · неограниченные выстрелы · перезарядка '+spec.cooldown+' с',
-  fieldIllustration(spec.id)+fieldHelp(spec.id)+' Нажмите на обычный узел корабля и выберите этот модуль. '+
+  fieldIllustration(spec.id)+fieldHelp(spec.id)+' Нажмите на ручной узел M1 или M2 и выберите этот модуль. '+
   (loan.assignment?'Прокат закреплён за '+(loan.assignment.kind==='operation'?'особой операцией':'полевым заказом')+'; после её завершения или отмены модуль вернётся при стыковке.':
    'Прокат будет закреплён за следующим принятым заданием. Можно вернуть досрочно.'),
   action('returnField','Вернуть модуль')):
@@ -1075,7 +1075,7 @@ export function renderBasePanel(base,state){
   offer?'<div class="base-grid">'+Object.values(FIELD_WEAPONS).map(w=>{
    const q=fieldLoanOffer(base,state,w.id);
    return card('base-service base-local base-field-service','ПОЛЕВОЙ МОДУЛЬ · ПРОКАТ',
-    w.name,fieldIllustration(w.id)+fieldHelp(w.id)+' Выстрелы не ограничены; перезарядка '+w.cooldown+' с. Установите в обычный узел и примените сборку. Запуск — '+readableKey((state.controls||DEFAULT_CONTROLS).fieldWeapon)+'; тактическое устройство на '+readableKey((state.controls||DEFAULT_CONTROLS).field)+' остаётся доступно. Одновременно можно взять один прокатный модуль.',
+    w.name,fieldIllustration(w.id)+fieldHelp(w.id)+' Выстрелы не ограничены; перезарядка '+w.cooldown+' с. Установите в ручной узел M1 или M2 и примените сборку. Запуск — '+readableKey((state.controls||DEFAULT_CONTROLS).fieldWeapon)+'; тактическое устройство на '+readableKey((state.controls||DEFAULT_CONTROLS).field)+' остаётся доступно. Одновременно можно взять один прокатный модуль.',
     action('loanField',q.mode==='trial'?'Выбрать бесплатно':'Взять · '+q.cost+' сплава',q.reason,w.id),q.reason);
   }).join('')+'</div>':base.type==='dock'&&state.fieldTrialTaken?card('base-service',
    'ПОЛЕВОЕ ОРУЖИЕ','Бесплатная проба использована',

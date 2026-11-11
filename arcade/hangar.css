@@ -35,10 +35,13 @@
 .dialog button.hg-node{position:absolute;z-index:3;transform:translate(-50%,-50%);display:grid;place-content:center;gap:1px;min-width:53px;min-height:44px;padding:4px 7px;line-height:1.1;background:#071927ec;border-color:var(--module-color);box-shadow:0 2px 9px #0009;color:#e7fcff}
 .hg-node b{font-size:16px;color:var(--module-color);font-weight:800}.hg-node span{font-size:9px}
 .dialog button.hg-node.selected{background:#21485ce6;outline:2px solid #b8f4ef;outline-offset:3px}
+.dialog button.hg-manual-node{border-style:solid;border-color:#bc9df7;background:#201a3eec;box-shadow:0 0 13px #8f72c32b}
+.hg-manual-node b{color:#dcc5ff!important}
 .dialog button.hg-node.locked{border-style:dashed;background:#09121dd9;color:#8d9dad}.hg-node.locked b{color:#788a9d}
 .dialog .ship-hangar p.hg-scene-caption{text-align:center;color:#99bdcc;font-size:10px;margin:9px 0 12px}
 .hg-slot-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;font-size:10px}
 .hg-slot-strip span{border:1px solid #5071825c;padding:7px 4px;line-height:1.3;background:#152e4099}.hg-slot-strip b{color:#a5e7ed;margin-right:3px}.hg-slot-strip .locked{color:#6f8798;background:#081626}.hg-slot-strip .empty{color:#c2cdba;border-style:dashed}
+.hg-slot-strip span.manual{border-color:#906fbe88;background:#231d3d85}.hg-slot-strip span.manual b{color:#dcc5ff}
 .hg-thermal-plan{display:grid;gap:6px;padding:12px 0 0;margin-top:10px;border-top:1px solid #496a7c55;line-height:1.4}.hg-thermal-plan strong{font-size:11px;color:#d4e8eb}.hg-thermal-plan span{font-size:10px;color:#e6caa4}.hg-thermal-plan small{font-size:10px;color:#9cb4c2}
 .hg-stats{width:100%;border-collapse:collapse;font-size:11px;margin:15px 0;font-variant-numeric:tabular-nums}
 .hg-stats caption{text-align:left;font-size:10px;color:#8eaebf;padding-bottom:8px;line-height:1.4}
@@ -68,6 +71,7 @@
  .hg-layout{display:block}.hg-ship{padding:13px 10px}.hg-blueprint{min-height:0;aspect-ratio:var(--art-ratio);margin-top:15px}.hg-stage{font-size:9px}
  .dialog button.hg-node{min-width:48px;min-height:44px;padding:3px 5px}.hg-node b{font-size:15px}.hg-node span{font-size:8px}
  .hg-node[data-id="2"]{top:13%!important}.hg-node[data-id="5"]{top:85%!important}
+ .hg-node[data-id="6"]{left:12%!important}.hg-node[data-id="7"]{left:88%!important}
  .hg-arsenal,.hg-inspector{display:none;border:0;padding:13px 12px}.hg-catalog-open .hg-ship{display:none}.hg-catalog-open .hg-arsenal,.hg-catalog-open .hg-inspector{display:block}.hg-inspector{border-top:1px solid #47697b66}.hg-mobile-only{display:inline-block!important}
  .hg-catalog-list{grid-template-columns:1fr 1fr;gap:6px}.dialog button.hg-weapon{padding:9px 6px;min-height:96px;align-items:flex-start;gap:5px}.hg-weapon .hg-module-icon{width:23px;height:29px}.hg-weapon strong{font-size:11px}.hg-weapon small,.hg-weapon em{font-size:9px}
  .hg-section-head{align-items:flex-start}.hg-filters{margin-top:7px}.hg-note{margin-bottom:0!important}.hg-stats{font-size:12px}.hg-stats caption{font-size:11px}.hg-control-note{grid-template-columns:1fr 1fr;line-height:1.4}

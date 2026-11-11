@@ -49,7 +49,7 @@ test('an unaffordable fitting retains its real price and explains the shortage',
 test('filtering a fitting selects a matching item without changing a loaded blueprint',()=>{
  const loadout=createLoadout(),session=new HangarSession();session.begin(loadout);
  session.draft.slots[1]='rail';const before=JSON.stringify(session.draft);
- session.dispatch({act:'hgSlot',id:'1'},{loadout});
+ session.dispatch({act:'hgSlot',id:'6'},{loadout});
  session.dispatch({act:'hgFilter',id:'manual'},{loadout});
  assert.equal(session.focusWeapon,'ion');assert.equal(JSON.stringify(session.draft),before);
  const html=renderShipHangar({loadout,level:3,ore:100,baseActive:true},session);

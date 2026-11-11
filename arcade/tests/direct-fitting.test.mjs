@@ -19,8 +19,9 @@ test('two choices install a purchased gun in the real runtime, with no unapplied
 for(const id of ['ion','resonator'])test(id+': one choice borrows and equips without Apply',()=>{
  const g=game();g.shipLoadout=createLoadout();g.hangarSession.begin(g.shipLoadout);
  g.paused=true;g.baseTab='hangar';g.overlay.hidden=false;
- g.hangarAction({act:'hgSlot',id:'1'});g.hangarAction({act:'hgBorrow',id});
- assert.equal(g.shipLoadout.slots[1],id);assert.equal(g.weaponProfile[id],true);
+ g.hangarAction({act:'hgSlot',id:'6'});g.hangarAction({act:'hgBorrow',id});
+ assert.equal(g.shipLoadout.manualSlots[0],id);assert.equal(g.weaponProfile[id],true);
+ assert.equal(g.shipLoadout.slots[1],null);
  assert.equal(g.player.ore,400);assert.equal(g.fieldTrialTaken,true);
  assert.equal(g.fieldLoan.charges,3);assert.equal(g.hangarSession.dirty(g.shipLoadout),false);
  g.hangarAction({act:'hgBorrow',id});assert.equal(g.fieldLoan.charges,3);
@@ -31,13 +32,13 @@ test('failed manual fits never consume a trial or rental fee',()=>{
   const current=createLoadout(),snapshot=structuredClone(current),ctx=context();
   const result=borrowAndFit(base,current,0,'ion',ctx);
   assert.equal(result.ok,false);assert.deepEqual(current,snapshot);assert.equal(ctx.fieldLoan,undefined);
-  const good=borrowAndFit(base,current,1,'ion',ctx);
+  const good=borrowAndFit(base,current,6,'ion',ctx);
   assert.equal(good.ok,true);assert.equal(good.ore,base.type==='arsenal'?74:100);
  }
 });
 test('unaffordable rental, invalid module and closed node fail without changing inventory',()=>{
  const current=createLoadout();
- for(const [slot,id,extra] of [[1,'ion',{ore:10}],[2,'resonator',{}],[1,'unknown',{}]]){
+ for(const [slot,id,extra] of [[6,'ion',{ore:10}],[8,'resonator',{}],[6,'unknown',{}]]){
   const r=borrowAndFit({...dock,id:'arsenal',type:'arsenal'},current,slot,id,context(extra));
   assert.equal(r.ok,false);assert.deepEqual(current,createLoadout());
  }
@@ -51,9 +52,13 @@ test('direct changes preserve a loaded blueprint until the player applies or can
  assert.deepEqual(session.draft,before);assert.match(session.message,/загруженную схему/);
 });
 
-test('the ordinary slot catalog includes free trial weapons beside owned and purchasable guns',()=>{
+test('the manual catalog offers trials without mixing them with automatic guns',()=>{
  const g=game();g.shipLoadout=createLoadout();g.hangarSession.begin(g.shipLoadout);
  g.hangarSession.dispatch({act:'hgSlot',id:'1'},context({loadout:g.shipLoadout}));
+ const automatic=renderBasePanel(g.docked,{...g.baseState(),baseTab:'hangar'});
+ assert.doesNotMatch(automatic,/data-act="hgFocusWeapon" data-id="ion"/);
+ assert.doesNotMatch(automatic,/data-act="hgFocusWeapon" data-id="resonator"/);
+ g.hangarSession.dispatch({act:'hgSlot',id:'6'},context({loadout:g.shipLoadout}));
  const html=renderBasePanel(g.docked,{...g.baseState(),baseTab:'hangar'});
  assert.match(html,/data-act="hgFocusWeapon" data-id="ion"/);
  assert.match(html,/data-act="hgFocusWeapon" data-id="resonator"/);

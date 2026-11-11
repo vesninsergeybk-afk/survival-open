@@ -1027,11 +1027,28 @@ test('delivering restored telemetry twice cannot duplicate ore, experience or th
 test('loan charges, cooldown, spent trial and owned hardware survive without a free refill',()=>{
  const g=scene();g.fieldLoan=createIonLoan(g.docked.id,200);g.fieldLoan.charges=1;
  g.fieldLoan.used=2;g.fieldLoan.cooldownUntil=247;g.fieldLoan.missionStarted=true;g.fieldTrialTaken=true;
- g.shipLoadout.slots[1]='ion';
+ g.shipLoadout.manualSlots[0]='ion';
  const {storage}=save(g),fresh=scene();restoreCheckpoint(fresh,new RunCheckpointStore(storage).load());
  assert.equal(fresh.fieldLoan.charges,1);assert.equal(fresh.fieldLoan.used,2);
  assert.equal(fresh.fieldLoan.cooldownUntil,247);assert.ok(fresh.fieldTrialTaken);
- assert.equal(fresh.shipLoadout.slots[1],'ion');assert.equal(fresh.player.ore,20);
+ assert.equal(fresh.shipLoadout.manualSlots[0],'ion');assert.equal(fresh.shipLoadout.slots[1],null);
+ assert.equal(fresh.player.ore,20);
+});
+test('legacy checkpoints relocate field weapons from automatic sockets into M1',()=>{
+ for(const version of [1,2]){
+  const g=scene();g.fieldLoan=createFieldLoan('resonator',g.docked.id,g.time);
+  g.shipLoadout.slots[1]='rail';g.shipLoadout.owned.rail=1;
+  const snapshot=unpackRun(packRun(captureCheckpoint(g,g.docked)));
+  snapshot.version=version;
+  snapshot.state.shipLoadout.slots[1]='resonator';
+  delete snapshot.state.shipLoadout.manualSlots;
+  snapshot.state.shipLoadout.version=1;
+  const restored=scene();restoreCheckpoint(restored,snapshot);
+  assert.deepEqual(restored.shipLoadout.slots,['plasma',null,null,null,null,null]);
+  assert.deepEqual(restored.shipLoadout.manualSlots,['resonator',null]);
+  assert.equal(restored.shipLoadout.owned.rail,1,'stored automatic equipment stays owned');
+  assert.equal(restored.fieldLoan.moduleId,'resonator');
+ }
 });
 test('interrupted or quota-limited writes preserve the previous valid checkpoint',()=>{
  const g=scene(),{store,storage}=save(g);g.player.ore=37;
@@ -1236,12 +1253,12 @@ test('a real enemy radio cell cannot break a station checkpoint or lose the acti
  advanceRegionalSupply(g.world,g.time);const freight=g.world.regionalSupply.convoys[0];assert.ok(freight);a.protect=freight;
  const radioCell=a._commsCell;assert.equal(c._commsCell,radioCell);assert.ok(radioCell.proposals instanceof Map);
  g.fieldLoan=createFieldLoan('resonator',b.id,g.time);g.fieldLoan.charges=2;g.fieldLoan.used=1;g.fieldTrialTaken=true;
- g.shipLoadout.slots[1]='resonator';g.fieldEffects=[{until:g.time+4,targets:[{kind:'enemy',target:a},{kind:'enemy',target:c}]}];
+ g.shipLoadout.manualSlots[0]='resonator';g.fieldEffects=[{until:g.time+4,targets:[{kind:'enemy',target:a},{kind:'enemy',target:c}]}];
  const {storage}=save(g),loaded=new RunCheckpointStore(storage).load(),fresh=scene();restoreCheckpoint(fresh,loaded);
  assert.equal(a._commsCell,radioCell,'serializing must not dismantle the live radio cell');
  assert.ok(radioCell.proposals instanceof Map);
  assert.equal(fresh.player.hp,73);assert.equal(fresh.fieldLoan.moduleId,'resonator');assert.equal(fresh.fieldLoan.charges,2);
- assert.equal(fresh.fieldLoan.used,1);assert.equal(fresh.shipLoadout.slots[1],'resonator');
+ assert.equal(fresh.fieldLoan.used,1);assert.equal(fresh.shipLoadout.manualSlots[0],'resonator');
  assert.equal(fresh.fieldEffects[0].targets[0].target,fresh.enemies[0]);assert.equal(fresh.enemies[0].target,fresh.player);
  assert.equal(fresh.enemies[0].protect,fresh.world.regionalSupply.convoys[0]);
  assert.equal(fresh.enemies[0]._commsCell,undefined,'the radio cache is rebuilt after continuing');
