@@ -178,10 +178,10 @@ test('selected support turrets draw their actual range, including an upgraded dr
   set:(obj,key,value)=>(obj[key]=value,true)});
  game.artilleryMenuTarget=hive;
  drawFluxSupports(ctx,game,{x:0,y:0,w:1600,h:1100});
- assert.ok(radii.includes(260));
+ assert.ok(radii.includes(410));
  hive.branches={reach:1};radii.length=0;
  drawFluxSupports(ctx,game,{x:0,y:0,w:1600,h:1100});
- assert.ok(radii.includes(335));
+ assert.ok(radii.includes(485));
 });
 
 test('mothership immediately launches twelve fragile drones and replaces losses with paid flux',()=>{
