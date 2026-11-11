@@ -46,17 +46,30 @@ export function recordContourFeedback(game,events){
    y:Number.isFinite(lost[0].y)?lost[0].y:field?.center.y}));
  }
  const deliveries=events.filter(e=>e.kind==='delivered'&&e.amount>0);
- const total=deliveries.reduce((sum,e)=>sum+e.amount,0);
- const local=deliveries.reduce((sum,e)=>sum+(e.local??0),0),
-  treasury=deliveries.reduce((sum,e)=>sum+(e.treasury??e.amount),0);
- if(total>.05){
-  const field=fields.get(deliveries[0].fieldId);
-  recorded+=Number(recordWorldFeedback(game,{key:'contour-flux:'+Math.floor(game.time),
-   label:'ФЛЮКС ДОСТАВЛЕН',kind:'industry',
-   cause:'Плазмофаги вернулись с флюксом',
-   effect:'Добыто '+total.toFixed(1)+' флюкса: '+local.toFixed(1)+
-    ' в местных хранилищах и '+treasury.toFixed(1)+' в казне',
-   x:field?.anchor.x,y:field?.anchor.y}));
+ // Ten smaller siphons carry the same total production. Buffer their genuine
+ // deliveries before reporting so the journal neither disappears nor spams
+ // one message for every tiny returning worker.
+ if(deliveries.length){
+  const batch=game.contourDeliveryBuffer??={
+   total:0,local:0,treasury:0,special:0,fieldId:deliveries[0].fieldId
+  };
+  for(const e of deliveries){
+   batch.total+=e.amount;
+   batch.local+=e.local??0;
+   batch.treasury+=e.treasury??e.amount;
+   batch.special+=e.special??0;
+  }
+  if(batch.total>.05){
+   const field=fields.get(batch.fieldId);
+   recorded+=Number(recordWorldFeedback(game,{key:'contour-flux:'+Math.floor(game.time),
+    label:'ФЛЮКС ДОСТАВЛЕН',kind:'industry',
+    cause:'Плазмофаги вернулись с флюксом',
+    effect:'Добыто '+batch.total.toFixed(1)+' флюкса: '+batch.local.toFixed(1)+
+     ' в местных хранилищах и '+batch.treasury.toFixed(1)+' в казне'+
+     (batch.special>0?', '+batch.special.toFixed(1)+' в оборонном накопителе':''),
+    x:field?.anchor.x,y:field?.anchor.y}));
+   game.contourDeliveryBuffer=null;
+  }
  }
  return recorded;
 }

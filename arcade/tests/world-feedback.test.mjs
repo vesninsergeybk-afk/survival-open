@@ -153,7 +153,7 @@ test('real contour collectors explain deliveries and losses; untouched simulatio
   const events=advanceContours(w,second,1,[],{x:0,y:0});
   g.time=second;
   recordContourFeedback(g,events);
-  if(events.some(e=>e.kind==='delivered')){delivered=true;break;}
+  if(events.some(e=>e.kind==='delivered')&&g.worldFeedback?.history?.length){delivered=true;break;}
  }
  assert.equal(delivered,true);
  assert.ok(w.contours.flux>0);

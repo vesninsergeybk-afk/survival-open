@@ -227,8 +227,12 @@ export function drawContourWorld(game,c,cam){
    }
   }
   const t=h.phase==='out'?Math.min(1,h.progress):h.phase==='back'?1-Math.min(1,h.progress):1;
-  const x=field.anchor.x+(field.center.x-field.anchor.x)*t;
-  const y=field.anchor.y+(field.center.y-field.anchor.y)*t;
+  // A ten-ship flotilla occupies parallel lanes, not ten overlapping sprites.
+  const fx=field.center.x-field.anchor.x,fy=field.center.y-field.anchor.y;
+  const length=Math.hypot(fx,fy)||1;
+  const lane=((h.workerIndex??0)%5-2)*13,spread=Math.sin(t*Math.PI)*lane;
+  const x=field.anchor.x+fx*t-fy/length*spread;
+  const y=field.anchor.y+fy*t+fx/length*spread;
   if(!visible({x,y},cam,Math.ceil(SIPHON3_WORLD_SIZE*1.08)))continue;
   if(h.phase==='gather'){
    c.save();c.strokeStyle='rgba(255,221,138,.8)';c.lineWidth=2;
@@ -238,7 +242,8 @@ export function drawContourWorld(game,c,cam){
   // Keep the former low-cost icon only if the texture is still loading.
   const direction=Math.atan2(field.center.y-field.anchor.y,field.center.x-field.anchor.x)+
    (h.phase==='back'?Math.PI:0);
-  const seed=[...field.id].reduce((sum,ch)=>sum+ch.charCodeAt(0),0)+(h.launchedAt||0)*.67;
+  const seed=[...field.id].reduce((sum,ch)=>sum+ch.charCodeAt(0),0)+
+   (h.launchedAt||0)*.67+(h.workerIndex||0)*19.73;
   if(!drawSiphon3(c,{x,y,angle:direction,phase:h.phase,progress:h.progress,
    time:now,seed,size:SIPHON3_WORLD_SIZE,reducedMotion:calm})){
    c.save();c.translate(x,y);c.rotate(direction+Math.PI/2);

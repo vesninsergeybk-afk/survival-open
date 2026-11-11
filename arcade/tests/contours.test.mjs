@@ -86,7 +86,7 @@ test('redrawing a contour cannot restart the resource shipment clock',()=>{
  assert.equal(w.contours.nextLaunchAt,due);
  assert.equal(w.contours.harvesters.length,0);
  advanceContours(w,due,.5);
- assert.equal(w.contours.harvesters.length,2);
+ assert.equal(w.contours.harvesters.length,2*CONTOURS.maxHarvestersPerField);
 });
 
 test('collectors physically travel and deliver uncapped flux; a nearby raid can destroy them',()=>{
@@ -121,7 +121,7 @@ test('frequent miniature collectors form a visible convoy without multiplying pr
   shipments+=advanceContours(w,time,1).filter(e=>e.kind==='delivered').length;
   simultaneously=Math.max(simultaneously,w.contours.harvesters.length);
  }
- assert.ok(simultaneously>=2,'two or more little ships should overlap on a normal route');
+ assert.ok(simultaneously>=10,'ten small siphons should stay in circulation on one route');
  assert.ok(shipments>=20,'flux reaches the station in repeated small deliveries');
  assert.ok(Math.abs(w.contours.delivered-expected)/expected<.1,
   'shortening the departure interval must not fabricate more total flux');

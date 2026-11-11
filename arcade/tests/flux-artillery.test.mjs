@@ -72,30 +72,20 @@ test('building consumes alloy and flux once, starts uncharged and observes place
  assert.match(artilleryOffer(world,player,{x:2000,y:2000}).reason,/далеко от корабля/);
 });
 
-test('player can buy zero, four or every affordable shell upfront without double spending flux',()=>{
+test('basic startup magazine is free and never consumes the strategic treasury',()=>{
  const first=fixture();first.world.contours.trials.completed=1;first.world.contours.flux=3;
- assert.equal(maxArtilleryPreload(first.world),8);
- assert.equal(artilleryOffer(first.world,first.player,first.point,9).ok,false);
- const loaded=deployArtillery(first.world,first.player,first.point,0,4);
- assert.equal(loaded.ok,true);assert.equal(loaded.preload,4);
- assert.equal(loaded.turret.ammo,4);assert.equal(loaded.turret.stockpile,0);
- assert.equal(first.world.contours.flux,1);
+ assert.equal(maxArtilleryPreload(first.world),FLUX_ARTILLERY.magazine);
+ assert.equal(artilleryOffer(first.world,first.player,first.point,16).ok,false);
+ const built=deployArtillery(first.world,first.player,first.point,0,4);
+ assert.ok(built.ok);assert.equal(built.turret.ammo,4);
+ assert.equal(first.world.contours.flux,3-FLUX_ARTILLERY.fluxCost);
  assert.equal(validFluxArtillery(first.world.contours),true);
- const second=fixture();second.world.contours.trials.completed=1;second.world.contours.flux=9;
- const all=maxArtilleryPreload(second.world);
- assert.equal(all,32);
- const built=deployArtillery(second.world,second.player,second.point,0,all);
- assert.equal(built.turret.ammo,15);assert.equal(built.turret.stockpile,17);
+ const second=fixture();second.world.contours.trials.completed=1;second.world.contours.flux=1;
+ const full=deployArtillery(second.world,second.player,second.point,0,FLUX_ARTILLERY.magazine);
+ assert.ok(full.ok);
+ assert.equal(full.turret.ammo,FLUX_ARTILLERY.magazine);
+ assert.equal(full.turret.stockpile,0);
  assert.equal(second.world.contours.flux,0);
- assert.equal(validFluxArtillery(second.world.contours),true);
- built.turret.readyAt=0;built.turret.ammo=0;
- second.world.stations.get('B').suppressed=true;
- second.game.time=1;advanceFluxArtillery(second.game,.05);
- assert.equal(built.turret.ammo,15,'local paid reserve works without an active supply cable');
- assert.equal(built.turret.stockpile,2);
- const third=fixture();third.world.contours.trials.completed=1;third.world.contours.flux=1;
- assert.equal(deployArtillery(third.world,third.player,third.point,0,0).turret.ammo,0);
- assert.equal(third.world.contours.flux,0);
 });
 
 test('tracking refreshes a moving target before release instead of firing at its old position',()=>{
@@ -116,7 +106,7 @@ test('one stock barrel fires three low-power paid shells at different locations'
  const {world,player,point,game}=fixture();world.contours.trials.completed=1;
  world.contours.flux=1.75;
  const t=deployArtillery(world,player,point,0,3).turret;
- assert.equal(t.ammo,3);assert.equal(world.contours.flux,0);
+ assert.equal(t.ammo,3);assert.equal(world.contours.flux,.75);
  t.readyAt=0;game.enemies=[{x:1030,y:300,vx:0,vy:0,hp:1000,maxHp:1000,r:18}];
  advanceUntilFirstShell(game);
  for(let i=0;i<30&&t.salvoLeft;i++){
@@ -208,18 +198,20 @@ test('cable anchors to a productive triangle edge, and broken links stop resuppl
  assert.equal(world.contours.artilleryPackets.length,0);
 });
 
-test('nearby emplacements replenish faster than remote ones without a hard cable cutoff',()=>{
+test('ordinary artillery resupply is independent of distance inside the powered contour',()=>{
  const near=fixture(),far=fixture();
- for(const pack of [near,far]){pack.world.contours.trials.completed=1;pack.world.contours.flux=100;}
+ for(const pack of [near,far]){pack.world.contours.trials.completed=1;pack.world.contours.flux=10;}
  const distant={x:650,y:3600},farPilot={x:620,y:3400,ore:200};
  assert.equal(deployArtillery(near.world,near.player,{x:600,y:100},0).ok,true);
  assert.equal(deployArtillery(far.world,farPilot,distant,0).ok,true);
- for(let t=1;t<=90;t++){
+ for(let t=1;t<=50;t++){
   near.game.time=t;far.game.time=t;
   advanceFluxArtillery(near.game,1);advanceFluxArtillery(far.game,1);
  }
- assert.ok(near.world.contours.artillery[0].ammo>far.world.contours.artillery[0].ammo,
-  'distance limits sustained supply, even with the same large global stock');
+ assert.equal(near.world.contours.artillery[0].ammo,FLUX_ARTILLERY.magazine);
+ assert.equal(far.world.contours.artillery[0].ammo,FLUX_ARTILLERY.magazine);
+ assert.equal(near.world.contours.flux,9);
+ assert.equal(far.world.contours.flux,9);
  assert.equal(validFluxArtillery(far.world.contours),true);
 });
 

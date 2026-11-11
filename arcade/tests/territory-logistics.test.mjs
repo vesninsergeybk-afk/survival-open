@@ -89,7 +89,7 @@ test('a flux depot stores only paid incoming packets, with finite local capacity
 });
 function depotCapacityValue(t){return FLUX_DEPOT.capacity+8*(t.level||0);}
 
-test('a nearby artillery battery consumes local depot stores and keeps treasury accounting exact',()=>{
+test('ordinary artillery fires from its cable and does not spend depot stores',()=>{
  const {world,player,point}=fixture();
  const depot=deployDepot(world,player,point,0).depot;
  depot.readyAt=0;depot.stored=6;
@@ -100,7 +100,7 @@ test('a nearby artillery battery consumes local depot stores and keeps treasury 
   damageEnemy(){},hitTurret(){},hitEnemyBase(){}};
  const treasury=world.contours.flux;
  for(let i=1;i<=200;i++){game.time=i*.05;advanceFluxArtillery(game,.05);}
- assert.ok(depot.stored<6,'a usable warehouse must fund actual battery packets');
+ assert.equal(depot.stored,6,'ordinary reloads must not consume actual stored flux');
  assert.equal(world.contours.flux,treasury,'a turret cannot charge the treasury again for warehouse fuel');
  assert.ok(turret.ammo>0);
  assert.equal(validFluxDepots(world.contours),true);

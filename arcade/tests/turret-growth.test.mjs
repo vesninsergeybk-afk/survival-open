@@ -57,7 +57,7 @@ test('all four structures have real, separately purchasable paths including rang
  }
 });
 
-test('heavy rounds consume prepaid quarter-flux units and reach five flux per shell',()=>{
+test('heavy rounds require twenty network energy units and do not consume harvested flux',()=>{
  const pack=fixture(),{world,player,game,point}=pack;
  const t=deployArtillery(world,player,point,0).turret;
  buyAll(pack,t,'power');
@@ -81,8 +81,8 @@ test('heavy rounds consume prepaid quarter-flux units and reach five flux per sh
  const shell=world.contours.artilleryShells[0];
  assert.equal(shell.damage,480);
  for(let i=0;i<8&&t.salvoLeft>0;i++){game.time+=.05;advanceFluxArtillery(game,.05);}
- assert.equal(t.salvoLeft,0);assert.equal(t.ammo,0);
- assert.equal(world.contours.flux,0,'firing spends the already delivered charge, never charges global flux twice');
+ assert.equal(t.salvoLeft,0);assert.ok(t.ammo>=0&&t.ammo<20,'network may refill while heavy salvo fires');
+ assert.equal(world.contours.flux,0,'ordinary heavy shells must not spend collected strategic flux');
  assert.equal(validFluxArtillery(world.contours),true);
  shell.damage=Infinity;assert.equal(validFluxArtillery(world.contours),false);
 });

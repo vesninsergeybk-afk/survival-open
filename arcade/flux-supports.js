@@ -6,10 +6,13 @@ import {arcChainCount,arcRange,arcCooldown,arcSlowSeconds,laserEmitters,laserCoo
  validTurretBranches,validTurretProtection} from './turret-growth.js?v=turret-preload-20261109-1-audit-1-guided-1-turret-defense-20261110-trial-station-defense-20261110';
 import {worldTextScale} from './camera-zoom.js?v=flight-zoom-2-text-scale-1';
 import {nearestSupplyDepot,takeDepotFlux} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
-import {hasPoweredContour} from './contour-trials.js';
+import {hasPoweredContour,productiveContourFields} from './contour-trials.js';
+import {contourFields} from './territory-system.js';
+import {ensureDefenseCapacitor,spendDefenseCharge,specialThreat,DEFENSE_CAPACITOR}
+ from './defense-capacitors.js';
 
-// All three structures spend delivered flux. A nest pays for each replacement
-// drone; the other two consume prepaid charges instead of free damage ticks.
+// Ordinary charges are supplied by a live network at no flux cost. Shared
+// physical capacitors hold the rare harvested-flux special attacks.
 export const SUPPORT_TYPES=Object.freeze({
  arc:Object.freeze({name:'Разрядник',oreCost:24,fluxCost:1.4,maxHp:95,r:35,
   buildSeconds:3.2,range:600,magazine:12,chargeCost:.22,fluxPerMinute:10,
@@ -18,7 +21,7 @@ export const SUPPORT_TYPES=Object.freeze({
   buildSeconds:3.4,range:600,magazine:10,chargeCost:.20,fluxPerMinute:13,
   cooldown:1.7,damage:5,capacity:1,color:'#ff9762'}),
  hive:Object.freeze({name:'Дроновая матка',oreCost:32,fluxCost:4,maxHp:125,r:43,
-  buildSeconds:4.3,range:410,magazine:0,chargeCost:.55,fluxPerMinute:9.5,
+  buildSeconds:4.3,range:410,magazine:0,chargeCost:.55,fluxPerMinute:3.3,
   cooldown:2.1,damage:1.3,capacity:12,color:'#70e7be'})
 });
 export const SUPPORT_MAX=60, SUPPORT_PACKET_MAX=256;
@@ -56,7 +59,8 @@ export function supportOffer(world,player,point,type){
   return {ok:false,reason:'Достигнут предел вспомогательных установок'};
  if([...(s.artillery||[]),...(s.supportTurrets||[]),...(s.fluxDepots||[]).filter(t=>t.hp>0),
   ...(s.fluxSiphonHives||[]).filter(t=>t.hp>0)]
-  .some(t=>d(t,point)<FLUX_ARTILLERY.clearance))
+  .some(t=>d(t,point)<FLUX_ARTILLERY.clearance)||
+  (s.defenseCapacitors||[]).some(c=>d(c,point)<75))
   return {ok:false,reason:'Слишком близко к другому сооружению'};
  if([...world.stations.values()].some(st=>d(st,point)<FLUX_ARTILLERY.stationClearance))
   return {ok:false,reason:'Слишком близко к станции'};
@@ -83,6 +87,9 @@ export function deploySupport(world,player,point,time,type){
   lastShotAt:-1,lastChargeAt:-1,lastDestroyedAt:-1,gunAngle:-Math.PI/2,
   aimX:point.x,aimY:point.y,burstLeft:0,burstAt:0,
   initialReady:false,drones:[],droneSchema:2,branches:{}};
+ const cell=ensureDefenseCapacitor(world,point,time,
+  productiveContourFields(world,contourFields(world)));
+ if(cell)turret.defenseCellFieldId=cell.fieldId;
  s.supportTurrets.push(turret);return {ok:true,turret,connection:offer.connection};
 }
 export function supportAt(world,point,radius=49){
@@ -236,9 +243,12 @@ function electricShot(game,t,cfg){
    .sort((a,b)=>d(a.object,previous)-d(b.object,previous))[0];
   if(!next)break;hits.push(next);
  }
+ const special=specialThreat(game,t,first.object,180)&&
+  spendDefenseCharge(game.world,t,DEFENSE_CAPACITOR.arcCost,game.time);
+ if(special)fx(game,{kind:'heat',x:first.object.x,y:first.object.y,r:66});
  for(const [i,target]of hits.entries()){
   const experimental=turretBranchRank(t,'anomaly');
-  damageTarget(game,target,(cfg.damage+experimental*1.2)*Math.max(.28,1-i*.13),t);
+  damageTarget(game,target,(cfg.damage+experimental*1.2)*Math.max(.28,1-i*.13)*(special?1.8:1),t);
   if(target.kind==='enemy'&&target.object.hp>0){
    const enemy=target.object,now=game.time;
    if((enemy.tacticalSlowUntil||0)>now)
@@ -266,7 +276,8 @@ function laserPulse(game,t,cfg){
  const target=chooseTarget(game,t,laserRange(t),t.mode);if(!target)return;
  const range=d(t,target.object),falloff=laserFalloff(range,laserRange(t));
  const shots=laserEmitters(t);
- damageTarget(game,target,cfg.damage*falloff*shots,t);
+ const special=(t.specialBurstUntil||0)>game.time;
+ damageTarget(game,target,cfg.damage*falloff*shots*(special?1.7:1),t);
  t.aimX=target.object.x;t.aimY=target.object.y;
  fx(game,{kind:'laser',x:t.x,y:t.y,tx:target.object.x,ty:target.object.y,
   fade:falloff,shots,range:laserRange(t),reach:turretBranchRank(t,'reach')});
@@ -293,6 +304,12 @@ function updateDrones(game,t,cfg,dt){
  // One launch contains three real wings. They use different enemies when
  // possible; otherwise they fan out around the same target, not a single dot.
  const primary=chooseTarget(game,t,radius,t.mode);
+ if(primary&&specialThreat(game,t,primary.object,180)&&
+  spendDefenseCharge(game.world,t,DEFENSE_CAPACITOR.hiveCost,now)){
+  t.specialWingUntil=now+7;
+  fx(game,{kind:'heat',x:t.x,y:t.y,r:78});
+ }
+ const wingBoost=(t.specialWingUntil||0)>now?1.45:1;
  const threats=(game.enemies||[]).filter(e=>e.hp>0&&!e.converted&&
   !e.trialRetreatUntil&&d(e,t)<radius).sort((a,b)=>
   (b._gunAiming?.target===t?1:0)-(a._gunAiming?.target===t?1:0)||d(a,t)-d(b,t))
@@ -315,7 +332,7 @@ function updateDrones(game,t,cfg,dt){
   if(!engaged||d(drone,enemy)>200||now<drone.nextShotAt)continue;
   drone.nextShotAt=now+cfg.cooldown;drone.lastShotAt=now;
   const tactic=turretBranchRank(t,'anomaly');
-  damageTarget(game,target,cfg.damage*(t.level>=3?1.3:1)*(1+tactic*.09),t);
+  damageTarget(game,target,cfg.damage*(t.level>=3?1.3:1)*(1+tactic*.09)*wingBoost,t);
   if(tactic>=2&&target.kind==='enemy'&&enemy.hp>0){
    enemy.tacticalSlowFactor=Math.min(enemy.tacticalSlowFactor||1,tactic>=3?.72:.86);
    enemy.tacticalSlowUntil=Math.max(enemy.tacticalSlowUntil||0,now+(tactic>=3?1.6:.75));
@@ -372,24 +389,19 @@ export function advanceFluxSupports(game,dt){
   }
   const link=links.get(t.id);
   if(link){
-   const depot=nearestSupplyDepot(game.world,t,now,cfg.chargeCost);
-   const congestion=counts.get(link.edgeId)||1,
-    supply=(1+(depot?d(depot,t):link.cable)/FLUX_ARTILLERY.cableScale)**-2;
+   // Basic fire and ordinary drone replacement are powered by a valid line.
+   // Physical capacitor siphons handle exceptional attacks separately.
    t.chargeCredit=Math.min(cfg.chargeCost,
-    t.chargeCredit+supportSupply(t,cfg.fluxPerMinute)/60*
-     supply/congestion*(depot?1.7:1)*Math.max(0,dt));
+    t.chargeCredit+supportSupply(t,cfg.fluxPerMinute)/60*Math.max(0,dt));
    const pending=s.supportPackets.filter(p=>p.turretId===t.id)
     .reduce((sum,p)=>sum+p.charges,0);
    const liveDrones=t.type==='hive'?t.drones.filter(x=>x.hp>0).length:0;
    const needed=t.type==='hive'?hiveLimit(t)-liveDrones-pending:
     cfg.magazine-t.ammo-pending;
-   const affordable=Math.floor(((depot?depot.stored:s.flux)+1e-8)/cfg.chargeCost),
-    earned=Math.floor((t.chargeCredit+1e-8)/cfg.chargeCost);
-   const charges=Math.min(t.type==='hive'?1:3,needed,affordable,earned);
+   const earned=Math.floor((t.chargeCredit+1e-8)/cfg.chargeCost);
+   const charges=Math.min(t.type==='hive'?1:3,needed,earned);
    if(charges>0&&s.supportPackets.length<SUPPORT_PACKET_MAX){
-    const packet=chargePacket(t,link,cfg,now,charges,t.type==='hive'?'drone':'energy',depot);
-    if(depot)takeDepotFlux(depot,packet.amount);
-    else s.flux=Math.max(0,s.flux-packet.amount);
+    const packet=chargePacket(t,link,cfg,now,charges,t.type==='hive'?'drone':'energy');
     t.chargeCredit=Math.max(0,t.chargeCredit-packet.amount);
     s.supportPackets.push(packet);
    }
@@ -418,6 +430,9 @@ export function advanceFluxSupports(game,dt){
   if(t.type==='arc'){
    t.ammo--;electricShot(game,t,cfg);
   }else{
+   t.specialBurstUntil=specialThreat(game,t,target.object,160)&&
+    spendDefenseCharge(game.world,t,DEFENSE_CAPACITOR.laserCost,now)?now+1.6:0;
+   if(t.specialBurstUntil>now)fx(game,{kind:'heat',x:target.object.x,y:target.object.y,r:64});
    t.ammo-=laserEmitters(t);t.burstLeft=laserBurst(t);t.burstAt=now;
    game.heritage?.play?.('supportLaser',.65,t);
   }

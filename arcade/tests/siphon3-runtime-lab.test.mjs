@@ -18,7 +18,7 @@ test('Siphon-3 workshop uses a valid triangle and the live game territory rules'
 test('Siphon-3 returns from a real-game collection cycle and deposits flux',()=>{
  const lab=createLabWorld();
  forceLaunch(lab);
- assert.equal(lab.world.contours.harvesters.length,1);
+ assert.equal(lab.world.contours.harvesters.length,10);
  const worker=lab.world.contours.harvesters[0];
  assert.equal(worker.phase,'out');
  const start=harvesterPosition(lab.fields[0],worker);
@@ -36,6 +36,7 @@ test('Siphon-3 returns from a real-game collection cycle and deposits flux',()=>
 
 test('test interceptor destroys an exposed harvester without a fictional reward',()=>{
  const lab=createLabWorld();forceLaunch(lab);
+ const attacked=lab.world.contours.harvesters[0];
  assert.equal(startIntercept(lab),true);
  let destroyed=false;
  for(let i=0;i<90;i++){
@@ -43,14 +44,15 @@ test('test interceptor destroys an exposed harvester without a fictional reward'
  }
  assert.equal(destroyed,true);
  assert.equal(lab.world.contours.lost,1);
- assert.equal(lab.world.contours.delivered,0);
- assert.equal(lab.world.contours.harvesters.length,0);
+ assert.ok(!lab.world.contours.harvesters.includes(attacked),'the intercepted siphon must be destroyed');
+ assert.equal(lab.world.contours.harvesters.length,9,'unharmed siphons keep working');
+ assert.ok(Number.isFinite(lab.world.contours.delivered),'other legitimate deliveries remain valid');
 });
 
-test('manual playtest launches never exceed the six-worker live-game limit',()=>{
+test('manual playtest launches never exceed the ten-worker live-game limit',()=>{
  const lab=createLabWorld();
  for(let i=0;i<12;i++)forceLaunch(lab);
- assert.equal(lab.world.contours.harvesters.length,6);
+ assert.equal(lab.world.contours.harvesters.length,10);
 });
 
 test('workshop loads the authored sprite atlas and is linked from concept studio',()=>{
