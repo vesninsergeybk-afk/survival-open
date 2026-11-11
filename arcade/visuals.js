@@ -106,9 +106,9 @@ export const COMPACT_ESCORT_SPECS=Object.freeze({
  fighter:Object.freeze({width:28,height:24,color:'#82beff',asset:'./assets/escort/fighter-v2.webp'})
 });
 export const SPECIAL_ESCORT_SPECS=Object.freeze({
- brawler:Object.freeze({width:50,height:46,asset:'./assets/escort/brawler-v2.webp'}),
- rocket:Object.freeze({width:35,height:52,asset:'./assets/escort/rocket-v2.webp'}),
- medic:Object.freeze({width:49,height:46,asset:'./assets/escort/medic-v2.webp'})
+ brawler:Object.freeze({width:31,height:29,asset:'./assets/escort/brawler-v2.webp'}),
+ rocket:Object.freeze({width:30,height:34,asset:'./assets/escort/rocket-v2.webp'}),
+ medic:Object.freeze({width:30,height:29,asset:'./assets/escort/medic-v2.webp'})
 });
 
 /** Trim transparent margins and downsample once, never inside the render loop. */
