@@ -305,7 +305,7 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
    for(let i=0;i<count;i++){
     const slot=existing+i,phase=slot%2===0?'out':'back';
     state.harvesters.push({fieldId:field.id,
-     progress:(Math.floor(slot/2)+.5)/5,phase,hp:2,launchedAt:time,
+     progress:slot===0?0:(Math.floor(slot/2)+.5)/5,phase,hp:2,launchedAt:time,
      workerIndex:slot,value:(yieldById.get(field.id)||0)*tripSeconds/
       (CONTOURS.maxHarvestersPerField*CONTOURS.cycleSeconds)});
    }
@@ -315,10 +315,16 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
   const field=byId.get(h.fieldId);if(!field)continue;
   const distance=d(field.anchor,field.center);
   const speed=Math.max(.004,190/Math.max(100,distance));
-  h.progress+=dt*speed;
-  if(h.phase==='out'&&h.progress>=1){h.phase='gather';h.progress=0;}
-  else if(h.phase==='gather'&&h.progress>=.24){h.phase='back';h.progress=0;}
-  else if(h.phase==='back'&&h.progress>=1){
+  // Carry progress across phase changes. Discarding a fractional second at
+  // every waypoint would quietly reduce harvested flux in coarse simulations.
+  let motion=h.progress+dt*speed;
+  for(let transitions=0;transitions<12;transitions++){
+   const bound=h.phase==='gather'?.24:1;
+   if(motion<bound)break;
+   motion-=bound;
+   if(h.phase==='out'){h.phase='gather';continue;}
+   if(h.phase==='gather'){h.phase='back';continue;}
+   if(h.phase!=='back')break;
    const special=shipDefenseFlux(world,field,h.value,time);
    const plannedLocal=h.value*FLUX_LOCAL_SHARE-special,
     local=storeFieldFlux(world,field,plannedLocal),
@@ -328,12 +334,11 @@ export function advanceContours(world,time,dt,enemies=[],player=null){
    state.fluxHarvestedLocally=(state.fluxHarvestedLocally||0)+local;
    state.delivered+=total;
    if(total>0)events.push({kind:'delivered',amount:total,local,treasury,special,fieldId:h.fieldId});
-   const speed=Math.max(.004,190/Math.max(100,d(field.anchor,field.center)));
-   h.phase='out';h.progress=0;h.hp=Math.min(2,h.hp+.4);h.launchedAt=time;
+   h.phase='out';h.hp=Math.min(2,h.hp+.4);h.launchedAt=time;
    h.value=(yieldById.get(field.id)||0)*2.24/speed/
     (CONTOURS.maxHarvestersPerField*CONTOURS.cycleSeconds);
-   continue;
   }
+  h.progress=motion;
   const t=h.phase==='out'?Math.min(1,h.progress):h.phase==='back'?1-Math.min(1,h.progress):1;
   const x=field.anchor.x+(field.center.x-field.anchor.x)*t;
   const y=field.anchor.y+(field.center.y-field.anchor.y)*t;
