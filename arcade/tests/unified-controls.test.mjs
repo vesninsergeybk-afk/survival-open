@@ -22,7 +22,7 @@ test('RMB over any emplacement opens its menu before a manual weapon can arm',()
 test('new bindings are complete, one-action-per-key and survive storage',()=>{
  assert.equal(validControls(DEFAULT_CONTROLS),true);
  assert.equal(DEFAULT_CONTROLS.field,'Space');
- assert.equal(DEFAULT_CONTROLS.fieldWeapon,'KeyG');
+ assert.equal(DEFAULT_CONTROLS.fieldWeapon,'KeyF');
  assert.equal(new Set(CONTROL_ACTIONS.map(x=>x.code)).size,CONTROL_ACTIONS.length);
  const move=changeControl(DEFAULT_CONTROLS,'dash','KeyV');
  assert.equal(move.ok,true);
@@ -34,7 +34,7 @@ test('new bindings are complete, one-action-per-key and survive storage',()=>{
 });
 
 test('old saved bindings gain the rental key without losing custom keys',()=>{
- const saved={...DEFAULT_CONTROLS};delete saved.fieldWeapon;
+ const saved={...DEFAULT_CONTROLS,howitzer:'KeyF'};delete saved.fieldWeapon;
  saved.field='KeyV';saved.skills='Space';saved.hack='KeyG';
  const actual=readControls({getItem:()=>JSON.stringify(saved)});
  assert.equal(actual.field,'KeyV');
