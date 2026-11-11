@@ -4435,7 +4435,11 @@ export class ArcadeGame {
   this.pausedRenderPending=true;this.renderDock();
  }
  callFieldWeapon(){
-  if(!this.fieldLoan)return false;
+  if(!this.fieldLoan){
+   if(!this.dead&&!this.paused&&this.overlay?.hidden)
+    this.notice('Ручной модуль не выбран. Возьмите и установите «Ион» или «Резонатор» на станции.',2.8);
+   return false;
+  }
   if(!this.weaponProfile?.[this.fieldLoan.moduleId||'ion']){
    this.notice('Прокатное оружие ещё не установлено. Откройте «Оснащение» на станции.',2.5);
    return false;
