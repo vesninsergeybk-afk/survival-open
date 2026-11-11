@@ -955,7 +955,7 @@ export function renderBasePanel(base,state){
  // already has enough alloy to choose a specialist.
  const quickHire=Object.entries(ESCORTS).map(([role,spec])=>{
   const quote=escortHireOffer(base,state,role);
-  return action('hireDrone','«'+spec.name+'» · '+spec.cost+' сплава'+(quote.reason?' · '+quote.reason:''),quote.reason,role,spec.desc);
+  return action('hire','Нанять «'+spec.name+'» · '+spec.cost+' сплава',quote.reason,role,spec.desc);
  }).join('');
  const sectorPreview='<aside class="base-overview-sector" aria-label="Известные узлы сектора">'+
   '<span class="base-kicker">ОБСТАНОВКА</span><h3>Известный сектор</h3>'+basePreview(base,state)+'</aside>';
