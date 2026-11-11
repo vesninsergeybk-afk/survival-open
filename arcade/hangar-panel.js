@@ -20,7 +20,7 @@ const info=(name,description)=>'<button type="button" class="menu-info" data-hel
 const weaponDescription=(item,controls)=>(item.kind==='manual'?
  'Полевое оружие · '+readableKey(controls.fieldWeapon)+'. '+item.desc:item.desc)
  .replace('R по умолчанию',readableKey(controls.railMode))
- .replace('F по умолчанию',readableKey(controls.howitzer));
+ .replace('G по умолчанию',readableKey(controls.howitzer));
 const moduleRequirement=(id,context)=>moduleLock(id,context);
 const rankTrack=(rank,max)=>'<span class="dev-rank-track" aria-label="Изучено '+rank+' из '+max+'">'+
  Array.from({length:max},(_,i)=>'<i'+(i<rank?' class="filled"':'')+'></i>').join('')+'</span>';
