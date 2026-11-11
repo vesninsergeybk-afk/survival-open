@@ -11,10 +11,11 @@ const arcade = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const root = resolve(arcade, '..');
 
 test('all licensed tracks exist and every score state resolves to a nonempty playlist', () => {
-  assert.equal(Object.keys(MUSIC_TRACKS).length, 12);
-  assert.equal(new Set(Object.values(MUSIC_TRACKS).map(t=>t.file)).size, 12);
+  assert.equal(Object.keys(MUSIC_TRACKS).length, 25);
+  assert.equal(new Set(Object.values(MUSIC_TRACKS).map(t=>t.file)).size, 25);
   for (const [id, track] of Object.entries(MUSIC_TRACKS)) {
-    assert.ok(track.source.startsWith('https://www.scottbuckley.com.au/library/'), id);
+    assert.ok(track.source.startsWith('https://www.scottbuckley.com.au/library/') ||
+      track.source.startsWith('https://opengameart.org/content/'), id);
     assert.ok(track.level>0 && track.level<=1, id);
     const path = resolve(root, 'assets/audio/music', track.file);
     assert.ok(existsSync(path), id + ' missing from public repository');
@@ -29,6 +30,52 @@ test('all licensed tracks exist and every score state resolves to a nonempty pla
   for (const scene of Object.values(MUSIC_SCENES))
     assert.ok(MUSIC_POOLS[scene.track], scene.track + ' missing a playlist');
   assert.equal(MUSIC_SCENES.alert.track, 'tension');
+});
+
+test('the additional licensed-music manifest matches the runtime catalog',()=>{
+  const data=JSON.parse(readFileSync(resolve(root,'tools/licensed-music-manifest.json'),'utf8'));
+  assert.equal(data.tracks.length,13);
+  assert.equal(new Set(data.tracks.map(item=>item.file)).size,13);
+  for(const item of data.tracks){
+    assert.ok(['CC0','CC BY 4.0'].includes(item.license),item.id);
+    assert.equal(MUSIC_TRACKS[item.id]?.file,item.file,item.id);
+    assert.equal(MUSIC_TRACKS[item.id]?.source,item.source,item.id);
+    assert.ok(item.url.startsWith('https://'),item.id);
+  }
+});
+
+test('compatible calm and action versions preserve musical position on escalation',()=>{
+  const oldAudio=globalThis.Audio, oldWindow=globalThis.window;
+  class StubMedia {
+    constructor(){this.paused=true;this.currentTime=0;this.duration=190;this.readyState=1;this.handlers={};}
+    addEventListener(name,fn){this.handlers[name]=fn;}
+    play(){this.paused=false;return Promise.resolve();}
+    pause(){this.paused=true;}
+  }
+  const param=()=>({value:0,cancelScheduledValues(){},setValueAtTime(v){this.value=v;},
+    linearRampToValueAtTime(v){this.value=v;}});
+  const gain=()=>({gain:param(),connect(){return this;}});
+  try{
+    globalThis.Audio=StubMedia;globalThis.window={setTimeout(){}};
+    const audio=new AudioEngine({musicEnabled:true,musicVolume:.3});
+    audio.ctx={state:'running',currentTime:5,createGain:gain,
+      createMediaElementSource(){return {connect(d){return d;}}}};
+    audio.musicGain=gain();
+    audio._firstMusic=false;
+    audio.musicRotation.next=()=> 'singularity_calm';
+    audio.startMusic();
+    assert.equal(audio._activeMusic.id,'singularity_calm');
+    audio._activeMusic.element.currentTime=75;
+    audio.setMusicState('combat');
+    assert.equal(audio._activeMusic.id,'singularity_action');
+    assert.equal(audio._activeMusic.element.currentTime,75);
+    audio.setMusicState('exploration');
+    assert.equal(audio._activeMusic.id,'singularity_calm');
+    assert.equal(audio._activeMusic.element.currentTime,75);
+  }finally{
+    if(oldAudio===undefined)delete globalThis.Audio;else globalThis.Audio=oldAudio;
+    if(oldWindow===undefined)delete globalThis.window;else globalThis.window=oldWindow;
+  }
 });
 
 test('opening tracks are varied across separate sessions and persisted', () => {
