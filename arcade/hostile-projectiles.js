@@ -22,7 +22,15 @@ export const HOSTILE_SHOT_STYLES=Object.freeze({
  'base-turret':{length:38,width:6.5,outer:'#e94c6e',core:'#fff0d5',shape:'siege'},
  iris:{length:25,width:3,outer:'#b084ff',core:'#f2e1ff',shape:'needle'},
  'iris-close':{length:31,width:2.8,outer:'#bca8ff',core:'#ffffff',shape:'needle'},
- mote:{length:23,width:2.9,outer:'#63c6ff',core:'#e3fcff',shape:'fork'}
+ mote:{length:23,width:2.9,outer:'#63c6ff',core:'#e3fcff',shape:'fork'},
+ 'micro-needle':{length:30,width:2.3,outer:'#74e8ff',core:'#f3ffff',shape:'needle'},
+ 'micro-gatling':{length:20,width:3.2,outer:'#ff9957',core:'#fff1b8',shape:'fork'},
+ 'micro-missile':{length:26,width:5,outer:'#ffb458',core:'#fff3cb',shape:'heavy'},
+ 'micro-violet':{length:32,width:2.6,outer:'#a585ff',core:'#f4dfff',shape:'needle'},
+ 'micro-ion':{length:28,width:4.3,outer:'#60f1db',core:'#e7fff9',shape:'fork'},
+ 'micro-blade':{length:35,width:4,outer:'#53caff',core:'#ecffff',shape:'needle'},
+ 'micro-guard':{length:24,width:3.5,outer:'#8cbdff',core:'#ecf9ff',shape:'fork'},
+ 'micro-hunter':{length:30,width:3.8,outer:'#ff6471',core:'#fff0e3',shape:'needle'}
 });
 
 const line=(c,x,y,tx,ty,width,color,alpha=1)=>{

@@ -69,6 +69,10 @@ import {CockpitDisplay} from './hud.js?v=weapons-cycle-2-opening-arc-1-opening-b
 import {chooseInteraction,activeInteraction,automaticFireAllowed} from './controls.js?v=arcade-controls-63';
 import {CONTROL_ACTIONS,DEFAULT_CONTROLS,CONTROL_STORAGE_KEY,readControls,changeControl,readableKey,isPressed,isMapShortcut,isMapCloseShortcut} from './control-layout.js?v=control-audit-1-flux-build-1-tactical-slot-20261110';
 import {MOTE_SWARM,updateMoteSwarmOrders,drawMoteSwarms} from './mote-swarm.js?v=control-audit-1-recorded-combat-1-realfoley-2-combat-hunt-20261109-dodge-audit-1-redteam-20261109-1-megawing-20261109-1-mote-audit-20261110-1-opening-evasion-20261110';
+import {loadMicroDroneSprites,updateMicroDroneDirector,drawMicroDrone,
+ drawMicroDroneLinks,microDroneShieldFactor,steerMicroMissile,
+ microDroneMissileTarget,microDroneReportHit,MICRODRONE_ROLES}
+ from './microdrone-swarms.js?v=microdrone-mesh-20261111';
 import {armLastStand,sweptRamHit} from './enemy-last-stand.js?v=redteam-20261109-1';
 import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1-triangle-defense-1-turret-gesture-1-turret-preload-20261109-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction,drawMiningNoiseRings} from './mining.js?v=checkpoint-1-rock-sleep-1-noise-pressure-1-pressure-response-1-pilot-depth-1';
@@ -282,6 +286,8 @@ export class ArcadeGame {
   this.visuals.capitalDamageQA=typeof location!=='undefined'&&
    new URLSearchParams(location.search).get('capitalDamageQa')==='1';
   this.firstLoopsQA=typeof location!=='undefined'&&new URLSearchParams(location.search).get('qa')==='first-loops';
+  this.microDroneQA=typeof location!=='undefined'&&
+   new URLSearchParams(location.search).get('microDroneQa')==='1';
   this.cockpit=new CockpitDisplay();
   this.heritage=new ArcadeHeritage();this.grid=new SpatialGrid(110);
   this.lastIonAudioCycle=-1;
@@ -326,6 +332,9 @@ export class ArcadeGame {
   this.artilleryDecoys=[];
    this.support={charges:0,cooldown:0,missions:[]};
   this.zones=[];this.images={};this.time=0;this.spawnClock=9;this.miningNoise=0;
+  this.microDroneSprites=loadMicroDroneSprites();
+  this.microDroneWings=new Map();this.microDroneBaseCooldowns=new Map();
+  this.nextMicroDronePatrolAt=165;this.nextMicroDroneSupportAt=0;
   this.lastNoiseSource=null;this.noiseAlert=null;this.noiseEscalation=null;
   this.pendingNoiseAlarm=null;
   this.nextNoisePatrolAt=0;
@@ -4893,12 +4902,15 @@ export class ArcadeGame {
   if(aggressor===this.player&&damage>0)damage*=1+masteryBonus(this.combatMastery,'ace')+
    researchBonus(this.combatMastery,'targeting')+researchProtocolBonus(this.combatMastery,this.time,'damage');
   damage=stormWeaponDamage(e,damage,source,this.time);
+  damage*=microDroneShieldFactor(e,this.enemies);
+  if(aggressor===this.player&&damage>0)
+   microDroneReportHit(e,this,source);
   // A dock checkpoint may be captured before the next death-processing frame.
   // Health must already satisfy the saved enemy state contract at that point.
   e.hp=Math.max(0,e.hp-damage);e.hit=.12;
   if(e.hp<=0&&this.allies?.includes(source))e._masteryWingKill=true;
   if(e.hp<=0&&aggressor===this.player)e._masteryDirectKill=true;
-  if(aggressor===this.player&&damage>0)
+  if(aggressor===this.player&&damage>0&&!e.microDrone)
    armLastStand(e,this,hpBefore,sawAttacker);
   if(aggressor&&damage>0){
    const warned=alertFleetUnderFire(this,e,impactEstimate);
@@ -5101,10 +5113,16 @@ export class ArcadeGame {
  enemyShot(x,y,tx,ty,damage,options=null){
   if(this.shots.length>=RULES.maxShots)return false;
   const d=length(tx-x,ty-y)||1,speed=options?.speed||230;
-  this.shots.push({x,y,vx:(tx-x)/d*speed,vy:(ty-y)/d*speed,
+  const shot={x,y,vx:(tx-x)/d*speed,vy:(ty-y)/d*speed,
    damage,r:options?.r||6,life:3.3,alive:true,kind:options?.kind||'laser',
-   learnToken:options?.learnToken||null,trialId:this.activeEnemyFirer?.trialId});
-  this.heritage.play('enemyShot',.28,{x,y});
+   learnToken:options?.learnToken||null,trialId:this.activeEnemyFirer?.trialId};
+  if(options?.microHoming===true){shot.microHoming=true;shot.microHomingAge=0;}
+  if(options?.microTargetKey)shot.microTargetKey=options.microTargetKey;
+  this.shots.push(shot);
+  const sound=options?.kind==='micro-missile'?'rocket':
+   options?.kind==='micro-ion'?'ionShot':
+   options?.kind==='micro-gatling'?'supportDroneShot':'enemyShot';
+  this.heritage.play(sound,.28,{x,y});
   return true;
  }
  shotsNear(x,y,r){return this.shotGrid.query(x,y,r);}
@@ -5627,7 +5645,8 @@ export class ArcadeGame {
   if(Math.hypot(p.vx,p.vy)>150)
    this.heritage.vfx.engineTrail(p.x,p.y,p.angle,'fighter',boosting,dt);
   p.invul=Math.max(0,p.invul-dt);
-  if(this.skillRanks.shield && this.time-this.lastDamageAt>3-.22*masteryPerkTier(this.combatMastery,'survivor') &&
+  if(this.skillRanks.shield && this.time>=(p.microJammedUntil||0)&&
+   this.time-this.lastDamageAt>3-.22*masteryPerkTier(this.combatMastery,'survivor') &&
    p.shield<16+this.skillRanks.shield*24)
    p.shield=Math.min(16+this.skillRanks.shield*24,
     p.shield+dt*(1.8+this.skillRanks.shield*1.2)*(1+.12*masteryPerkTier(this.combatMastery,'survivor')));
@@ -5801,6 +5820,7 @@ export class ArcadeGame {
   for(const e of this.enemies)if(e.hp>0)this.grid.insert(e);
   updateMoteSwarmOrders(this);
   this.enemyComms?.update(this);
+  updateMicroDroneDirector(this);
   this.shotGrid.clear();
   for(const s of this.shots)if(s.alive)this.shotGrid.insert(s);
   this.miningNoise=Math.max(0,Math.min(110,this.miningNoise-dt*MINING_NOISE.decay));
@@ -5904,6 +5924,7 @@ export class ArcadeGame {
   advanceStationGarrisons(this,dt);
   for(const s of this.shots){
    if(!s.alive)continue;
+   steerMicroMissile(s,s.microTargetKey?microDroneMissileTarget(this,s):p,dt);
    const oldShotX=s.x,oldShotY=s.y;
    const nextX=s.x+s.vx*dt,nextY=s.y+s.vy*dt;
    const travel=Math.hypot(nextX-s.x,nextY-s.y);
@@ -5930,6 +5951,14 @@ export class ArcadeGame {
     if(!hitFriendlyShip(this,s)&&sweptRamHit(oldShotX,oldShotY,s.x,s.y,p,s.r+p.r)){
       s.alive=false;
       const before=p.hp+p.shield;
+      if(s.kind==='micro-ion'&&p.invul<=0){
+       p.shield=Math.max(0,p.shield-6);
+       p.microJammedUntil=this.time+4.7;
+       if(this.time>=(this._nextMicroIonNoticeAt||0)){
+        this._nextMicroIonNoticeAt=this.time+9;
+        this.notice('ИОННАЯ ПОМЕХА · восстановление щита задержано!',2.6);
+       }
+      }
       this.hurt(s.damage,{x:s.x,y:s.y});
       this.enemyLearning?.dealt(s.learnToken,Math.max(0,before-p.hp-p.shield));
     }
@@ -5973,8 +6002,9 @@ export class ArcadeGame {
       this._nextMoteDeathSoundAt=this.time+.32;
      }
     }else{
+     const microColor=MICRODRONE_ROLES[e.microDrone]?.color;
      this.heritage.vfx.shipExplosion(e.x,e.y,e.r*(heavy?1.65:1),
-      e.converted?'#73ffda':'#ff8594',heavy);
+      e.converted?'#73ffda':microColor||'#ff8594',heavy);
      if(heavy)this.heritage.vfx.nova(e.x,e.y,110,'red');
      this.heritage.play(heavy?'largeExplosion':'explosion',.18,{x:e.x,y:e.y});
     }
@@ -6691,6 +6721,7 @@ export class ArcadeGame {
     marked.x,marked.y-radius-13);c.restore();
   }
   drawMoteSwarms(c,this.enemies,cam,this.time,this.visuals.reducedMotion,this.moteFormationFx);
+  drawMicroDroneLinks(c,this,cam,this.visuals.reducedMotion);
   const signaledGroups=new Set();
   for(const e of this.enemies){
    if(outsideCamera(e.x,e.y,cam,e.r+30))continue;
@@ -6745,6 +6776,7 @@ export class ArcadeGame {
     c.restore();
    }
    if(!rescueTugPainted&&
+      !drawMicroDrone(c,e,this.time,this.microDroneSprites,this.visuals.reducedMotion)&&
       !this.visuals.drawEnemy(c,e,this.time)&&
       !this.drawSprite(this.images[spriteKey],e.x,e.y,e.r*3,e.r*3,e.angle)){
     c.fillStyle=e.converted?'#6fe7ba':'#f07887';c.beginPath();c.arc(e.x,e.y,e.r,0,TAU);c.fill();

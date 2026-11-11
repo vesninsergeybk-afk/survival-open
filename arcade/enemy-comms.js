@@ -22,7 +22,7 @@ export const ENEMY_COMMS=Object.freeze({
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const legal=e=>!!e&&e.hp>0&&!e.converted&&!e.boss&&
-  !e.microSwarm&&!e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&!e.stationRaid&&
+  !e.microSwarm&&!e.microDrone&&!e.missionStructure&&!e.relayAssault&&!e.interceptCargo&&!e.stationRaid&&
   (!e.signalIntel||e.signalIntel.mode!=='withdraw');
 const rank=e=>({gunship:7,fighter:6,flanker:5,scout:4,
   berserker:3,healer:2})[e.type]||1;

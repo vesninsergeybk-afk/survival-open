@@ -25,6 +25,7 @@ import {masteryBonus} from './combat-mastery.js?v=xp-audit-20261111';
 import {rescueArmedDrone,rescueGuardDestination,rescuePursuitDestination,
  rescueBoundedIntercept,rescueArrivalSpeed}
 from './rescue-formation.js?v=opening-craft-20261111-opening-attack-20261111';
+import {updateMicroDrone} from './microdrone-swarms.js?v=microdrone-mesh-20261111';
 const norm = (dx,dy) => {const m=Math.hypot(dx,dy)||1;return {x:dx/m,y:dy/m};};
 const steer=(body,tx,ty,speed,dt,extra={x:0,y:0})=>{
   if(body._tacticalRepel?.until>body._tacticalNow){
@@ -341,6 +342,7 @@ export function updateEnemy(e,game,dt){
     return;
   }
   if(e.microSwarm){moveMote(e,game,dt);return;}
+  if(e.microDrone){updateMicroDrone(e,game,dt);return;}
   if(updateLastStand(e,game,dt)){cancelCloseAttack(e);return;}
   // Every visible intent must be renewed by real steering this frame.
   e._commsIntent=null;e._theaterIntent=null;
