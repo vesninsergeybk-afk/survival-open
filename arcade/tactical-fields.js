@@ -3,7 +3,7 @@
 // Equipment and upgrades are run-owned; no purchased module creates ammunition.
 export const TACTICAL_DEVICES=Object.freeze({
  pulse:{name:'Инерционный импульс',short:'Импульс',role:'Прервать сближение',cooldown:14,
-  desc:'Мгновенный разряд повреждает и замедляет врагов вокруг корабля. Особенно полезен против роя, который подошёл вплотную.'},
+  desc:'Круговой импульс поражает и замедляет ближайших врагов, сбивает подлетающие снаряды. После применения видны зона действия и результат.'},
  decoy:{name:'Ложный маяк',short:'Маяк',role:'Разделить патруль',cooldown:21,cost:30,bases:2,
   desc:'Поставьте ложный сигнал в точке курсора. Часть противников пойдёт проверять его.'},
  trap:{name:'Гравитационная ловушка',short:'Ловушка',role:'Удержать проход',cooldown:19,cost:48,bases:3,
@@ -98,9 +98,9 @@ export function tacticalSpec(state){
    radius:upgraded?194:170,duration:upgraded?4.8:4,slow:.58,
    damage:5,pulseEvery:.8}:
   branch?.path==='burst'?{id,branch,cooldown:upgraded?15:18,
-   radius:upgraded?285:245,duration:upgraded?.85:.7,slow:1,
+   radius:upgraded?375:330,duration:upgraded?.85:.7,slow:1,
    damage:upgraded?24:18}:
-  {id,branch,cooldown:14,radius:220,duration:3.2,slow:.43,damage:13};
+  {id,branch,cooldown:14,radius:280,duration:3.2,slow:.43,damage:17};
  if(id==='decoy')return {id,branch,cooldown:21,radius:branch?.path==='lure'?700:590,
   duration:branch?.path==='ghost'?(upgraded?11:9):branch?.path==='lure'?5.7:7,
   decoyChance:branch?.path==='lure'?(upgraded?.9:.78):branch?.path==='ghost'?.5:.66};
@@ -139,8 +139,15 @@ export function activateTactical(game,target=null){
  const state=game.tactical||(game.tactical=createTactical()),now=game.time||0,player=game.player;
  if(now<state.readyAt)return {ok:false,reason:'Перезарядка: '+Math.ceil(state.readyAt-now)+' с'};
  const spec=tacticalSpec(state),choice=spec.branch?.path;
- let affected=0;
+ let affected=0,intercepted=0;
  if(spec.id==='pulse'){
+  // A defensive pulse can also clear incoming enemy projectiles,
+  // even when the shooter is keeping outside the close-combat radius.
+  for(const shot of game.shots||[]){
+   if(shot.alive&&dist(shot,player)<=spec.radius+(shot.r||0)){
+    shot.alive=false;intercepted++;
+   }
+  }
   if(choice==='shell'){
    const aura=field('shell',player,now+spec.duration,spec.radius,{nextPulseAt:now+spec.pulseEvery});
    affected=fieldPulse(game,aura,spec,player,true);state.effects.push(aura);
@@ -168,7 +175,7 @@ export function activateTactical(game,target=null){
   state.effects.push(effect);
  }
  state.effects=state.effects.slice(-3);state.readyAt=now+spec.cooldown;state.uses++;
- return {ok:true,name:TACTICAL_DEVICES[spec.id].short,kind:spec.id,affected,
+ return {ok:true,name:TACTICAL_DEVICES[spec.id].short,kind:spec.id,affected,intercepted,
   duration:spec.duration,cooldown:spec.cooldown,point:spec.id==='pulse'?player:state.effects.at(-1)};
 }
 export function tacticalRadioJammed(game,point){
@@ -256,10 +263,12 @@ export function drawTactical(ctx,game){
    ctx.globalAlpha=.9*remaining;ctx.fillText(caption,p.x,p.y-24);
   }
  }
- if(state.pulseAt!==undefined&&now-state.pulseAt<.42){
-  const t=limit((now-state.pulseAt)/.3,0,1),r=(state.pulseRadius||165)*t;
-  ctx.strokeStyle='#9ae9ff';ctx.globalAlpha=(1-t)*.9;ctx.lineWidth=4;
+ if(state.pulseAt!==undefined&&now-state.pulseAt<1.1){
+  const t=limit((now-state.pulseAt)/.9,0,1),r=(state.pulseRadius||280)*t;
+  ctx.strokeStyle='#9ae9ff';ctx.globalAlpha=(1-t)*.95;ctx.lineWidth=5;
   ctx.beginPath();ctx.arc(state.pulseX,state.pulseY,r,0,Math.PI*2);ctx.stroke();
+  ctx.globalAlpha=(1-t)*.3;ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(state.pulseX,state.pulseY,state.pulseRadius||280,0,Math.PI*2);ctx.stroke();
  }
  ctx.restore();
 }
