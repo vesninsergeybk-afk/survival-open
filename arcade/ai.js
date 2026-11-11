@@ -810,7 +810,11 @@ export function updateAlly(a,game,dt){
   const p=game.player;
   const spec=ESCORTS[a.role]||ESCORTS.fighter;
   a.think=(a.think||0)-dt;a.fire=(a.fire||0)-dt;
-  const farFromPlayer=dist(a,p)>235;
+  // A rammer must be able to reach a ranged attacker firing from beyond the
+  // player's short formation. Other escort roles remain close bodyguards.
+  const activeRammer=a.role==='brawler'&&a.state==='cover'&&
+   a.target?.hp>0&&canAutoTarget(a.target);
+  const farFromPlayer=dist(a,p)>(activeRammer?640:235);
   const holdingFire=!!game.holdFire;
   const guardingExtraction=!!game.mining?.active&&!holdingFire;
   if(holdingFire&&(a.state!=='follow'||a.target)){
@@ -839,10 +843,10 @@ export function updateAlly(a,game,dt){
      !enemyBase.coreExposed){
       state='bomb';target=enemyBase;
     }else if(!farFromPlayer){
-      for(const e of game.grid.query(p.x,p.y,a.role==='rocket'?590:520)){
+      for(const e of game.grid.query(p.x,p.y,a.role==='brawler'?720:a.role==='rocket'?590:520)){
         if(e.hp<=0||e.converted||!canAutoTarget(e))continue;
         const playerDistance=dist(p,e);
-        const radius=a.role==='rocket'?530:e.type==='gunship'?510:390;
+        const radius=a.role==='brawler'?650:a.role==='rocket'?530:e.type==='gunship'?510:390;
         if(playerDistance>radius)continue;
         const allyDistance=dist(a,e);
         const threat=escortFocusBonus(a.role,e);
@@ -896,7 +900,7 @@ export function updateAlly(a,game,dt){
   }else if(!holdingFire&&a.state==='cover'&&a.target?.hp>0&&canAutoTarget(a.target)){
     const target=a.target;
     const withdrawing=a.role==='brawler'&&game.time<(a.retreatUntil||0);
-    const approach=a.role==='brawler'?(withdrawing?145:34):a.role==='rocket'?235:100;
+    const approach=a.role==='brawler'?(withdrawing?145:30):a.role==='rocket'?235:100;
     x=target.x+Math.cos(angle)*approach;y=target.y+Math.sin(angle)*approach;
     if(withdrawing){
      const dx=a.x-target.x,dy=a.y-target.y,d=Math.hypot(dx,dy)||1;
@@ -904,7 +908,7 @@ export function updateAlly(a,game,dt){
     }
     // Intercept toward the threat, but keep the escort within support range.
     const dx=x-p.x,dy=y-p.y,d=length(dx,dy),tether=a.role==='bomber'?170:
-     a.role==='rocket'?190:a.role==='brawler'?200:155;
+     a.role==='rocket'?190:a.role==='brawler'?620:155;
     if(d>tether){x=p.x+dx/d*tether;y=p.y+dy/d*tether;}
     // The rammer needs actual hull contact. Six units of tolerance account
     // for movement between frames; a long-distance melee hit is impossible.
@@ -967,7 +971,7 @@ export function updateAlly(a,game,dt){
   }
   const avoid=game.avoidance(a.x,a.y,a.r+35);
   // Catch the player early. 600 units meant the escort was off-screen too long.
-  if(dist(a,p)>235 && a.state!=='bomb'){
+  if(dist(a,p)>(a.role==='brawler'&&a.state==='cover'&&a.target?.hp>0?640:235) && a.state!=='bomb'){
     x=p.x+Math.cos(angle)*85;y=p.y+Math.sin(angle)*85;
     speed*=1.9;
   }
