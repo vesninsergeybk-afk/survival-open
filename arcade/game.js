@@ -131,6 +131,7 @@ import {updateStationInterdiction,interruptStationInterdiction,threatenedStation
 import {autonomousStrikeCarrier,AUTONOMOUS_STRIKE_RANGE} from './carrier-interception.js?v=carrier-intercept-2-campaign-1';
 import {autoConnectContours,contourFields,contourArea,contourProduction,advanceContours,fieldAt,armContourReserve,CONTOURS} from './territory-system.js?v=automatic-contours-1-audit-faces-2-contour-trials-1-first-loops-1-flux-build-1-support-three-1-triangle-defense-1-territory-logistics-1-flux-siphon-roads-1';
 import {weightedContourProduction,buyStationFluxUpgrade} from './territory-economy.js?v=territory-logistics-1-flux-siphon-roads-1';
+import {drawDefenseCapacitors} from './defense-capacitors.js';
 import {FLUX_DEPOT,depotOffer,deployDepot,depotAt,depotUpgradeOffer,upgradeDepot,
  depotCapacity,depotSupplyRadius,advanceFluxDepots,drawFluxDepots} from './flux-depots.js?v=territory-logistics-1-flux-siphon-roads-1';
 import {SIPHON_HIVE,FLUX_ROAD,hiveOffer,buildHive,hiveAt,hiveWorkers,hiveCargo,
@@ -6583,6 +6584,9 @@ export class ArcadeGame {
   drawFluxSupports(c,this,cam,this.buildPlanning?.stage==='place'&&
    SUPPORT_TYPES[this.buildPlanning.type]?{
    point:this.buildPlanning.point,player:this.player,type:this.buildPlanning.type}:null);
+  drawDefenseCapacitors(c,this,cam,this.buildPlanning?.stage==='place'&&
+   (this.buildPlanning.type==='artillery'||SUPPORT_TYPES[this.buildPlanning.type])?{
+    point:this.buildPlanning.point,fields:this.contourVisualFields||contourFields(this.world)}:null);
   drawTurretDefenses(c,this,cam);
   drawStationGarrisons(c,this,cam);
   drawRamSquads(c,this);
