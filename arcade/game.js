@@ -4480,6 +4480,8 @@ export class ArcadeGame {
    result.kind==='jam'?'cyan':'violet');
   this.heritage.play('resonatorShot',.2,{x:this.player.x,y:this.player.y});
   this.notice(result.name+' · '+(result.affected?'поражено целей: '+result.affected+' · ':'')+
+   (result.intercepted?'сбито снарядов: '+result.intercepted+' · ':'')+
+   (result.kind==='pulse'&&!result.affected&&!result.intercepted?'поблизости нет целей · ':'')+
    (result.kind==='trap'?'поле '+result.duration.toLocaleString('ru-RU')+' с · ':'')+
    'перезарядка '+result.cooldown+' с',2.8);
   this.hud();return true;
