@@ -517,7 +517,10 @@ export class ArcadeGame {
   if(hint)hint.textContent=result.ok?
    'ЛКМ: построить · '+cfg.oreCost+' сплава + '+
    cfg.fluxCost.toFixed(2)+
-   ' флюкса · линия '+Math.round(result.connection.cable)+' м':result.reason;
+   ' флюкса · линия '+Math.round(result.connection.cable)+' м'+
+   ((type==='artillery'||SUPPORT_TYPES[type])&&
+    !this.world.contours.defenseCapacitors?.length?
+    ' · накопитель особого вооружения появится автоматически':''):result.reason;
  }
  placeBuildArtillery(point){
   if(!['place','link'].includes(this.buildPlanning?.stage))return false;
