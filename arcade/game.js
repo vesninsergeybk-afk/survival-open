@@ -52,8 +52,8 @@ import {drawEnemyGunWarnings,drawEnemyDefenseGoals} from './enemy-gunnery.js?v=e
 import {drawEnemyCloseWarnings} from './enemy-close-attacks.js?v=opening-close-combat-20261110';
 import {BASE_TURRET_GUN,advanceBaseTurretGun,drawBaseTurretWarnings} from './base-turret-gunnery.js';
 import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-build-1-artillery-sfx-2-support-three-1-growth-1-territory-logistics-1-flux-siphon-roads-1-turret-defense-20261110-trial-station-defense-20261110-escort-squad-20261110';
-import {advanceTurretDefenses,drawTurretDefenses,turretShieldCapacity,damageFriendlyTurret,friendlyTurrets} from './turret-defense.js?v=turret-defense-20261110-trial-station-defense-20261110';
-import {createAreaDenial,trackAreaDenial,mineDamageAgainstTurret,AREA_DENIAL} from './area-denial.js?v=displacement-mine-20261111';
+import {advanceTurretDefenses,drawTurretDefenses,turretShieldCapacity,friendlyTurrets} from './turret-defense.js?v=turret-defense-20261110-trial-station-defense-20261110';
+import {createAreaDenial,trackAreaDenial,advanceMineVolley,insideMineBlasts,mineVolleyDamage,AREA_DENIAL} from './area-denial.js?v=enemy-launched-mines-20261111';
 import {commissionStationGarrison,advanceStationGarrisons,drawStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
 import {escortHireOffer,escortTrainingOffer,createEscort,escortMaxHp,
  escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
@@ -82,7 +82,7 @@ import {clearCoreRocks} from './core-rock-clearance.js';
 import {alertFleetUnderFire} from './enemy-attack-alarm.js';
 import {NOISE_ESCALATION,preserveEarlyNoiseSignal,noisePatrolDirector,armNoiseCourier,updateNoiseEscalation} from './noise-escalation.js?v=noise-pressure-2-pressure-response-1-balance-audit-1';
 import {ArcadeHeritage} from './heritage.js?v=foley-autofire-03-carrier-2-weapon-feel-1-mission-av-1-mission-pack-1-mission-variety-1-mission-choices-1-recorded-combat-1-realfoley-2-first-cue-1-manual-qa-1-artillery-sfx-2-artillery-finish-1-support-three-1-frontier-siege-1-shield-readability-20261110';
-import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=arcade-vfx-viewport-44-weapon-vfx-audit-1';
+import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnemyMineVolley,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from './combat-feedback.js?v=enemy-launched-mines-20261111';
 import {emitWeaponFx,updateWeaponFx,drawWeaponFx} from './weapon-fx.js';
 import {reacquireMissile,applyRocketSplash} from './rocket-branches.js?v=weapon-branches-1-escort-squad-20261110';
 import {deflectBurstShots,countermaneuverRadius,counterguardMultiplier} from './pilot-countermaneuver.js?v=pilot-doctrine-1-pilot-depth-1-pilot-value-2';
@@ -5667,8 +5667,10 @@ export class ArcadeGame {
   const mine=trackAreaDenial(this);
   if(mine){
    this.zones.push(mine);
+   this.heritage.vfx.nova(mine.launcherX,mine.launcherY,28,'orange');
    this.heritage.play('orbitalWarning',1.3,mine);
-   this.notice('МИНА! Уйдите за границу отмеченного круга до взрыва.',2.5);
+   this.notice((ENEMY_TYPES[mine.launcherType]?.name||'Вражеский корабль')+
+    ' выпустил мины! Уходите из отмеченной зоны.',2.7);
   }
   if(!this.contourTrial)this.zoneClock-=dt;
   if(!this.contourTrial&&this.zoneClock<=0&&
@@ -6095,23 +6097,31 @@ export class ArcadeGame {
    }
   }
   for(const z of this.zones){
+   if(z.kind==='enemy-mine-volley'){
+    if(z.done){z.ttl-=dt;continue;}
+    const blasts=advanceMineVolley(this,z,dt,friendlyTurrets(this.world));
+    if(!z.done)continue;
+    if(!blasts.length){z.ttl=0;continue;}
+    for(const blast of blasts)this.heritage.vfx.nova(blast.x,blast.y,blast.r,'orange');
+    this.heritage.play('largeExplosion',.28,z);
+    const mineDamage=mineVolleyDamage(p,blasts,p.r,z.damage);
+    if(mineDamage>0)this.hurt(mineDamage,z,{
+     ignoreHitGrace:true,hullTransfer:AREA_DENIAL.hullTransfer});
+    for(const e of this.grid.query(z.x,z.y,z.r+40))
+     if(e.hp>0&&insideMineBlasts(e,blasts,e.r))this.damageEnemy(e,32);
+    for(const a of this.allies)
+     if(a.hp>0&&insideMineBlasts(a,blasts,a.r))this.hitAlly(a,31);
+    // Enemy anti-ship mines deliberately cannot damage static emplacements.
+    // Their built-in point defence can instead intercept the actual charges.
+    continue;
+   }
    if(z.fuse>0){z.fuse-=dt;continue;}
    z.ttl-=dt;
    if(!z.done){
     z.done=true;z.ttl=.62;
-    if(z.kind==='displacement-mine')this.heritage.vfx.nova(z.x,z.y,z.r,'orange');
-    else this.heritage.vfx.meteorStrike(z.x,z.y,z.r,z.r>80);
+    this.heritage.vfx.meteorStrike(z.x,z.y,z.r,z.r>80);
     this.heritage.play('largeExplosion',.28,{x:z.x,y:z.y});
-    if(dist(z,p)<z.r+p.r){
-     if(z.kind==='displacement-mine')this.hurt(z.damage,z,{
-      ignoreHitGrace:true,hullTransfer:AREA_DENIAL.hullTransfer});
-     else this.hurt(27,z);
-    }
-    if(z.kind==='displacement-mine')for(const turret of friendlyTurrets(this.world)){
-     if(turret.hp<=0||this.time<turret.readyAt||dist(z,turret)>=z.r+turret.r)continue;
-     damageFriendlyTurret(this,turret,{
-      kind:'area-blast',damage:mineDamageAgainstTurret(z),x:z.x,y:z.y});
-    }
+    if(dist(z,p)<z.r+p.r)this.hurt(27,z);
     for(const e of this.grid.query(z.x,z.y,z.r+30))
      if(e.hp>0&&dist(z,e)<z.r+e.r)this.damageEnemy(e,32);
     for(const a of this.allies)if(a.hp>0&&dist(z,a)<z.r+a.r)this.hitAlly(a,31);
@@ -6687,6 +6697,14 @@ export class ArcadeGame {
    if(d.type==='fieldCell'){c.font='bold 10px system-ui';c.textAlign='center';c.fillStyle='#ffffff';c.fillText('+',d.x,d.y+3);c.fillText('ЗАРЯД',d.x,d.y-13);}
   }
   for(const z of this.zones){
+   if(z.kind==='enemy-mine-volley'){
+    if(z.fuse>0)drawEnemyMineVolley(c,z,this.time,this.visuals.reducedMotion);
+    else if(z.done&&z.ttl>0)for(const mine of z.mines){
+     if(mine.intercepted||outsideCamera(mine.tx,mine.ty,cam,mine.r*1.75))continue;
+     drawOrbitalAfterglow(c,{x:mine.tx,y:mine.ty,r:mine.r,ttl:z.ttl});
+    }
+    continue;
+   }
    if(z.fuse>0){
     drawOrbitalWarning(c,z,this.time,this.visuals.reducedMotion);
    }else if(z.done&&z.ttl>0){

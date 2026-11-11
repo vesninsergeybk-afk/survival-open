@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from '../combat-feedback.js';
+import {drawOrbitalWarning,drawOrbitalAfterglow,drawEnemyMineVolley,drawEnergyFlash,drawSeekingMissile,drawHullDamage} from '../combat-feedback.js';
+import {AREA_DENIAL,createAreaDenial,trackAreaDenial} from '../area-denial.js';
 
 function context(){
  const calls=[],ctx={calls};
@@ -22,13 +23,28 @@ test('orbital marker matches physical strike radius and true remaining time',()=
  assert.equal(zone.fuse,1.2,'render never alters game fuse');
 });
 
-test('a thrown charge has a distinct device icon and an explicit escape timer',()=>{
- const ctx=context();
- drawOrbitalWarning(ctx,{kind:'displacement-mine',x:12,y:15,r:215,
-  fuse:2.05,fuseStart:2.05},3,true);
- assert.ok(ctx.calls.some(c=>c[0]==='fillText'&&c[1]==='МИНА · 2.0 с'));
- assert.ok(ctx.calls.some(c=>c[0]==='closePath'),
-  'the charge icon must remain visible without colour or animation');
+test('three launched mines have visible flight tracks, exact blast rings and arming status',()=>{
+ const game={time:55,player:{x:0,y:0},areaDenial:createAreaDenial(),zones:[],
+  enemies:[{serial:7,type:'fighter',hp:58,r:18,x:150,y:0}]};
+ let volley=null;
+ for(let i=0;i<20;i++){
+  game.time=55+i*.35;
+  volley=trackAreaDenial(game)||volley;
+ }
+ assert.ok(volley);
+ const flying=context();
+ drawEnemyMineVolley(flying,volley,55,true);
+ assert.equal(flying.calls.filter(c=>c[0]==='arc'&&c[3]===AREA_DENIAL.mineRadius).length,3);
+ assert.ok(flying.calls.some(c=>c[0]==='fillText'&&c[1].includes('МИНЫ В ПОЛЁТЕ')));
+ volley.age=AREA_DENIAL.flightSeconds+AREA_DENIAL.armingSeconds+.1;
+ const armed=context();drawEnemyMineVolley(armed,volley,58,true);
+ assert.ok(armed.calls.some(c=>c[0]==='fillText'&&c[1].includes('МИНЫ ВЗВЕДЕНЫ')));
+ const intercepted=volley.mines[0];
+ intercepted.intercepted=true;intercepted.interceptAge=volley.age-.12;
+ intercepted.interceptX=15;intercepted.interceptY=20;
+ const defence=context();drawEnemyMineVolley(defence,volley,58,true);
+ assert.ok(defence.calls.some(c=>c[0]==='moveTo'&&c[1]===15&&c[2]===20),
+  'a short cyan beam must identify which turret intercepted the mine');
 });
 
 test('low-fps beams use a single stroke; high-fps beams add two layers',()=>{

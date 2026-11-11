@@ -3,6 +3,7 @@
  * All primitives use the existing world-space camera transform.
  */
 import {getFXSprite} from '../src/vfx-textures.js?v=arcade-vfx-mask-19';
+import {minePosition,AREA_DENIAL} from './area-denial.js?v=enemy-launched-mines-20261111';
 const TAU=Math.PI*2;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 
@@ -11,11 +12,10 @@ export function drawOrbitalWarning(ctx,zone,time=0,reducedMotion=false){
  const total=Math.max(.01,zone.fuseStart||zone.fuse||.01);
  const remaining=clamp((zone.fuse||0)/total,0,1);
  const imminent=remaining<.28;
- const mine=zone.kind==='displacement-mine';
  ctx.save();
- ctx.fillStyle=imminent?'#ff657028':mine?'#ff7b391b':'#e1435316';
+ ctx.fillStyle=imminent?'#ff657028':'#e1435316';
  ctx.beginPath();ctx.arc(zone.x,zone.y,radius,0,TAU);ctx.fill();
- ctx.strokeStyle=imminent?'#ffab7b':mine?'#ff9d58':'#ff687e';
+ ctx.strokeStyle=imminent?'#ffab7b':'#ff687e';
  ctx.lineWidth=2.5;
  ctx.beginPath();ctx.arc(zone.x,zone.y,radius,0,TAU);ctx.stroke();
  // Exact countdown segment, anchored to the same radius as the hit zone.
@@ -34,20 +34,57 @@ export function drawOrbitalWarning(ctx,zone,time=0,reducedMotion=false){
   ctx.lineTo(zone.x+Math.cos(a)*(inner+cross),zone.y+Math.sin(a)*(inner+cross));
   ctx.stroke();
  }
- if(mine){
-  // A visible device at the centre distinguishes the grenade from a generic
-  // orbital reticle, even at reduced motion or with colour perception limits.
-  const pin=13+(reducedMotion?0:Math.sin(time*10)*1.5);
-  ctx.fillStyle='#ffba72';ctx.strokeStyle='#fff5d5';ctx.lineWidth=1.7;
-  ctx.beginPath();ctx.moveTo(zone.x,zone.y-pin);
-  ctx.lineTo(zone.x+pin*.68,zone.y);ctx.lineTo(zone.x,zone.y+pin);
-  ctx.lineTo(zone.x-pin*.68,zone.y);ctx.closePath();ctx.fill();ctx.stroke();
-  ctx.fillStyle='#682c26';ctx.beginPath();ctx.arc(zone.x,zone.y,4.5,0,TAU);ctx.fill();
- }
  ctx.fillStyle=imminent?'#fff0bd':'#ffd0ca';
  ctx.font='bold 12px system-ui';ctx.textAlign='center';
- ctx.fillText((mine?'МИНА · ':'')+Math.max(0,zone.fuse).toFixed(1)+' с',
-  zone.x,zone.y-radius-12);
+ ctx.fillText(Math.max(0,zone.fuse).toFixed(1)+' с',zone.x,zone.y-radius-12);
+ ctx.restore();
+}
+
+/** Each mine leaves an enemy muzzle, follows a curved track, lands, then
+ * visibly arms before a single shared detonation. Rings are real hit radii. */
+export function drawEnemyMineVolley(ctx,zone,time=0,reducedMotion=false){
+ const age=zone.age||0,landed=age>=AREA_DENIAL.flightSeconds;
+ const armed=age>=AREA_DENIAL.flightSeconds+AREA_DENIAL.armingSeconds;
+ const imminent=zone.fuse<.42;
+ ctx.save();
+ for(const mine of zone.mines||[]){
+  if(mine.intercepted){
+   const fade=1-(age-(mine.interceptAge||0))/.3;
+   if(fade>0&&Number.isFinite(mine.interceptX)&&Number.isFinite(mine.interceptY)){
+    ctx.strokeStyle=`rgba(130,245,255,${clamp(fade,0,1)})`;
+    ctx.lineWidth=3.3*fade;
+    ctx.beginPath();ctx.moveTo(mine.interceptX,mine.interceptY);
+    ctx.lineTo(mine.x,mine.y);ctx.stroke();
+   }
+   continue;
+  }
+  ctx.beginPath();ctx.arc(mine.tx,mine.ty,mine.r,0,TAU);
+  ctx.fillStyle=armed?'rgba(255,65,68,.12)':'rgba(255,155,77,.045)';ctx.fill();
+  ctx.strokeStyle=imminent?'#fff0af':armed?'#ff6f66':'#e89964';
+  ctx.lineWidth=armed?2.5:1.5;ctx.stroke();
+  if(!landed){
+   // The luminous flight path makes the shooter and the origin of the threat
+   // legible; after landing the same icon persists as an armed mine.
+   ctx.strokeStyle='#ffbf77';ctx.lineWidth=2;
+   ctx.beginPath();
+   for(let i=0;i<=8;i++){
+    const pos=minePosition(mine,age*i/8);
+    if(i===0)ctx.moveTo(pos.x,pos.y);else ctx.lineTo(pos.x,pos.y);
+   }
+   ctx.stroke();
+  }
+  const pulse=reducedMotion?0:Math.sin(time*9+mine.tx*.01)*1.2;
+  const x=mine.x,y=mine.y,rad=8+pulse;
+  ctx.fillStyle=armed?'#ff7860':'#ffbd75';ctx.strokeStyle='#fff5cf';
+  ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(x,y-rad);
+  ctx.lineTo(x+rad,y);ctx.lineTo(x,y+rad);ctx.lineTo(x-rad,y);
+  ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='#572b2f';ctx.beginPath();ctx.arc(x,y,2.5,0,TAU);ctx.fill();
+ }
+ ctx.fillStyle=imminent?'#fff4bd':'#ffdab1';
+ ctx.font='bold 13px system-ui';ctx.textAlign='center';
+ ctx.fillText((armed?'МИНЫ ВЗВЕДЕНЫ · ':landed?'МИНЫ ВЗВОДЯТСЯ · ':'МИНЫ В ПОЛЁТЕ · ')+
+  Math.max(0,zone.fuse).toFixed(1)+' с',zone.x,zone.y-zone.r-17);
  ctx.restore();
 }
 

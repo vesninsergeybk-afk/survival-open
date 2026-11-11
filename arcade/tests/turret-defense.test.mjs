@@ -86,7 +86,7 @@ test('heavy siege bolts cannot activate the emergency screen',()=>{
  assert.equal(world.contours.flux,original);
 });
 
-test('a turret screen absorbs a reduced mine blast; point defence cannot shoot an explosion',()=>{
+test('an already detonated area blast cannot be intercepted like a projectile',()=>{
  const {world,player,game}=fixture();
  const turret=deployArtillery(world,player,{x:700,y:300},0).turret;
  advanceTurretDefenses(game,.1);
