@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "notes": "Only CC BY 4.0 and CC0 sources. Each listed downloadable URL was linked from its author/asset page on 2026-11-11. Raw recordings are fetched and transcoded solely for the game build.",
+  "tracks": [
+    {
+      "id": "adrift_among_infinite_stars",
+      "title": "Adrift Among Infinite Stars",
+      "artist": "Scott Buckley",
+      "license": "CC BY 4.0",
+      "source": "https://www.scottbuckley.com.au/library/adrift-among-infinite-stars/",
+      "url": "https://www.scottbuckley.com.au/library/wp-content/uploads/2022/02/AdriftAmongInfiniteStars.mp3",
+      "file": "adrift-among-infinite-stars.ogg"
+    },
+    {
+      "id": "permafrost",
+      "title": "Permafrost",
+      "artist": "Scott Buckley",
+      "license": "CC BY 4.0",
+      "source": "https://www.scottbuckley.com.au/library/permafrost/",
+      "url": "https://www.scottbuckley.com.au/library/wp-content/uploads/2022/08/Permafrost.mp3",
+      "file": "permafrost.ogg"
+    },
+    {
+      "id": "penumbra",
+      "title": "Penumbra",
+      "artist": "Scott Buckley",
+      "license": "CC BY 4.0",
+      "source": "https://www.scottbuckley.com.au/library/penumbra/",
+      "url": "https://www.scottbuckley.com.au/library/wp-content/uploads/2025/07/Penumbra.mp3",
+      "file": "penumbra.ogg"
+    },
+    {
+      "id": "echoes",
+      "title": "Echoes",
+      "artist": "Scott Buckley",
+      "license": "CC BY 4.0",
+      "source": "https://www.scottbuckley.com.au/library/echoes/",
+      "url": "https://www.scottbuckley.com.au/library/wp-content/uploads/2024/05/Echoes.mp3",
+      "file": "echoes.ogg"
+    },
+    {
+      "id": "memories_of_stone",
+      "title": "Memories of Stone",
+      "artist": "Scott Buckley",
+      "license": "CC BY 4.0",
+      "source": "https://www.scottbuckley.com.au/library/memories-of-stone/",
+      "url": "https://www.scottbuckley.com.au/library/wp-content/uploads/2026/02/MemoriesOfStone.mp3",
+      "file": "memories-of-stone.ogg"
+    },
+    {
+      "id": "unraveling",
+      "title": "Unraveling",
+      "artist": "Scott Buckley",
+      "license": "CC BY 4.0",
+      "source": "https://www.scottbuckley.com.au/library/unraveling/",
+      "url": "https://www.scottbuckley.com.au/library/wp-content/uploads/2026/05/Unraveling.mp3",
+      "file": "unraveling.ogg"
+    },
+    {
+      "id": "aurora",
+      "title": "Aurora",
+      "artist": "Scott Buckley",
+      "license": "CC BY 4.0",
+      "source": "https://www.scottbuckley.com.au/library/aurora/",
+      "url": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/10/Aurora.mp3",
+      "file": "aurora.ogg"
+    },
+    {
+      "id": "singularity_calm",
+      "title": "Singularity (calm)",
+      "artist": "vitalezzz",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/singularity-0",
+      "url": "https://opengameart.org/sites/default/files/singularity_calm_0.mp3",
+      "file": "singularity-calm.ogg"
+    },
+    {
+      "id": "singularity_action",
+      "title": "Singularity (action)",
+      "artist": "vitalezzz",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/singularity-0",
+      "url": "https://opengameart.org/sites/default/files/singularity_action_0.mp3",
+      "file": "singularity-action.ogg"
+    },
+    {
+      "id": "silver_bullet",
+      "title": "Silver Bullet",
+      "artist": "vitalezzz",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/silver-bullet",
+      "url": "https://opengameart.org/sites/default/files/silver_bullet.ogg",
+      "file": "silver-bullet.ogg"
+    },
+    {
+      "id": "unholy_surge",
+      "title": "Unholy Surge",
+      "artist": "vitalezzz",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/unholy-surge",
+      "url": "https://opengameart.org/sites/default/files/unholy_surge_0.ogg",
+      "file": "unholy-surge.ogg"
+    },
+    {
+      "id": "space_boss_battle",
+      "title": "Space Boss Battle",
+      "artist": "MintoDog",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/space-boss-battle",
+      "url": "https://opengameart.org/sites/default/files/space_boss_battle_bpm175_0.ogg",
+      "file": "space-boss-battle.ogg"
+    },
+    {
+      "id": "boss_battle_9_metal",
+      "title": "Boss Battle #9 (Metal loop)",
+      "artist": "nene",
+      "license": "CC0",
+      "source": "https://opengameart.org/content/boss-battle-9-metal",
+      "url": "https://opengameart.org/sites/default/files/boss_battle_9_metal_loop.wav",
+      "file": "boss-battle-9-metal-loop.ogg"
+    }
+  ]
+}
