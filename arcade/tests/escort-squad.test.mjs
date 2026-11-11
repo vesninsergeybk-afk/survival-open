@@ -40,9 +40,9 @@ test('station overview offers all five escorts, not a scout-only purchase',()=>{
  const g=testGame();g.baseTab='summary';g.player.ore=41;
  const html=renderBasePanel(g.docked,g.baseState());
  for(const role of Object.keys(ESCORTS))assert.match(html,
-  new RegExp('data-act="hireDrone"[^>]*data-role="'+role+'"'));
+  new RegExp('data-act="hire"[^>]*data-role="'+role+'"'));
  assert.match(html,/«Таран» · 36 сплава/);
- assert.match(html,/«Оса» · 46 сплава · Не хватает 5 сплава/);
+ assert.match(html,/Нанять «Оса» · 46 сплава/);
 });
 function battle(role,target={x:30,y:0,r:14,hp:300,type:'fighter',converted:false}){
  const drone=createEscort(role,1,0,40,1);
