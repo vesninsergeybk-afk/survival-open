@@ -1460,12 +1460,12 @@ export class ArcadeGame {
   const abilities=$('mobileAbilities'),abilitiesToggle=$('mobileAbilitiesToggle');
   const closeAbilities=()=>{
    if(!abilities||!abilitiesToggle)return;
-   abilities.hidden=true;abilitiesToggle.setAttribute('aria-expanded','false');
+   abilities.hidden=true;abilitiesToggle.setAttribute?.('aria-expanded','false');
   };
   if(abilities&&abilitiesToggle){
    abilitiesToggle.onclick=()=>{
     abilities.hidden=!abilities.hidden;
-    abilitiesToggle.setAttribute('aria-expanded',String(!abilities.hidden));
+    abilitiesToggle.setAttribute?.('aria-expanded',String(!abilities.hidden));
    };
    abilities.addEventListener('click',e=>{
     if(e.target.closest?.('button')&&!e.target.closest?.('.mobile-zoom'))closeAbilities();
