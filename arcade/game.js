@@ -75,6 +75,7 @@ import {loadMicroDroneSprites,updateMicroDroneDirector,drawMicroDrone,
  from './microdrone-swarms.js?v=microdrone-mesh-20261111';
 import {armLastStand,sweptRamHit} from './enemy-last-stand.js?v=redteam-20261109-1';
 import {manualWeapons,selectedManual,cycleManual,manualClick,pointerWeaponAction} from './manual-weapon-controls.js?v=control-audit-1-triangle-defense-1-turret-gesture-1-turret-preload-20261109-1';
+import {mobileAimKind,touchStickVector} from './mobile-input.js?v=mobile-flight-20261112-1';
 import {MINING_NOISE,extractionNoiseDelta,extractorStats,rockYield,miningTarget,impactRock,updateRockMotion,drawRockScars,drawExtraction,drawMiningNoiseRings} from './mining.js?v=checkpoint-1-rock-sleep-1-noise-pressure-1-pressure-response-1-pilot-depth-1';
 import {clearCoreRocks} from './core-rock-clearance.js';
 import {alertFleetUnderFire} from './enemy-attack-alarm.js';
@@ -316,7 +317,7 @@ export class ArcadeGame {
   this.enemyComms=new EnemyComms();
   this.designatedTarget=null;
   this.targetField=null;
-  this.mouseArsenal=createMouseArsenal();this.mouseAim=null;this.mobileMineArmed=false;
+  this.mouseArsenal=createMouseArsenal();this.mouseAim=null;this.mobileMineArmed=false;this.mobileCometArmed=false;
   this.lastTargetHintAt=-Infinity;
   this.cruiseCharge=0;this.cruising=false;
   window.addEventListener?.('pagehide',()=>this.enemyLearning?.flush(this.time));
@@ -410,7 +411,7 @@ export class ArcadeGame {
   this.isTouchLayout=mobile;
   this.vw=mobile&&w<h?620:1200;
   this.vh=this.vw*h/Math.max(1,w);
-  const scale=Math.min(window.devicePixelRatio||1,1.45)*this.renderScale;
+  const scale=Math.min(window.devicePixelRatio||1,mobile&&Math.min(w,h)<900?1.25:1.45)*this.renderScale;
   this.canvas.width=Math.max(1,Math.round(w*scale));
   this.canvas.height=Math.max(1,Math.round(h*scale));
   this.canvas.style.width=w+'px';this.canvas.style.height=h+'px';
@@ -1442,11 +1443,40 @@ export class ArcadeGame {
    const railButton=$('precisionBtn');if(railButton)railButton.onclick=()=>this.toggleManualRail();
    const strikeButton=$('strikeBtn');if(strikeButton)strikeButton.onclick=()=>this.callStrike();
    const mineButton=$('minefieldBtn');if(mineButton)mineButton.onclick=()=>{
+    this.mobileCometArmed=false;
     this.mobileMineArmed=!this.mobileMineArmed;
     this.notice(this.mobileMineArmed?'МИНЫ · коснитесь места установки и отпустите палец':'МИНЫ · выбор отменён',2.5);
     this.syncControlUI();
    };
   $('burstBtn').onclick=()=>this.startBurst();
+  const cometButton=$('cometBtn');
+  if(cometButton)cometButton.onclick=()=>{
+   this.mobileMineArmed=false;this.mobileCometArmed=!this.mobileCometArmed;
+   this.notice(this.mobileCometArmed?
+    'КОМЕТА · коснитесь точки удара. Повторное нажатие отменит прицел.':
+    'КОМЕТА · прицел отменён',2.5);
+   this.syncControlUI();
+  };
+  const abilities=$('mobileAbilities'),abilitiesToggle=$('mobileAbilitiesToggle');
+  const closeAbilities=()=>{
+   if(!abilities||!abilitiesToggle)return;
+   abilities.hidden=true;abilitiesToggle.setAttribute('aria-expanded','false');
+  };
+  if(abilities&&abilitiesToggle){
+   abilitiesToggle.onclick=()=>{
+    abilities.hidden=!abilities.hidden;
+    abilitiesToggle.setAttribute('aria-expanded',String(!abilities.hidden));
+   };
+   abilities.addEventListener('click',e=>{
+    if(e.target.closest?.('button')&&!e.target.closest?.('.mobile-zoom'))closeAbilities();
+   });
+   document.addEventListener('pointerdown',e=>{
+    if(!abilities.hidden&&!abilities.contains(e.target)&&e.target!==abilitiesToggle)closeAbilities();
+   });
+   document.addEventListener('keydown',e=>{if(e.code==='Escape')closeAbilities();});
+  }
+  $('mobileZoomOut')?.addEventListener('click',()=>this.setCameraZoom(stepCameraZoom(this.cameraZoom,-1)));
+  $('mobileZoomIn')?.addEventListener('click',()=>this.setCameraZoom(stepCameraZoom(this.cameraZoom,1)));
   const actionButton=$('actionBtn');
   if(actionButton){
    actionButton.addEventListener('pointerdown',e=>{
@@ -1461,16 +1491,29 @@ export class ArcadeGame {
   }
   const pad=$('stick');let active=null;
   const pointer=e=>{
-   const r=pad.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2);
-   const dy=e.clientY-(r.top+r.height/2);const m=Math.hypot(dx,dy);
-   const n=Math.max(1,m);const k=Math.min(1,m/(r.width*.34));
-   this.touch.x=dx/n*k;this.touch.y=dy/n*k;
-   $('knob').style.transform='translate('+this.touch.x*35+'px,'+this.touch.y*35+'px)';
+   const r=pad.getBoundingClientRect(),knob=$('knob');
+   const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
+   const direction=touchStickVector(dx,dy,r.width*.34);
+   this.touch.x=direction.x;this.touch.y=direction.y;
+   const travel=Math.max(0,(r.width-(knob?.offsetWidth||49))/2-3);
+   knob.style.transform='translate('+this.touch.x*travel+'px,'+this.touch.y*travel+'px)';
   };
-  pad.addEventListener('pointerdown',e=>{active=e.pointerId;pad.setPointerCapture(active);pointer(e);});
-  pad.addEventListener('pointermove',e=>{if(e.pointerId===active)pointer(e);});
-  const release=e=>{if(e.pointerId!==active)return;active=null;this.touch.x=0;this.touch.y=0;$('knob').style.transform='';};
-  pad.addEventListener('pointerup',release);pad.addEventListener('pointercancel',release);
+  pad.addEventListener('pointerdown',e=>{
+   if(active!==null)return;active=e.pointerId;
+   try{pad.setPointerCapture(active);}catch{}
+   pointer(e);e.preventDefault();
+  });
+  pad.addEventListener('pointermove',e=>{if(e.pointerId===active){pointer(e);e.preventDefault();}});
+  const release=e=>{
+   if(active===null||e.pointerId!==active)return;
+   active=null;this.touch.x=0;this.touch.y=0;$('knob').style.transform='';
+  };
+  pad.addEventListener('pointerup',release);
+  pad.addEventListener('pointercancel',release);
+  pad.addEventListener('lostpointercapture',release);
+  const resetPad=()=>{if(active!==null)release({pointerId:active});};
+  window.addEventListener('blur',resetPad);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)resetPad();});
   // All manually aimed mounts use the same desktop gesture: select with the
   // wheel, hold RMB to preview, release RMB to fire. LMB designates targets.
   const worldAt=(x,y)=>{
@@ -1507,7 +1550,9 @@ export class ArcadeGame {
    // Ctrl+LMB remains an explicit precision designation; ordinary LMB also
    // marks a target without spending the selected mount's ammunition.
    const weapon=selectedManual(this.selectedManualWeapon,this.manualWeaponsHere());
-   const {kind,mark}=pointerWeaponAction(e,weapon,this.mobileMineArmed);
+   const {kind,mark}=e.pointerType==='touch'?
+    {kind:mobileAimKind(this.mobileCometArmed,this.mobileMineArmed),mark:false}:
+    pointerWeaponAction(e,weapon,this.mobileMineArmed);
    if(kind==='comet'||kind==='mines'){
     const ready=canAimMouseWeapon(this,kind);
     if(!ready.ok&&!(tower&&e.button===2)){
@@ -1566,7 +1611,9 @@ export class ArcadeGame {
    if(kind){
     if(kind==='comet'||kind==='mines')this.fireActiveMouseWeapon(kind,worldPoint);
     else this.fireSelectedManualAt(worldPoint);
-    if(e.pointerType==='touch')this.mobileMineArmed=false;
+    if(e.pointerType==='touch'){
+     this.mobileMineArmed=false;this.mobileCometArmed=false;this.syncControlUI();
+    }
     return;
    }
    if(held||moved>14)return;
@@ -1591,6 +1638,7 @@ export class ArcadeGame {
   },{passive:false});
   const cancelAim=()=>{cancelLongPress();aimStart=null;this.mouseAim=null;};
   this.canvas?.addEventListener('pointercancel',cancelAim);
+  this.canvas?.addEventListener('lostpointercapture',cancelAim);
   window.addEventListener?.('blur',cancelAim);
   document.addEventListener?.('visibilitychange',()=>{if(document.hidden)cancelAim();});
  }
@@ -3700,7 +3748,7 @@ export class ArcadeGame {
   this.deathSceneEnd=0;
   this.enemyComms=new EnemyComms();
   this.designatedTarget=null;this.targetField=null;this.interactionFocus=null;this.weaponFx=[];
-  this.mouseArsenal=createMouseArsenal();this.mouseAim=null;this.mobileMineArmed=false;
+  this.mouseArsenal=createMouseArsenal();this.mouseAim=null;this.mobileMineArmed=false;this.mobileCometArmed=false;
   this.nearArsenalBonus=false;this.nearArsenalDefense=false;
   this.railSweep=null;this.ramSquads=[];this.ramSquadCooldowns=new Map();
   this.nearDockField=false;this.nearQuietLab=false;this.nearDock=null;
@@ -3868,6 +3916,14 @@ export class ArcadeGame {
    const arsenal=this.mouseArsenal||createMouseArsenal();
    const cometRest=Math.max(0,Math.ceil(arsenal.cometReadyAt-this.time));
    const mineRest=Math.max(0,Math.ceil(arsenal.minesReadyAt-this.time));
+   const cometButton=$('cometBtn');if(cometButton){
+    cometButton.disabled=!!cometRest;
+    cometButton.setAttribute('aria-pressed',String(!!this.mobileCometArmed));
+    cometButton.textContent=cometRest?'Комета · '+cometRest+'с':
+     this.mobileCometArmed?'Комета · цель':'Комета · прицел';
+   }
+   const zoomValue=$('mobileZoomValue');if(zoomValue)
+    zoomValue.textContent=Math.round(this.cameraZoom*100)+'%';
    const mineButton=$('minefieldBtn');if(mineButton){
     mineButton.disabled=!!mineRest;mineButton.setAttribute('aria-pressed',String(!!this.mobileMineArmed));
     mineButton.textContent=mineRest?'Мины · '+mineRest+'с':this.mobileMineArmed?'Мины · цель':'Мины · выбор';

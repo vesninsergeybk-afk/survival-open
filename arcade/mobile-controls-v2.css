@@ -1,0 +1,70 @@
+/* Mobile flight V2. Loaded after all HUD and menu styles; desktops untouched. */
+@media (pointer:coarse){
+ .mobile{
+  left:max(9px,env(safe-area-inset-left));
+  right:max(9px,env(safe-area-inset-right));
+  bottom:max(7px,env(safe-area-inset-bottom));
+ }
+ #stick{
+  width:clamp(98px,28dvh,116px);height:clamp(98px,28dvh,116px);
+  -webkit-user-select:none;user-select:none;overscroll-behavior:contain;
+ }
+ #knob{width:50px;height:50px;margin:-25px 0 0 -25px;pointer-events:none}
+ .mobile-buttons{width:clamp(154px,25vw,188px);gap:5px}
+ .mobile-main{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+ .mobile-main button{
+  min-height:44px;padding:7px 5px;font-size:11px;line-height:1.15;
+  overflow-wrap:anywhere;
+ }
+ #actionBtn{min-height:46px;padding:7px 9px;font-size:13px}
+ #tacticBtn{border-color:#a6e9f2;background:#183d53e8}
+ #mobileAbilitiesToggle{border-color:#f6c58d;background:#463426e8}
+ #mobileAbilitiesToggle[aria-expanded="true"],
+ #cometBtn[aria-pressed="true"],#minefieldBtn[aria-pressed="true"]{
+  border-color:#ffe2a0;background:#6a4220f4;box-shadow:0 0 0 2px #ffd08b44;
+ }
+ .mobile-abilities{
+  box-sizing:border-box;position:absolute;bottom:calc(100% + 8px);right:0;
+  width:min(292px,calc(100vw - 125px));max-width:calc(100vw - 18px);
+  max-height:min(54dvh,242px);padding:8px;z-index:10;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;
+  overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;
+  border:1px solid #8be4e4c9;border-radius:12px;
+  background:linear-gradient(145deg,#163f54f9,#061726fc);
+  box-shadow:0 9px 24px #000c;
+ }
+ .mobile-abilities[hidden],.mobile-abilities button[hidden]{display:none!important}
+ .mobile-abilities button{
+  box-sizing:border-box;width:auto;min-width:0;min-height:44px;
+  font-size:11px;line-height:1.16;padding:6px;white-space:normal;
+ }
+ .mobile-abilities button:disabled{opacity:.46;box-shadow:none}
+ .mobile-zoom{grid-column:1/-1;display:grid;grid-template-columns:46px minmax(0,1fr) 46px;
+  align-items:center;gap:6px;border-top:1px solid #82cfe04d;padding-top:6px}
+ .mobile-zoom button{font-size:22px;font-weight:800;min-height:44px}
+ #mobileZoomValue{font:750 13px system-ui;text-align:center;color:#cffcf3}
+ .mobile-menu{
+  max-width:calc(100vw - 12px);gap:5px;flex-wrap:nowrap;
+  top:max(6px,env(safe-area-inset-top));right:max(7px,env(safe-area-inset-right));
+ }
+ .mobile-menu button{min-width:0;min-height:42px;padding:6px 9px;font-size:11px}
+ .mobile-menu #exitFullscreenBtn{flex:none}
+ body.mobile-launch-open .mobile,
+ body:has(#overlay:not([hidden])) .mobile,
+ body:has(#gameMenuDialog[open]) .mobile,
+ body:has(#settingsDialog[open]) .mobile{
+  visibility:hidden;pointer-events:none;
+ }
+}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:360px){
+ #stick{width:98px;height:98px}
+ .mobile-buttons{width:154px}
+ .mobile-main button{min-height:42px;font-size:10px;padding:5px 3px}
+ #actionBtn{min-height:44px}
+ .mobile-abilities{max-height:min(50dvh,174px);width:min(264px,calc(100vw - 110px))}
+ .mobile-menu button{font-size:10px;padding:5px 7px}
+}
+@media (pointer:coarse) and (orientation:portrait){
+ .mobile-buttons{width:min(186px,46vw)}
+ .mobile-abilities{width:min(290px,calc(100vw - 18px));max-height:min(43dvh,295px)}
+}
