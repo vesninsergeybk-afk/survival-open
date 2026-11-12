@@ -400,13 +400,17 @@ export class CockpitDisplay {
   const state=weaponDeckState(game),n=this.n;
   display(n.weaponDeckCount,mountCountLabel(state.installedCount));
   const quick=(item,base)=>{
+   const node=n[base+'Quick'];if(!item||!node)return;
    display(n[base+'Key'],item.key);
    display(n[base+'Name'],item.name);
    display(n[base+'Status'],item.status);
-   n[base+'Quick'].dataset.state=item.state;
+   node.dataset.state=item.state;
+   const spoken=item.key+' · '+item.name+' · '+item.status;
+   if(node.getAttribute?.('aria-label')!==spoken)node.setAttribute?.('aria-label',spoken);
+   node.title=spoken;
   };
   quick(state.quick.auto,'weaponDeckAuto');
-  n.weaponDeckManualQuick.hidden=!state.quick.manual;
+  if(n.weaponDeckManualQuick)n.weaponDeckManualQuick.hidden=!state.quick.manual;
   if(state.quick.manual)quick(state.quick.manual,'weaponDeckManual');
   quick(state.quick.tactical,'weaponDeckSpace');
   n.weaponDeckFieldQuick.hidden=!state.quick.field;
