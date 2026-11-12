@@ -17,7 +17,7 @@ test('flight deck shows every equipped automatic module, with real damage, range
  g.weaponThermal.current=73;g.beamClock=.45;g.rocketClock=2.5;
  const state=weaponDeckState(g),plasma=find(state,'plasma'),rail=find(state,'rail');
  assert.equal(state.autoCount,4);
- assert.match(state.quick.auto.name,/ПЛАЗМА ×2 \\[1, 2\\]/);
+ assert.match(state.quick.auto.name,/ПЛАЗМА ×2 \[1, 2\]/);
  assert.match(state.quick.auto.name,/РАКЕТ/);
  assert.match(state.quick.auto.status,/ПЛАЗМА:/);
  assert.equal(state.quick.manual.key,'ПКМ');
