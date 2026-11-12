@@ -117,9 +117,25 @@ export function weaponDeckState(game){
  const installedCount=Array.isArray(game.shipLoadout?.slots)?
   fittedModules(game.shipLoadout).filter(Boolean).length:autoCount+
   Number(!!profile.ion)+Number(!!profile.resonator)+Number(!!profile.howitzer);
- const quick={tactical:rows.find(item=>item.id==='tactical'),
-  field:rows.find(item=>item.id==='field')||null};
- const compact=[quick.tactical,quick.field].filter(Boolean)
+ const automatic=rows.filter(item=>item.kind==='auto');
+ const direct=rows.find(item=>item.id==='manual')||null;
+ // This summary is visible *without* opening the deck. Show what is really
+ // fitted, not just a count or the tactical key. Statuses use live timers.
+ const automaticLabels=automatic.map(item=>item.name);
+ const autoName=automaticLabels.length?automaticLabels.join(' · '):'ОРУЖИЕ НЕ УСТАНОВЛЕНО';
+ const activeBlocks=automatic.filter(item=>item.state==='blocked');
+ const nextCooldown=automatic.filter(item=>item.state==='cooldown');
+ const autoStatus=activeBlocks.length?activeBlocks[0].status:
+  nextCooldown.length?nextCooldown.map(item=>item.name.split(' ×')[0]+': '+item.status).join(' · '):
+  automatic.length?'АВТООГОНЬ · ГОТОВО':'ОТКРОЙТЕ ОСНАЩЕНИЕ НА СТАНЦИИ';
+ const quick={
+  auto:{id:'auto',key:'АВТО',name:autoName,status:autoStatus,
+   state:activeBlocks.length?'blocked':nextCooldown.length?'cooldown':'ready'},
+  manual:direct,
+  tactical:rows.find(item=>item.id==='tactical'),
+  field:rows.find(item=>item.id==='field')||null
+ };
+ const compact=[quick.auto,quick.manual,quick.tactical,quick.field].filter(Boolean)
   .map(item=>item.key+' · '+item.name+' · '+item.status).join('; ');
  return {rows,autoCount,installedCount,heatPercent,heatLocked:!!heat.locked,compact,quick};
 }
