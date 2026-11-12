@@ -85,6 +85,10 @@ export class CockpitDisplay {
    meteorAlert:el('meteorAlert'),
    weaponDeckAuto:el('weaponDeckAuto'),weaponDeckDirect:el('weaponDeckDirect'),
    weaponDeckCount:el('weaponDeckCount'),
+   weaponDeckAutoQuick:el('weaponDeckAutoQuick'),weaponDeckAutoKey:el('weaponDeckAutoKey'),
+   weaponDeckAutoName:el('weaponDeckAutoName'),weaponDeckAutoStatus:el('weaponDeckAutoStatus'),
+   weaponDeckManualQuick:el('weaponDeckManualQuick'),weaponDeckManualKey:el('weaponDeckManualKey'),
+   weaponDeckManualName:el('weaponDeckManualName'),weaponDeckManualStatus:el('weaponDeckManualStatus'),
    weaponDeckSpaceQuick:el('weaponDeckSpaceQuick'),weaponDeckSpaceKey:el('weaponDeckSpaceKey'),
    weaponDeckSpaceName:el('weaponDeckSpaceName'),weaponDeckSpaceStatus:el('weaponDeckSpaceStatus'),
    weaponDeckFieldQuick:el('weaponDeckFieldQuick'),weaponDeckFieldKey:el('weaponDeckFieldKey'),
@@ -401,11 +405,14 @@ export class CockpitDisplay {
    display(n[base+'Status'],item.status);
    n[base+'Quick'].dataset.state=item.state;
   };
+  quick(state.quick.auto,'weaponDeckAuto');
+  n.weaponDeckManualQuick.hidden=!state.quick.manual;
+  if(state.quick.manual)quick(state.quick.manual,'weaponDeckManual');
   quick(state.quick.tactical,'weaponDeckSpace');
   n.weaponDeckFieldQuick.hidden=!state.quick.field;
   if(state.quick.field)quick(state.quick.field,'weaponDeckField');
   const toggle=el('weaponDeckToggle');
-  const toggleText='Оружие: '+[state.quick.tactical,state.quick.field].filter(Boolean)
+  const toggleText='Оружие: '+[state.quick.auto,state.quick.manual,state.quick.tactical,state.quick.field].filter(Boolean)
    .map(item=>item.key+' '+item.name+' '+(item.seconds>.05?
     Math.ceil(item.seconds)+' секунд до готовности':item.status)).join('; ')+'. Подробности';
   if(toggle&&toggle.getAttribute?.('aria-label')!==toggleText)toggle.setAttribute('aria-label',toggleText);
