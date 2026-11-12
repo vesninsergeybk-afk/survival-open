@@ -147,6 +147,14 @@ test('the page provides a compact desktop instrument and an accessible mobile ex
  assert.match(script,/state\.quick\.tactical/);
  assert.match(script,/weapon-deck-charge/);
 });
+test('narrow fullscreen HUD still renders the installed and selected weapon names',()=>{
+ const css=readFileSync(new URL('../weapon-hud.css',import.meta.url),'utf8');
+ const hiding=css.lastIndexOf('.weapon-deck-quick-text b{\n  display:none');
+ const restoration=css.lastIndexOf('.weapon-deck-quick-text b{\n  display:block');
+ assert.ok(restoration>hiding,'mobile fullscreen must not hide equipped weapon names');
+ assert.match(css,/grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(css,/-webkit-line-clamp:2/);
+});
 test('station field-loan and help copy use the G binding, never the tactical Space binding',()=>{
  const source=readFileSync(new URL('../base-panel.js',import.meta.url),'utf8');
  assert.match(source,/const fieldKey=readableKey\(\(state\.controls\|\|DEFAULT_CONTROLS\)\.fieldWeapon\)/);
