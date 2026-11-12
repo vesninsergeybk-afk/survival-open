@@ -37,7 +37,7 @@ test('plasma cockpit strength includes the actual close-range furnace specializa
  assert.ok(find(boosted,'plasma').detail.includes('Урон вблизи '+expected));
 });
 
-test('G field weapon is infinite and distinct from Space; loan without mounting is explicit',()=>{
+test('F field weapon is infinite and distinct from Space; loan without mounting is explicit',()=>{
  const g=game();g.fieldLoan=createFieldLoan('resonator',g.docked.id,g.time);
  g.fieldLoan.charges=0; // A checkpoint from the old three-shot economy.
  let state=weaponDeckState(g);
@@ -47,7 +47,7 @@ test('G field weapon is infinite and distinct from Space; loan without mounting 
  assert.equal(find(state,'tactical').key,'ПРОБЕЛ');
  assert.equal(state.quick.tactical.id,'tactical');
  assert.equal(state.quick.field.id,'field');
- assert.match(state.compact,/ПРОБЕЛ.*; G/, 'both live actions must stay visible in the collapsed HUD');
+ assert.match(state.compact,/ПРОБЕЛ.*; F/, 'both live actions must stay visible in the collapsed HUD');
  g.shipLoadout.slots[1]='resonator';g.syncShipLoadout();
  g.fieldLoan.cooldownUntil=g.time+2.35;
  state=weaponDeckState(g);
@@ -188,7 +188,7 @@ test('cockpit renders real key badges, visual readiness and both mobile actions 
   const display={n,weaponDeckSignature:'',weaponDeckRows:new Map()};
   CockpitDisplay.prototype.renderWeaponDeck.call(display,g);
   assert.equal(n.weaponDeckSpaceKey.textContent,'ПРОБЕЛ');
-  assert.equal(n.weaponDeckFieldKey.textContent,'G');
+  assert.equal(n.weaponDeckFieldKey.textContent,'F');
   assert.equal(n.weaponDeckSpaceStatus.textContent,'7 с');
   assert.equal(n.weaponDeckFieldStatus.textContent,'ГОТОВО');
   assert.equal(n.weaponDeckFieldQuick.hidden,false);

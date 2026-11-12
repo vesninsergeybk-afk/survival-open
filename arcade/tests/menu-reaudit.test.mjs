@@ -56,7 +56,7 @@ test('hangar instructions use the actual control assignments and the correct lif
  let html=renderShipHangar(state,session);
  assert.match(html,/H отключает автоогонь/);assert.match(renderShipHangar({...state,developmentMode:true,developmentCategory:'weapons'},session),/до конца прохождения/);
  assert.doesNotMatch(html,/до конца вылета|новом вылете|C отключает/);
- for(const [id,label] of [['ion','G'],['resonator','G'],['rail','J'],['howitzer','K']]){
+ for(const [id,label] of [['ion','F'],['resonator','F'],['rail','J'],['howitzer','K']]){
   session.dispatch({act:'hgFocusWeapon',id},state);html=renderShipHangar(state,session);
   const description=html.split('class="hg-weapon-description">')[1].split('</p>')[0];
   assert.match(description,new RegExp('(^|[^A-Z])'+label+'([^A-Z]|$)'));

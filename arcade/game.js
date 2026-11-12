@@ -4435,7 +4435,11 @@ export class ArcadeGame {
   this.pausedRenderPending=true;this.renderDock();
  }
  callFieldWeapon(){
-  if(!this.fieldLoan)return false;
+  if(!this.fieldLoan){
+   if(!this.dead&&!this.paused&&this.overlay?.hidden)
+    this.notice('Ручной модуль не выбран. Возьмите и установите «Ион» или «Резонатор» на станции.',2.8);
+   return false;
+  }
   if(!this.weaponProfile?.[this.fieldLoan.moduleId||'ion']){
    this.notice('Прокатное оружие ещё не установлено. Откройте «Оснащение» на станции.',2.5);
    return false;
@@ -4480,6 +4484,8 @@ export class ArcadeGame {
    result.kind==='jam'?'cyan':'violet');
   this.heritage.play('resonatorShot',.2,{x:this.player.x,y:this.player.y});
   this.notice(result.name+' · '+(result.affected?'поражено целей: '+result.affected+' · ':'')+
+   (result.intercepted?'сбито снарядов: '+result.intercepted+' · ':'')+
+   (result.kind==='pulse'&&!result.affected&&!result.intercepted?'поблизости нет целей · ':'')+
    (result.kind==='trap'?'поле '+result.duration.toLocaleString('ru-RU')+' с · ':'')+
    'перезарядка '+result.cooldown+' с',2.8);
   this.hud();return true;
