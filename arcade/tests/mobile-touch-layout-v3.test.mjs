@@ -11,7 +11,7 @@ test('touch has a manual shot and one expandable navigation menu',()=>{
  assert.match(html,/id="mobileManualBtn"[^>]*aria-pressed="false"/);
  assert.match(game,/mobileManualArmed\?weapon:mobileAimKind/);
  assert.match(game,/mobileManualArmed=false;\s*this\.syncControlUI\(\)/);
- assert.match(game,/mobilePauseBtn'\)\?\.addEventListener\('click'/);
+ assert.match(game,/mobilePauseBtn'\)\?\.addEventListener\?\.\('click'/);
 });
 test('mobile layout moves desktop shortcuts away from the flight surface',()=>{
  assert.match(css,/#quickMenu\{display:none!important\}/);
