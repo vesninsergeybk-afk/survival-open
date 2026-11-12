@@ -960,7 +960,7 @@ export function renderBasePanel(base,state){
     '<img src="'+escortPortrait(role)+'" alt="" loading="lazy" decoding="async">'+
     '<div class="base-overview-drone-info"><strong>«'+spec.name+'»</strong>'+
     '<small>'+spec.tag+' · '+spec.cost+' сплава</small></div>'+
-    action('hire','Нанять «'+spec.name+'»',quote.reason,role,spec.desc)+
+    action('hire','Нанять «'+(role==='scout'?'Стража':spec.name)+'» · '+spec.cost+' сплава',quote.reason,role,spec.desc)+
     (!quote.ok?'<small class="base-action-reason">'+quote.reason+'</small>':'')+
     '</article>';
   }).join('')+'</div>';
