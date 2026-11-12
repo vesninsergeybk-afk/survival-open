@@ -17,6 +17,11 @@ test('flight deck shows every equipped automatic module, with real damage, range
  g.weaponThermal.current=73;g.beamClock=.45;g.rocketClock=2.5;
  const state=weaponDeckState(g),plasma=find(state,'plasma'),rail=find(state,'rail');
  assert.equal(state.autoCount,4);
+ assert.match(state.quick.auto.name,/ПЛАЗМА ×2 \[1, 2\]/);
+ assert.match(state.quick.auto.name,/РАКЕТ/);
+ assert.match(state.quick.auto.status,/ПЛАЗМА:/);
+ assert.equal(state.quick.manual.key,'ПКМ');
+ assert.match(state.compact,/АВТО.*ПКМ.*ПРОБЕЛ/);
  assert.match(plasma.name,/×2/);assert.match(plasma.detail,/Урон вблизи/);
  assert.ok(plasma.detail.includes(String(moduleStats('plasma',g.skillRanks).range)));
  assert.equal(plasma.status,'0,5 с');
@@ -112,11 +117,12 @@ test('the page provides a compact desktop instrument and an accessible mobile ex
  const css=readFileSync(new URL('../weapon-hud.css',import.meta.url),'utf8');
  const script=readFileSync(new URL('../hud.js',import.meta.url),'utf8');
  for(const id of ['weaponDeck','weaponDeckToggle','weaponDeckBody','weaponDeckAuto',
-  'weaponDeckDirect','weaponDeckCompact','weaponDeckSpaceQuick','weaponDeckFieldQuick',
+  'weaponDeckDirect','weaponDeckCompact','weaponDeckAutoQuick','weaponDeckManualQuick',
+  'weaponDeckSpaceQuick','weaponDeckFieldQuick',
   'weaponDeckSpaceStatus','weaponDeckFieldStatus'])
   assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/weaponDeckToggle[^>]*aria-controls="weaponDeckBody"[^>]*aria-expanded="false"/);
- assert.match(html,/weapon-hud\.css\?v=weapon-deck-audit-2/);
+ assert.match(html,/weapon-hud\.css\?v=station-escort-weapon-hud-20261112/);
  assert.match(html,/game\.js\?v=[^"\n]*weapon-deck-audit-2/);
  assert.match(readFileSync(new URL('../game.js',import.meta.url),'utf8'),
   /hud\.js\?v=[^'\n]*weapon-deck-audit-2/);
@@ -173,7 +179,9 @@ test('cockpit renders real key badges, visual readiness and both mobile actions 
   append(...nodes){this.children.push(...nodes)},
   replaceChildren(...nodes){this.children=nodes.flatMap(node=>node.tag==='fragment'?node.children:[node]);}
  });
- const names=['weaponDeckCount','weaponDeckSpaceQuick','weaponDeckSpaceKey',
+ const names=['weaponDeckCount','weaponDeckAutoQuick','weaponDeckAutoKey',
+  'weaponDeckAutoName','weaponDeckAutoStatus','weaponDeckManualQuick','weaponDeckManualKey',
+  'weaponDeckManualName','weaponDeckManualStatus','weaponDeckSpaceQuick','weaponDeckSpaceKey',
   'weaponDeckSpaceName','weaponDeckSpaceStatus','weaponDeckFieldQuick',
   'weaponDeckFieldKey','weaponDeckFieldName','weaponDeckFieldStatus',
   'weaponDeckAuto','weaponDeckDirect'];
@@ -187,6 +195,11 @@ test('cockpit renders real key badges, visual readiness and both mobile actions 
  try{
   const display={n,weaponDeckSignature:'',weaponDeckRows:new Map()};
   CockpitDisplay.prototype.renderWeaponDeck.call(display,g);
+  assert.equal(n.weaponDeckAutoKey.textContent,'АВТО');
+  assert.match(n.weaponDeckAutoName.textContent,/ПЛАЗМА.*1/);
+  assert.equal(n.weaponDeckManualKey.textContent,'ПКМ');
+  assert.match(n.weaponDeckManualName.textContent,/КОМЕТА/);
+  assert.match(n.weaponDeckAutoQuick.attributes['aria-label'],/ПЛАЗМА/);
   assert.equal(n.weaponDeckSpaceKey.textContent,'ПРОБЕЛ');
   assert.equal(n.weaponDeckFieldKey.textContent,'G');
   assert.equal(n.weaponDeckSpaceStatus.textContent,'7 с');

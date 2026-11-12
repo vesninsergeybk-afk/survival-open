@@ -1,6 +1,6 @@
 // Read-only weapon telemetry. The combat simulation owns all timers and stats;
 // the cockpit never invents ammunition, cooldowns or a weapon's availability.
-import {MODULES,moduleStats,fittedModules} from './ship-loadout.js?v=manual-hardpoints-20261111';
+import {MODULES,moduleStats,fittedModules,slotLabel} from './ship-loadout.js?v=manual-hardpoints-20261111';
 import {FIELD_WEAPONS} from './field-weapons.js';
 import {cometSpec,minesSpec} from './mouse-arsenal.js';
 import {TACTICAL_DEVICES,tacticalSpec} from './tactical-fields.js?v=tactical-field-3-space-impact-20261110';
@@ -36,7 +36,10 @@ export function weaponDeckState(game){
   const damage=id==='plasma'?'Урон вблизи':id==='flak'?'Урон осколка':'Урон/ствол';
   const realDamage=id==='plasma'?spec.damage*plasmaDamageFactor(
    game.shipLoadout?.specializations?.plasma,RULES.nearBeam,spec.range):spec.damage;
-  const detail=damage+' '+round(realDamage)+' · '+round(spec.range)+' м · '+round(spec.interval)+' с/залп';
+  const fitted=(game.shipLoadout?.slots||[]).flatMap((module,index)=>
+   module===id?[slotLabel(index)]:[]);
+  const position=fitted.length?'Узлы '+fitted.join(', ')+' · ':'';
+  const detail=position+damage+' '+round(realDamage)+' · '+round(spec.range)+' м · '+round(spec.interval)+' с/залп';
   rows.push(row(id,'auto',MODULES[id].short.toUpperCase()+' ×'+mounts,
    detail,remaining(automaticClock(game,id),0),reason,MODULES[id].color,
    {icon:id,cycle:spec.interval}));
@@ -117,9 +120,29 @@ export function weaponDeckState(game){
  const installedCount=Array.isArray(game.shipLoadout?.slots)?
   fittedModules(game.shipLoadout).filter(Boolean).length:autoCount+
   Number(!!profile.ion)+Number(!!profile.resonator)+Number(!!profile.howitzer);
- const quick={tactical:rows.find(item=>item.id==='tactical'),
-  field:rows.find(item=>item.id==='field')||null};
- const compact=[quick.tactical,quick.field].filter(Boolean)
+ const automatic=rows.filter(item=>item.kind==='auto');
+ const direct=rows.find(item=>item.id==='manual')||null;
+ // This summary is visible *without* opening the deck. Show what is really
+ // fitted, not just a count or the tactical key. Statuses use live timers.
+ const automaticLabels=automatic.map(item=>{
+  const fitted=(game.shipLoadout?.slots||[]).flatMap((module,index)=>
+   module===item.id?[slotLabel(index)]:[]);
+  return item.name+(fitted.length?' ['+fitted.join(', ')+']':'');
+ });
+ const autoName=automaticLabels.length?automaticLabels.join(' · '):'ОРУЖИЕ НЕ УСТАНОВЛЕНО';
+ const activeBlocks=automatic.filter(item=>item.state==='blocked');
+ const nextCooldown=automatic.filter(item=>item.state==='cooldown');
+ const autoStatus=activeBlocks.length?activeBlocks[0].status:
+  nextCooldown.length?nextCooldown.map(item=>item.name.split(' ×')[0]+': '+item.status).join(' · '):
+  automatic.length?'АВТООГОНЬ · ГОТОВО':'ОТКРОЙТЕ ОСНАЩЕНИЕ НА СТАНЦИИ';
+ const quick={
+  auto:{id:'auto',key:'АВТО',name:autoName,status:autoStatus,
+   state:activeBlocks.length?'blocked':nextCooldown.length?'cooldown':'ready'},
+  manual:direct,
+  tactical:rows.find(item=>item.id==='tactical'),
+  field:rows.find(item=>item.id==='field')||null
+ };
+ const compact=[quick.auto,quick.manual,quick.tactical,quick.field].filter(Boolean)
   .map(item=>item.key+' · '+item.name+' · '+item.status).join('; ');
  return {rows,autoCount,installedCount,heatPercent,heatLocked:!!heat.locked,compact,quick};
 }

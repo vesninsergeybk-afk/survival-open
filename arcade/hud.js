@@ -8,7 +8,7 @@ import {campaignCue,campaignProgress} from './regional-campaign.js?v=campaign-1-
 import {stationInterdictionCue} from './strategic-command.js?v=campaign-1-repair-qa-1-world-feedback-1-territory-war-1';
 import {expForNext} from './balance.js?v=xp-feedback-pass1-1-pressure-response-1-data-economy-20261111';
 import {normalizedDoctrineRanks,doctrineRank} from './pilot-doctrines.js?v=pilot-depth-1-pilot-value-2-hud-merge-20261110';
-import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110-weapon-deck-audit-2-hud-merge-20261110-manual-hardpoints-20261111';
+import {weaponDeckState} from './weapon-hud.js?v=unlimited-rental-hud-2-space-impact-20261110-weapon-deck-audit-2-hud-merge-20261110-manual-hardpoints-20261111-escort-hud-20261112';
 import {ESCORTS,escortCapacity} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
 const el = id => document.getElementById(id);
 const mountCountLabel=count=>{
@@ -85,6 +85,10 @@ export class CockpitDisplay {
    meteorAlert:el('meteorAlert'),
    weaponDeckAuto:el('weaponDeckAuto'),weaponDeckDirect:el('weaponDeckDirect'),
    weaponDeckCount:el('weaponDeckCount'),
+   weaponDeckAutoQuick:el('weaponDeckAutoQuick'),weaponDeckAutoKey:el('weaponDeckAutoKey'),
+   weaponDeckAutoName:el('weaponDeckAutoName'),weaponDeckAutoStatus:el('weaponDeckAutoStatus'),
+   weaponDeckManualQuick:el('weaponDeckManualQuick'),weaponDeckManualKey:el('weaponDeckManualKey'),
+   weaponDeckManualName:el('weaponDeckManualName'),weaponDeckManualStatus:el('weaponDeckManualStatus'),
    weaponDeckSpaceQuick:el('weaponDeckSpaceQuick'),weaponDeckSpaceKey:el('weaponDeckSpaceKey'),
    weaponDeckSpaceName:el('weaponDeckSpaceName'),weaponDeckSpaceStatus:el('weaponDeckSpaceStatus'),
    weaponDeckFieldQuick:el('weaponDeckFieldQuick'),weaponDeckFieldKey:el('weaponDeckFieldKey'),
@@ -396,16 +400,23 @@ export class CockpitDisplay {
   const state=weaponDeckState(game),n=this.n;
   display(n.weaponDeckCount,mountCountLabel(state.installedCount));
   const quick=(item,base)=>{
+   const node=n[base+'Quick'];if(!item||!node)return;
    display(n[base+'Key'],item.key);
    display(n[base+'Name'],item.name);
    display(n[base+'Status'],item.status);
-   n[base+'Quick'].dataset.state=item.state;
+   node.dataset.state=item.state;
+   const spoken=item.key+' · '+item.name+' · '+item.status;
+   if(node.getAttribute?.('aria-label')!==spoken)node.setAttribute?.('aria-label',spoken);
+   node.title=spoken;
   };
+  quick(state.quick.auto,'weaponDeckAuto');
+  if(n.weaponDeckManualQuick)n.weaponDeckManualQuick.hidden=!state.quick.manual;
+  if(state.quick.manual)quick(state.quick.manual,'weaponDeckManual');
   quick(state.quick.tactical,'weaponDeckSpace');
   n.weaponDeckFieldQuick.hidden=!state.quick.field;
   if(state.quick.field)quick(state.quick.field,'weaponDeckField');
   const toggle=el('weaponDeckToggle');
-  const toggleText='Оружие: '+[state.quick.tactical,state.quick.field].filter(Boolean)
+  const toggleText='Оружие: '+[state.quick.auto,state.quick.manual,state.quick.tactical,state.quick.field].filter(Boolean)
    .map(item=>item.key+' '+item.name+' '+(item.seconds>.05?
     Math.ceil(item.seconds)+' секунд до готовности':item.status)).join('; ')+'. Подробности';
   if(toggle&&toggle.getAttribute?.('aria-label')!==toggleText)toggle.setAttribute('aria-label',toggleText);
