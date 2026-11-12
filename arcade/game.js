@@ -317,7 +317,7 @@ export class ArcadeGame {
   this.enemyComms=new EnemyComms();
   this.designatedTarget=null;
   this.targetField=null;
-  this.mouseArsenal=createMouseArsenal();this.mouseAim=null;this.mobileMineArmed=false;this.mobileCometArmed=false;
+  this.mouseArsenal=createMouseArsenal();this.mouseAim=null;this.mobileMineArmed=false;this.mobileCometArmed=false;this.mobileManualArmed=false;
   this.lastTargetHintAt=-Infinity;
   this.cruiseCharge=0;this.cruising=false;
   window.addEventListener?.('pagehide',()=>this.enemyLearning?.flush(this.time));
@@ -1438,12 +1438,27 @@ export class ArcadeGame {
   $('quietBtn').onclick=()=>this.toggleHoldFire();
   $('hackBtn').onclick=()=>this.hack();
    const tacticButton=$('tacticBtn');if(tacticButton)tacticButton.onclick=()=>this.callTacticalField();
+   const navPanel=$('mobileNavPanel'),navToggle=$('mobileNavToggle');
+   const closeNav=()=>{if(!navPanel||!navToggle)return;
+    navPanel.hidden=true;navToggle.setAttribute?.('aria-expanded','false');};
+   if(navPanel&&navToggle){
+    navToggle.onclick=()=>{navPanel.hidden=!navPanel.hidden;
+     navToggle.setAttribute?.('aria-expanded',String(!navPanel.hidden));};
+    navPanel.addEventListener?.('click',e=>{if(e.target.closest?.('button'))closeNav();});
+    document.addEventListener('pointerdown',e=>{
+     if(!navPanel.hidden&&!navPanel.contains(e.target)&&e.target!==navToggle)closeNav();
+    });
+    document.addEventListener('keydown',e=>{if(e.code==='Escape')closeNav();});
+   }
+   $('mobilePauseBtn')?.addEventListener?.('click',()=>$('menuBtn')?.click());
    const ionButton=$('ionBtn');if(ionButton)ionButton.onclick=()=>this.callFieldWeapon();
    const heavyButton=$('heavyBtn');if(heavyButton)heavyButton.onclick=()=>this.callHowitzer();
    const railButton=$('precisionBtn');if(railButton)railButton.onclick=()=>this.toggleManualRail();
    const strikeButton=$('strikeBtn');if(strikeButton)strikeButton.onclick=()=>this.callStrike();
    const mineButton=$('minefieldBtn');if(mineButton)mineButton.onclick=()=>{
-    this.mobileCometArmed=false;
+    this.mobileManualArmed=false;this.mobileCometArmed=false;
+    this.selectedManualWeapon='mines';this.manualRailMode=false;
+    this.canvas?.classList?.remove('rail-manual');
     this.mobileMineArmed=!this.mobileMineArmed;
     this.notice(this.mobileMineArmed?'МИНЫ · коснитесь места установки и отпустите палец':'МИНЫ · выбор отменён',2.5);
     this.syncControlUI();
@@ -1451,12 +1466,29 @@ export class ArcadeGame {
   $('burstBtn').onclick=()=>this.startBurst();
   const cometButton=$('cometBtn');
   if(cometButton)cometButton.onclick=()=>{
-   this.mobileMineArmed=false;this.mobileCometArmed=!this.mobileCometArmed;
+   this.mobileManualArmed=false;this.mobileMineArmed=false;
+   this.selectedManualWeapon='comet';this.manualRailMode=false;
+   this.canvas?.classList?.remove('rail-manual');
+   this.mobileCometArmed=!this.mobileCometArmed;
    this.notice(this.mobileCometArmed?
     'КОМЕТА · коснитесь точки удара. Повторное нажатие отменит прицел.':
     'КОМЕТА · прицел отменён',2.5);
    this.syncControlUI();
   };
+  const manualButton=$('mobileManualBtn');
+  if(manualButton)manualButton.onclick=()=>{
+   const weapon=selectedManual(this.selectedManualWeapon,this.manualWeaponsHere());
+   const name={comet:'Комета',mines:'Мины',rail:'Рельс',howitzer:'Гаубица'}[weapon]||'Оружие';
+   const wasArmed=this.mobileManualArmed||this.mobileMineArmed||this.mobileCometArmed;
+   this.mobileManualArmed=!wasArmed;this.mobileCometArmed=false;this.mobileMineArmed=false;
+   this.notice(this.mobileManualArmed?name.toUpperCase()+' · коснитесь цели для выстрела':
+    'Ручной прицел отменён',2.8);
+   this.syncControlUI();
+  };
+  $('mobileManualSelectBtn')?.addEventListener?.('click',()=>{
+   this.mobileManualArmed=false;this.mobileCometArmed=false;this.mobileMineArmed=false;
+   this.switchManualWeapon(1);this.syncControlUI();
+  });
   const abilities=$('mobileAbilities'),abilitiesToggle=$('mobileAbilitiesToggle');
   const closeAbilities=()=>{
    if(!abilities||!abilitiesToggle)return;
@@ -1551,7 +1583,7 @@ export class ArcadeGame {
    // marks a target without spending the selected mount's ammunition.
    const weapon=selectedManual(this.selectedManualWeapon,this.manualWeaponsHere());
    const {kind,mark}=e.pointerType==='touch'?
-    {kind:mobileAimKind(this.mobileCometArmed,this.mobileMineArmed),mark:false}:
+    {kind:this.mobileManualArmed?weapon:mobileAimKind(this.mobileCometArmed,this.mobileMineArmed),mark:false}:
     pointerWeaponAction(e,weapon,this.mobileMineArmed);
    if(kind==='comet'||kind==='mines'){
     const ready=canAimMouseWeapon(this,kind);
@@ -1610,9 +1642,13 @@ export class ArcadeGame {
    if(mark){if(!held&&moved<=14)this.designateTargetAt(worldPoint);return;}
    if(kind){
     if(kind==='comet'||kind==='mines')this.fireActiveMouseWeapon(kind,worldPoint);
+    else if(e.pointerType==='touch'&&kind==='rail'){
+     this.manualRailMode=true;this.fireManualRailAt(worldPoint);
+    }else if(e.pointerType==='touch'&&kind==='howitzer')this.callHowitzer(worldPoint);
     else this.fireSelectedManualAt(worldPoint);
     if(e.pointerType==='touch'){
-     this.mobileMineArmed=false;this.mobileCometArmed=false;this.syncControlUI();
+     this.mobileMineArmed=false;this.mobileCometArmed=false;this.mobileManualArmed=false;
+     this.syncControlUI();
     }
     return;
    }
@@ -3472,9 +3508,11 @@ export class ArcadeGame {
   this.selectedManualWeapon=cycleManual(this.selectedManualWeapon,choices,step);
   this.manualRailMode=false;
   this.canvas?.classList?.toggle('rail-manual',this.manualRailMode);
-  this.notice('ПКМ · '+(this.selectedManualWeapon==='rail'?'Рельсовое орудие':
+  const name=this.selectedManualWeapon==='rail'?'Рельсовое орудие':
    this.selectedManualWeapon==='howitzer'?'Гаубица':this.selectedManualWeapon==='mines'?
-    'Минное заграждение':'Голубая комета')+' · зажмите для прицеливания',2.4);
+    'Минное заграждение':'Голубая комета';
+  this.notice(this.isTouchLayout?name+' · нажмите кнопку выстрела, затем коснитесь цели':
+   'ПКМ · '+name+' · зажмите для прицеливания',2.4);
   this.hud();return true;
  }
  fireSelectedManualAt(point){
@@ -3748,7 +3786,7 @@ export class ArcadeGame {
   this.deathSceneEnd=0;
   this.enemyComms=new EnemyComms();
   this.designatedTarget=null;this.targetField=null;this.interactionFocus=null;this.weaponFx=[];
-  this.mouseArsenal=createMouseArsenal();this.mouseAim=null;this.mobileMineArmed=false;this.mobileCometArmed=false;
+  this.mouseArsenal=createMouseArsenal();this.mouseAim=null;this.mobileMineArmed=false;this.mobileCometArmed=false;this.mobileManualArmed=false;
   this.nearArsenalBonus=false;this.nearArsenalDefense=false;
   this.railSweep=null;this.ramSquads=[];this.ramSquadCooldowns=new Map();
   this.nearDockField=false;this.nearQuietLab=false;this.nearDock=null;
@@ -3887,6 +3925,14 @@ export class ArcadeGame {
     focus.kind==='ruin-claim'?'Удерживать для восстановления разрушенной станции':
     focus.kind==='repair'?'Удерживать для ремонта зонда':'Удерживать для добычи'):'Нет объектов для взаимодействия');
   }
+  const dash=$('burstBtn');
+  if(dash){
+   const remaining=Math.max(0,Math.ceil(this.player?.burstCooldown||0));
+   dash.disabled=remaining>0;
+   dash.textContent=remaining?'Рывок · '+remaining+'с':'Рывок';
+   dash.setAttribute?.('aria-label',remaining?
+    'Рывок перезаряжается, осталось '+remaining+' секунд':'Рывок готов');
+  }
   const quiet=$('quietBtn');
   if(quiet){
    quiet.setAttribute('aria-pressed',String(this.holdFire));
@@ -3909,7 +3955,9 @@ export class ArcadeGame {
      blockedField||' · готово'):'';
    if(tacticButton){tacticButton.hidden=false;tacticButton.disabled=!!tacticRemaining;
     tacticButton.textContent=tacticRemaining?tacticModule.short+' · '+tacticRemaining+'с':tacticModule.short;
-    tacticButton.setAttribute('aria-label',tacticText);}
+    tacticButton.setAttribute('aria-label',this.isTouchLayout?
+     'Тактическое устройство '+tacticModule.short+
+     (tacticRemaining?' · зарядка '+tacticRemaining+' секунд':' · готово'):tacticText);}
    if(ion){ion.hidden=!fitted;ion.disabled=!ready;
     ion.textContent=fitted?spec.short+' · ∞':'Ион';
     ion.setAttribute('aria-label',fitted?fieldText:'Полевое оружие не установлено');}
@@ -3924,6 +3972,23 @@ export class ArcadeGame {
    }
    const zoomValue=$('mobileZoomValue');if(zoomValue)
     zoomValue.textContent=Math.round(this.cameraZoom*100)+'%';
+   const manualChoices=this.manualWeaponsHere();
+   const selected=selectedManual(this.selectedManualWeapon,manualChoices);
+   const manualName={comet:'Комета',mines:'Мины',rail:'Рельс',howitzer:'Гаубица'}[selected]||'Оружие';
+   const manualRest=selected==='comet'?cometRest:selected==='mines'?mineRest:0;
+   const manualBtn=$('mobileManualBtn');
+   if(manualBtn){
+    manualBtn.disabled=!!manualRest;
+    manualBtn.setAttribute?.('aria-pressed',String(!!(this.mobileManualArmed||this.mobileCometArmed||this.mobileMineArmed)));
+    manualBtn.textContent=manualRest?manualName+' · '+manualRest+'с':
+     this.mobileManualArmed||this.mobileCometArmed||this.mobileMineArmed?'Цель · '+manualName:manualName;
+    manualBtn.setAttribute?.('aria-label',manualRest?
+     manualName+' перезаряжается, осталось '+manualRest+' секунд':
+     'Выстрел '+manualName+'. Нажмите кнопку, затем коснитесь цели.');
+   }
+   const cycleButton=$('mobileManualSelectBtn');
+   if(cycleButton){cycleButton.hidden=manualChoices.length<2;
+    cycleButton.textContent='Сменить оружие · '+manualName+' →';}
    const mineButton=$('minefieldBtn');if(mineButton){
     mineButton.disabled=!!mineRest;mineButton.setAttribute('aria-pressed',String(!!this.mobileMineArmed));
     mineButton.textContent=mineRest?'Мины · '+mineRest+'с':this.mobileMineArmed?'Мины · цель':'Мины · выбор';
