@@ -23,6 +23,17 @@ test('five distinct escort models have the same non-replacement price at every s
  assert.equal(escortRetirementRefund(createEscort('fighter',3,0,0)),16);
 });
 
+test('station overview sells all five escort types with independent affordability',()=>{
+ const g=testGame();g.baseTab='summary';g.player.ore=41;
+ const html=renderBasePanel(g.docked,g.baseState());
+ for(const role of Object.keys(ESCORTS)){
+  assert.match(html,new RegExp('class="base-overview-drone-option" data-escort-type="'+role+'"'));
+ }
+ assert.equal((html.match(/class="base-overview-drone-option"/g)||[]).length,5);
+ assert.match(html,/«Клинок»/);
+ assert.match(html,/Не хватает 5 сплава/,'the rocket escort remains listed even if not affordable');
+ assert.match(html,/Свободных мест:/);
+});
 test('drones tab shows roster, five models and durable squad research',()=>{
  const g=testGame();g.baseTab='drones';g.player.ore=300;
  const html=renderBasePanel(g.docked,g.baseState());
