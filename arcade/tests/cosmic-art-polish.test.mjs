@@ -47,3 +47,22 @@ test('scenic event remains the same while flying across region boundaries',()=>{
    assert.deepEqual(cosmicEventAt(time,sector),observed);
  }
 });
+
+test('nebula region changes crossfade and eventually release the previous texture',()=>{
+ const old=globalThis.document;
+ const noop=()=>{},gradient=()=>({addColorStop(){}});
+ const c=new Proxy({createRadialGradient:gradient,createLinearGradient:gradient},
+  {get(t,k){return k in t?t[k]:noop;},set(t,k,v){t[k]=v;return true;}});
+ globalThis.document={createElement:()=>({width:0,height:0,getContext:()=>c})};
+ try{
+  const sky=new CosmicAmbience(),camera={x:0,y:0,w:800,h:450};
+  sky.draw(c,camera,1,60,0,false);
+  const first=sky.haze;assert.ok(first);
+  sky.draw(c,camera,3,60,1,false);
+  assert.equal(sky.previousHaze,first,'old region persists through crossfade');
+  sky.draw(c,camera,4,60,1,false);
+  assert.equal(sky.previousHaze,first);
+  sky.draw(c,camera,6,60,1,false);
+  assert.equal(sky.previousHaze,null,'old texture is released after transition');
+ }finally{globalThis.document=old;}
+});
