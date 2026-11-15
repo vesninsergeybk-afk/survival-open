@@ -97,6 +97,29 @@ export function updateSpaceAnomalies(game,dt){
   }
  }
 }
+// Slow, coherent plasma ribbons. No allocations and no additional hitboxes.
+function drawIonFilaments(c,f,time,charging,active){
+ const r=f.r,TA=TAU/6;
+ c.save();c.globalCompositeOperation='lighter';c.lineCap='round';
+ for(let i=0;i<6;i++){
+  const a=f.phase+i*TA+time*(i%2?-.009:.012);
+  const twist=Math.sin(time*.2+i*1.5)*.18;
+  const ax=Math.cos(a),ay=Math.sin(a);
+  const b=a+.65+twist,cc=a+1.35+twist;
+  const x0=ax*r*.13,y0=ay*r*.13;
+  const x1=Math.cos(b)*r*.48,y1=Math.sin(b)*r*.48;
+  const x2=Math.cos(cc)*r*.88,y2=Math.sin(cc)*r*.88;
+  c.beginPath();c.moveTo(x0,y0);
+  c.bezierCurveTo(x0+ax*r*.23,y0+ay*r*.23,
+   x1+Math.cos(cc)*r*.14,y1+Math.sin(cc)*r*.14,x2,y2);
+  c.globalAlpha=active?.23:charging?.13:.038;
+  c.strokeStyle='#66d9ee';c.lineWidth=active?60:charging?45:29;c.stroke();
+  c.globalAlpha=active?.56:charging?.32:.09;
+  c.strokeStyle='#e1fcff';c.lineWidth=active?3.7:2.2;c.stroke();
+ }
+ c.restore();
+}
+
 export function drawSpaceAnomalies(game,c,cam){
  const time=game.time;
  const reduced=game.visuals?.reducedMotion||game.fps<34;
@@ -140,8 +163,8 @@ export function drawSpaceAnomalies(game,c,cam){
    drawAnomalyWrecks(c,f,time,reduced);
   }else{
    const charging=t>=17&&t<22,active=t>=22&&t<25;
-   c.globalAlpha=active?.94:charging?.7:.29;
-   c.lineWidth=active?8:charging?4:2;
+   c.globalAlpha=active?.84:charging?.52:.13;
+   c.lineWidth=active?7:charging?4:1.5;
    for(let i=0;i<4;i++){
     const r=f.r*(.24+i*.24)+Math.sin(time*1.2+i)*14;
     c.beginPath();c.arc(0,0,r,0,TAU);c.stroke();
@@ -154,6 +177,8 @@ export function drawSpaceAnomalies(game,c,cam){
     c.beginPath();c.moveTo(-f.r*.9,0);c.lineTo(f.r*.9,0);c.stroke();
     c.globalAlpha=1;c.fillStyle='#ffeffc';c.beginPath();c.arc(0,0,45,0,TAU);c.fill();
    }
+   if(f.type==='ion'&&!reduced&&game.fps>=44)
+    drawIonFilaments(c,f,time,charging,active);
    if(f.type==='ion'&&!reduced&&(charging||active)){
     c.globalCompositeOperation='lighter';c.strokeStyle='#cff9ff';
     c.globalAlpha=active?.8:.48;c.lineWidth=active?5:2.4;
@@ -171,8 +196,13 @@ export function drawSpaceAnomalies(game,c,cam){
    }
    if(f.type==='meteor'){
     for(let i=0;i<12;i++){
-     const x=(hash(i,17,f.id.length)-.5)*f.r*1.7;
-     const y=(hash(i,23,f.id.length)-.5)*f.r*1.7;
+     const width=f.r*1.7;
+     const mx=(hash(i,17,f.id.length)-.5)*width;
+     const my=(hash(i,23,f.id.length)-.5)*width;
+     // Drift along the existing hazard field; visual only.
+     const drift=reduced?0:time*(10+(i%4)*5);
+     const x=((mx+drift+width*1.5)%width+width)%width-width*.5;
+     const y=((my+drift*.65+width*1.5)%width+width)%width-width*.5;
      const rock=game.images?.rock;
      if(rock?.complete&&rock.naturalWidth){
       c.globalAlpha=.55;c.drawImage(rock,x-15,y-15,30+(i%4)*9,30+(i%4)*9);
