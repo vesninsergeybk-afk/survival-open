@@ -29,8 +29,8 @@ export function cosmicEventAt(time,sector=0){
  return {kind,index,age,duration:13};
 }
 export class CosmicAmbience {
- constructor({enabled=true}={}){
-  this.enabled=!!enabled;
+ constructor({enabled=true,demo=false}={}){
+  this.enabled=!!enabled;this.demo=!!demo;
   this.tiles=[];this.haze=null;this.hazeSector=-1;
  }
  _createTile(spec){
@@ -162,7 +162,8 @@ export class CosmicAmbience {
     ctx.globalAlpha=.42;
     ctx.drawImage(this.haze,x,y,size,size);
    }
-   const event=cosmicEventAt(time,s);
+   const eventTime=this.demo?42+Math.floor(time/17)*126+time%17:time;
+   const event=cosmicEventAt(eventTime,s);
    if(event){
     ctx.globalAlpha=1;
     if(event.kind==='comet')this._comet(ctx,width,height,event,palette);
