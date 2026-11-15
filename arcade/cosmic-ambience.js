@@ -33,6 +33,7 @@ export class CosmicAmbience {
  constructor({enabled=true,demo=false}={}){
   this.enabled=!!enabled;this.demo=!!demo;
   this.tiles=[];this.haze=null;this.hazeSector=-1;
+  this.previousHaze=null;this.hazeChangedAt=0;
  }
  _createTile(spec){
   if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
@@ -199,7 +200,10 @@ export class CosmicAmbience {
   if(!low&&!steady){
    this._stars(ctx,cam,1,layers[1],width,height,.28);
    if(fps>49)this._stars(ctx,cam,2,layers[2],width,height,.16);
-   if(this.hazeSector!==s){this.haze=this._makeHaze(s);this.hazeSector=s;}
+   if(this.hazeSector!==s){
+    this.previousHaze=this.haze;
+    this.haze=this._makeHaze(s);this.hazeSector=s;this.hazeChangedAt=time;
+   }
    if(this.haze){
     const size=Math.max(width,height)*1.55;
     // Bounded, continuous drift keeps the cloud in view at remote world positions.
@@ -208,8 +212,14 @@ export class CosmicAmbience {
      Math.sin(time*.017)*19;
     const y=(height-size)*.5+Math.sin(cam.y*.00014)*height*.10+
      Math.cos(time*.013)*15;
-    ctx.globalAlpha=.61;
+    const transition=clamp((time-this.hazeChangedAt)/2.4,0,1);
+    if(this.previousHaze&&transition<1){
+     ctx.globalAlpha=.61*(1-transition);
+     ctx.drawImage(this.previousHaze,x,y,size,size);
+    }
+    ctx.globalAlpha=.61*(this.previousHaze?transition:1);
     ctx.drawImage(this.haze,x,y,size,size);
+    if(transition>=1)this.previousHaze=null;
    }
    const eventTime=this.demo?42+Math.floor(time/17)*126+time%17:time;
    const event=cosmicEventAt(eventTime,s);
