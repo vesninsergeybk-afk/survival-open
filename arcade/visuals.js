@@ -202,7 +202,7 @@ export class ArcadeVisuals {
    }
   this.skies=[document.getElementById('sky0'),document.getElementById('sky1')];
   const cosmosSetting=typeof location==='undefined'?null:new URLSearchParams(location.search).get('cosmos');
-  this.cosmicAmbience=new CosmicAmbience({enabled:!['off','0','false'].includes(cosmosSetting)});
+  this.cosmicAmbience=new CosmicAmbience({enabled:!['off','0','false'].includes(cosmosSetting),demo:cosmosSetting==='preview'});
   this.reducedMotion=typeof matchMedia==='function'&&
    matchMedia('(prefers-reduced-motion: reduce)').matches;
   this.updateSky(0,0,true);
