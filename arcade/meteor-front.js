@@ -100,6 +100,47 @@ export function updateMeteorFront(game){
  state.nextAt=time+METEOR_FRONT.revisit;
  state.active=null;
 }
+
+/** Draws only an incoming body; the existing zone still owns its collision and warning. */
+function drawIncomingMeteor(c,game,active,index,age){
+ const u=Math.min(1,Math.max(0,age/1.85));
+ const side=(hash(index+11,active.serial,active.seed)-.5)*METEOR_FRONT.spread;
+ const along=METEOR_FRONT.lead+index*METEOR_FRONT.step;
+ const x=along-250*(1-u),y=side-170*(1-u);
+ const detail=!game.visuals?.reducedMotion&&(game.fps??60)>=34;
+ const size=20+17*u;
+ c.save();c.translate(x,y);
+ if(detail){
+  c.globalCompositeOperation='lighter';
+  const tail=c.createLinearGradient(-178,-125,12,6);
+  tail.addColorStop(0,'rgba(255,128,45,0)');
+  tail.addColorStop(.48,'rgba(252,122,58,.22)');
+  tail.addColorStop(1,'rgba(255,229,156,.82)');
+  c.strokeStyle=tail;c.lineWidth=7+u*3;c.lineCap='round';
+  c.beginPath();c.moveTo(-178,-125);c.lineTo(0,0);c.stroke();
+  c.globalCompositeOperation='source-over';
+  const glow=c.createRadialGradient(0,0,0,0,0,54);
+  glow.addColorStop(0,'rgba(255,242,204,.28)');
+  glow.addColorStop(.34,'rgba(250,147,74,.16)');
+  glow.addColorStop(1,'rgba(230,75,32,0)');
+  c.fillStyle=glow;c.fillRect(-54,-54,108,108);
+ }
+ const sprites=game.visuals?.legacyMeteors;
+ const art=sprites?.[(active.serial+index)%sprites.length];
+ if(art?.complete&&art.naturalWidth>0){
+  c.rotate(active.angle*.12+age*.8);
+  c.drawImage(art,-size/2,-size/2,size,size);
+ }else{
+  c.rotate(.38+index*.7);
+  c.fillStyle='#7d5b52';c.strokeStyle='#ffd69b';c.lineWidth=1.3;
+  c.beginPath();c.moveTo(-size*.48,-size*.22);c.lineTo(-size*.15,-size*.54);
+  c.lineTo(size*.38,-size*.31);c.lineTo(size*.53,size*.17);
+  c.lineTo(size*.05,size*.49);c.lineTo(-size*.49,size*.22);
+  c.closePath();c.fill();c.stroke();
+ }
+ c.restore();
+}
+
 export function drawMeteorFront(game,c,cam){
  const a=game.meteorFront?.active;if(!a)return;
  const elapsed=game.time-a.at,remaining=Math.max(0,METEOR_FRONT.warning-elapsed);
@@ -116,10 +157,17 @@ export function drawMeteorFront(game,c,cam){
  c.strokeRect(start,-corridor.halfWidth,length,corridor.halfWidth*2);c.setLineDash([]);
  if(elapsed>=METEOR_FRONT.warning){
   const head=METEOR_FRONT.lead+Math.min(METEOR_FRONT.strikes,a.strikes)*METEOR_FRONT.step;
-  c.fillStyle='#ffd7a3a8';
+  c.fillStyle='#ffd7a36c';
   for(let i=0;i<7;i++){
    const x=head-i*75,y=Math.sin(game.time*.9+i)*180;
-   c.beginPath();c.arc(x,y,5+i%3*4,0,TAU);c.fill();
+   c.beginPath();c.arc(x,y,3+i%3*2,0,TAU);c.fill();
+  }
+  // Each falling stone follows a real strike's scheduled approach.
+  // It ends at the existing orbital impact zone, without new damage.
+  const max=Math.min(METEOR_FRONT.strikes,a.strikes);
+  for(let i=Math.max(0,max-3);i<max;i++){
+   const age=elapsed-METEOR_FRONT.warning-i*METEOR_FRONT.strikeGap;
+   if(age>=0&&age<1.85)drawIncomingMeteor(c,game,a,i,age);
   }
  }
  c.rotate(-a.angle);c.fillStyle='#ffe7bd';c.textAlign='center';
