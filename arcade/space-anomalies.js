@@ -120,6 +120,17 @@ function drawIonFilaments(c,f,time,charging,active){
  c.restore();
 }
 
+// Scenic stones wrap beyond the visible hazard boundary, never through its center.
+export function meteorSceneryPosition(field,index,time,reduced=false){
+ const width=field.r*2.28;
+ const mx=(hash(index,17,field.id.length)-.5)*width;
+ const my=(hash(index,23,field.id.length)-.5)*width;
+ const drift=reduced?0:time*(10+(index%4)*5);
+ const x=((mx+drift+width*1.5)%width+width)%width-width*.5;
+ const y=((my+drift*.65+width*1.5)%width+width)%width-width*.5;
+ const fade=Math.max(0,Math.min(1,(field.r-Math.hypot(x,y))/140));
+ return {x,y,fade};
+}
 export function drawSpaceAnomalies(game,c,cam){
  const time=game.time;
  const reduced=game.visuals?.reducedMotion||game.fps<34;
@@ -196,19 +207,14 @@ export function drawSpaceAnomalies(game,c,cam){
    }
    if(f.type==='meteor'){
     for(let i=0;i<12;i++){
-     const width=f.r*1.7;
-     const mx=(hash(i,17,f.id.length)-.5)*width;
-     const my=(hash(i,23,f.id.length)-.5)*width;
-     // Drift along the existing hazard field; visual only.
-     const drift=reduced?0:time*(10+(i%4)*5);
-     const x=((mx+drift+width*1.5)%width+width)%width-width*.5;
-     const y=((my+drift*.65+width*1.5)%width+width)%width-width*.5;
+     const {x,y,fade}=meteorSceneryPosition(f,i,time,reduced);
+     if(!fade)continue;
      const rock=game.images?.rock;
      if(rock?.complete&&rock.naturalWidth){
-      c.globalAlpha=.55;c.drawImage(rock,x-15,y-15,30+(i%4)*9,30+(i%4)*9);
+      c.globalAlpha=.55*fade;c.drawImage(rock,x-15,y-15,30+(i%4)*9,30+(i%4)*9);
      }
      if(!reduced){
-      c.strokeStyle=active?'#ffe9be':'#fcb579';c.globalAlpha=active?.9:.32;
+      c.strokeStyle=active?'#ffe9be':'#fcb579';c.globalAlpha=(active?.9:.32)*fade;
       c.lineWidth=3+(i%3);c.beginPath();c.moveTo(x-90,y-65);c.lineTo(x+12,y+8);c.stroke();
      }
     }

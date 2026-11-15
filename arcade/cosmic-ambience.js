@@ -25,13 +25,15 @@ export function cosmicEventAt(time,sector=0){
  const index=Math.floor((time-42)/126);
  const age=time-42-index*126;
  if(age>=13)return null;
- const kind=['comet','distant-burst','micro-meteors'][(index+Math.max(0,sector))%3];
+ // Crossing a sector boundary must not replace an event halfway through.
+ const kind=['comet','distant-burst','micro-meteors'][index%3];
  return {kind,index,age,duration:13};
 }
 export class CosmicAmbience {
  constructor({enabled=true,demo=false}={}){
   this.enabled=!!enabled;this.demo=!!demo;
   this.tiles=[];this.haze=null;this.hazeSector=-1;
+  this.previousHaze=null;this.hazeChangedAt=0;
  }
  _createTile(spec){
   if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
@@ -62,21 +64,50 @@ export class CosmicAmbience {
  }
  _makeHaze(sector){
   if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
-  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=640;
+  // Bake turbulent, translucent galactic gas once per region. No shaders per frame.
+  const SIZE=256,canvas=document.createElement('canvas');
+  canvas.width=SIZE;canvas.height=SIZE;
   const c=canvas.getContext?.('2d');if(!c)return null;
-  const color=PALETTES[sector]?.haze||PALETTES[0].haze;
-  const random=rand32(9107+sector*7129);
-  for(let i=0;i<14;i++){
-   const x=85+random()*475,y=80+random()*475;
-   const radius=105+random()*135;
-   c.save();c.translate(x,y);c.rotate(-.8+random()*1.6);
-   c.scale(1.15+random()*.65,.32+random()*.45);
-   const g=c.createRadialGradient(0,0,0,0,0,radius);
-   g.addColorStop(0,colorA(color,.085+random()*.035));
-   g.addColorStop(.4,colorA(color,.028));g.addColorStop(1,colorA(color,0));
-   c.fillStyle=g;c.fillRect(-radius,-radius,radius*2,radius*2);
-   c.restore();
+  const rgba=c.createImageData?.(SIZE,SIZE);
+  const tint=PALETTES[sector]?.haze||PALETTES[0].haze;
+  if(!rgba?.data){
+   const gradient=c.createRadialGradient?.(SIZE*.52,SIZE*.48,8,SIZE*.52,SIZE*.48,SIZE*.46);
+   if(gradient){gradient.addColorStop(0,colorA(tint,.24));gradient.addColorStop(1,colorA(tint,0));
+    c.fillStyle=gradient;c.fillRect(0,0,SIZE,SIZE);}
+   return canvas;
   }
+  const [red,green,blue]=hexRgb(tint),rand=rand32(126017+sector*137);
+  const octaves=[6,12,24,48].map(n=>{
+   const data=new Float32Array((n+1)*(n+1));
+   for(let i=0;i<data.length;i++)data[i]=rand();
+   return {n,data};
+  });
+  const sample=(grid,x,y)=>{
+   const n=grid.n,px=x*n,py=y*n,ix=Math.min(n-1,px|0),iy=Math.min(n-1,py|0);
+   const sx=px-ix,sy=py-iy,u=sx*sx*(3-2*sx),v=sy*sy*(3-2*sy),q=grid.data;
+   const k=iy*(n+1)+ix,a=q[k],b=q[k+1],d=q[k+n+1],e=q[k+n+2];
+   return (a+(b-a)*u)*(1-v)+(d+(e-d)*u)*v;
+  };
+  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
+   const u=x/(SIZE-1),v=y/(SIZE-1);
+   const n0=sample(octaves[0],u,v),n1=sample(octaves[1],u,v),
+    n2=sample(octaves[2],u,v),n3=sample(octaves[3],u,v);
+   const fbm=n0*.46+n1*.29+n2*.17+n3*.08;
+   const spine=.45+.20*Math.sin(u*3.4+sector*.38)+.11*Math.sin(u*8.1+fbm*4.5);
+   const ribbon=Math.exp(-Math.pow((v-spine)/(.16+fbm*.19),2));
+   const y2=.37+.23*Math.sin(u*2.7+2.2+sector*.49);
+   const secondary=Math.exp(-Math.pow((v-y2)/(.13+fbm*.11),2))*.46;
+   const edge=Math.pow(Math.max(0,1-Math.pow((u-.5)/.51,4)),1.8)*
+    Math.pow(Math.max(0,1-Math.pow((v-.5)/.51,4)),1.8);
+   const concentration=Math.max(0,(fbm-.33)*2.65),light=(ribbon+secondary)*edge*concentration;
+   const alpha=Math.max(0,Math.min(210,Math.round(light*150)));
+   const k=(y*SIZE+x)*4,highlight=Math.min(1,Math.max(0,(fbm-.55)*2.8));
+   rgba.data[k]=Math.min(255,red*(.7+.32*highlight)+36*highlight);
+   rgba.data[k+1]=Math.min(255,green*(.65+.36*highlight)+40*highlight);
+   rgba.data[k+2]=Math.min(255,blue*(.75+.28*highlight)+27*highlight);
+   rgba.data[k+3]=alpha;
+  }
+  c.putImageData(rgba,0,0);
   return canvas;
  }
  _stars(ctx,cam,layer,spec,width,height,alpha){
@@ -103,6 +134,21 @@ export class CosmicAmbience {
   grad.addColorStop(0,'rgba(72,153,230,0)');
   grad.addColorStop(.55,colorA(palette.star,.075));
   grad.addColorStop(1,'rgba(230,250,255,.80)');
+  // The broad, low-opacity dust fan follows the bright ion tail.
+  const px=x-ux*tail,py=y-uy*tail;
+  ctx.globalAlpha=ease*.24;
+  ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(x,y);
+  ctx.bezierCurveTo(x-ux*tail*.28-uy*9,y-uy*tail*.28+ux*9,
+   px-uy*20,py+ux*20,px-uy*32,py+ux*32);
+  ctx.quadraticCurveTo(px+uy*18,py-ux*18,x,y);
+  ctx.fill();ctx.globalAlpha=ease*.76;
+  for(let i=0;i<13;i++){
+   const f=(i+.55)/14,scatter=Math.sin((seed+1)*5.3+i*14.17)*f*17;
+   const sx=x-ux*tail*f-uy*scatter,sy=y-uy*tail*f+ux*scatter;
+   ctx.globalAlpha=ease*(1-f)*.26;
+   ctx.fillStyle='#c2e7ff';ctx.fillRect(sx,sy,.8,.8);
+  }
+  ctx.globalAlpha=ease*.76;
   ctx.strokeStyle=grad;ctx.lineWidth=2.5;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(x-ux*tail,y-uy*tail);ctx.lineTo(x,y);ctx.stroke();
   const bloom=ctx.createRadialGradient(x,y,0,x,y,18);
@@ -154,13 +200,26 @@ export class CosmicAmbience {
   if(!low&&!steady){
    this._stars(ctx,cam,1,layers[1],width,height,.28);
    if(fps>49)this._stars(ctx,cam,2,layers[2],width,height,.16);
-   if(this.hazeSector!==s){this.haze=this._makeHaze(s);this.hazeSector=s;}
+   if(this.hazeSector!==s){
+    this.previousHaze=this.haze;
+    this.haze=this._makeHaze(s);this.hazeSector=s;this.hazeChangedAt=time;
+   }
    if(this.haze){
-    const size=Math.max(width,height)*1.3;
-    const x=width*.48-size*.5-cam.x*.007+Math.sin(time*.017)*18;
-    const y=height*.56-size*.5-cam.y*.006+Math.cos(time*.015)*12;
-    ctx.globalAlpha=.42;
+    const size=Math.max(width,height)*1.55;
+    // Bounded, continuous drift keeps the cloud in view at remote world positions.
+    // A single cached draw avoids a large tiled overdraw on mobile.
+    const x=(width-size)*.5+Math.sin(cam.x*.00016)*width*.10+
+     Math.sin(time*.017)*19;
+    const y=(height-size)*.5+Math.sin(cam.y*.00014)*height*.10+
+     Math.cos(time*.013)*15;
+    const transition=clamp((time-this.hazeChangedAt)/2.4,0,1);
+    if(this.previousHaze&&transition<1){
+     ctx.globalAlpha=.61*(1-transition);
+     ctx.drawImage(this.previousHaze,x,y,size,size);
+    }
+    ctx.globalAlpha=.61*(this.previousHaze?transition:1);
     ctx.drawImage(this.haze,x,y,size,size);
+    if(transition>=1)this.previousHaze=null;
    }
    const eventTime=this.demo?42+Math.floor(time/17)*126+time%17:time;
    const event=cosmicEventAt(eventTime,s);
