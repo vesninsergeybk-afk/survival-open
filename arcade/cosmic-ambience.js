@@ -25,7 +25,8 @@ export function cosmicEventAt(time,sector=0){
  const index=Math.floor((time-42)/126);
  const age=time-42-index*126;
  if(age>=13)return null;
- const kind=['comet','distant-burst','micro-meteors'][(index+Math.max(0,sector))%3];
+ // Crossing a sector boundary must not replace an event halfway through.
+ const kind=['comet','distant-burst','micro-meteors'][index%3];
  return {kind,index,age,duration:13};
 }
 export class CosmicAmbience {
