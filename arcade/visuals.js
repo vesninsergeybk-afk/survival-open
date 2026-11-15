@@ -1,4 +1,5 @@
 import {regionAt} from './regions.js?v=regions-1-living-world-population-1';
+import {CosmicAmbience} from './cosmic-ambience.js?v=cosmic-ambience-20261115';
 import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-defense-1-combat-balance-1-manual-cover-1-manual-audit-20261110-weapon-vfx-audit-1-pilot-value-2-opening-evasion-20261110';
 /**
  * Arcade presentation uses the artwork and animation systems already approved
@@ -200,6 +201,8 @@ export class ArcadeVisuals {
     this.legacyMeteors.push(image);
    }
   this.skies=[document.getElementById('sky0'),document.getElementById('sky1')];
+  const cosmosSetting=typeof location==='undefined'?null:new URLSearchParams(location.search).get('cosmos');
+  this.cosmicAmbience=new CosmicAmbience({enabled:!['off','0','false'].includes(cosmosSetting)});
   this.reducedMotion=typeof matchMedia==='function'&&
    matchMedia('(prefers-reduced-motion: reduce)').matches;
   this.updateSky(0,0,true);
@@ -248,6 +251,7 @@ export class ArcadeVisuals {
  // Sparse near-space ion dust from the earlier SpaceArt atmosphere.
  // Skip the additional layer when the frame budget falls below 32 FPS.
  drawAtmosphere(ctx,cam,time,fps=60){
+  this.cosmicAmbience?.draw(ctx,cam,time,fps,this.sector,this.reducedMotion);
   if(this.reducedMotion||fps<32)return;
   const count=fps<50?7:14,w=cam.w,h=cam.h;
   const wrap=(x,size)=>((x%size)+size)%size;
