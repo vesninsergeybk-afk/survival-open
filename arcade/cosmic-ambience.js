@@ -3,8 +3,8 @@ const TILE=768;
 // Purely scenic. World physics, saves, combat RNG, and controls are untouched.
 const PALETTES=[
  {haze:'#9672d4',star:'#c9d9ff'},
- {haze:'#e9a366',star:'#ffe4bd'},
- {haze:'#4fc1e9',star:'#c2efff'},
+ {haze:'#4fc1e9',star:'#c2efff'}, // azure, sector 1
+ {haze:'#e9a366',star:'#ffe4bd'}, // amber, sector 2
  {haze:'#b87bcb',star:'#f2d6ff'},
  {haze:'#59b7ad',star:'#c7fff1'}
 ];
