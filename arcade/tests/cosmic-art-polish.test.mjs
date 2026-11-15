@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CosmicAmbience} from '../cosmic-ambience.js';
+import {CosmicAmbience,cosmicEventAt} from '../cosmic-ambience.js';
 import {meteorSceneryPosition} from '../space-anomalies.js';
 
 test('nebula is baked once as a translucent, region-dependent texture',()=>{
@@ -37,5 +37,13 @@ test('decorative meteor wraps outside the visible anomaly, not through its cente
      'visible stones move continuously');
    prev=curr;
   }
+ }
+});
+
+test('scenic event remains the same while flying across region boundaries',()=>{
+ for(const time of [42,48,168,177,294,299]){
+  const observed=cosmicEventAt(time,0);
+  for(let sector=1;sector<5;sector++)
+   assert.deepEqual(cosmicEventAt(time,sector),observed);
  }
 });
