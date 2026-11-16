@@ -1,0 +1,31 @@
+name: Build selected CC0 nebula texture overlays
+on:
+  push:
+    branches: [feature/deep-space-art-20261116]
+    paths: [.github/workflows/build-sbs-clouds.yml]
+permissions: {contents: write}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repack five inspected nebula images as lightweight alpha overlays
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 --connect-timeout 15 --max-time 90 \
+            -A 'Mozilla/5.0 (Survivor CC0 background build)' \
+            'https://screamingbrainstudios.com/sbs_-_seamless_space_backgrounds_-_small_512x512/' \
+            -o /tmp/sbs-nebula-small.zip
+          python -m pip install --quiet numpy pillow
+          python arcade/tools/build-sbs-clouds.py /tmp/sbs-nebula-small.zip
+      - name: Commit only optimized derived art and review
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/space/deep-nebula/
+          git diff --cached --quiet && exit 0
+          git commit -m 'Build five CC0 regional nebula cloud overlays'
+          git push origin HEAD:feature/deep-space-art-20261116
