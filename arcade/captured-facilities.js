@@ -14,11 +14,11 @@ export const CAPTURED_FACILITY_EFFECTS=Object.freeze({
   }),
   'population-factory':Object.freeze({
     title:'Сборочная верфь',
-    description:'Станция становится дружественным авианосным узлом с доступными ему услугами.'
+    description:'Захваченная верфь открывает автономную ударную авиагруппу без обязательной связи с домашней сетью. Вылет требует ресурсов.'
   }),
   'population-hangar':Object.freeze({
     title:'Ангар патрулей',
-    description:'Захваченный ангар становится местом найма и обслуживания ведомых.'
+    description:'Здесь можно нанимать и обслуживать ведомых, как и на других действующих дружественных станциях.'
   }),
   'population-support':Object.freeze({
     title:'Ремонтная платформа',
@@ -29,7 +29,7 @@ const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const operating=b=>b?.captured&&b.active&&!b.enemy&&!b.ruined&&!b.suppressed&&b.hp>0;
 export function capturedFacilityDescription(base){
   const spec=CAPTURED_FACILITY_EFFECTS[base?.strategicRole];
-  return spec?'Новая возможность: '+spec.title+'. '+spec.description:'';
+  return spec?'Трофей: '+spec.title+'. '+spec.description:'';
 }
 export function capturedFacilityEffect(world,position){
   const result={miningMultiplier:1,discoveryBonus:0};
