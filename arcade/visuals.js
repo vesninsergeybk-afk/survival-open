@@ -1,6 +1,5 @@
 import {regionAt} from './regions.js?v=regions-1-living-world-population-1';
 import {CosmicAmbience} from './cosmic-ambience.js?v=cosmic-ambience-art-v2-20261115';
-import {LandscapeAsteroids} from './landscape-asteroids.js?v=regional-rocks-20261116';
 import {AnimatedAsteroids} from './animated-asteroids.js?v=jarusca-cadence-quality-v2-20261116';
 import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-defense-1-combat-balance-1-manual-cover-1-manual-audit-20261110-weapon-vfx-audit-1-pilot-value-2-opening-evasion-20261110';
 /**
@@ -210,11 +209,6 @@ export class ArcadeVisuals {
   const asteroidSetting=typeof location==='undefined'?null:new URLSearchParams(location.search).get('asteroids');
   this.rotatingAsteroids=new AnimatedAsteroids({enabled:!this.reducedMotion&&
    !['off','0','false'].includes(asteroidSetting)});
-  const landscapeSetting=typeof location==='undefined'?null:
-   new URLSearchParams(location.search).get('landscape');
-  this.landscapeAsteroids=new LandscapeAsteroids({reducedMotion:this.reducedMotion,
-   enabled:!['off','0','false'].includes(asteroidSetting)&&
-    !['off','0','false'].includes(landscapeSetting)});
   this.updateSky(0,0,true);
  }
  updateSky(x,y,force=false){
@@ -367,7 +361,6 @@ export class ArcadeVisuals {
   c.restore();this.roughRocks[index]=canvas;return canvas;
  }
  drawRock(ctx,rock,image,ore=false,time=0){
-  if(this.landscapeAsteroids?.draw(ctx,rock,time,ore))return true;
   if(this.rotatingAsteroids?.draw(ctx,rock,time,ore))return true;
   const key=ore?'ore':'stone',frames=this.framesFromAtlas(image,key);
   const index=(Math.abs(Math.floor((rock.originX??rock.x)*13+(rock.originY??rock.y)*7))>>>2)%12;
