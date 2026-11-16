@@ -1,1 +1,1 @@
-{"tick":2,"sector":0,"texture":"loading","ready":false,"pattern":false,"loadedAt":null,"detailChangedAt":0.016666666666666666,"time":0.03333333333333333,"textureEnabled":true,"canvas":11}
+{"sector":0,"texture":"ready","ready":true,"pattern":true,"textureEnabled":true,"detailChangedAt":1,"canvas":34}
