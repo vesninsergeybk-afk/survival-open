@@ -89,6 +89,8 @@ export function updatePopulationWorld(game,dt){
    if(!nearby?.discovered)continue;
    if(event.kind==='alarm')game.notice('Ретранслятор передал координаты: из ангара поднимается перехват.',4);
    else if(event.kind==='build')game.notice('На вражеской верфи собраны три новых корабля.',3);
+   else if(event.kind==='construction-complete')game.notice('ВРАЖЕСКАЯ СЕТЬ РАСШИРИЛАСЬ · инженерный транспорт завершил новую связь.',5);
+   else if(event.kind==='construction-aborted')game.notice('Вражеская стройка остановлена: один из узлов больше не принадлежит противнику.',5);
   }
   for(const c of state.colonies){
    for(const sortie of c.sorties){
@@ -191,6 +193,7 @@ export function drawPopulationWorld(game,ctx,cam){
  const state=game.world.population;
  if(!state)return;
  const time=game.time,zoom=Math.max(.62,Math.min(1.45,1/(game.cameraZoom||1)));
+ const construction=state.convoys.filter(c=>c.constructionCargo&&c.hp>0);
  for(const colony of state.colonies){
   // Outlying fence sections can be visible even when the industrial center
   // is three thousand units outside the viewport.
@@ -209,6 +212,16 @@ export function drawPopulationWorld(game,ctx,cam){
    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
   }
   ctx.globalAlpha=.9;
+  // A link is drawn only behind the actual moving engineer, never ahead of it.
+  for(const craft of construction){
+   if(craft.colonyId!==colony.id)continue;
+   const source=game.world.stations.get(craft.sourceId);
+   if(!source?.enemy||!inView(craft.x,craft.y,cam,130))continue;
+   ctx.save();ctx.strokeStyle='#ffd89a';ctx.globalAlpha=.72;
+   ctx.lineWidth=3;ctx.setLineDash([10,11]);ctx.beginPath();
+   ctx.moveTo(source.x,source.y);ctx.lineTo(craft.x,craft.y);ctx.stroke();
+   ctx.restore();
+  }
   for(const station of alive){
    const role=station.strategicRole,phase=time*.7+(station.x+station.y)*.001;
    ctx.strokeStyle=role==='population-extractor'?'#ffca73':
