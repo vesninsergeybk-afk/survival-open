@@ -80,3 +80,26 @@ test('optional texture failure and manual opt-out preserve the old sky',()=>{
   assert.equal(draws,0,'failed optional art must not render a broken rectangle');
  }finally{globalThis.Image=previous;}
 });
+
+test('mobile FPS threshold changes never teleport the decorative nebula',()=>{
+ const previous=globalThis.Image,created=[];
+ class FakeImage{
+  constructor(){created.push(this);this.naturalWidth=512;this.naturalHeight=512;}
+  set src(value){this._src=value;}
+ }
+ globalThis.Image=FakeImage;
+ const positions=[];
+ const ctx={save(){},restore(){},translate(x,y){positions.push([x,y]);},
+  scale(){},fillRect(){},createPattern(){return {};}};
+ const cam={x:17000,y:-27500,w:854,h:390};
+ try{
+  const sky=new CosmicAmbience();
+  sky._drawDetails(ctx,cam,1,60,2,false);
+  created[0].onload();
+  sky._drawDetails(ctx,cam,6,60,2,false);
+  sky._drawDetails(ctx,cam,6,30,2,false);
+  assert.equal(positions.length,2);
+  assert.deepEqual(positions[0],positions[1],
+   'the texture must not snap in screen position when FPS falls');
+ }finally{globalThis.Image=previous;}
+});
