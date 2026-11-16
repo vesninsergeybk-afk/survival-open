@@ -82,3 +82,61 @@ test('ordinary arcade retains instantaneous legacy paid expansion',()=>{
  assert.ok(result.every(e=>e.kind!=='construction-start'));
  assert.equal(w.population.convoys.length,before);
 });
+
+test('enemy pays for repair only after a 75-second capture window',()=>{
+ const w=build(1842),colony=w.population.colonies.find(c=>c.region==='amethyst'&&c.index===0);
+ const factory=w.stations.get(colony.id+':factory');
+ factory.ruined=true;factory.enemy=false;factory.captured=false;factory.hp=0;factory.ruinedAt=10;
+ for(const turret of factory.turrets)turret.hp=0;
+ w.enemyExpansion.nextAt=84;
+ assert.equal(advanceEnemyExpansion(w,84)[0]?.kind,'construction-start',
+  'before the grace period only ordinary construction may happen');
+ assert.equal(w.population.convoys.some(c=>c.constructionAction==='repair'),false);
+ w.enemyExpansion.nextAt=85;
+ const previousStock=colony.pool,previousReserve=colony.ready;
+ const orders=advanceEnemyExpansion(w,85);
+ assert.equal(orders[0]?.kind,'repair-start');
+ const engineer=w.population.convoys.find(c=>c.constructionAction==='repair');
+ assert.ok(engineer);
+ assert.equal(engineer.targetId,factory.id);
+ assert.equal(colony.pool,previousStock-8,'the repair spends actual industrial material');
+ assert.equal(colony.ready,previousReserve-2,'escort ships leave the existing reserve');
+ assert.equal(populationConvoyTitle(engineer),'Ремонтный транспорт');
+ const events=advancePopulation(w,arrival(engineer));
+ assert.ok(events.some(e=>e.kind==='repair-complete'&&e.cargoId===engineer.id));
+ assert.equal(factory.ruined,false);
+ assert.equal(factory.enemy,true);
+ assert.ok(factory.hp>0&&factory.hp<factory.maxHp);
+ assert.equal(factory.turrets.filter(t=>t.hp>0).length,1,'only one gun is restored');
+ assert.ok(validPopulation(w.population,[...w.stations],arrival(engineer)));
+});
+
+test('capturing ruined factory before repair arrives permanently blocks that expedition',()=>{
+ const w=build(1842),colony=w.population.colonies.find(c=>c.region==='amethyst'&&c.index===0);
+ const factory=w.stations.get(colony.id+':factory');
+ factory.ruined=true;factory.enemy=false;factory.captured=false;factory.hp=0;factory.ruinedAt=0;
+ w.enemyExpansion.nextAt=100;
+ assert.equal(advanceEnemyExpansion(w,100)[0]?.kind,'repair-start');
+ const craft=w.population.convoys.find(c=>c.constructionAction==='repair');
+ factory.ruined=false;factory.enemy=false;factory.captured=true;factory.active=true;
+ factory.hp=Math.round(factory.maxHp*.3);
+ const events=advancePopulation(w,arrival(craft));
+ assert.ok(events.some(e=>e.kind==='repair-aborted'));
+ assert.equal(factory.enemy,false);
+ assert.equal(factory.captured,true);
+});
+
+test('shooting down repair engineers prevents rebuilding and records loss',()=>{
+ const w=build(1842),colony=w.population.colonies.find(c=>c.region==='amethyst'&&c.index===0);
+ const relay=w.stations.get(colony.id+':relay');
+ relay.ruined=true;relay.enemy=false;relay.captured=false;relay.hp=0;relay.ruinedAt=0;
+ w.enemyExpansion.nextAt=100;
+ assert.equal(advanceEnemyExpansion(w,100)[0]?.kind,'repair-start');
+ const craft=w.population.convoys.find(c=>c.constructionAction==='repair');
+ craft.hp=0;
+ assert.equal(interceptPopulationCargo(w,craft,100),true);
+ assert.ok(w.population.events.some(e=>e.kind==='repair-intercept'&&e.cargoId===craft.id));
+ advancePopulation(w,arrival(craft));
+ assert.equal(relay.ruined,true);
+ assert.equal(relay.enemy,false);
+});
