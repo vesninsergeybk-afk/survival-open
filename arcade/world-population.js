@@ -362,7 +362,21 @@ export function advancePopulation(world,time){
    if(cargo.distance+1e-6>=cargo.routeLength){
     cargo.hp=0;
     const target=state.colonies.find(c=>c.id===cargo.targetColonyId);
-    if(target&&live(world,cargo.targetId)){
+    if(cargo.constructionCargo){
+     const [a,b]=cargo.constructionLink||[];
+     const expansion=world.enemyExpansion;
+     const already=expansion?.links?.some(([x,y])=>
+       x===a&&y===b||x===b&&y===a);
+     // Capturing either endpoint during flight stops the enemy project.
+     const finished=!!target&&!!expansion&&!already&&live(world,a)&&live(world,b);
+     if(finished){
+      expansion.links.push([a,b,'home']);
+      expansion.events=[{kind:'link',a,b,front:'home',region:target.region,
+       at:t} ,...(expansion.events||[])].slice(0,8);
+     }
+     if(target)events.push(record(state,finished?'construction-complete':'construction-aborted',
+      target,t,{cargoId:cargo.id,a,b}));
+    }else if(target&&live(world,cargo.targetId)){
      target.pool=Math.min(100,target.pool+POPULATION.cargoCost);
      target.delivered++;state.arrived++;
      events.push(record(state,'delivery',target,t,{cargoId:cargo.id}));
@@ -379,7 +393,11 @@ export function interceptPopulationCargo(world,cargo,time){
  if(!state?.convoys.includes(cargo)||cargo.hp>0||cargo.rewarded)return false;
  cargo.rewarded=true;state.convoys=state.convoys.filter(c=>c!==cargo);
  const colony=state.colonies.find(c=>c.id===cargo.colonyId);
- if(colony){colony.intercepted++;record(state,'intercept',colony,time,{cargoId:cargo.id});}
+ if(colony){
+  colony.intercepted++;
+  record(state,cargo.constructionCargo?'construction-intercept':'intercept',
+   colony,time,{cargoId:cargo.id});
+ }
  state.intercepted++;
  return true;
 }
@@ -497,6 +515,13 @@ export function validPopulation(state,stations,time){
    !Number.isFinite(cargo.distance)||cargo.distance<0||
    cargo.distance>cargo.routeLength+cargo.speed||
    (cargo.cargoRole!==undefined&&!POPULATION_CONVOY_PROFILES[cargo.cargoRole])||
+   (cargo.constructionCargo!==undefined&&(
+     cargo.constructionCargo!==true||
+     !Array.isArray(cargo.constructionLink)||cargo.constructionLink.length!==2||
+     cargo.constructionLink[0]!==cargo.sourceId||
+     cargo.constructionLink[1]!==cargo.targetId||
+     cargo.sourceId===cargo.targetId||
+     cargo.cargoRole!=='technical'))||
    (cargo.rewardOre!==undefined&&(!Number.isInteger(cargo.rewardOre)||cargo.rewardOre<0||cargo.rewardOre>60))||
    (cargo.rewardData!==undefined&&(!Number.isInteger(cargo.rewardData)||cargo.rewardData<0||cargo.rewardData>60))||
    (cargo.firstHitAt!==undefined&&(!Number.isFinite(cargo.firstHitAt)||cargo.firstHitAt<cargo.launchedAt||cargo.firstHitAt>time))||
