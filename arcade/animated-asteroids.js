@@ -37,7 +37,8 @@ export function asteroidAnimationEligible(rock,ore=false,portion=.58){
 export class AnimatedAsteroids {
  constructor({enabled=true,source=null}={}){
   this.enabled=!!enabled;this.image=null;this.failed=false;
-  this.fps=60;this.blendBudget=0;this.animatedDraws=0;this.blendedDraws=0;
+  this.fps=60;this.qualityTier=3;this.blendBudget=0;
+  this.animatedDraws=0;this.blendedDraws=0;
   this.debug=typeof location!=='undefined'&&
    new URLSearchParams(location.search).get('asteroidperf')==='1';
   this.perfElement=null;this.lastReport=-Infinity;this.avgRockMs=null;
@@ -55,12 +56,22 @@ export class AnimatedAsteroids {
  }
  beginFrame(fps=60){
   this.fps=Number.isFinite(fps)?fps:60;
-  this.blendBudget=this.fps>=54?12:0;
+  // Hysteresis prevents rapidly replacing 2D/3D asteroid sprites when the
+  // smoothed FPS hovers around a quality threshold.
+  if(this.qualityTier===3&&this.fps<48)this.qualityTier=2;
+  else if(this.qualityTier===2){
+   if(this.fps<39)this.qualityTier=1;
+   else if(this.fps>55)this.qualityTier=3;
+  }else if(this.qualityTier===1){
+   if(this.fps<31)this.qualityTier=0;
+   else if(this.fps>45)this.qualityTier=2;
+  }else if(this.qualityTier===0&&this.fps>37)this.qualityTier=1;
+  this.blendBudget=this.qualityTier===3&&this.fps>=54?12:0;
   this.animatedDraws=0;this.blendedDraws=0;
  }
  draw(ctx,rock,time=0,ore=false){
-  if(!this.enabled||!this.image||this.fps<34)return false;
-  const portion=this.fps<44?.16:this.fps<53?.35:.58;
+  if(!this.enabled||!this.image||this.qualityTier===0)return false;
+  const portion=[0,.16,.35,.58][this.qualityTier];
   if(!asteroidAnimationEligible(rock,ore,portion))return false;
   const {row,frame,nextFrame,blend,rotation}=asteroidAnimationPose(rock,time);
   const size=rock.r*2.8,cell=ASTEROID_ANIMATION.cell,sourceY=row*cell;
