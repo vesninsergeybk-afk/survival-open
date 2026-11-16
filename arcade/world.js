@@ -35,6 +35,7 @@ export class World {
     this.regionalSupply=createRegionalSupply();
     this.contours=createContours();
     this.enemyExpansion=createEnemyExpansion();
+    if(this.occupied)this.enemyExpansion.nextAt=34;
     this.population=createPopulation(seed,0,this.occupied);
     this.anomalies=createSpaceAnomalies(seed);
     ensurePopulationStations(this);
