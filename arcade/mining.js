@@ -65,6 +65,10 @@ export function impactRock(rock,damage,sourceX,sourceY,kind='auto') {
  if(rock.hp<=0){rock.alive=false;return true;}
  return false;
 }
+// Parameters are cached outside the save data: existing rock objects
+// remain unchanged, and WeakMap entries disappear with their world cells.
+const ambientRockProfiles=new WeakMap();
+
 // Tiny real-world drift for a stable subset of ordinary rocks. We integrate
 // differences of two deterministic positions rather than changing the
 // rendered position alone: collision, beams and mining see exactly the same
@@ -73,12 +77,21 @@ export function applyRockAmbientDrift(rock,dt,time){
  if(!rock?.alive||rock.rich||!Number.isFinite(dt)||dt<=0||
     !Number.isFinite(time)||time<=0||!Number.isFinite(rock.r)||
     !Number.isFinite(rock.originX)||!Number.isFinite(rock.originY))return false;
- const x=Math.round(rock.originX),y=Math.round(rock.originY);
- if(hash(x,y,9461)>=.60)return false;
- const amp=4+Math.min(7,rock.r*.105);
- const wx=2*Math.PI/(23+hash(x,y,1726)*12);
- const wy=2*Math.PI/(31+hash(x,y,1771)*14);
- const a=hash(x,y,1711)*2*Math.PI,b=hash(x,y,1993)*2*Math.PI;
+ let profile=ambientRockProfiles.get(rock);
+ if(!profile||profile.ox!==rock.originX||profile.oy!==rock.originY){
+  const x=Math.round(rock.originX),y=Math.round(rock.originY);
+  profile={ox:rock.originX,oy:rock.originY,active:hash(x,y,9461)<.60};
+  if(profile.active){
+   profile.amp=4+Math.min(7,rock.r*.105);
+   profile.wx=2*Math.PI/(23+hash(x,y,1726)*12);
+   profile.wy=2*Math.PI/(31+hash(x,y,1771)*14);
+   profile.a=hash(x,y,1711)*2*Math.PI;
+   profile.b=hash(x,y,1993)*2*Math.PI;
+  }
+  ambientRockProfiles.set(rock,profile);
+ }
+ if(!profile.active)return false;
+ const {amp,wx,wy,a,b}=profile;
  const previous=Math.max(0,time-dt);
  const dx=amp*(Math.sin(time*wx+a)-Math.sin(previous*wx+a));
  const dy=amp*.68*(Math.sin(time*wy+b)-Math.sin(previous*wy+b));
