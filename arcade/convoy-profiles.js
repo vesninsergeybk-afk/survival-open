@@ -39,7 +39,7 @@ export function populationConvoyStats(role,tier,baseHp,baseSpeed){
 }
 
 export function populationConvoyEscort(cargo){
- if(cargo?.constructionCargo)return ['scout','fighter'];
+ if(cargo?.constructionCargo)return cargo.screened?['scout','fighter','fighter']:['scout','fighter'];
  return [...(POPULATION_CONVOY_PROFILES[cargo?.cargoRole]?.escort||LEGACY_POPULATION_ESCORT)];
 }
 
