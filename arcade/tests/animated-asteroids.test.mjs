@@ -29,7 +29,7 @@ test('rock appearance is deterministic, within the sprite grid and changes over 
  assert.equal(rows.size,9,'all nine licensed asteroid variants are in use');
  assert.ok(eligible>80,'animated rocks appear often enough to be noticeable');
  const r=rock(91,23);
- assert.notEqual(asteroidAnimationPose(r,0).frame,asteroidAnimationPose(r,6).frame);
+ assert.notEqual(asteroidAnimationPose(r,0).frame,asteroidAnimationPose(r,.31).frame);
  assert.equal(asteroidAnimationEligible({...r,rich:true}),false);
  assert.equal(asteroidAnimationEligible(r,true),false);
  assert.equal(asteroidAnimationEligible(rock(10,30,12)),false);
