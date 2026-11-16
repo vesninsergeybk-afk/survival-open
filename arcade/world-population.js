@@ -362,6 +362,16 @@ export function advancePopulation(world,time){
    if(cargo.distance+1e-6>=cargo.routeLength){
     const target=state.colonies.find(c=>c.id===cargo.targetColonyId);
     if(cargo.constructionCargo){
+     const [a,b]=cargo.constructionLink||[],site=world.stations.get(b);
+     const repair=cargo.constructionAction==='repair';
+     // On arrival, or while working at the destination, engineers can see
+     // whether the site has changed hands. No rebuilding a friendly station.
+     if(!live(world,a)||(repair? !site?.ruined||site.captured||site.hp>0:!live(world,b))){
+      cargo.hp=0;
+      if(target)events.push(record(state,repair?'repair-aborted':'construction-aborted',
+       target,t,{cargoId:cargo.id,a,b}));
+      continue;
+     }
      // Travel is not construction. The engineer must survive a visible
      // work interval after arrival; the pilot can still destroy it.
      if(!Number.isFinite(cargo.assemblyUntil)){
