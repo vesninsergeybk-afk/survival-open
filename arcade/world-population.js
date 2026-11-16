@@ -371,8 +371,11 @@ export function advancePopulation(world,time){
      const finished=!!target&&!!expansion&&!already&&live(world,a)&&live(world,b);
      if(finished){
       expansion.links.push([a,b,'home']);
+      const sa=world.stations.get(a),sb=world.stations.get(b);
       expansion.events=[{kind:'link',a,b,front:'home',region:target.region,
-       at:t} ,...(expansion.events||[])].slice(0,8);
+       x:(sa.x+sb.x)/2,y:(sa.y+sb.y)/2,
+       witnessed:!!sa.discovered&&!!sb.discovered,at:t},
+       ...(expansion.events||[])].slice(0,8);
      }
      if(target)events.push(record(state,finished?'construction-complete':'construction-aborted',
       target,t,{cargoId:cargo.id,a,b}));
