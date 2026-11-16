@@ -71,8 +71,9 @@ export function impactRock(rock,damage,sourceX,sourceY,kind='auto') {
 // rock coordinates as the player. No added save fields, RNG or world spawns.
 export function applyRockAmbientDrift(rock,dt,time){
  if(!rock?.alive||rock.rich||!Number.isFinite(dt)||dt<=0||
-    !Number.isFinite(time)||time<=0||!Number.isFinite(rock.r))return false;
- const x=Math.round(rock.originX??rock.x),y=Math.round(rock.originY??rock.y);
+    !Number.isFinite(time)||time<=0||!Number.isFinite(rock.r)||
+    !Number.isFinite(rock.originX)||!Number.isFinite(rock.originY))return false;
+ const x=Math.round(rock.originX),y=Math.round(rock.originY);
  if(hash(x,y,9461)>=.60)return false;
  const amp=4+Math.min(7,rock.r*.105);
  const wx=2*Math.PI/(23+hash(x,y,1726)*12);
