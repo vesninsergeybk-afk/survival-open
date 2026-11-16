@@ -36,6 +36,10 @@ jobs:
               --screenshot="/tmp/sbs-before.png" \
               'http://127.0.0.1:8787/arcade/tests/deep-nebula-preview.html?sector=0&skytexture=off' \
               >/tmp/chrome-before.log 2>&1
+          timeout 35s "$CHROME" --headless=new --no-sandbox --disable-gpu \
+              --disable-dev-shm-usage --hide-scrollbars --virtual-time-budget=4400 \
+              --dump-dom 'http://127.0.0.1:8787/arcade/tests/deep-nebula-preview.html?sector=0' \
+              >/tmp/sbs-dom.txt 2>/tmp/sbs-domerr.log
           python - <<'PY'
           from pathlib import Path
           from PIL import Image,ImageDraw
@@ -64,6 +68,14 @@ jobs:
            'max_pixel_delta':int(delta.max()),'preview_shape':list(before.shape)}
           print('SKY_BEFORE_AFTER',json.dumps(report))
           (out.parent/'integration-diff.json').write_text(json.dumps(report,indent=2))
+          import re,html
+          raw=Path('/tmp/sbs-dom.txt').read_text(errors='ignore')
+          match=re.search(r'<output id="state" hidden="">(.*?)</output>',raw,re.S)
+          if not match:match=re.search(r'<output id="state"[^>]*>(.*?)</output>',raw,re.S)
+          state=html.unescape(match.group(1)) if match else 'NOT_FOUND'
+          (out.parent/'browser-state.txt').write_text(state)
+          print('BROWSER_STATE:',state[:2000])
+
 
           PY
       - name: Commit visual review
@@ -71,7 +83,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add assets/space/deep-nebula/integration-review.jpg assets/space/deep-nebula/integration-diff.json
+          git add assets/space/deep-nebula/integration-review.jpg assets/space/deep-nebula/integration-diff.json assets/space/deep-nebula/browser-state.txt
           git diff --cached --quiet && exit 0
           git commit -m 'Capture real browser composition of all five nebula skies'
           git push origin HEAD:feature/deep-space-art-20261116
