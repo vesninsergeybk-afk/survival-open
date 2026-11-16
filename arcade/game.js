@@ -13,8 +13,8 @@ import {frontierBarrierContact,FRONTIER} from './enemy-frontier-network.js?v=fro
 import {SALVAGE,ruinEnemyIndustry,salvageQuote,claimRuinedIndustry} from './enemy-station-salvage.js?v=frontier-claim-1';
 import {POPULATION,damagePopulationShield,populationAlarm,populationColony,
  damagePopulationWorker} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
-import {updateSpaceAnomalies,drawSpaceAnomalies} from './space-anomalies.js?v=sector-density-2-frontier-siege-1-cosmic-meteorfade-v2';
-import {createMeteorFront,updateMeteorFront,drawMeteorFront} from './meteor-front.js';
+import {updateSpaceAnomalies,drawSpaceAnomalies} from './space-anomalies.js?v=sector-density-2-frontier-siege-1-cosmic-meteorfade-v2-jarusca-20261116';
+import {createMeteorFront,updateMeteorFront,drawMeteorFront} from './meteor-front.js?v=jarusca-incoming-20261116';
 import {REGIONS,regionAt} from './regions.js?v=regions-audit-1-living-world-population-1-sector-density-2';
 import {focusContourRegion} from './contour-preview.js?v=contour-visual-1-menu-focus-1-menu-reaudit-1-automatic-contours-1';
 import {EXPEDITION_CRUISE,updateCruise} from './expedition-cruise.js?v=expedition-1';
