@@ -327,10 +327,10 @@ export function advancePopulation(world,time){
    const power=openingFactoryStatus(world,c);
    const hasPower=!localPower||power.enabled;
    if(localPower){
-    c.powerReserve=Math.min(OPENING_ENERGY.batterySeconds,
+    c.powerReserve=Math.max(0,Math.min(OPENING_ENERGY.batterySeconds,
       Math.max(0,(c.powerReserve??OPENING_ENERGY.batterySeconds))+
       (power.grid?OPENING_ENERGY.rechargePerSecond:
-       live(world,factory)?-1:0));
+       live(world,factory)?-1:0)));
    }
    updatePopulationMiners(world,c,t);
    for(const miner of c.miners){
