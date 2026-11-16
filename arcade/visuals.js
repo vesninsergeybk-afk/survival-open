@@ -1,5 +1,6 @@
 import {regionAt} from './regions.js?v=regions-1-living-world-population-1';
 import {CosmicAmbience} from './cosmic-ambience.js?v=cosmic-ambience-art-v2-20261115';
+import {AnimatedAsteroids} from './animated-asteroids.js?v=jarusca-rotation-20261116';
 import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-defense-1-combat-balance-1-manual-cover-1-manual-audit-20261110-weapon-vfx-audit-1-pilot-value-2-opening-evasion-20261110';
 /**
  * Arcade presentation uses the artwork and animation systems already approved
@@ -205,6 +206,9 @@ export class ArcadeVisuals {
   this.cosmicAmbience=new CosmicAmbience({enabled:!['off','0','false'].includes(cosmosSetting),demo:cosmosSetting==='preview'});
   this.reducedMotion=typeof matchMedia==='function'&&
    matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const asteroidSetting=typeof location==='undefined'?null:new URLSearchParams(location.search).get('asteroids');
+  this.rotatingAsteroids=new AnimatedAsteroids({enabled:!this.reducedMotion&&
+   !['off','0','false'].includes(asteroidSetting)});
   this.updateSky(0,0,true);
  }
  updateSky(x,y,force=false){
@@ -356,7 +360,8 @@ export class ArcadeVisuals {
   }
   c.restore();this.roughRocks[index]=canvas;return canvas;
  }
- drawRock(ctx,rock,image,ore=false){
+ drawRock(ctx,rock,image,ore=false,time=0){
+  if(this.rotatingAsteroids?.draw(ctx,rock,time,ore))return true;
   const key=ore?'ore':'stone',frames=this.framesFromAtlas(image,key);
   const index=(Math.abs(Math.floor((rock.originX??rock.x)*13+(rock.originY??rock.y)*7))>>>2)%12;
   const oldMeteor=this.legacyMeteors[(ore?0:4)+(index%4)];
