@@ -91,3 +91,25 @@ export function connectedPlayerEnergySlots(world,linked){
  }
  return count;
 }
+
+// Only the optional occupied campaign enforces this dynamically. No bought
+// escort is deleted when the grid is severed: excess units follow the pilot
+// in standby, without weapons or healing, and resume on reconnection.
+export function synchronizeEscortPower(allies,capacity,time=0){
+ if(!Array.isArray(allies))return 0;
+ const allowed=Math.max(0,Math.min(allies.length,
+  Number.isFinite(capacity)?Math.floor(capacity):allies.length));
+ let standby=0;
+ for(let i=0;i<allies.length;i++){
+  const a=allies[i],inactive=i>=allowed;
+  if(!a)continue;
+  if(!!a.powerStandby!==inactive){
+   a.message=inactive?'Недостаточно энергии':'Питание восстановлено';
+   a.messageUntil=time+3;
+   a.state='follow';a.target=null;a.commitUntil=0;
+  }
+  a.powerStandby=inactive;
+  if(inactive)standby++;
+ }
+ return standby;
+}
