@@ -1338,3 +1338,27 @@ test('occupied repair convoy survives a real save and respects subsequent pilot 
  assert.equal(recovered.captured,true);
  assert.equal(recovered.enemy,false,'enemy engineers cannot retake a captured factory');
 });
+
+test('captured sector generator and draining backup survive a real station checkpoint',()=>{
+ const game=scene(),world=new World(1842,{occupied:true});
+ world.home.active=true;world.home.discovered=true;world.discovered.add(world.home.id);
+ const colony=world.population.colonies.find(c=>c.region==='amethyst'&&c.index===0);
+ const source=world.stations.get(colony.id+':extractor');
+ source.enemy=false;source.captured=true;source.active=true;
+ source.turrets.forEach(t=>t.hp=0);
+ advancePopulation(world,32);
+ assert.ok(colony.powerReserve>0&&colony.powerReserve<80);
+ Object.assign(game,{world,seed:world.seed,docked:world.home,time:32});
+ game.player.x=world.home.x+40;game.player.y=world.home.y+25;
+ const record=unpackRun(packRun(captureCheckpoint(game,world.home)));
+ assert.equal(validateCheckpoint(record),true);
+ const next=scene();restoreCheckpoint(next,record);
+ const local=next.world.population.colonies.find(c=>c.id===colony.id);
+ assert.equal(next.world.occupied,true);
+ assert.equal(local.powerReserve,colony.powerReserve);
+ assert.equal(next.world.stations.get(source.id).captured,true);
+ advancePopulation(next.world,115);
+ assert.equal(local.powerReserve,0,'saved emergency stock drains without respawning');
+ const factory=next.world.stations.get(colony.id+':factory');
+ assert.equal(factory.enemy,true,'brownout does not destroy hostile infrastructure');
+});
