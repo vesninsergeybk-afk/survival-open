@@ -64,11 +64,14 @@ test('captured relay extends actual discovery but does not reveal distant statio
  const w=new World(1842,{occupied:true});
  const relay=w.stations.get(initial(w,0).id+':relay');
  relay.enemy=false;relay.captured=true;relay.active=true;
- const target={id:'test:station',x:relay.x+690,y:relay.y,type:'dock',enemy:false,
-  active:false,discovered:false,turrets:[],hp:100,maxHp:100};
- // Discovery scans generated station cells, so exercise its range calculation
- // through a neighboring generated station, not an unindexed synthetic ID.
- assert.equal(capturedFacilityEffect(w,relay).discoveryBonus,220);
+ const hangar=w.stations.get(initial(w,0).id+':hangar');
+ const separation=Math.hypot(relay.x-hangar.x,relay.y-hangar.y);
+ assert.ok(separation>570&&separation<790,'hangar lies beyond ordinary scan range');
+ w.discover(relay.x,relay.y,570);
+ assert.equal(hangar.discovered,false);
+ relay.enemy=false;relay.captured=true;relay.active=true;
+ w.discover(relay.x,relay.y,570);
+ assert.equal(hangar.discovered,true,'the captured relay reveals the actual neighboring station');
  assert.equal(capturedFacilityEffect(w,{x:relay.x+6000,y:relay.y}).discoveryBonus,0);
 });
 
