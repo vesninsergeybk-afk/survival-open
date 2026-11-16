@@ -72,6 +72,11 @@ export class World {
     const x = forced ? 360 : cx*BASE_CELL + (hash(cx+34,cy,this.seed)-.5)*410;
     const y = forced ? -85 : cy*BASE_CELL + (hash(cx,cy+71,this.seed)-.5)*410;
     if(!forced && Math.hypot(x,y)<840) return null;
+    // Two independent procedural generators must not place overlapping
+    // stations. Population industrial nodes take priority in occupied runs.
+    // Keep the original lazy grid unchanged in the classic arcade.
+    if(!forced&&this.occupied&&this.populationStationCells&&
+      nearbyPopulationStations(this,x,y,450).length)return null;
     const range=Math.hypot(x,y);
     const enemy = !forced && (this.occupied&&range>=1900&&range<7000?
       hash(cx-13,cy+31,this.seed)>.38:hash(cx-13,cy+31,this.seed)>.79);
