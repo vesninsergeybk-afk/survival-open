@@ -95,9 +95,9 @@ test('procedural hostile industry does not overlap lazy grid stations across see
    const district=initial(occupied,i);
    for(const station of district.buildings){
     const before=classic.nearbyStations(station.x,station.y,450,true)
-     .filter(s=>/^-?\\d+:-?\\d+$/.test(s.id)&&s.id!=='0:0');
+     .filter(s=>/^-?\d+:-?\d+$/.test(s.id)&&s.id!=='0:0');
     const after=occupied.nearbyStations(station.x,station.y,450,true)
-     .filter(s=>/^-?\\d+:-?\\d+$/.test(s.id)&&s.id!=='0:0');
+     .filter(s=>/^-?\d+:-?\d+$/.test(s.id)&&s.id!=='0:0');
     prevented+=before.length;
     assert.deepEqual(after,[],
      'seed '+seed+': no random station can overlap '+station.id);
