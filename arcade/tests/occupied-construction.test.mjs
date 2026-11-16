@@ -11,7 +11,8 @@ const project=w=>w.population.convoys.find(c=>c.constructionCargo);
 const edge=craft=>craft.constructionLink;
 const joined=(w,[a,b])=>w.enemyExpansion.links.some(([x,y])=>
   x===a&&y===b||x===b&&y===a);
-const arrival=c=>Math.ceil(c.launchedAt+c.routeLength/c.speed)+2;
+const travelEnd=c=>Math.ceil(c.launchedAt+c.routeLength/c.speed)+1;
+const arrival=c=>travelEnd(c)+(c.constructionAction==='repair'?16:22)+2;
 
 test('builder physically travels and only THEN creates an enemy connection',()=>{
  const w=build(1842);
@@ -28,6 +29,11 @@ test('builder physically travels and only THEN creates an enemy connection',()=>
  assert.equal(firstColony.index,0,'first expedition occurs near the starting region');
  const firstStock=firstColony.pool;
  assert.ok(firstStock>=0);
+ const halfway=travelEnd(craft);
+ advancePopulation(w,halfway);
+ assert.equal(joined(w,edge(craft)),false,'arrival is not construction completion');
+ assert.ok(Number.isFinite(craft.assemblyUntil));
+ assert.ok(w.population.convoys.includes(craft),'engineer remains vulnerable while building');
  const deadline=arrival(craft);
  const announcements=advancePopulation(w,deadline);
  assert.ok(announcements.some(e=>e.kind==='construction-complete'&&e.cargoId===craft.id));
