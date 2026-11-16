@@ -13,7 +13,7 @@ SOURCES=[
  ("Purple Nebula/Purple Nebula 5 - 512x512.png",(190,107,230)),
  ("Blue Nebula/Blue Nebula 5 - 512x512.png",(105,194,241)),
  ("Purple Nebula/Purple Nebula 3 - 512x512.png",(241,154,82)),
- ("Purple Nebula/Purple Nebula 8 - 512x512.png",(205,138,236)),
+ ("Purple Nebula/Purple Nebula 7 - 512x512.png",(205,138,236)),
  ("Green Nebula/Green Nebula 3 - 512x512.png",(83,193,174)),
 ]
 root=Path("assets/space/deep-nebula")
