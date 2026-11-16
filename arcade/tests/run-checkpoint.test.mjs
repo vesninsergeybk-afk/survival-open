@@ -1314,3 +1314,27 @@ test('occupied builder and its seed survive an actual station checkpoint and can
  assert.equal(restored.world.enemyExpansion.links.length,before+1);
  assert.equal(restored.world.population.convoys.some(c=>c.id===craft.id),false);
 });
+
+test('occupied repair convoy survives a real save and respects subsequent pilot capture',()=>{
+ const g=scene(),world=new World(1842,{occupied:true});
+ world.home.active=true;world.home.discovered=true;world.discovered.add(world.home.id);
+ const colony=world.population.colonies.find(c=>c.region==='amethyst'&&c.index===0);
+ const target=world.stations.get(colony.id+':factory');
+ target.ruined=true;target.enemy=false;target.captured=false;target.hp=0;target.ruinedAt=0;
+ world.enemyExpansion.nextAt=100;
+ Object.assign(g,{world,seed:world.seed,docked:world.home,time:100});
+ g.player.x=world.home.x+40;g.player.y=world.home.y+25;
+ assert.equal(advanceEnemyExpansion(world,100)[0]?.kind,'repair-start');
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,world.home)));
+ assert.equal(validateCheckpoint(snapshot),true,'the repair order is a valid checkpoint');
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ const repair=restored.world.population.convoys.find(c=>c.constructionAction==='repair');
+ const recovered=restored.world.stations.get(target.id);
+ assert.ok(repair);assert.equal(recovered.ruined,true);
+ recovered.ruined=false;recovered.enemy=false;recovered.captured=true;
+ recovered.active=true;recovered.hp=Math.round(recovered.maxHp*.3);
+ advancePopulation(restored.world,
+  Math.ceil(repair.launchedAt+repair.routeLength/repair.speed)+2);
+ assert.equal(recovered.captured,true);
+ assert.equal(recovered.enemy,false,'enemy engineers cannot retake a captured factory');
+});
