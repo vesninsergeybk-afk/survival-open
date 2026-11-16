@@ -1,0 +1,65 @@
+name: Inspect CC0 nebula textures for Survivor atmosphere
+on:
+  push:
+    branches: [feature/deep-space-art-20261116]
+    paths: [.github/workflows/inspect-sbs-nebulae.yml]
+permissions: {contents: write}
+jobs:
+  contact-sheet:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect original CC0 512px nebula textures
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 --connect-timeout 15 --max-time 90 \
+            -A 'Mozilla/5.0 (Survivor licensed art inspection)' \
+            'https://screamingbrainstudios.com/sbs_-_seamless_space_backgrounds_-_small_512x512/' -o /tmp/nebula-512.zip
+          file /tmp/nebula-512.zip
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          import zipfile,io,json,hashlib
+          from pathlib import Path
+          from PIL import Image,ImageDraw
+          z=zipfile.ZipFile('/tmp/nebula-512.zip')
+          candidates=[]
+          for name in z.namelist():
+              if not name.lower().endswith('.png'):continue
+              source=z.read(name)
+              if len(source)>1_800_000:continue
+              try:
+                  im=Image.open(io.BytesIO(source))
+                  if im.width!=512 or im.height!=512:continue
+                  im.load()
+              except Exception as e:continue
+              candidates.append((name,im.copy(),len(source),hashlib.sha256(source).hexdigest()))
+          assert 20<=len(candidates)<=80,len(candidates)
+          candidates.sort(key=lambda item:item[0].lower())
+          W=960; cols=6;tile=150;step=160;rows=(len(candidates)+cols-1)//cols
+          board=Image.new('RGB',(W,rows*166+10),(7,14,28))
+          d=ImageDraw.Draw(board)
+          manifest=[]
+          for i,(name,im,size,checksum) in enumerate(candidates):
+              im.thumbnail((148,140),Image.Resampling.LANCZOS)
+              x=(i%cols)*step+4;y=(i//cols)*166+3
+              board.paste(im.convert('RGB'),(x,y))
+              d.text((x,y+141),str(i).zfill(2)+' '+Path(name).stem[:14],fill=(226,237,242))
+              manifest.append({'index':i,'name':name,'bytes':size,'sha256':checksum})
+          out=Path('assets/space/sbs-review');out.mkdir(parents=True,exist_ok=True)
+          board.save(out/'contact.jpg',quality=82,optimize=True)
+          (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
+          print('FILES',len(manifest))
+          print('CONTACT', (out/'contact.jpg').stat().st_size)
+          for a in manifest:print(a['index'],a['name'],a['bytes'])
+          PY
+      - name: Save review only, not 7MB original archive
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/space/sbs-review/contact.jpg assets/space/sbs-review/manifest.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Add contact sheet of CC0 background candidates'
+          git push origin HEAD:feature/deep-space-art-20261116
