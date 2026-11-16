@@ -206,8 +206,12 @@ export function drawPopulationWorld(game,ctx,cam){
   if(!alive.length)continue;
   ctx.save();ctx.globalAlpha=.52;ctx.lineWidth=2;
   ctx.strokeStyle=colony.fortress?'#ff657e':'#dd9869';
-  for(let i=0;i<stations.length;i++){
-   const a=stations[i],b=stations[(i+1)%stations.length];
+  const connectionPairs=game.world.occupied?
+   (game.world.enemyExpansion?.links||[]).filter(([a,b])=>
+    a.startsWith(colony.id+':')&&b.startsWith(colony.id+':'))
+   :stations.map((a,i)=>[a?.id,stations[(i+1)%stations.length]?.id]);
+  for(const [idA,idB] of connectionPairs){
+   const a=game.world.stations.get(idA),b=game.world.stations.get(idB);
    if(!a?.enemy||!b?.enemy)continue;
    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
   }
