@@ -143,6 +143,12 @@ export function ensurePopulationStations(world){
  if(!world?.population)return;
  world.populationStations=populationStations(world.population).map(spec=>{
   const existing=world.stations.get(spec.id);
+  // Opt-in capability: retroactively tag captured facilities restored from
+  // earlier experimental checkpoints, but never change classic runs.
+  if(world.occupied&&spec.strategicRole==='population-factory'){
+   if(existing)existing.occupiedStrikeWing=true;
+   else spec.occupiedStrikeWing=true;
+  }
   if(existing)return existing;
   if(['extractor','factory','hangar'].includes(spec.strategicRole.slice(11))){
    const count=spec.strategicRole==='population-factory'?3:2;
