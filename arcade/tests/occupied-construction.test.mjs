@@ -5,6 +5,8 @@ import {advanceEnemyExpansion,enemyTerritoryFields} from '../enemy-expansion.js'
 import {advancePopulation,interceptPopulationCargo,validPopulation} from '../world-population.js';
 import {populationConvoyTitle,populationConvoyEscort} from '../convoy-profiles.js';
 import {packRun,unpackRun} from '../run-checkpoint.js';
+import {combatTargets,damageTarget} from '../combat-targets.js';
+import {hitRegionalCargo} from '../region-runtime.js';
 
 const build=seed=>new World(seed,{occupied:true});
 const project=w=>w.population.convoys.find(c=>c.constructionCargo);
@@ -174,4 +176,29 @@ test('capturing a station during assembly cancels hostile construction',()=>{
  assert.ok(events.some(e=>e.kind==='construction-aborted'&&e.cargoId===craft.id));
  assert.equal(joined(w,link),false);
  assert.equal(project(w),undefined);
+});
+
+test('ordinary auto-targeting and damage pipeline can really intercept an engineer',()=>{
+ const world=build(1842);
+ advanceEnemyExpansion(world,34);
+ const craft=project(world);
+ const drops=[];
+ const game={
+  world,player:{x:craft.x,y:craft.y,hp:90,r:19},allies:[],enemies:[],
+  time:35,operation:null,grid:{query:()=>[]},rockGrid:{query:()=>[]},
+  enemyBasesUnlocked:()=>true,
+  heritage:{vfx:{hullImpact(){},shipExplosion(){}},play(){}},
+  addDrop(kind,x,y,amount){drops.push({kind,amount});},
+  notice(){},damageEnemy(target,amount,source,point){
+   hitRegionalCargo(this,target,amount,point,source);
+  }
+ };
+ const item=combatTargets(game,600).find(item=>item.target===craft);
+ assert.ok(item,'engineer is an actual valid target for existing weapons');
+ assert.equal(damageTarget(game,item,craft.maxHp+20,'beam'),craft.maxHp);
+ assert.equal(craft.hp,0);
+ assert.ok(!world.population.convoys.includes(craft));
+ assert.ok(world.population.events.some(e=>
+  e.kind==='construction-intercept'&&e.cargoId===craft.id));
+ assert.ok(drops.some(d=>d.kind==='ore'&&d.amount>0));
 });
