@@ -42,8 +42,9 @@ function colonyPosition(seed,region,index,occupied=false){
  // An occupied-sector run starts near an already functioning hostile district.
  // Vary the approach direction between runs while preserving a quiet home dock.
  if(occupied&&region==='amethyst'&&index<3){
-  const angle=hash(811,17,seed)*TAU+[0,2.17,4.31][index];
-  const radius=[3150,4250,5350][index];
+  const angle=hash(811,17,seed)*TAU+[0,2.17,4.31][index]+
+   (hash(index,19,seed)-.5)*.44;
+  const radius=[3150,4250,5350][index]+(hash(index,71,seed)-.5)*650;
   return {x:Math.cos(angle)*radius,y:Math.sin(angle)*radius};
  }
  if(region==='amethyst'){
