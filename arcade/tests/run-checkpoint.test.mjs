@@ -20,6 +20,7 @@ import {emptyEconomyExpenses,recordEconomyExpense} from '../sortie-ledger.js';
 import {transitCost} from '../base-panel.js';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc} from '../opening-arc.js';
 import {advanceEnemyExpansion,enemyTerritoryFields} from '../enemy-expansion.js';
+import {advancePopulation} from '../world-population.js';
 import {createFieldLoot} from '../field-loot.js';
 import {createCombatTempo} from '../combat-tempo.js';
 import {createCombatMastery,masteryProgress} from '../combat-mastery.js';
@@ -1288,4 +1289,76 @@ test('region archives survive save and reject forged timeless or oversized threa
  assert.equal(validateCheckpoint(copy),false,'archives remain bounded');
  delete record.meshArchive;
  assert.equal(validateCheckpoint(copy),true,'legacy saves do not need the new field');
+});
+
+test('occupied builder and its seed survive an actual station checkpoint and can finish afterward',()=>{
+ const g=scene(),world=new World(1842,{occupied:true});
+ world.home.active=true;world.home.discovered=true;world.discovered.add(world.home.id);
+ Object.assign(g,{world,seed:world.seed,docked:world.home,time:34});
+ g.player.x=world.home.x+40;g.player.y=world.home.y+25;
+ const before=world.enemyExpansion.links.length;
+ assert.equal(advanceEnemyExpansion(world,34)[0]?.kind,'construction-start');
+ const craft=world.population.convoys.find(c=>c.constructionCargo);
+ assert.ok(craft);
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,world.home)));
+ assert.equal(validateCheckpoint(snapshot),true);
+ const restored=scene();
+ restoreCheckpoint(restored,snapshot);
+ assert.equal(restored.world.occupied,true);
+ assert.equal(restored.seed,1842);
+ const savedBuilder=restored.world.population.convoys.find(c=>c.constructionCargo);
+ assert.equal(savedBuilder.id,craft.id);
+ assert.deepEqual(savedBuilder.constructionLink,craft.constructionLink);
+ const cutoff=Math.ceil(savedBuilder.launchedAt+savedBuilder.routeLength/savedBuilder.speed)+25;
+ advancePopulation(restored.world,cutoff);
+ assert.equal(restored.world.enemyExpansion.links.length,before+1);
+ assert.equal(restored.world.population.convoys.some(c=>c.id===craft.id),false);
+});
+
+test('occupied repair convoy survives a real save and respects subsequent pilot capture',()=>{
+ const g=scene(),world=new World(1842,{occupied:true});
+ world.home.active=true;world.home.discovered=true;world.discovered.add(world.home.id);
+ const colony=world.population.colonies.find(c=>c.region==='amethyst'&&c.index===0);
+ const target=world.stations.get(colony.id+':factory');
+ target.ruined=true;target.enemy=false;target.captured=false;target.hp=0;target.ruinedAt=0;
+ world.enemyExpansion.nextAt=100;
+ Object.assign(g,{world,seed:world.seed,docked:world.home,time:100});
+ g.player.x=world.home.x+40;g.player.y=world.home.y+25;
+ assert.equal(advanceEnemyExpansion(world,100)[0]?.kind,'repair-start');
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,world.home)));
+ assert.equal(validateCheckpoint(snapshot),true,'the repair order is a valid checkpoint');
+ const restored=scene();restoreCheckpoint(restored,snapshot);
+ const repair=restored.world.population.convoys.find(c=>c.constructionAction==='repair');
+ const recovered=restored.world.stations.get(target.id);
+ assert.ok(repair);assert.equal(recovered.ruined,true);
+ recovered.ruined=false;recovered.enemy=false;recovered.captured=true;
+ recovered.active=true;recovered.hp=Math.round(recovered.maxHp*.3);
+ advancePopulation(restored.world,
+  Math.ceil(repair.launchedAt+repair.routeLength/repair.speed)+19);
+ assert.equal(recovered.captured,true);
+ assert.equal(recovered.enemy,false,'enemy engineers cannot retake a captured factory');
+});
+
+test('captured sector generator and draining backup survive a real station checkpoint',()=>{
+ const game=scene(),world=new World(1842,{occupied:true});
+ world.home.active=true;world.home.discovered=true;world.discovered.add(world.home.id);
+ const colony=world.population.colonies.find(c=>c.region==='amethyst'&&c.index===0);
+ const source=world.stations.get(colony.id+':extractor');
+ source.enemy=false;source.captured=true;source.active=true;
+ source.turrets.forEach(t=>t.hp=0);
+ advancePopulation(world,32);
+ assert.ok(colony.powerReserve>0&&colony.powerReserve<80);
+ Object.assign(game,{world,seed:world.seed,docked:world.home,time:32});
+ game.player.x=world.home.x+40;game.player.y=world.home.y+25;
+ const record=unpackRun(packRun(captureCheckpoint(game,world.home)));
+ assert.equal(validateCheckpoint(record),true);
+ const next=scene();restoreCheckpoint(next,record);
+ const local=next.world.population.colonies.find(c=>c.id===colony.id);
+ assert.equal(next.world.occupied,true);
+ assert.equal(local.powerReserve,colony.powerReserve);
+ assert.equal(next.world.stations.get(source.id).captured,true);
+ advancePopulation(next.world,115);
+ assert.equal(local.powerReserve,0,'saved emergency stock drains without respawning');
+ const factory=next.world.stations.get(colony.id+':factory');
+ assert.equal(factory.enemy,true,'brownout does not destroy hostile infrastructure');
 });

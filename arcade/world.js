@@ -11,6 +11,7 @@ import {POPULATION,createPopulation,ensurePopulationStations,
  nearbyPopulationStations,seedPopulationTerritory} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
 import {createSpaceAnomalies} from './space-anomalies.js?v=sector-density-2';
 import {moveRockOutOfCore} from './core-rock-clearance.js';
+import {capturedFacilityEffect} from './captured-facilities.js';
 const BASE_CELL = 1250;
 export const RELAY_RANGE = 1450;
 export const RELAY_EXTENSION = 500;
@@ -23,8 +24,9 @@ const nearbyCells = (x, y, r, cell, cb) => {
   for(let cy=top;cy<=bottom;cy++) for(let cx=left;cx<=right;cx++) cb(cx,cy);
 };
 export class World {
-  constructor(seed=20261102) {
+  constructor(seed=20261102,{occupied=false}={}) {
     this.seed = seed;
+    this.occupied=!!occupied;
     this.stations = new Map();
     this.rocks = new Map();
     this.discovered = new Set();
@@ -33,7 +35,8 @@ export class World {
     this.regionalSupply=createRegionalSupply();
     this.contours=createContours();
     this.enemyExpansion=createEnemyExpansion();
-    this.population=createPopulation(seed);
+    if(this.occupied)this.enemyExpansion.nextAt=34;
+    this.population=createPopulation(seed,0,this.occupied);
     this.anomalies=createSpaceAnomalies(seed);
     ensurePopulationStations(this);
     seedPopulationTerritory(this);
@@ -69,7 +72,14 @@ export class World {
     const x = forced ? 360 : cx*BASE_CELL + (hash(cx+34,cy,this.seed)-.5)*410;
     const y = forced ? -85 : cy*BASE_CELL + (hash(cx,cy+71,this.seed)-.5)*410;
     if(!forced && Math.hypot(x,y)<840) return null;
-    const enemy = !forced && hash(cx-13,cy+31,this.seed)>.79;
+    // Two independent procedural generators must not place overlapping
+    // stations. Population industrial nodes take priority in occupied runs.
+    // Keep the original lazy grid unchanged in the classic arcade.
+    if(!forced&&this.occupied&&this.populationStationCells&&
+      nearbyPopulationStations(this,x,y,450).length)return null;
+    const range=Math.hypot(x,y);
+    const enemy = !forced && (this.occupied&&range>=1900&&range<7000?
+      hash(cx-13,cy+31,this.seed)>.38:hash(cx-13,cy+31,this.seed)>.79);
     const rank=Math.max(1,Math.min(5,1+Math.floor(Math.hypot(cx,cy)/5)));
     const b={id:key,x,y,type,enemy,rank,active:false,activationIndex:0,discovered:false,usedUpgrade:false,
       hp:600+rank*160,maxHp:600+rank*160, turrets:[],captured:false, signalAt:0};
@@ -152,6 +162,7 @@ export class World {
     return found;
   }
   discover(x,y,r=570) {
+    if(this.occupied)r+=capturedFacilityEffect(this,{x,y}).discoveryBonus;
     const discovered=[];
     for(const b of this.nearbyStations(x,y,r)) {
       if(!b.discovered){b.discovered=true;this.discovered.add(b.id);discovered.push(b);}

@@ -84,27 +84,97 @@ function choosePlan(world,fronts,links){
  return chosen?{front:chosen.front,region:chosen.region,ids:chosen.ids}:null;
 }
 
+// Engineering transports share the existing physical, interceptable cargo
+// system. Construction and reconstruction require real stock and escorts.
+function dispatchEngineer(world,state,time,colony,sa,sb,action='link'){
+ const population=world.population,screen=colony.intercepted>0;
+ const escortCount=screen?3:2,cost=action==='repair'?8:EXPANSION.cost;
+ const length=dist(sa,sb);
+ if(population.convoys.length>=900||colony.ready<escortCount||
+  colony.pool<cost+9||length<50||length>2800)return null;
+ const serial=++population.serial;
+ const expedition={id:'population-cargo-'+serial,populationCargo:true,
+  regionalCargo:true,constructionCargo:true,constructionAction:action,
+  constructionLink:[sa.id,sb.id],
+  colonyId:colony.id,targetColonyId:colony.id,
+  sourceId:sa.id,targetId:sb.id,routeLength:length,
+  bend:(serial%3-1)*90,speed:185+colony.tier*12,launchedAt:time,
+  hp:105+colony.tier*24,maxHp:105+colony.tier*24,r:33,hit:0,
+  cargoRole:'technical',rewardOre:8,rewardData:10,screened:screen,
+  escorted:false,escortManifest:null,rewarded:false,seen:false,
+  angle:0,x:sa.x,y:sa.y,distance:0};
+ population.convoys.push(expedition);
+ colony.ready-=escortCount;colony.pool-=cost;state.spent+=cost;
+ return {kind:action==='repair'?'repair-start':'construction-start',
+  front:'home',region:colony.region,paidBy:'colony',colonyId:colony.id,
+  a:sa.id,b:sb.id,x:sa.x,y:sa.y,
+  witnessed:sa.discovered||sb.discovered,at:time};
+}
+
 // The industrial civilization keeps claiming ground even where authored
 // military fronts have no affordable strategic triangle left. Each new link
 // consumes real stock from its local colony, replenished by physical cargo.
 function expandIndustrialDistrict(world,state,time){
  if(!world.population?.colonies?.length)return null;
  const links=new Set(state.links.map(([a,b])=>key(a,b)));
+ const occupied=!!world.occupied;
+ const inFlight=new Set(occupied?world.population.convoys
+  .filter(c=>c.constructionCargo&&c.hp>0&&Array.isArray(c.constructionLink))
+  .map(c=>key(...c.constructionLink)):[]);
+ // A destroyed industrial node remains available to the pilot for at
+ // least 75 seconds. Only then may a paid repair expedition reclaim it.
+ // Captured stations are never eligible for enemy reconstruction.
+ if(occupied){
+  const repairJobs=[];
+  for(const colony of world.population.colonies){
+   if(colony.pool<17)continue;
+   for(const role of ['relay','factory','extractor','hangar','support']){
+    const target=world.stations.get(colony.id+':'+role);
+    if(!target?.ruined||target.captured||target.hp>0||
+     !Number.isFinite(target.ruinedAt)||time<target.ruinedAt+75)continue;
+    const source=['factory','hangar','extractor','support','relay']
+     .map(r=>world.stations.get(colony.id+':'+r))
+     .find(s=>s&&s.id!==target.id&&hostile(s)&&
+       !inFlight.has(key(s.id,target.id))&&dist(s,target)<=2800);
+    if(source)repairJobs.push({colony,source,target});
+   }
+  }
+  repairJobs.sort((a,b)=>
+   (a.colony.region==='amethyst'&&a.colony.index<3?0:1)-
+   (b.colony.region==='amethyst'&&b.colony.index<3?0:1)||
+   a.colony.id.localeCompare(b.colony.id));
+  for(const job of repairJobs){
+   const plan=dispatchEngineer(world,state,time,job.colony,job.source,job.target,'repair');
+   if(plan)return plan;
+  }
+ }
  const candidates=[];
  for(const colony of world.population.colonies){
   if(colony.pool<EXPANSION.cost+9)continue;
   const ids=['extractor','factory','relay'].map(role=>colony.id+':'+role);
   if(!ids.every(id=>hostile(world.stations.get(id))))continue;
-  const missing=[[ids[0],ids[1]],[ids[1],ids[2]],[ids[2],ids[0]]]
-   .filter(([a,b])=>!links.has(key(a,b)));
+  const extra=occupied&&colony.region==='amethyst'&&colony.index<3?
+   [[colony.id+':relay',colony.id+':hangar'],
+    [colony.id+':hangar',colony.id+':factory']]:[];
+  const missing=[...[[ids[0],ids[1]],[ids[1],ids[2]],[ids[2],ids[0]]],...extra]
+   .filter(([a,b])=>hostile(world.stations.get(a))&&hostile(world.stations.get(b))&&
+     !links.has(key(a,b))&&!inFlight.has(key(a,b)));
   if(!missing.length)continue;
   candidates.push({colony,missing});
  }
  if(!candidates.length)return null;
  const started=candidates.filter(c=>c.missing.length<3);
- const pool=started.length?started:candidates;
- const target=pool[Math.floor(time/EXPANSION.interval)%pool.length];
+ let pool=started.length?started:candidates;
+ // The first expansions belong to the inhabited opening district, not
+ // an unseen factory tens of thousands of units from the pilot's home.
+ // This is scenario geography, never live information about the pilot.
+ if(occupied){
+  const opening=pool.filter(c=>c.colony.region==='amethyst'&&c.colony.index<3);
+  if(opening.length)pool=opening.sort((a,b)=>a.colony.index-b.colony.index);
+ }
+ const target=pool[Math.floor(time/(occupied?54:EXPANSION.interval))%pool.length];
  const {colony,missing}=target,[a,b]=missing[0],sa=world.stations.get(a),sb=world.stations.get(b);
+ if(occupied)return dispatchEngineer(world,state,time,colony,sa,sb);
  colony.pool-=EXPANSION.cost;state.spent+=EXPANSION.cost;
  state.links.push([a,b,'home']);
  return {kind:missing.length===1?'claim':'link',front:'home',region:colony.region,
@@ -150,13 +220,17 @@ export function advanceEnemyExpansion(world,time){
   }
  }
  if(time<state.nextAt||state.links.length>=EXPANSION.maxLinks)return events;
- state.nextAt=time+EXPANSION.interval;
+ state.nextAt=time+(world.occupied?54:EXPANSION.interval);
  const industrial=expandIndustrialDistrict(world,state,time);
  if(industrial){
   events.push(industrial);
   state.events=events.concat(state.events).slice(0,8);
   return events;
  }
+ // Do not silently add scripted-front links in the occupied experiment.
+ // Only already occupied industrial districts can expand via physical craft.
+ // Classic arcade retains its old strategic-front construction schedule.
+ if(world.occupied)return events;
  const fronts=warFronts(world);
  if(!planValid(world,state.plan)||
   !canInvest(fronts.find(f=>f.key===state.plan?.front)))state.plan=null;
@@ -200,7 +274,7 @@ export function validEnemyExpansion(state,stations,time){
   !REGIONS.some(r=>r.id===state.plan.region)||!Array.isArray(state.plan.ids)||
   state.plan.ids.length!==3||new Set(state.plan.ids).size!==3||
   state.plan.ids.some(id=>!ids.has(id))))return false;
- return state.events.every(e=>e&&['link','claim'].includes(e.kind)&&
+ return state.events.every(e=>e&&['link','claim','construction-start','repair-start'].includes(e.kind)&&
   FRONT_KEYS.includes(e.front)&&REGIONS.some(r=>r.id===e.region)&&
   typeof e.a==='string'&&ids.has(e.a)&&typeof e.b==='string'&&ids.has(e.b)&&
   Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.at)&&e.at>=0&&

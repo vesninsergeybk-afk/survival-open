@@ -11,6 +11,8 @@ import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid
 import {rememberPopulationShip} from './population-runtime.js?v=sector-density-2-frontier-siege-1-early-density-20261110-convoy-variety-20261110-pilot-value-2-hud-merge-20261110-wingmastery-20261110';
 import {frontierBarrierContact,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {SALVAGE,ruinEnemyIndustry,salvageQuote,claimRuinedIndustry} from './enemy-station-salvage.js?v=frontier-claim-1';
+import {capturedFacilityDescription,capturedFacilityEffect} from './captured-facilities.js';
+import {connectedPlayerEnergySlots,synchronizeEscortPower} from './occupied-energy.js';
 import {POPULATION,damagePopulationShield,populationAlarm,populationColony,
  damagePopulationWorker} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
 import {updateSpaceAnomalies,drawSpaceAnomalies} from './space-anomalies.js?v=sector-density-2-frontier-siege-1-cosmic-meteorfade-v2-jarusca-20261116';
@@ -54,7 +56,7 @@ import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-bu
 import {advanceTurretDefenses,drawTurretDefenses,turretShieldCapacity} from './turret-defense.js?v=turret-defense-20261110-trial-station-defense-20261110';
 import {commissionStationGarrison,advanceStationGarrisons,drawStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
 import {escortHireOffer,escortTrainingOffer,createEscort,escortMaxHp,
- escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
+ escortCapacity,escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-ai-commander-20261110-enemy-operations-20261110-space-impact-20261110';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
@@ -280,8 +282,14 @@ export class ArcadeGame {
  constructor(){
   this.canvas=$('game');this.ctx=this.canvas.getContext('2d',{alpha:true});
   this.overlay=$('overlay');this.message=$('message');this.keys=new Set();
-  this.touch={x:0,y:0};this.seed=20261102;
-  this.world=new World(this.seed);this.visuals=new ArcadeVisuals();
+  this.touch={x:0,y:0};
+  const params=typeof location==='undefined'?new URLSearchParams():new URLSearchParams(location.search);
+  this.occupiedMode=params.get('sector')==='occupied';
+  const requested=params.get('seed'),fixed=requested!==null&&/^\d+$/.test(requested)?
+    Number(requested):NaN;
+  this.seed=this.occupiedMode?(Number.isSafeInteger(fixed)&&fixed>=1&&fixed<=2000000000?
+    fixed:1+Math.floor(Math.random()*2000000000)):20261102;
+  this.world=new World(this.seed,{occupied:this.occupiedMode});this.visuals=new ArcadeVisuals();
   this.reactor=new ReactorLandmark();
   // Capital hull impact painting is explicitly opt-in for visual QA.
   this.visuals.capitalDamageQA=typeof location!=='undefined'&&
@@ -394,10 +402,14 @@ export class ArcadeGame {
     entryPortalPending:false});
   }
   this.bind();this.resize();this.world.discover(0,0);
-  this.notice(matchMedia('(pointer: coarse)').matches?
+  this.notice(this.occupiedMode?
+   'ОККУПИРОВАННЫЙ СЕКТОР · карта '+this.seed+
+   '. Вокруг действуют вражеские промышленные сети. Захватывайте их узлы, чтобы получить новые возможности.':
+   matchMedia('(pointer: coarse)').matches?
    'Подлетите к доку и нажмите «Действие».':
    'WASD или стрелки — полёт · Tab / M — карта · '+this.controlLabel('interact')+' — домашний док · В доке можно бесплатно взять полевой модуль · '+this.controlLabel('dash')+' — рывок.',9);
-  this.runStore=(this.visuals.capitalDamageQA||this.firstLoopsQA)?null:new RunCheckpointStore(hangarStorage);
+  this.runStore=(this.visuals.capitalDamageQA||this.firstLoopsQA)?null:
+   new RunCheckpointStore(hangarStorage,undefined,this.occupiedMode?'occupied':'');
   const saved=this.runStore?.load();
   if(saved||['damaged','unsupported'].includes(this.runStore?.issue))this.offerContinuation(saved);
   else this.runStore?.startNew();
@@ -957,7 +969,10 @@ export class ArcadeGame {
     if(this.pendingRunAction!==expected||!this.overlay.querySelector('.run-confirm'))return;
     this.cancelRunAction();
     if(expected==='restart'){this.runStore?.end();location.reload();return;}
-    this.pendingCheckpoint=null;this.runStore?.startNew();this.overlay.dataset.mode='';this.dismiss();
+    this.pendingCheckpoint=null;this.runStore?.startNew();
+    // In the occupied-sector experiment a new campaign gets a new world seed.
+    if(this.occupiedMode){location.reload();return;}
+    this.overlay.dataset.mode='';this.dismiss();
     this.notice('Новый вылет. Прогресс сохраняется на активных станциях.',4);return;
    }
    if(act==='pilotStation'){this.returnToStation();return;}
@@ -1085,6 +1100,7 @@ export class ArcadeGame {
    }
    if(act==='runNew'){
     this.pendingCheckpoint=null;this.runStore?.startNew();
+    if(this.occupiedMode){location.reload();return;}
     this.overlay.dataset.mode='';this.dismiss();
     this.notice('Новый вылет. На активных станциях прогресс сохраняется.',5);return;
    }
@@ -3700,6 +3716,7 @@ export class ArcadeGame {
    relayGain:this.docked&&!this.docked.relayBoost?
     Math.max(0,this.world.networkTopology(this.docked.id).count-topology.count):0,
    activeBases:this.activeBases,connectedBases:topology.count,
+   energyEscortSlots:connectedPlayerEnergySlots(this.world,topology.linked),
    turretSlotRank:this.world.contours?.turretSlotRank||0,flux:this.world.contours?.flux||0,
    activeContourTrials:this.world.contours?.trials?.completed||0,
    connected:!!this.docked?.active&&topology.linked.has(this.docked.id),
@@ -5172,7 +5189,8 @@ export class ArcadeGame {
      this.heritage?.vfx?.shipExplosion?.(base.x,base.y,82,'#ff9a78');
      this.heritage?.play?.('largeExplosion',.52,{x:base.x,y:base.y});
      this.notice('ВРАЖЕСКИЙ УЗЕЛ РАЗРУШЕН. Сначала удержите район, затем восстановите ядро удержанием '+
-      this.controlLabel('interact')+'. К врагу узел больше не относится, но и вашей станцией пока не стал.',7);
+      this.controlLabel('interact')+'. К врагу узел больше не относится, но и вашей станцией пока не стал.'+
+      (this.world.occupied?' Через некоторое время враг может прислать ремонтный транспорт — захватите руины раньше него.':''),7);
      return;
     }
    }
@@ -5193,6 +5211,7 @@ export class ArcadeGame {
    const previousLevel=this.player.level;
    const captureXp=this.awardStrategicExperience(claimStationCapture(this.player,base));
    const captureReward=captureXp?' +'+captureXp+' опыта.':'';
+   const capturedAbility=this.world.occupied?capturedFacilityDescription(base):'';
    this.enemyContourVisualAt=-Infinity;
    if(precisionUnlockedHere)this.precisionRailAvailable=true;
    this.defenseTopology=null;
@@ -5217,11 +5236,13 @@ export class ArcadeGame {
     this.rewardNotice((notice[base.strategicRole]||'Промышленный узел захвачен.')+captureReward+
      (newTech?' Трофейная технология: '+newTech.name+'. '+newTech.description:'')+
      (precisionUnlockedHere?' Открыт ручной прицел рельса (ЛКМ).':'')+
-     (labUnlockedHere?' Открыт радиоперехват снабжения (карта).':''),previousLevel,7);
+     (labUnlockedHere?' Открыт радиоперехват снабжения (карта).':'')+
+     (capturedAbility?' '+capturedAbility:''),previousLevel,7);
    }else this.rewardNotice('Вражеская база захвачена! Заряд кода: Q'+captureReward+
     (precisionUnlockedHere?' · Ручной прицел рельса открыт (ЛКМ)':'')+
     (labUnlockedHere?' · Радиоперехват снабжения открыт (карта)':
-     base.type==='lab'?' · Радионаблюдение расширено':''),previousLevel,6);
+     base.type==='lab'?' · Радионаблюдение расширено':'')+
+    (capturedAbility?' · '+capturedAbility:''),previousLevel,6);
    this.refreshAutomaticContours();
  }
  nearbyEnemyBase(radius=900){
@@ -5853,6 +5874,7 @@ export class ArcadeGame {
    }
   }
   const miningStats=extractorStats(this.skillRanks.extractor||0,this.skillRanks.mining||0);
+  const capturedMiningBonus=capturedFacilityEffect(this.world,p).miningMultiplier;
   const candidate=miningTarget(this.nearRocks,p,this.mining.target,miningStats.range);
   this.mining.target=candidate;
   this.updateProbe();
@@ -5932,7 +5954,7 @@ export class ArcadeGame {
   this.heritage.extraction(this.mining.active);
   if(this.mining.active){
    const effect=this.mining.fxClock<=0;
-   this.damageRock(candidate,miningStats.damagePerSecond*prospectMiningBonus(this)*dt,
+   this.damageRock(candidate,miningStats.damagePerSecond*capturedMiningBonus*prospectMiningBonus(this)*dt,
     p.x,p.y,'extract',effect);
    this.mining.fxClock=effect?.20:this.mining.fxClock-dt;
   }else this.mining.fxClock=0;
@@ -6021,6 +6043,13 @@ export class ArcadeGame {
   this.activeEnemyFirer=null;
   updateNoiseEscalation(this);
   this.enemyComms?.confirmExecution(this);
+  if(this.world.occupied&&this.time>=(this._nextEscortPowerAt||0)){
+   const network=this.world.networkTopology();
+   const capacity=escortCapacity(network.count,
+    connectedPlayerEnergySlots(this.world,network.linked));
+   synchronizeEscortPower(this.allies,capacity,this.time);
+   this._nextEscortPowerAt=this.time+1.1;
+  }
   for(const a of this.allies){
    a.hit=Math.max(0,(a.hit||0)-dt);
    updateAlly(a,this,dt);

@@ -35,6 +35,7 @@ import {renderCampaignProgress} from './regional-campaign.js?v=menu-rebuild-terr
 import {renderStationThreats} from './strategic-command.js?v=menu-rebuild-territory-war-20261106';
 import {renderContourMap} from './contour-atlas.js?v=living-atlas-3-enemy-radio-2-world-feedback-1-contour-dynamics-2-all-menus-1-enemy-domains-1-global-constellations-1-spacing-1-map-ux-1-menu-focus-1-flux-reserve-1-menu-reaudit-1-flux-offense-1-menu-rebuild-1-territory-war-1-map-art-1-breach-fix-1-automatic-contours-1-contour-trials-1-counterattack-1-first-loops-1-menu-audit-1-flux-build-1-triangle-defense-1-flight-zoom-audit-1-living-world-population-1-sector-density-2-core-guide-20261110';
 import {renderWorldFeedbackMap} from './world-feedback.js?v=world-feedback-1';
+import {openingSectorEnergy,OPENING_ENERGY} from './occupied-energy.js';
 import {mapViewport,mapTools} from './map-navigation.js?v=map-ux-1';
 import {chartBackdrop,chartFrame,stationGlyph,pilotGlyph} from './map-art.js?v=map-art-1';
 import {atlasStars} from './contour-cartography.js?v=living-atlas-3-map-ux-1-map-art-1-flight-zoom-audit-1';
@@ -471,6 +472,18 @@ export function renderWorldMap(game){
   (known.some(b=>b.active&&!b.enemy)?'<span>бирюзовый круг — ПВО корабля · фиолетовый — радиус станции для стазиса (нужны 2 врага рядом с вами)</span>':'')+'</div>'+
   '</div>'+
   '<aside class="map-side">'+
+  (world.occupied?(()=>{
+   const energy=openingSectorEnergy(world);if(!energy)return '';
+   return '<div class="map-objective"><span>ЭНЕРГИЯ ЗАНЯТОГО РАЙОНА · '+
+    OPENING_ENERGY.sources+' источника</span><p>Игрок <b>'+
+    energy.playerPercent+'%</b> · Противник <b>'+energy.enemyPercent+
+    '%</b> · Не действует <b>'+Math.max(0,100-energy.playerPercent-energy.enemyPercent)+
+    '%</b></p><p>Захват источника лишает вражескую верфь сетевого питания.'+
+    ' После исчерпания местного запаса новые корабли не выпускаются.'+
+    ' Уцелевший флот продолжает действовать.'+
+    ' Подключённый трофейный источник добавляет одно место ведомого'+
+    ' (не выше общего предела).</p></div>';
+  })():'')+
   renderStationThreats(game)+
   (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
      operation?.id===RELAY_DEFENSE.id?'ОБОРОНА РЕТРАНСЛЯТОРА':operation?.id===CARRIER_INTERCEPTION.id?'ПЕРЕХВАТ КОНВОЯ':'ВОСТОЧНЫЙ КОРИДОР')+'</span><p>'+enc(operationText)+'</p>'+

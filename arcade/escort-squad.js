@@ -28,11 +28,12 @@ export const ESCORT_TECH=Object.freeze({
  engine:Object.freeze({name:'Двигатели звена',desc:'Каждый уровень ускоряет ведомых на 7,5%.'}),
  armament:Object.freeze({name:'Вооружение звена',desc:'Каждый уровень усиливает выстрелы, ракеты и ближние удары.'})
 });
-export const escortCapacity=connectedBases=>Math.min(ESCORT_LIMIT,
- Math.max(1,Math.floor(Number.isFinite(connectedBases)?connectedBases:1)));
+export const escortCapacity=(connectedBases,energySlots=0)=>Math.min(ESCORT_LIMIT,
+ Math.max(1,Math.floor(Number.isFinite(connectedBases)?connectedBases:1))+
+ Math.max(0,Math.min(3,Math.floor(Number.isFinite(energySlots)?energySlots:0))));
 export const escortName=role=>ESCORTS[role]?.name||role;
 export function escortHireOffer(base,state,role){
- const spec=ESCORTS[role],cap=escortCapacity(state?.connectedBases),
+ const spec=ESCORTS[role],cap=escortCapacity(state?.connectedBases,state?.energyEscortSlots),
   inSquad=Math.max(0,state?.allies||0),price=spec?.cost||0;
  const reason=!spec?'Неизвестная модель':
   !base?.active||base?.enemy||base?.ruined?'Сначала включите дружественную станцию':

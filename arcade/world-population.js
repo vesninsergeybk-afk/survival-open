@@ -2,6 +2,7 @@ import {hash} from './balance.js';
 import {REGIONS} from './regions.js';
 import {seedFrontierNetwork,advanceFrontierNetwork,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {choosePopulationConvoyProfile,populationConvoyStats,POPULATION_CONVOY_PROFILES} from './convoy-profiles.js?v=convoy-variety-20261110';
+import {OPENING_ENERGY,isOpeningDistrict,openingFactoryStatus} from './occupied-energy.js';
 
 // A fixed, seeded civilization already occupies the sector at launch.
 // Distant factories and transports advance as orders, not hundreds of AI actors.
@@ -37,8 +38,16 @@ const warped=(x,y,rotation)=>({
 });
 const regionName=id=>REGIONS.find(r=>r.id===id)?.name||id;
 
-function colonyPosition(seed,region,index){
+function colonyPosition(seed,region,index,occupied=false){
  const k=index+1,offset=hash(k,region.length,seed)-.5;
+ // An occupied-sector run starts near an already functioning hostile district.
+ // Vary the approach direction between runs while preserving a quiet home dock.
+ if(occupied&&region==='amethyst'&&index<3){
+  const angle=hash(811,17,seed)*TAU+[0,2.17,4.31][index]+
+   (hash(index,19,seed)-.5)*.44;
+  const radius=[3150,4250,5350][index]+(hash(index,71,seed)-.5)*650;
+  return {x:Math.cos(angle)*radius,y:Math.sin(angle)*radius};
+ }
  if(region==='amethyst'){
   // A spiral, spaced by area, covers the middle rather than forming one ring.
   const fraction=(index+.5)/POPULATION.coloniesPerRegion;
@@ -54,8 +63,8 @@ function colonyPosition(seed,region,index){
  return {x:Math.cos(angle)*radius,y:Math.sin(angle)*radius};
 }
 
-function colony(seed,region,index){
- const center=colonyPosition(seed,region,index),id='colony:'+region+':'+index;
+function colony(seed,region,index,occupied=false){
+ const center=colonyPosition(seed,region,index,occupied),id='colony:'+region+':'+index;
  const rotation=hash(index,region.length,seed+87)*TAU;
  const tier=region==='amethyst'?Math.min(5,1+Math.floor(index/2)):
   Math.min(5,2+Math.floor(index/2));
@@ -79,6 +88,8 @@ function colony(seed,region,index){
   built:0,lost:0,patrols:0,patrolCooldown:0,alarmUntil:0,
   reportedAt:-1,reportedX:0,reportedY:0,radioQueue:[],
   nextDispatch:8+index*2,buildUntil:0,buildQueued:false,
+  powerReserve:occupied&&region==='amethyst'&&index<3?
+   OPENING_ENERGY.batterySeconds:undefined,
   lastAlarmSent:0,sorties:[],
   respondedToFields:[],
   shield:fortress?{
@@ -90,9 +101,9 @@ function colony(seed,region,index){
  return district;
 }
 
-export function createPopulation(seed=20261102,time=0){
+export function createPopulation(seed=20261102,time=0,occupied=false){
  const colonies=REGIONS.flatMap(region=>Array.from(
-  {length:POPULATION.coloniesPerRegion},(_,index)=>colony(seed,region.id,index)));
+  {length:POPULATION.coloniesPerRegion},(_,index)=>colony(seed,region.id,index,occupied)));
  return {version:1,seed,clock:Math.floor(time),colonies,convoys:[],
   serial:0,launched:0,intercepted:0,arrived:0,events:[]};
 }
@@ -100,10 +111,14 @@ export function createPopulation(seed=20261102,time=0){
 // Populate old 30-colony checkpoints without moving, healing or refilling
 // their existing industrial districts. Newly added districts begin at the
 // restored simulation clock, so resumed games retain the player's progress.
-export function expandSavedPopulation(state,seed,time){
- if(!state)return createPopulation(seed,time);
+export function expandSavedPopulation(state,seed,time,occupied=false){
+ if(!state)return createPopulation(seed,time,occupied);
+ // Old experimental saves did not persist the battery. Backfill once from
+ // the immutable initial capacity, never on every simulation update.
+ if(occupied)for(const c of state.colonies)if(c.region==='amethyst'&&c.index<3&&
+   c.powerReserve===undefined)c.powerReserve=OPENING_ENERGY.batterySeconds;
  if(state.colonies.length>=REGIONS.length*POPULATION.coloniesPerRegion)return state;
- const template=createPopulation(seed,time),ids=new Set(state.colonies.map(c=>c.id));
+ const template=createPopulation(seed,time,occupied),ids=new Set(state.colonies.map(c=>c.id));
  for(const c of template.colonies)if(!ids.has(c.id))state.colonies.push(c);
  return state;
 }
@@ -135,6 +150,12 @@ export function ensurePopulationStations(world){
  if(!world?.population)return;
  world.populationStations=populationStations(world.population).map(spec=>{
   const existing=world.stations.get(spec.id);
+  // Opt-in capability: retroactively tag captured facilities restored from
+  // earlier experimental checkpoints, but never change classic runs.
+  if(world.occupied&&spec.strategicRole==='population-factory'){
+   if(existing)existing.occupiedStrikeWing=true;
+   else spec.occupiedStrikeWing=true;
+  }
   if(existing)return existing;
   if(['extractor','factory','hangar'].includes(spec.strategicRole.slice(11))){
    const count=spec.strategicRole==='population-factory'?3:2;
@@ -176,7 +197,8 @@ export function seedPopulationTerritory(world){
  if(!state?.links)return;
  const seen=new Set(state.links.map(([a,b])=>[a,b].sort().join('|')));
  for(const colony of world.population.colonies){
-  if(colony.index%3!==1&&!colony.fortress)continue;
+  if(colony.index%3!==1&&!colony.fortress&&
+   !(world.occupied&&colony.region==='amethyst'&&colony.index<3))continue;
   const ids=['extractor','factory','relay'].map(role=>roleId(colony,role));
   for(let i=0;i<3;i++){
    const a=ids[i],b=ids[(i+1)%3],key=[a,b].sort().join('|');
@@ -298,6 +320,18 @@ export function advancePopulation(world,time){
    outboundCounts.set(cargo.colonyId,(outboundCounts.get(cargo.colonyId)||0)+1);
   for(const c of state.colonies){
    const source=roleId(c,'extractor'),factory=roleId(c,'factory');
+   const localPower=isOpeningDistrict(world,c);
+   // One simulated second, one update. Grid energy recharges the backup;
+   // an isolated, still hostile factory uses its finite stock and then
+   // suspends shipbuilding. Existing vessels never disappear on brownout.
+   const power=openingFactoryStatus(world,c);
+   const hasPower=!localPower||power.enabled;
+   if(localPower){
+    c.powerReserve=Math.max(0,Math.min(OPENING_ENERGY.batterySeconds,
+      Math.max(0,(c.powerReserve??OPENING_ENERGY.batterySeconds))+
+      (power.grid?OPENING_ENERGY.rechargePerSecond:
+       live(world,factory)?-1:0)));
+   }
    updatePopulationMiners(world,c,t);
    for(const miner of c.miners){
     if(miner.hp>0||!live(world,source))continue;
@@ -327,13 +361,24 @@ export function advancePopulation(world,time){
    updateShield(c,t);
    for(const event of advanceFrontierNetwork(world,c,t))
     events.push(record(state,event.kind,c,t,{frontId:event.frontId,buoyId:event.buoyId}));
-   if(c.buildQueued&&t>=c.buildUntil){
+   // A captured, ruined or disabled factory cannot finish a hostile build
+   // queued before it changed hands. Materials were spent at the start and
+   // cannot be refunded or transformed into free reinforcements.
+   if(c.buildQueued&&!live(world,factory)){
+    c.buildQueued=false;c.buildUntil=0;
+    events.push(record(state,'build-aborted',c,t));
+   }else if(c.buildQueued&&!hasPower){
+    // A stalled job keeps its paid materials and remaining assembly time.
+    // It completes only after electricity is restored.
+    c.buildUntil+=1;
+   }else if(c.buildQueued&&t>=c.buildUntil){
     c.buildQueued=false;c.ready=Math.min(POPULATION.maxReserve,c.ready+POPULATION.shipsPerBuild);
     c.built+=POPULATION.shipsPerBuild;
     events.push(record(state,'build',c,t,{ships:POPULATION.shipsPerBuild}));
    }
-   if(live(world,factory)&&!c.buildQueued&&c.pool>=POPULATION.buildCost&&
-       c.ready<=POPULATION.maxReserve-POPULATION.shipsPerBuild){
+   if(live(world,factory)&&hasPower&&!c.buildQueued&&c.pool>=POPULATION.buildCost&&
+       c.ready<=Math.min(POPULATION.maxReserve,localPower?power.shipCap:
+        POPULATION.maxReserve)-POPULATION.shipsPerBuild){
     c.pool-=POPULATION.buildCost;c.buildQueued=true;
     c.buildUntil=t+POPULATION.buildSeconds;
    }
@@ -351,9 +396,60 @@ export function advancePopulation(world,time){
    const position=populationCargoPosition(world,cargo,t);
    Object.assign(cargo,position);
    if(cargo.distance+1e-6>=cargo.routeLength){
-    cargo.hp=0;
     const target=state.colonies.find(c=>c.id===cargo.targetColonyId);
-    if(target&&live(world,cargo.targetId)){
+    if(cargo.constructionCargo){
+     const [a,b]=cargo.constructionLink||[],site=world.stations.get(b);
+     const repair=cargo.constructionAction==='repair';
+     // On arrival, or while working at the destination, engineers can see
+     // whether the site has changed hands. No rebuilding a friendly station.
+     if(!live(world,a)||(repair? !site?.ruined||site.captured||site.hp>0:!live(world,b))){
+      cargo.hp=0;
+      if(target)events.push(record(state,repair?'repair-aborted':'construction-aborted',
+       target,t,{cargoId:cargo.id,a,b}));
+      continue;
+     }
+     // Travel is not construction. The engineer must survive a visible
+     // work interval after arrival; the pilot can still destroy it.
+     if(!Number.isFinite(cargo.assemblyUntil)){
+      cargo.assemblyStart=t;
+      cargo.assemblyUntil=t+(cargo.constructionAction==='repair'?16:22);
+      if(target)events.push(record(state,
+       cargo.constructionAction==='repair'?'repair-arrived':'construction-arrived',
+       target,t,{cargoId:cargo.id}));
+     }
+     if(t<cargo.assemblyUntil)continue;
+    }
+    cargo.hp=0;
+    if(cargo.constructionCargo){
+     const [a,b]=cargo.constructionLink||[];
+     const expansion=world.enemyExpansion,repair=cargo.constructionAction==='repair';
+     const destination=world.stations.get(b);
+     const already=expansion?.links?.some(([x,y])=>
+       x===a&&y===b||x===b&&y===a);
+     // A captured station cannot be reclaimed by an arriving enemy engineer.
+     const finished=repair?!!target&&!!expansion&&live(world,a)&&
+       !!destination?.ruined&&!destination.captured&&destination.hp<=0:
+       !!target&&!!expansion&&!already&&live(world,a)&&live(world,b);
+     if(finished&&repair){
+      destination.ruined=false;destination.enemy=true;destination.captured=false;
+      destination.active=false;destination.suppressed=false;
+      destination.hp=Math.max(1,Math.round(destination.maxHp*.33));
+      destination.coreExposed=false;
+      // Only one gun returns, paid for by the same repair expedition.
+      const turret=destination.turrets?.find(t=>t.hp<=0);
+      if(turret)turret.hp=Math.max(1,Math.round(turret.maxHp*.4));
+     }else if(finished){
+      expansion.links.push([a,b,'home']);
+      const sa=world.stations.get(a),sb=world.stations.get(b);
+      expansion.events=[{kind:'link',a,b,front:'home',region:target.region,
+       x:(sa.x+sb.x)/2,y:(sa.y+sb.y)/2,
+       witnessed:!!sa.discovered&&!!sb.discovered,at:t},
+       ...(expansion.events||[])].slice(0,8);
+     }
+     const kind=repair?(finished?'repair-complete':'repair-aborted'):
+       (finished?'construction-complete':'construction-aborted');
+     if(target)events.push(record(state,kind,target,t,{cargoId:cargo.id,a,b}));
+    }else if(target&&live(world,cargo.targetId)){
      target.pool=Math.min(100,target.pool+POPULATION.cargoCost);
      target.delivered++;state.arrived++;
      events.push(record(state,'delivery',target,t,{cargoId:cargo.id}));
@@ -370,7 +466,12 @@ export function interceptPopulationCargo(world,cargo,time){
  if(!state?.convoys.includes(cargo)||cargo.hp>0||cargo.rewarded)return false;
  cargo.rewarded=true;state.convoys=state.convoys.filter(c=>c!==cargo);
  const colony=state.colonies.find(c=>c.id===cargo.colonyId);
- if(colony){colony.intercepted++;record(state,'intercept',colony,time,{cargoId:cargo.id});}
+ if(colony){
+  colony.intercepted++;
+  record(state,cargo.constructionCargo?
+   (cargo.constructionAction==='repair'?'repair-intercept':'construction-intercept'):
+   'intercept',colony,time,{cargoId:cargo.id});
+ }
  state.intercepted++;
  return true;
 }
@@ -435,6 +536,8 @@ export function validPopulation(state,stations,time){
    !Number.isFinite(c.deposit)||c.deposit<0||c.deposit>5000||
    !Number.isFinite(c.pool)||c.pool<0||c.pool>100||
    !Number.isInteger(c.ready)||c.ready<0||c.ready>POPULATION.maxReserve||
+   (c.powerReserve!==undefined&&(!Number.isInteger(c.powerReserve)||
+    c.powerReserve<0||c.powerReserve>OPENING_ENERGY.batterySeconds))||
    !Array.isArray(c.miners)||c.miners.length!==workerCount||
    c.miners.some(m=>!m.populationWorker||m.colonyId!==c.id||
     !Number.isFinite(m.x)||!Number.isFinite(m.y)||
@@ -488,6 +591,24 @@ export function validPopulation(state,stations,time){
    !Number.isFinite(cargo.distance)||cargo.distance<0||
    cargo.distance>cargo.routeLength+cargo.speed||
    (cargo.cargoRole!==undefined&&!POPULATION_CONVOY_PROFILES[cargo.cargoRole])||
+   (cargo.constructionCargo!==undefined&&(
+     cargo.constructionCargo!==true||
+     cargo.constructionAction!==undefined&&!['link','repair'].includes(cargo.constructionAction)||
+     !Array.isArray(cargo.constructionLink)||cargo.constructionLink.length!==2||
+     cargo.constructionLink[0]!==cargo.sourceId||
+     cargo.constructionLink[1]!==cargo.targetId||
+     cargo.sourceId===cargo.targetId||
+     !cargo.sourceId.startsWith(cargo.colonyId+':')||
+     !cargo.targetId.startsWith(cargo.colonyId+':')||
+     cargo.routeLength>2800||
+     cargo.cargoRole!=='technical'))||
+   (cargo.assemblyUntil!==undefined&&(
+     !cargo.constructionCargo||
+     !Number.isFinite(cargo.assemblyStart)||cargo.assemblyStart<cargo.launchedAt||
+     cargo.assemblyStart>time||
+     !Number.isFinite(cargo.assemblyUntil)||
+     cargo.assemblyUntil<cargo.assemblyStart||
+     cargo.assemblyUntil>time+22))||
    (cargo.rewardOre!==undefined&&(!Number.isInteger(cargo.rewardOre)||cargo.rewardOre<0||cargo.rewardOre>60))||
    (cargo.rewardData!==undefined&&(!Number.isInteger(cargo.rewardData)||cargo.rewardData<0||cargo.rewardData>60))||
    (cargo.firstHitAt!==undefined&&(!Number.isFinite(cargo.firstHitAt)||cargo.firstHitAt<cargo.launchedAt||cargo.firstHitAt>time))||

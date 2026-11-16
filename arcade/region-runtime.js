@@ -154,11 +154,17 @@ export function updateRegionalWorld(game,dt){
    kind:'industry',x:station.x,y:station.y,notify:true});
  }
  for(const move of expanded)if(move.witnessed){
+  const preparing=move.kind==='construction-start';
+  const restoring=move.kind==='repair-start';
   recordWorldFeedback(game,{key:'machine-contour:'+move.front+':'+move.a+':'+move.b,
-   cause:move.kind==='claim'?'Противник замкнул территориальное поле':'Противник усилил линию между узлами',
-   effect:move.kind==='claim'?'Его промышленная сеть получит дополнительное сырьё, пока поле действует':
+   cause:restoring?'Враг отправил оплаченный ремонтный рейс к разрушенной станции':
+    preparing?'Вражеский завод отправил оплаченный строительный рейс':
+    move.kind==='claim'?'Противник замкнул территориальное поле':'Противник усилил линию между узлами',
+   effect:restoring?'Перехватите ремонтников или захватите руины до завершения работ':
+    preparing?'Уничтожьте инженерный транспорт до окончания сборки: новая связь ещё не действует':
+    move.kind==='claim'?'Его промышленная сеть получит дополнительное сырьё, пока поле действует':
     'На карте контуров показано, какие станции враг связывает',
-   kind:'industry',label:move.kind==='claim'?'ВРАЖЕСКОЕ ПОЛЕ':'ВРАЖЕСКАЯ ЛИНИЯ',
+   kind:'industry',label:restoring?'РЕМОНТНАЯ ЭКСПЕДИЦИЯ':preparing?'СТРОИТЕЛЬНЫЙ РЕЙС':move.kind==='claim'?'ВРАЖЕСКОЕ ПОЛЕ':'ВРАЖЕСКАЯ ЛИНИЯ',
    x:move.x,y:move.y,notify:true});
  }
  if(Math.floor(game.time)>Math.floor(game.time-dt)){
@@ -271,7 +277,10 @@ export function updateRegionalWorld(game,dt){
     const defenders=cargo.escortManifest.filter(unit=>unit.hp>0).length;
     game.notice('Обнаружен '+populationConvoyTitle(cargo).toLowerCase()+'. Охрана: '+
      defenders+' кораблей. В обломках можно найти до '+value.ore+
-     ' сплава и '+value.data+' данных. Перехват лишит вражеский завод поставки.',6);
+     ' сплава и '+value.data+' данных. '+
+     (cargo.constructionAction==='repair'?'Перехват не даст врагу восстановить разрушенную станцию.':
+      cargo.constructionCargo?'Перехват остановит строительство вражеской связи.':
+      'Перехват лишит вражеский завод поставки.'),6);
     cargo.profileAnnounced=true;game._nextCargoIntelAt=game.time+7;
    }
    cargo.escorted=true;
@@ -494,11 +503,18 @@ export function hitRegionalCargo(game,cargo,damage,contact=null,source='other'){
   game.addDrop('ore',cargo.x,cargo.y,value.ore,{source:'salvage',life:60});
   game.addDrop('data',cargo.x+14,cargo.y,value.data,{source:'combat',life:60,xpGranted:true});
   recordWorldFeedback(game,{key:'cargo-loss:'+cargo.id,kind:'loss',
-   label:'ПОСТАВКА КОЛОНИИ СОРВАНА',cause:'Вы уничтожили '+populationConvoyTitle(cargo).toLowerCase(),
-   effect:'Фабрика недополучила 9 единиц сырья — столько стоит постройка трёх кораблей',
+   label:cargo.constructionAction==='repair'?'РЕМОНТ СОРВАН':
+    cargo.constructionCargo?'СТРОИТЕЛЬСТВО СОРВАНО':'ПОСТАВКА КОЛОНИИ СОРВАНА',
+   cause:'Вы уничтожили '+populationConvoyTitle(cargo).toLowerCase(),
+   effect:cargo.constructionAction==='repair'?'Разрушенный узел не восстановлен и остаётся доступным для захвата':
+    cargo.constructionCargo?'Вражеские станции остались без новой территориальной связи':
+    'Фабрика недополучила 9 единиц сырья — столько стоит постройка трёх кораблей',
    x:cargo.x,y:cargo.y});
   game.notice(populationConvoyTitle(cargo)+' уничтожен. В обломках: '+value.ore+
-   ' сплава и '+value.data+' данных. Фабрика недополучила сырья на три корабля.',6);
+   ' сплава и '+value.data+' данных. '+
+   (cargo.constructionAction==='repair'?'Вражеский ремонт сорван.':
+    cargo.constructionCargo?'Вражеская стройка сорвана.':
+    'Фабрика недополучила сырья на три корабля.'),6);
   rewardConvoyRelic(game,cargo,source);
   return;
  }

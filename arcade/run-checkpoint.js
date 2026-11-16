@@ -130,6 +130,7 @@ export function captureCheckpoint(game,base){
   if(changed.length)rocks.push([key,changed]);
  }
  return {version:2,seed:game.seed,baseId:base.id,state,world:{
+  occupied:!!game.world.occupied,
   regionalSupply:game.world.regionalSupply,contours:game.world.contours,
   enemyExpansion:game.world.enemyExpansion,
   population:game.world.population,
@@ -157,6 +158,7 @@ export function validateCheckpoint(data){
  if(!object(data)||data.version!==2||!Number.isInteger(data.seed)||!cell(data.baseId)||
   !object(data.state)||!object(data.world))return false;
  const s=data.state,p=s.player,w=data.world;
+ if(w.occupied!==undefined&&typeof w.occupied!=='boolean')return false;
  if(w.regionalSupply!==undefined&&!regionalSupplyValid(w.regionalSupply,s.time))return false;
  if(!object(p)||!finite(p.x)||!finite(p.y)||!finite(p.hp,.001,100000)||
   !finite(p.maxHp,p.hp,100000)||!Number.isInteger(p.level)||p.level<1||p.level>1000||
@@ -281,12 +283,12 @@ export function validateCheckpoint(data){
 export function restoreCheckpoint(game,data){
  data=migrateCheckpoint(data);
  if(!validateCheckpoint(data))throw new Error('invalid-checkpoint');
- const world=new World(data.seed);
+ const world=new World(data.seed,{occupied:data.world.occupied===true});
  world.stations=new Map(data.world.stations);world.home=world.stations.get('0:0');
  world.discovered=new Set(data.world.discovered);
  world.ensureRegionalStations();
  const legacyPopulation=data.world.population?.colonies.length===30;
- world.population=expandSavedPopulation(data.world.population,data.seed,data.state.time);
+ world.population=expandSavedPopulation(data.world.population,data.seed,data.state.time,world.occupied);
  ensurePopulationStations(world);
  world.regionalSupply=data.world.regionalSupply||createRegionalSupply(data.state.time);
  world.contours=data.world.contours||createContours();
@@ -335,7 +337,7 @@ export function restoreCheckpoint(game,data){
   const ledger=ensureTrialLedger(world);
   ledger.completed=Math.min(12,Object.keys(world.contours.launches||{}).length);
  }
- game.world=world;game.seed=data.seed;
+ game.world=world;game.seed=data.seed;game.occupiedMode=world.occupied;
  for(const name of FIELDS)if(Object.hasOwn(data.state,name))game[name]=data.state[name];
  game.meteorFront=game.meteorFront||createMeteorFront();
  game.doctrineRanks=normalizedDoctrineRanks(data.state);game.doctrine=null;
@@ -425,14 +427,15 @@ function decodeRecord(text){
  return r;
 }
 export class RunCheckpointStore{
- constructor(storage,now=()=>Date.now()){
+ constructor(storage,now=()=>Date.now(),namespace=''){
+  this.runKeys=namespace?RUN_KEYS.map(key=>key+'.'+namespace):RUN_KEYS;
   this.storage=storage;this.now=now;this.record=null;this.issue='';this.blocked=false;
   this.lastBody=null;this.runId=null;this.read();
  }
  read(){
   const records=[];let damaged=false,unsupported=false;
   if(!this.storage){this.issue='unavailable';return null;}
-  for(const key of RUN_KEYS)try{
+  for(const key of this.runKeys)try{
    const text=this.storage.getItem(key);if(!text)continue;
    const header=JSON.parse(text);
    if(![1,2].includes(header?.format)){unsupported=true;continue;}
@@ -475,7 +478,7 @@ export class RunCheckpointStore{
   const serial=(latest?.serial||0)+1;
   const r={format:2,serial,runId:this.runId,kind,savedAt:this.now(),body,
    checksum:hash(serial+'|'+this.runId+'|'+kind+'|'+body)};
-  try{this.storage.setItem(RUN_KEYS[serial%2],JSON.stringify(r));}
+  try{this.storage.setItem(this.runKeys[serial%2],JSON.stringify(r));}
   catch{return {ok:false,reason:'unavailable'};}
   this.record=r;this.lastBody=kind==='checkpoint'?body:null;this.issue='';return {ok:true};
  }

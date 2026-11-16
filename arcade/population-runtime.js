@@ -89,6 +89,13 @@ export function updatePopulationWorld(game,dt){
    if(!nearby?.discovered)continue;
    if(event.kind==='alarm')game.notice('Ретранслятор передал координаты: из ангара поднимается перехват.',4);
    else if(event.kind==='build')game.notice('На вражеской верфи собраны три новых корабля.',3);
+   else if(event.kind==='build-aborted')game.notice('Сборка вражеских кораблей сорвана: верфь больше не работает на противника.',4);
+   else if(event.kind==='construction-complete')game.notice('ВРАЖЕСКАЯ СЕТЬ РАСШИРИЛАСЬ · инженерный транспорт завершил новую связь.',5);
+   else if(event.kind==='construction-aborted')game.notice('Вражеская стройка остановлена: один из узлов больше не принадлежит противнику.',5);
+   else if(event.kind==='construction-arrived')game.notice('Вражеские инженеры начали сборку линии. Уничтожьте транспорт, пока он не завершил работу.',5);
+   else if(event.kind==='repair-arrived')game.notice('Вражеские ремонтники приступили к восстановлению станции. Рейс ещё можно сорвать.',5);
+   else if(event.kind==='repair-complete')game.notice('ВРАГ ВОССТАНОВИЛ РАЗРУШЕННУЮ СТАНЦИЮ · ремонтники прибыли раньше вас.',6);
+   else if(event.kind==='repair-aborted')game.notice('Вражеский ремонт сорван: разрушенный узел больше недоступен противнику.',4);
   }
   for(const c of state.colonies){
    for(const sortie of c.sorties){
@@ -191,6 +198,7 @@ export function drawPopulationWorld(game,ctx,cam){
  const state=game.world.population;
  if(!state)return;
  const time=game.time,zoom=Math.max(.62,Math.min(1.45,1/(game.cameraZoom||1)));
+ const construction=state.convoys.filter(c=>c.constructionCargo&&c.hp>0);
  for(const colony of state.colonies){
   // Outlying fence sections can be visible even when the industrial center
   // is three thousand units outside the viewport.
@@ -203,12 +211,26 @@ export function drawPopulationWorld(game,ctx,cam){
   if(!alive.length)continue;
   ctx.save();ctx.globalAlpha=.52;ctx.lineWidth=2;
   ctx.strokeStyle=colony.fortress?'#ff657e':'#dd9869';
-  for(let i=0;i<stations.length;i++){
-   const a=stations[i],b=stations[(i+1)%stations.length];
+  const connectionPairs=game.world.occupied?
+   (game.world.enemyExpansion?.links||[]).filter(([a,b])=>
+    a.startsWith(colony.id+':')&&b.startsWith(colony.id+':'))
+   :stations.map((a,i)=>[a?.id,stations[(i+1)%stations.length]?.id]);
+  for(const [idA,idB] of connectionPairs){
+   const a=game.world.stations.get(idA),b=game.world.stations.get(idB);
    if(!a?.enemy||!b?.enemy)continue;
    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
   }
   ctx.globalAlpha=.9;
+  // A link is drawn only behind the actual moving engineer, never ahead of it.
+  for(const craft of construction){
+   if(craft.colonyId!==colony.id||Number.isFinite(craft.assemblyUntil))continue;
+   const source=game.world.stations.get(craft.sourceId);
+   if(!source?.enemy||!inView(craft.x,craft.y,cam,130))continue;
+   ctx.save();ctx.strokeStyle='#ffd89a';ctx.globalAlpha=.72;
+   ctx.lineWidth=3;ctx.setLineDash([10,11]);ctx.beginPath();
+   ctx.moveTo(source.x,source.y);ctx.lineTo(craft.x,craft.y);ctx.stroke();
+   ctx.restore();
+  }
   for(const station of alive){
    const role=station.strategicRole,phase=time*.7+(station.x+station.y)*.001;
    ctx.strokeStyle=role==='population-extractor'?'#ffca73':
@@ -262,6 +284,14 @@ export function drawPopulationWorld(game,ctx,cam){
  for(const cargo of state.convoys){
   if(!inView(cargo.x,cargo.y,cam,110))continue;
   drawIndustrialConvoy(ctx,cargo,time);
+  if(Number.isFinite(cargo.assemblyUntil)&&Number.isFinite(cargo.assemblyStart)){
+   const span=Math.max(1,cargo.assemblyUntil-cargo.assemblyStart);
+   const progress=Math.max(0,Math.min(1,(time-cargo.assemblyStart)/span));
+   ctx.save();ctx.strokeStyle=cargo.constructionAction==='repair'?'#98ffd3':'#ffd18b';
+   ctx.lineWidth=5;ctx.beginPath();
+   ctx.arc(cargo.x,cargo.y,cargo.r+25,-Math.PI/2,-Math.PI/2+TAU*progress);
+   ctx.stroke();ctx.restore();
+  }
   ctx.save();ctx.textAlign='center';ctx.fillStyle='#ffe5bc';
   ctx.font='bold '+Math.round(11*zoom)+'px system-ui';
   const labelY=cargo.y-Math.max(70,cargo.r*1.85);
