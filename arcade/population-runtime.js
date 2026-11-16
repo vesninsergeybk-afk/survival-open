@@ -91,6 +91,8 @@ export function updatePopulationWorld(game,dt){
    else if(event.kind==='build')game.notice('На вражеской верфи собраны три новых корабля.',3);
    else if(event.kind==='construction-complete')game.notice('ВРАЖЕСКАЯ СЕТЬ РАСШИРИЛАСЬ · инженерный транспорт завершил новую связь.',5);
    else if(event.kind==='construction-aborted')game.notice('Вражеская стройка остановлена: один из узлов больше не принадлежит противнику.',5);
+   else if(event.kind==='repair-complete')game.notice('ВРАГ ВОССТАНОВИЛ РАЗРУШЕННУЮ СТАНЦИЮ · ремонтники прибыли раньше вас.',6);
+   else if(event.kind==='repair-aborted')game.notice('Вражеский ремонт сорван: разрушенный узел больше недоступен противнику.',4);
   }
   for(const c of state.colonies){
    for(const sortie of c.sorties){
