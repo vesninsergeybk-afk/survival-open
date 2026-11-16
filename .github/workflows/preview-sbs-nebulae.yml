@@ -1,4 +1,5 @@
 name: Review actual cosmic overlays in headless browser
+# Capture after optional texture image onload, not at first rAF
 on:
   push:
     branches: [feature/deep-space-art-20261116]
