@@ -66,31 +66,23 @@ export class AnimatedAsteroids {
    if(this.fps<31)this.qualityTier=0;
    else if(this.fps>45)this.qualityTier=2;
   }else if(this.qualityTier===0&&this.fps>37)this.qualityTier=1;
-  this.blendBudget=this.qualityTier===3&&this.fps>=54?12:0;
+  // Cross-fading two translucent Canvas sprites reduces total opacity
+  // (two 50%-alpha passes combine to 75% coverage), causing "blinking".
+  // Never composite two transparent asteroid frames directly on the scene.
+  this.blendBudget=0;
   this.animatedDraws=0;this.blendedDraws=0;
  }
  draw(ctx,rock,time=0,ore=false){
   if(!this.enabled||!this.image||this.qualityTier===0)return false;
   const portion=[0,.16,.35,.58][this.qualityTier];
   if(!asteroidAnimationEligible(rock,ore,portion))return false;
-  const {row,frame,nextFrame,blend,rotation}=asteroidAnimationPose(rock,time);
+  const {row,frame,rotation}=asteroidAnimationPose(rock,time);
   const size=rock.r*2.8,cell=ASTEROID_ANIMATION.cell,sourceY=row*cell;
   ctx.save();ctx.translate(rock.x,rock.y);ctx.rotate(rotation);
-  // Blend only a few large, prominent rocks on healthy frames. A full
-  // two-sprite blend for all rocks would double GPU work in crowded fields.
-  if(rock.r>=45&&this.blendBudget>0&&blend>.04&&blend<.96){
-   const mix=blend*blend*(3-2*blend),baseAlpha=ctx.globalAlpha;
-   ctx.globalAlpha=baseAlpha*(1-mix);
-   ctx.drawImage(this.image,frame*cell,sourceY,cell,cell,
-    -size/2,-size/2,size,size);
-   ctx.globalAlpha=baseAlpha*mix;
-   ctx.drawImage(this.image,nextFrame*cell,sourceY,cell,cell,
-    -size/2,-size/2,size,size);
-   this.blendBudget--;this.blendedDraws++;
-  }else{
-   ctx.drawImage(this.image,frame*cell,sourceY,cell,cell,
-    -size/2,-size/2,size,size);
-  }
+  // One completely opaque-in-its-alpha frame. No dark pulse from mixing
+  // transparent sprites, and half as many GPU image draws on large rocks.
+  ctx.drawImage(this.image,frame*cell,sourceY,cell,cell,
+   -size/2,-size/2,size,size);
   ctx.restore();this.animatedDraws++;return true;
  }
  finishFrame(rockMs,rockCount,fps,time=0){
@@ -114,7 +106,7 @@ export class AnimatedAsteroids {
    document.body.appendChild(this.perfElement);
   }
   this.perfElement.textContent=report.fps+' FPS | камней '+rockCount+
-   ' | аним. '+report.animated+' | плавных '+report.blended+
+   ' | аним. '+report.animated+
    ' | слой '+report.rockLayerMs+' мс';
  }
  drawIncoming(ctx,active,index,age,size){
