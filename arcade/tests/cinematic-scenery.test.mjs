@@ -19,7 +19,7 @@ test('parallax has continuous translation and culls distant artwork',()=>{
  assert.ok(landmarkVisible(item,cam,600));
  assert.equal(landmarkVisible(item,{x:-80000,y:-80000,w:960,h:540},600),false);
 });
-test('art caches once, skips very low FPS and can be disabled',()=>{
+test('art caches once, stays visible at low FPS and can be disabled',()=>{
  const oldD=globalThis.document,oldI=globalThis.Image;
  const stats={tiles:0,draws:0};const grad=()=>({addColorStop(){}});
  const brush=new Proxy({createRadialGradient:grad,createLinearGradient:grad},
@@ -33,7 +33,10 @@ test('art caches once, skips very low FPS and can be disabled',()=>{
   const sky=new CinematicScenery();
   sky.draw(ctx,cam,0,60);assert.ok(stats.draws>0);
   const tiles=stats.tiles;sky.draw(ctx,cam,14,60);assert.equal(stats.tiles,tiles);
-  sky.draw(ctx,cam,20,25);assert.equal(stats.tiles,tiles);
+  const beforeLow=stats.draws;
+  sky.draw(ctx,cam,20,25);
+  assert.equal(stats.tiles,tiles);
+  assert.ok(stats.draws>beforeLow,'cached scenery must not blink at low FPS');
   const before=stats.draws;
   new CinematicScenery({enabled:false}).draw(ctx,cam,0,60);
   assert.equal(stats.draws,before);
