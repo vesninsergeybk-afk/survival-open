@@ -4,8 +4,8 @@ import {ArcadeVisuals} from '../visuals.js';
 import {WorldVFX} from '../../src/world-vfx.js';
 import {getExplosionAtlas,BLAST_FRAMES} from '../../src/explosion-art.js';
 
-test('each sector uses its own artwork and a distant planet tracks world coordinates',()=>{
- const previous=globalThis.document;
+test('regional paintings and world-anchored planet avoid duplicate CSS art',()=>{
+ const previous=globalThis.document,previousLocation=globalThis.location;
  const sky=()=>{
   const props={};
   return {props,style:{setProperty:(key,value)=>{props[key]=value;}},
@@ -15,21 +15,33 @@ test('each sector uses its own artwork and a distant planet tracks world coordin
  globalThis.document={getElementById:id=>
   id==='sky0'?skies[0]:id==='sky1'?skies[1]:id==='sector'?sector:null};
  try{
+  globalThis.location={search:''};
   const visuals=new ArcadeVisuals();
   assert.match(skies[0].props['--sector-image'],/nebula_main\.jpg/);
   visuals.updateSky(6000,40000);
   const azure=skies[visuals.layer];
   assert.match(azure.props['--sector-image'],/nebula_azure_v1\.png/);
-  assert.match(azure.props['--planet-image'],/planet_ice_v1\.png/);
-  const before=azure.props['--planet-x'];
-  visuals.updateSky(6400,40100);
-  assert.notEqual(azure.props['--planet-x'],before);
+  assert.equal(azure.props['--planet-opacity'],'0',
+   'the old CSS planet is hidden while the world-anchored canvas planet draws');
+  assert.equal(visuals.cinematicScenery.enabled,true);
+  assert.ok(visuals.cinematicScenery._tile('planet')===null,
+   'non-browser tests do not allocate a graphics context');
   visuals.updateSky(35000,7000);
   const amber=skies[visuals.layer];
   assert.match(amber.props['--sector-image'],/nebula_amber_v1\.png/);
   assert.equal(amber.props['--planet-opacity'],'0');
   assert.equal(sector.textContent,'Янтарные облака');
- }finally{globalThis.document=previous;}
+
+  globalThis.location={search:'?cinematic=off'};
+  const fallback=new ArcadeVisuals();
+  fallback.updateSky(6000,40000);
+  const oldAzure=skies[fallback.layer];
+  assert.match(oldAzure.props['--planet-image'],/planet_ice_v1\.png/,
+   'optional mode restores the original CSS planet');
+  const before=oldAzure.props['--planet-x'];
+  fallback.updateSky(6400,40100);
+  assert.notEqual(oldAzure.props['--planet-x'],before);
+ }finally{globalThis.document=previous;globalThis.location=previousLocation;}
 });
 
 test('explosion atlas is prepared once and preserves existing impact particles',()=>{
