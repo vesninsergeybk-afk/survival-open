@@ -1,4 +1,5 @@
 name: Build selected CC0 nebula texture overlays
+# Rerun for region-3 dark-rift replacement
 on:
   push:
     branches: [feature/deep-space-art-20261116]
