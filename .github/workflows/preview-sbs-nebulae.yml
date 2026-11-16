@@ -14,7 +14,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --quiet pillow
+          python -m pip install --quiet pillow numpy
           CHROME=$(command -v google-chrome || command -v chromium || true)
           test -n "$CHROME"
           python -m http.server 8787 --bind 127.0.0.1 >/tmp/deepspace-http.log 2>&1 &
@@ -54,13 +54,24 @@ jobs:
           out.parent.mkdir(parents=True,exist_ok=True)
           board.save(out,quality=86,optimize=True)
           print('Integration preview bytes',out.stat().st_size)
+          # Same landing sector without / with the optional cloud layer.
+          import numpy as np,json
+          before=np.asarray(Image.open('/tmp/sbs-before.png').convert('RGB'),dtype=np.int16)
+          after=np.asarray(Image.open('/tmp/sbs-scene-0.png').convert('RGB'),dtype=np.int16)
+          delta=np.abs(after-before)
+          report={'avg_channel_delta':round(float(delta.mean()),3),
+           'changed_pixel_fraction':round(float(np.mean(np.max(delta,axis=2)>5)),4),
+           'max_pixel_delta':int(delta.max()),'preview_shape':list(before.shape)}
+          print('SKY_BEFORE_AFTER',json.dumps(report))
+          (out.parent/'integration-diff.json').write_text(json.dumps(report,indent=2))
+
           PY
       - name: Commit visual review
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add assets/space/deep-nebula/integration-review.jpg
+          git add assets/space/deep-nebula/integration-review.jpg assets/space/deep-nebula/integration-diff.json
           git diff --cached --quiet && exit 0
           git commit -m 'Capture real browser composition of all five nebula skies'
           git push origin HEAD:feature/deep-space-art-20261116
