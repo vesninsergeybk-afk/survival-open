@@ -2,6 +2,7 @@ import {hash} from './balance.js';
 import {REGIONS} from './regions.js';
 import {seedFrontierNetwork,advanceFrontierNetwork,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {choosePopulationConvoyProfile,populationConvoyStats,POPULATION_CONVOY_PROFILES} from './convoy-profiles.js?v=convoy-variety-20261110';
+import {OPENING_ENERGY,isOpeningDistrict,openingFactoryStatus} from './occupied-energy.js';
 
 // A fixed, seeded civilization already occupies the sector at launch.
 // Distant factories and transports advance as orders, not hundreds of AI actors.
@@ -87,6 +88,8 @@ function colony(seed,region,index,occupied=false){
   built:0,lost:0,patrols:0,patrolCooldown:0,alarmUntil:0,
   reportedAt:-1,reportedX:0,reportedY:0,radioQueue:[],
   nextDispatch:8+index*2,buildUntil:0,buildQueued:false,
+  powerReserve:occupied&&region==='amethyst'&&index<3?
+   OPENING_ENERGY.batterySeconds:undefined,
   lastAlarmSent:0,sorties:[],
   respondedToFields:[],
   shield:fortress?{
@@ -110,6 +113,10 @@ export function createPopulation(seed=20261102,time=0,occupied=false){
 // restored simulation clock, so resumed games retain the player's progress.
 export function expandSavedPopulation(state,seed,time,occupied=false){
  if(!state)return createPopulation(seed,time,occupied);
+ // Old experimental saves did not persist the battery. Backfill once from
+ // the immutable initial capacity, never on every simulation update.
+ if(occupied)for(const c of state.colonies)if(c.region==='amethyst'&&c.index<3&&
+   c.powerReserve===undefined)c.powerReserve=OPENING_ENERGY.batterySeconds;
  if(state.colonies.length>=REGIONS.length*POPULATION.coloniesPerRegion)return state;
  const template=createPopulation(seed,time,occupied),ids=new Set(state.colonies.map(c=>c.id));
  for(const c of template.colonies)if(!ids.has(c.id))state.colonies.push(c);
@@ -313,6 +320,17 @@ export function advancePopulation(world,time){
    outboundCounts.set(cargo.colonyId,(outboundCounts.get(cargo.colonyId)||0)+1);
   for(const c of state.colonies){
    const source=roleId(c,'extractor'),factory=roleId(c,'factory');
+   const localPower=isOpeningDistrict(world,c);
+   // One simulated second, one update. Grid energy recharges the backup;
+   // an isolated, still hostile factory uses its finite stock and then
+   // suspends shipbuilding. Existing vessels never disappear on brownout.
+   const power=openingFactoryStatus(world,c);
+   const hasPower=!localPower||power.enabled;
+   if(localPower){
+    c.powerReserve=Math.min(OPENING_ENERGY.batterySeconds,
+      Math.max(0,(c.powerReserve??OPENING_ENERGY.batterySeconds))+
+      (power.grid?OPENING_ENERGY.rechargePerSecond:-1));
+   }
    updatePopulationMiners(world,c,t);
    for(const miner of c.miners){
     if(miner.hp>0||!live(world,source))continue;
@@ -348,13 +366,18 @@ export function advancePopulation(world,time){
    if(c.buildQueued&&!live(world,factory)){
     c.buildQueued=false;c.buildUntil=0;
     events.push(record(state,'build-aborted',c,t));
+   }else if(c.buildQueued&&!hasPower){
+    // A stalled job keeps its paid materials and remaining assembly time.
+    // It completes only after electricity is restored.
+    c.buildUntil+=1;
    }else if(c.buildQueued&&t>=c.buildUntil){
     c.buildQueued=false;c.ready=Math.min(POPULATION.maxReserve,c.ready+POPULATION.shipsPerBuild);
     c.built+=POPULATION.shipsPerBuild;
     events.push(record(state,'build',c,t,{ships:POPULATION.shipsPerBuild}));
    }
-   if(live(world,factory)&&!c.buildQueued&&c.pool>=POPULATION.buildCost&&
-       c.ready<=POPULATION.maxReserve-POPULATION.shipsPerBuild){
+   if(live(world,factory)&&hasPower&&!c.buildQueued&&c.pool>=POPULATION.buildCost&&
+       c.ready<=Math.min(POPULATION.maxReserve,localPower?power.shipCap:
+        POPULATION.maxReserve)-POPULATION.shipsPerBuild){
     c.pool-=POPULATION.buildCost;c.buildQueued=true;
     c.buildUntil=t+POPULATION.buildSeconds;
    }
@@ -512,6 +535,8 @@ export function validPopulation(state,stations,time){
    !Number.isFinite(c.deposit)||c.deposit<0||c.deposit>5000||
    !Number.isFinite(c.pool)||c.pool<0||c.pool>100||
    !Number.isInteger(c.ready)||c.ready<0||c.ready>POPULATION.maxReserve||
+   (c.powerReserve!==undefined&&(!Number.isInteger(c.powerReserve)||
+    c.powerReserve<0||c.powerReserve>OPENING_ENERGY.batterySeconds))||
    !Array.isArray(c.miners)||c.miners.length!==workerCount||
    c.miners.some(m=>!m.populationWorker||m.colonyId!==c.id||
     !Number.isFinite(m.x)||!Number.isFinite(m.y)||
