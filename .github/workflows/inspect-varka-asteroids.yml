@@ -1,0 +1,51 @@
+name: Inspect CC-BY asteroid landscape atlas sources
+on:
+  push:
+    branches:
+      - feature/asteroid-landscape-variants-20261116
+    paths:
+      - .github/workflows/inspect-varka-asteroids.yml
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Fetch four original Varkalandar sheets for art review
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/space/varkalandar
+          for n in 1 2 3 4; do
+            curl --fail --location --retry 3 --connect-timeout 15 --max-time 90 \
+              -H 'User-Agent: Mozilla/5.0 (compatible; SurvivorAssetReview/1.0)' \
+              -H 'Referer: https://opengameart.org/' \
+              "https://opengameart.org/sites/default/files/hjm-random_planetoids-$n.png" \
+              -o "assets/space/varkalandar/planetoids-$n.png"
+          done
+          python - <<'PY'
+          import struct,hashlib
+          from pathlib import Path
+          for p in sorted(Path('assets/space/varkalandar').glob('*.png')):
+              blob=p.read_bytes()
+              assert blob[:8] == b'\x89PNG\r\n\x1a\n', f'not PNG: {p}'
+              w,h=struct.unpack('>II',blob[16:24])
+              assert w<=8192 and h<=8192 and len(blob)<8_000_000, f'unexpected source: {p}'
+              print(f'{p}: {w}x{h}, {len(blob)} bytes, sha256={hashlib.sha256(blob).hexdigest()}')
+          assert len(list(Path('assets/space/varkalandar').glob('*.png')))==4
+          PY
+      - name: Commit candidate source sheets for comparison only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/space/varkalandar/
+          if ! git diff --cached --quiet; then
+            git commit -m 'Stage Varkalandar 24 asteroid sheets for license-aware art review'
+            git push origin HEAD:feature/asteroid-landscape-variants-20261116
+          fi
