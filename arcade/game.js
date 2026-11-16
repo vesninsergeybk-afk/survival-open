@@ -11,6 +11,7 @@ import {updateRegionalWorld,drawRegionalWorld,hitRegionalCargo,spawnRegionalRaid
 import {rememberPopulationShip} from './population-runtime.js?v=sector-density-2-frontier-siege-1-early-density-20261110-convoy-variety-20261110-pilot-value-2-hud-merge-20261110-wingmastery-20261110';
 import {frontierBarrierContact,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {SALVAGE,ruinEnemyIndustry,salvageQuote,claimRuinedIndustry} from './enemy-station-salvage.js?v=frontier-claim-1';
+import {capturedFacilityDescription,capturedFacilityEffect} from './captured-facilities.js';
 import {POPULATION,damagePopulationShield,populationAlarm,populationColony,
  damagePopulationWorker} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
 import {updateSpaceAnomalies,drawSpaceAnomalies} from './space-anomalies.js?v=sector-density-2-frontier-siege-1-cosmic-meteorfade-v2-jarusca-20261116';
@@ -280,8 +281,14 @@ export class ArcadeGame {
  constructor(){
   this.canvas=$('game');this.ctx=this.canvas.getContext('2d',{alpha:true});
   this.overlay=$('overlay');this.message=$('message');this.keys=new Set();
-  this.touch={x:0,y:0};this.seed=20261102;
-  this.world=new World(this.seed);this.visuals=new ArcadeVisuals();
+  this.touch={x:0,y:0};
+  const params=typeof location==='undefined'?new URLSearchParams():new URLSearchParams(location.search);
+  this.occupiedMode=params.get('sector')==='occupied';
+  const requested=params.get('seed'),fixed=requested!==null&&/^\\d+$/.test(requested)?
+    Number(requested):NaN;
+  this.seed=this.occupiedMode?(Number.isSafeInteger(fixed)&&fixed>=1&&fixed<=2000000000?
+    fixed:1+Math.floor(Math.random()*2000000000)):20261102;
+  this.world=new World(this.seed,{occupied:this.occupiedMode});this.visuals=new ArcadeVisuals();
   this.reactor=new ReactorLandmark();
   // Capital hull impact painting is explicitly opt-in for visual QA.
   this.visuals.capitalDamageQA=typeof location!=='undefined'&&
@@ -394,10 +401,14 @@ export class ArcadeGame {
     entryPortalPending:false});
   }
   this.bind();this.resize();this.world.discover(0,0);
-  this.notice(matchMedia('(pointer: coarse)').matches?
+  this.notice(this.occupiedMode?
+   'ОККУПИРОВАННЫЙ СЕКТОР · карта '+this.seed+
+   '. Вокруг действуют вражеские промышленные сети. Захватывайте их узлы, чтобы получить новые возможности.':
+   matchMedia('(pointer: coarse)').matches?
    'Подлетите к доку и нажмите «Действие».':
    'WASD или стрелки — полёт · Tab / M — карта · '+this.controlLabel('interact')+' — домашний док · В доке можно бесплатно взять полевой модуль · '+this.controlLabel('dash')+' — рывок.',9);
-  this.runStore=(this.visuals.capitalDamageQA||this.firstLoopsQA)?null:new RunCheckpointStore(hangarStorage);
+  this.runStore=(this.visuals.capitalDamageQA||this.firstLoopsQA)?null:
+   new RunCheckpointStore(hangarStorage,undefined,this.occupiedMode?'occupied':'');
   const saved=this.runStore?.load();
   if(saved||['damaged','unsupported'].includes(this.runStore?.issue))this.offerContinuation(saved);
   else this.runStore?.startNew();
@@ -957,7 +968,10 @@ export class ArcadeGame {
     if(this.pendingRunAction!==expected||!this.overlay.querySelector('.run-confirm'))return;
     this.cancelRunAction();
     if(expected==='restart'){this.runStore?.end();location.reload();return;}
-    this.pendingCheckpoint=null;this.runStore?.startNew();this.overlay.dataset.mode='';this.dismiss();
+    this.pendingCheckpoint=null;this.runStore?.startNew();
+    // In the occupied-sector experiment a new campaign gets a new world seed.
+    if(this.occupiedMode){location.reload();return;}
+    this.overlay.dataset.mode='';this.dismiss();
     this.notice('Новый вылет. Прогресс сохраняется на активных станциях.',4);return;
    }
    if(act==='pilotStation'){this.returnToStation();return;}
@@ -1085,6 +1099,7 @@ export class ArcadeGame {
    }
    if(act==='runNew'){
     this.pendingCheckpoint=null;this.runStore?.startNew();
+    if(this.occupiedMode){location.reload();return;}
     this.overlay.dataset.mode='';this.dismiss();
     this.notice('Новый вылет. На активных станциях прогресс сохраняется.',5);return;
    }
@@ -5193,6 +5208,7 @@ export class ArcadeGame {
    const previousLevel=this.player.level;
    const captureXp=this.awardStrategicExperience(claimStationCapture(this.player,base));
    const captureReward=captureXp?' +'+captureXp+' опыта.':'';
+   const capturedAbility=this.world.occupied?capturedFacilityDescription(base):'';
    this.enemyContourVisualAt=-Infinity;
    if(precisionUnlockedHere)this.precisionRailAvailable=true;
    this.defenseTopology=null;
@@ -5217,11 +5233,13 @@ export class ArcadeGame {
     this.rewardNotice((notice[base.strategicRole]||'Промышленный узел захвачен.')+captureReward+
      (newTech?' Трофейная технология: '+newTech.name+'. '+newTech.description:'')+
      (precisionUnlockedHere?' Открыт ручной прицел рельса (ЛКМ).':'')+
-     (labUnlockedHere?' Открыт радиоперехват снабжения (карта).':''),previousLevel,7);
+     (labUnlockedHere?' Открыт радиоперехват снабжения (карта).':'')+
+     (capturedAbility?' '+capturedAbility:''),previousLevel,7);
    }else this.rewardNotice('Вражеская база захвачена! Заряд кода: Q'+captureReward+
     (precisionUnlockedHere?' · Ручной прицел рельса открыт (ЛКМ)':'')+
     (labUnlockedHere?' · Радиоперехват снабжения открыт (карта)':
-     base.type==='lab'?' · Радионаблюдение расширено':''),previousLevel,6);
+     base.type==='lab'?' · Радионаблюдение расширено':'')+
+    (capturedAbility?' · '+capturedAbility:''),previousLevel,6);
    this.refreshAutomaticContours();
  }
  nearbyEnemyBase(radius=900){
@@ -5853,6 +5871,7 @@ export class ArcadeGame {
    }
   }
   const miningStats=extractorStats(this.skillRanks.extractor||0,this.skillRanks.mining||0);
+  const capturedMiningBonus=capturedFacilityEffect(this.world,p).miningMultiplier;
   const candidate=miningTarget(this.nearRocks,p,this.mining.target,miningStats.range);
   this.mining.target=candidate;
   this.updateProbe();
@@ -5932,7 +5951,7 @@ export class ArcadeGame {
   this.heritage.extraction(this.mining.active);
   if(this.mining.active){
    const effect=this.mining.fxClock<=0;
-   this.damageRock(candidate,miningStats.damagePerSecond*prospectMiningBonus(this)*dt,
+   this.damageRock(candidate,miningStats.damagePerSecond*capturedMiningBonus*prospectMiningBonus(this)*dt,
     p.x,p.y,'extract',effect);
    this.mining.fxClock=effect?.20:this.mining.fxClock-dt;
   }else this.mining.fxClock=0;
