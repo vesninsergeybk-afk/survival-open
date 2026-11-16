@@ -161,7 +161,7 @@ export class CosmicAmbience {
   this.lastTime=time;
   this._loadDetail(sector);
   const transition=clamp((time-this.detailChangedAt)/2.6,0,1);
-  const steady=!!reducedMotion||fps<34;
+  const steady=!!reducedMotion; // no positional jump when FPS crosses 34
   const scale=1.6;
   for(let pass=0;pass<2;pass++){
    const index=pass===0?this.detailPrevious:sector;
