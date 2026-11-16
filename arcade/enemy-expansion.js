@@ -242,7 +242,7 @@ export function validEnemyExpansion(state,stations,time){
   !REGIONS.some(r=>r.id===state.plan.region)||!Array.isArray(state.plan.ids)||
   state.plan.ids.length!==3||new Set(state.plan.ids).size!==3||
   state.plan.ids.some(id=>!ids.has(id))))return false;
- return state.events.every(e=>e&&['link','claim'].includes(e.kind)&&
+ return state.events.every(e=>e&&['link','claim','construction-start'].includes(e.kind)&&
   FRONT_KEYS.includes(e.front)&&REGIONS.some(r=>r.id===e.region)&&
   typeof e.a==='string'&&ids.has(e.a)&&typeof e.b==='string'&&ids.has(e.b)&&
   Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.at)&&e.at>=0&&
