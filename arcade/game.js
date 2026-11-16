@@ -284,7 +284,7 @@ export class ArcadeGame {
   this.touch={x:0,y:0};
   const params=typeof location==='undefined'?new URLSearchParams():new URLSearchParams(location.search);
   this.occupiedMode=params.get('sector')==='occupied';
-  const requested=params.get('seed'),fixed=requested!==null&&/^\\d+$/.test(requested)?
+  const requested=params.get('seed'),fixed=requested!==null&&/^\d+$/.test(requested)?
     Number(requested):NaN;
   this.seed=this.occupiedMode?(Number.isSafeInteger(fixed)&&fixed>=1&&fixed<=2000000000?
     fixed:1+Math.floor(Math.random()*2000000000)):20261102;
