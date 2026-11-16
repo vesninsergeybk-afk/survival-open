@@ -124,7 +124,10 @@ function expandIndustrialDistrict(world,state,time){
   // The real craft travels in the same persistent, interceptable population
   // cargo system used by all industrial shipments. No free instant link.
   const population=world.population;
-  if(population.convoys.length>=900)return null;
+  // Escorts are assigned from the factory's actual ready reserve. Following
+  // confirmed shipping losses, a new engineer gets one extra escort.
+  const screen=colony.intercepted>0,escortCount=screen?3:2;
+  if(population.convoys.length>=900||colony.ready<escortCount)return null;
   const length=dist(sa,sb);
   if(length<50||length>2800)return null;
   const serial=++population.serial;
@@ -134,10 +137,11 @@ function expandIndustrialDistrict(world,state,time){
    routeLength:length,bend:(serial%3-1)*90,
    speed:185+colony.tier*12,launchedAt:time,
    hp:105+colony.tier*24,maxHp:105+colony.tier*24,r:33,hit:0,
-   cargoRole:'technical',rewardOre:8,rewardData:10,
+   cargoRole:'technical',rewardOre:8,rewardData:10,screened:screen,
    escorted:false,escortManifest:null,rewarded:false,seen:false,
    angle:0,x:sa.x,y:sa.y,distance:0};
   population.convoys.push(expedition);
+  colony.ready-=escortCount;
   colony.pool-=EXPANSION.cost;state.spent+=EXPANSION.cost;
   return {kind:'construction-start',front:'home',region:colony.region,
    paidBy:'colony',colonyId:colony.id,a,b,
