@@ -360,8 +360,20 @@ export function advancePopulation(world,time){
    const position=populationCargoPosition(world,cargo,t);
    Object.assign(cargo,position);
    if(cargo.distance+1e-6>=cargo.routeLength){
-    cargo.hp=0;
     const target=state.colonies.find(c=>c.id===cargo.targetColonyId);
+    if(cargo.constructionCargo){
+     // Travel is not construction. The engineer must survive a visible
+     // work interval after arrival; the pilot can still destroy it.
+     if(!Number.isFinite(cargo.assemblyUntil)){
+      cargo.assemblyStart=t;
+      cargo.assemblyUntil=t+(cargo.constructionAction==='repair'?16:22);
+      if(target)events.push(record(state,
+       cargo.constructionAction==='repair'?'repair-arrived':'construction-arrived',
+       target,t,{cargoId:cargo.id}));
+     }
+     if(t<cargo.assemblyUntil)continue;
+    }
+    cargo.hp=0;
     if(cargo.constructionCargo){
      const [a,b]=cargo.constructionLink||[];
      const expansion=world.enemyExpansion,repair=cargo.constructionAction==='repair';
@@ -542,6 +554,13 @@ export function validPopulation(state,stations,time){
      !cargo.targetId.startsWith(cargo.colonyId+':')||
      cargo.routeLength>2800||
      cargo.cargoRole!=='technical'))||
+   (cargo.assemblyUntil!==undefined&&(
+     !cargo.constructionCargo||
+     !Number.isFinite(cargo.assemblyStart)||cargo.assemblyStart<cargo.launchedAt||
+     cargo.assemblyStart>time||
+     !Number.isFinite(cargo.assemblyUntil)||
+     cargo.assemblyUntil<cargo.assemblyStart||
+     cargo.assemblyUntil>time+22))||
    (cargo.rewardOre!==undefined&&(!Number.isInteger(cargo.rewardOre)||cargo.rewardOre<0||cargo.rewardOre>60))||
    (cargo.rewardData!==undefined&&(!Number.isInteger(cargo.rewardData)||cargo.rewardData<0||cargo.rewardData>60))||
    (cargo.firstHitAt!==undefined&&(!Number.isFinite(cargo.firstHitAt)||cargo.firstHitAt<cargo.launchedAt||cargo.firstHitAt>time))||
