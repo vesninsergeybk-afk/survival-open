@@ -84,6 +84,33 @@ function choosePlan(world,fronts,links){
  return chosen?{front:chosen.front,region:chosen.region,ids:chosen.ids}:null;
 }
 
+// Engineering transports share the existing physical, interceptable cargo
+// system. Construction and reconstruction require real stock and escorts.
+function dispatchEngineer(world,state,time,colony,sa,sb,action='link'){
+ const population=world.population,screen=colony.intercepted>0;
+ const escortCount=screen?3:2,cost=action==='repair'?8:EXPANSION.cost;
+ const length=dist(sa,sb);
+ if(population.convoys.length>=900||colony.ready<escortCount||
+  colony.pool<cost+9||length<50||length>2800)return null;
+ const serial=++population.serial;
+ const expedition={id:'population-cargo-'+serial,populationCargo:true,
+  regionalCargo:true,constructionCargo:true,constructionAction:action,
+  constructionLink:[sa.id,sb.id],
+  colonyId:colony.id,targetColonyId:colony.id,
+  sourceId:sa.id,targetId:sb.id,routeLength:length,
+  bend:(serial%3-1)*90,speed:185+colony.tier*12,launchedAt:time,
+  hp:105+colony.tier*24,maxHp:105+colony.tier*24,r:33,hit:0,
+  cargoRole:'technical',rewardOre:8,rewardData:10,screened:screen,
+  escorted:false,escortManifest:null,rewarded:false,seen:false,
+  angle:0,x:sa.x,y:sa.y,distance:0};
+ population.convoys.push(expedition);
+ colony.ready-=escortCount;colony.pool-=cost;state.spent+=cost;
+ return {kind:action==='repair'?'repair-start':'construction-start',
+  front:'home',region:colony.region,paidBy:'colony',colonyId:colony.id,
+  a:sa.id,b:sb.id,x:sa.x,y:sa.y,
+  witnessed:sa.discovered||sb.discovered,at:time};
+}
+
 // The industrial civilization keeps claiming ground even where authored
 // military fronts have no affordable strategic triangle left. Each new link
 // consumes real stock from its local colony, replenished by physical cargo.
@@ -94,6 +121,33 @@ function expandIndustrialDistrict(world,state,time){
  const inFlight=new Set(occupied?world.population.convoys
   .filter(c=>c.constructionCargo&&c.hp>0&&Array.isArray(c.constructionLink))
   .map(c=>key(...c.constructionLink)):[]);
+ // A destroyed industrial node remains available to the pilot for at
+ // least 75 seconds. Only then may a paid repair expedition reclaim it.
+ // Captured stations are never eligible for enemy reconstruction.
+ if(occupied){
+  const repairJobs=[];
+  for(const colony of world.population.colonies){
+   if(colony.pool<17)continue;
+   for(const role of ['relay','factory','extractor','hangar','support']){
+    const target=world.stations.get(colony.id+':'+role);
+    if(!target?.ruined||target.captured||target.hp>0||
+     !Number.isFinite(target.ruinedAt)||time<target.ruinedAt+75)continue;
+    const source=['factory','hangar','extractor','support','relay']
+     .map(r=>world.stations.get(colony.id+':'+r))
+     .find(s=>s&&s.id!==target.id&&hostile(s)&&
+       !inFlight.has(key(s.id,target.id))&&dist(s,target)<=2800);
+    if(source)repairJobs.push({colony,source,target});
+   }
+  }
+  repairJobs.sort((a,b)=>
+   (a.colony.region==='amethyst'&&a.colony.index<3?0:1)-
+   (b.colony.region==='amethyst'&&b.colony.index<3?0:1)||
+   a.colony.id.localeCompare(b.colony.id));
+  for(const job of repairJobs){
+   const plan=dispatchEngineer(world,state,time,job.colony,job.source,job.target,'repair');
+   if(plan)return plan;
+  }
+ }
  const candidates=[];
  for(const colony of world.population.colonies){
   if(colony.pool<EXPANSION.cost+9)continue;
@@ -120,33 +174,7 @@ function expandIndustrialDistrict(world,state,time){
  }
  const target=pool[Math.floor(time/(occupied?54:EXPANSION.interval))%pool.length];
  const {colony,missing}=target,[a,b]=missing[0],sa=world.stations.get(a),sb=world.stations.get(b);
- if(occupied){
-  // The real craft travels in the same persistent, interceptable population
-  // cargo system used by all industrial shipments. No free instant link.
-  const population=world.population;
-  // Escorts are assigned from the factory's actual ready reserve. Following
-  // confirmed shipping losses, a new engineer gets one extra escort.
-  const screen=colony.intercepted>0,escortCount=screen?3:2;
-  if(population.convoys.length>=900||colony.ready<escortCount)return null;
-  const length=dist(sa,sb);
-  if(length<50||length>2800)return null;
-  const serial=++population.serial;
-  const expedition={id:'population-cargo-'+serial,populationCargo:true,
-   regionalCargo:true,constructionCargo:true,constructionLink:[a,b],
-   colonyId:colony.id,targetColonyId:colony.id,sourceId:a,targetId:b,
-   routeLength:length,bend:(serial%3-1)*90,
-   speed:185+colony.tier*12,launchedAt:time,
-   hp:105+colony.tier*24,maxHp:105+colony.tier*24,r:33,hit:0,
-   cargoRole:'technical',rewardOre:8,rewardData:10,screened:screen,
-   escorted:false,escortManifest:null,rewarded:false,seen:false,
-   angle:0,x:sa.x,y:sa.y,distance:0};
-  population.convoys.push(expedition);
-  colony.ready-=escortCount;
-  colony.pool-=EXPANSION.cost;state.spent+=EXPANSION.cost;
-  return {kind:'construction-start',front:'home',region:colony.region,
-   paidBy:'colony',colonyId:colony.id,a,b,
-   x:sa.x,y:sa.y,witnessed:sa.discovered||sb.discovered,at:time};
- }
+ if(occupied)return dispatchEngineer(world,state,time,colony,sa,sb);
  colony.pool-=EXPANSION.cost;state.spent+=EXPANSION.cost;
  state.links.push([a,b,'home']);
  return {kind:missing.length===1?'claim':'link',front:'home',region:colony.region,
@@ -242,7 +270,7 @@ export function validEnemyExpansion(state,stations,time){
   !REGIONS.some(r=>r.id===state.plan.region)||!Array.isArray(state.plan.ids)||
   state.plan.ids.length!==3||new Set(state.plan.ids).size!==3||
   state.plan.ids.some(id=>!ids.has(id))))return false;
- return state.events.every(e=>e&&['link','claim','construction-start'].includes(e.kind)&&
+ return state.events.every(e=>e&&['link','claim','construction-start','repair-start'].includes(e.kind)&&
   FRONT_KEYS.includes(e.front)&&REGIONS.some(r=>r.id===e.region)&&
   typeof e.a==='string'&&ids.has(e.a)&&typeof e.b==='string'&&ids.has(e.b)&&
   Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.at)&&e.at>=0&&
