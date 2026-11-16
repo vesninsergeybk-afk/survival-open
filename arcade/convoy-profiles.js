@@ -44,7 +44,7 @@ export function populationConvoyEscort(cargo){
 }
 
 export function populationConvoyTitle(cargo){
- if(cargo?.constructionCargo)return 'Инженерный транспорт';
+ if(cargo?.constructionCargo)return cargo.constructionAction==='repair'?'Ремонтный транспорт':'Инженерный транспорт';
  return POPULATION_CONVOY_PROFILES[cargo?.cargoRole]?.name||'Промышленный конвой';
 }
 
