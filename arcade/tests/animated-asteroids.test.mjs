@@ -83,7 +83,7 @@ test('rotation advances often enough at 60 FPS instead of the old 1.4–2.7 fram
  }
 });
 
-test('frame blending is bounded and disabled on stressed frames with hysteresis',()=>{
+test('an asteroid draws one full-alpha sprite regardless of FPS changes',()=>{
  const old=globalThis.Image;let source;
  class MockImage{
   constructor(){source=this;this.naturalWidth=1725;this.naturalHeight=675;}
@@ -96,33 +96,21 @@ test('frame blending is bounded and disabled on stressed frames with hysteresis'
   const rocks=Array.from({length:500},(_,i)=>rock(19*i+9,301+i,64)).
    filter(r=>asteroidAnimationEligible(r)).slice(0,48);
   assert.equal(rocks.length,48);
-  const ctx={globalAlpha:1,save(){},restore(){},translate(){},rotate(){},
-   drawCalls:0,drawImage(){this.drawCalls++;}};
-  painter.beginFrame(60);
-  rocks.forEach(r=>painter.draw(ctx,r,18.65));
-  assert.equal(painter.qualityTier,3);
-  assert.ok(painter.blendedDraws>0);
-  assert.ok(painter.blendedDraws<=12,'only twelve rocks may get a second draw call');
-  assert.equal(ctx.drawCalls,painter.animatedDraws+painter.blendedDraws);
-  assert.equal(painter.animatedDraws,48);
-  painter.beginFrame(50);
-  assert.equal(painter.qualityTier,3,'no flashing at the 50 FPS boundary');
-  painter.beginFrame(47);
-  assert.equal(painter.qualityTier,2);
-  painter.beginFrame(52);
-  assert.equal(painter.qualityTier,2,'quality does not oscillate at threshold');
-  painter.beginFrame(38);
-  assert.equal(painter.qualityTier,1);
-  painter.beginFrame(30);
-  assert.equal(painter.qualityTier,0);
-  assert.equal(painter.draw(ctx,rocks[0],19),false,'slow frame uses old still-image fallback');
-  painter.beginFrame(35);
-  assert.equal(painter.qualityTier,0);
-  painter.beginFrame(38);
-  assert.equal(painter.qualityTier,1);
-  painter.beginFrame(46);
-  assert.equal(painter.qualityTier,2);
-  painter.beginFrame(56);
-  assert.equal(painter.qualityTier,3);
+  let draws=0,save=0,restore=0;
+  const ctx={globalAlpha:.87,save(){save++;},restore(){restore++;},
+   translate(){},rotate(){},drawImage(){draws++;}};
+  // The previous implementation alternated two half-opacity frames and
+  // switched entire rock sprites at low FPS, causing visible brightness pulses.
+  for(const fps of [60,50,47,38,30,35,56]){
+   painter.beginFrame(fps);
+   const before=draws;
+   rocks.forEach(r=>assert.equal(painter.draw(ctx,r,18.65),true));
+   assert.equal(draws-before,48,'one draw for every selected asteroid');
+   assert.equal(painter.animatedDraws,48);
+   assert.equal(painter.blendedDraws,0);
+   assert.equal(ctx.globalAlpha,.87,'renderer never alters object opacity');
+   assert.equal(save,restore);
+  }
+  assert.equal(new AnimatedAsteroids({enabled:false}).image,null);
  }finally{globalThis.Image=old;}
 });
