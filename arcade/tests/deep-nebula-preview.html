@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проверка глубины космического фона</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;overflow:hidden;width:100%;height:100%;background:#020915}
+#sky{position:fixed;inset:0;background:radial-gradient(ellipse at 70% 35%,#50377638 0%,transparent 58%),
+ radial-gradient(ellipse at 25% 70%,#122e6244 0%,transparent 61%),url('../../assets/space/nebula_main.jpg') center / cover no-repeat}
+#stars{position:fixed;inset:0;display:block;width:100%;height:100%}
+</style></head>
+<body><div id="sky"></div><canvas id="stars"></canvas>
+<script type="module">
+import {CosmicAmbience} from '../cosmic-ambience.js';
+const sector=Math.max(0,Math.min(4,Number(new URLSearchParams(location.search).get('sector'))||0));
+const imgs=['nebula_main.jpg','nebula_azure_v1.png','nebula_amber_v1.png','nebula_lilac_v1.png','nebula_teal_v1.png'];
+document.querySelector('#sky').style.backgroundImage=
+ 'radial-gradient(ellipse at 65% 38%,#373d7240 0%,transparent 58%),url("../../assets/space/'+imgs[sector]+'")';
+const canvas=document.getElementById('stars'),ctx=canvas.getContext('2d'),cosmos=new CosmicAmbience();
+const resize=()=>{const w=innerWidth,h=innerHeight;canvas.width=w;canvas.height=h;};
+addEventListener('resize',resize);resize();
+let tick=0;
+function draw(){
+ tick++;
+ const time=tick/60,cam={x:Math.sin(time*.045)*850+time*34,y:time*18,w:canvas.width,h:canvas.height};
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ cosmos.draw(ctx,cam,time,60,sector,false);
+ requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script></body></html>
