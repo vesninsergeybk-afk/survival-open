@@ -34,7 +34,20 @@ export function capturedFacilityDescription(base){
 export function capturedFacilityEffect(world,position){
   const result={miningMultiplier:1,discoveryBonus:0};
   if(!world?.occupied||!world.stations||!position)return result;
-  for(const b of world.stations.values()){
+  // Use the existing 2,500-unit population index; this runs during combat.
+  // Never sweep the entire world (1,500+ stations) on every rendered frame.
+  const grid=world.populationStationCells;
+  const nearby=[];
+  if(grid){
+    const cell=2500,r=CAPTURED_FACILITY_RADIUS;
+    for(let cy=Math.floor((position.y-r)/cell);cy<=Math.floor((position.y+r)/cell);cy++)
+      for(let cx=Math.floor((position.x-r)/cell);cx<=Math.floor((position.x+r)/cell);cx++)
+        for(const id of grid.get(cx+':'+cy)||[]){
+          const station=world.stations.get(id);
+          if(station)nearby.push(station);
+        }
+  }else nearby.push(...world.stations.values());
+  for(const b of nearby){
     if(!operating(b)||distance(b,position)>CAPTURED_FACILITY_RADIUS)continue;
     if(b.strategicRole==='population-extractor')result.miningMultiplier=1.2;
     if(b.strategicRole==='population-relay')result.discoveryBonus=220;
