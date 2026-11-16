@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {World} from '../world.js';
 import {advancePopulation,expandSavedPopulation,validPopulation} from '../world-population.js';
 import {OPENING_ENERGY,openingPowerRoute,openingFactoryStatus,
- openingSectorEnergy} from '../occupied-energy.js';
+ openingSectorEnergy,connectedPlayerEnergySlots} from '../occupied-energy.js';
+import {escortCapacity,escortHireOffer} from '../escort-squad.js';
 import {packRun,unpackRun} from '../run-checkpoint.js';
 
 const start=seed=>new World(seed,{occupied:true});
@@ -115,4 +116,24 @@ test('energy-production restrictions are opt-in: classic factories remain unchan
  factory.enemy=true;
  advancePopulation(w,1);
  assert.equal(c.buildQueued,true);
+});
+
+test('only a connected captured source provides extra escort capacity',()=>{
+ const w=start(1842),c=district(w),ore=station(w,c,'extractor');
+ const stationStub={active:true,enemy:false,ruined:false},state={
+  connectedBases:1,ore:100,allies:1,energyEscortSlots:0
+ };
+ assert.equal(connectedPlayerEnergySlots(w,new Set([ore.id])),0);
+ capture(ore);
+ assert.equal(connectedPlayerEnergySlots(w,new Set()),0,'isolated source has no remote fleet bonus');
+ assert.equal(connectedPlayerEnergySlots(w,new Set([ore.id])),1);
+ assert.equal(escortCapacity(1),1);
+ assert.equal(escortCapacity(1,1),2);
+ const withEnergy={...state,energyEscortSlots:1};
+ assert.equal(escortHireOffer(stationStub,state,'scout').ok,false);
+ assert.equal(escortHireOffer(stationStub,withEnergy,'scout').ok,true);
+ assert.equal(escortCapacity(6,3),6,'energy never bypasses the hard squad cap');
+ const normal=new World(1842),normalOre=station(normal,district(normal),'extractor');
+ capture(normalOre);
+ assert.equal(connectedPlayerEnergySlots(normal,new Set([normalOre.id])),0);
 });
