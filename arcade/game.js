@@ -61,7 +61,7 @@ import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy
 import {enemySalvage,enemyDataReward} from './combat-rewards.js?v=economy-balance-1-regions-1-enemy-audit-3-enemy-gunnery-1-opening-arc-1-enemy-objectives-1-campaign-1-repair-qa-1-tactical-field-2-radio-retry-1-flux-offense-1-contour-counterattack-1-first-loops-1-station-ops-2-pressure-response-1-combat-balance-1-flux-siphon-roads-1-pilot-depth-1-corvette-20261110-1-pilot-value-2-hud-merge-20261110-opening-evasion-20261110-turret-defense-20261110-wingmastery-20261110-data-economy-20261111-xp-audit-20261111-opening-attack-20261111';
 import {createSignalIntel,alertSignalIntel,alertSignalThreat} from './signal-perception.js?v=arcade-perception-61-enemy-world-response-2-first-loops-1-pressure-response-1-combat-balance-1';
 import {planEncounter,scheduledMoteSize,moteEncounterSize,MOTE_ENCOUNTER} from './encounters.js?v=arcade-balanced-bases-30-combat-hunt-20261109-shield-crowd-20261110-swarm-presence-20261110-opening-evasion-20261110';
-import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=opening-attack-20261111-regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109-weapon-vfx-audit-1-corvette-20261110-1-pilot-value-2-opening-evasion-20261110-turret-defense-20261110-escort-squad-20261110-escort-art-20261110-opening-craft-20261111-cosmic-nebula-v2-asteroid-spin-20261116-asteroid-cadence-fix-20261116';
+import {ArcadeVisuals,worldLabelSize} from './visuals.js?v=opening-attack-20261111-regions-1-campaign-1-counterattack-1-mission-pack-1-zoom-legibility-1-zoomread-2-combat-balance-1-frontier-siege-1-combat-hunt-20261109-weapon-vfx-audit-1-corvette-20261110-1-pilot-value-2-opening-evasion-20261110-turret-defense-20261110-escort-squad-20261110-escort-art-20261110-opening-craft-20261111-cosmic-nebula-v2-asteroid-spin-20261116-asteroid-cadence-fix-20261116-varkalandar-regions-20261116';
 import {ReactorLandmark} from './reactor-landmark.js?v=reactor-fog-motion-v8';
 import {recordCapitalHit} from './capital-hit-wear.js?v=arcade-capital-hit-63';
 import {markDockEvent} from './repair-dock-art.js?v=dock-identity-1';
@@ -6646,6 +6646,7 @@ export class ArcadeGame {
   // Keep full-screen nebula in CSS compositor instead of resampling per Canvas frame.
   c.clearRect(0,0,this.vw,this.vh);
   this.visuals.rotatingAsteroids?.beginFrame(this.fps);
+  this.visuals.landscapeAsteroids?.beginFrame(this.fps);
   this.visuals.drawAtmosphere(c,this.spawnCamera(),this.time,this.fps);
   // Deterministic fixed stars: no allocations or scrolling canvas buffers.
   c.save();c.translate(this.vw/2,this.vh/2);c.scale(this.cameraZoom,this.cameraZoom);
