@@ -91,6 +91,8 @@ export function updatePopulationWorld(game,dt){
    else if(event.kind==='build')game.notice('На вражеской верфи собраны три новых корабля.',3);
    else if(event.kind==='construction-complete')game.notice('ВРАЖЕСКАЯ СЕТЬ РАСШИРИЛАСЬ · инженерный транспорт завершил новую связь.',5);
    else if(event.kind==='construction-aborted')game.notice('Вражеская стройка остановлена: один из узлов больше не принадлежит противнику.',5);
+   else if(event.kind==='construction-arrived')game.notice('Вражеские инженеры начали сборку линии. Уничтожьте транспорт, пока он не завершил работу.',5);
+   else if(event.kind==='repair-arrived')game.notice('Вражеские ремонтники приступили к восстановлению станции. Рейс ещё можно сорвать.',5);
    else if(event.kind==='repair-complete')game.notice('ВРАГ ВОССТАНОВИЛ РАЗРУШЕННУЮ СТАНЦИЮ · ремонтники прибыли раньше вас.',6);
    else if(event.kind==='repair-aborted')game.notice('Вражеский ремонт сорван: разрушенный узел больше недоступен противнику.',4);
   }
@@ -281,6 +283,14 @@ export function drawPopulationWorld(game,ctx,cam){
  for(const cargo of state.convoys){
   if(!inView(cargo.x,cargo.y,cam,110))continue;
   drawIndustrialConvoy(ctx,cargo,time);
+  if(Number.isFinite(cargo.assemblyUntil)&&Number.isFinite(cargo.assemblyStart)){
+   const span=Math.max(1,cargo.assemblyUntil-cargo.assemblyStart);
+   const progress=Math.max(0,Math.min(1,(time-cargo.assemblyStart)/span));
+   ctx.save();ctx.strokeStyle=cargo.constructionAction==='repair'?'#98ffd3':'#ffd18b';
+   ctx.lineWidth=5;ctx.beginPath();
+   ctx.arc(cargo.x,cargo.y,cargo.r+25,-Math.PI/2,-Math.PI/2+TAU*progress);
+   ctx.stroke();ctx.restore();
+  }
   ctx.save();ctx.textAlign='center';ctx.fillStyle='#ffe5bc';
   ctx.font='bold '+Math.round(11*zoom)+'px system-ui';
   const labelY=cargo.y-Math.max(70,cargo.r*1.85);
