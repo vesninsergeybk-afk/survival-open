@@ -1,6 +1,6 @@
 import {regionAt} from './regions.js?v=regions-1-living-world-population-1';
 import {CosmicAmbience} from './cosmic-ambience.js?v=cosmic-ambience-art-v2-20261115';
-import {AnimatedAsteroids} from './animated-asteroids.js?v=jarusca-cadence-quality-v2-20261116';
+import {AnimatedAsteroids} from './animated-asteroids.js?v=jarusca-no-flash-singleframe-20261116';
 import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-defense-1-combat-balance-1-manual-cover-1-manual-audit-20261110-weapon-vfx-audit-1-pilot-value-2-opening-evasion-20261110';
 /**
  * Arcade presentation uses the artwork and animation systems already approved
@@ -206,6 +206,10 @@ export class ArcadeVisuals {
   this.cosmicAmbience=new CosmicAmbience({enabled:!['off','0','false'].includes(cosmosSetting),demo:cosmosSetting==='preview'});
   this.reducedMotion=typeof matchMedia==='function'&&
    matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const driftOption=typeof location==='undefined'?null:
+   new URLSearchParams(location.search).get('rockdrift');
+  this.rockDriftEnabled=!this.reducedMotion&&
+   !['off','0','false'].includes(driftOption);
   const asteroidSetting=typeof location==='undefined'?null:new URLSearchParams(location.search).get('asteroids');
   this.rotatingAsteroids=new AnimatedAsteroids({enabled:!this.reducedMotion&&
    !['off','0','false'].includes(asteroidSetting)});

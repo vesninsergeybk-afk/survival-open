@@ -37,7 +37,7 @@ export function asteroidAnimationEligible(rock,ore=false,portion=.58){
 export class AnimatedAsteroids {
  constructor({enabled=true,source=null}={}){
   this.enabled=!!enabled;this.image=null;this.failed=false;
-  this.fps=60;this.qualityTier=3;this.blendBudget=0;
+  this.fps=60;this.blendBudget=0;
   this.animatedDraws=0;this.blendedDraws=0;
   this.debug=typeof location!=='undefined'&&
    new URLSearchParams(location.search).get('asteroidperf')==='1';
@@ -56,41 +56,22 @@ export class AnimatedAsteroids {
  }
  beginFrame(fps=60){
   this.fps=Number.isFinite(fps)?fps:60;
-  // Hysteresis prevents rapidly replacing 2D/3D asteroid sprites when the
-  // smoothed FPS hovers around a quality threshold.
-  if(this.qualityTier===3&&this.fps<48)this.qualityTier=2;
-  else if(this.qualityTier===2){
-   if(this.fps<39)this.qualityTier=1;
-   else if(this.fps>55)this.qualityTier=3;
-  }else if(this.qualityTier===1){
-   if(this.fps<31)this.qualityTier=0;
-   else if(this.fps>45)this.qualityTier=2;
-  }else if(this.qualityTier===0&&this.fps>37)this.qualityTier=1;
-  this.blendBudget=this.qualityTier===3&&this.fps>=54?12:0;
+  // Cross-fading transparent 2D sprites darkens their midpoint; switching
+  // from textured to static art when FPS varies causes another visible pop.
+  // A single full-opacity atlas draw per chosen rock has a fixed cost.
+  this.blendBudget=0;
   this.animatedDraws=0;this.blendedDraws=0;
  }
  draw(ctx,rock,time=0,ore=false){
-  if(!this.enabled||!this.image||this.qualityTier===0)return false;
-  const portion=[0,.16,.35,.58][this.qualityTier];
-  if(!asteroidAnimationEligible(rock,ore,portion))return false;
-  const {row,frame,nextFrame,blend,rotation}=asteroidAnimationPose(rock,time);
+  if(!this.enabled||!this.image)return false;
+  if(!asteroidAnimationEligible(rock,ore))return false;
+  const {row,frame,rotation}=asteroidAnimationPose(rock,time);
   const size=rock.r*2.8,cell=ASTEROID_ANIMATION.cell,sourceY=row*cell;
   ctx.save();ctx.translate(rock.x,rock.y);ctx.rotate(rotation);
-  // Blend only a few large, prominent rocks on healthy frames. A full
-  // two-sprite blend for all rocks would double GPU work in crowded fields.
-  if(rock.r>=45&&this.blendBudget>0&&blend>.04&&blend<.96){
-   const mix=blend*blend*(3-2*blend),baseAlpha=ctx.globalAlpha;
-   ctx.globalAlpha=baseAlpha*(1-mix);
-   ctx.drawImage(this.image,frame*cell,sourceY,cell,cell,
-    -size/2,-size/2,size,size);
-   ctx.globalAlpha=baseAlpha*mix;
-   ctx.drawImage(this.image,nextFrame*cell,sourceY,cell,cell,
-    -size/2,-size/2,size,size);
-   this.blendBudget--;this.blendedDraws++;
-  }else{
-   ctx.drawImage(this.image,frame*cell,sourceY,cell,cell,
-    -size/2,-size/2,size,size);
-  }
+  // One completely opaque-in-its-alpha frame. No dark pulse from mixing
+  // transparent sprites, and half as many GPU image draws on large rocks.
+  ctx.drawImage(this.image,frame*cell,sourceY,cell,cell,
+   -size/2,-size/2,size,size);
   ctx.restore();this.animatedDraws++;return true;
  }
  finishFrame(rockMs,rockCount,fps,time=0){
@@ -114,7 +95,7 @@ export class AnimatedAsteroids {
    document.body.appendChild(this.perfElement);
   }
   this.perfElement.textContent=report.fps+' FPS | камней '+rockCount+
-   ' | аним. '+report.animated+' | плавных '+report.blended+
+   ' | аним. '+report.animated+
    ' | слой '+report.rockLayerMs+' мс';
  }
  drawIncoming(ctx,active,index,age,size){
