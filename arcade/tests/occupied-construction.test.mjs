@@ -43,13 +43,13 @@ test('intercepting a real engineering convoy prevents a free replacement link',(
  const craft=project(w),target=edge(craft);
  craft.hp=0;
  assert.equal(interceptPopulationCargo(w,craft,35),true);
+ assert.ok(w.population.events.some(e=>e.kind==='construction-intercept'&&e.cargoId===craft.id));
  assert.equal(interceptPopulationCargo(w,craft,35),false);
  const result=advancePopulation(w,arrival(craft));
  assert.equal(joined(w,target),false);
  assert.equal(w.enemyExpansion.links.length,previous);
  assert.ok(!result.some(e=>e.kind==='construction-complete'));
  assert.equal(project(w),undefined);
- assert.ok(w.population.events.some(e=>e.kind==='construction-intercept'&&e.cargoId===craft.id));
 });
 
 test('capturing either terminal before arrival aborts the enemy construction',()=>{
