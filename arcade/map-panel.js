@@ -480,7 +480,9 @@ export function renderWorldMap(game){
     '%</b> · Не действует <b>'+Math.max(0,100-energy.playerPercent-energy.enemyPercent)+
     '%</b></p><p>Захват источника лишает вражескую верфь сетевого питания.'+
     ' После исчерпания местного запаса новые корабли не выпускаются.'+
-    ' Уцелевший флот продолжает действовать.</p></div>';
+    ' Уцелевший флот продолжает действовать.'+
+    ' Подключённый трофейный источник добавляет одно место ведомого'+
+    ' (не выше общего предела).</p></div>';
   })():'')+
   renderStationThreats(game)+
   (operationText?'<div class="map-objective"><span>'+(previewTarget?'ПРЕДВАРИТЕЛЬНЫЙ МАРШРУТ':operation?.id===PROBE_OPERATION.id?'АВАРИЙНАЯ ТЕЛЕМЕТРИЯ':
