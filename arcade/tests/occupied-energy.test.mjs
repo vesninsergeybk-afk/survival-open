@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {World} from '../world.js';
 import {advancePopulation,expandSavedPopulation,validPopulation} from '../world-population.js';
 import {OPENING_ENERGY,openingPowerRoute,openingFactoryStatus,
- openingSectorEnergy,connectedPlayerEnergySlots} from '../occupied-energy.js';
+ openingSectorEnergy,connectedPlayerEnergySlots,synchronizeEscortPower} from '../occupied-energy.js';
 import {escortCapacity,escortHireOffer} from '../escort-squad.js';
 import {packRun,unpackRun} from '../run-checkpoint.js';
 
@@ -136,4 +136,25 @@ test('only a connected captured source provides extra escort capacity',()=>{
  const normal=new World(1842),normalOre=station(normal,district(normal),'extractor');
  capture(normalOre);
  assert.equal(connectedPlayerEnergySlots(normal,new Set([normalOre.id])),0);
+});
+
+test('loss of charging capacity puts excess purchased drones in reversible standby',()=>{
+ const ally=serial=>({serial,role:'fighter',hp:78,maxHp:78,
+  state:'cover',target:{hp:300},message:'',messageUntil:0});
+ const drones=[ally(1),ally(2),ally(3)];
+ assert.equal(synchronizeEscortPower(drones,3,10),0);
+ assert.ok(drones.every(d=>!d.powerStandby));
+ assert.equal(synchronizeEscortPower(drones,1,11),2);
+ assert.equal(drones.length,3,'energy deficit cannot kill or delete purchased drones');
+ assert.equal(drones[0].powerStandby,false);
+ for(const d of drones.slice(1)){
+  assert.equal(d.powerStandby,true);
+  assert.equal(d.state,'follow');assert.equal(d.target,null);
+  assert.equal(d.message,'Недостаточно энергии');
+ }
+ assert.equal(synchronizeEscortPower(drones,1,12),2);
+ assert.equal(drones[1].messageUntil,14,'standby does not spam transition messages');
+ assert.equal(synchronizeEscortPower(drones,3,13),0);
+ assert.ok(drones.every(d=>!d.powerStandby));
+ assert.equal(drones[1].message,'Питание восстановлено');
 });
