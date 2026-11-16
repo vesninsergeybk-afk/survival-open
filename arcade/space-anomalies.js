@@ -209,8 +209,16 @@ export function drawSpaceAnomalies(game,c,cam){
     for(let i=0;i<12;i++){
      const {x,y,fade}=meteorSceneryPosition(f,i,time,reduced);
      if(!fade)continue;
+     // Share the licensed animation atlas with ordinary rocks; no second download.
+     const rotator=game.visuals?.rotatingAsteroids;
+     let painted=false;
+     if(rotator?.image){
+      c.save();c.translate(x,y);c.globalAlpha=.55*fade;
+      painted=rotator.drawIncoming(c,{serial:Math.floor(f.phase*1000)},i,time*.1+i*.37,30+(i%4)*9);
+      c.restore();
+     }
      const rock=game.images?.rock;
-     if(rock?.complete&&rock.naturalWidth){
+     if(!painted&&rock?.complete&&rock.naturalWidth){
       c.globalAlpha=.55*fade;c.drawImage(rock,x-15,y-15,30+(i%4)*9,30+(i%4)*9);
      }
      if(!reduced){
