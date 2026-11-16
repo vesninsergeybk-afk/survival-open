@@ -4,7 +4,8 @@ import {World} from '../world.js';
 import {advancePopulation,expandSavedPopulation,validPopulation} from '../world-population.js';
 import {OPENING_ENERGY,openingPowerRoute,openingFactoryStatus,
  openingSectorEnergy,connectedPlayerEnergySlots,synchronizeEscortPower} from '../occupied-energy.js';
-import {escortCapacity,escortHireOffer} from '../escort-squad.js';
+import {escortCapacity,escortHireOffer,createEscort} from '../escort-squad.js';
+import {updateAlly} from '../ai.js';
 import {packRun,unpackRun} from '../run-checkpoint.js';
 
 const start=seed=>new World(seed,{occupied:true});
@@ -157,4 +158,27 @@ test('loss of charging capacity puts excess purchased drones in reversible stand
  assert.equal(synchronizeEscortPower(drones,3,13),0);
  assert.ok(drones.every(d=>!d.powerStandby));
  assert.equal(drones[1].message,'Питание восстановлено');
+});
+
+test('standby combat AI cannot fire or heal while waiting for grid power',()=>{
+ const fighter=createEscort('fighter',1,0,0);
+ const medic=createEscort('medic',2,0,0);
+ const enemy={x:88,y:38,r:16,hp:100,maxHp:100,type:'gunship'};
+ const player={x:0,y:0,r:18,hp:100,shield:0};
+ const game={player,allies:[fighter,medic],time:20,holdFire:false,
+  mining:{active:false},skillRanks:{},network:{engine:0,armament:0},
+  grid:{query:()=>[enemy]},nearbyEnemyBase:()=>null,
+  avoidance:()=>({x:0,y:0}),shotsNear:()=>[],
+  lastDamageAt:0,damageEnemy(target,damage){target.hp-=damage;},
+  flash(){},heritage:{play(){}},missiles:[]};
+ fighter.powerStandby=true;medic.powerStandby=true;
+ medic.hp=30;medic.maxHp=70;
+ fighter.think=0;fighter.fire=0;medic.think=0;medic.serviceAt=0;
+ updateAlly(fighter,game,.12);
+ updateAlly(medic,game,.12);
+ assert.equal(enemy.hp,100,'fighter cannot damage a contact when unpowered');
+ assert.equal(player.shield,0,'medic cannot grant shield during standby');
+ assert.equal(medic.hp,30,'standby medics cannot self-heal');
+ assert.equal(fighter.state,'follow');
+ assert.ok(Number.isFinite(fighter.x)&&Number.isFinite(fighter.y));
 });
