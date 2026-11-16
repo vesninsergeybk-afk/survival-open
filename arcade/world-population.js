@@ -364,12 +364,23 @@ export function advancePopulation(world,time){
     const target=state.colonies.find(c=>c.id===cargo.targetColonyId);
     if(cargo.constructionCargo){
      const [a,b]=cargo.constructionLink||[];
-     const expansion=world.enemyExpansion;
+     const expansion=world.enemyExpansion,repair=cargo.constructionAction==='repair';
+     const destination=world.stations.get(b);
      const already=expansion?.links?.some(([x,y])=>
        x===a&&y===b||x===b&&y===a);
-     // Capturing either endpoint during flight stops the enemy project.
-     const finished=!!target&&!!expansion&&!already&&live(world,a)&&live(world,b);
-     if(finished){
+     // A captured station cannot be reclaimed by an arriving enemy engineer.
+     const finished=repair?!!target&&!!expansion&&live(world,a)&&
+       !!destination?.ruined&&!destination.captured&&destination.hp<=0:
+       !!target&&!!expansion&&!already&&live(world,a)&&live(world,b);
+     if(finished&&repair){
+      destination.ruined=false;destination.enemy=true;destination.captured=false;
+      destination.active=false;destination.suppressed=false;
+      destination.hp=Math.max(1,Math.round(destination.maxHp*.33));
+      destination.coreExposed=false;
+      // Only one gun returns, paid for by the same repair expedition.
+      const turret=destination.turrets?.find(t=>t.hp<=0);
+      if(turret)turret.hp=Math.max(1,Math.round(turret.maxHp*.4));
+     }else if(finished){
       expansion.links.push([a,b,'home']);
       const sa=world.stations.get(a),sb=world.stations.get(b);
       expansion.events=[{kind:'link',a,b,front:'home',region:target.region,
@@ -377,8 +388,9 @@ export function advancePopulation(world,time){
        witnessed:!!sa.discovered&&!!sb.discovered,at:t},
        ...(expansion.events||[])].slice(0,8);
      }
-     if(target)events.push(record(state,finished?'construction-complete':'construction-aborted',
-      target,t,{cargoId:cargo.id,a,b}));
+     const kind=repair?(finished?'repair-complete':'repair-aborted'):
+       (finished?'construction-complete':'construction-aborted');
+     if(target)events.push(record(state,kind,target,t,{cargoId:cargo.id,a,b}));
     }else if(target&&live(world,cargo.targetId)){
      target.pool=Math.min(100,target.pool+POPULATION.cargoCost);
      target.delivered++;state.arrived++;
@@ -398,8 +410,9 @@ export function interceptPopulationCargo(world,cargo,time){
  const colony=state.colonies.find(c=>c.id===cargo.colonyId);
  if(colony){
   colony.intercepted++;
-  record(state,cargo.constructionCargo?'construction-intercept':'intercept',
-   colony,time,{cargoId:cargo.id});
+  record(state,cargo.constructionCargo?
+   (cargo.constructionAction==='repair'?'repair-intercept':'construction-intercept'):
+   'intercept',colony,time,{cargoId:cargo.id});
  }
  state.intercepted++;
  return true;
@@ -520,10 +533,14 @@ export function validPopulation(state,stations,time){
    (cargo.cargoRole!==undefined&&!POPULATION_CONVOY_PROFILES[cargo.cargoRole])||
    (cargo.constructionCargo!==undefined&&(
      cargo.constructionCargo!==true||
+     cargo.constructionAction!==undefined&&!['link','repair'].includes(cargo.constructionAction)||
      !Array.isArray(cargo.constructionLink)||cargo.constructionLink.length!==2||
      cargo.constructionLink[0]!==cargo.sourceId||
      cargo.constructionLink[1]!==cargo.targetId||
      cargo.sourceId===cargo.targetId||
+     !cargo.sourceId.startsWith(cargo.colonyId+':')||
+     !cargo.targetId.startsWith(cargo.colonyId+':')||
+     cargo.routeLength>2800||
      cargo.cargoRole!=='technical'))||
    (cargo.rewardOre!==undefined&&(!Number.isInteger(cargo.rewardOre)||cargo.rewardOre<0||cargo.rewardOre>60))||
    (cargo.rewardData!==undefined&&(!Number.isInteger(cargo.rewardData)||cargo.rewardData<0||cargo.rewardData>60))||
