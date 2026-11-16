@@ -39,10 +39,12 @@ export function populationConvoyStats(role,tier,baseHp,baseSpeed){
 }
 
 export function populationConvoyEscort(cargo){
+ if(cargo?.constructionCargo)return ['scout','fighter'];
  return [...(POPULATION_CONVOY_PROFILES[cargo?.cargoRole]?.escort||LEGACY_POPULATION_ESCORT)];
 }
 
 export function populationConvoyTitle(cargo){
+ if(cargo?.constructionCargo)return 'Инженерный транспорт';
  return POPULATION_CONVOY_PROFILES[cargo?.cargoRole]?.name||'Промышленный конвой';
 }
 
