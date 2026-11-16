@@ -12,7 +12,7 @@ import {rememberPopulationShip} from './population-runtime.js?v=sector-density-2
 import {frontierBarrierContact,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {SALVAGE,ruinEnemyIndustry,salvageQuote,claimRuinedIndustry} from './enemy-station-salvage.js?v=frontier-claim-1';
 import {capturedFacilityDescription,capturedFacilityEffect} from './captured-facilities.js';
-import {connectedPlayerEnergySlots} from './occupied-energy.js';
+import {connectedPlayerEnergySlots,synchronizeEscortPower} from './occupied-energy.js';
 import {POPULATION,damagePopulationShield,populationAlarm,populationColony,
  damagePopulationWorker} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
 import {updateSpaceAnomalies,drawSpaceAnomalies} from './space-anomalies.js?v=sector-density-2-frontier-siege-1-cosmic-meteorfade-v2-jarusca-20261116';
@@ -56,7 +56,7 @@ import {hitFriendlyShip} from './enemy-shot-targets.js?v=enemy-targets-1-flux-bu
 import {advanceTurretDefenses,drawTurretDefenses,turretShieldCapacity} from './turret-defense.js?v=turret-defense-20261110-trial-station-defense-20261110';
 import {commissionStationGarrison,advanceStationGarrisons,drawStationGarrisons} from './station-garrisons.js?v=trial-station-defense-20261110';
 import {escortHireOffer,escortTrainingOffer,createEscort,escortMaxHp,
- escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
+ escortCapacity,escortRetirementRefund} from './escort-squad.js?v=escort-squad-20261110-wingmastery-20261110-escort-art-20261110';
 import {EnemyLearning,learnedTurretAim} from './enemy-learning.js?v=enemy-learning-1-enemy-audit-2';
 import {EnemyComms,ENEMY_COMMS,incomingFireEstimate,estimatedWeaponRange} from './enemy-comms.js?v=enemy-comms-1-enemy-world-response-1-enemy-audit-5-enemy-gunnery-1-enemy-plans-1-theater-1-campaign-1-theater-audit-1-repair-qa-1-mesh-1-tactical-field-2-backbone-2-world-feedback-1-enemy-fixes-1-mesh-strategy-v2-1-mesh-response-v2-1-radio-retry-1-flux-offense-1-ai-commander-20261110-enemy-operations-20261110-space-impact-20261110';
 import {drawEnemyIntentions} from './enemy-intentions.js?v=enemy-intents-2-enemy-world-response-2';
@@ -6043,6 +6043,13 @@ export class ArcadeGame {
   this.activeEnemyFirer=null;
   updateNoiseEscalation(this);
   this.enemyComms?.confirmExecution(this);
+  if(this.world.occupied&&this.time>=(this._nextEscortPowerAt||0)){
+   const network=this.world.networkTopology();
+   const capacity=escortCapacity(network.count,
+    connectedPlayerEnergySlots(this.world,network.linked));
+   synchronizeEscortPower(this.allies,capacity,this.time);
+   this._nextEscortPowerAt=this.time+1.1;
+  }
   for(const a of this.allies){
    a.hit=Math.max(0,(a.hit||0)-dt);
    updateAlly(a,this,dt);
