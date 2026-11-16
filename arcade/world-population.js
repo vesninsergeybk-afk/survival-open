@@ -342,7 +342,13 @@ export function advancePopulation(world,time){
    updateShield(c,t);
    for(const event of advanceFrontierNetwork(world,c,t))
     events.push(record(state,event.kind,c,t,{frontId:event.frontId,buoyId:event.buoyId}));
-   if(c.buildQueued&&t>=c.buildUntil){
+   // A captured, ruined or disabled factory cannot finish a hostile build
+   // queued before it changed hands. Materials were spent at the start and
+   // cannot be refunded or transformed into free reinforcements.
+   if(c.buildQueued&&!live(world,factory)){
+    c.buildQueued=false;c.buildUntil=0;
+    events.push(record(state,'build-aborted',c,t));
+   }else if(c.buildQueued&&t>=c.buildUntil){
     c.buildQueued=false;c.ready=Math.min(POPULATION.maxReserve,c.ready+POPULATION.shipsPerBuild);
     c.built+=POPULATION.shipsPerBuild;
     events.push(record(state,'build',c,t,{ships:POPULATION.shipsPerBuild}));
