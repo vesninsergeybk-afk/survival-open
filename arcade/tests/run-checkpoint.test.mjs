@@ -20,6 +20,7 @@ import {emptyEconomyExpenses,recordEconomyExpense} from '../sortie-ledger.js';
 import {transitCost} from '../base-panel.js';
 import {OPENING_ARC,createOpeningArc,beginOpeningArc} from '../opening-arc.js';
 import {advanceEnemyExpansion,enemyTerritoryFields} from '../enemy-expansion.js';
+import {advancePopulation} from '../world-population.js';
 import {createFieldLoot} from '../field-loot.js';
 import {createCombatTempo} from '../combat-tempo.js';
 import {createCombatMastery,masteryProgress} from '../combat-mastery.js';
@@ -1288,4 +1289,28 @@ test('region archives survive save and reject forged timeless or oversized threa
  assert.equal(validateCheckpoint(copy),false,'archives remain bounded');
  delete record.meshArchive;
  assert.equal(validateCheckpoint(copy),true,'legacy saves do not need the new field');
+});
+
+test('occupied builder and its seed survive an actual station checkpoint and can finish afterward',()=>{
+ const g=scene(),world=new World(1842,{occupied:true});
+ world.home.active=true;world.home.discovered=true;world.discovered.add(world.home.id);
+ Object.assign(g,{world,seed:world.seed,docked:world.home,time:34});
+ g.player.x=world.home.x+40;g.player.y=world.home.y+25;
+ const before=world.enemyExpansion.links.length;
+ assert.equal(advanceEnemyExpansion(world,34)[0]?.kind,'construction-start');
+ const craft=world.population.convoys.find(c=>c.constructionCargo);
+ assert.ok(craft);
+ const snapshot=unpackRun(packRun(captureCheckpoint(g,world.home)));
+ assert.equal(validateCheckpoint(snapshot),true);
+ const restored=scene();
+ restoreCheckpoint(restored,snapshot);
+ assert.equal(restored.world.occupied,true);
+ assert.equal(restored.seed,1842);
+ const savedBuilder=restored.world.population.convoys.find(c=>c.constructionCargo);
+ assert.equal(savedBuilder.id,craft.id);
+ assert.deepEqual(savedBuilder.constructionLink,craft.constructionLink);
+ const cutoff=Math.ceil(savedBuilder.launchedAt+savedBuilder.routeLength/savedBuilder.speed)+2;
+ advancePopulation(restored.world,cutoff);
+ assert.equal(restored.world.enemyExpansion.links.length,before+1);
+ assert.equal(restored.world.population.convoys.some(c=>c.id===craft.id),false);
 });
