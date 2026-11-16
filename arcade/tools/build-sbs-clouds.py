@@ -49,9 +49,8 @@ for i,(suffix,tint) in enumerate(SOURCES):
  backdrop=Image.new('RGBA',(512,512),(9,14,31,255))
  faded=im.copy();faded.putalpha(faded.getchannel('A').point(lambda a:round(a*.73)))
  backdrop.alpha_composite(faded)
- backdrop.convert('RGB').resize((212,212),Image.Resampling.LANCZOS)
  contact.paste(backdrop.convert('RGB').resize((212,212),Image.Resampling.LANCZOS),
   (i*220+4,5))
- p.text((i*220+10,224),f'Sector {i} • CC0',fill=(202,229,244))
+ p.text((i*220+10,224),f'Sector {i} - CC0',fill=(202,229,244))
 contact.save(root/'review.jpg',quality=88,optimize=True)
 print('PREVIEW_BYTES',(root/'review.jpg').stat().st_size)
