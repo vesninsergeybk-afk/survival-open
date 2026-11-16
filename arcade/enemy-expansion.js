@@ -227,6 +227,10 @@ export function advanceEnemyExpansion(world,time){
   state.events=events.concat(state.events).slice(0,8);
   return events;
  }
+ // Do not silently add scripted-front links in the occupied experiment.
+ // Only already occupied industrial districts can expand via physical craft.
+ // Classic arcade retains its old strategic-front construction schedule.
+ if(world.occupied)return events;
  const fronts=warFronts(world);
  if(!planValid(world,state.plan)||
   !canInvest(fronts.find(f=>f.key===state.plan?.front)))state.plan=null;
