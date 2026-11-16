@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World} from '../world.js';
+import {ensurePopulationStations} from '../world-population.js';
 import {capturedFacilityDescription,capturedFacilityEffect} from '../captured-facilities.js';
 import {RunCheckpointStore,RUN_KEYS} from '../run-checkpoint.js';
 import {autonomousStrikeCarrier} from '../carrier-interception.js';
@@ -117,6 +118,13 @@ test('captured shipyard unlocks autonomous support but ordinary hangar does not'
  hangar.enemy=false;hangar.captured=true;hangar.active=true;
  assert.equal(autonomousStrikeCarrier(factory),true);
  assert.equal(autonomousStrikeCarrier(hangar),false);
+ const classic=new World(1842),classicFactory=classic.stations.get(district.id+':factory');
+ classicFactory.enemy=false;classicFactory.captured=true;classicFactory.active=true;
+ assert.equal(autonomousStrikeCarrier(classicFactory),false,'ordinary arcade is unchanged');
+ delete factory.occupiedStrikeWing;
+ assert.equal(autonomousStrikeCarrier(factory),false);
+ ensurePopulationStations(w);
+ assert.equal(autonomousStrikeCarrier(factory),true,'old experimental saves acquire the flag safely');
  assert.match(capturedFacilityDescription(factory),/автономную ударную авиагруппу/);
  factory.hp=0;
  assert.equal(autonomousStrikeCarrier(factory),false);
