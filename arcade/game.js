@@ -12,6 +12,7 @@ import {rememberPopulationShip} from './population-runtime.js?v=sector-density-2
 import {frontierBarrierContact,FRONTIER} from './enemy-frontier-network.js?v=frontier-fence-1';
 import {SALVAGE,ruinEnemyIndustry,salvageQuote,claimRuinedIndustry} from './enemy-station-salvage.js?v=frontier-claim-1';
 import {capturedFacilityDescription,capturedFacilityEffect} from './captured-facilities.js';
+import {connectedPlayerEnergySlots} from './occupied-energy.js';
 import {POPULATION,damagePopulationShield,populationAlarm,populationColony,
  damagePopulationWorker} from './world-population.js?v=sector-density-2-frontier-siege-1-convoy-variety-20261110';
 import {updateSpaceAnomalies,drawSpaceAnomalies} from './space-anomalies.js?v=sector-density-2-frontier-siege-1-cosmic-meteorfade-v2-jarusca-20261116';
@@ -3715,6 +3716,7 @@ export class ArcadeGame {
    relayGain:this.docked&&!this.docked.relayBoost?
     Math.max(0,this.world.networkTopology(this.docked.id).count-topology.count):0,
    activeBases:this.activeBases,connectedBases:topology.count,
+   energyEscortSlots:connectedPlayerEnergySlots(this.world,topology.linked),
    turretSlotRank:this.world.contours?.turretSlotRank||0,flux:this.world.contours?.flux||0,
    activeContourTrials:this.world.contours?.trials?.completed||0,
    connected:!!this.docked?.active&&topology.linked.has(this.docked.id),
