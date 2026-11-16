@@ -77,3 +77,17 @@ export function openingSectorEnergy(world){
   enemyPercent:total?Math.round(enemy/total*100):0,
   playerPercent:total?Math.round(player/total*100):0,districts};
 }
+
+// Each generator physically connected to the pilot's existing station network
+// adds one command/charging slot. An isolated captured generator still counts
+// as owned energy, but cannot support remote escorts.
+export function connectedPlayerEnergySlots(world,linked){
+ if(!world?.occupied||!linked?.has)return 0;
+ let count=0;
+ for(const c of world.population?.colonies||[]){
+  if(!isOpeningDistrict(world,c))continue;
+  const id=sourceId(c),station=world.stations.get(id);
+  if(livePlayer(station)&&linked.has(id))count++;
+ }
+ return count;
+}
