@@ -5187,7 +5187,8 @@ export class ArcadeGame {
      this.heritage?.vfx?.shipExplosion?.(base.x,base.y,82,'#ff9a78');
      this.heritage?.play?.('largeExplosion',.52,{x:base.x,y:base.y});
      this.notice('ВРАЖЕСКИЙ УЗЕЛ РАЗРУШЕН. Сначала удержите район, затем восстановите ядро удержанием '+
-      this.controlLabel('interact')+'. К врагу узел больше не относится, но и вашей станцией пока не стал.',7);
+      this.controlLabel('interact')+'. К врагу узел больше не относится, но и вашей станцией пока не стал.'+
+      (this.world.occupied?' Через некоторое время враг может прислать ремонтный транспорт — захватите руины раньше него.':''),7);
      return;
     }
    }
