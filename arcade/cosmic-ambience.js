@@ -37,7 +37,7 @@ export function cosmicEventAt(time,sector=0){
  const age=time-42-index*126;
  if(age>=13)return null;
  // Crossing a sector boundary must not replace an event halfway through.
- const kind=['comet','distant-burst','micro-meteors'][index%3];
+ const kind=['comet','distant-burst','micro-meteors','eclipse','distant-glimmers'][index%5];
  return {kind,index,age,duration:13};
 }
 export class CosmicAmbience {
@@ -290,6 +290,38 @@ export class CosmicAmbience {
   ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(x,y,15+a*12,0,TAU);ctx.stroke();
   ctx.restore();
  }
+
+ _eclipse(ctx,w,h,event,palette){
+  const a=event.age,fade=clamp(a/2.3,0,1)*clamp((13-a)/3.5,0,1);
+  if(!fade)return;
+  const x=w*.72,y=h*.23,r=Math.min(w,h)*.17;
+  ctx.save();ctx.globalAlpha=.33*fade;
+  const g=ctx.createRadialGradient(x,y,r*.70,x,y,r*1.55);
+  g.addColorStop(0,'rgba(3,10,23,0)');
+  g.addColorStop(.28,colorA(palette.star,.36));
+  g.addColorStop(.43,colorA(palette.haze,.13));
+  g.addColorStop(1,colorA(palette.haze,0));
+  ctx.fillStyle=g;ctx.fillRect(x-r*1.55,y-r*1.55,r*3.1,r*3.1);
+  ctx.globalAlpha=.39*fade;ctx.fillStyle='#030a18';
+  ctx.beginPath();ctx.arc(x,y,r*.72,0,TAU);ctx.fill();ctx.restore();
+ }
+ _distantGlimmers(ctx,w,h,event,palette){
+  const a=event.age,fade=clamp(a/2,0,1)*clamp((13-a)/3,0,1);
+  if(!fade)return;
+  ctx.save();
+  for(let i=0;i<6;i++){
+   const pulse=Math.max(0,1-Math.abs(a-(2+i*1.14))/.8);
+   if(!pulse)continue;
+   const x=w*(.64+(i%3)*.042),y=h*(.22+Math.floor(i/3)*.052);
+   const r=8+i%3*3,g=ctx.createRadialGradient(x,y,0,x,y,r);
+   g.addColorStop(0,colorA(palette.star,.75));
+   g.addColorStop(.35,colorA(palette.haze,.28));
+   g.addColorStop(1,colorA(palette.haze,0));
+   ctx.globalAlpha=fade*pulse*.30;
+   ctx.fillStyle=g;ctx.fillRect(x-r,y-r,2*r,2*r);
+  }
+  ctx.restore();
+ }
  _smallMeteors(ctx,w,h,event,palette){
   const a=event.age,fade=clamp(a/2,0,1)*clamp((13-a)/3,0,1);
   if(!fade)return;
@@ -347,7 +379,9 @@ export class CosmicAmbience {
     ctx.globalAlpha=1;
     if(event.kind==='comet')this._comet(ctx,width,height,event,palette);
     else if(event.kind==='distant-burst')this._burst(ctx,width,height,event,palette);
-    else this._smallMeteors(ctx,width,height,event,palette);
+    else if(event.kind==='micro-meteors')this._smallMeteors(ctx,width,height,event,palette);
+    else if(event.kind==='eclipse')this._eclipse(ctx,width,height,event,palette);
+    else this._distantGlimmers(ctx,width,height,event,palette);
    }
   }
   ctx.restore();

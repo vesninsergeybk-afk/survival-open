@@ -1,5 +1,6 @@
 import {regionAt} from './regions.js?v=regions-1-living-world-population-1';
-import {CosmicAmbience} from './cosmic-ambience.js?v=sbs-cc0-deep-clouds-20261116-stellar-lanes-1';
+import {CosmicAmbience} from './cosmic-ambience.js?v=sbs-cc0-deep-clouds-20261116-stellar-lanes-1-cinematic-1';
+import {CinematicScenery} from './cinematic-scenery.js?v=cinematic-20261116-1';
 import {AnimatedAsteroids} from './animated-asteroids.js?v=jarusca-no-flash-singleframe-20261116';
 import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-defense-1-combat-balance-1-manual-cover-1-manual-audit-20261110-weapon-vfx-audit-1-pilot-value-2-opening-evasion-20261110';
 /**
@@ -204,6 +205,10 @@ export class ArcadeVisuals {
   this.skies=[document.getElementById('sky0'),document.getElementById('sky1')];
   const cosmosSetting=typeof location==='undefined'?null:new URLSearchParams(location.search).get('cosmos');
   this.cosmicAmbience=new CosmicAmbience({enabled:!['off','0','false'].includes(cosmosSetting),demo:cosmosSetting==='preview'});
+  const cinematicMode=typeof location==='undefined'?null:
+   new URLSearchParams(location.search).get('cinematic');
+  this.cinematicScenery=new CinematicScenery({enabled:this.cosmicAmbience.enabled&&
+   !['off','0','false'].includes(cinematicMode)});
   this.reducedMotion=typeof matchMedia==='function'&&
    matchMedia('(prefers-reduced-motion: reduce)').matches;
   const driftOption=typeof location==='undefined'?null:
@@ -232,7 +237,7 @@ export class ArcadeVisuals {
    sky.style.setProperty('--sector-image','url("'+SKY_IMAGES[id]+'")');
    // One true distant landmark with world-coordinate parallax.
    // Other sectors keep a clean sky instead of a screen-locked fake planet.
-   const planet=id===1&&Math.hypot(x-6000,y-40000)<18000;
+   const planet=!this.cinematicScenery?.enabled&&id===1&&Math.hypot(x-6000,y-40000)<18000;
    sky.style.setProperty('--planet-image',planet?'url("'+PLANET_ICE+'")':'none');
    sky.style.setProperty('--planet-opacity',planet?'.36':'0');
    sky.classList.add('visible');
@@ -260,6 +265,7 @@ export class ArcadeVisuals {
  // Skip the additional layer when the frame budget falls below 32 FPS.
  drawAtmosphere(ctx,cam,time,fps=60){
   this.cosmicAmbience?.draw(ctx,cam,time,fps,this.sector,this.reducedMotion);
+  this.cinematicScenery?.draw(ctx,cam,time,fps,this.reducedMotion);
   if(this.reducedMotion||fps<32)return;
   const count=fps<50?7:14,w=cam.w,h=cam.h;
   const wrap=(x,size)=>((x%size)+size)%size;

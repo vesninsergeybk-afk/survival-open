@@ -40,3 +40,11 @@ test('all scenery is optional and respects low frame rates and reduced motion',(
   assert.equal(draws,before,'query switch can fully remove the new rendering');
  }finally{globalThis.document=old;}
 });
+
+test('later atmospheric events preserve first flight and region continuity',()=>{
+ assert.equal(cosmicEventAt(420).kind,'eclipse');
+ assert.equal(cosmicEventAt(546).kind,'distant-glimmers');
+ assert.equal(cosmicEventAt(559),null);
+ for(const t of [420,428,546,551])
+  for(let s=1;s<5;s++)assert.deepEqual(cosmicEventAt(t,s),cosmicEventAt(t,0));
+});
