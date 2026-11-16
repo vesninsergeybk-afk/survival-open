@@ -89,6 +89,7 @@ export function updatePopulationWorld(game,dt){
    if(!nearby?.discovered)continue;
    if(event.kind==='alarm')game.notice('Ретранслятор передал координаты: из ангара поднимается перехват.',4);
    else if(event.kind==='build')game.notice('На вражеской верфи собраны три новых корабля.',3);
+   else if(event.kind==='build-aborted')game.notice('Сборка вражеских кораблей сорвана: верфь больше не работает на противника.',4);
    else if(event.kind==='construction-complete')game.notice('ВРАЖЕСКАЯ СЕТЬ РАСШИРИЛАСЬ · инженерный транспорт завершил новую связь.',5);
    else if(event.kind==='construction-aborted')game.notice('Вражеская стройка остановлена: один из узлов больше не принадлежит противнику.',5);
    else if(event.kind==='construction-arrived')game.notice('Вражеские инженеры начали сборку линии. Уничтожьте транспорт, пока он не завершил работу.',5);
