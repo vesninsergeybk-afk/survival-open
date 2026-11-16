@@ -63,7 +63,6 @@ test('captured industrial sites grant distinct local abilities without stacking'
 test('captured relay extends actual discovery but does not reveal distant stations',()=>{
  const w=new World(1842,{occupied:true});
  const relay=w.stations.get(initial(w,0).id+':relay');
- relay.enemy=false;relay.captured=true;relay.active=true;
  const hangar=w.stations.get(initial(w,0).id+':hangar');
  const separation=Math.hypot(relay.x-hangar.x,relay.y-hangar.y);
  assert.ok(separation>570&&separation<790,'hangar lies beyond ordinary scan range');
