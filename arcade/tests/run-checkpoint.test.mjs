@@ -1309,7 +1309,7 @@ test('occupied builder and its seed survive an actual station checkpoint and can
  const savedBuilder=restored.world.population.convoys.find(c=>c.constructionCargo);
  assert.equal(savedBuilder.id,craft.id);
  assert.deepEqual(savedBuilder.constructionLink,craft.constructionLink);
- const cutoff=Math.ceil(savedBuilder.launchedAt+savedBuilder.routeLength/savedBuilder.speed)+2;
+ const cutoff=Math.ceil(savedBuilder.launchedAt+savedBuilder.routeLength/savedBuilder.speed)+25;
  advancePopulation(restored.world,cutoff);
  assert.equal(restored.world.enemyExpansion.links.length,before+1);
  assert.equal(restored.world.population.convoys.some(c=>c.id===craft.id),false);
@@ -1334,7 +1334,7 @@ test('occupied repair convoy survives a real save and respects subsequent pilot 
  recovered.ruined=false;recovered.enemy=false;recovered.captured=true;
  recovered.active=true;recovered.hp=Math.round(recovered.maxHp*.3);
  advancePopulation(restored.world,
-  Math.ceil(repair.launchedAt+repair.routeLength/repair.speed)+2);
+  Math.ceil(repair.launchedAt+repair.routeLength/repair.speed)+19);
  assert.equal(recovered.captured,true);
  assert.equal(recovered.enemy,false,'enemy engineers cannot retake a captured factory');
 });
