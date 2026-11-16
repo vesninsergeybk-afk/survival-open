@@ -86,3 +86,22 @@ test('experimental checkpoints use separate storage keys from ordinary runs',()=
  assert.equal(new RunCheckpointStore(storage,()=>3).load(),null);
  assert.equal(new RunCheckpointStore(storage,()=>3,'occupied').load(),null);
 });
+
+test('procedural hostile industry does not overlap lazy grid stations across seeds',()=>{
+ let prevented=0;
+ for(const seed of [19,87,1842,7319,25019,97531,20261116,1199001]){
+  const occupied=new World(seed,{occupied:true}),classic=new World(seed);
+  for(let i=0;i<3;i++){
+   const district=initial(occupied,i);
+   for(const station of district.buildings){
+    const before=classic.nearbyStations(station.x,station.y,450,true)
+     .filter(s=>/^-?\\d+:-?\\d+$/.test(s.id)&&s.id!=='0:0');
+    const after=occupied.nearbyStations(station.x,station.y,450,true)
+     .filter(s=>/^-?\\d+:-?\\d+$/.test(s.id)&&s.id!=='0:0');
+    prevented+=before.length;
+    assert.deepEqual(after,[],
+     'seed '+seed+': no random station can overlap '+station.id);
+  }
+ }
+ assert.ok(prevented>0,'the regression actually encounters previously overlapping grid sites');
+});
