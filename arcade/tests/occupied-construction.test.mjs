@@ -146,3 +146,32 @@ test('shooting down repair engineers prevents rebuilding and records loss',()=>{
  assert.equal(relay.ruined,true);
  assert.equal(relay.enemy,false);
 });
+
+test('construction is vulnerable on-site after arrival, not only during flight',()=>{
+ const w=build(1842);
+ advanceEnemyExpansion(w,34);
+ const craft=project(w),link=edge(craft);
+ const reached=travelEnd(craft);
+ advancePopulation(w,reached);
+ assert.ok(craft.assemblyUntil>reached);
+ assert.equal(joined(w,link),false);
+ assert.ok(validPopulation(w.population,[...w.stations],reached));
+ craft.hp=0;
+ assert.equal(interceptPopulationCargo(w,craft,reached),true);
+ advancePopulation(w,arrival(craft));
+ assert.equal(joined(w,link),false);
+});
+
+test('capturing a station during assembly cancels hostile construction',()=>{
+ const w=build(1842);
+ advanceEnemyExpansion(w,34);
+ const craft=project(w),link=edge(craft);
+ const reached=travelEnd(craft);
+ advancePopulation(w,reached);
+ const site=w.stations.get(craft.targetId);
+ site.enemy=false;site.captured=true;site.active=true;
+ const events=advancePopulation(w,reached+1);
+ assert.ok(events.some(e=>e.kind==='construction-aborted'&&e.cargoId===craft.id));
+ assert.equal(joined(w,link),false);
+ assert.equal(project(w),undefined);
+});
