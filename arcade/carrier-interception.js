@@ -14,7 +14,8 @@ export const isCarrierBase=base=>base?.type==='carrier'&&!base?.enemy&&!base?.ca
 export const AUTONOMOUS_STRIKE_RANGE=9800;
 export const autonomousStrikeCarrier=base=>!!base?.active&&!base.enemy&&!base.suppressed&&
  base.type==='carrier'&&base.captured===true&&
- ['military','central-depot','frontier-azure-depot','frontier-teal-depot'].includes(base.strategicRole);
+ ['military','central-depot','frontier-azure-depot','frontier-teal-depot',
+  'population-factory'].includes(base.strategicRole);
 
 const rotate=(base,x,y,heading)=>({
  x:base.x+x*Math.cos(heading)-y*Math.sin(heading),
