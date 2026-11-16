@@ -222,7 +222,7 @@ export function drawPopulationWorld(game,ctx,cam){
   ctx.globalAlpha=.9;
   // A link is drawn only behind the actual moving engineer, never ahead of it.
   for(const craft of construction){
-   if(craft.colonyId!==colony.id)continue;
+   if(craft.colonyId!==colony.id||Number.isFinite(craft.assemblyUntil))continue;
    const source=game.world.stations.get(craft.sourceId);
    if(!source?.enemy||!inView(craft.x,craft.y,cam,130))continue;
    ctx.save();ctx.strokeStyle='#ffd89a';ctx.globalAlpha=.72;
