@@ -125,6 +125,11 @@ function drawIncomingMeteor(c,game,active,index,age){
   glow.addColorStop(1,'rgba(230,75,32,0)');
   c.fillStyle=glow;c.fillRect(-54,-54,108,108);
  }
+ // Prefer the same real 3D-tumble frames used by ordinary asteroids.
+ // This changes only the sprite; the existing strike zones still own all damage.
+ if(game.visuals?.rotatingAsteroids?.drawIncoming(c,active,index,age,size)){
+  c.restore();return;
+ }
  const sprites=game.visuals?.legacyMeteors;
  const art=sprites?.[(active.serial+index)%sprites.length];
  if(art?.complete&&art.naturalWidth>0){
