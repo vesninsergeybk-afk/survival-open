@@ -12,7 +12,8 @@ export const CARRIER_INTERCEPTION=Object.freeze({
 });
 export const isCarrierBase=base=>base?.type==='carrier'&&!base?.enemy&&!base?.captured;
 export const AUTONOMOUS_STRIKE_RANGE=9800;
-export const autonomousStrikeCarrier=base=>!!base?.active&&!base.enemy&&!base.suppressed&&
+export const autonomousStrikeCarrier=base=>!!base?.active&&!base.enemy&&!base.ruined&&
+ base.hp>0&&!base.suppressed&&
  base.type==='carrier'&&base.captured===true&&
  ['military','central-depot','frontier-azure-depot','frontier-teal-depot',
   'population-factory'].includes(base.strategicRole);
