@@ -154,12 +154,13 @@ export class CinematicScenery {
   this.cache.set(type,tile);return tile;
  }
  draw(ctx,cam,time=0,fps=60,reducedMotion=false){
-  if(!this.enabled||!ctx||!cam||fps<30||!(cam.w>0&&cam.h>0))return;
+  // A cached background must never blink at an FPS threshold.
+  if(!this.enabled||!ctx||!cam||!(cam.w>0&&cam.h>0))return;
   const scale=clip(Math.min(cam.w,cam.h)/650,.60,1);
   for(const item of CINEMATIC_LANDMARKS){
    const size=item.size*scale;if(!landmarkVisible(item,cam,size))continue;
    const p=landmarkPosition(item,cam),tile=this._tile(item.kind);if(!tile)continue;
-   ctx.save();ctx.globalAlpha=item.alpha*(fps<42?.72:1);
+   ctx.save();ctx.globalAlpha=item.alpha;
    ctx.drawImage(tile,p.x-size/2,p.y-size/2,size,size);ctx.restore();
   }
  }
