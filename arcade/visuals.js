@@ -1,5 +1,5 @@
 import {regionAt} from './regions.js?v=regions-1-living-world-population-1';
-import {CosmicAmbience} from './cosmic-ambience.js?v=sbs-cc0-deep-clouds-20261116';
+import {CosmicAmbience} from './cosmic-ambience.js?v=sbs-cc0-deep-clouds-20261116-stellar-lanes-1';
 import {AnimatedAsteroids} from './animated-asteroids.js?v=jarusca-no-flash-singleframe-20261116';
 import {drawInstalledModules} from './ship-weapons.js?v=mouse-area-1-triangle-defense-1-combat-balance-1-manual-cover-1-manual-audit-20261110-weapon-vfx-audit-1-pilot-value-2-opening-evasion-20261110';
 /**

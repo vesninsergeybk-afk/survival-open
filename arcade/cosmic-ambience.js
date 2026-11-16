@@ -80,6 +80,28 @@ export class CosmicAmbience {
     if(px>-18&&px<TILE+18&&py>-18&&py<TILE+18)stamp(px,py,size,bright,glow);
    }
   }
+
+  // Distant stellar associations baked into the existing far tile.
+  // The same stars stay in place at every FPS; there is no new render pass.
+  if(spec.seed===layers[0].seed){
+   for(let cluster=0;cluster<2;cluster++){
+    const cx=145+random()*(TILE-290),cy=145+random()*(TILE-290);
+    const radius=65+random()*34,angle=random()*TAU;
+    const glow=c.createRadialGradient(cx,cy,0,cx,cy,radius);
+    glow.addColorStop(0,'rgba(166,202,255,.075)');
+    glow.addColorStop(.46,'rgba(124,162,227,.026)');
+    glow.addColorStop(1,'rgba(124,162,227,0)');
+    c.fillStyle=glow;c.fillRect(cx-radius,cy-radius,2*radius,2*radius);
+    const ca=Math.cos(angle),sa=Math.sin(angle);
+    for(let j=0;j<42;j++){
+     // Distributed rather than perfectly uniform: a diffuse stellar nursery.
+     const along=(random()+random()+random()-1.5)*radius*.84;
+     const across=(random()+random()+random()-1.5)*radius*.33;
+     const x=cx+along*ca-across*sa,y=cy+along*sa+across*ca;
+     stamp(x,y,.34+random()*.56,.15+random()*.39,j===0);
+    }
+   }
+  }
   return canvas;
  }
  _makeHaze(sector){
@@ -119,12 +141,23 @@ export class CosmicAmbience {
    const secondary=Math.exp(-Math.pow((v-y2)/(.13+fbm*.11),2))*.46;
    const edge=Math.pow(Math.max(0,1-Math.pow((u-.5)/.51,4)),1.8)*
     Math.pow(Math.max(0,1-Math.pow((v-.5)/.51,4)),1.8);
-   const concentration=Math.max(0,(fbm-.33)*2.65),light=(ribbon+secondary)*edge*concentration;
-   const alpha=Math.max(0,Math.min(210,Math.round(light*150)));
-   const k=(y*SIZE+x)*4,highlight=Math.min(1,Math.max(0,(fbm-.55)*2.8));
-   rgba.data[k]=Math.min(255,red*(.7+.32*highlight)+36*highlight);
-   rgba.data[k+1]=Math.min(255,green*(.65+.36*highlight)+40*highlight);
-   rgba.data[k+2]=Math.min(255,blue*(.75+.28*highlight)+27*highlight);
+   const concentration=Math.max(0,(fbm-.33)*2.65);
+   // An uneven dark channel and a fine light filament break up flat fog.
+   // Both are baked into the existing 256px texture, once per region.
+   const faultY=spine+.028*Math.sin(u*14.8+fbm*6+sector*.7);
+   const dust=Math.exp(-Math.pow((v-faultY)/(.017+n2*.026),2));
+   const threadY=spine-.064+.022*Math.sin(u*17.3+fbm*5+sector*.4);
+   const thread=Math.exp(-Math.pow((v-threadY)/.018,2));
+   const cloud=(ribbon+secondary)*edge*concentration;
+   const veins=thread*edge*Math.max(0,(fbm-.37)*1.9);
+   const alpha=Math.max(0,Math.min(210,Math.round(
+    cloud*(1-.64*dust)*150+veins*29)));
+   const k=(y*SIZE+x)*4;
+   const highlight=clamp((fbm-.55)*2.8+veins*.24,0,1);
+   const shadow=1-.38*dust;
+   rgba.data[k]=Math.min(255,(red*(.7+.32*highlight)+36*highlight)*shadow);
+   rgba.data[k+1]=Math.min(255,(green*(.65+.36*highlight)+40*highlight)*shadow);
+   rgba.data[k+2]=Math.min(255,(blue*(.75+.28*highlight)+27*highlight)*shadow);
    rgba.data[k+3]=alpha;
   }
   c.putImageData(rgba,0,0);

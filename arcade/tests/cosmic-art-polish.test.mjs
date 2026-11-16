@@ -66,3 +66,20 @@ test('nebula region changes crossfade and eventually release the previous textur
   assert.equal(sky.previousHaze,null,'old texture is released after transition');
  }finally{globalThis.document=old;}
 });
+
+test('stellar associations are baked into the far star texture only',()=>{
+ const old=globalThis.document;
+ let arcs=0;
+ const brush={fillRect(){},beginPath(){},arc(){arcs++;},fill(){},
+  createRadialGradient(){return {addColorStop(){}};}};
+ globalThis.document={createElement:()=>({
+  width:0,height:0,getContext:()=>brush
+ })};
+ try{
+  const sky=new CosmicAmbience(),spec={factor:.018,count:135,alpha:.42};
+  arcs=0;sky._createTile({...spec,seed:0x7221a1});const plain=arcs;
+  arcs=0;sky._createTile({...spec,seed:0x2fc031});const clustered=arcs;
+  assert.ok(clustered>plain+55,
+   'stellar clusters are cached in the far tile rather than drawn each frame');
+ }finally{globalThis.document=old;}
+});
