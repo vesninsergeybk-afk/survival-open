@@ -15,8 +15,9 @@ export const AUTONOMOUS_STRIKE_RANGE=9800;
 export const autonomousStrikeCarrier=base=>!!base?.active&&!base.enemy&&!base.ruined&&
  base.hp>0&&!base.suppressed&&
  base.type==='carrier'&&base.captured===true&&
- ['military','central-depot','frontier-azure-depot','frontier-teal-depot',
-  'population-factory'].includes(base.strategicRole);
+ (['military','central-depot','frontier-azure-depot','frontier-teal-depot']
+ .includes(base.strategicRole)||
+ base.strategicRole==='population-factory'&&base.occupiedStrikeWing===true);
 
 const rotate=(base,x,y,heading)=>({
  x:base.x+x*Math.cos(heading)-y*Math.sin(heading),
