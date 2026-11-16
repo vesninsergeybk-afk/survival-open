@@ -1,5 +1,6 @@
 import {contactOnCircle} from './impact-geometry.js?v=arcade-impact-51';
 import {advanceCoreRepulsion} from './core-rock-clearance.js';
+import {hash} from './balance.js';
 
 /* Lightweight resource interaction: deterministic local rocks, no new particles or physics engine. */
 // Holding E starts extraction: the primary alloy source. Incidental beam and meteor
@@ -64,26 +65,48 @@ export function impactRock(rock,damage,sourceX,sourceY,kind='auto') {
  if(rock.hp<=0){rock.alive=false;return true;}
  return false;
 }
-export function updateRockMotion(rock,dt) {
+// Tiny real-world drift for a stable subset of ordinary rocks. We integrate
+// differences of two deterministic positions rather than changing the
+// rendered position alone: collision, beams and mining see exactly the same
+// rock coordinates as the player. No added save fields, RNG or world spawns.
+export function applyRockAmbientDrift(rock,dt,time){
+ if(!rock?.alive||rock.rich||!Number.isFinite(dt)||dt<=0||
+    !Number.isFinite(time)||time<=0||!Number.isFinite(rock.r))return false;
+ const x=Math.round(rock.originX??rock.x),y=Math.round(rock.originY??rock.y);
+ if(hash(x,y,9461)>=.60)return false;
+ const amp=4+Math.min(7,rock.r*.105);
+ const wx=2*Math.PI/(23+hash(x,y,1726)*12);
+ const wy=2*Math.PI/(31+hash(x,y,1771)*14);
+ const a=hash(x,y,1711)*2*Math.PI,b=hash(x,y,1993)*2*Math.PI;
+ const previous=Math.max(0,time-dt);
+ const dx=amp*(Math.sin(time*wx+a)-Math.sin(previous*wx+a));
+ const dy=amp*.68*(Math.sin(time*wy+b)-Math.sin(previous*wy+b));
+ rock.x+=dx;rock.y+=dy;
+ return true;
+}
+
+export function updateRockMotion(rock,dt,time=0,ambientEnabled=false) {
  if(!rock.alive)return;
- // A newly formed territorial socket is stronger than ordinary hit recoil.
- // Let its dedicated animation finish before applying the cell-bound leash.
+ // Territorial sockets have priority over ordinary drift and impacts.
  if(advanceCoreRepulsion(rock,dt))return;
- // Most procedural rocks are untouched. Their position, angle and overlays
- // cannot change until an impact wakes them, even in the wider zoomed view.
- if(!rock.vx&&!rock.vy&&!rock.spinVelocity&&!rock.flash&&!rock.heat)return;
- rock.flash=Math.max(0,(rock.flash||0)-dt*2.7);
- rock.heat=Math.max(0,(rock.heat||0)-dt*.65);
- const drag=Math.exp(-3.1*dt);
- rock.vx=(rock.vx||0)*drag;rock.vy=(rock.vy||0)*drag;
- rock.x+=(rock.vx||0)*dt;rock.y+=(rock.vy||0)*dt;
- rock.spin=(rock.spin||0)+(rock.spinVelocity||0)*dt;
- rock.spinVelocity=(rock.spinVelocity||0)*Math.exp(-2.3*dt);
- // Rocks live in their original procedural cell. Keep displacement bounded.
+ const moving=!!(rock.vx||rock.vy||rock.spinVelocity||rock.flash||rock.heat);
+ if(moving){
+  rock.flash=Math.max(0,(rock.flash||0)-dt*2.7);
+  rock.heat=Math.max(0,(rock.heat||0)-dt*.65);
+  const drag=Math.exp(-3.1*dt);
+  rock.vx=(rock.vx||0)*drag;rock.vy=(rock.vy||0)*drag;
+  rock.x+=(rock.vx||0)*dt;rock.y+=(rock.vy||0)*dt;
+  rock.spin=(rock.spin||0)+(rock.spinVelocity||0)*dt;
+  rock.spinVelocity=(rock.spinVelocity||0)*Math.exp(-2.3*dt);
+ }
+ // Preserve a rock's hit reaction while the gentle orbit continues.
+ if(ambientEnabled)applyRockAmbientDrift(rock,dt,time);
+ if(!moving&&!ambientEnabled)return;
+ // Both ordinary recoil and ambient drift stay inside the original cell.
  const ox=rock.originX??rock.x,oy=rock.originY??rock.y;
  const away=Math.hypot(rock.x-ox,rock.y-oy);
  if(away>86){const k=86/away;rock.x=ox+(rock.x-ox)*k;rock.y=oy+(rock.y-oy)*k;
-  rock.vx*=.12;rock.vy*=.12;}
+  rock.vx=(rock.vx||0)*.12;rock.vy=(rock.vy||0)*.12;}
 }
 export function drawRockScars(ctx,rock) {
  const max=Math.max(1,rock.maxHp),wound=Math.max(0,1-rock.hp/max);
