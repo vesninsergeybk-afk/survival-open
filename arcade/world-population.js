@@ -37,8 +37,15 @@ const warped=(x,y,rotation)=>({
 });
 const regionName=id=>REGIONS.find(r=>r.id===id)?.name||id;
 
-function colonyPosition(seed,region,index){
+function colonyPosition(seed,region,index,occupied=false){
  const k=index+1,offset=hash(k,region.length,seed)-.5;
+ // An occupied-sector run starts near an already functioning hostile district.
+ // Vary the approach direction between runs while preserving a quiet home dock.
+ if(occupied&&region==='amethyst'&&index<3){
+  const angle=hash(811,17,seed)*TAU+[0,2.17,4.31][index];
+  const radius=[3150,4250,5350][index];
+  return {x:Math.cos(angle)*radius,y:Math.sin(angle)*radius};
+ }
  if(region==='amethyst'){
   // A spiral, spaced by area, covers the middle rather than forming one ring.
   const fraction=(index+.5)/POPULATION.coloniesPerRegion;
@@ -54,8 +61,8 @@ function colonyPosition(seed,region,index){
  return {x:Math.cos(angle)*radius,y:Math.sin(angle)*radius};
 }
 
-function colony(seed,region,index){
- const center=colonyPosition(seed,region,index),id='colony:'+region+':'+index;
+function colony(seed,region,index,occupied=false){
+ const center=colonyPosition(seed,region,index,occupied),id='colony:'+region+':'+index;
  const rotation=hash(index,region.length,seed+87)*TAU;
  const tier=region==='amethyst'?Math.min(5,1+Math.floor(index/2)):
   Math.min(5,2+Math.floor(index/2));
@@ -90,9 +97,9 @@ function colony(seed,region,index){
  return district;
 }
 
-export function createPopulation(seed=20261102,time=0){
+export function createPopulation(seed=20261102,time=0,occupied=false){
  const colonies=REGIONS.flatMap(region=>Array.from(
-  {length:POPULATION.coloniesPerRegion},(_,index)=>colony(seed,region.id,index)));
+  {length:POPULATION.coloniesPerRegion},(_,index)=>colony(seed,region.id,index,occupied)));
  return {version:1,seed,clock:Math.floor(time),colonies,convoys:[],
   serial:0,launched:0,intercepted:0,arrived:0,events:[]};
 }
@@ -100,10 +107,10 @@ export function createPopulation(seed=20261102,time=0){
 // Populate old 30-colony checkpoints without moving, healing or refilling
 // their existing industrial districts. Newly added districts begin at the
 // restored simulation clock, so resumed games retain the player's progress.
-export function expandSavedPopulation(state,seed,time){
- if(!state)return createPopulation(seed,time);
+export function expandSavedPopulation(state,seed,time,occupied=false){
+ if(!state)return createPopulation(seed,time,occupied);
  if(state.colonies.length>=REGIONS.length*POPULATION.coloniesPerRegion)return state;
- const template=createPopulation(seed,time),ids=new Set(state.colonies.map(c=>c.id));
+ const template=createPopulation(seed,time,occupied),ids=new Set(state.colonies.map(c=>c.id));
  for(const c of template.colonies)if(!ids.has(c.id))state.colonies.push(c);
  return state;
 }
@@ -176,7 +183,8 @@ export function seedPopulationTerritory(world){
  if(!state?.links)return;
  const seen=new Set(state.links.map(([a,b])=>[a,b].sort().join('|')));
  for(const colony of world.population.colonies){
-  if(colony.index%3!==1&&!colony.fortress)continue;
+  if(colony.index%3!==1&&!colony.fortress&&
+   !(world.occupied&&colony.region==='amethyst'&&colony.index<3))continue;
   const ids=['extractor','factory','relay'].map(role=>roleId(colony,role));
   for(let i=0;i<3;i++){
    const a=ids[i],b=ids[(i+1)%3],key=[a,b].sort().join('|');
