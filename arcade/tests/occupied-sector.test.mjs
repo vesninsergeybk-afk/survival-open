@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {World} from '../world.js';
 import {capturedFacilityDescription,capturedFacilityEffect} from '../captured-facilities.js';
 import {RunCheckpointStore,RUN_KEYS} from '../run-checkpoint.js';
+import {autonomousStrikeCarrier} from '../carrier-interception.js';
 
 const initial=(world,index)=>world.population.colonies.find(c=>c.region==='amethyst'&&c.index===index);
 const radius=c=>Math.hypot(c.x,c.y);
@@ -104,4 +105,23 @@ test('procedural hostile industry does not overlap lazy grid stations across see
   }
  }
  assert.ok(prevented>0,'the regression actually encounters previously overlapping grid sites');
+});
+
+test('captured shipyard unlocks autonomous support but ordinary hangar does not',()=>{
+ const w=new World(1842,{occupied:true});
+ const district=initial(w,0);
+ const factory=w.stations.get(district.id+':factory');
+ const hangar=w.stations.get(district.id+':hangar');
+ assert.equal(autonomousStrikeCarrier(factory),false);
+ factory.enemy=false;factory.captured=true;factory.active=true;
+ hangar.enemy=false;hangar.captured=true;hangar.active=true;
+ assert.equal(autonomousStrikeCarrier(factory),true);
+ assert.equal(autonomousStrikeCarrier(hangar),false);
+ assert.match(capturedFacilityDescription(factory),/автономную ударную авиагруппу/);
+ factory.hp=0;
+ assert.equal(autonomousStrikeCarrier(factory),false);
+ factory.hp=factory.maxHp;factory.ruined=true;
+ assert.equal(autonomousStrikeCarrier(factory),false);
+ factory.ruined=false;factory.suppressed=true;
+ assert.equal(autonomousStrikeCarrier(factory),false);
 });
