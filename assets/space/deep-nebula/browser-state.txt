@@ -1,1 +1,0 @@
-{"sector":0,"texture":"ready","ready":true,"pattern":true,"textureEnabled":true,"detailChangedAt":1,"canvas":34}
