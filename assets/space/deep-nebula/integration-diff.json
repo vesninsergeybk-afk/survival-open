@@ -1,10 +1,5 @@
 {
-  "avg_channel_delta": 8.959,
-  "changed_pixel_fraction": 0.744,
-  "max_pixel_delta": 87,
-  "preview_shape": [
-    720,
-    1280,
-    3
-  ]
+  "avg_channel_delta": 9.231,
+  "changed_pixel_fraction": 0.7669,
+  "max_pixel_delta": 92
 }

@@ -1,0 +1,56 @@
+[
+  {
+    "sector": 0,
+    "texture": "ready",
+    "ready": true,
+    "pattern": true,
+    "textureEnabled": true,
+    "detailChangedAt": 1,
+    "canvas": 36
+  },
+  {
+    "sector": 1,
+    "texture": "ready",
+    "ready": true,
+    "pattern": true,
+    "textureEnabled": true,
+    "detailChangedAt": 1,
+    "canvas": 116
+  },
+  {
+    "sector": 2,
+    "texture": "ready",
+    "ready": true,
+    "pattern": true,
+    "textureEnabled": true,
+    "detailChangedAt": 1,
+    "canvas": 46
+  },
+  {
+    "sector": 3,
+    "texture": "ready",
+    "ready": true,
+    "pattern": true,
+    "textureEnabled": true,
+    "detailChangedAt": 1,
+    "canvas": 86
+  },
+  {
+    "sector": 4,
+    "texture": "ready",
+    "ready": true,
+    "pattern": true,
+    "textureEnabled": true,
+    "detailChangedAt": 1,
+    "canvas": 71
+  },
+  {
+    "sector": 0,
+    "texture": "idle",
+    "ready": false,
+    "pattern": false,
+    "textureEnabled": false,
+    "detailChangedAt": 0,
+    "canvas": 12
+  }
+]
