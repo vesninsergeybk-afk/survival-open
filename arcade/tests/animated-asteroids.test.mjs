@@ -65,3 +65,64 @@ test('animated rocks paint exactly one 75px atlas frame with existing collision 
   assert.equal(new AnimatedAsteroids({enabled:false}).image,null);
  }finally{globalThis.Image=old;}
 });
+
+
+test('rotation advances often enough at 60 FPS instead of the old 1.4–2.7 frames/s',()=>{
+ for(const r of [rock(4,7),rock(57,103),rock(-214,125),rock(90,-17)]){
+  const pose=asteroidAnimationPose(r,0);
+  assert.ok(pose.period>=2&&pose.period<2.95);
+  assert.equal(pose.nextFrame,(pose.frame+1)%23);
+  assert.ok(pose.blend>=0&&pose.blend<1);
+  let changes=0,last=pose.frame;
+  for(let i=1;i<=60;i++){
+   const frame=asteroidAnimationPose(r,i/60).frame;
+   if(frame!==last)changes++;
+   last=frame;
+  }
+  assert.ok(changes>=7&&changes<=12,'sprite advances every ~85–130 ms');
+ }
+});
+
+test('frame blending is bounded and disabled on stressed frames with hysteresis',()=>{
+ const old=globalThis.Image;let source;
+ class MockImage{
+  constructor(){source=this;this.naturalWidth=1725;this.naturalHeight=675;}
+  set src(value){this._src=value;}
+ }
+ globalThis.Image=MockImage;
+ try{
+  const painter=new AnimatedAsteroids();
+  source.onload();
+  const rocks=Array.from({length:500},(_,i)=>rock(19*i+9,301+i,64)).
+   filter(r=>asteroidAnimationEligible(r)).slice(0,48);
+  assert.equal(rocks.length,48);
+  const ctx={globalAlpha:1,save(){},restore(){},translate(){},rotate(){},
+   drawCalls:0,drawImage(){this.drawCalls++;}};
+  painter.beginFrame(60);
+  rocks.forEach(r=>painter.draw(ctx,r,18.65));
+  assert.equal(painter.qualityTier,3);
+  assert.ok(painter.blendedDraws>0);
+  assert.ok(painter.blendedDraws<=12,'only twelve rocks may get a second draw call');
+  assert.equal(ctx.drawCalls,painter.animatedDraws+painter.blendedDraws);
+  assert.equal(painter.animatedDraws,48);
+  painter.beginFrame(50);
+  assert.equal(painter.qualityTier,3,'no flashing at the 50 FPS boundary');
+  painter.beginFrame(47);
+  assert.equal(painter.qualityTier,2);
+  painter.beginFrame(52);
+  assert.equal(painter.qualityTier,2,'quality does not oscillate at threshold');
+  painter.beginFrame(38);
+  assert.equal(painter.qualityTier,1);
+  painter.beginFrame(30);
+  assert.equal(painter.qualityTier,0);
+  assert.equal(painter.draw(ctx,rocks[0],19),false,'slow frame uses old still-image fallback');
+  painter.beginFrame(35);
+  assert.equal(painter.qualityTier,0);
+  painter.beginFrame(38);
+  assert.equal(painter.qualityTier,1);
+  painter.beginFrame(46);
+  assert.equal(painter.qualityTier,2);
+  painter.beginFrame(56);
+  assert.equal(painter.qualityTier,3);
+ }finally{globalThis.Image=old;}
+});
