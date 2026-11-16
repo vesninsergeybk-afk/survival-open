@@ -29,7 +29,12 @@ const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const operating=b=>b?.captured&&b.active&&!b.enemy&&!b.ruined&&!b.suppressed&&b.hp>0;
 export function capturedFacilityDescription(base){
   const spec=CAPTURED_FACILITY_EFFECTS[base?.strategicRole];
-  return spec?'Трофей: '+spec.title+'. '+spec.description:'';
+  if(!spec)return '';
+  const source=base?.strategicRole==='population-extractor'&&
+   /^colony:amethyst:[0-2]$/.test(base.colonyId||'');
+  return 'Трофей: '+spec.title+'. '+spec.description+
+   (source?' Захвачено 12 единиц энергетической мощности района.'+
+    ' Вражеский завод лишится сетевого питания и перейдёт на конечный резерв.':'');
 }
 export function capturedFacilityEffect(world,position){
   const result={miningMultiplier:1,discoveryBonus:0};
