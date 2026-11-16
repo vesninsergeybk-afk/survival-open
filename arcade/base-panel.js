@@ -177,7 +177,7 @@ export function baseOffer(base,state){
  const ore=Math.max(0,state.ore|0),connected=!!state.connected;
  const drone=DEFAULT_DRONE,tech=TECH[base.type]||TECH.dock;
  const level=state.network[tech.key]|0;
- const cap=escortCapacity(state.connectedBases);
+ const cap=escortCapacity(state.connectedBases,state.energyEscortSlots);
  const upgradeCost=52+level*34;
  const relayCost=activationCost(state.civilianBases??state.activeBases??0);
  const provisional=!base.active&&base.id!=='0:0'&&!base.enemy&&!base.ruined&&!(base.hp<=0);
