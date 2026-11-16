@@ -811,7 +811,7 @@ export function updateAlly(a,game,dt){
   const spec=ESCORTS[a.role]||ESCORTS.fighter;
   a.think=(a.think||0)-dt;a.fire=(a.fire||0)-dt;
   const farFromPlayer=dist(a,p)>235;
-  const holdingFire=!!game.holdFire;
+  const holdingFire=!!game.holdFire||!!a.powerStandby;
   const guardingExtraction=!!game.mining?.active&&!holdingFire;
   if(holdingFire&&(a.state!=='follow'||a.target)){
    a.state='follow';a.target=null;a.commitUntil=game.time;
@@ -947,7 +947,7 @@ export function updateAlly(a,game,dt){
       }
     }
   }
-  if(a.role==='medic'&&(a.serviceAt||0)<=game.time){
+  if(a.role==='medic'&&!a.powerStandby&&(a.serviceAt||0)<=game.time){
     const wounded=(game.allies||[]).filter(other=>other.hp>0&&other.hp<other.maxHp&&
      dist(a,other)<220).sort((left,right)=>left.hp/left.maxHp-right.hp/right.maxHp);
     const patient=wounded[0];
