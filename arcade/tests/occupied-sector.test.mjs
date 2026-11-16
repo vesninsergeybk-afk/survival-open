@@ -105,6 +105,7 @@ test('procedural hostile industry does not overlap lazy grid stations across see
      'seed '+seed+': no random station can overlap '+station.id);
   }
  }
+ }
  assert.ok(prevented>0,'the regression actually encounters previously overlapping grid sites');
 });
 
