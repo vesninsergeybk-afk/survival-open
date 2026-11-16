@@ -1,5 +1,16 @@
 const TAU=Math.PI*2;
 const TILE=768;
+// Optional, preprocessed CC0 nebula gas. The original approved sector images
+// remain behind Canvas in CSS; failures here must never stop the game.
+const DETAIL_IMAGES=[
+ '../assets/space/deep-nebula/cloud-0.webp',
+ '../assets/space/deep-nebula/cloud-1.webp',
+ '../assets/space/deep-nebula/cloud-2.webp',
+ '../assets/space/deep-nebula/cloud-3.webp',
+ '../assets/space/deep-nebula/cloud-4.webp'
+];
+export const NEBULA_DETAIL_SIZE=512;
+
 // Purely scenic. World physics, saves, combat RNG, and controls are untouched.
 const PALETTES=[
  {haze:'#9672d4',star:'#c9d9ff'},
@@ -30,10 +41,19 @@ export function cosmicEventAt(time,sector=0){
  return {kind,index,age,duration:13};
 }
 export class CosmicAmbience {
- constructor({enabled=true,demo=false}={}){
+ constructor({enabled=true,demo=false,textures=true}={}){
   this.enabled=!!enabled;this.demo=!!demo;
   this.tiles=[];this.haze=null;this.hazeSector=-1;
   this.previousHaze=null;this.hazeChangedAt=0;
+  const option=typeof location==='undefined'?null:
+   new URLSearchParams(location.search).get('skytexture');
+  this.textures=!!textures&&!['off','0','false'].includes(option);
+  this.detailImages=Array(5).fill(null);
+  this.detailStates=Array(5).fill('idle');
+  this.detailPatterns=Array(5).fill(null);
+  this.detailReadyAt=Array(5).fill(Infinity);
+  this.detailSector=-1;this.detailPrevious=-1;
+  this.detailChangedAt=0;this.lastTime=0;
  }
  _createTile(spec){
   if(typeof document==='undefined'||typeof document.createElement!=='function')return null;
@@ -109,6 +129,71 @@ export class CosmicAmbience {
   }
   c.putImageData(rgba,0,0);
   return canvas;
+ }
+ _loadDetail(sector){
+  if(!this.textures||this.detailStates[sector]!=='idle')return;
+  // A single local image for the active sector, loaded asynchronously.
+  // The original game still paints if WebP or network loading fails.
+  if(typeof Image==='undefined')return;
+  this.detailStates[sector]='loading';
+  try{
+   const img=new Image();
+   img.decoding='async';
+   img.onload=()=>{
+    if(img.naturalWidth===NEBULA_DETAIL_SIZE&&
+       img.naturalHeight===NEBULA_DETAIL_SIZE){
+     this.detailImages[sector]=img;
+     this.detailReadyAt[sector]=this.lastTime;
+     this.detailStates[sector]='ready';
+    }else this.detailStates[sector]='failed';
+   };
+   img.onerror=()=>{this.detailStates[sector]='failed';};
+   img.src=new URL(DETAIL_IMAGES[sector],import.meta.url).href;
+  }catch{this.detailStates[sector]='failed';}
+ }
+ _drawDetails(ctx,cam,time,fps,sector,reducedMotion){
+  if(!this.textures)return;
+  if(sector!==this.detailSector){
+   this.detailPrevious=this.detailSector;
+   this.detailSector=sector;
+   this.detailChangedAt=time;
+  }
+  this.lastTime=time;
+  this._loadDetail(sector);
+  const transition=clamp((time-this.detailChangedAt)/2.6,0,1);
+  const steady=!!reducedMotion||fps<34;
+  const scale=1.6;
+  for(let pass=0;pass<2;pass++){
+   const index=pass===0?this.detailPrevious:sector;
+   if(index<0||index===sector&&pass===0)continue;
+   const img=this.detailImages[index];
+   if(!img)continue;
+   let pattern=this.detailPatterns[index];
+   if(!pattern){
+    pattern=ctx.createPattern?.(img,'repeat');
+    if(!pattern)continue;
+    this.detailPatterns[index]=pattern;
+   }
+   const changed=pass===0?1-transition:transition;
+   const loaded=clamp((time-this.detailReadyAt[index])/1.7,0,1);
+   const alpha=.62*changed*loaded;
+   if(alpha<.004)continue;
+   // One repeated texture over the entire screen, not hundreds of
+   // per-star/per-cloud draw calls. Drift slowly with the camera.
+   const dx=steady?0:-cam.x*.009+Math.sin(time*.019)*17;
+   const dy=steady?0:-cam.y*.007+Math.cos(time*.015)*14;
+   const ox=((dx%(NEBULA_DETAIL_SIZE*scale))+(NEBULA_DETAIL_SIZE*scale))%
+     (NEBULA_DETAIL_SIZE*scale);
+   const oy=((dy%(NEBULA_DETAIL_SIZE*scale))+(NEBULA_DETAIL_SIZE*scale))%
+     (NEBULA_DETAIL_SIZE*scale);
+   ctx.save();
+   ctx.globalAlpha=alpha;
+   ctx.translate(ox,oy);ctx.scale(scale,scale);
+   ctx.fillStyle=pattern;
+   ctx.fillRect(-ox/scale,-oy/scale,cam.w/scale,cam.h/scale);
+   ctx.restore();
+  }
+  if(transition>=1)this.detailPrevious=-1;
  }
  _stars(ctx,cam,layer,spec,width,height,alpha){
   const texture=this.tiles[layer];if(!texture)return;
@@ -196,6 +281,8 @@ export class CosmicAmbience {
   const s=clamp(sector|0,0,PALETTES.length-1),palette=PALETTES[s];
   const low=fps<34,steady=!!reducedMotion;
   ctx.save();
+  // CC0 cloud filaments are behind all moving stars and world objects.
+  this._drawDetails(ctx,cam,time,fps,s,steady);
   this._stars(ctx,steady?{x:0,y:0}:cam,0,layers[0],width,height,.42);
   if(!low&&!steady){
    this._stars(ctx,cam,1,layers[1],width,height,.28);
