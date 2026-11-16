@@ -100,8 +100,8 @@ export function updateRockMotion(rock,dt,time=0,ambientEnabled=false) {
   rock.spinVelocity=(rock.spinVelocity||0)*Math.exp(-2.3*dt);
  }
  // Preserve a rock's hit reaction while the gentle orbit continues.
- if(ambientEnabled)applyRockAmbientDrift(rock,dt,time);
- if(!moving&&!ambientEnabled)return;
+ const drifting=ambientEnabled&&applyRockAmbientDrift(rock,dt,time);
+ if(!moving&&!drifting)return;
  // Both ordinary recoil and ambient drift stay inside the original cell.
  const ox=rock.originX??rock.x,oy=rock.originY??rock.y;
  const away=Math.hypot(rock.x-ox,rock.y-oy);
