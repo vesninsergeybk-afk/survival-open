@@ -202,3 +202,27 @@ test('ordinary auto-targeting and damage pipeline can really intercept an engine
   e.kind==='construction-intercept'&&e.cargoId===craft.id));
  assert.ok(drops.some(d=>d.kind==='ore'&&d.amount>0));
 });
+
+test('captured or destroyed factories cannot finish previously queued enemy ships',()=>{
+ for(const fate of ['captured','ruined']){
+  const world=build(1842);
+  const c=world.population.colonies.find(c=>c.region==='amethyst'&&c.index===0);
+  const factory=world.stations.get(c.id+':factory');
+  advancePopulation(world,1);
+  assert.equal(c.buildQueued,true,'enemy ship production has actually started');
+  const reserved=c.ready,built=c.built,costPaid=c.pool;
+  if(fate==='captured'){
+   factory.enemy=false;factory.captured=true;factory.active=true;
+  }else{
+   factory.enemy=false;factory.ruined=true;factory.hp=0;factory.active=false;
+  }
+  const events=advancePopulation(world,2);
+  assert.ok(events.some(e=>e.colonyId===c.id&&e.kind==='build-aborted'));
+  assert.equal(c.buildQueued,false);
+  assert.equal(c.ready,reserved,'no enemy ships emerge from a lost factory');
+  assert.equal(c.built,built);
+  assert.equal(c.pool,costPaid,'materials committed before capture stay spent');
+  advancePopulation(world,35);
+  assert.equal(c.built,built,'the old order cannot revive much later');
+ }
+});
