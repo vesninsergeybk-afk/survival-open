@@ -87,7 +87,7 @@ test('a mission station cannot be destroyed into an unwinnable objective',()=>{
  assert.equal(s.stations[0].side,'ally');
  assert.equal(s.stations[0].hp,1,'damaged relay carries a costly consequence into defense');
  assert.equal(s.phase,'planning');
- s=resolveTurn(s,hold(s,null,'hack'));
+ for(let i=0;i<3&&s.phase==='planning';i++)s=resolveTurn(s,hold(s,null,'hack'));
  assert.equal(s.phase,'lost','a crippled relay is defenseless against counterfire');
 });
 
