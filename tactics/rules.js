@@ -22,16 +22,16 @@ const makeShip=(id,role,x,y,side='enemy')=>({id,role,side,x,y,hp:ROLES[role].hp,
 const ARRANGEMENTS=[
  [['scout',750,375],['scout',820,610],['fighter',1040,510],['medic',1200,730]],
  [['scout',740,380],['fighter',920,520],['medic',1180,340],['rocket',1300,750],['fighter',1510,470]],
- [['fighter',700,325],['scout',810,730],['leader',1190,515],['rocket',1450,300],['medic',1430,760],['brawler',1670,535]]
+ [['fighter',700,325],['scout',810,730],['leader',1040,515],['medic',1300,760]]
 ];
 export function createMission(index=0,seed=1729,retained=null){
  const mission=clamp(Math.trunc(index)||0,0,MISSIONS.length-1),random=rnd(seed+mission*311);
  const ships=ARRANGEMENTS[mission].map((a,i)=>makeShip('hostile-'+mission+'-'+i,a[0],clamp(a[1]+(random()-.5)*105,100,FIELD.width-80),clamp(a[2]+(random()-.5)*100,100,FIELD.height-80)));
  const carried=(retained?.ships||[]).filter(s=>s.side==='ally'&&s.hp>0).slice(0,FIELD.maxAllies);
  carried.forEach((s,i)=>ships.push({...makeShip('ally-'+mission+'-'+i,s.role,300+(i%3)*46,480+Math.floor(i/3)*65,'ally'),hp:clamp(s.hp+16,1,ROLES[s.role].hp)}));
- const stations=mission===0?[]:[{id:mission===1?'relay':'core',role:mission===1?'relay':'core',x:1540,y:510,side:'enemy',hp:180,hack:0}];
+ const stations=mission===0?[]:[{id:mission===1?'relay':'core',role:mission===1?'relay':'core',x:mission===1?1120:1250,y:510,side:'enemy',hp:180,hack:0}];
  const asteroids=Array.from({length:9},(_,i)=>({x:clamp(300+random()*1200,170,1650),y:clamp(150+random()*760,130,920),r:19+random()*27}));
- return {version:1,mission,seed,turn:0,networkSlots:Math.max(0,Math.min(4,Math.trunc(retained?.networkSlots||0))),player:{x:220,y:530,hp:retained?clamp(retained.player.hp+30,45,110):110,maxHp:110},ships,stations,asteroids,phase:'planning',message:'Выберите цель и направление, затем выполните ход.',events:[],lastPlan:null};
+ return {version:1,mission,seed,turn:0,networkSlots:Math.max(0,Math.min(4,Math.trunc(retained?.networkSlots||0))),player:{x:220,y:530,hp:110,maxHp:110},ships,stations,asteroids,phase:'planning',message:'Выберите цель и направление, затем выполните ход.',events:[],lastPlan:null};
 }
 export function getUnit(state,id){
  if(id==='player')return state.player;
@@ -125,6 +125,9 @@ export function resolveTurn(input,requested){
  for(const enemy of aliveEnemies(state)){
   if(enemy.suppressed>0){enemy.suppressed--;continue;}
   const intended=aimForEnemy(state,enemy);
+  // Enemy weapons reload every other turn. Different units alternate shots,
+  // preventing a synchronized opening volley from deciding the entire mission.
+  if((state.turn+(Number(enemy.id.slice(-1))||0))%2===0)continue;
   if(distance(enemy,intended)<=ROLES[enemy.role].range)
    hit(intended,ROLES[enemy.role].damage,enemy,'enemy');
  }
