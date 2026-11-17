@@ -327,7 +327,8 @@ function execute(){
  const before=world,after=resolveTurn(before,plan);
  transition={before,after,start:performance.now()};
  world=after;save();
- plan={...plan,targetId:getUnit(world,plan.targetId)?.side==='enemy'?plan.targetId:null,destination:{x:world.player.x,y:world.player.y}};
+ plan={...plan,action:plan.action==='pulse'&&!world.player.charge?'hack':plan.action,
+  targetId:getUnit(world,plan.targetId)?.side==='enemy'?plan.targetId:null,destination:{x:world.player.x,y:world.player.y}};
  manualWaypoint=false;
  $('execute').disabled=true;renderUI();
 }
