@@ -64,3 +64,15 @@
  .salvage-choice{font-size:11px;padding:10px 8px}
  .salvage-panel h2{font-size:15px}
 }
+
+
+/* Protocol v3 after-action clarity. */
+.turn-events-panel{padding:12px 14px;background:linear-gradient(130deg,#152638,#1b293d)}
+.turn-events-panel .eyebrow{margin-bottom:7px}
+.turn-events-panel ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.turn-events-panel li{position:relative;padding-left:13px;font-size:11px;line-height:1.45;color:#d3dfe9}
+.turn-events-panel li:before{content:'•';position:absolute;left:1px;color:#71dcc1}
+.unit-control #clear-ally-orders{background:#242c42;border-color:#52617f;color:#d6dbef}
+.secondary-actions button{min-width:0;padding:9px 5px;font-size:10px}
+#music-toggle[aria-pressed="true"]{color:#a2f3ce;border-color:#3caa83;background:#1b423d}
+@media(max-width:520px){.turn-events-panel{padding:10px 12px}.unit-control #clear-ally-orders{font-size:10px}}
