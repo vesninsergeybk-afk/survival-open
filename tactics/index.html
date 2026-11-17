@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c1726">
+<meta name="description" content="Выживший: Протокол. Пошаговые космические миссии с одновременными ходами, захватом кораблей и подчинением станций.">
+<title>Выживший: Протокол — пошаговая тактика</title>
+<link rel="icon" href="../assets/space/ship_scout.png">
+<link rel="stylesheet" href="./style.css?v=protocol-1">
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+  <a class="back" href="https://vesninmed.ru/lab/" aria-label="Вернуться в Лабораторию абсурда">← <span>Лаборатория</span></a>
+  <div class="brand"><span class="brand-badge">S / P</span><span><strong>ВЫЖИВШИЙ: ПРОТОКОЛ</strong><small>Пошаговые миссии · экспериментальный режим</small></span></div>
+  <a class="classic" href="../arcade/" title="Открыть исходный Выживший">Аркада ↗</a>
+</header>
+<div class="layout">
+ <main class="battle" aria-label="Поле боя">
+  <canvas id="field" aria-label="Космический сектор. Выберите корабль для захвата либо точку движения.">Ваш браузер не поддерживает Canvas.</canvas>
+  <div class="canvas-top">
+   <span class="chip" id="sector-chip">СЕКТОР 01</span>
+   <span class="chip" id="turn-chip">ХОД 01</span>
+   <span class="chip phase-chip" id="phase-chip">ПЛАНИРОВАНИЕ</span>
+  </div>
+  <div class="zoom-control" aria-label="Масштаб карты">
+   <button id="zoom-out" type="button" aria-label="Отдалить">−</button><output id="zoom-value">100%</output><button id="zoom-in" type="button" aria-label="Приблизить">+</button>
+  </div>
+  <div class="legend"><span><i class="dot friendly"></i> союзники</span><span><i class="dot hostile"></i> враги</span><span><i class="dot selected"></i> цель взлома</span></div>
+  <div class="guide" id="battle-guide">Коснитесь красного корабля, чтобы выбрать цель. Коснитесь пустого места — чтобы задать маршрут.</div>
+ </main>
+ <aside class="sidebar" aria-label="Планирование хода">
+  <div class="mission">
+   <p class="eyebrow">ОПЕРАЦИЯ <span id="mission-n">01 / 03</span></p>
+   <h1 id="mission-name">Чужой сигнал</h1>
+   <p id="mission-desc">Перепрограммируйте вражеские корабли.</p>
+  </div>
+  <div class="stats" aria-label="Состояние боя">
+   <div><small>КОРПУС</small><strong id="player-health">110 / 110</strong><div class="meter"><span id="health-bar"></span></div></div>
+   <div><small>СВОИ / ЛИМИТ</small><strong id="squad-size">0 / 2</strong><div class="meter green"><span id="squad-bar"></span></div></div>
+  </div>
+  <div class="panel plan-panel">
+   <p class="eyebrow">ВАШ ПРИКАЗ</p>
+   <div class="order-grid">
+    <button id="order-hack" class="order selected" type="button" aria-pressed="true"><span class="order-icon">⌁</span><span><strong>Взлом</strong><small>Q · подчинить</small></span></button>
+    <button id="order-shot" class="order" type="button" aria-pressed="false"><span class="order-icon">✦</span><span><strong>Выстрел</strong><small>F · повредить</small></span></button>
+   </div>
+   <div class="target-box">
+    <small>ВЫБРАННАЯ ЦЕЛЬ</small>
+    <strong id="target-name">Нет цели</strong>
+    <span id="target-status">Выберите вражеский корабль на карте</span>
+   </div>
+   <div class="target-box waypoint-box">
+    <small>НАПРАВЛЕНИЕ ДВИЖЕНИЯ</small>
+    <strong id="destination-name">Удерживать позицию</strong>
+    <span>Нажмите на свободную точку поля</span>
+   </div>
+  </div>
+  <button id="execute" class="execute" type="button">▶ Выполнить ход <span>ПРОБЕЛ</span></button>
+  <button id="next" class="next" type="button" hidden>Следующая миссия →</button>
+  <div id="status" class="status" role="status" aria-live="polite">Приказы ждут подтверждения.</div>
+  <div class="secondary-actions">
+   <button id="replay" type="button">↻ Начать миссию заново</button>
+   <button id="help" type="button">? Правила</button>
+  </div>
+  <p class="tip">Планирование не ограничено временем. После подтверждения все корабли действуют одновременно. Союзники сами прикрывают героя и прекращают огонь по цели взлома.</p>
+ </aside>
+</div>
+</div>
+<dialog id="help-dialog" class="modal">
+ <div class="modal-header"><h2>Как играть</h2><button id="help-close" type="button" aria-label="Закрыть">×</button></div>
+ <p>Ваша цель — обратить вражеские корабли на свою сторону, а затем захватить управляющие станции. Корабли стреляют и движутся одновременно во время каждого хода.</p>
+ <ol>
+  <li><strong>Нажмите на вражеский корабль</strong>, чтобы выбрать цель. Выбранный объект подсвечивается.</li>
+  <li><strong>Нажмите на пустое место</strong>, чтобы указать, куда двигаться.</li>
+  <li>Выберите «Взлом» либо «Выстрел» и нажмите «Выполнить ход».</li>
+  <li>Для взлома нужно находиться рядом с целью либо передавать сигнал через собственного корабля. Накопленный прогресс виден вокруг цели.</li>
+  <li>Если команда перепрограммирования выполнена, корабль становится постоянным союзником. На следующих миссиях вы сохраняете уцелевшие машины.</li>
+ </ol>
+ <p>Если все места управления заняты, взлом временно обезоружит цель. Захваченный ретранслятор увеличивает вместимость флота.</p>
+ <p>На компьютере: <kbd>Q</kbd> — взлом, <kbd>F</kbd> — выстрел, <kbd>Пробел</kbd> — выполнить ход. На телефоне используйте кнопки.</p>
+ <button id="help-ready" class="execute" type="button">Начать операцию</button>
+</dialog>
+<script type="module" src="./game.js?v=protocol-1"></script>
+</body>
+</html>

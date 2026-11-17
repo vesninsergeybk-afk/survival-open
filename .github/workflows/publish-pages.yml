@@ -10,6 +10,7 @@ on:
       - "tools/verify-pages-bundle.mjs"
       - "index.html"
       - "arcade/**"
+      - "tactics/**"
       - "src/**"
       - "audio-lab/**"
       - "tools/prepare-cc0-sfx.mjs"
@@ -64,6 +65,9 @@ jobs:
       - name: Validate arcade before publication
         run: node --test arcade/tests/*.test.mjs
 
+      - name: Validate tactical mission simulator
+        run: node --test tactics/tests/*.test.mjs
+
       - name: Verify public sound catalog and permitted recordings
         run: node audio-lab/smoke-test.mjs
 
@@ -76,12 +80,16 @@ jobs:
           cp index.html .nojekyll _site/
           cp asset-gallery.html _site/
           cp -R arcade/. _site/arcade/
+          mkdir -p _site/tactics
+          cp -R tactics/. _site/tactics/
           cp -R assets _site/assets
           cp -R src audio-lab _site/
           cp asset-gallery.html _site/asset-gallery.html
           mkdir -p _site/visual-lab
           cp -R visual-lab/. _site/visual-lab/
           test -f _site/arcade/index.html
+          test -f _site/tactics/index.html
+          test -f _site/tactics/rules.js
           test -f _site/asset-gallery.html
           test -f _site/visual-lab/index.html
           test -f _site/assets/space/hero-evolution/ship_10_damaged.png || test -f _site/assets/space/hero-evolution/ship_10_damaged.webp
