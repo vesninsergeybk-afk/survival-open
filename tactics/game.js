@@ -125,6 +125,14 @@ function drawStation(st,cam){
  ctx.fillText(st.role==='relay'?'РЕТРАНСЛЯТОР':'ЦЕНТР ИИ',p.x,p.y+size*.77);
  if(st.id===plan.targetId){ctx.strokeStyle='#ffe28f';ctx.setLineDash([4,6]);ctx.beginPath();ctx.arc(p.x,p.y,size*.92,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
  if(st.hack>0){ctx.strokeStyle='#62edc8';ctx.lineWidth=5;ctx.beginPath();ctx.arc(p.x,p.y,size*.77,-Math.PI/2,-Math.PI/2+Math.PI*2*st.hack/hackNeed(world,st));ctx.stroke();}
+ if(st.side==='ally'){
+  const bar=Math.max(45,100*cam.s);ctx.fillStyle='#1a2e3a';
+  ctx.fillRect(p.x-bar/2,p.y+size*.88,bar,7);
+  ctx.fillStyle=st.hp/st.maxHp<.4?'#ff967f':'#65f0cd';
+  ctx.fillRect(p.x-bar/2,p.y+size*.88,bar*Math.max(0,st.hp/st.maxHp),7);
+  ctx.textAlign='center';ctx.font='700 10px system-ui';ctx.fillStyle='#fff1cf';
+  ctx.fillText('ЗАЩИТА '+Math.ceil(st.hp)+'/'+st.maxHp,p.x,p.y+size*1.13);
+ }
 }
 function draw(now){
  if(!view.w||!ctx)return;
@@ -231,7 +239,10 @@ function renderUI(){
  outlook=world.phase==='planning'?forecastTurn(world,plan):null;
  $('mission-n').textContent=String(world.mission+1).padStart(2,'0')+' / '+String(MISSIONS.length).padStart(2,'0');
  $('mission-name').textContent=mission.name.replace(/^\d+ \/ /,'');
- $('mission-desc').textContent=mission.brief;
+ const node=world.stations.find(x=>x.role==='relay'&&x.side==='ally');
+ $('mission-desc').textContent=node&&Number.isInteger(world.securedAt)?
+  'Контратака! Удержите ретранслятор ещё '+Math.max(0,3-(world.turn-world.securedAt))+' хода. Целостность: '+Math.ceil(node.hp)+'/'+node.maxHp+'.':
+  mission.brief;
  $('player-health').textContent=Math.ceil(hp)+' / '+world.player.maxHp;
  $('health-bar').style.width=(100*hp/world.player.maxHp)+'%';
  $('squad-size').textContent=allies.length+' / '+capacity;
@@ -274,6 +285,7 @@ function renderUI(){
    'По вам: ≈ '+outlook.incoming+' ед. урона':'По вам: прямых попаданий не ожидается';
   const shots=outlook.shots.length,cover=outlook.shots.filter(x=>x.cover).length;
   $('forecast-detail').textContent='Прогноз залпов: '+shots+'; через укрытие: '+cover+'. '+
+   (node?'По ретранслятору: '+outlook.shots.filter(x=>x.to.id===node.id).reduce((a,x)=>a+x.amount,0)+' ед. урона. ':'')+
    (plan.action==='pulse'?(outlook.pulseActive?'Импульс подавит противников в радиусе.':'Нет заряда для импульса.'):
    plan.action==='boost'?'Рывок снижает урон по герою.':plan.action==='hack'&&outlook.canHack?'Канал взлома после движения открыт.':'');
   const wave=outlook.nextWave;
