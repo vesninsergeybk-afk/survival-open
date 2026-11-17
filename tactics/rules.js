@@ -30,7 +30,7 @@ export function createMission(index=0,seed=1729,retained=null){
  const ships=ARRANGEMENTS[mission].map((a,i)=>makeShip('hostile-'+mission+'-'+i,a[0],clamp(a[1]+(random()-.5)*105,100,FIELD.width-80),clamp(a[2]+(random()-.5)*100,100,FIELD.height-80)));
  const carried=(retained?.ships||[]).filter(s=>s.side==='ally'&&s.hp>0).slice(0,FIELD.maxAllies);
  carried.forEach((s,i)=>ships.push({...makeShip('ally-'+mission+'-'+i,s.role,300+(i%3)*46,480+Math.floor(i/3)*65,'ally'),hp:clamp(s.hp+16,1,ROLES[s.role].hp)}));
- const stations=mission===0?[]:[{id:mission===1?'relay':'core',role:mission===1?'relay':'core',x:mission===1?1120:1250,y:510,side:'enemy',hp:mission===1?120:180,maxHp:mission===1?120:180,hack:0}];
+ const stations=mission===0?[]:[{id:mission===1?'relay':'core',role:mission===1?'relay':'core',x:mission===1?1120:1250,y:510,side:'enemy',hp:mission===1?140:180,maxHp:mission===1?140:180,hack:0}];
  const asteroids=[{x:500,y:410,r:78},{x:915,y:740,r:68},...Array.from({length:7},()=>({x:clamp(320+random()*1180,170,1650),y:clamp(130+random()*770,130,920),r:24+random()*30}))];
  const startingHp=Number.isFinite(retained?.player?.hp)?clamp(retained.player.hp+24,40,110):110;
  const startingCharge=Number.isFinite(retained?.player?.charge)?clamp(retained.player.charge+1,0,2):2;
