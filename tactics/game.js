@@ -9,6 +9,38 @@ const fixedSeed=Number(params.get('seed'));
 const SEED=Number.isInteger(fixedSeed)&&fixedSeed>0&&fixedSeed<1e9?fixedSeed:1729;
 let world=load()||createMission(0,SEED),plan={action:'hack',formation:'escort',targetId:null,allyOrders:{},destination:{x:world.player.x,y:world.player.y}};
 let outlook=null,selectedAlly=null,selectedUpgrade=null;
+let musicEnabled=false,music=null;
+const MUSIC=['cosmic-journey.ogg','galactic-pulse.ogg','stellar-confrontation.ogg','lunar-rampage.ogg'];
+function syncMusic(){
+ if(!musicEnabled)return;
+ if(!music){music=new Audio();music.preload='none';music.loop=true;music.volume=.35;}
+ const desired=new URL('../assets/audio/music/'+MUSIC[world.mission],location.href).href;
+ if(music.src!==desired){music.src=desired;music.load();}
+ music.play().catch(()=>{musicEnabled=false;music.pause();$('music-toggle').setAttribute('aria-pressed','false');$('music-toggle').textContent='♫ Музыка недоступна';});
+}
+function toggleMusic(){
+ musicEnabled=!musicEnabled;
+ $('music-toggle').setAttribute('aria-pressed',String(musicEnabled));
+ $('music-toggle').textContent=musicEnabled?'♫ Выключить':'♫ Музыка';
+ if(musicEnabled)syncMusic();else music?.pause();
+}
+function describeTurn(state){
+ const notes=[];
+ for(const ev of state.events||[]){
+  if(ev.kind==='captured')notes.push(ev.station?'Станция перешла под ваш контроль.':'Перепрограммирован: '+(ROLES[ev.role]?.name||'корабль')+'.');
+  else if(ev.kind==='lost')notes.push(ev.side==='ally'?'Потерян союзный корабль.':'Вражеский корабль уничтожен.');
+  else if(ev.kind==='reserve')notes.push('Подкрепление противника: '+(ROLES[ev.role]?.name||'корабль')+'.');
+  else if(ev.kind==='raid')notes.push('Контратака! Защитите захваченный узел.');
+  else if(ev.kind==='pulse')notes.push('Импульс: противники поблизости временно подавлены.');
+  else if(ev.kind==='overload')notes.push('Сеть занята: противник временно обезоружен.');
+ }
+ const losses={player:0,convoy:0,relay:0};
+ for(const ev of state.events||[])if(ev.kind==='shot'&&ev.weapon==='enemy'&&ev.to in losses)losses[ev.to]+=ev.amount;
+ if(losses.player)notes.push('Корпус героя: −'+losses.player+'.');
+ if(losses.convoy)notes.push('Транспорт: −'+losses.convoy+'.');
+ if(losses.relay)notes.push('Ретранслятор: −'+losses.relay+'.');
+ return notes.slice(-4);
+}
 let manualWaypoint=false,zoomFactor=1,drag=null,pan={x:0,y:0},view={w:1,h:1,dpr:1};
 let transition=null,lastFrame=performance.now(),sparkles=[];
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -374,6 +406,10 @@ function renderUI(){
   'Выберите один из двух трофеев.';
  $('next').disabled=!selectedUpgrade;
  $('status').textContent=world.message;
+ const events=$('turn-events');events.replaceChildren();
+ for(const msg of describeTurn(world).length?describeTurn(world):['В этом ходе заметных событий нет.']){
+  const item=document.createElement('li');item.textContent=msg;events.append(item);
+ }
  $('zoom-value').textContent=Math.round(zoomFactor*100)+'%';
  $('replay').textContent=world.phase==='won'&&world.mission===MISSIONS.length-1?'↻ Новая кампания':'↻ Начать миссию заново';
 }
@@ -420,7 +456,7 @@ function next(){
  if(transition||world.phase!=='won'||!selectedUpgrade)return;
  world=nextMission(world,selectedUpgrade);
  plan={action:'hack',formation:'escort',allyOrders:{},targetId:null,destination:{x:world.player.x,y:world.player.y}};
- selectedUpgrade=null;selectedAlly=null;manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();
+ selectedUpgrade=null;selectedAlly=null;manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();syncMusic();syncMusic();
 }
 function restart(){
  if(transition)return;
@@ -460,6 +496,8 @@ for(const mode of ['escort','strike','relay'])
  $('formation-'+mode).addEventListener('click',()=>{plan.formation=mode;renderUI();});
 $('execute').addEventListener('click',execute);
 $('focus-player').addEventListener('click',()=>{selectedAlly=null;world.message='Теперь свободная точка задаёт маршрут героя.';renderUI();});
+$('clear-ally-orders').addEventListener('click',()=>{plan.allyOrders={};selectedAlly=null;world.message='Маршруты союзников сброшены.';renderUI();draw(performance.now());});
+$('music-toggle').addEventListener('click',toggleMusic);
 for(let i=0;i<2;i++)$('upgrade-'+i).addEventListener('click',()=>{
  if(world.phase!=='won')return;
  selectedUpgrade=REWARDS[world.mission]?.[i]?.id||null;
