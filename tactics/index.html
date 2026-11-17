@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0c1726">
-<meta name="description" content="Выживший: Протокол. Пошаговые космические миссии с одновременными ходами, захватом кораблей и подчинением станций.">
+<meta name="description" content="Выживший: Протокол. Пошаговые миссии с прогнозом угроз, укрытиями, приказами союзникам, захватом кораблей и электронным подавлением.">
 <title>Выживший: Протокол — пошаговая тактика</title>
 <link rel="icon" href="../assets/space/ship_scout.png">
-<link rel="stylesheet" href="./style.css?v=protocol-1">
+<link rel="stylesheet" href="./style.css?v=protocol-2">
 </head>
 <body>
 <div class="shell">
@@ -28,7 +28,7 @@
    <button id="zoom-out" type="button" aria-label="Отдалить">−</button><output id="zoom-value">100%</output><button id="zoom-in" type="button" aria-label="Приблизить">+</button>
   </div>
   <div class="legend"><span><i class="dot friendly"></i> союзники</span><span><i class="dot hostile"></i> враги</span><span><i class="dot selected"></i> цель взлома</span></div>
-  <div class="guide" id="battle-guide">Коснитесь красного корабля, чтобы выбрать цель. Коснитесь пустого места — чтобы задать маршрут.</div>
+  <div class="guide" id="battle-guide">Выберите противника и маршрут. Пунктирные красные линии показывают ожидаемые выстрелы следующего хода; астероиды прикрывают от огня.</div>
  </main>
  <aside class="sidebar" aria-label="Планирование хода">
   <div class="mission">
@@ -39,12 +39,15 @@
   <div class="stats" aria-label="Состояние боя">
    <div><small>КОРПУС</small><strong id="player-health">110 / 110</strong><div class="meter"><span id="health-bar"></span></div></div>
    <div><small>СВОИ / ЛИМИТ</small><strong id="squad-size">0 / 2</strong><div class="meter green"><span id="squad-bar"></span></div></div>
+   <div><small>ИМПУЛЬСЫ</small><strong id="pulse-charge">2 / 2</strong><div class="meter cyan"><span id="pulse-bar"></span></div></div>
   </div>
   <div class="panel plan-panel">
    <p class="eyebrow">ВАШ ПРИКАЗ</p>
    <div class="order-grid">
     <button id="order-hack" class="order selected" type="button" aria-pressed="true"><span class="order-icon">⌁</span><span><strong>Взлом</strong><small>Q · подчинить</small></span></button>
-    <button id="order-shot" class="order" type="button" aria-pressed="false"><span class="order-icon">✦</span><span><strong>Выстрел</strong><small>F · повредить</small></span></button>
+    <button id="order-shot" class="order" type="button" aria-pressed="false"><span class="order-icon">✦</span><span><strong>Выстрел</strong><small>F · сбить прицел</small></span></button>
+    <button id="order-boost" class="order" type="button" aria-pressed="false"><span class="order-icon">➤</span><span><strong>Рывок</strong><small>B · уйти от залпа</small></span></button>
+    <button id="order-pulse" class="order" type="button" aria-pressed="false"><span class="order-icon">◉</span><span><strong>Импульс</strong><small>E · подавить рядом</small></span></button>
    </div>
    <div class="target-box">
     <small>ВЫБРАННАЯ ЦЕЛЬ</small>
@@ -57,6 +60,21 @@
     <span>Нажмите на свободную точку поля</span>
    </div>
   </div>
+  <div class="panel squad-panel">
+   <p class="eyebrow">ПРИКАЗ ЭСКАДРИЛЬЕ</p>
+   <div class="formation-grid" role="group" aria-label="Режим союзных кораблей">
+    <button id="formation-escort" class="formation selected" type="button" aria-pressed="true">Прикрытие</button>
+    <button id="formation-strike" class="formation" type="button" aria-pressed="false">Штурм</button>
+    <button id="formation-relay" class="formation" type="button" aria-pressed="false">Реле</button>
+   </div>
+   <p id="formation-help" class="formation-help">Союзники держатся у героя и ведут огонь по ближайшим врагам.</p>
+  </div>
+  <div class="panel threat-panel" role="status" aria-live="polite">
+   <p class="eyebrow">ПРОГНОЗ СЛЕДУЮЩЕГО ХОДА</p>
+   <strong id="forecast-damage">Проверяем огневые линии</strong>
+   <p id="forecast-detail">Измените маршрут или приказ, чтобы увидеть последствия.</p>
+   <p id="reserve-warning" class="reserve-warning"></p>
+  </div>
   <button id="execute" class="execute" type="button">▶ Выполнить ход <span>ПРОБЕЛ</span></button>
   <button id="next" class="next" type="button" hidden>Следующая миссия →</button>
   <div id="status" class="status" role="status" aria-live="polite">Приказы ждут подтверждения.</div>
@@ -64,24 +82,25 @@
    <button id="replay" type="button">↻ Начать миссию заново</button>
    <button id="help" type="button">? Правила</button>
   </div>
-  <p class="tip">Планирование не ограничено временем. После подтверждения все корабли действуют одновременно. Союзники сами прикрывают героя и прекращают огонь по цели взлома.</p>
+  <p class="tip">Приказы исполняются одновременно. В прогнозе учитываются движение противника и укрытия, но уничтоженные в этот ход корабли успевают выстрелить. Время на планирование не ограничено.</p>
  </aside>
 </div>
 </div>
 <dialog id="help-dialog" class="modal">
  <div class="modal-header"><h2>Как играть</h2><button id="help-close" type="button" aria-label="Закрыть">×</button></div>
- <p>Ваша цель — обратить вражеские корабли на свою сторону, а затем захватить управляющие станции. Корабли стреляют и движутся одновременно во время каждого хода.</p>
+ <p>Это тактическая кампания из трёх коротких миссий. Ваша задача — захватывать технику и станции, сохраняя собственный корабль и уцелевшую эскадрилью. Движение, взлом и залпы исполняются одновременно.</p>
  <ol>
   <li><strong>Нажмите на вражеский корабль</strong>, чтобы выбрать цель. Выбранный объект подсвечивается.</li>
   <li><strong>Нажмите на пустое место</strong>, чтобы указать, куда двигаться.</li>
-  <li>Выберите «Взлом» либо «Выстрел» и нажмите «Выполнить ход».</li>
-  <li>Для взлома нужно находиться рядом с целью либо передавать сигнал через собственного корабля. Накопленный прогресс виден вокруг цели.</li>
-  <li>Если команда перепрограммирования выполнена, корабль становится постоянным союзником. На следующих миссиях вы сохраняете уцелевшие машины.</li>
+  <li><strong>Выберите действие:</strong> взлом, выстрел, рывок или импульс. Рывок позволяет переместиться дальше и уменьшает урон по вам. Импульс расходует один заряд и подавляет противников вокруг корабля.</li>
+  <li>Для взлома нужно приблизиться к противнику или провести сигнал через союзника. Вражеский глушитель перекрывает удалённую передачу; его можно подавить выстрелом или захватить. Прогресс взлома виден вокруг цели.</li>
+  <li><strong>Назначьте роль эскадрилье:</strong> «Прикрытие» — держаться у героя; «Штурм» — атаковать агрессивнее; «Реле» — помочь взлому ценой отказа от огня. Захваченные корабли остаются с вами в следующих миссиях.</li>
+  <li><strong>Смотрите прогноз:</strong> красный пунктир обозначает ожидаемые залпы. Астероиды снижают урон при попадании на линию огня. Резервы врага прибывают в заранее указанный ход.</li>
  </ol>
- <p>Если все места управления заняты, взлом временно обезоружит цель. Захваченный ретранслятор увеличивает вместимость флота.</p>
- <p>На компьютере: <kbd>Q</kbd> — взлом, <kbd>F</kbd> — выстрел, <kbd>Пробел</kbd> — выполнить ход. На телефоне используйте кнопки.</p>
+ <p>Выстрел подавляет выжившую цель на следующий ход. Захват корабля восстанавливает заряд импульса. Если все места управления заняты, взлом временно обезоружит противника. Ретранслятор увеличивает вместимость эскадрильи; повреждения героя и союзников частично сохраняются между миссиями.</p>
+ <p>На компьютере: <kbd>Q</kbd> — взлом, <kbd>F</kbd> — выстрел, <kbd>B</kbd> — рывок, <kbd>E</kbd> — импульс, <kbd>Пробел</kbd> — выполнить ход. На телефоне доступны все те же кнопки.</p>
  <button id="help-ready" class="execute" type="button">Начать операцию</button>
 </dialog>
-<script type="module" src="./game.js?v=protocol-1"></script>
+<script type="module" src="./game.js?v=protocol-2"></script>
 </body>
 </html>
