@@ -252,6 +252,10 @@ function renderUI(){
  $('sector-chip').textContent='СЕКТОР '+String(world.mission+1).padStart(2,'0');
  $('turn-chip').textContent='ХОД '+String(world.turn+1).padStart(2,'0');
  $('phase-chip').textContent=transition?'ИСПОЛНЕНИЕ':world.phase==='planning'?'ПЛАНИРОВАНИЕ':world.phase==='won'?'ПОБЕДА':'ПОРАЖЕНИЕ';
+ const objectiveDanger=node&&outlook?outlook.shots.filter(x=>x.to.id===node.id).reduce((sum,x)=>sum+x.amount,0):0;
+ $('risk-chip').textContent=world.phase!=='planning'?'БОЙ ЗАВЕРШЁН':
+   objectiveDanger>0?'УЗЕЛ −'+objectiveDanger:outlook?.incoming>0?'ПО ВАМ −'+outlook.incoming:'ЗАЛПОВ ПО ВАМ: 0';
+ $('risk-chip').classList.toggle('danger',world.phase==='planning'&&(objectiveDanger>0||outlook?.incoming>0));
  $('order-hack').classList.toggle('selected',plan.action==='hack');
  $('order-shot').classList.toggle('selected',plan.action==='shot');
  $('order-hack').setAttribute('aria-pressed',String(plan.action==='hack'));
