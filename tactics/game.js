@@ -456,13 +456,13 @@ function next(){
  if(transition||world.phase!=='won'||!selectedUpgrade)return;
  world=nextMission(world,selectedUpgrade);
  plan={action:'hack',formation:'escort',allyOrders:{},targetId:null,destination:{x:world.player.x,y:world.player.y}};
- selectedUpgrade=null;selectedAlly=null;manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();syncMusic();syncMusic();
+ selectedUpgrade=null;selectedAlly=null;manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();syncMusic();
 }
 function restart(){
  if(transition)return;
  const full=world.phase==='won'&&world.mission===MISSIONS.length-1;
  world=createMission(full?0:world.mission,world.seed,full?null:world.entry);
- plan={action:'hack',formation:'escort',allyOrders:{},targetId:null,destination:{x:world.player.x,y:world.player.y}};selectedUpgrade=null;selectedAlly=null;manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();
+ plan={action:'hack',formation:'escort',allyOrders:{},targetId:null,destination:{x:world.player.x,y:world.player.y}};selectedUpgrade=null;selectedAlly=null;manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();syncMusic();
 }
 function animate(now){
  const elapsed=clamp((now-lastFrame)/1000,0,.15);lastFrame=now;
