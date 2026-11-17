@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {FIELD,MISSIONS,createMission,resolveTurn,nextMission,aliveAllies,aliveEnemies,canRelay,tacticalCapacity,inside} from '../rules.js';
+import {FIELD,MISSIONS,createMission,resolveTurn,nextMission,aliveAllies,aliveEnemies,canRelay,tacticalCapacity,inside,distance,forecastTurn} from '../rules.js';
 const hold=(s,targetId,action='hack')=>({targetId,action,destination:{x:s.player.x,y:s.player.y}});
 test('three finite missions remain bounded and independently generated',()=>{
  assert.equal(MISSIONS.length,3);
@@ -58,12 +58,17 @@ test('mission victory transfers surviving captured allies into the next sector',
  assert.equal(next.mission,1);assert.equal(aliveAllies(next).length,2);assert.equal(next.phase,'planning');
  assert.ok(next.player.hp>=s.player.hp);
 });
-test('station capture changes tactical capacity and completes its mission',()=>{
+test('station capture increases squad capacity and triggers a three-turn counterattack',()=>{
  let s=createMission(1,1842);const relay=s.stations[0];
  s.ships=[];s.player.x=relay.x-100;s.player.y=relay.y;
  for(let i=0;i<3;i++)s=resolveTurn(s,hold(s,relay.id));
- assert.equal(s.phase,'won');
+ assert.equal(s.phase,'planning','capture is not instant victory');
  assert.equal(s.stations[0].side,'ally');assert.equal(tacticalCapacity(s),4);
+ assert.ok(s.ships.some(u=>u.id.startsWith('raid-relay-')));
+ for(let i=0;i<3&&s.phase==='planning';i++)
+  s=resolveTurn(s,{action:s.player.charge>0?'pulse':'shot',destination:s.player});
+ assert.equal(s.phase,'won');
+ assert.ok(s.stations[0].hp>0);
 });
 test('mission shell exposes separate controls and retains the original arcade link',()=>{
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
@@ -79,7 +84,11 @@ test('a mission station cannot be destroyed into an unwinnable objective',()=>{
  assert.ok(s.stations[0].hp>=1);
  assert.equal(s.phase,'planning');
  for(let i=0;i<3;i++)s=resolveTurn(s,hold(s,relay.id,'hack'));
- assert.equal(s.phase,'won');
+ assert.equal(s.stations[0].side,'ally');
+ assert.equal(s.stations[0].hp,1,'damaged relay carries a costly consequence into defense');
+ assert.equal(s.phase,'planning');
+ s=resolveTurn(s,hold(s,null,'hack'));
+ assert.equal(s.phase,'lost','a crippled relay is defenseless against counterfire');
 });
 
 test('captured relay bandwidth persists with the allied squad into the final mission',()=>{
@@ -94,23 +103,32 @@ test('captured relay bandwidth persists with the allied squad into the final mis
  assert.equal(aliveAllies(final).length,3);
 });
 
-test('all three missions have an achievable hacking-first route under live enemy fire',()=>{
- let state=createMission(0,1729);
- for(let mission=0;mission<MISSIONS.length;mission++){
-  for(let k=0;k<24&&state.phase==='planning';k++){
-   const target=mission===0?
-    aliveEnemies(state).sort((a,b)=>Math.hypot(a.x-state.player.x,a.y-state.player.y)-
-      Math.hypot(b.x-state.player.x,b.y-state.player.y))[0]:
-    state.stations[0];
-   assert.ok(target,'there must be an accessible objective');
-   const dx=state.player.x-target.x,dy=state.player.y-target.y;
-   const distance=Math.hypot(dx,dy)||1;
-   const destination=distance>140?
-    {x:target.x+dx/distance*105,y:target.y+dy/distance*105}:
-    {x:state.player.x,y:state.player.y};
-   state=resolveTurn(state,{targetId:target.id,action:'hack',destination});
+test('the three missions are winnable using revealed threats, boost, pulse and squad doctrines',()=>{
+ for(const seed of [1729,1842]){
+  let state=createMission(0,seed);
+  for(let mission=0;mission<MISSIONS.length;mission++){
+   for(let k=0;k<30&&state.phase==='planning';k++){
+    let plan;
+    const relay=state.stations.find(u=>u.role==='relay'&&u.side==='ally');
+    if(relay){
+     const target=aliveEnemies(state).sort((a,b)=>distance(a,relay)-distance(b,relay))[0];
+     const baseline=forecastTurn(state,{targetId:target?.id,action:'shot',formation:'strike',destination:state.player});
+     const pulse=forecastTurn(state,{action:'pulse',formation:'strike',destination:state.player});
+     const incomingToRelay=baseline.shots.filter(x=>x.to.id===relay.id).reduce((sum,x)=>sum+x.amount,0);
+     const defendByPulse=incomingToRelay>=12&&state.player.charge>0&&pulse.shots.length<baseline.shots.length;
+     plan={targetId:target?.id,action:defendByPulse?'pulse':'shot',formation:'strike',destination:state.player};
+    }else{
+     const target=mission===0?
+      aliveEnemies(state).sort((a,b)=>distance(a,state.player)-distance(b,state.player))[0]:state.stations[0];
+     assert.ok(target,'each operation needs a reachable target');
+     const dx=state.player.x-target.x,dy=state.player.y-target.y,len=Math.hypot(dx,dy)||1;
+     plan={targetId:target.id,action:len>245?'boost':'hack',formation:'relay',
+      destination:len>140?{x:target.x+dx/len*105,y:target.y+dy/len*105}:state.player};
+    }
+    state=resolveTurn(state,plan);
+   }
+   assert.equal(state.phase,'won','seed '+seed+', mission '+(mission+1)+': tactical plan must be viable');
+   if(mission<MISSIONS.length-1)state=nextMission(state);
   }
-  assert.equal(state.phase,'won','mission '+(mission+1)+' must be winnable with the basic controls');
-  if(mission<MISSIONS.length-1)state=nextMission(state);
  }
 });
