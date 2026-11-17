@@ -239,8 +239,8 @@ export function resolveTurn(input,requested){
    events.push({kind:'captured',target:capture.id,role:capture.role,station:true});
    if(capture.role==='relay'&&state.mission===1){
     state.securedAt=state.turn;
-    state.ships.push(makeShip('raid-relay-fighter','fighter',1470,360,'enemy'));
-    state.ships.push(makeShip('raid-relay-rocket','rocket',1500,670,'enemy'));
+    state.ships.push(makeShip('raid-relay-fighter-0','fighter',1470,360,'enemy'));
+    state.ships.push(makeShip('raid-relay-rocket-1','rocket',1500,670,'enemy'));
     events.push({kind:'raid',text:'Ретранслятор захвачен! Враг начинает контратаку: удерживайте узел ещё три хода.'});
    }
   }else if(aliveAllies(state).length<tacticalCapacity(state)){
