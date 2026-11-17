@@ -1,5 +1,6 @@
 import {FIELD,ROLES,MISSIONS,createMission,resolveTurn,nextMission,getUnit,aliveEnemies,aliveAllies,nearestEnemy,canRelay,hackNeed,tacticalCapacity,normalizePlan,distance,forecastTurn,nextReinforcement,isJammed,REWARDS} from './rules.js?v=protocol-3';
 import {ESCORTS} from '../arcade/escort-squad.js';
+import {createSpaceScene,loadSpaceClouds,drawSpaceBackdrop} from './space-art.js?v=protocol-cosmos-1';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:true});
 const STORE='survivor.protocol.missions.v3';
 const PRIOR_STORE='survivor.protocol.missions.v2';
@@ -42,8 +43,11 @@ function describeTurn(state){
  return notes.slice(-4);
 }
 let manualWaypoint=false,zoomFactor=1,drag=null,pan={x:0,y:0},view={w:1,h:1,dpr:1};
-let transition=null,lastFrame=performance.now(),sparkles=[];
+let transition=null,lastFrame=performance.now();
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let backdropScene=createSpaceScene(world.seed,world.mission);
+let backgroundSimple=params.get('cosmos')==='off';
+const skyTextures=loadSpaceClouds(()=>{if(world&&view.w>1)draw(performance.now());});
 const colors={ally:'#5ef3c7',enemy:'#ee848a',player:'#80dffc',relay:'#e0a46d',core:'#ee8f9c'};
 const sprites={};
 const assetPaths={
@@ -122,18 +126,42 @@ function imageAt(name,x,y,size,angle=0,opacity=1){
  if(!im?.complete||!im.naturalWidth)return false;
  ctx.save();ctx.globalAlpha=opacity;ctx.translate(x,y);ctx.rotate(angle);ctx.drawImage(im,-size/2,-size/2,size,size);ctx.restore();return true;
 }
+function drawThruster(p,from,cam,color){
+ if(!transition||reduced||!from)return;
+ const dx=p.x-from.x,dy=p.y-from.y,d=Math.hypot(dx,dy);
+ if(d<2)return;
+ const to=toScreen(p,cam),ux=dx/d,uy=dy/d;
+ const len=Math.min(48,Math.max(17,d*cam.s*.38)),tailX=to.x-ux*len,tailY=to.y-uy*len;
+ ctx.save();
+ const g=ctx.createLinearGradient(to.x,to.y,tailX,tailY);
+ g.addColorStop(0,color+'a6');g.addColorStop(.4,color+'47');g.addColorStop(1,color+'00');
+ ctx.strokeStyle=g;ctx.lineWidth=7;ctx.lineCap='round';
+ ctx.beginPath();ctx.moveTo(to.x-ux*7,to.y-uy*7);ctx.lineTo(tailX,tailY);ctx.stroke();
+ ctx.strokeStyle='#e9ffff90';ctx.lineWidth=1.5;
+ ctx.beginPath();ctx.moveTo(to.x-ux*5,to.y-uy*5);ctx.lineTo(tailX+ux*8,tailY+uy*8);ctx.stroke();
+ ctx.restore();
+}
 function drawShip(unit,cam,alpha=1,animatedSide=null){
  const p=position(unit.id,alpha)||unit,s=toScreen(p,cam);
  const friendly=animatedSide??(unit.side==='ally'),active=unit.id===plan.targetId;
  const c=friendly?colors.ally:colors.enemy,size=Math.max(23,(unit.role==='leader'?78:unit.role==='rocket'?51:49)*cam.s);
+ if(transition){
+  const previous=pose(transition.before,unit.id);
+  drawThruster(p,previous,cam,c);
+ }
  const heading=friendly?-Math.PI/2:Math.PI/2;
  const imageName=friendly?({scout:'allyScout',fighter:'allyFighter',medic:'allyMedic',rocket:'allyRocket',brawler:'allyBrawler'}[unit.role]||'allyFighter'):unit.role;
  if(!imageAt(imageName,s.x,s.y,size,0)){
   ctx.save();ctx.translate(s.x,s.y);ctx.rotate(heading);ctx.fillStyle=c;
   ctx.beginPath();ctx.moveTo(0,-size*.48);ctx.lineTo(size*.35,size*.38);ctx.lineTo(0,size*.16);ctx.lineTo(-size*.35,size*.38);ctx.closePath();ctx.fill();ctx.restore();
  }
- ctx.strokeStyle=c;ctx.lineWidth=1.5;ctx.globalAlpha=.75;
- ctx.beginPath();ctx.arc(s.x,s.y,size*.45,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+ ctx.save();
+ const halo=ctx.createRadialGradient(s.x,s.y,size*.12,s.x,s.y,size*.95);
+ halo.addColorStop(0,c+'1b');halo.addColorStop(1,c+'00');
+ ctx.fillStyle=halo;ctx.beginPath();ctx.arc(s.x,s.y,size*.95,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle=c;ctx.lineWidth=1.5;ctx.globalAlpha=.76;
+ ctx.beginPath();ctx.arc(s.x,s.y,size*.45,0,Math.PI*2);ctx.stroke();
+ ctx.restore();
  if(active){
   ctx.strokeStyle='#ffd875';ctx.lineWidth=2;ctx.setLineDash([6,4]);
   ctx.beginPath();ctx.arc(s.x,s.y,size*.70,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
@@ -155,6 +183,12 @@ function drawShip(unit,cam,alpha=1,animatedSide=null){
 }
 function drawStation(st,cam){
  const p=toScreen(st,cam),size=Math.max(38,110*cam.s),friendly=st.side==='ally';
+ ctx.save();
+ const color=friendly?'#59e6c5':'#d88b85';
+ const halo=ctx.createRadialGradient(p.x,p.y,size*.12,p.x,p.y,size*1.55);
+ halo.addColorStop(0,color+'3d');halo.addColorStop(.47,color+'12');halo.addColorStop(1,color+'00');
+ ctx.fillStyle=halo;ctx.beginPath();ctx.arc(p.x,p.y,size*1.55,0,Math.PI*2);ctx.fill();
+ ctx.restore();
  ctx.strokeStyle=friendly?'#58edc8':'#f0998f';ctx.lineWidth=2;
  ctx.beginPath();ctx.arc(p.x,p.y,size*.70,0,Math.PI*2);ctx.stroke();
  imageAt('station',p.x,p.y,size)||(()=>{ctx.fillStyle='#27394f';ctx.fillRect(p.x-size/3,p.y-size/3,size*.66,size*.66);})();
@@ -177,7 +211,7 @@ function draw(now){
  const cam=camera(t);
  ctx.setTransform(view.dpr,0,0,view.dpr,0,0);
  ctx.clearRect(0,0,view.w,view.h);
- ctx.fillStyle='#091423';ctx.globalAlpha=.28;ctx.fillRect(0,0,view.w,view.h);ctx.globalAlpha=1;
+ drawSpaceBackdrop(ctx,backdropScene,skyTextures,view,cam,now,{reducedMotion:reduced,simple:backgroundSimple});
  // The bounded arena is deliberately legible at the farthest zoom.
  const a=toScreen({x:0,y:0},cam),b=toScreen({x:FIELD.width,y:FIELD.height},cam);
  ctx.save();ctx.strokeStyle='#3b6984';ctx.lineWidth=2;ctx.setLineDash([10,9]);
@@ -187,11 +221,7 @@ function draw(now){
  for(let y=0;y<=FIELD.height;y+=200){const sy=toScreen({x:0,y},cam).y;ctx.moveTo(a.x,sy);ctx.lineTo(b.x,sy);}
  ctx.strokeStyle='#467088';ctx.globalAlpha=.15;ctx.lineWidth=.8;ctx.stroke();ctx.globalAlpha=1;
  ctx.restore();
- for(const star of sparkles){
-  const p=toScreen(star,cam);if(p.x<0||p.x>view.w||p.y<0||p.y>view.h)continue;
-  ctx.fillStyle=star.b>0.8?'#c0e4ff':'#7b9eb7';ctx.globalAlpha=star.b*.65;ctx.fillRect(p.x,p.y,star.r,star.r);
- }
- ctx.globalAlpha=1;
+ // Distant stars are painted in three parallax layers by space-art.js.
  for(const r of world.asteroids){
   const p=toScreen(r,cam),size=Math.max(14,r.r*2.2*cam.s);
   if(!imageAt('rock',p.x,p.y,size,r.x*.005,.82)){
@@ -280,6 +310,7 @@ function draw(now){
   ctx.fillText('ТРАНСПОРТ',c.x,c.y-size*.56);
  }
  const heroSize=Math.max(28,55*cam.s);
+ if(transition)drawThruster(playerPos,transition.before.player,cam,colors.player);
  imageAt('hero',hero.x,hero.y,heroSize)||(()=>{
   ctx.fillStyle=colors.player;ctx.beginPath();ctx.moveTo(hero.x,hero.y-heroSize*.5);ctx.lineTo(hero.x+heroSize*.3,hero.y+heroSize*.4);ctx.lineTo(hero.x-heroSize*.3,hero.y+heroSize*.4);ctx.fill();
  })();
@@ -301,8 +332,7 @@ function draw(now){
  }
 }
 function seedStars(){
- let value=world.seed>>>0||1729;const random=()=>{value=(Math.imul(1664525,value)+1013904223)>>>0;return value/4294967296;};
- sparkles=Array.from({length:125},()=>({x:random()*FIELD.width,y:random()*FIELD.height,r:random()>0.92?2:1,b:.3+random()*.7}));
+ backdropScene=createSpaceScene(world.seed,world.mission);
 }
 function renderUI(){
  const mission=MISSIONS[world.mission],allies=aliveAllies(world),capacity=tacticalCapacity(world),hp=world.player.hp;
@@ -505,6 +535,17 @@ for(let i=0;i<2;i++)$('upgrade-'+i).addEventListener('click',()=>{
 });
 $('next').addEventListener('click',next);
 $('replay').addEventListener('click',restart);
+function syncBackdropButton(){
+ const button=$('cosmos-toggle');
+ if(!button)return;
+ button.setAttribute('aria-pressed',String(!backgroundSimple));
+ button.textContent=backgroundSimple?'✧ Фон: лёгкий':'✦ Фон: объёмный';
+ button.title=backgroundSimple?'Включить многослойный космос':'Упростить фон для слабого устройства';
+}
+$('cosmos-toggle').addEventListener('click',()=>{
+ backgroundSimple=!backgroundSimple;syncBackdropButton();draw(performance.now());
+});
+syncBackdropButton();
 $('zoom-in').addEventListener('click',()=>{zoomFactor=clamp(zoomFactor+.2,1,2.2);renderUI();});
 $('zoom-out').addEventListener('click',()=>{zoomFactor=clamp(zoomFactor-.2,1,2.2);renderUI();});
 $('help').addEventListener('click',()=>$('help-dialog').showModal());
