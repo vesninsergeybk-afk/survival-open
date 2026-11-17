@@ -15,7 +15,7 @@ test('three finite missions remain bounded and independently generated',()=>{
 test('two consecutive turns can permanently convert a living scout',()=>{
  let s=createMission(0,1842);const target=s.ships.find(x=>x.role==='scout');
  s.player.x=target.x-70;s.player.y=target.y;
- s.ships=s.ships.filter(x=>x===target);
+ s.ships=s.ships.filter(x=>x===target||x.role==='fighter');
  s=resolveTurn(s,hold(s,target.id));
  assert.equal(s.phase,'planning');assert.equal(s.ships[0].side,'enemy');
  s=resolveTurn(s,hold(s,target.id));
