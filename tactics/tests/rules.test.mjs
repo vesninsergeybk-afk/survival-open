@@ -81,3 +81,15 @@ test('a mission station cannot be destroyed into an unwinnable objective',()=>{
  for(let i=0;i<3;i++)s=resolveTurn(s,hold(s,relay.id,'hack'));
  assert.equal(s.phase,'won');
 });
+
+test('captured relay bandwidth persists with the allied squad into the final mission',()=>{
+ const s=createMission(1,1842);
+ s.stations[0].side='ally';s.phase='won';
+ s.ships=s.ships.slice(0,3).map((u,i)=>({...u,side:'ally',id:'carry-'+i}));
+ assert.equal(tacticalCapacity(s),4);
+ const final=nextMission(s);
+ assert.equal(final.mission,2);
+ assert.equal(final.networkSlots,2);
+ assert.equal(tacticalCapacity(final),4);
+ assert.equal(aliveAllies(final).length,3);
+});
