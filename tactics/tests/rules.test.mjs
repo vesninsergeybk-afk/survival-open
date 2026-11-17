@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {FIELD,MISSIONS,createMission,resolveTurn,nextMission,aliveAllies,canRelay,tacticalCapacity,inside} from '../rules.js';
+import {FIELD,MISSIONS,createMission,resolveTurn,nextMission,aliveAllies,aliveEnemies,canRelay,tacticalCapacity,inside} from '../rules.js';
 const hold=(s,targetId,action='hack')=>({targetId,action,destination:{x:s.player.x,y:s.player.y}});
 test('three finite missions remain bounded and independently generated',()=>{
  assert.equal(MISSIONS.length,3);
@@ -92,4 +92,25 @@ test('captured relay bandwidth persists with the allied squad into the final mis
  assert.equal(final.networkSlots,2);
  assert.equal(tacticalCapacity(final),4);
  assert.equal(aliveAllies(final).length,3);
+});
+
+test('all three missions have an achievable hacking-first route under live enemy fire',()=>{
+ let state=createMission(0,1729);
+ for(let mission=0;mission<MISSIONS.length;mission++){
+  for(let k=0;k<24&&state.phase==='planning';k++){
+   const target=mission===0?
+    aliveEnemies(state).sort((a,b)=>Math.hypot(a.x-state.player.x,a.y-state.player.y)-
+      Math.hypot(b.x-state.player.x,b.y-state.player.y))[0]:
+    state.stations[0];
+   assert.ok(target,'there must be an accessible objective');
+   const dx=state.player.x-target.x,dy=state.player.y-target.y;
+   const distance=Math.hypot(dx,dy)||1;
+   const destination=distance>140?
+    {x:target.x+dx/distance*105,y:target.y+dy/distance*105}:
+    {x:state.player.x,y:state.player.y};
+   state=resolveTurn(state,{targetId:target.id,action:'hack',destination});
+  }
+  assert.equal(state.phase,'won','mission '+(mission+1)+' must be winnable with the basic controls');
+  if(mission<MISSIONS.length-1)state=nextMission(state);
+ }
 });
