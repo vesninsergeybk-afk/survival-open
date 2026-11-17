@@ -71,3 +71,13 @@ test('mission shell exposes separate controls and retains the original arcade li
   assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/href="\.\.\/arcade\/"/);
 });
+
+test('a mission station cannot be destroyed into an unwinnable objective',()=>{
+ let s=createMission(1,1842);const relay=s.stations[0];
+ s.ships=[];s.player.x=relay.x-70;s.player.y=relay.y;
+ for(let i=0;i<8;i++)s=resolveTurn(s,hold(s,relay.id,'shot'));
+ assert.ok(s.stations[0].hp>=1);
+ assert.equal(s.phase,'planning');
+ for(let i=0;i<3;i++)s=resolveTurn(s,hold(s,relay.id,'hack'));
+ assert.equal(s.phase,'won');
+});
