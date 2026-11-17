@@ -93,7 +93,7 @@ test('mission transition retains damaged hull and checkpoint restores initial re
  const s=createMission(0,1729);s.player.hp=19;s.player.charge=0;s.phase='won';
  s.ships=s.ships.slice(0,2).map(u=>({...u,side:'ally'}));
  const n=nextMission(s);
- assert.equal(n.player.hp,43);
+ assert.equal(n.player.hp,63,'chosen armor salvages damaged hull and increases maximum health');
  assert.equal(n.player.charge,1);
  assert.equal(aliveAllies(n).length,2);
  assert.deepEqual(createMission(n.mission,n.seed,n.entry),n);
