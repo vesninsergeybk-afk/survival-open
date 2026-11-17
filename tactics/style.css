@@ -26,3 +26,12 @@
  .order-icon{font-size:20px}
  .formation{font-size:10px;padding:8px 2px}
 }
+
+
+.canvas-top .risk-chip{color:#90f2d4;border-color:#317d73;background:#103638ef}
+.canvas-top .risk-chip.danger{color:#ffcfb2;border-color:#a66852;background:#512a31ef}
+@media(max-width:520px){
+ .canvas-top{right:5px;gap:4px}
+ .canvas-top .risk-chip{font-size:8px;padding:5px 6px}
+ .guide{top:90px;max-width:240px}
+}
