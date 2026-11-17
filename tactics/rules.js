@@ -30,7 +30,7 @@ export function createMission(index=0,seed=1729,retained=null){
  const ships=ARRANGEMENTS[mission].map((a,i)=>makeShip('hostile-'+mission+'-'+i,a[0],clamp(a[1]+(random()-.5)*105,100,FIELD.width-80),clamp(a[2]+(random()-.5)*100,100,FIELD.height-80)));
  const carried=(retained?.ships||[]).filter(s=>s.side==='ally'&&s.hp>0).slice(0,FIELD.maxAllies);
  carried.forEach((s,i)=>ships.push({...makeShip('ally-'+mission+'-'+i,s.role,300+(i%3)*46,480+Math.floor(i/3)*65,'ally'),hp:clamp(s.hp+16,1,ROLES[s.role].hp)}));
- const stations=mission===0?[]:[{id:mission===1?'relay':'core',role:mission===1?'relay':'core',x:mission===1?1120:1250,y:510,side:'enemy',hp:180,hack:0}];
+ const stations=mission===0?[]:[{id:mission===1?'relay':'core',role:mission===1?'relay':'core',x:mission===1?1120:1250,y:510,side:'enemy',hp:mission===1?120:180,maxHp:mission===1?120:180,hack:0}];
  const asteroids=[{x:500,y:410,r:78},{x:915,y:740,r:68},...Array.from({length:7},()=>({x:clamp(320+random()*1180,170,1650),y:clamp(130+random()*770,130,920),r:24+random()*30}))];
  const startingHp=Number.isFinite(retained?.player?.hp)?clamp(retained.player.hp+24,40,110):110;
  const startingCharge=Number.isFinite(retained?.player?.charge)?clamp(retained.player.charge+1,0,2):2;
@@ -73,6 +73,9 @@ const move=(entity,destination,maxStep)=>{
  const k=Math.min(1,maxStep/d);entity.x=clamp(entity.x+dx*k,35,FIELD.width-35);entity.y=clamp(entity.y+dy*k,35,FIELD.height-35);
 };
 const aimForEnemy=(state,enemy)=>{
+ // After capture, the counterattack targets the relay rather than chasing only the pilot.
+ const protectedNode=state.stations.find(n=>n.role==='relay'&&n.side==='ally');
+ if(protectedNode&&Number.isInteger(state.securedAt)&&distance(enemy,protectedNode)<560)return protectedNode;
  const choices=[{...state.player,id:'player',side:'player'},...aliveAllies(state)];
  choices.sort((a,b)=>distance(a,enemy)-distance(b,enemy));
  return choices[0];
@@ -199,7 +202,7 @@ export function resolveTurn(input,requested){
  // A threatened target is deliberately spared. The relay directive sacrifices firepower for hacking speed.
  for(const ally of aliveAllies(state)){
   if(ally.role==='medic'){
-   const injured=[state.player,...aliveAllies(state)].filter(x=>x.hp<x.maxHp&&distance(x,ally)<275).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+   const injured=[state.player,...aliveAllies(state),...state.stations.filter(x=>x.side==='ally')].filter(x=>x.hp<x.maxHp&&distance(x,ally)<275).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
    if(injured){injured.hp=Math.min(injured.maxHp,injured.hp+12);events.push({kind:'heal',from:ally.id,to:injured.id||'player'});}
    continue;
   }
@@ -225,7 +228,7 @@ export function resolveTurn(input,requested){
   if(victim){
    // Mission nodes are objectives, never destructible dead ends. Weapons can
    // suppress their hull to a critical state, but only hacking claims them.
-   const missionNode=state.stations.some(st=>st.id===id);
+   const missionNode=state.stations.some(st=>st.id===id&&st.side==='enemy');
    victim.hp=Math.max(missionNode?1:0,victim.hp-total);
   }
  }
@@ -234,6 +237,12 @@ export function resolveTurn(input,requested){
   if(capture.role==='relay'||capture.role==='core'){
    capture.side='ally';capture.hack=0;
    events.push({kind:'captured',target:capture.id,role:capture.role,station:true});
+   if(capture.role==='relay'&&state.mission===1){
+    state.securedAt=state.turn;
+    state.ships.push(makeShip('raid-relay-fighter','fighter',1470,360,'enemy'));
+    state.ships.push(makeShip('raid-relay-rocket','rocket',1500,670,'enemy'));
+    events.push({kind:'raid',text:'Ретранслятор захвачен! Враг начинает контратаку: удерживайте узел ещё три хода.'});
+   }
   }else if(aliveAllies(state).length<tacticalCapacity(state)){
    capture.side='ally';capture.hack=0;capture.suppressed=0;
    state.player.charge=Math.min(state.player.maxCharge||2,(state.player.charge||0)+1);
@@ -250,9 +259,12 @@ export function resolveTurn(input,requested){
  state.ships=state.ships.filter(s=>s.hp>0);
  state.events=events;
  const mission=MISSIONS[state.mission];
+ const defendedRelay=state.stations.find(n=>n.role==='relay'&&n.side==='ally');
  if(state.player.hp<=0){state.phase='lost';state.message='Корабль уничтожен. Повторите миссию.';}
+ else if(defendedRelay&&defendedRelay.hp<=0){state.phase='lost';state.message='Ретранслятор уничтожен. Операция провалена.';}
  else if((mission.goal==='capture'&&aliveAllies(state).length>=mission.required)||
-   (mission.goal!=='capture'&&state.stations.some(s=>s.role===mission.goal&&s.side==='ally'))){
+   (mission.goal==='relay'&&defendedRelay&&state.turn-state.securedAt>=3)||
+   (mission.goal==='core'&&state.stations.some(s=>s.role==='core'&&s.side==='ally'))){
   state.phase='won';state.message=state.mission===MISSIONS.length-1?'Командный узел захвачен. Кампания завершена!':'Задача выполнена. Можно перейти к следующей миссии.';
  }else if(mission.goal==='capture'&&aliveEnemies(state).length+aliveAllies(state).length<mission.required&&
   !(WAVES[state.mission]||[]).some(w=>w.turn>state.turn)){
@@ -260,7 +272,9 @@ export function resolveTurn(input,requested){
  }else{
   spawnWave(state,events);
   const last=events.findLast(e=>e.kind==='captured'||e.kind==='overload'||e.kind==='message'||e.kind==='hack'||e.kind==='reserve'||e.kind==='pulse');
-  state.message=last?.kind==='captured'?'Захват успешен! '+(ROLES[last.role]?.name||'Узел')+' теперь на вашей стороне.':
+  state.message=mission.goal==='relay'&&defendedRelay?
+   'Оборона ретранслятора: осталось '+(3-(state.turn-state.securedAt))+' хода. Целостность '+Math.ceil(defendedRelay.hp)+'/'+defendedRelay.maxHp+'.':
+   last?.kind==='captured'?'Захват успешен! '+(ROLES[last.role]?.name||'Узел')+' теперь на вашей стороне.':
    last?.kind==='hack'?'Загрузка управляющего кода: '+last.progress+'/'+last.need+'.':
    last?.text||'Приказы выполнены. Спланируйте следующий ход.';
  }
