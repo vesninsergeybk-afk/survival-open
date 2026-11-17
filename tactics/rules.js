@@ -129,7 +129,13 @@ export function resolveTurn(input,requested){
    hit(intended,ROLES[enemy.role].damage,enemy,'enemy');
  }
  for(const [id,total] of damage){
-  const victim=getUnit(state,id);if(victim)victim.hp=Math.max(0,victim.hp-total);
+  const victim=getUnit(state,id);
+  if(victim){
+   // Mission nodes are objectives, never destructible dead ends. Weapons can
+   // suppress their hull to a critical state, but only hacking claims them.
+   const missionNode=state.stations.some(st=>st.id===id);
+   victim.hp=Math.max(missionNode?1:0,victim.hp-total);
+  }
  }
  for(const ship of state.ships)if(ship.hp<=0)events.push({kind:'lost',target:ship.id,side:ship.side});
  if(capture&&capture.hp>0){
