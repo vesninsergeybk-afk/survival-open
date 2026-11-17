@@ -1,13 +1,46 @@
-import {FIELD,ROLES,MISSIONS,createMission,resolveTurn,nextMission,getUnit,aliveEnemies,aliveAllies,nearestEnemy,canRelay,hackNeed,tacticalCapacity,normalizePlan,distance,forecastTurn,nextReinforcement,isJammed} from './rules.js?v=protocol-2';
+import {FIELD,ROLES,MISSIONS,createMission,resolveTurn,nextMission,getUnit,aliveEnemies,aliveAllies,nearestEnemy,canRelay,hackNeed,tacticalCapacity,normalizePlan,distance,forecastTurn,nextReinforcement,isJammed,REWARDS} from './rules.js?v=protocol-3';
 import {ESCORTS} from '../arcade/escort-squad.js';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:true});
-const STORE='survivor.protocol.missions.v2';
+const STORE='survivor.protocol.missions.v3';
+const PRIOR_STORE='survivor.protocol.missions.v2';
 const LEGACY_STORE='survivor.protocol.missions.v1';
 const params=new URLSearchParams(location.search);
 const fixedSeed=Number(params.get('seed'));
 const SEED=Number.isInteger(fixedSeed)&&fixedSeed>0&&fixedSeed<1e9?fixedSeed:1729;
-let world=load()||createMission(0,SEED),plan={action:'hack',formation:'escort',targetId:null,destination:{x:world.player.x,y:world.player.y}};
-let outlook=null;
+let world=load()||createMission(0,SEED),plan={action:'hack',formation:'escort',targetId:null,allyOrders:{},destination:{x:world.player.x,y:world.player.y}};
+let outlook=null,selectedAlly=null,selectedUpgrade=null;
+let musicEnabled=false,music=null;
+const MUSIC=['cosmic-journey.ogg','galactic-pulse.ogg','stellar-confrontation.ogg','lunar-rampage.ogg'];
+function syncMusic(){
+ if(!musicEnabled)return;
+ if(!music){music=new Audio();music.preload='none';music.loop=true;music.volume=.35;}
+ const desired=new URL('../assets/audio/music/'+MUSIC[world.mission],location.href).href;
+ if(music.src!==desired){music.src=desired;music.load();}
+ music.play().catch(()=>{musicEnabled=false;music.pause();$('music-toggle').setAttribute('aria-pressed','false');$('music-toggle').textContent='♫ Музыка недоступна';});
+}
+function toggleMusic(){
+ musicEnabled=!musicEnabled;
+ $('music-toggle').setAttribute('aria-pressed',String(musicEnabled));
+ $('music-toggle').textContent=musicEnabled?'♫ Выключить':'♫ Музыка';
+ if(musicEnabled)syncMusic();else music?.pause();
+}
+function describeTurn(state){
+ const notes=[];
+ for(const ev of state.events||[]){
+  if(ev.kind==='captured')notes.push(ev.station?'Станция перешла под ваш контроль.':'Перепрограммирован: '+(ROLES[ev.role]?.name||'корабль')+'.');
+  else if(ev.kind==='lost')notes.push(ev.side==='ally'?'Потерян союзный корабль.':'Вражеский корабль уничтожен.');
+  else if(ev.kind==='reserve')notes.push('Подкрепление противника: '+(ROLES[ev.role]?.name||'корабль')+'.');
+  else if(ev.kind==='raid')notes.push('Контратака! Защитите захваченный узел.');
+  else if(ev.kind==='pulse')notes.push('Импульс: противники поблизости временно подавлены.');
+  else if(ev.kind==='overload')notes.push('Сеть занята: противник временно обезоружен.');
+ }
+ const losses={player:0,convoy:0,relay:0};
+ for(const ev of state.events||[])if(ev.kind==='shot'&&ev.weapon==='enemy'&&ev.to in losses)losses[ev.to]+=ev.amount;
+ if(losses.player)notes.push('Корпус героя: −'+losses.player+'.');
+ if(losses.convoy)notes.push('Транспорт: −'+losses.convoy+'.');
+ if(losses.relay)notes.push('Ретранслятор: −'+losses.relay+'.');
+ return notes.slice(-4);
+}
 let manualWaypoint=false,zoomFactor=1,drag=null,pan={x:0,y:0},view={w:1,h:1,dpr:1};
 let transition=null,lastFrame=performance.now(),sparkles=[];
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -36,14 +69,18 @@ for(const [key,path] of Object.entries(assetPaths)){
 function save(){try{localStorage.setItem(STORE,JSON.stringify(world));}catch{}}
 function load(){
  try{
-  const raw=localStorage.getItem(STORE)||localStorage.getItem(LEGACY_STORE);if(!raw)return null;
+  const raw=localStorage.getItem(STORE)||localStorage.getItem(PRIOR_STORE)||localStorage.getItem(LEGACY_STORE);if(!raw)return null;
   const w=JSON.parse(raw);
-  if(![1,2].includes(w.version)||!Number.isInteger(w.mission)||w.mission<0||w.mission>=MISSIONS.length||
+  if(![1,2,3].includes(w.version)||!Number.isInteger(w.mission)||w.mission<0||w.mission>=MISSIONS.length||
     !w.player||!Array.isArray(w.ships)||!Array.isArray(w.stations)||!Array.isArray(w.asteroids)||
     !['planning','won','lost'].includes(w.phase))return null;
-  if(w.version===1){w.version=2;w.entry=null;}
-  w.player.charge=Number.isFinite(w.player.charge)?Math.max(0,Math.min(2,w.player.charge)):2;
-  w.player.maxCharge=2;
+  if(w.version===1)w.entry=null;
+  w.version=3;
+  w.player.upgrades=Array.isArray(w.player.upgrades)?w.player.upgrades:[];
+  w.player.maxCharge=2+w.player.upgrades.filter(x=>x==='overcharge').length;
+  w.player.maxHp=110+20*w.player.upgrades.filter(x=>x==='plating').length;
+  w.player.charge=Number.isFinite(w.player.charge)?Math.max(0,Math.min(w.player.maxCharge,w.player.charge)):w.player.maxCharge;
+  w.convoy??=null;
   return w;
  }catch{return null;}
 }
@@ -186,6 +223,13 @@ function draw(now){
  }
  const playerPos=position('player',t),hero=toScreen(playerPos,cam);
  if(!transition){
+  for(const [id,waypoint] of Object.entries(plan.allyOrders||{})){
+   const ally=getUnit(world,id);if(!ally||ally.side!=='ally')continue;
+   const from=toScreen(ally,cam),to=toScreen(waypoint,cam);
+   ctx.strokeStyle='#d9b1ff';ctx.lineWidth=2;ctx.setLineDash([4,5]);
+   ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.lineTo(to.x,to.y);ctx.stroke();ctx.setLineDash([]);
+   ctx.beginPath();ctx.arc(to.x,to.y,8,0,2*Math.PI);ctx.stroke();
+  }
   const dest=toScreen(plan.destination,cam);
   ctx.strokeStyle='#68cde4';ctx.lineWidth=2;ctx.setLineDash([7,6]);ctx.beginPath();ctx.moveTo(hero.x,hero.y);ctx.lineTo(dest.x,dest.y);ctx.stroke();ctx.setLineDash([]);
   ctx.strokeStyle='#74dbea';ctx.beginPath();ctx.arc(dest.x,dest.y,8,0,Math.PI*2);ctx.stroke();
@@ -208,6 +252,32 @@ function draw(now){
   const viewUnit={...unit,...newest,...p};
   const friendly=transition&&t<.74?unit.side==='ally':viewUnit.side==='ally';
   drawShip(viewUnit,cam,t,friendly);
+  if(!transition&&selectedAlly===viewUnit.id){
+   const p=toScreen(viewUnit,cam);
+   ctx.strokeStyle='#edd1ff';ctx.lineWidth=3;ctx.setLineDash([5,4]);
+   ctx.beginPath();ctx.arc(p.x,p.y,Math.max(28,45*cam.s),0,2*Math.PI);ctx.stroke();ctx.setLineDash([]);
+  }
+ }
+ // Evacuation corridor: the transport moves autonomously and draws enemy fire.
+ if(world.convoy){
+  const gate=toScreen({x:world.convoy.goalX,y:world.convoy.y},cam);
+  ctx.strokeStyle='#88f2d2';ctx.globalAlpha=.7;ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(gate.x,gate.y,Math.max(30,48*cam.s),0,2*Math.PI);ctx.stroke();
+  ctx.setLineDash([4,8]);ctx.beginPath();ctx.arc(gate.x,gate.y,Math.max(42,72*cam.s),0,2*Math.PI);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+  ctx.font='800 '+Math.max(10,11*cam.s)+'px system-ui';ctx.textAlign='center';ctx.fillStyle='#c6ffe9';
+  ctx.fillText('ТОЧКА ВЫХОДА',gate.x,gate.y-Math.max(38,56*cam.s));
+  const transport=position('convoy',t)||world.convoy,c=toScreen(transport,cam);
+  const size=Math.max(33,69*cam.s),hp=world.convoy.hp/world.convoy.maxHp;
+  ctx.save();ctx.translate(c.x,c.y);
+  ctx.fillStyle='#132d3f';ctx.strokeStyle='#86e4b9';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(-size*.51,-size*.21);ctx.lineTo(size*.24,-size*.21);ctx.lineTo(size*.52,0);
+  ctx.lineTo(size*.24,size*.21);ctx.lineTo(-size*.51,size*.21);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='#6bdabc';ctx.fillRect(-size*.12,-size*.36,size*.43,size*.11);ctx.fillRect(-size*.12,size*.26,size*.43,size*.11);
+  ctx.fillStyle='#abfff0';ctx.fillRect(-size*.49,-size*.12,size*.18,size*.24);ctx.restore();
+  ctx.fillStyle='#192f3e';ctx.fillRect(c.x-size*.55,c.y+size*.47,size*1.1,6);
+  ctx.fillStyle=hp<.35?'#ffb18b':'#79e7bc';ctx.fillRect(c.x-size*.55,c.y+size*.47,size*1.1*Math.max(0,hp),6);
+  ctx.font='800 11px system-ui';ctx.textAlign='center';ctx.fillStyle='#dbffee';
+  ctx.fillText('ТРАНСПОРТ',c.x,c.y-size*.56);
  }
  const heroSize=Math.max(28,55*cam.s);
  imageAt('hero',hero.x,hero.y,heroSize)||(()=>{
@@ -243,6 +313,15 @@ function renderUI(){
  $('mission-desc').textContent=node&&Number.isInteger(world.securedAt)?
   'Контратака! Удержите ретранслятор ещё '+Math.max(0,3-(world.turn-world.securedAt))+' хода. Целостность: '+Math.ceil(node.hp)+'/'+node.maxHp+'.':
   mission.brief;
+ $('convoy-status').hidden=!world.convoy;
+ if(world.convoy){
+  const progress=Math.max(0,Math.min(100,Math.round(100*world.convoy.x/world.convoy.goalX)));
+  const hull=Math.max(0,Math.ceil(world.convoy.hp));
+  $('convoy-progress').textContent=progress+'%';
+  $('convoy-progress-bar').style.width=progress+'%';
+  $('convoy-health').textContent=hull+' / '+world.convoy.maxHp;
+  $('convoy-health-bar').style.width=100*hull/world.convoy.maxHp+'%';
+ }
  $('player-health').textContent=Math.ceil(hp)+' / '+world.player.maxHp;
  $('health-bar').style.width=(100*hp/world.player.maxHp)+'%';
  $('squad-size').textContent=allies.length+' / '+capacity;
@@ -253,9 +332,11 @@ function renderUI(){
  $('turn-chip').textContent='ХОД '+String(world.turn+1).padStart(2,'0');
  $('phase-chip').textContent=transition?'ИСПОЛНЕНИЕ':world.phase==='planning'?'ПЛАНИРОВАНИЕ':world.phase==='won'?'ПОБЕДА':'ПОРАЖЕНИЕ';
  const objectiveDanger=node&&outlook?outlook.shots.filter(x=>x.to.id===node.id).reduce((sum,x)=>sum+x.amount,0):0;
+ const convoyDanger=world.convoy&&outlook?outlook.shots.filter(x=>x.to.id==='convoy').reduce((sum,x)=>sum+x.amount,0):0;
  $('risk-chip').textContent=world.phase!=='planning'?'БОЙ ЗАВЕРШЁН':
+   convoyDanger>0?'ТРАНСПОРТ −'+convoyDanger:
    objectiveDanger>0?'УЗЕЛ −'+objectiveDanger:outlook?.incoming>0?'ПО ВАМ −'+outlook.incoming:'ЗАЛПОВ ПО ВАМ: 0';
- $('risk-chip').classList.toggle('danger',world.phase==='planning'&&(objectiveDanger>0||outlook?.incoming>0));
+ $('risk-chip').classList.toggle('danger',world.phase==='planning'&&(convoyDanger>0||objectiveDanger>0||outlook?.incoming>0));
  $('order-hack').classList.toggle('selected',plan.action==='hack');
  $('order-shot').classList.toggle('selected',plan.action==='shot');
  $('order-hack').setAttribute('aria-pressed',String(plan.action==='hack'));
@@ -284,12 +365,18 @@ function renderUI(){
  }
  $('target-status').textContent=status;
  $('destination-name').textContent=distance(plan.destination,world.player)<6?'Удерживать позицию':'Курс: '+Math.round(plan.destination.x)+' × '+Math.round(plan.destination.y);
+ const controlled=selectedAlly?getUnit(world,selectedAlly):null;
+ $('active-unit').textContent=controlled?'Выбран: '+ROLES[controlled.role]?.name:'Управление героем';
+ $('focus-player').setAttribute('aria-pressed',String(!controlled));
+ const orderCount=Object.keys(plan.allyOrders||{}).length;
+ $('ally-orders-summary').textContent=orderCount?'Маршрутов союзников: '+orderCount:'Индивидуальных приказов нет';
  if(outlook){
   $('forecast-damage').textContent=outlook.incoming>0?
    'По вам: ≈ '+outlook.incoming+' ед. урона':'По вам: прямых попаданий не ожидается';
   const shots=outlook.shots.length,cover=outlook.shots.filter(x=>x.cover).length;
   $('forecast-detail').textContent='Прогноз залпов: '+shots+'; через укрытие: '+cover+'. '+
    (node?'По ретранслятору: '+outlook.shots.filter(x=>x.to.id===node.id).reduce((a,x)=>a+x.amount,0)+' ед. урона. ':'')+
+   (world.convoy?'По транспорту: '+convoyDanger+' ед. урона; до выхода '+Math.max(0,Math.round((world.convoy.goalX-world.convoy.x)/138))+'–'+Math.max(0,Math.round((world.convoy.goalX-world.convoy.x)/68))+' ходов. ':'')+
    (plan.action==='pulse'?(outlook.pulseActive?'Импульс подавит противников в радиусе.':'Нет заряда для импульса.'):
    plan.action==='boost'?'Рывок снижает урон по герою.':plan.action==='hack'&&outlook.canHack?'Канал взлома после движения открыт.':'');
   const wave=outlook.nextWave;
@@ -303,26 +390,55 @@ function renderUI(){
  $('execute').hidden=world.phase!=='planning';
  $('execute').disabled=!!transition;
  $('next').hidden=world.phase!=='won'||world.mission===MISSIONS.length-1;
+ const choices=REWARDS[world.mission]||[];
+ $('salvage-panel').hidden=world.phase!=='won'||choices.length<2;
+ for(let i=0;i<2;i++){
+  const choice=choices[i],button=$('upgrade-'+i);
+  button.hidden=!choice;
+  if(choice){
+   button.textContent=choice.name+' — '+choice.detail;
+   button.setAttribute('aria-pressed',String(selectedUpgrade===choice.id));
+   button.classList.toggle('selected',selectedUpgrade===choice.id);
+  }
+ }
+ $('salvage-selection').textContent=selectedUpgrade?
+  'Выбрано: '+(choices.find(x=>x.id===selectedUpgrade)?.name||'улучшение'):
+  'Выберите один из двух трофеев.';
+ $('next').disabled=!selectedUpgrade;
  $('status').textContent=world.message;
+ const events=$('turn-events');events.replaceChildren();
+ for(const msg of describeTurn(world).length?describeTurn(world):['В этом ходе заметных событий нет.']){
+  const item=document.createElement('li');item.textContent=msg;events.append(item);
+ }
  $('zoom-value').textContent=Math.round(zoomFactor*100)+'%';
  $('replay').textContent=world.phase==='won'&&world.mission===MISSIONS.length-1?'↻ Новая кампания':'↻ Начать миссию заново';
 }
 function selectAt(point){
  if(transition||world.phase!=='planning')return;
- const s=scale(),eligible=[...aliveEnemies(world),...world.stations.filter(u=>u.side==='enemy')];
- eligible.sort((a,b)=>distance(a,point)-distance(b,point));
- const found=eligible.find(u=>distance(u,point)<Math.max(58,26/s));
- if(found){
+ const s=scale(),hitRange=Math.max(58,26/s);
+ const enemies=[...aliveEnemies(world),...world.stations.filter(u=>u.side==='enemy')];
+ enemies.sort((a,b)=>distance(a,point)-distance(b,point));
+ const found=enemies.find(u=>distance(u,point)<hitRange);
+ const allies=aliveAllies(world).slice().sort((a,b)=>distance(a,point)-distance(b,point));
+ const friendly=allies.find(u=>distance(u,point)<hitRange*.75);
+ if(friendly&&(!found||distance(friendly,point)<distance(found,point))){
+  selectedAlly=friendly.id;
+  world.message='Выбран '+ROLES[friendly.role].name.toLowerCase()+'. Коснитесь точки, куда ему двигаться.';
+ }else if(found){
   plan.targetId=found.id;
-  if(!manualWaypoint){
-   // Default to a point near the selected target so one tap is sufficient.
+  if(!manualWaypoint&&!selectedAlly){
+   // One-tap target selection also sets a nearby approach point for the pilot.
    const dx=world.player.x-found.x,dy=world.player.y-found.y,len=Math.hypot(dx,dy)||1;
    plan.destination={x:clamp(found.x+dx/len*180,40,FIELD.width-40),y:clamp(found.y+dy/len*180,40,FIELD.height-40)};
   }
-  world.message='Цель выбрана. При необходимости измените точку движения.';
+  world.message='Противник выбран. При необходимости уточните движение.';
+ }else if(selectedAlly){
+  plan.allyOrders[selectedAlly]=point;
+  world.message='Индивидуальный маршрут задан. Можно выбрать следующий корабль.';
+  selectedAlly=null;
  }else{
   plan.destination=point;manualWaypoint=true;
-  world.message='Маршрут указан. Выполните ход, когда будете готовы.';
+  world.message='Маршрут героя указан. Выполните ход, когда будете готовы.';
  }
  renderUI();draw(performance.now());
 }
@@ -332,16 +448,21 @@ function execute(){
  transition={before,after,start:performance.now()};
  world=after;save();
  plan={...plan,action:plan.action==='pulse'&&!world.player.charge?'hack':plan.action,
-  targetId:getUnit(world,plan.targetId)?.side==='enemy'?plan.targetId:null,destination:{x:world.player.x,y:world.player.y}};
- manualWaypoint=false;
+  allyOrders:{},targetId:getUnit(world,plan.targetId)?.side==='enemy'?plan.targetId:null,destination:{x:world.player.x,y:world.player.y}};
+ selectedAlly=null;manualWaypoint=false;
  $('execute').disabled=true;renderUI();
 }
-function next(){if(transition||world.phase!=='won')return;world=nextMission(world);plan={action:'hack',formation:'escort',targetId:null,destination:{x:world.player.x,y:world.player.y}};manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();}
+function next(){
+ if(transition||world.phase!=='won'||!selectedUpgrade)return;
+ world=nextMission(world,selectedUpgrade);
+ plan={action:'hack',formation:'escort',allyOrders:{},targetId:null,destination:{x:world.player.x,y:world.player.y}};
+ selectedUpgrade=null;selectedAlly=null;manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();syncMusic();
+}
 function restart(){
  if(transition)return;
  const full=world.phase==='won'&&world.mission===MISSIONS.length-1;
  world=createMission(full?0:world.mission,world.seed,full?null:world.entry);
- plan={action:'hack',formation:'escort',targetId:null,destination:{x:world.player.x,y:world.player.y}};manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();
+ plan={action:'hack',formation:'escort',allyOrders:{},targetId:null,destination:{x:world.player.x,y:world.player.y}};selectedUpgrade=null;selectedAlly=null;manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();syncMusic();
 }
 function animate(now){
  const elapsed=clamp((now-lastFrame)/1000,0,.15);lastFrame=now;
@@ -374,6 +495,14 @@ for(const action of ['hack','shot','boost','pulse']){
 for(const mode of ['escort','strike','relay'])
  $('formation-'+mode).addEventListener('click',()=>{plan.formation=mode;renderUI();});
 $('execute').addEventListener('click',execute);
+$('focus-player').addEventListener('click',()=>{selectedAlly=null;world.message='Теперь свободная точка задаёт маршрут героя.';renderUI();});
+$('clear-ally-orders').addEventListener('click',()=>{plan.allyOrders={};selectedAlly=null;world.message='Маршруты союзников сброшены.';renderUI();draw(performance.now());});
+$('music-toggle').addEventListener('click',toggleMusic);
+for(let i=0;i<2;i++)$('upgrade-'+i).addEventListener('click',()=>{
+ if(world.phase!=='won')return;
+ selectedUpgrade=REWARDS[world.mission]?.[i]?.id||null;
+ renderUI();
+});
 $('next').addEventListener('click',next);
 $('replay').addEventListener('click',restart);
 $('zoom-in').addEventListener('click',()=>{zoomFactor=clamp(zoomFactor+.2,1,2.2);renderUI();});
@@ -383,7 +512,7 @@ $('help-close').addEventListener('click',()=>$('help-dialog').close());
 $('help-ready').addEventListener('click',()=>$('help-dialog').close());
 window.addEventListener('keydown',e=>{
  if($('help-dialog').open||e.target?.matches('input,textarea,select'))return;
- if(e.code==='Space'||e.code==='Enter'){e.preventDefault();execute();}
+ if(e.code==='Space'&&!e.target?.closest('button')){e.preventDefault();execute();}
  if(e.code==='KeyQ'){plan.action='hack';renderUI();}
  if(e.code==='KeyF'){plan.action='shot';renderUI();}
  if(e.code==='KeyB'){plan.action='boost';renderUI();}

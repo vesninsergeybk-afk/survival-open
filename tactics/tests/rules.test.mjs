@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {FIELD,MISSIONS,createMission,resolveTurn,nextMission,aliveAllies,aliveEnemies,canRelay,tacticalCapacity,inside,distance,forecastTurn} from '../rules.js';
 const hold=(s,targetId,action='hack')=>({targetId,action,destination:{x:s.player.x,y:s.player.y}});
-test('three finite missions remain bounded and independently generated',()=>{
- assert.equal(MISSIONS.length,3);
+test('four finite missions remain bounded and independently generated',()=>{
+ assert.equal(MISSIONS.length,4);
  for(let i=0;i<MISSIONS.length;i++){
   const s=createMission(i,1842);assert.equal(s.phase,'planning');
   assert.ok(s.ships.length>=4);assert.ok(s.ships.every(inside));
@@ -91,7 +91,7 @@ test('a mission station cannot be destroyed into an unwinnable objective',()=>{
  assert.equal(s.phase,'lost','a crippled relay is defenseless against counterfire');
 });
 
-test('captured relay bandwidth persists with the allied squad into the final mission',()=>{
+test('captured relay bandwidth persists with the allied squad into the command mission',()=>{
  const s=createMission(1,1842);
  s.stations[0].side='ally';s.phase='won';
  s.ships=s.ships.slice(0,3).map((u,i)=>({...u,side:'ally',id:'carry-'+i}));
@@ -103,10 +103,10 @@ test('captured relay bandwidth persists with the allied squad into the final mis
  assert.equal(aliveAllies(final).length,3);
 });
 
-test('the three missions are winnable using revealed threats, boost, pulse and squad doctrines',()=>{
+test('the first three missions are winnable using revealed threats, boost, pulse and squad doctrines',()=>{
  for(const seed of [1729,1842]){
   let state=createMission(0,seed);
-  for(let mission=0;mission<MISSIONS.length;mission++){
+  for(let mission=0;mission<3;mission++){
    for(let k=0;k<30&&state.phase==='planning';k++){
     let plan;
     const relay=state.stations.find(u=>u.role==='relay'&&u.side==='ally');

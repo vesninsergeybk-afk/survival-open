@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0c1726">
-<meta name="description" content="Выживший: Протокол. Пошаговые миссии с прогнозом угроз, укрытиями, приказами союзникам, захватом кораблей и электронным подавлением.">
+<meta name="description" content="Выживший: Протокол. Четыре пошаговые миссии: захват кораблей, оборона, штурм станции и спасение транспорта. Улучшения корабля, приказы союзникам и прогноз залпов.">
 <title>Выживший: Протокол — пошаговая тактика</title>
 <link rel="icon" href="../assets/space/ship_scout.png">
-<link rel="stylesheet" href="./style.css?v=protocol-2">
+<link rel="stylesheet" href="./style.css?v=protocol-3">
 </head>
 <body>
 <div class="shell">
 <header class="topbar">
   <a class="back" href="https://vesninmed.ru/lab/" aria-label="Вернуться в Лабораторию абсурда">← <span>Лаборатория</span></a>
-  <div class="brand"><span class="brand-badge">S / P</span><span><strong>ВЫЖИВШИЙ: ПРОТОКОЛ</strong><small>Пошаговые миссии · экспериментальный режим</small></span></div>
+  <div class="brand"><span class="brand-badge">S / P</span><span><strong>ВЫЖИВШИЙ: ПРОТОКОЛ</strong><small>4 операции · тактическая кампания</small></span></div>
   <a class="classic" href="../arcade/" title="Открыть исходный Выживший">Аркада ↗</a>
 </header>
 <div class="layout">
@@ -29,13 +29,19 @@
    <button id="zoom-out" type="button" aria-label="Отдалить">−</button><output id="zoom-value">100%</output><button id="zoom-in" type="button" aria-label="Приблизить">+</button>
   </div>
   <div class="legend"><span><i class="dot friendly"></i> союзники</span><span><i class="dot hostile"></i> враги</span><span><i class="dot selected"></i> цель взлома</span></div>
-  <div class="guide" id="battle-guide">Выберите противника и маршрут. Пунктирные красные линии показывают ожидаемые выстрелы следующего хода; астероиды прикрывают от огня.</div>
+  <div class="guide" id="battle-guide">Красные пунктирные линии — ожидаемые выстрелы. Коснитесь союзника, затем точки карты, чтобы дать ему отдельный приказ.</div>
  </main>
  <aside class="sidebar" aria-label="Планирование хода">
   <div class="mission">
-   <p class="eyebrow">ОПЕРАЦИЯ <span id="mission-n">01 / 03</span></p>
+   <p class="eyebrow">ОПЕРАЦИЯ <span id="mission-n">01 / 04</span></p>
    <h1 id="mission-name">Чужой сигнал</h1>
    <p id="mission-desc">Перепрограммируйте вражеские корабли.</p>
+   <div id="convoy-status" class="convoy-status" hidden>
+    <span>ЭВАКУАЦИЯ <strong id="convoy-progress">0%</strong></span>
+    <div class="meter green"><span id="convoy-progress-bar"></span></div>
+    <span>ТРАНСПОРТ <strong id="convoy-health">155 / 155</strong></span>
+    <div class="meter"><span id="convoy-health-bar"></span></div>
+   </div>
   </div>
   <div class="stats" aria-label="Состояние боя">
    <div><small>КОРПУС</small><strong id="player-health">110 / 110</strong><div class="meter"><span id="health-bar"></span></div></div>
@@ -60,6 +66,13 @@
     <strong id="destination-name">Удерживать позицию</strong>
     <span>Нажмите на свободную точку поля</span>
    </div>
+   <div class="unit-control">
+    <button id="focus-player" type="button" aria-pressed="true">◉ Маршрут героя</button>
+    <button id="clear-ally-orders" type="button">Сбросить маршруты</button>
+    <span id="active-unit">Управление героем</span>
+   </div>
+   <p class="unit-hint">Коснитесь союзного корабля на поле, затем точки назначения. Его маршрут можно задать отдельно от маршрута героя.</p>
+   <p class="unit-hint" id="ally-orders-summary">Индивидуальных приказов нет</p>
   </div>
   <div class="panel squad-panel">
    <p class="eyebrow">ПРИКАЗ ЭСКАДРИЛЬЕ</p>
@@ -77,11 +90,26 @@
    <p id="reserve-warning" class="reserve-warning"></p>
   </div>
   <button id="execute" class="execute" type="button">▶ Выполнить ход <span>ПРОБЕЛ</span></button>
-  <button id="next" class="next" type="button" hidden>Следующая миссия →</button>
+  <div id="salvage-panel" class="panel salvage-panel" hidden>
+   <p class="eyebrow">ТРОФЕИ ОПЕРАЦИИ</p>
+   <h2>Выберите одно улучшение</h2>
+   <p class="salvage-intro">Улучшение останется с кораблём в следующей миссии.</p>
+   <div class="salvage-grid">
+    <button id="upgrade-0" class="salvage-choice" type="button" aria-pressed="false">Первое улучшение</button>
+    <button id="upgrade-1" class="salvage-choice" type="button" aria-pressed="false">Второе улучшение</button>
+   </div>
+   <p id="salvage-selection" class="salvage-selection">Выбор пока не сделан.</p>
+  </div>
+  <button id="next" class="next" type="button" hidden disabled>Следующая миссия →</button>
   <div id="status" class="status" role="status" aria-live="polite">Приказы ждут подтверждения.</div>
+  <section class="panel turn-events-panel" aria-label="Итоги последнего хода">
+   <p class="eyebrow">ПОСЛЕДНИЙ ХОД</p>
+   <ul id="turn-events" aria-live="polite"><li>Операция начинается.</li></ul>
+  </section>
   <div class="secondary-actions">
    <button id="replay" type="button">↻ Начать миссию заново</button>
    <button id="help" type="button">? Правила</button>
+   <button id="music-toggle" type="button" aria-pressed="false">♫ Музыка</button>
   </div>
   <p class="tip">Приказы исполняются одновременно. В прогнозе учитываются движение противника и укрытия, но уничтоженные в этот ход корабли успевают выстрелить. Время на планирование не ограничено.</p>
  </aside>
@@ -89,19 +117,23 @@
 </div>
 <dialog id="help-dialog" class="modal">
  <div class="modal-header"><h2>Как играть</h2><button id="help-close" type="button" aria-label="Закрыть">×</button></div>
- <p>Это тактическая кампания из трёх коротких миссий. Ваша задача — захватывать технику и станции, сохраняя собственный корабль и уцелевшую эскадрилью. Захваченный ретранслятор придётся защищать от контратаки ещё три хода. Движение, взлом и залпы исполняются одновременно.</p>
+ <p>Это тактическая кампания из четырёх коротких миссий. Ваша задача — захватывать технику и станции, сохраняя собственный корабль и уцелевшую эскадрилью. Захваченный ретранслятор придётся защищать от контратаки ещё три хода. Движение, взлом и залпы исполняются одновременно.</p>
  <ol>
   <li><strong>Нажмите на вражеский корабль</strong>, чтобы выбрать цель. Выбранный объект подсвечивается.</li>
   <li><strong>Нажмите на пустое место</strong>, чтобы указать, куда двигаться.</li>
   <li><strong>Выберите действие:</strong> взлом, выстрел, рывок или импульс. Рывок позволяет переместиться дальше и уменьшает урон по вам. Импульс расходует один заряд и подавляет противников вокруг корабля.</li>
   <li>Для взлома нужно приблизиться к противнику или провести сигнал через союзника. Вражеский глушитель перекрывает удалённую передачу; его можно подавить выстрелом или захватить. Прогресс взлома виден вокруг цели.</li>
   <li><strong>Назначьте роль эскадрилье:</strong> «Прикрытие» — держаться у героя; «Штурм» — атаковать агрессивнее; «Реле» — помочь взлому ценой отказа от огня. Захваченные корабли остаются с вами в следующих миссиях.</li>
+  <li><strong>Управляйте союзниками:</strong> коснитесь своего корабля, затем точки на поле. В этот ход он отправится по заданному маршруту. Кнопка «Маршрут героя» возвращает управление главным кораблём.</li>
+  <li><strong>Развивайте корабль:</strong> после каждой из первых трёх операций выбирайте одно из двух улучшений — броню, дальность связи, импульсы, двигатели или вооружение.</li>
+  <li><strong>Защитите транспорт:</strong> в четвёртой миссии он сам идёт к выходу, замедляется рядом с врагом и может быть уничтожен. Если у вас осталось мало кораблей, к операции присоединится резервное звено сопровождения.</li>
   <li><strong>Смотрите прогноз:</strong> красный пунктир обозначает ожидаемые залпы. Астероиды снижают урон при попадании на линию огня. Резервы врага прибывают в заранее указанный ход.</li>
  </ol>
  <p>Выстрел подавляет выжившую цель на следующий ход. Захват корабля восстанавливает заряд импульса. Если все места управления заняты, взлом временно обезоружит противника. Ретранслятор увеличивает вместимость эскадрильи; повреждения героя и союзников частично сохраняются между миссиями.</p>
+ <p>В панели «Последний ход» указаны важные события и повреждения. Кнопка «Музыка» включает записи David KBD (CC BY 4.0); <a href="../assets/audio/music/CREDITS.md" target="_blank" rel="noopener">авторы и лицензии</a>.</p>
  <p>На компьютере: <kbd>Q</kbd> — взлом, <kbd>F</kbd> — выстрел, <kbd>B</kbd> — рывок, <kbd>E</kbd> — импульс, <kbd>Пробел</kbd> — выполнить ход. На телефоне доступны все те же кнопки.</p>
  <button id="help-ready" class="execute" type="button">Начать операцию</button>
 </dialog>
-<script type="module" src="./game.js?v=protocol-2"></script>
+<script type="module" src="./game.js?v=protocol-3"></script>
 </body>
 </html>
