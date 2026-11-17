@@ -46,7 +46,7 @@ let manualWaypoint=false,zoomFactor=1,drag=null,pan={x:0,y:0},view={w:1,h:1,dpr:
 let transition=null,lastFrame=performance.now();
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let backdropScene=createSpaceScene(world.seed,world.mission);
-const backgroundSimple=params.get('cosmos')==='off';
+let backgroundSimple=params.get('cosmos')==='off';
 const skyTextures=loadSpaceClouds(()=>{if(world&&view.w>1)draw(performance.now());});
 const colors={ally:'#5ef3c7',enemy:'#ee848a',player:'#80dffc',relay:'#e0a46d',core:'#ee8f9c'};
 const sprites={};
@@ -126,7 +126,7 @@ function imageAt(name,x,y,size,angle=0,opacity=1){
  if(!im?.complete||!im.naturalWidth)return false;
  ctx.save();ctx.globalAlpha=opacity;ctx.translate(x,y);ctx.rotate(angle);ctx.drawImage(im,-size/2,-size/2,size,size);ctx.restore();return true;
 }
-function drawThruster(p,from,cam,color,now){
+function drawThruster(p,from,cam,color){
  if(!transition||reduced||!from)return;
  const dx=p.x-from.x,dy=p.y-from.y,d=Math.hypot(dx,dy);
  if(d<2)return;
@@ -147,7 +147,7 @@ function drawShip(unit,cam,alpha=1,animatedSide=null){
  const c=friendly?colors.ally:colors.enemy,size=Math.max(23,(unit.role==='leader'?78:unit.role==='rocket'?51:49)*cam.s);
  if(transition){
   const previous=pose(transition.before,unit.id);
-  drawThruster(p,previous,cam,c,performance.now());
+  drawThruster(p,previous,cam,c);
  }
  const heading=friendly?-Math.PI/2:Math.PI/2;
  const imageName=friendly?({scout:'allyScout',fighter:'allyFighter',medic:'allyMedic',rocket:'allyRocket',brawler:'allyBrawler'}[unit.role]||'allyFighter'):unit.role;
@@ -310,6 +310,7 @@ function draw(now){
   ctx.fillText('ТРАНСПОРТ',c.x,c.y-size*.56);
  }
  const heroSize=Math.max(28,55*cam.s);
+ if(transition)drawThruster(playerPos,transition.before.player,cam,colors.player);
  imageAt('hero',hero.x,hero.y,heroSize)||(()=>{
   ctx.fillStyle=colors.player;ctx.beginPath();ctx.moveTo(hero.x,hero.y-heroSize*.5);ctx.lineTo(hero.x+heroSize*.3,hero.y+heroSize*.4);ctx.lineTo(hero.x-heroSize*.3,hero.y+heroSize*.4);ctx.fill();
  })();
@@ -534,6 +535,17 @@ for(let i=0;i<2;i++)$('upgrade-'+i).addEventListener('click',()=>{
 });
 $('next').addEventListener('click',next);
 $('replay').addEventListener('click',restart);
+function syncBackdropButton(){
+ const button=$('cosmos-toggle');
+ if(!button)return;
+ button.setAttribute('aria-pressed',String(!backgroundSimple));
+ button.textContent=backgroundSimple?'✧ Фон: лёгкий':'✦ Фон: объёмный';
+ button.title=backgroundSimple?'Включить многослойный космос':'Упростить фон для слабого устройства';
+}
+$('cosmos-toggle').addEventListener('click',()=>{
+ backgroundSimple=!backgroundSimple;syncBackdropButton();draw(performance.now());
+});
+syncBackdropButton();
 $('zoom-in').addEventListener('click',()=>{zoomFactor=clamp(zoomFactor+.2,1,2.2);renderUI();});
 $('zoom-out').addEventListener('click',()=>{zoomFactor=clamp(zoomFactor-.2,1,2.2);renderUI();});
 $('help').addEventListener('click',()=>$('help-dialog').showModal());
