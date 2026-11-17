@@ -1,11 +1,13 @@
-import {FIELD,ROLES,MISSIONS,createMission,resolveTurn,nextMission,getUnit,aliveEnemies,aliveAllies,nearestEnemy,canRelay,hackNeed,tacticalCapacity,normalizePlan,distance} from './rules.js?v=protocol-1';
+import {FIELD,ROLES,MISSIONS,createMission,resolveTurn,nextMission,getUnit,aliveEnemies,aliveAllies,nearestEnemy,canRelay,hackNeed,tacticalCapacity,normalizePlan,distance,forecastTurn,nextReinforcement,isJammed} from './rules.js?v=protocol-2';
 import {ESCORTS} from '../arcade/escort-squad.js';
 const $=id=>document.getElementById(id),canvas=$('field'),ctx=canvas.getContext('2d',{alpha:true});
-const STORE='survivor.protocol.missions.v1';
+const STORE='survivor.protocol.missions.v2';
+const LEGACY_STORE='survivor.protocol.missions.v1';
 const params=new URLSearchParams(location.search);
 const fixedSeed=Number(params.get('seed'));
 const SEED=Number.isInteger(fixedSeed)&&fixedSeed>0&&fixedSeed<1e9?fixedSeed:1729;
-let world=load()||createMission(0,SEED),plan={action:'hack',targetId:null,destination:{x:world.player.x,y:world.player.y}};
+let world=load()||createMission(0,SEED),plan={action:'hack',formation:'escort',targetId:null,destination:{x:world.player.x,y:world.player.y}};
+let outlook=null;
 let manualWaypoint=false,zoomFactor=1,drag=null,pan={x:0,y:0},view={w:1,h:1,dpr:1};
 let transition=null,lastFrame=performance.now(),sparkles=[];
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -19,6 +21,7 @@ const assetPaths={
  rocket:'../assets/space/enemy_bomber.png',
  brawler:'../assets/space/enemy_drone.png',
  leader:'../assets/space/boss_cruiser.png',
+ jammer:'../assets/space/enemy_shield.png',
  allyScout:'../arcade/assets/escort/scout-v2.webp',
  allyFighter:'../arcade/assets/escort/fighter-v2.webp',
  allyMedic:'../arcade/assets/escort/medic-v2.webp',
@@ -33,11 +36,14 @@ for(const [key,path] of Object.entries(assetPaths)){
 function save(){try{localStorage.setItem(STORE,JSON.stringify(world));}catch{}}
 function load(){
  try{
-  const raw=localStorage.getItem(STORE);if(!raw)return null;
+  const raw=localStorage.getItem(STORE)||localStorage.getItem(LEGACY_STORE);if(!raw)return null;
   const w=JSON.parse(raw);
-  if(w.version!==1||!Number.isInteger(w.mission)||w.mission<0||w.mission>=MISSIONS.length||
+  if(![1,2].includes(w.version)||!Number.isInteger(w.mission)||w.mission<0||w.mission>=MISSIONS.length||
     !w.player||!Array.isArray(w.ships)||!Array.isArray(w.stations)||!Array.isArray(w.asteroids)||
     !['planning','won','lost'].includes(w.phase))return null;
+  if(w.version===1){w.version=2;w.entry=null;}
+  w.player.charge=Number.isFinite(w.player.charge)?Math.max(0,Math.min(2,w.player.charge)):2;
+  w.player.maxCharge=2;
   return w;
  }catch{return null;}
 }
@@ -104,7 +110,11 @@ function drawShip(unit,cam,alpha=1,animatedSide=null){
   ctx.strokeStyle='#67f4d7';ctx.lineWidth=4;
   ctx.beginPath();ctx.arc(s.x,s.y,size*.62,-Math.PI/2,-Math.PI/2+Math.PI*2*clamp(prog/need,0,1));ctx.stroke();
  }
- if(unit.role==='leader'){ctx.font='700 10px system-ui';ctx.textAlign='center';ctx.fillStyle='#ffdca7';ctx.fillText('КОМАНДИР',s.x,s.y-size*.68);}
+ if(unit.role==='leader'||unit.role==='jammer'){
+  ctx.font='700 10px system-ui';ctx.textAlign='center';
+  ctx.fillStyle=unit.role==='jammer'?'#e9bdff':'#ffdca7';
+  ctx.fillText(unit.role==='jammer'?'ГЛУШИТЕЛЬ':'КОМАНДИР',s.x,s.y-size*.68);
+ }
 }
 function drawStation(st,cam){
  const p=toScreen(st,cam),size=Math.max(38,110*cam.s),friendly=st.side==='ally';
@@ -115,6 +125,14 @@ function drawStation(st,cam){
  ctx.fillText(st.role==='relay'?'РЕТРАНСЛЯТОР':'ЦЕНТР ИИ',p.x,p.y+size*.77);
  if(st.id===plan.targetId){ctx.strokeStyle='#ffe28f';ctx.setLineDash([4,6]);ctx.beginPath();ctx.arc(p.x,p.y,size*.92,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
  if(st.hack>0){ctx.strokeStyle='#62edc8';ctx.lineWidth=5;ctx.beginPath();ctx.arc(p.x,p.y,size*.77,-Math.PI/2,-Math.PI/2+Math.PI*2*st.hack/hackNeed(world,st));ctx.stroke();}
+ if(st.side==='ally'){
+  const bar=Math.max(45,100*cam.s);ctx.fillStyle='#1a2e3a';
+  ctx.fillRect(p.x-bar/2,p.y+size*.88,bar,7);
+  ctx.fillStyle=st.hp/st.maxHp<.4?'#ff967f':'#65f0cd';
+  ctx.fillRect(p.x-bar/2,p.y+size*.88,bar*Math.max(0,st.hp/st.maxHp),7);
+  ctx.textAlign='center';ctx.font='700 10px system-ui';ctx.fillStyle='#fff1cf';
+  ctx.fillText('ЗАЩИТА '+Math.ceil(st.hp)+'/'+st.maxHp,p.x,p.y+size*1.13);
+ }
 }
 function draw(now){
  if(!view.w||!ctx)return;
@@ -139,8 +157,31 @@ function draw(now){
  ctx.globalAlpha=1;
  for(const r of world.asteroids){
   const p=toScreen(r,cam),size=Math.max(14,r.r*2.2*cam.s);
-  if(!imageAt('rock',p.x,p.y,size,r.x*.005,.72)){
-   ctx.fillStyle='#596b7d';ctx.beginPath();ctx.arc(p.x,p.y,size*.4,0,Math.PI*2);ctx.fill();
+  if(!imageAt('rock',p.x,p.y,size,r.x*.005,.82)){
+   ctx.fillStyle='#596b7d';ctx.beginPath();ctx.arc(p.x,p.y,size*.47,0,Math.PI*2);ctx.fill();
+  }
+  ctx.strokeStyle='#8aa7b9';ctx.globalAlpha=.28;ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(p.x,p.y,r.r*.9*cam.s,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
+ }
+ if(!transition&&world.phase==='planning'){
+  for(const jammer of aliveEnemies(world).filter(x=>x.role==='jammer'&&!x.suppressed)){
+   const p=toScreen(jammer,cam);
+   ctx.strokeStyle='#d9a5ff';ctx.lineWidth=1.3;ctx.setLineDash([5,9]);ctx.globalAlpha=.35;
+   ctx.beginPath();ctx.arc(p.x,p.y,280*cam.s,0,2*Math.PI);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+  }
+  if(outlook){
+   for(const threat of outlook.shots){
+    const from=toScreen(threat.from,cam),to=toScreen(threat.to,cam);
+    ctx.strokeStyle=threat.to.id==='player'?'#ff8f72':'#ffa69f';
+    ctx.lineWidth=threat.to.id==='player'?2.5:1.3;
+    ctx.globalAlpha=threat.cover?.28:.52;ctx.setLineDash([7,7]);ctx.beginPath();
+    ctx.moveTo(from.x,from.y);ctx.lineTo(to.x,to.y);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(to.x,to.y,threat.to.id==='player'?15:9,0,2*Math.PI);ctx.stroke();
+   }
+   ctx.globalAlpha=1;
+   const ghost=toScreen(outlook.position,cam);
+   ctx.strokeStyle='#81ecff';ctx.globalAlpha=.6;ctx.setLineDash([4,4]);
+   ctx.beginPath();ctx.arc(ghost.x,ghost.y,12,0,2*Math.PI);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
   }
  }
  const playerPos=position('player',t),hero=toScreen(playerPos,cam);
@@ -195,30 +236,70 @@ function seedStars(){
 }
 function renderUI(){
  const mission=MISSIONS[world.mission],allies=aliveAllies(world),capacity=tacticalCapacity(world),hp=world.player.hp;
+ outlook=world.phase==='planning'?forecastTurn(world,plan):null;
  $('mission-n').textContent=String(world.mission+1).padStart(2,'0')+' / '+String(MISSIONS.length).padStart(2,'0');
  $('mission-name').textContent=mission.name.replace(/^\d+ \/ /,'');
- $('mission-desc').textContent=mission.brief;
+ const node=world.stations.find(x=>x.role==='relay'&&x.side==='ally');
+ $('mission-desc').textContent=node&&Number.isInteger(world.securedAt)?
+  'Контратака! Удержите ретранслятор ещё '+Math.max(0,3-(world.turn-world.securedAt))+' хода. Целостность: '+Math.ceil(node.hp)+'/'+node.maxHp+'.':
+  mission.brief;
  $('player-health').textContent=Math.ceil(hp)+' / '+world.player.maxHp;
  $('health-bar').style.width=(100*hp/world.player.maxHp)+'%';
  $('squad-size').textContent=allies.length+' / '+capacity;
  $('squad-bar').style.width=(100*allies.length/capacity)+'%';
+ $('pulse-charge').textContent=(world.player.charge||0)+' / '+(world.player.maxCharge||2);
+ $('pulse-bar').style.width=(100*(world.player.charge||0)/(world.player.maxCharge||2))+'%';
  $('sector-chip').textContent='СЕКТОР '+String(world.mission+1).padStart(2,'0');
  $('turn-chip').textContent='ХОД '+String(world.turn+1).padStart(2,'0');
  $('phase-chip').textContent=transition?'ИСПОЛНЕНИЕ':world.phase==='planning'?'ПЛАНИРОВАНИЕ':world.phase==='won'?'ПОБЕДА':'ПОРАЖЕНИЕ';
+ const objectiveDanger=node&&outlook?outlook.shots.filter(x=>x.to.id===node.id).reduce((sum,x)=>sum+x.amount,0):0;
+ $('risk-chip').textContent=world.phase!=='planning'?'БОЙ ЗАВЕРШЁН':
+   objectiveDanger>0?'УЗЕЛ −'+objectiveDanger:outlook?.incoming>0?'ПО ВАМ −'+outlook.incoming:'ЗАЛПОВ ПО ВАМ: 0';
+ $('risk-chip').classList.toggle('danger',world.phase==='planning'&&(objectiveDanger>0||outlook?.incoming>0));
  $('order-hack').classList.toggle('selected',plan.action==='hack');
  $('order-shot').classList.toggle('selected',plan.action==='shot');
  $('order-hack').setAttribute('aria-pressed',String(plan.action==='hack'));
  $('order-shot').setAttribute('aria-pressed',String(plan.action==='shot'));
+ for(const action of ['boost','pulse']){
+  $('order-'+action).classList.toggle('selected',plan.action===action);
+  $('order-'+action).setAttribute('aria-pressed',String(plan.action===action));
+ }
+ $('order-pulse').disabled=(world.player.charge||0)<1;
+ for(const mode of ['escort','strike','relay']){
+  $('formation-'+mode).classList.toggle('selected',plan.formation===mode);
+  $('formation-'+mode).setAttribute('aria-pressed',String(plan.formation===mode));
+ }
+ $('formation-help').textContent=({
+  escort:'Прикрытие: союзники держатся у героя и атакуют ближайших противников.',
+  strike:'Штурм: союзники сближаются с врагом и наносят на 35% больше урона.',
+  relay:'Реле: союзники передают сигнал и ускоряют взлом, но не стреляют.'
+ })[plan.formation];
  const target=plan.targetId?getUnit(world,plan.targetId):null;
  $('target-name').textContent=target?(ROLES[target.role]?.name|| (target.role==='relay'?'Ретранслятор':'Центр ИИ')):'Нет цели';
  let status='Нажмите на красный корабль или вражескую станцию.';
  if(target){
-  const route=canRelay({...world,player:plan.destination},target);
-  status=plan.action==='hack'?'Взлом: '+(target.hack||0)+' / '+hackNeed(world,target)+' · '+(route.ok?'связь доступна':'сначала приблизьтесь'):
-   'Дальность пушки: '+(distance(plan.destination,target)<=FIELD.shotRange?'цель достижима':'нужно приблизиться');
+  status=plan.action==='hack'?'Взлом: '+(target.hack||0)+' / '+hackNeed(world,target)+' · '+(outlook?.canHack?'связь после перемещения доступна':isJammed(world,target)?'помехи глушителя или дистанция':'сначала приблизьтесь'):
+   plan.action==='shot'?'Выстрел: '+(outlook?.target&&distance(outlook.position,outlook.target)<=FIELD.shotRange?'цель в пределах дальности':'цель слишком далеко'):
+   'Это действие не требует выбранной цели.';
  }
  $('target-status').textContent=status;
- $('destination-name').textContent=distance(plan.destination,world.player)<6?'Удерживать позицию':'Координаты '+Math.round(plan.destination.x)+' × '+Math.round(plan.destination.y);
+ $('destination-name').textContent=distance(plan.destination,world.player)<6?'Удерживать позицию':'Курс: '+Math.round(plan.destination.x)+' × '+Math.round(plan.destination.y);
+ if(outlook){
+  $('forecast-damage').textContent=outlook.incoming>0?
+   'По вам: ≈ '+outlook.incoming+' ед. урона':'По вам: прямых попаданий не ожидается';
+  const shots=outlook.shots.length,cover=outlook.shots.filter(x=>x.cover).length;
+  $('forecast-detail').textContent='Прогноз залпов: '+shots+'; через укрытие: '+cover+'. '+
+   (node?'По ретранслятору: '+outlook.shots.filter(x=>x.to.id===node.id).reduce((a,x)=>a+x.amount,0)+' ед. урона. ':'')+
+   (plan.action==='pulse'?(outlook.pulseActive?'Импульс подавит противников в радиусе.':'Нет заряда для импульса.'):
+   plan.action==='boost'?'Рывок снижает урон по герою.':plan.action==='hack'&&outlook.canHack?'Канал взлома после движения открыт.':'');
+  const wave=outlook.nextWave;
+  $('reserve-warning').textContent=wave&&wave.turn-world.turn<=3?
+   '⚠ Резерв врага через '+(wave.turn-world.turn)+' ход(а): '+ROLES[wave.role].name.toLowerCase(): '';
+ }else{
+  $('forecast-damage').textContent=world.phase==='won'?'Операция выполнена':'Операция завершилась';
+  $('forecast-detail').textContent=world.message;
+  $('reserve-warning').textContent='';
+ }
  $('execute').hidden=world.phase!=='planning';
  $('execute').disabled=!!transition;
  $('next').hidden=world.phase!=='won'||world.mission===MISSIONS.length-1;
@@ -250,16 +331,17 @@ function execute(){
  const before=world,after=resolveTurn(before,plan);
  transition={before,after,start:performance.now()};
  world=after;save();
- plan={...plan,targetId:getUnit(world,plan.targetId)?.side==='enemy'?plan.targetId:null,destination:{x:world.player.x,y:world.player.y}};
+ plan={...plan,action:plan.action==='pulse'&&!world.player.charge?'hack':plan.action,
+  targetId:getUnit(world,plan.targetId)?.side==='enemy'?plan.targetId:null,destination:{x:world.player.x,y:world.player.y}};
  manualWaypoint=false;
  $('execute').disabled=true;renderUI();
 }
-function next(){if(transition||world.phase!=='won')return;world=nextMission(world);plan={action:'hack',targetId:null,destination:{x:world.player.x,y:world.player.y}};manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();}
+function next(){if(transition||world.phase!=='won')return;world=nextMission(world);plan={action:'hack',formation:'escort',targetId:null,destination:{x:world.player.x,y:world.player.y}};manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();}
 function restart(){
  if(transition)return;
  const full=world.phase==='won'&&world.mission===MISSIONS.length-1;
- world=createMission(full?0:world.mission,world.seed);
- plan={action:'hack',targetId:null,destination:{x:world.player.x,y:world.player.y}};manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();
+ world=createMission(full?0:world.mission,world.seed,full?null:world.entry);
+ plan={action:'hack',formation:'escort',targetId:null,destination:{x:world.player.x,y:world.player.y}};manualWaypoint=false;pan={x:0,y:0};seedStars();save();renderUI();
 }
 function animate(now){
  const elapsed=clamp((now-lastFrame)/1000,0,.15);lastFrame=now;
@@ -286,8 +368,11 @@ canvas.addEventListener('pointerup',e=>{
  if(!moved){const r=canvas.getBoundingClientRect();selectAt(toWorld(e.clientX-r.left,e.clientY-r.top));}
 });
 canvas.addEventListener('pointercancel',()=>drag=null);
-$('order-hack').addEventListener('click',()=>{plan.action='hack';renderUI();});
-$('order-shot').addEventListener('click',()=>{plan.action='shot';renderUI();});
+for(const action of ['hack','shot','boost','pulse']){
+ $('order-'+action).addEventListener('click',()=>{if(action==='pulse'&&!world.player.charge)return;plan.action=action;renderUI();});
+}
+for(const mode of ['escort','strike','relay'])
+ $('formation-'+mode).addEventListener('click',()=>{plan.formation=mode;renderUI();});
 $('execute').addEventListener('click',execute);
 $('next').addEventListener('click',next);
 $('replay').addEventListener('click',restart);
@@ -301,6 +386,8 @@ window.addEventListener('keydown',e=>{
  if(e.code==='Space'||e.code==='Enter'){e.preventDefault();execute();}
  if(e.code==='KeyQ'){plan.action='hack';renderUI();}
  if(e.code==='KeyF'){plan.action='shot';renderUI();}
+ if(e.code==='KeyB'){plan.action='boost';renderUI();}
+ if(e.code==='KeyE'&&world.player.charge){plan.action='pulse';renderUI();}
 });
 window.addEventListener('resize',resize);
 if('ResizeObserver' in window)new ResizeObserver(resize).observe(canvas);
