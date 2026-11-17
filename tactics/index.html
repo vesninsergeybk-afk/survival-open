@@ -23,6 +23,7 @@
    <span class="chip" id="sector-chip">СЕКТОР 01</span>
    <span class="chip" id="turn-chip">ХОД 01</span>
    <span class="chip phase-chip" id="phase-chip">ПЛАНИРОВАНИЕ</span>
+   <span class="chip risk-chip" id="risk-chip" aria-live="polite">УГРОЗА: —</span>
   </div>
   <div class="zoom-control" aria-label="Масштаб карты">
    <button id="zoom-out" type="button" aria-label="Отдалить">−</button><output id="zoom-value">100%</output><button id="zoom-in" type="button" aria-label="Приблизить">+</button>
@@ -88,7 +89,7 @@
 </div>
 <dialog id="help-dialog" class="modal">
  <div class="modal-header"><h2>Как играть</h2><button id="help-close" type="button" aria-label="Закрыть">×</button></div>
- <p>Это тактическая кампания из трёх коротких миссий. Ваша задача — захватывать технику и станции, сохраняя собственный корабль и уцелевшую эскадрилью. Движение, взлом и залпы исполняются одновременно.</p>
+ <p>Это тактическая кампания из трёх коротких миссий. Ваша задача — захватывать технику и станции, сохраняя собственный корабль и уцелевшую эскадрилью. Захваченный ретранслятор придётся защищать от контратаки ещё три хода. Движение, взлом и залпы исполняются одновременно.</p>
  <ol>
   <li><strong>Нажмите на вражеский корабль</strong>, чтобы выбрать цель. Выбранный объект подсвечивается.</li>
   <li><strong>Нажмите на пустое место</strong>, чтобы указать, куда двигаться.</li>
