@@ -76,3 +76,149 @@
 .secondary-actions button{min-width:0;padding:9px 5px;font-size:10px}
 #music-toggle[aria-pressed="true"]{color:#a2f3ce;border-color:#3caa83;background:#1b423d}
 @media(max-width:520px){.turn-events-panel{padding:10px 12px}.unit-control #clear-ally-orders{font-size:10px}}
+
+
+/* Protocol cosmic art pass. Changes only presentation; no combat mechanics. */
+:root{
+ --cosmos-cyan:#74dfe7;
+ --cosmos-mint:#7cebc9;
+ --cosmos-gold:#f0c88d;
+ --cosmos-edge:#46617b;
+}
+body{background:#070f1d}
+.shell{
+ background:
+  radial-gradient(ellipse at 5% -12%,#25495a63,transparent 48%),
+  radial-gradient(ellipse at 101% 98%,#18264b74,transparent 47%),
+  #081220;
+}
+.topbar{
+ border-bottom:1px solid #4b6b803c;
+ background:linear-gradient(112deg,#0c2030f2,#0c1625f4 70%,#12283bf2);
+ box-shadow:0 7px 24px #0005;
+}
+.brand-badge{
+ border-color:#4eacac;
+ background:linear-gradient(138deg,#235a60,#112c3d);
+ color:#b3ffeb;box-shadow:inset 0 1px #bfffff2b,0 0 18px #36ba9b1c;
+}
+.brand strong{color:#effaff;text-shadow:0 1px 10px #82fff018}
+.brand small{color:#a9c5d0}
+.battle{
+ border-color:#5b829c;
+ background:#07111e url("../assets/space/nebula_main.jpg") center/cover no-repeat;
+ box-shadow:
+  inset 0 0 0 1px #b7e4fa14,
+  inset 0 0 58px #02061193,
+  0 12px 38px #0008,0 0 35px #3baeb00e;
+ isolation:isolate;
+}
+.battle::before{background:linear-gradient(180deg,#05121f50,transparent 17%,transparent 85%,#07111e77)}
+.battle::after{
+ content:"";position:absolute;pointer-events:none;z-index:1;inset:0;
+ box-shadow:inset 0 0 0 1px #bcf9ff16,inset 0 0 34px #0006;
+ border-radius:inherit;
+}
+#field{z-index:1}
+.canvas-top,.zoom-control,.legend,.guide{z-index:3}
+.chip{
+ border-color:#5b80978a;
+ background:linear-gradient(145deg,#152e43ee,#0c1b30e8);
+ box-shadow:inset 0 1px #e3ffff10,0 3px 12px #0004;
+ color:#d8f3f5;
+}
+.phase-chip{
+ color:#b8ffe9;border-color:#4aa38e;
+ background:linear-gradient(140deg,#194e4aef,#123b43ef);
+}
+.canvas-top .risk-chip.danger{
+ color:#ffcfb9;border-color:#ba756b;
+ background:linear-gradient(135deg,#542d3bea,#3d2031eb);
+}
+.zoom-control,.legend{
+ border-color:#5c80958c;
+ background:linear-gradient(145deg,#0e2235ee,#081524e9);
+ box-shadow:0 4px 16px #0005,inset 0 1px #d2f7ff13;
+}
+.zoom-control button{background:#203c52;color:#edfbff}
+.zoom-control button:hover{background:#2b5769}
+.guide{
+ color:#c3dce8;
+ text-shadow:0 2px 4px #020a16,0 0 9px #020a16;
+}
+.mission{
+ border-color:#4f8394;
+ background:
+ radial-gradient(circle at 94% 0%,#427b8c33,transparent 43%),
+ linear-gradient(138deg,#1b394b,#152940 64%,#14253a);
+ box-shadow:inset 0 1px #d5fff212,0 7px 20px #0002;
+}
+.mission h1{color:#f3fffd;letter-spacing:.015em}
+.panel{
+ border-color:#3c5d72;
+ background:linear-gradient(142deg,#182e43,#11253a);
+ box-shadow:inset 0 1px #d2fff60b,0 5px 17px #0002;
+}
+.stats>div{
+ border-color:#3d6074;
+ background:linear-gradient(155deg,#1d354a,#12273d);
+ box-shadow:inset 0 1px #dbffff0c;
+}
+.stats strong{color:#e8f9ff}
+.stats small{color:#adc6d7}
+.meter{height:6px;background:#0d1d2c;box-shadow:inset 0 1px 3px #0007}
+.meter>span{box-shadow:0 0 8px currentColor}
+.order{
+ border-color:#47677b;
+ background:linear-gradient(140deg,#234057,#162b42);
+ box-shadow:inset 0 1px #e5fbff10;
+ transition:border-color .14s,background-color .14s,transform .14s;
+}
+.order.selected{
+ border-color:#79ebd5;
+ background:linear-gradient(140deg,#215e59,#174346);
+ box-shadow:inset 0 0 0 1px #a3fff72b,0 0 18px #45d9b01b;
+}
+.order.selected .order-icon{color:#c3fff0}
+.order small{color:#aecbd6}
+.formation{
+ border-color:#47677b;
+ background:linear-gradient(130deg,#203c54,#182d43);
+ transition:filter .14s,border-color .14s;
+}
+.formation.selected{
+ border-color:#74e5cf;
+ color:#f4fffb;
+ background:linear-gradient(130deg,#265c59,#1a484a);
+ box-shadow:inset 0 0 0 1px #b0f6ef26;
+}
+.execute:not(:disabled){
+ background:linear-gradient(108deg,#7df0c9,#85e2ef 55%,#b6ffe2);
+ box-shadow:0 4px 0 #247e78,0 9px 24px #27bfb53d;
+}
+.status{background:linear-gradient(125deg,#153c48,#112840);border-left-color:#88f5d3}
+.threat-panel{
+ background:linear-gradient(127deg,#30283c,#172c43 80%);
+ border-color:#746783;
+}
+.salvage-panel{
+ border-color:#5ba992;
+ background:linear-gradient(128deg,#204c47,#153047);
+}
+#cosmos-toggle{color:#a8e4ee;border-color:#5689a0}
+#cosmos-toggle[aria-pressed="true"]{color:#b7fff0;border-color:#4eae9c;background:#163c3f}
+@media(hover:hover){
+ .order:not(:disabled):hover{border-color:#7dbbd0;transform:translateY(-1px)}
+ .formation:not(:disabled):hover{border-color:#83abc1;filter:brightness(1.09)}
+ .secondary-actions button:hover{border-color:#72b9c1;color:#e3fff9}
+}
+@media(max-width:520px){
+ .battle{box-shadow:inset 0 0 20px #02061182,0 6px 20px #0007}
+ .secondary-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .secondary-actions button{min-height:38px;font-size:10px}
+ .zoom-control{background:#091d2ae8}
+ .guide{max-width:min(260px,calc(100% - 22px))}
+}
+@media(prefers-reduced-motion:reduce){
+ .order,.formation{transition:none!important;transform:none!important}
+}
