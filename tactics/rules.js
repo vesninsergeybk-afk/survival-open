@@ -31,7 +31,7 @@ export function createMission(index=0,seed=1729,retained=null){
  carried.forEach((s,i)=>ships.push({...makeShip('ally-'+mission+'-'+i,s.role,300+(i%3)*46,480+Math.floor(i/3)*65,'ally'),hp:clamp(s.hp+16,1,ROLES[s.role].hp)}));
  const stations=mission===0?[]:[{id:mission===1?'relay':'core',role:mission===1?'relay':'core',x:1540,y:510,side:'enemy',hp:180,hack:0}];
  const asteroids=Array.from({length:9},(_,i)=>({x:clamp(300+random()*1200,170,1650),y:clamp(150+random()*760,130,920),r:19+random()*27}));
- return {version:1,mission,seed,turn:0,player:{x:220,y:530,hp:retained?clamp(retained.player.hp+30,45,110):110,maxHp:110},ships,stations,asteroids,phase:'planning',message:'Выберите цель и направление, затем выполните ход.',events:[],lastPlan:null};
+ return {version:1,mission,seed,turn:0,networkSlots:Math.max(0,Math.min(4,Math.trunc(retained?.networkSlots||0))),player:{x:220,y:530,hp:retained?clamp(retained.player.hp+30,45,110):110,maxHp:110},ships,stations,asteroids,phase:'planning',message:'Выберите цель и направление, затем выполните ход.',events:[],lastPlan:null};
 }
 export function getUnit(state,id){
  if(id==='player')return state.player;
@@ -53,7 +53,7 @@ export function hackNeed(state,target){
  if(target.role==='relay')return 3;
  return Math.max(1,(ROLES[target.role]?.hack||3)-(state.stations.some(s=>s.role==='relay'&&s.side==='ally')?1:0));
 }
-export const tacticalCapacity=state=>Math.min(FIELD.maxAllies,2+state.stations.filter(s=>s.side==='ally').length*2);
+export const tacticalCapacity=state=>Math.min(FIELD.maxAllies,2+Math.max(0,Math.min(4,state.networkSlots||0))+state.stations.filter(s=>s.role==='relay'&&s.side==='ally').length*2);
 export function normalizePlan(state,plan={}){
  const destination=inside(plan.destination)?{x:plan.destination.x,y:plan.destination.y}:{x:state.player.x,y:state.player.y};
  const target=getUnit(state,plan.targetId);
@@ -172,5 +172,8 @@ export function resolveTurn(input,requested){
  return state;
 }
 export function nextMission(state){
- return state.phase==='won'&&state.mission<MISSIONS.length-1?createMission(state.mission+1,state.seed,{player:state.player,ships:aliveAllies(state)}):state;
+ return state.phase==='won'&&state.mission<MISSIONS.length-1?createMission(state.mission+1,state.seed,{player:state.player,ships:aliveAllies(state),
+  // A captured relay grants permanent command bandwidth across later missions.
+  networkSlots:Math.min(4,(state.networkSlots||0)+
+   (state.stations.some(s=>s.role==='relay'&&s.side==='ally')?2:0))}):state;
 }
