@@ -115,9 +115,11 @@ test('playable convoy strategy wins across several layouts while unattended tran
 test('updated HUD shows campaign, ally controls, upgrade choices and old-arcade link',()=>{
  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const js=readFileSync(new URL('../game.js',import.meta.url),'utf8');
- for(const id of ['convoy-status','convoy-progress','convoy-health','focus-player','active-unit','salvage-panel','upgrade-0','upgrade-1','ally-orders-summary'])
+ for(const id of ['convoy-status','convoy-progress','convoy-health','focus-player','active-unit','salvage-panel','upgrade-0','upgrade-1','ally-orders-summary','clear-ally-orders','music-toggle','turn-events'])
   assert.ok(html.includes('id="'+id+'"'),id);
  assert.match(js,/PRIOR_STORE/);
+ assert.match(js,/describeTurn\(world\)/);
+ assert.match(js,/cosmic-journey\.ogg/);
  assert.match(js,/nextMission\(world,selectedUpgrade\)/);
  assert.match(html,/href="\.\.\/arcade\/"/);
 });
